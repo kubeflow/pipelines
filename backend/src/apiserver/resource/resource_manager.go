@@ -24,13 +24,14 @@ import (
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -87,9 +88,9 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 	return r.experimentStore.GetExperiment(experimentId)
 }
 
-func (r *ResourceManager) ListExperiments(context *common.PaginationContext) (
-	experiments []model.Experiment, nextPageToken string, err error) {
-	return r.experimentStore.ListExperiments(context)
+func (r *ResourceManager) ListExperiments(opts *list.Options) (
+	experiments []*model.Experiment, nextPageToken string, err error) {
+	return r.experimentStore.ListExperiments(opts)
 }
 
 func (r *ResourceManager) DeleteExperiment(experimentID string) error {
@@ -100,9 +101,9 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 	return r.experimentStore.DeleteExperiment(experimentID)
 }
 
-func (r *ResourceManager) ListPipelines(context *common.PaginationContext) (
-	pipelines []model.Pipeline, nextPageToken string, err error) {
-	return r.pipelineStore.ListPipelines(context)
+func (r *ResourceManager) ListPipelines(opts *list.Options) (
+	pipelines []*model.Pipeline, nextPageToken string, err error) {
+	return r.pipelineStore.ListPipelines(opts)
 }
 
 func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error) {
@@ -225,8 +226,16 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 	return r.runStore.GetRun(runId)
 }
 
-func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, paginationContext *common.PaginationContext) (runs []model.Run, nextPageToken string, err error) {
-	return r.runStore.ListRuns(filterContext, paginationContext)
+func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, opts *list.Options) (runs []*model.Run, nextPageToken string, err error) {
+	return r.runStore.ListRuns(filterContext, opts)
+}
+
+func (r *ResourceManager) ArchiveRun(runId string) error {
+	return r.runStore.ArchiveRun(runId)
+}
+
+func (r *ResourceManager) UnarchiveRun(runId string) error {
+	return r.runStore.UnarchiveRun(runId)
 }
 
 func (r *ResourceManager) DeleteRun(runID string) error {
@@ -247,8 +256,8 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 	return nil
 }
 
-func (r *ResourceManager) ListJobs(filterContext *common.FilterContext, context *common.PaginationContext) (jobs []model.Job, nextPageToken string, err error) {
-	return r.jobStore.ListJobs(filterContext, context)
+func (r *ResourceManager) ListJobs(filterContext *common.FilterContext, opts *list.Options) (jobs []*model.Job, nextPageToken string, err error) {
+	return r.jobStore.ListJobs(filterContext, opts)
 }
 
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
@@ -364,6 +373,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 			UUID:             runId,
 			DisplayName:      workflow.Name,
 			Name:             workflow.Name,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        workflow.Namespace,
 			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
 			ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),

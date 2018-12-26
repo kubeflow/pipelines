@@ -49,19 +49,14 @@ def main():
   test_name = args.testname + ' Sample Test'
 
   ###### Initialization ######
-  client = Client(namespace=args.namespace)
+  host = 'ml-pipeline.%s.svc.cluster.local:8888' % args.namespace
+  client = Client(host=host)
 
   ###### Get experiments ######
-  list_experiments_response = client.list_experiments(page_size=100)
-  for experiment in list_experiments_response.experiments:
-    if experiment.name == args.experiment:
-      experiment_id = experiment.id
+  experiment_id = client.get_experiment(experiment_name=args.experiment).id
 
   ###### Get runs ######
-  import kfp_run
-  resource_reference_key_type =kfp_run.models.api_resource_type.ApiResourceType.EXPERIMENT
-  resource_reference_key_id = experiment_id
-  list_runs_response = client.list_runs(page_size=1000, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
+  list_runs_response = client.list_runs(page_size=1000, experiment_id=experiment_id)
 
   ###### Check all runs ######
   for run in list_runs_response.runs:

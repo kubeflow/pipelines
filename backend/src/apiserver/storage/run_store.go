@@ -20,7 +20,9 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -29,13 +31,19 @@ import (
 type RunStoreInterface interface {
 	GetRun(runId string) (*model.RunDetail, error)
 
-	ListRuns(filterContext *common.FilterContext, pagination *common.PaginationContext) ([]model.Run, string, error)
+	ListRuns(filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, string, error)
 
 	// Create a run entry in the database
 	CreateRun(run *model.RunDetail) (*model.RunDetail, error)
 
 	// Update run table. Only condition and runtime manifest is allowed to be updated.
 	UpdateRun(id string, condition string, workflowRuntimeManifest string) (err error)
+
+	// Archive a run
+	ArchiveRun(id string) error
+
+	// Unarchive a run
+	UnarchiveRun(id string) error
 
 	// Delete a run entry from the database
 	DeleteRun(id string) error
@@ -54,44 +62,46 @@ type RunStore struct {
 }
 
 func (s *RunStore) ListRuns(
-	filterContext *common.FilterContext, paginationContext *common.PaginationContext) ([]model.Run, string, error) {
-	queryRunTable := func(request *common.PaginationContext) ([]model.ListableDataModel, error) {
-		return s.queryRunTable(filterContext, request)
+	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, string, error) {
+	errorF := func(err error) ([]*model.Run, string, error) {
+		return nil, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
-	models, pageToken, err := listModel(paginationContext, queryRunTable)
-	if err != nil {
-		return nil, "", util.Wrap(err, "List runs failed.")
-	}
-	return s.toRunMetadatas(models), pageToken, err
-}
 
-func (s *RunStore) queryRunTable(
-	filterContext *common.FilterContext, paginationContext *common.PaginationContext) ([]model.ListableDataModel, error) {
 	sqlBuilder := s.selectRunDetails()
-
 	// Add filter condition
 	sqlBuilder, err := s.toFilteredQuery(sqlBuilder, filterContext)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to create query to list run.")
+		return errorF(err)
 	}
 
-	// Add pagination condition
-	sql, args, err := toPaginationQuery(sqlBuilder, paginationContext).Limit(uint64(paginationContext.PageSize)).ToSql()
+	sql, args, err := opts.AddToSelect(sqlBuilder).ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to list runs: %v",
-			err.Error())
-	}
-	r, err := s.db.Query(sql, args...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list runs: %v", err.Error())
-	}
-	defer r.Close()
-	runs, err := s.scanRows(r)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list runs: %v", err.Error())
+		return errorF(err)
 	}
 
-	return s.toListableModels(runs), nil
+	rows, err := s.db.Query(sql, args...)
+	if err != nil {
+		return errorF(err)
+	}
+	defer rows.Close()
+
+	runDetails, err := s.scanRows(rows)
+	if err != nil {
+		return errorF(err)
+	}
+
+	var runs []*model.Run
+	for _, rd := range runDetails {
+		r := rd.Run
+		runs = append(runs, &r)
+	}
+
+	if len(runs) <= opts.PageSize {
+		return runs, "", nil
+	}
+
+	npt, err := opts.NextPageToken(runs[opts.PageSize])
+	return runs[:opts.PageSize], npt, err
 }
 
 func (s *RunStore) toFilteredQuery(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
@@ -138,7 +148,7 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 		// This can only happen when workflow reporting is failed.
 		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
 	}
-	return &runs[0], nil
+	return runs[0], nil
 }
 
 func (s *RunStore) selectRunDetails() sq.SelectBuilder {
@@ -154,23 +164,36 @@ func (s *RunStore) selectRunDetails() sq.SelectBuilder {
 		Select("subq.*", resourceRefConcatQuery+" AS refs").
 		FromSelect(subQ, "subq").
 		// Append all the resource references for the run as a json column
-		LeftJoin("resource_references AS r ON subq.UUID=r.ResourceUUID").
-		Where(sq.Eq{"r.ResourceType": common.Run}).
+		LeftJoin("(select * from resource_references where ResourceType='Run') AS r ON subq.UUID=r.ResourceUUID").
 		GroupBy("subq.UUID")
 }
 
-func (s *RunStore) scanRows(rows *sql.Rows) ([]model.RunDetail, error) {
-	var runs []model.RunDetail
+func (s *RunStore) scanRows(rows *sql.Rows) ([]*model.RunDetail, error) {
+	var runs []*model.RunDetail
 	for rows.Next() {
-		var uuid, displayName, name, namespace, description, pipelineId, pipelineSpecManifest, workflowSpecManifest,
-			parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
+		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineSpecManifest,
+			workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec int64
 		var metricsInString, resourceReferencesInString sql.NullString
 		err := rows.Scan(
-			&uuid, &displayName, &name, &namespace, &description, &createdAtInSec, &scheduledAtInSec,
-			&conditions, &pipelineId, &pipelineSpecManifest, &workflowSpecManifest, &parameters,
-			&pipelineRuntimeManifest, &workflowRuntimeManifest,
-			&metricsInString, &resourceReferencesInString)
+			&uuid,
+			&displayName,
+			&name,
+			&storageState,
+			&namespace,
+			&description,
+			&createdAtInSec,
+			&scheduledAtInSec,
+			&conditions,
+			&pipelineId,
+			&pipelineSpecManifest,
+			&workflowSpecManifest,
+			&parameters,
+			&pipelineRuntimeManifest,
+			&workflowRuntimeManifest,
+			&metricsInString,
+			&resourceReferencesInString,
+		)
 		if err != nil {
 			glog.Errorf("Failed to scan row: %v", err)
 			return runs, nil
@@ -187,10 +210,11 @@ func (s *RunStore) scanRows(rows *sql.Rows) ([]model.RunDetail, error) {
 			// throw internal exception if failed to parse the resource reference.
 			return nil, util.NewInternalServerError(err, "Failed to parse resource reference.")
 		}
-		runs = append(runs, model.RunDetail{Run: model.Run{
+		runs = append(runs, &model.RunDetail{Run: model.Run{
 			UUID:               uuid,
 			DisplayName:        displayName,
 			Name:               name,
+			StorageState:       storageState,
 			Namespace:          namespace,
 			Description:        description,
 			CreatedAtInSec:     createdAtInSec,
@@ -235,12 +259,20 @@ func parseResourceReferences(resourceRefString sql.NullString) ([]*model.Resourc
 }
 
 func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
+	if r.StorageState == "" {
+		r.StorageState = api.Run_STORAGESTATE_AVAILABLE.String()
+	} else if r.StorageState != api.Run_STORAGESTATE_AVAILABLE.String() &&
+		r.StorageState != api.Run_STORAGESTATE_ARCHIVED.String() {
+		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", r.StorageState)
+	}
+
 	runSql, runArgs, err := sq.
 		Insert("run_details").
 		SetMap(sq.Eq{
 			"UUID":                    r.UUID,
 			"DisplayName":             r.DisplayName,
 			"Name":                    r.Name,
+			"StorageState":            r.StorageState,
 			"Namespace":               r.Namespace,
 			"Description":             r.Description,
 			"CreatedAtInSec":          r.CreatedAtInSec,
@@ -317,6 +349,52 @@ func (s *RunStore) CreateOrUpdateRun(runDetail *model.RunDetail) error {
 			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
 			runDetail.Namespace, runDetail.Name, createError.Error(), updateError.Error()))
 	}
+	return nil
+}
+
+func (s *RunStore) ArchiveRun(runId string) error {
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
+		}).
+		Where(sq.Eq{"UUID": runId}).
+		ToSql()
+
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to archive run %s. error: '%v'", runId, err.Error())
+	}
+
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to archive run %s. error: '%v'", runId, err.Error())
+	}
+
+	return nil
+}
+
+func (s *RunStore) UnarchiveRun(runId string) error {
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"StorageState": api.Run_STORAGESTATE_AVAILABLE.String(),
+		}).
+		Where(sq.Eq{"UUID": runId}).
+		ToSql()
+
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to unarchive run %s. error: '%v'", runId, err.Error())
+	}
+
+	_, err = s.db.Exec(sql, args...)
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to unarchive run %s. error: '%v'", runId, err.Error())
+	}
+
 	return nil
 }
 

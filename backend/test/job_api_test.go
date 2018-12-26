@@ -34,6 +34,11 @@ type JobApiTestSuite struct {
 
 // Check the namespace have ML pipeline installed and ready
 func (s *JobApiTestSuite) SetupTest() {
+	if !*runIntegrationTests {
+		s.T().SkipNow()
+		return
+	}
+
 	err := waitForReady(*namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
@@ -158,9 +163,8 @@ func (s *JobApiTestSuite) TestJobApis() {
 
 	/* ---------- List the jobs, sort by unsupported field ---------- */
 	jobs, _, err = s.jobClient.List(&jobparams.ListJobsParams{
-		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("description")})
+		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknown")})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Failed to list jobs")
 
 	/* ---------- List jobs for hello world experiment. One job should be returned ---------- */
 	jobs, _, err = s.jobClient.List(&jobparams.ListJobsParams{

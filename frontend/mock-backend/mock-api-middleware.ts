@@ -25,6 +25,7 @@ import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
 import { ApiRun, ApiListRunsResponse, ApiResourceType } from '../src/apis/run';
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import RunUtils from '../src/lib/RunUtils';
+import { Response } from 'express-serve-static-core';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocMetadataJsonPath2 = './eval-output/metadata2.json';
@@ -497,20 +498,16 @@ export default (app: express.Application) => {
     res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
   });
 
-  app.options(v1beta1Prefix + '/pipelines/upload', (req, res) => {
-    res.send();
-  });
-  app.post(v1beta1Prefix + '/pipelines/upload', (req, res) => {
+  function mockCreatePipeline(res: Response, name: string, body?: any): void {
     res.header('Content-Type', 'application/json');
     // Don't allow uploading multiple pipelines with the same name
-    const pipelineName = decodeURIComponent(req.query.name);
-    if (fixedData.pipelines.find((p) => p.name === pipelineName)) {
+    if (fixedData.pipelines.find((p) => p.name === name)) {
       res.status(502).send(
-        `A Pipeline named: "${pipelineName}" already exists. Please choose a different name.`);
+        `A Pipeline named: "${name}" already exists. Please choose a different name.`);
     } else {
-      const pipeline = req.body;
+      const pipeline = body || {};
       pipeline.id = 'new-pipeline-' + (fixedData.pipelines.length + 1);
-      pipeline.name = pipelineName;
+      pipeline.name = name;
       pipeline.created_at = new Date();
       pipeline.description =
         'TODO: the mock middleware does not actually use the uploaded pipeline';
@@ -530,6 +527,20 @@ export default (app: express.Application) => {
         res.send(fixedData.pipelines[fixedData.pipelines.length - 1]);
       }, 1000);
     }
+  }
+
+  app.options(v1beta1Prefix + '/pipelines', (req, res) => {
+    res.send();
+  });
+  app.post(v1beta1Prefix + '/pipelines', (req, res) => {
+    mockCreatePipeline(res, req.body.name);
+  });
+
+  app.options(v1beta1Prefix + '/pipelines/upload', (req, res) => {
+    res.send();
+  });
+  app.post(v1beta1Prefix + '/pipelines/upload', (req, res) => {
+    mockCreatePipeline(res, decodeURIComponent(req.query.name), req.body);
   });
 
   app.get('/artifacts/get', (req, res) => {

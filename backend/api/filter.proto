@@ -1,0 +1,117 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package api;
+
+import "google/protobuf/timestamp.proto";
+
+// Predicate captures individual conditions that must be true for a resource
+// being filtered.
+message Predicate {
+  // Op is the operation to apply.
+  enum Op {
+    UNKNOWN = 0;
+
+    // Operators on scalar values. Only applies to one of |int_value|,
+    // |long_value|, |string_value| or |timestamp_value|.
+    EQUALS = 1;
+    NOT_EQUALS = 2;
+    GREATER_THAN = 3;
+    GREATER_THAN_EQUALS = 5;
+    LESS_THAN = 6;
+    LESS_THAN_EQUALS = 7;
+
+    // Checks if the value is a member of a given array, which should be one of
+    // |int_values|, |long_values| or |string_values|.
+    IN = 8;
+  }
+  Op op = 1;
+
+  string key = 2;
+  oneof value {
+    int32 int_value = 3;
+    int64 long_value = 4;
+    string string_value = 5;
+
+    // Timestamp values will be converted to Unix time (seconds since the epoch)
+    // prior to being used in a filtering operation.
+    google.protobuf.Timestamp timestamp_value = 6;
+
+    // Array values below are only meant to be used by the IN operator.
+    IntValues int_values = 7;
+    LongValues long_values = 8;
+    StringValues string_values = 9;
+  }
+}
+
+message IntValues {
+  repeated int32 values = 1;
+}
+
+message StringValues {
+  repeated string values = 2;
+}
+
+message LongValues {
+  repeated int64 values = 3;
+}
+
+// Filter is used to filter resources returned from a ListXXX request.
+//
+// Example filters:
+// 1) Filter runs with status = 'Running'
+// filter {
+//   predicate {
+//     key: "status"
+//     op: EQUALS
+//     string_value: "Running"
+//   }
+// }
+//
+// 2) Filter runs that succeeded since Dec 1, 2018
+// filter {
+//   predicate {
+//     key: "status"
+//     op: EQUALS
+//     string_value: "Succeeded"
+//   }
+//   predicate {
+//     key: "created_at"
+//     op: GREATER_THAN
+//     timestamp_value {
+//       seconds: 1543651200
+//     }
+//   }
+// }
+//
+// 3) Filter runs with one of labels 'label_1' or 'label_2'
+//
+// filter {
+//   predicate {
+//     key: "label"
+//     op: IN
+//     string_values {
+//       value: 'label_1'
+//       value: 'label_2'
+//     }
+//   }
+// }
+message Filter {
+  // All predicates are AND-ed when this filter is applied.
+  repeated Predicate predicates = 1;
+}
+
+

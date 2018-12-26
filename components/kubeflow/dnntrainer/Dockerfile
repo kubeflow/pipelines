@@ -12,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:16.04
+ARG TF_TAG
+FROM tensorflow/tensorflow:$TF_TAG
 
 RUN apt-get update -y
 
 RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools \
                                                   wget unzip git
 
-RUN easy_install pip
-
 RUN apt-get install --no-install-recommends -y -q build-essential && \
     pip install pyyaml==3.12 six==1.11.0 \
-        tensorflow==1.6.0 \
         tensorflow-transform==0.6.0 \
         tensorflow-model-analysis==0.6.0 && \
     apt-get --purge autoremove -y build-essential

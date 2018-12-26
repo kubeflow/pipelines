@@ -34,6 +34,10 @@ def main(argv=None):
   parser = argparse.ArgumentParser(description='ML Trainer')
   parser.add_argument('--predictions', type=str, help='GCS path of prediction file pattern.')
   parser.add_argument('--output', type=str, help='GCS path of the output directory.')
+  parser.add_argument('--target_lambda', type=str,
+                      help='a lambda function as a string to compute target.' +
+                           'For example, "lambda x: x[\'a\'] + x[\'b\']"' +
+                           'If not set, the input must include a "target" column.')
   args = parser.parse_args()
 
   schema_file = os.path.join(os.path.dirname(args.predictions), 'schema.json')
@@ -46,6 +50,9 @@ def main(argv=None):
       dfs.append(pd.read_csv(f, names=names))
     
   df = pd.concat(dfs)
+  if args.target_lambda:
+    df['target'] = df.apply(eval(args.target_lambda), axis=1)
+
   vocab = list(df['target'].unique())
   cm = confusion_matrix(df['target'], df['predicted'], labels=vocab)
   data = []
@@ -69,7 +76,8 @@ def main(argv=None):
         {'name': 'count', 'type': 'NUMBER'},
       ],
       'source': cm_file,
-      'labels': vocab,
+      # Convert vocab to string because for bealean values we want "True|False" to match csv data.
+      'labels': list(map(str, vocab)),
     }]
   }
   with file_io.FileIO('/mlpipeline-ui-metadata.json', 'w') as f:

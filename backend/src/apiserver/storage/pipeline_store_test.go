@@ -17,7 +17,7 @@ package storage
 import (
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -44,26 +44,26 @@ func TestListPipelines_FilterOutNotReady(t *testing.T) {
 	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDThree, nil)
 	pipelineStore.CreatePipeline(&model.Pipeline{Name: "pipeline3", Status: model.PipelineCreating})
-	expectedPipeline1 := model.Pipeline{
+
+	expectedPipeline1 := &model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pipeline1",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
-	expectedPipeline2 := model.Pipeline{
+	expectedPipeline2 := &model.Pipeline{
 		UUID:           fakeUUIDTwo,
 		CreatedAtInSec: 2,
 		Name:           "pipeline2",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
-	pipelinesExpected := []model.Pipeline{expectedPipeline1, expectedPipeline2}
+	pipelinesExpected := []*model.Pipeline{expectedPipeline1, expectedPipeline2}
 
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines(&common.PaginationContext{
-		PageSize:        10,
-		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
-		SortByFieldName: model.GetPipelineTablePrimaryKeyColumn(),
-		IsDesc:          false,
-	})
+	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", nil)
+	assert.Nil(t, err)
+
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines(opts)
+
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, pipelinesExpected, pipelines)
@@ -80,54 +80,45 @@ func TestListPipelines_Pagination(t *testing.T) {
 	pipelineStore.CreatePipeline(createPipeline("pipeline4"))
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
 	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
-	expectedPipeline1 := model.Pipeline{
+	expectedPipeline1 := &model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pipeline1",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
-	expectedPipeline4 := model.Pipeline{
+	expectedPipeline4 := &model.Pipeline{
 		UUID:           fakeUUIDFour,
 		CreatedAtInSec: 4,
 		Name:           "pipeline2",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
-	pipelinesExpected := []model.Pipeline{expectedPipeline1, expectedPipeline4}
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines(&common.PaginationContext{
-		PageSize:        2,
-		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
-		SortByFieldName: "Name",
-		IsDesc:          false,
-	})
+	pipelinesExpected := []*model.Pipeline{expectedPipeline1, expectedPipeline4}
+
+	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name", nil)
+	assert.Nil(t, err)
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, pipelinesExpected, pipelines)
 
-	expectedPipeline2 := model.Pipeline{
+	expectedPipeline2 := &model.Pipeline{
 		UUID:           fakeUUIDTwo,
 		CreatedAtInSec: 2,
 		Name:           "pipeline3",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
-	expectedPipeline3 := model.Pipeline{
+	expectedPipeline3 := &model.Pipeline{
 		UUID:           fakeUUIDThree,
 		CreatedAtInSec: 3,
 		Name:           "pipeline4",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
-	pipelinesExpected2 := []model.Pipeline{expectedPipeline2, expectedPipeline3}
+	pipelinesExpected2 := []*model.Pipeline{expectedPipeline2, expectedPipeline3}
 
-	pipelines, nextPageToken, err = pipelineStore.ListPipelines(
-		&common.PaginationContext{
-			Token: &common.Token{
-				SortByFieldValue: "pipeline3",
-				// The value of the key field of the next row to be returned.
-				KeyFieldValue: fakeUUIDTwo},
-			PageSize:        2,
-			KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
-			SortByFieldName: "Name",
-			IsDesc:          false,
-		})
+	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	assert.Nil(t, err)
+
+	pipelines, nextPageToken, err = pipelineStore.ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, pipelinesExpected2, pipelines)
@@ -145,53 +136,44 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDFour, nil)
 	pipelineStore.CreatePipeline(createPipeline("pipeline2"))
 
-	expectedPipeline2 := model.Pipeline{
+	expectedPipeline2 := &model.Pipeline{
 		UUID:           fakeUUIDTwo,
 		CreatedAtInSec: 2,
 		Name:           "pipeline3",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
-	expectedPipeline3 := model.Pipeline{
+	expectedPipeline3 := &model.Pipeline{
 		UUID:           fakeUUIDThree,
 		CreatedAtInSec: 3,
 		Name:           "pipeline4",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
-	pipelinesExpected := []model.Pipeline{expectedPipeline3, expectedPipeline2}
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines(&common.PaginationContext{
-		PageSize:        2,
-		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
-		SortByFieldName: "Name",
-		IsDesc:          true,
-	})
+	pipelinesExpected := []*model.Pipeline{expectedPipeline3, expectedPipeline2}
+
+	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name desc", nil)
+	assert.Nil(t, err)
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, pipelinesExpected, pipelines)
 
-	expectedPipeline1 := model.Pipeline{
+	expectedPipeline1 := &model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pipeline1",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
-	expectedPipeline4 := model.Pipeline{
+	expectedPipeline4 := &model.Pipeline{
 		UUID:           fakeUUIDFour,
 		CreatedAtInSec: 4,
 		Name:           "pipeline2",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
-	pipelinesExpected2 := []model.Pipeline{expectedPipeline4, expectedPipeline1}
-	pipelines, nextPageToken, err = pipelineStore.ListPipelines(
-		&common.PaginationContext{
-			Token: &common.Token{
-				SortByFieldValue: "pipeline2",
-				// The value of the key field of the next row to be returned.
-				KeyFieldValue: fakeUUIDFour},
-			PageSize:        2,
-			KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
-			SortByFieldName: "Name",
-			IsDesc:          true,
-		})
+	pipelinesExpected2 := []*model.Pipeline{expectedPipeline4, expectedPipeline1}
+
+	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	assert.Nil(t, err)
+	pipelines, nextPageToken, err = pipelineStore.ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, pipelinesExpected2, pipelines)
@@ -202,20 +184,17 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
 	pipelineStore.CreatePipeline(createPipeline("pipeline1"))
-	expectedPipeline1 := model.Pipeline{
+	expectedPipeline1 := &model.Pipeline{
 		UUID:           fakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "pipeline1",
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineReady}
-	pipelinesExpected := []model.Pipeline{expectedPipeline1}
+	pipelinesExpected := []*model.Pipeline{expectedPipeline1}
 
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines(&common.PaginationContext{
-		PageSize:        2,
-		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
-		SortByFieldName: model.GetPipelineTablePrimaryKeyColumn(),
-		IsDesc:          false,
-	})
+	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
+	assert.Nil(t, err)
+	pipelines, nextPageToken, err := pipelineStore.ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, pipelinesExpected, pipelines)
@@ -226,11 +205,9 @@ func TestListPipelinesError(t *testing.T) {
 	defer db.Close()
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeUUID, nil))
 	db.Close()
-	_, _, err := pipelineStore.ListPipelines(&common.PaginationContext{
-		PageSize:     2,
-		KeyFieldName: model.GetPipelineTablePrimaryKeyColumn(),
-		IsDesc:       true,
-	})
+	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
+	assert.Nil(t, err)
+	_, _, err = pipelineStore.ListPipelines(opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 

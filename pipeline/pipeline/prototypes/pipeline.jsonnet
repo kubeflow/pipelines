@@ -9,6 +9,8 @@
 // @optionalParam uiImage string gcr.io/ml-pipeline/frontend:0.1.3 UI docker image
 // @optionalParam deployArgo string false flag to deploy argo
 // @optionalParam reportUsage string false flag to report usage
+// @optionalParam mysqlImage string mysql:5.6 mysql image
+// @optionalParam minioImage string minio/minio:RELEASE.2018-02-09T22-40-05Z minio image
 
 local k = import "k.libsonnet";
 local all = import "pipeline/pipeline/all.libsonnet";
