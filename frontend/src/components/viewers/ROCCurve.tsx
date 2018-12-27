@@ -105,9 +105,6 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
   }
 
   public render(): JSX.Element {
-    // tslint:disable-next-line:no-console
-    console.log('roc curve render');
-
     const width = this.props.maxDimension || 800;
     const height = width * 0.65;
     const isSmall = width < 600;

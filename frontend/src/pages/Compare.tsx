@@ -102,8 +102,6 @@ class Compare extends Page<{}, CompareState> {
   }
 
   public render(): JSX.Element {
-    // tslint:disable-next-line:no-console
-    console.log('compare page render');
     const { collapseSections, selectedIds, viewersMap } = this.state;
 
     const queryParamRunIds = new URLParser(this.props).get(QUERY_PARAMS.runlist);
@@ -144,36 +142,38 @@ class Compare extends Page<{}, CompareState> {
       <Separator orientation='vertical' />
 
       {Array.from(viewersMap.keys()).map((viewerType, i) =>
-        <div key={i}>
-          <CollapseButton collapseSections={collapseSections}
-            compareSetState={this.setStateSafe.bind(this)}
-            sectionName={componentMap[viewerType].prototype.getDisplayName()} />
-          {!collapseSections[componentMap[viewerType].prototype.getDisplayName()] && (
-            <React.Fragment>
-              <div className={classes(commonCss.flex, css.outputsRow)}>
-                {/* If the component allows aggregation, add one more card for
+        !!runsPerViewerType(viewerType).length && (
+          <div key={i}>
+            <CollapseButton collapseSections={collapseSections}
+              compareSetState={this.setStateSafe.bind(this)}
+              sectionName={componentMap[viewerType].prototype.getDisplayName()} />
+            {!collapseSections[componentMap[viewerType].prototype.getDisplayName()] && (
+              <React.Fragment>
+                <div className={classes(commonCss.flex, css.outputsRow)}>
+                  {/* If the component allows aggregation, add one more card for
                 its aggregated view. Only do this if there is more than one
                 output, filtering out any unselected runs. */}
-                {(componentMap[viewerType].prototype.isAggregatable() && (
-                  runsPerViewerType(viewerType).length > 1) && (
-                    <PlotCard configs={
-                      runsPerViewerType(viewerType).map(t => t.config)} maxDimension={400}
-                      title='Aggregated view' />
-                  )
-                )}
+                  {(componentMap[viewerType].prototype.isAggregatable() && (
+                    runsPerViewerType(viewerType).length > 1) && (
+                      <PlotCard configs={
+                        runsPerViewerType(viewerType).map(t => t.config)} maxDimension={400}
+                        title='Aggregated view' />
+                    )
+                  )}
 
-                {runsPerViewerType(viewerType).map((taggedConfig, c) => (
-                  <PlotCard key={c} configs={[taggedConfig.config]} title={taggedConfig.runName}
-                    maxDimension={400} />
-                ))}
-                <Separator />
+                  {runsPerViewerType(viewerType).map((taggedConfig, c) => (
+                    <PlotCard key={c} configs={[taggedConfig.config]} title={taggedConfig.runName}
+                      maxDimension={400} />
+                  ))}
+                  <Separator />
 
-              </div>
-              <Hr />
-            </React.Fragment>
-          )}
-          <Separator orientation='vertical' />
-        </div>
+                </div>
+                <Hr />
+              </React.Fragment>
+            )}
+            <Separator orientation='vertical' />
+          </div>
+        )
       )}
     </div>);
   }

@@ -166,8 +166,6 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
   }
 
   public render(): JSX.Element | null {
-    // tslint:disable-next-line:no-console
-    console.log('confusion matrix render');
     if (!this._config) {
       return null;
     }

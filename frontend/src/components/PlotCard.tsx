@@ -99,6 +99,11 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
     };
   }
 
+  public shouldComponentUpdate(nextProps: PlotCardProps, nextState: PlotCardState): boolean {
+    return JSON.stringify(nextProps) !== JSON.stringify(this.props) ||
+      nextState.fullscreenDialogOpen !== this.state.fullscreenDialogOpen;
+  }
+
   public render(): JSX.Element | null {
     const { title, configs, maxDimension, ...otherProps } = this.props;
 
