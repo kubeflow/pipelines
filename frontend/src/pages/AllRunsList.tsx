@@ -23,6 +23,8 @@ import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { s, errorToMessage } from 'src/lib/Utils';
+import { Apis } from 'src/lib/Apis';
 
 interface AllRunsListState {
   selectedIds: string[];
@@ -47,6 +49,14 @@ class AllRunsList extends Page<{}, AllRunsListState> {
         Buttons.compareRuns(this._compareRuns.bind(this)),
         Buttons.cloneRun(this._cloneRun.bind(this)),
         Buttons.refresh(this.refresh.bind(this)),
+        Buttons.archive(() => this.props.updateDialog({
+          buttons: [
+            { onClick: async () => await this._archiveDialogClosed(true), text: 'Archive' },
+            { onClick: async () => await this._archiveDialogClosed(false), text: 'Cancel' },
+          ],
+          onClose: async () => await this._archiveDialogClosed(false),
+          title: `Archive ${this.state.selectedIds.length} run${s(this.state.selectedIds.length)}?`,
+        })),
       ],
       breadcrumbs: [],
       pageTitle: 'Experiments',
@@ -90,6 +100,8 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     toolbarActions[1].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
     // Clone run button
     toolbarActions[2].disabled = selectedIds.length !== 1;
+    // Archive run button
+    toolbarActions[3].disabled = !selectedIds.length;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
   }
@@ -103,6 +115,40 @@ class AllRunsList extends Page<{}, AllRunsListState> {
       this.props.history.push(RoutePage.NEW_RUN + searchString);
     }
   }
+
+  private async _archiveDialogClosed(confirmed: boolean): Promise<void> {
+    if (confirmed) {
+      const unsuccessfulIds: string[] = [];
+      const errorMessages: string[] = [];
+      await Promise.all(this.state.selectedIds.map(async (id) => {
+        try {
+          await Apis.runServiceApi.archiveRun(id);
+        } catch (err) {
+          unsuccessfulIds.push(id);
+          const errorMessage = await errorToMessage(err);
+          errorMessages.push(`Deleting run failed with error: "${errorMessage}"`);
+        }
+      }));
+
+      const successfulObjects = this.state.selectedIds.length - unsuccessfulIds.length;
+      if (successfulObjects > 0) {
+        this.props.updateSnackbar({
+          message: `Successfully archived ${successfulObjects} run${s(successfulObjects)}!`,
+          open: true,
+        });
+        this.refresh();
+      }
+
+      if (unsuccessfulIds.length > 0) {
+        this.showErrorDialog(
+          `Failed to archive ${unsuccessfulIds.length} run${s(unsuccessfulIds)}`,
+          errorMessages.join('\n\n'));
+      }
+
+      this._selectionChanged(unsuccessfulIds);
+    }
+  }
+
 }
 
 export default AllRunsList;

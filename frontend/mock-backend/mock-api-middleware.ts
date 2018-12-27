@@ -17,8 +17,15 @@ import * as fs from 'fs';
 import * as _path from 'path';
 import RunUtils from '../src/lib/RunUtils';
 import helloWorldRuntime from './integration-test-runtime';
+<<<<<<< HEAD
 import proxyMiddleware from '../server/proxy-middleware';
 import { ApiFilter, PredicateOp } from '../src/apis/filter/api';
+=======
+import { data as fixedData, namedPipelines } from './fixed-data';
+import { ApiPipeline, ApiListPipelinesResponse } from '../src/apis/pipeline';
+import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
+import { ApiRun, ApiListRunsResponse, ApiResourceType, RunStorageState } from '../src/apis/run';
+>>>>>>> wip mock backend changes, need to use filter for storagestate
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
 import { ApiListPipelinesResponse, ApiPipeline } from '../src/apis/pipeline';
@@ -107,8 +114,17 @@ export default (app: express.Application) => {
     };
 
     let jobs: ApiJob[] = fixedData.jobs;
+<<<<<<< HEAD
     if (req.query.filter) {
       jobs = filterResources(fixedData.jobs, req.query.filter);
+=======
+    if (req.query.filter_by) {
+      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
+      // This may need to be updated when the backend implements filtering.
+      jobs = fixedData.jobs.filter((j) =>
+        j.name!.toLocaleLowerCase().indexOf(
+          decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
+>>>>>>> wip mock backend changes, need to use filter for storagestate
     }
 
     const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.CREATED_AT, req.query.sort_by);
@@ -253,6 +269,7 @@ export default (app: express.Application) => {
     }
   });
 
+<<<<<<< HEAD
   app.get(v1beta1Prefix + '/jobs/:jid/runs', (req, res) => {
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
@@ -306,6 +323,8 @@ export default (app: express.Application) => {
     res.json(response);
   });
 
+=======
+>>>>>>> wip mock backend changes, need to use filter for storagestate
   app.get(v1beta1Prefix + '/runs', (req, res) => {
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
@@ -314,7 +333,9 @@ export default (app: express.Application) => {
       runs: [],
     };
 
-    let runs: ApiRun[] = fixedData.runs.map((r) => r.run!);
+    let runs: ApiRun[] = fixedData.runs
+      .map(r => r.run!)
+      .filter(r => r.storageState === RunStorageState.AVAILABLE);
 
     if (req.query.filter) {
       runs = filterResources(runs, req.query.filter);
@@ -359,7 +380,6 @@ export default (app: express.Application) => {
     res.json(run);
   });
 
-
   app.post(v1beta1Prefix + '/runs', (req, res) => {
     const date = new Date();
     const run: ApiRun = req.body;
@@ -377,6 +397,32 @@ export default (app: express.Application) => {
     setTimeout(() => {
       res.send(fixedData.jobs[fixedData.jobs.length - 1]);
     }, 1000);
+  });
+
+  app.options(v1beta1Prefix + '/runs/:jid::archive', (req, res) => {
+    res.send();
+  });
+  app.post(v1beta1Prefix + '/runs/:rid::archive', (req, res) => {
+    const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
+    if (runDetail) {
+      runDetail.run!.storageState = RunStorageState.ARCHIVED;
+      res.json({});
+    } else {
+      res.status(500).send('Cannot find a run with id ' + req.params.rid);
+    }
+  });
+
+  app.options(v1beta1Prefix + '/runs/:jid::unarchive', (req, res) => {
+    res.send();
+  });
+  app.post(v1beta1Prefix + '/runs/:rid::unarchive', (req, res) => {
+    const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
+    if (runDetail) {
+      runDetail.run!.storageState = RunStorageState.AVAILABLE;
+      res.json({});
+    } else {
+      res.status(500).send('Cannot find a run with id ' + req.params.rid);
+    }
   });
 
   app.options(v1beta1Prefix + '/jobs/:jid/enable', (req, res) => {
@@ -454,8 +500,17 @@ export default (app: express.Application) => {
     };
 
     let pipelines: ApiPipeline[] = fixedData.pipelines;
+<<<<<<< HEAD
     if (req.query.filter) {
       pipelines = filterResources(fixedData.pipelines, req.query.filter);
+=======
+    if (req.query.filter_by) {
+      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
+      // This may need to be updated depending on how the backend implements filtering.
+      pipelines = fixedData.pipelines.filter((p) =>
+        p.name!.toLocaleLowerCase().indexOf(
+          decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
+>>>>>>> wip mock backend changes, need to use filter for storagestate
     }
 
     const { desc, key } = getSortKeyAndOrder(PipelineSortKeys.CREATED_AT, req.query.sort_by);
