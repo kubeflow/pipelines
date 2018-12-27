@@ -117,7 +117,7 @@ class Compare extends Page<{}, CompareState> {
 
       {/* Overview section */}
       <CollapseButton sectionName={overviewSectionName} collapseSections={collapseSections}
-        compareSetState={this.setStateSafe.bind(this)}/>
+        compareSetState={this.setStateSafe.bind(this)} />
       {!collapseSections[overviewSectionName] && (
         <div className={commonCss.noShrink}>
           <RunList onError={this.showPageError.bind(this)} {...this.props}
@@ -130,7 +130,7 @@ class Compare extends Page<{}, CompareState> {
 
       {/* Parameters section */}
       <CollapseButton sectionName={paramsSectionName} collapseSections={collapseSections}
-        compareSetState={this.setStateSafe.bind(this)}/>
+        compareSetState={this.setStateSafe.bind(this)} />
       {!collapseSections[paramsSectionName] && (
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
@@ -213,9 +213,9 @@ class Compare extends Page<{}, CompareState> {
     }
 
     this.setStateSafe({
-      runs,	
-      selectedIds: runs.map(r => r.run!.id!),	
-      workflowObjects,	
+      runs,
+      selectedIds: runs.map(r => r.run!.id!),
+      workflowObjects,
     }, () => this._loadParameters());
 
     const outputPathsList = workflowObjects.map(
