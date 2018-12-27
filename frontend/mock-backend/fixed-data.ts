@@ -20,7 +20,7 @@ import xgboostRun from './mock-xgboost-runtime';
 import { ApiExperiment } from '../src/apis/experiment';
 import { ApiJob } from '../src/apis/job';
 import { ApiPipeline } from '../src/apis/pipeline';
-import { ApiRunDetail, ApiResourceType, ApiRelationship, RunMetricFormat } from '../src/apis/run';
+import { ApiRunDetail, ApiResourceType, ApiRelationship, RunMetricFormat, RunStorageState } from '../src/apis/run';
 
 function padStartTwoZeroes(str: string): string {
   let padded = str || '';
@@ -299,6 +299,7 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-03-17T20:58:23.000Z'),
       status: 'Failed:Succeeded',
+      storageState: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -347,6 +348,7 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-04-17T21:00:00.000Z'),
       status: 'Error',
+      storageState: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -379,6 +381,7 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-05-17T21:58:23.000Z'),
       status: 'Running',
+      storageState: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -404,6 +407,7 @@ const runs: ApiRunDetail[] = [
       },
       scheduled_at: new Date('2018-06-17T22:58:23.000Z'),
       status: 'Failed',
+      storageState: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -450,6 +454,7 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-07-17T23:58:23.000Z'),
       status: 'Pending',
+      storageState: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -497,6 +502,7 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-08-18T20:58:23.000Z'),
       status: 'Succeeded',
+      storageState: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -536,6 +542,7 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-08-18T20:58:23.000Z'),
       status: 'Succeeded',
+      storageState: RunStorageState.AVAILABLE,
     },
   },
 ];
@@ -609,6 +616,7 @@ function generateNRuns(): ApiRunDetail[] {
         }],
         scheduled_at: new Date('2018-02-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
         status: 'Succeeded',
+        storageState: RunStorageState.AVAILABLE,
       },
     });
   }

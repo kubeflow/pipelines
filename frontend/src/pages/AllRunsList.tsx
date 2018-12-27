@@ -21,6 +21,8 @@ import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { s, errorToMessage } from 'src/lib/Utils';
+import { Apis } from 'src/lib/Apis';
 
 interface AllRunsListState {
   selectedIds: string[];
@@ -74,6 +76,8 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     toolbarActions[1].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
     // Clone run button
     toolbarActions[2].disabled = selectedIds.length !== 1;
+    // Archive run button
+    toolbarActions[3].disabled = !selectedIds.length;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
   }
