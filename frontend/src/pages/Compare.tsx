@@ -102,6 +102,8 @@ class Compare extends Page<{}, CompareState> {
   }
 
   public render(): JSX.Element {
+    // tslint:disable-next-line:no-console
+    console.log('compare page render');
     const { collapseSections, selectedIds, viewersMap } = this.state;
 
     const queryParamRunIds = new URLParser(this.props).get(QUERY_PARAMS.runlist);
@@ -212,11 +214,13 @@ class Compare extends Page<{}, CompareState> {
       return;
     }
 
+    const selectedIds = runs.map(r => r.run!.id!);
     this.setStateSafe({
       runs,
-      selectedIds: runs.map(r => r.run!.id!),
+      selectedIds,
       workflowObjects,
-    }, () => this._loadParameters());
+    });
+    this._loadParameters(selectedIds);
 
     const outputPathsList = workflowObjects.map(
       workflow => WorkflowParser.loadAllOutputPaths(workflow));
@@ -245,7 +249,8 @@ class Compare extends Page<{}, CompareState> {
   }
 
   protected _selectionChanged(selectedIds: string[]): void {
-    this.setState({ selectedIds }, () => this._loadParameters());
+    this.setState({ selectedIds });
+    this._loadParameters(selectedIds);
   }
 
   private _collapseAllSections(): void {
@@ -257,8 +262,8 @@ class Compare extends Page<{}, CompareState> {
     this.setState({ collapseSections });
   }
 
-  private _loadParameters(): void {
-    const { runs, selectedIds, workflowObjects } = this.state;
+  private _loadParameters(selectedIds: string[]): void {
+    const { runs, workflowObjects } = this.state;
 
     const selectedIndices = selectedIds.map(id => runs.findIndex(r => r.run!.id === id));
     const filteredRuns = runs.filter((_, i) => selectedIndices.indexOf(i) > -1);
