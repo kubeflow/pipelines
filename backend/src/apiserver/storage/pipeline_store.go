@@ -71,26 +71,24 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer rows.Close()
+	pipelines, err := s.scanRows(rows)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	rows.Close()
 
 	countRow, err := tx.Query(countSql, countArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer rows.Close()
-
-	pipelines, err := s.scanRows(rows)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-
 	count, err := s.scanRowToCount(countRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	countRow.Close()
 
 	tx.Commit()
 	if err != nil {

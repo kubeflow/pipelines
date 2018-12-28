@@ -100,26 +100,24 @@ func (s *RunStore) ListRuns(
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer rows.Close()
+	runDetails, err := s.scanRowsToRunDetails(rows)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	rows.Close()
 
 	countRow, err := tx.Query(countSql, countArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer countRow.Close()
-
-	runDetails, err := s.scanRowsToRunDetails(rows)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-
 	count, err := s.scanRowToCount(countRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	countRow.Close()
 
 	tx.Commit()
 	if err != nil {
