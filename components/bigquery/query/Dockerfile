@@ -14,10 +14,6 @@
 
 FROM ml-pipeline-bigquery-base
 
-RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q build-essential && \
-    apt-get --purge autoremove -y build-essential
-
 WORKDIR /ml
 
 RUN mkdir /usr/licenses && \
