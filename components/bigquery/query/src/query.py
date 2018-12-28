@@ -63,9 +63,15 @@ def parse_arguments():
       required=True,
       help='The SQL query to be run in BigQuery')
   parser.add_argument(
-      '--dataset_id', type=str, help='Dataset of the destination table.')
+      '--dataset_id',
+      type=str,
+      required=True,
+      help='Dataset of the destination table.')
   parser.add_argument(
-      '--table_id', type=str, help='Name of the destination table.')
+      '--table_id',
+      type=str,
+      required=True,
+      help='Name of the destination table.')
   parser.add_argument(
       '--project',
       type=str,
@@ -87,7 +93,8 @@ def main():
   logging.getLogger().setLevel(logging.INFO)
   args = parse_arguments()
 
-  run_query(args.query, args.project, args.dataset_id, args.table_id, args.output)
+  run_query(args.query, args.project, args.dataset_id, args.table_id,
+            args.output)
 
 
 if __name__ == '__main__':
