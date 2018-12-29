@@ -115,16 +115,24 @@ export default (app: express.Application) => {
 
     let jobs: ApiJob[] = fixedData.jobs;
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (req.query.filter) {
       jobs = filterResources(fixedData.jobs, req.query.filter);
 =======
     if (req.query.filter_by) {
+=======
+    if (req.query.filter) {
+>>>>>>> filter_by -> filter, remove options handlers
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated when the backend implements filtering.
       jobs = fixedData.jobs.filter((j) =>
         j.name!.toLocaleLowerCase().indexOf(
+<<<<<<< HEAD
           decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
 >>>>>>> wip mock backend changes, need to use filter for storagestate
+=======
+          decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
+>>>>>>> filter_by -> filter, remove options handlers
     }
 
     const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.CREATED_AT, req.query.sort_by);
@@ -161,7 +169,15 @@ export default (app: express.Application) => {
 
     let experiments: ApiExperiment[] = fixedData.experiments;
     if (req.query.filter) {
+<<<<<<< HEAD
       experiments = filterResources(fixedData.experiments, req.query.filter);
+=======
+      // NOTE: We do not mock fuzzy matching. E.g. 'ep' doesn't match 'experiment'
+      experiments = fixedData.experiments.filter((exp) =>
+        exp.name!.toLocaleLowerCase().indexOf(
+          decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
+
+>>>>>>> filter_by -> filter, remove options handlers
     }
 
     const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.NAME, req.query.sortBy);
@@ -211,10 +227,6 @@ export default (app: express.Application) => {
       return;
     }
     res.json(experiment);
-  });
-
-  app.options(v1beta1Prefix + '/jobs', (req, res) => {
-    res.send();
   });
 
   app.post(v1beta1Prefix + '/jobs', (req, res) => {
@@ -338,7 +350,14 @@ export default (app: express.Application) => {
       .filter(r => r.storageState === RunStorageState.AVAILABLE);
 
     if (req.query.filter) {
+<<<<<<< HEAD
       runs = filterResources(runs, req.query.filter);
+=======
+      // NOTE: We do not mock fuzzy matching. E.g. 'rn' doesn't match 'run'
+      // This may need to be updated when the backend implements filtering.
+      runs = runs.filter((r) => r.name!.toLocaleLowerCase().indexOf(
+        decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
+>>>>>>> filter_by -> filter, remove options handlers
     }
 
     if (req.query['resource_reference_key.type'] === ApiResourceType.EXPERIMENT) {
@@ -399,9 +418,6 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.options(v1beta1Prefix + '/runs/:jid::archive', (req, res) => {
-    res.send();
-  });
   app.post(v1beta1Prefix + '/runs/:rid::archive', (req, res) => {
     const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
     if (runDetail) {
@@ -412,9 +428,6 @@ export default (app: express.Application) => {
     }
   });
 
-  app.options(v1beta1Prefix + '/runs/:jid::unarchive', (req, res) => {
-    res.send();
-  });
   app.post(v1beta1Prefix + '/runs/:rid::unarchive', (req, res) => {
     const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
     if (runDetail) {
@@ -425,9 +438,6 @@ export default (app: express.Application) => {
     }
   });
 
-  app.options(v1beta1Prefix + '/jobs/:jid/enable', (req, res) => {
-    res.send();
-  });
   app.post(v1beta1Prefix + '/jobs/:jid/enable', (req, res) => {
     setTimeout(() => {
       const job = fixedData.jobs.find((j) => j.id === req.params.jid);
@@ -440,9 +450,6 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.options(v1beta1Prefix + '/jobs/:jid/disable', (req, res) => {
-    res.send();
-  });
   app.post(v1beta1Prefix + '/jobs/:jid/disable', (req, res) => {
     setTimeout(() => {
       const job = fixedData.jobs.find((j) => j.id === req.params.jid);
@@ -501,16 +508,24 @@ export default (app: express.Application) => {
 
     let pipelines: ApiPipeline[] = fixedData.pipelines;
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (req.query.filter) {
       pipelines = filterResources(fixedData.pipelines, req.query.filter);
 =======
     if (req.query.filter_by) {
+=======
+    if (req.query.filter) {
+>>>>>>> filter_by -> filter, remove options handlers
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated depending on how the backend implements filtering.
       pipelines = fixedData.pipelines.filter((p) =>
         p.name!.toLocaleLowerCase().indexOf(
+<<<<<<< HEAD
           decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
 >>>>>>> wip mock backend changes, need to use filter for storagestate
+=======
+          decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
+>>>>>>> filter_by -> filter, remove options handlers
     }
 
     const { desc, key } = getSortKeyAndOrder(PipelineSortKeys.CREATED_AT, req.query.sort_by);
@@ -552,12 +567,6 @@ export default (app: express.Application) => {
     }
     // Delete the pipelines from fixedData.
     fixedData.pipelines.splice(i, 1);
-    res.json({});
-  });
-
-  // Needed to avoid "Response for preflight does not have HTTP ok status." error.
-  app.options(v1beta1Prefix + '/pipelines/:pid', (req, res) => {
-    res.header('Content-Type', 'application/json');
     res.json({});
   });
 
@@ -615,16 +624,10 @@ export default (app: express.Application) => {
     }
   }
 
-  app.options(v1beta1Prefix + '/pipelines', (req, res) => {
-    res.send();
-  });
   app.post(v1beta1Prefix + '/pipelines', (req, res) => {
     mockCreatePipeline(res, req.body.name);
   });
 
-  app.options(v1beta1Prefix + '/pipelines/upload', (req, res) => {
-    res.send();
-  });
   app.post(v1beta1Prefix + '/pipelines/upload', (req, res) => {
     mockCreatePipeline(res, decodeURIComponent(req.query.name), req.body);
   });
@@ -662,9 +665,6 @@ export default (app: express.Application) => {
     res.send(tensorboardPod);
   });
 
-  app.options(v1beta1Prefix + '/apps/tensorboard', (req, res) => {
-    res.send();
-  });
   app.post('/apps/tensorboard', (req, res) => {
     tensorboardPod = 'http://tensorboardserver:port';
     setTimeout(() => {
