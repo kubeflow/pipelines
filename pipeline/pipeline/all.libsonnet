@@ -28,8 +28,8 @@
     argo:: if (deployArgo == true) || (deployArgo == "true") then
       argo.parts(namespace).all
     else [],
-    all:: minio.parts(namespace, minioImage).all +
-          mysql.parts(namespace, mysqlImage).all +
+    all:: minio.all(namespace, minioImage) +
+          mysql.all(namespace, mysqlImage) +
           pipeline_apiserver.all(namespace, apiImage) +
           pipeline_scheduledworkflow.all(namespace, scheduledWorkflowImage) +
           pipeline_persistenceagent.all(namespace, persistenceAgentImage) +
