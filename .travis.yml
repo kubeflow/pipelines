@@ -45,7 +45,7 @@ script:
   - python3 -m unittest discover --verbose --start-dir tests --top-level-directory=..
 
   # Backend tests
-  - cd $TRAVIS_BUILD_DIR/backend
+  - cd $TRAVIS_BUILD_DIR/backend/src
   - gimme -f 1.11.4
   - source ~/.gimme/envs/go1.11.4.env
   - go test ./...
