@@ -16,6 +16,7 @@ syntax = "proto3";
 
 package api;
 
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 // Predicate captures individual conditions that must be true for a resource
