@@ -89,6 +89,12 @@ for the list runs operation typically these are written to a http.Request
 */
 type ListRunsParams struct {
 
+	/*Filter
+	  A base-64 encoded, JSON-serialized Filter protocol buffer (see
+	filter.proto).
+
+	*/
+	Filter *string
 	/*PageSize*/
 	PageSize *int32
 	/*PageToken*/
@@ -146,6 +152,17 @@ func (o *ListRunsParams) WithHTTPClient(client *http.Client) *ListRunsParams {
 // SetHTTPClient adds the HTTPClient to the list runs params
 func (o *ListRunsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
+}
+
+// WithFilter adds the filter to the list runs params
+func (o *ListRunsParams) WithFilter(filter *string) *ListRunsParams {
+	o.SetFilter(filter)
+	return o
+}
+
+// SetFilter adds the filter to the list runs params
+func (o *ListRunsParams) SetFilter(filter *string) {
+	o.Filter = filter
 }
 
 // WithPageSize adds the pageSize to the list runs params
@@ -210,6 +227,22 @@ func (o *ListRunsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 		return err
 	}
 	var res []error
+
+	if o.Filter != nil {
+
+		// query param filter
+		var qrFilter string
+		if o.Filter != nil {
+			qrFilter = *o.Filter
+		}
+		qFilter := qrFilter
+		if qFilter != "" {
+			if err := r.SetQueryParam("filter", qFilter); err != nil {
+				return err
+			}
+		}
+
+	}
 
 	if o.PageSize != nil {
 

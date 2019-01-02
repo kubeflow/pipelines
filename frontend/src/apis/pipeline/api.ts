@@ -409,10 +409,11 @@ export const PipelineServiceApiFetchParamCreator = function (configuration?: Con
          * @param {string} [page_token] 
          * @param {number} [page_size] 
          * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listPipelines(page_token?: string, page_size?: number, sort_by?: string, options: any = {}): FetchArgs {
+        listPipelines(page_token?: string, page_size?: number, sort_by?: string, filter?: string, options: any = {}): FetchArgs {
             const localVarPath = `/apis/v1beta1/pipelines`;
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
@@ -437,6 +438,10 @@ export const PipelineServiceApiFetchParamCreator = function (configuration?: Con
 
             if (sort_by !== undefined) {
                 localVarQueryParameter['sort_by'] = sort_by;
+            }
+
+            if (filter !== undefined) {
+                localVarQueryParameter['filter'] = filter;
             }
 
             localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
@@ -535,11 +540,12 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
          * @param {string} [page_token] 
          * @param {number} [page_size] 
          * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listPipelines(page_token?: string, page_size?: number, sort_by?: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListPipelinesResponse> {
-            const localVarFetchArgs = PipelineServiceApiFetchParamCreator(configuration).listPipelines(page_token, page_size, sort_by, options);
+        listPipelines(page_token?: string, page_size?: number, sort_by?: string, filter?: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListPipelinesResponse> {
+            const localVarFetchArgs = PipelineServiceApiFetchParamCreator(configuration).listPipelines(page_token, page_size, sort_by, filter, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -600,11 +606,12 @@ export const PipelineServiceApiFactory = function (configuration?: Configuration
          * @param {string} [page_token] 
          * @param {number} [page_size] 
          * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listPipelines(page_token?: string, page_size?: number, sort_by?: string, options?: any) {
-            return PipelineServiceApiFp(configuration).listPipelines(page_token, page_size, sort_by, options)(fetch, basePath);
+        listPipelines(page_token?: string, page_size?: number, sort_by?: string, filter?: string, options?: any) {
+            return PipelineServiceApiFp(configuration).listPipelines(page_token, page_size, sort_by, filter, options)(fetch, basePath);
         },
     };
 };
@@ -665,12 +672,13 @@ export class PipelineServiceApi extends BaseAPI {
      * @param {} [page_token] 
      * @param {} [page_size] 
      * @param {} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
+     * @param {} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof PipelineServiceApi
      */
-    public listPipelines(page_token?: string, page_size?: number, sort_by?: string, options?: any) {
-        return PipelineServiceApiFp(this.configuration).listPipelines(page_token, page_size, sort_by, options)(this.fetch, this.basePath);
+    public listPipelines(page_token?: string, page_size?: number, sort_by?: string, filter?: string, options?: any) {
+        return PipelineServiceApiFp(this.configuration).listPipelines(page_token, page_size, sort_by, filter, options)(this.fetch, this.basePath);
     }
 
 }

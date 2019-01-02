@@ -89,6 +89,12 @@ for the list jobs operation typically these are written to a http.Request
 */
 type ListJobsParams struct {
 
+	/*Filter
+	  A base-64 encoded, JSON-serialized Filter protocol buffer (see
+	filter.proto).
+
+	*/
+	Filter *string
 	/*PageSize*/
 	PageSize *int32
 	/*PageToken*/
@@ -146,6 +152,17 @@ func (o *ListJobsParams) WithHTTPClient(client *http.Client) *ListJobsParams {
 // SetHTTPClient adds the HTTPClient to the list jobs params
 func (o *ListJobsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
+}
+
+// WithFilter adds the filter to the list jobs params
+func (o *ListJobsParams) WithFilter(filter *string) *ListJobsParams {
+	o.SetFilter(filter)
+	return o
+}
+
+// SetFilter adds the filter to the list jobs params
+func (o *ListJobsParams) SetFilter(filter *string) {
+	o.Filter = filter
 }
 
 // WithPageSize adds the pageSize to the list jobs params
@@ -210,6 +227,22 @@ func (o *ListJobsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Regi
 		return err
 	}
 	var res []error
+
+	if o.Filter != nil {
+
+		// query param filter
+		var qrFilter string
+		if o.Filter != nil {
+			qrFilter = *o.Filter
+		}
+		qFilter := qrFilter
+		if qFilter != "" {
+			if err := r.SetQueryParam("filter", qFilter); err != nil {
+				return err
+			}
+		}
+
+	}
 
 	if o.PageSize != nil {
 
