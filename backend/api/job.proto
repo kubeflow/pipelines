@@ -24,7 +24,6 @@ import "pipeline_spec.proto";
 import "resource_reference.proto";
 import "run.proto";
 import "protoc-gen-swagger/options/annotations.proto";
-import "filter.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   responses: {
@@ -119,7 +118,9 @@ message ListJobsRequest{
   // resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
   ResourceKey resource_reference_key = 4;
 
-  Filter filter = 5;
+  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
+  // filter.proto).
+  string filter = 5;
 }
 
 message ListJobsResponse {
