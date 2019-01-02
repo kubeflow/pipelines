@@ -27,7 +27,7 @@ import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
 import ChevronLeft from '@material-ui/icons/ChevronLeft';
 import ChevronRight from '@material-ui/icons/ChevronRight';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import ChipInput from 'material-ui-chip-input';
+import ChipInput, { ChipRendererArgs } from 'material-ui-chip-input';
 import IconButton from '@material-ui/core/IconButton';
 import MenuItem from '@material-ui/core/MenuItem';
 import Radio from '@material-ui/core/Radio';
@@ -42,7 +42,8 @@ import { fonts, fontsize, dimension, commonCss, color, padding } from '../Css';
 import { logger } from '../lib/Utils';
 import Chip from '@material-ui/core/Chip';
 import Paper from '@material-ui/core/Paper';
-import { SuggestionsFetchRequestedParams } from 'react-autosuggest';
+import { SuggestionsFetchRequestedParams, SuggestionHighlightedParams, SuggestionSelectedEventData } from 'react-autosuggest';
+import { InputProps } from '@material-ui/core/Input';
 
 export enum ExpandState {
   COLLAPSED,
@@ -197,11 +198,12 @@ interface CustomTableState {
   currentPage: number;
   filterBy: string;
   filterChips: FilterChip[];
+  filterShouldShowTypes: boolean;
   isBusy: boolean;
   maxPageIndex: number;
-  sortOrder: 'asc' | 'desc';
   pageSize: number;
   sortBy: string;
+  sortOrder: 'asc' | 'desc';
   suggestions: string[];
   textFieldInput: string;
   tokenList: string[];
@@ -209,6 +211,10 @@ interface CustomTableState {
 
 export default class CustomTable extends React.Component<CustomTableProps, CustomTableState> {
   private _isMounted = true;
+  private inputRef = React.createRef<React.ComponentType<InputProps>>();
+
+  private FILTER_TYPE_SUGGESTIONS = ['Name', 'Created at'];
+  private FILTER_VALUE_SUGGESTIONS = ['Pipeline 1', 'Pipeline 2'];
 
   constructor(props: CustomTableProps) {
     super(props);
@@ -216,19 +222,17 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this.state = {
       currentPage: 0,
       filterBy: '',
-      filterChips: [
-        // { key: 'Chip 1', value: { type: 'Name', x: 'test' } },
-        // { key: 'Chip 2', value: { type: 'Name', x: 'pipeline' } },
-      ],
+      filterChips: [],
+      // This will control whether we are showing the filter types (name, timestamp, etc.) or actual values
+      filterShouldShowTypes: true,
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,
       sortBy: props.initialSortColumn ||
         (props.columns.length ? props.columns[0].sortKey || '' : ''),
       sortOrder: props.initialSortOrder || 'desc',
-      // TODO: this should be empty initially, or set to a reasonable value
-      suggestions: ['one', 'two', 'test'],
-      textFieldInput: 'riley-textFieldInput',
+      suggestions: this.FILTER_TYPE_SUGGESTIONS,
+      textFieldInput: 'textFieldInput default value',
       tokenList: [''],
     };
   }
@@ -286,41 +290,40 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
     // tslint:disable-next-line:no-console
     console.log('renderChipInput', inputProps);
+    // tslint:disable-next-line:no-console
+    console.log('value:', value);
     return (
     <ChipInput
       classes={{}}
+      InputProps={{
+        // this ref is the typical react ref. it is not necessary.
+        ref: this.inputRef,
+      }}
       // dataSource={[{ key: 'resource_name', value: 'name' }, { key: 'created_at', value: 'CreatedAt' }]}
       // dataSourceConfig={{ text: 'key', value: 'value.x' }}
       value={this.state.filterChips}
       onUpdateInput={onChange}
       onAdd={onAdd}
       onDelete={onDelete}
+      // this ref appears to be an empty function, but seems to be necessary
       inputRef={ref}
       {...other}
       chipRenderer={(
-        {
-          // tslint:disable-next-line:no-shadowed-variable
-          value,
-          isFocused,
-          isDisabled,
-          handleClick,
-        },
-        key
+        args: ChipRendererArgs,
+        key: any,
       ) => {
         // tslint:disable-next-line:no-console
-        // console.log('key', key);
-        // tslint:disable-next-line:no-console
-        // console.log('value', value);
+        console.log('ChipRendererArgs', args);
         return (
         <Chip
           key={key}
           style={{
-            backgroundColor: isFocused ? 'red' : 'green',
-            pointerEvents: isDisabled ? 'none' : undefined,
+            backgroundColor: args.isFocused ? 'red' : 'green',
+            pointerEvents: args.isDisabled ? 'none' : undefined,
           }}
-          onClick={handleClick}
+          onClick={args.handleClick}
           onDelete={onDelete}
-          label={(value as any).value.x}
+          label={(args.value as any).value.x}
         />
       );}}
     />);
@@ -337,11 +340,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     // console.log('-------------------------------');
     const matches = match(suggestion, obj.query);
     const parts = parse(suggestion, matches);
-    // const parts = [
-    //   {text: 'r-1', highlight: false},
-    //   {text: 'r-2', highlight: true},
-    //   {text: 'r-3', highlight: false}
-    // ];
 
     return (
       <MenuItem
@@ -370,27 +368,22 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     // tslint:disable-next-line:no-console
     console.log('handleSuggestionsFetchRequested', param);
     // TODO: actually fetch suggestions
-    const possibleSuggestions = ['one', 'two', 'test'];
+    const possibleSuggestions =
+      this.state.filterShouldShowTypes
+      ? this.FILTER_TYPE_SUGGESTIONS
+      : this.FILTER_VALUE_SUGGESTIONS;
     this.setStateSafe({ suggestions: possibleSuggestions.filter(s => param.value && s.startsWith(param.value))});
   }
 
-  // public async handleSuggestionsClearRequested(): Promise<void> {
-  //   // TODO: anything else need to happen?
-  // }
-
-  public renderInput (inputProps: any): JSX.Element {
-    const { autoFocus, value, onChange, onAdd, onDelete, chips, ref, ...other } = inputProps;
-  
-    return (
-      <ChipInput
-        onUpdateInput={onChange}
-        onAdd={onAdd}
-        onDelete={onDelete}
-        value={chips}
-        inputRef={ref}
-        {...other}
-    />
-    );
+  public async handleSuggestionsClearRequested(): Promise<void> {
+    // TODO: anything else need to happen?
+    // tslint:disable-next-line:no-console
+    console.log('clear! (actually reseting, not clearing)');
+    const possibleSuggestions =
+      this.state.filterShouldShowTypes
+        ? this.FILTER_TYPE_SUGGESTIONS
+        : this.FILTER_VALUE_SUGGESTIONS;
+    this.setStateSafe({ suggestions: possibleSuggestions });
   }
 
   public renderSuggestionsContainer (options: any): JSX.Element {
@@ -400,19 +393,47 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     const { containerProps, children } = options;
   
     return (
-      <Paper {...containerProps} square={true}>
+      <Paper {...containerProps} square={true} style={{ width: 120 }} >
         {children}
       </Paper>
     );
   }
 
-  public handletextFieldInputChange = (event: React.FormEvent<any>, param: Autosuggest.ChangeEvent) => {
+  public handleSuggestionHighlighted(params: SuggestionHighlightedParams): void {
+    // TODO: this will need to be updated if suggestion becomes more than a string.
+    // tslint:disable-next-line:no-console
+    console.log('handleSuggestionHighlighted', params);
+    if (params && params.suggestion) {
+      this.setStateSafe({ textFieldInput: params.suggestion });
+    }
+  }
+
+  public handleTextFieldInputChange = (event: React.FormEvent<any>, param: Autosuggest.ChangeEvent) => {
     // tslint:disable-next-line:no-console
     console.log('handletextFieldInputChange', event, param);
-    this.setState({
+    this.setStateSafe({
       textFieldInput: param.newValue
     });
   };
+
+  public shouldRenderSuggestion(value: string): boolean {
+    const { suggestions } = this.state;
+    // tslint:disable-next-line:no-console
+    // console.log('shouldRenderSuggestions', value, !!value && !!suggestions.find(s => s.toLocaleLowerCase().startsWith(value.toLocaleLowerCase())));
+    return !!value && !!suggestions.find(s => s.toLocaleLowerCase().startsWith(value.toLocaleLowerCase()));
+  }
+
+  public onSuggestionSelected(event: React.FormEvent<any>, data: SuggestionSelectedEventData<string>): void {
+    // tslint:disable-next-line:no-console
+    console.log('onSuggestionSelected', this.inputRef.current);
+    this.setStateSafe({
+      filterShouldShowTypes: !this.state.filterShouldShowTypes,
+      textFieldInput: data.suggestion + ':'
+    });
+    (this.inputRef.current as any).value = data.suggestion + ':';
+    this._handleAddChip(data.suggestion + ':');
+    return event.preventDefault();
+  }
 
   public render(): JSX.Element {
     const { suggestions, pageSize, sortBy, sortOrder } = this.state;
@@ -436,43 +457,37 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             //   suggestion: classes.suggestion
             // }}
             renderInputComponent={this.renderChipInput.bind(this)}
-            shouldRenderSuggestions={(value: string) => {
-                // tslint:disable-next-line:no-console
-                console.log('shouldRenderSuggestions', value, !!suggestions.find(s => s.startsWith(value)));
-                return !!value && !!suggestions.find(s => s.startsWith(value));
-              }}
+            shouldRenderSuggestions={this.shouldRenderSuggestion.bind(this)}
             suggestions={suggestions}
-            // suggestions={['testtest', 'suggestion']}
+            onSuggestionsClearRequested={this.handleSuggestionsClearRequested.bind(this)}
             onSuggestionsFetchRequested={this.handleSuggestionsFetchRequested.bind(this)}
-            // tslint:disable-next-line:no-console
-            // onSuggestionsFetchRequested={() => console.log('onSuggestionsFetchRequested')}
-            onSuggestionsClearRequested={() => {
-              // tslint:disable-next-line:no-console
-              console.log('clear! (actually reseting, not clearing');
-              // if((!!suggestions.find(s => s.startsWith(value)) {
-                this.setStateSafe({ suggestions: ['one', 'two', 'test'] });
-              // }
-            }}
+            onSuggestionHighlighted={this.handleSuggestionHighlighted.bind(this)}
+            onSuggestionSelected={this.onSuggestionSelected.bind(this)}
             renderSuggestionsContainer={this.renderSuggestionsContainer.bind(this)}
             getSuggestionValue={(suggestion) =>
               // tslint:disable-next-line:no-console
               { console.log('getSuggestionValue'); return suggestion; }}
             renderSuggestion={this.renderSuggestion.bind(this)}
-            onSuggestionSelected={(e, {suggestionValue}) => { this._handleAddChip(suggestionValue); return e.preventDefault(); }}
-            focusInputOnSuggestionClick={false}
+            // focusInputOnSuggestionClick={false}
             inputProps={{
               cancelBubble: true,
               chips: this.state.filterChips,
               classes,
               onAdd: this._handleAddChip.bind(this),
-              // tslint:disable-next-line:no-console
-              // onChange: () => console.log('onChange'),
-              onChange: this.handletextFieldInputChange,
+              onChange: this.handleTextFieldInputChange.bind(this),
               onDelete: this._handleDeleteChip.bind(this),
               value: this.state.textFieldInput,
             }}
           />
         </div>
+        <br />
+        <br />
+        <div>Current value of "textFieldInput":</div>
+        <div style={{fontFamily: 'monospace'}}>{this.state.textFieldInput}</div>
+        <br />
+        <div>filterShouldShowTypes:</div>
+        <div style={{fontFamily: 'monospace'}}>{'' + this.state.filterShouldShowTypes}</div>
+        
 
         {/* Header */}
         <div className={classes(
@@ -641,16 +656,18 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   
   private _handleAddChip(chip: string): void {
     // tslint:disable-next-line:no-console
-    console.log('_handleAddChip');
+    console.log('_handleAddChip', chip);
     // tslint:disable-next-line:no-console
     console.log(JSON.stringify(chip));
     // tslint:disable-next-line:no-console
     console.log(chip);
     const chips = this.state.filterChips;
-    chips.push({ key: chips.length + '', value: { type: 'Name', x: `Name:${chip}` } });
+    // TODO: lots of work needed here.
+    chips.push({ key: chips.length + '', value: { type: 'Name', x: `${chip}` } });
     // tslint:disable-next-line:no-console
     console.log(chips);
-    this.setStateSafe({ filterChips: chips, textFieldInput: '' }, async () => this._requestFilter());
+    // this.setStateSafe({ filterChips: chips, textFieldInput: '' }, async () => this._requestFilter());
+    this.setStateSafe({ filterChips: chips }, async () => this._requestFilter());
   }
 
   private _handleDeleteChip(chip: FilterChip, index: number): void {
