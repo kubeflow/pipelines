@@ -87,15 +87,15 @@ ${SWAGGER_CMD} generate client \
   -m pipeline_model \
   -t go_http_client
 
-	# Hack to fix an issue with go-swagger
-	# See https://github.com/go-swagger/go-swagger/issues/1381 for details.
-	sed -i -- 's/MaxConcurrency int64 `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' ./go_http_client/job_model/api_job.go
-	sed -i -- 's/IntervalSecond int64 `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' ./go_http_client/job_model/api_periodic_schedule.go
-	sed -i -- 's/MaxConcurrency string `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' ./go_http_client/job_model/api_job.go
-	sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' ./go_http_client/job_model/api_periodic_schedule.go
+# Hack to fix an issue with go-swagger
+# See https://github.com/go-swagger/go-swagger/issues/1381 for details.
+sed -i -- 's/MaxConcurrency int64 `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' ./go_http_client/job_model/api_job.go
+sed -i -- 's/IntervalSecond int64 `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' ./go_http_client/job_model/api_periodic_schedule.go
+sed -i -- 's/MaxConcurrency string `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' ./go_http_client/job_model/api_job.go
+sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' ./go_http_client/job_model/api_periodic_schedule.go
 
-	# Executes the //go:generate directives in the generated code.
-	go generate ./...
+# Executes the //go:generate directives in the generated code.
+go generate ./...
 
-  # Finally, run gazelle to add BUILD files for the generated code.
-  bazel run //:gazelle
+# Finally, run gazelle to add BUILD files for the generated code.
+bazel run //:gazelle
