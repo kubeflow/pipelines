@@ -325,13 +325,6 @@ go_repository(
     tag = "v1.1.1",
 )
 
-# go_repository(
-#     name = "com_github_golang_protobuf",
-#     build_file_proto_mode = "disable_global",
-#     importpath = "github.com/golang/protobuf",
-#     tag = "v1.2.0",
-# )
-
 go_repository(
     name = "com_github_google_btree",
     commit = "e89373fe6b4a",
