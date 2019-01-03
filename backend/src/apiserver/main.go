@@ -129,7 +129,8 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 
 // Preload a bunch of pipeline samples
 // Samples are only loaded once when the pipeline system is initially installed.
-// They won't be loaded when upgrade, to prevent them reappear if user explicitly delete the samples.
+// They won't be loaded when upgrade or pod restart, to prevent them reappear if user explicitly
+// delete the samples.
 func loadSamples(resourceManager *resource.ResourceManager) error {
 	// Check if sample has being loaded already and skip loading if true.
 	isSampleLoaded, err := resourceManager.IsSampleLoaded()
@@ -137,7 +138,7 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		return err
 	}
 	if isSampleLoaded {
-		glog.Infof("Samples already loaded. Skip loading.")
+		glog.Infof("Samples already loaded in the past. Skip loading.")
 		return nil
 	}
 	configBytes, err := ioutil.ReadFile(*sampleConfigPath)
