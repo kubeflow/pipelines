@@ -488,5 +488,5 @@ func (r *ResourceManager) IsSampleLoaded() (bool, error) {
 }
 
 func (r *ResourceManager) MarkSampleLoaded() error {
-	return r.MarkSampleLoaded()
+	return r.systemInfoStore.MarkSampleLoaded()
 }
