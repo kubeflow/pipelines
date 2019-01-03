@@ -39,7 +39,8 @@ class Compiler(object):
   """
 
   def _pipelineparam_full_name(self, param):
-    """_pipelineparam_full_name
+    """_pipelineparam_full_name converts the names of pipeline parameters
+      to unique names in the argo yaml
 
     Args:
       param(PipelineParam): pipeline parameter
