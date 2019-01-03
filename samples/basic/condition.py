@@ -70,9 +70,9 @@ def flipcoin():
   with dsl.Condition(flip.output == 'tails'):
     random_num_tail = RandomNumOp(10, 19)
     with dsl.Condition(random_num_tail.output > 15):
-      PrintOp('heads and %s > 15!' % random_num_tail.output)
+      PrintOp('tails and %s > 15!' % random_num_tail.output)
     with dsl.Condition(random_num_tail.output <= 15):
-      PrintOp('heads and %s <= 15!' % random_num_tail.output)
+      PrintOp('tails and %s <= 15!' % random_num_tail.output)
 
 
 if __name__ == '__main__':
