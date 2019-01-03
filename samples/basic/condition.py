@@ -17,11 +17,24 @@
 import kfp.dsl as dsl
 
 
-class FlipCoinOp(dsl.ContainerOp):
+class RandomNumOp(dsl.ContainerOp):
+  """Generate a random number between low and high."""
 
-  def __init__(self, name):
+  def __init__(self, low, high):
+    super(RandomNumOp, self).__init__(
+      name='Random number',
+      image='python:alpine3.6',
+      command=['sh', '-c'],
+      arguments=['python -c "import random; print(random.randint(%s,%s))" | tee /tmp/output' % (low, high)],
+      file_outputs={'output': '/tmp/output'})
+
+
+class FlipCoinOp(dsl.ContainerOp):
+  """Flip a coin and output heads or tails randomly."""
+
+  def __init__(self):
     super(FlipCoinOp, self).__init__(
-      name=name,
+      name='Flip',
       image='python:alpine3.6',
       command=['sh', '-c'],
       arguments=['python -c "import random; result = \'heads\' if random.randint(0,1) == 0 '
@@ -30,12 +43,15 @@ class FlipCoinOp(dsl.ContainerOp):
 
 
 class PrintOp(dsl.ContainerOp):
-  
-  def __init__(self, name):
+  """Print a message."""
+
+  def __init__(self, msg):
     super(PrintOp, self).__init__(
-      name=name,
+      name='Print',
       image='alpine:3.6',
-      command=['echo', '"it was tail"'])
+      command=['echo'],
+      arguments=[msg]
+  )
     
 
 @dsl.pipeline(
@@ -43,16 +59,21 @@ class PrintOp(dsl.ContainerOp):
   description='shows how to use dsl.Condition.'
 )
 def flipcoin():
-  flip = FlipCoinOp('flip')
+  flip = FlipCoinOp()
+  with dsl.Condition(flip.output == 'heads'):
+    random_num_head = RandomNumOp(0, 9)
+    with dsl.Condition(random_num_head.output > 5):
+      PrintOp('heads and %s > 5!' % random_num_head.output)
+    with dsl.Condition(random_num_head.output <= 5):
+      PrintOp('heads and %s <= 5!' % random_num_head.output)
 
-  with dsl.Condition(flip.output=='heads'):
-    flip2 = FlipCoinOp('flip-again')
+  with dsl.Condition(flip.output == 'tails'):
+    random_num_tail = RandomNumOp(10, 19)
+    with dsl.Condition(random_num_tail.output > 15):
+      PrintOp('tails and %s > 15!' % random_num_tail.output)
+    with dsl.Condition(random_num_tail.output <= 15):
+      PrintOp('tails and %s <= 15!' % random_num_tail.output)
 
-    with dsl.Condition(flip2.output=='tails'):
-      PrintOp('print1')
-
-  with dsl.Condition(flip.output=='tails'):
-      PrintOp('print2')
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
