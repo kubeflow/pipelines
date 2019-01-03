@@ -133,8 +133,12 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 func loadSamples(resourceManager *resource.ResourceManager) error {
 	// Check if sample has being loaded already and skip loading if true.
 	isSampleLoaded, err := resourceManager.IsSampleLoaded()
-	if err != nil || isSampleLoaded {
+	if err != nil {
 		return err
+	}
+	if isSampleLoaded {
+		glog.Infof("Samples already loaded. Skip loading.")
+		return nil
 	}
 	configBytes, err := ioutil.ReadFile(*sampleConfigPath)
 	if err != nil {
