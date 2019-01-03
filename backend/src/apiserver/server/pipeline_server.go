@@ -77,7 +77,13 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPip
 	if request.PageToken != "" {
 		opts, err = list.NewOptionsFromToken(request.PageToken, int(request.PageSize))
 	} else {
-		opts, err = list.NewOptions(&model.Pipeline{}, int(request.PageSize), request.SortBy, request.Filter)
+		var f *api.Filter
+		f, err = parseAPIFilter(request.Filter)
+		if err != nil {
+			return nil, err
+		}
+
+		opts, err = list.NewOptions(&model.Pipeline{}, int(request.PageSize), request.SortBy, f)
 	}
 
 	if err != nil {

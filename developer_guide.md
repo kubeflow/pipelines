@@ -65,6 +65,15 @@ $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/persistenceagent:latest
 ```
 
+To build the frontend image and upload it to GCR:
+```bash
+# Run in the repository root directory
+$ docker build -t gcr.io/<your-gcp-project>/frontend:latest -f frontend/Dockerfile .
+# Push to GCR
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/frontend:latest
+```
+
 ### Minikube
 Minikube can pick your local Docker image so you don't need to upload to remote repository.
 

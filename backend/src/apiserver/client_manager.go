@@ -190,7 +190,17 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	util.TerminateIfError(err)
 
 	// Create database if not exist
-	_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
+	operation = func() error {
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	b = backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = initConnectionTimeout
+	err = backoff.Retry(operation, b)
+
 	util.TerminateIfError(err)
 	mysqlConfig.DBName = dbName
 	return mysqlConfig.FormatDSN()
