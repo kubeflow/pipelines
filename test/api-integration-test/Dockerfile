@@ -1,11 +1,7 @@
 # This image has the script to kick off the ML pipeline API integration test,
 # and upload the result to GCS
 
-FROM golang:1.10
-
-# Download and install the latest release of dep
-ADD https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 /usr/bin/dep
-RUN chmod +x /usr/bin/dep
+FROM golang:1.11
 
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
 RUN mkdir -p /usr/local/gcloud
