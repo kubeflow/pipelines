@@ -32,8 +32,6 @@ import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding } from '../Css';
 import { logger } from '../lib/Utils';
-import FilterBar from './FilterBar';
-import { ApiFilter } from 'src/apis/filter';
 
 export enum ExpandState {
   COLLAPSED,
@@ -107,12 +105,6 @@ export const css = stylesheet({
     boxSizing: 'border-box',
     height: '40px !important',
   },
-  filterBox: {
-    margin: '16px 0'
-  },
-  filterLabel: {
-    transform: 'translate(14px, 26px) scale(1)',
-  },
   footer: {
     borderBottom: '1px solid ' + color.divider,
     fontFamily: fonts.secondary,
@@ -177,7 +169,6 @@ interface CustomTableProps {
 
 interface CustomTableState {
   currentPage: number;
-  filterBy: string;
   isBusy: boolean;
   maxPageIndex: number;
   pageSize: number;
@@ -194,7 +185,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
     this.state = {
       currentPage: 0,
-      filterBy: '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,
@@ -262,7 +252,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
         {/* Filter/Search bar */}
         {/* TODO: Do not hardcode these, they should be CustomTable props passed down. */}
-        <FilterBar filter={this._requestFilter} filterTypes={['Name', 'Created at']} />
+        {/* <FilterBar filter={this._requestFilter} filterTypes={['Name', 'Created at']} /> */}
 
         {/* Header */}
         <div className={classes(
@@ -392,7 +382,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   public async reload(loadRequest?: ListRequest): Promise<string> {
     // Override the current state with incoming request
     const request: ListRequest = Object.assign({
-      filterBy: this.state.filterBy,
       orderAscending: this.state.sortOrder === 'asc',
       pageSize: this.state.pageSize,
       pageToken: this.state.tokenList[this.state.currentPage],
@@ -402,7 +391,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     let result = '';
     try {
       this.setStateSafe({
-        filterBy: request.filterBy,
         isBusy: true,
         pageSize: request.pageSize!,
         sortBy: request.sortBy!,
@@ -420,12 +408,18 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     return result;
   }
 
-  private _requestFilter = async (filter: ApiFilter) => {
-    // TODO: verify this works as intended.
-    this._resetToFirstPage(
-      // Stringify the filter, and convert it to base64
-      await this.reload({ filterBy: btoa(JSON.stringify(filter)) })
-    );
+  // private _requestFilter = async (filter: ApiFilter) => {
+  //   // TODO: verify this works as intended.
+  //   this._resetToFirstPage(
+  //     // Stringify the filter, and convert it to base64
+  //     await this.reload({ filterBy: btoa(JSON.stringify(filter)) })
+  //   );
+  // }
+
+  private setStateSafe(newState: Partial<CustomTableState>, cb?: () => void): void {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
+    }
   }
 
   private _requestSort(sortBy?: string): void {
@@ -438,12 +432,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         this._resetToFirstPage(
           await this.reload({ pageToken: '', orderAscending: sortOrder === 'asc', sortBy }));
       });
-    }
-  }
-
-  private setStateSafe(newState: Partial<CustomTableState>, cb?: () => void): void {
-    if (this._isMounted) {
-      this.setState(newState as any, cb);
     }
   }
 

@@ -20,17 +20,16 @@ import { commonCss } from '../Css';
 
 interface InputProps extends TextFieldProps {
   height?: number | string;
-  maxWidth?: number | string;
   width?: number;
 }
 
 export default (props: InputProps) => {
-  const { height, maxWidth, width, ...rest } = props;
+  const { height, width, ...rest } = props;
   return (
     <TextField variant='outlined' className={commonCss.textField} spellCheck={false}
         style={{
           height: !!props.multiline ? 'auto' : (height || 40),
-          maxWidth: maxWidth || 600,
+          maxWidth: 600,
           width: width || '100%' }}
         {...rest}>
       {props.children}

@@ -16,14 +16,18 @@
 
 import * as React from 'react';
 import * as Autosuggest from 'react-autosuggest';
-import ChipInput, { ChipRendererArgs } from 'material-ui-chip-input';
 import Chip from '@material-ui/core/Chip';
-import Paper from '@material-ui/core/Paper';
-import { SuggestionsFetchRequestedParams, SuggestionHighlightedParams, SuggestionSelectedEventData } from 'react-autosuggest';
-import { classes } from 'typestyle';
+import ChipInput, { ChipRendererArgs } from 'material-ui-chip-input';
 import MenuItem from '@material-ui/core/MenuItem';
-import { ApiFilter } from 'src/apis/filter';
-// TODO match and parse required editing the node modules to import correctly.
+import Paper from '@material-ui/core/Paper';
+import { ApiFilter } from '../apis/filter';
+import {
+  SuggestionsFetchRequestedParams,
+  SuggestionHighlightedParams,
+  SuggestionSelectedEventData
+} from 'react-autosuggest';
+import { classes } from 'typestyle';
+// TODO: match and parse required editing the node modules to import correctly.
 // Perhaps we should consider using allowSyntheticDefaultImports, although we could pretty easily
 // implement these functions ourselves if need be.
 // tslint:disable-next-line:no-var-requires
@@ -32,17 +36,13 @@ const match = require('autosuggest-highlight/match');
 const parse = require('autosuggest-highlight/parse');
 
 interface FilterChip {
-  key: string;
-  value: {
-    filterValue: number | string;
-    type: string;
-  };
+  filterValue: number | string;
+  type: string;
 }
 
 interface FilterBarProps {
-  filterTypes: string[];
-  // TODO: filter should have type ApiFilter
   filter: (filter: ApiFilter) => void;
+  filterTypes: string[];
 }
 
 interface FilterBarState {
@@ -56,7 +56,7 @@ interface FilterBarState {
 export default class FilterBar extends React.Component<FilterBarProps, FilterBarState> {
   private _isMounted = true;
 
-  // TODO: these should not be hardcoded.
+  // TODO: remove these once suggestion fetching is implemented
   private FILTER_VALUE_SUGGESTIONS = ['My Pipeline', 'Pipeline 1', 'Pipeline 2'];
 
   constructor(props: FilterBarProps) {
@@ -107,7 +107,8 @@ export default class FilterBar extends React.Component<FilterBarProps, FilterBar
   }
 
   private _renderChipInput(inputProps: any): JSX.Element {
-    // TODO we need to pull 'classes' out of the props, but it conflicts with the 'classes' from type style
+    // TODO we need to pull 'classes' out of the props so it doesn't get passed down, but it
+    // conflicts with the 'classes' from typestyle
     // tslint:disable-next-line:no-shadowed-variable
     const { classes, value, cancelBubble, onChange, onAdd, onDelete, ref, ...other } = inputProps;
 
@@ -120,7 +121,7 @@ export default class FilterBar extends React.Component<FilterBarProps, FilterBar
       onUpdateInput={onChange}
       onAdd={onAdd}
       onDelete={onDelete}
-      // this ref appears to be an empty function, but seems to be necessary
+      // this ref is an empty function, but seems to be necessary
       inputRef={ref}
       {...other}
       chipRenderer={(args: ChipRendererArgs, key: any) => {
@@ -136,10 +137,10 @@ export default class FilterBar extends React.Component<FilterBarProps, FilterBar
           label={(
             <div>
               {/* value here is declared as type string, but is in fact a FilterChip */}
-              {(args.value as any).value.type &&
-                <span style={{ color: 'gray' }}>{(args.value as any).value.type} : </span>
+              {(args.value as any).type &&
+                <span style={{ color: 'gray' }}>{(args.value as any).type} : </span>
               }
-              <span>{(args.value as any).value.filterValue}</span>
+              <span>{(args.value as any).filterValue}</span>
             </div>
           )}
         />
@@ -151,15 +152,10 @@ export default class FilterBar extends React.Component<FilterBarProps, FilterBar
     // TODO: this matching is fuzzy, but the rest of the code in this file uses 'startsWith'
     const matches = match(suggestion, obj.query);
     const parts = parse(suggestion, matches);
-    // tslint:disable-next-line:no-console
-    console.log(suggestion, obj.query, matches, parts);
 
     return (
-      <MenuItem
-        selected={obj.isHighlighted}
-        component='div'
-        onMouseDown={(e) => e.preventDefault()} // prevent the click causing the input to be blurred
-      >
+      // preventDefault prevents a click causing the input to be blurred
+      <MenuItem selected={obj.isHighlighted} component='div' onMouseDown={(e) => e.preventDefault()}>
         <div>
           {parts.map((part: any, index: any) => {
             return part.highlight ? (
@@ -211,8 +207,6 @@ export default class FilterBar extends React.Component<FilterBarProps, FilterBar
 
   private _handleSuggestionHighlighted(params: SuggestionHighlightedParams): void {
     // TODO: this will need to be updated if suggestion becomes more than a string.
-    // tslint:disable-next-line:no-console
-    console.log('handleSuggestionHighlighted', this.state.shouldSuggestTypes, params);
     if (params && params.suggestion) {
       this.setStateSafe({
         textFieldInput: this.state.shouldSuggestTypes
@@ -223,9 +217,8 @@ export default class FilterBar extends React.Component<FilterBarProps, FilterBar
   }
 
   private _handleTextFieldInputChange = (event: React.FormEvent<any>, param: Autosuggest.ChangeEvent) => {
-    // tslint:disable-next-line:no-console
-    console.log('handletextFieldInputChange', event, param);
     const { lastSelectedFilterType } = this.state;
+    // type corresponds to the user typing characters into the input field
     if (param.method === 'type') {
       const newValLower = param.newValue.toLocaleLowerCase();
       // Check if the current text in the input field matches any of our filter types, and ensure
@@ -240,17 +233,14 @@ export default class FilterBar extends React.Component<FilterBarProps, FilterBar
         shouldSuggestTypes: !inputFilterTypePrefix,
         textFieldInput: param.newValue,
       }, async () => this._handleSuggestionsFetchRequested({ value: param.newValue, reason: 'input-changed' }) );
+      // up and down correspond to arrow keys being used to highlight suggestions
     } else if (param.method === 'up' || param.method === 'down') {
-      this.setStateSafe({
-        textFieldInput: lastSelectedFilterType + param.newValue
-      });
+      this.setStateSafe({ textFieldInput: lastSelectedFilterType + param.newValue });
     }
   };
 
   private _shouldRenderSuggestion(value: string): boolean {
     const { lastSelectedFilterType, suggestions } = this.state;
-    // tslint:disable-next-line:no-console
-    console.log('shouldRenderSuggestions', lastSelectedFilterType, value, suggestions);
     return !value
       || !!suggestions.find(s => {
         const trimmedInput = value.substring(lastSelectedFilterType.length);
@@ -264,16 +254,11 @@ export default class FilterBar extends React.Component<FilterBarProps, FilterBar
   }
 
   private _handleAddChip(chip: string): void {
-    // tslint:disable-next-line:no-console
-    console.log('_handleAddChip', chip);
     const { filterChips, lastSelectedFilterType } = this.state;
     filterChips.push({
-      key: filterChips.length + '',
-      value: {
-        filterValue: `${chip}`,
-        // Trim off the ":" at the end of the filter type
-        type: lastSelectedFilterType.slice(0, -1),
-      }
+      filterValue: `${chip}`,
+      // Trim off the ":" at the end of the filter type
+      type: lastSelectedFilterType.slice(0, -1),
     });
     this.setStateSafe({
         filterChips,

@@ -124,7 +124,7 @@ class PipelineList extends Page<{}, PipelineListState> {
     let response: ApiListPipelinesResponse | null = null;
     try {
       response = await Apis.pipelineServiceApi.listPipelines(
-        request.pageToken, request.pageSize, request.sortBy, request.filterBy);
+        request.pageToken, request.pageSize, request.sortBy);
       this.clearBanner();
     } catch (err) {
       await this.showPageError('Error: failed to retrieve list of pipelines.', err);
