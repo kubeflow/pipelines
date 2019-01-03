@@ -54,4 +54,4 @@ RUN apk add ca-certificates
 EXPOSE 8888
 
 # Start the apiserver
-CMD apiserver --config=/config
+CMD apiserver --config=/config --sampleconfig=/config/sample_config.json
