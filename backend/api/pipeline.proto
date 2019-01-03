@@ -19,7 +19,8 @@ package api;
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
-import "parameter.proto";
+import "backend/api/parameter.proto";
+import "backend/api/error.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
@@ -89,14 +90,14 @@ service PipelineService {
   }
 }
 
-message Url{
+message Url {
   string pipeline_url = 1;
 }
 
 // Create pipeline by providing an URL pointing to the pipeline file,
 // and optionally a pipeline name. If name is not provided, file name is used as
 // pipeline name by default. Maximum size of 32MB is supported.
-message CreatePipelineRequest{
+message CreatePipelineRequest {
   Pipeline pipeline = 1;
 }
 
@@ -133,9 +134,9 @@ message GetTemplateResponse {
   string template = 1;
 }
 
-message Pipeline{
+message Pipeline {
   string id = 1;
-  google.protobuf.Timestamp created_at =2;
+  google.protobuf.Timestamp created_at = 2;
   string name = 3;
   string description = 4;
   repeated Parameter parameters = 5;
