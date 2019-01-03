@@ -30,6 +30,7 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
+#TODO: use the staging images instead.
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow

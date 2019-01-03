@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#TODO: change the yaml file name to component_integration_test after committing to test-infra
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
@@ -81,7 +82,7 @@ spec:
       - name: local-roc-image-suffix
       - name: sample-tests-image-suffix
       - name: namespace
-    steps:
+    steps: #TODO: remove the component image build and use the staging images instead.
     - - name: build-sample-tests-image
         template: build-image-by-dockerfile
         arguments:
