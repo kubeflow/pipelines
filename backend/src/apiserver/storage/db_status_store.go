@@ -28,7 +28,8 @@ type DBStatusStoreInterface interface {
 	MarkSampleLoaded() error
 }
 
-// Implementation of a DBStatusStoreInterface. This store read/write state of the
+// Implementation of a DBStatusStoreInterface. This store read/write state of the database.
+// For now we store status like whether sample is loaded.
 type DBStatusStore struct {
 	db *DB
 }
