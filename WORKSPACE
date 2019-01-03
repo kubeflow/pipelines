@@ -1,16 +1,4 @@
-# proto_library, cc_proto_library, and java_proto_library rules implicitly
-# depend on @com_google_protobuf for protoc and proto runtimes.
-# This statement defines the @com_google_protobuf repo.
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
-# http_archive(
-#     name = "com_google_protobuf",
-#     sha256 = "e514c2e613dc47c062ea8df480efeec368ffbef98af0437ac00cdaadcb0d80d2",
-#     strip_prefix = "protobuf-3.6.0",
-#     urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.6.0.zip"],
-# )
-
-# load("@com_google_protobuf//:protobuf.bzl", "cc_proto_library")
 
 http_archive(
     name = "io_bazel_rules_go",
