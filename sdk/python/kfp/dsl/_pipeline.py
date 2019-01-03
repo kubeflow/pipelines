@@ -15,7 +15,7 @@
 
 from . import _container_op
 from . import _ops_group
-import re
+from ._utils import _sanitize_k8s_name
 import sys
 
 
@@ -37,9 +37,6 @@ def pipeline(name, description):
     return func
 
   return _pipeline
-
-def _make_kubernetes_name(name):
-    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
 
 class Pipeline():
   """A pipeline contains a list of operators.
@@ -108,7 +105,7 @@ class Pipeline():
       op: An operator of ContainerOp or its inherited type.
     """
 
-    kubernetes_name = _make_kubernetes_name(op.human_name)
+    kubernetes_name = _sanitize_k8s_name(op.human_name)
     step_id = kubernetes_name
     #If there is an existing op with this name then generate a new name.
     if step_id in self.ops:
