@@ -28,7 +28,8 @@ class ContainerOp(object):
     """Create a new instance of ContainerOp.
 
     Args:
-      name: the name of the op. Has to be unique within a pipeline.
+      name: the name of the op. It does not have to be unique within a pipeline
+          because the pipeline will generates a unique new name in case of conflicts.
       image: the container image name, such as 'python:3.5-jessie'
       command: the command to run in the container.
           If None, uses default CMD in defined in container.
