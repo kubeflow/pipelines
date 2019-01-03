@@ -27,13 +27,6 @@ import {
   SuggestionSelectedEventData
 } from 'react-autosuggest';
 import { classes } from 'typestyle';
-// TODO: match and parse required editing the node modules to import correctly.
-// Perhaps we should consider using allowSyntheticDefaultImports, although we could pretty easily
-// implement these functions ourselves if need be.
-// tslint:disable-next-line:no-var-requires
-const match = require('autosuggest-highlight/match');
-// tslint:disable-next-line:no-var-requires
-const parse = require('autosuggest-highlight/parse');
 
 interface FilterChip {
   filterValue: number | string;
@@ -149,25 +142,20 @@ export default class FilterBar extends React.Component<FilterBarProps, FilterBar
   }
 
   private _renderSuggestion (suggestion: string, obj: { query: string, isHighlighted: boolean }): JSX.Element {
-    // TODO: this matching is fuzzy, but the rest of the code in this file uses 'startsWith'
-    const matches = match(suggestion, obj.query);
-    const parts = parse(suggestion, matches);
+    // Ignore the filter type prefix if one exists in the query string
+    const query = obj.query.substring(this.state.lastSelectedFilterType.length);
+
+    let highlight = '';
+    if (suggestion.toLocaleLowerCase().startsWith(query.toLocaleLowerCase())) {
+      highlight = suggestion.substring(0, query.length);
+    }
 
     return (
       // preventDefault prevents a click causing the input to be blurred
       <MenuItem selected={obj.isHighlighted} component='div' onMouseDown={(e) => e.preventDefault()}>
         <div>
-          {parts.map((part: any, index: any) => {
-            return part.highlight ? (
-              <span key={String(index)} style={{ fontWeight: 600 }}>
-                {part.text}
-              </span>
-            ) : (
-              <strong key={String(index)} style={{ fontWeight: 300 }}>
-                {part.text}
-              </strong>
-            );
-          })}
+          <span style={{ fontWeight: 600 }}>{highlight}</span>
+          <span style={{ fontWeight: 300 }}>{suggestion.substring(query.length)}</span>
         </div>
       </MenuItem>
     );

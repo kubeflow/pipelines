@@ -6,7 +6,6 @@
     "@material-ui/core": "^3.1.0",
     "@material-ui/icons": "^3.0.1",
     "@types/js-yaml": "^3.11.2",
-    "autosuggest-highlight": "^3.1.1",
     "codemirror": "^5.40.2",
     "d3": "^5.7.0",
     "d3-dsv": "^1.0.10",
@@ -51,7 +50,6 @@
     "vr-test": "ts-node -O '{\"module\": \"commonjs\"}' backstop.ts"
   },
   "devDependencies": {
-    "@types/autosuggest-highlight": "^3.1.0",
     "@types/codemirror": "0.0.60",
     "@types/d3": "^5.0.0",
     "@types/d3-dsv": "^1.0.33",
