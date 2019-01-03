@@ -181,14 +181,14 @@ Now, let's create a simple Tensorboard viewer using the supplied sample:
 $ kubectl create -f samples/viewer/mnist.yaml
 viewer.kubeflow.org/viewer-75tkf created
 
-$ kube getctl -n kubeflow vi
+$ kubectl getctl -n kubeflow vi
 NAME           AGE
 viewer-75tkf   108s
 ```
 
 Verify that the viewer created a deployment and service to house the Tensorboard instance:
 ```
-$ kube -n kubeflow get deployments -l app=viewer
+$ kubectl -n kubeflow get deployments -l app=viewer
 NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
 viewer-75tkf-deployment   1/1     1            1           3m31s
 
@@ -197,11 +197,17 @@ NAME                   TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
 viewer-75tkf-service   ClusterIP   10.35.249.82   <none>        80/TCP    3m45s
 ```
 
-The Tensorboard instance should be accessible via Ambassador. Set up port
-forwarding to the Ambassador instance in your cluster:
+There are two ways one can access the running Tensorboard instance, via
+[Ambassador](https://www.getambassador.io/), or via direct port forwarding,
+as described below.
+
+#### Access via Ambassador
+The Tensorboard instance's service has the right annotations to allow it to
+be routed via Ambassador. Set up port forwarding to the Ambassador instance
+in your cluster:
 ```
-$ kube port-forward -n kubeflow \
-  $(kube get pods -n kubeflow --selector service=ambassador -o jsonpath='{.items[0].metadata.name}')  \
+$ kubectl port-forward -n kubeflow \
+  $(kubectl get pods -n kubeflow --selector service=ambassador -o jsonpath='{.items[0].metadata.name}')  \
   8000:80
 Forwarding from 127.0.0.1:8000 -> 80
 Forwarding from [::1]:8000 -> 80
@@ -214,4 +220,22 @@ http://localhost:8000/tensorboard/viewer-75tkf/. Note that the last path
 corresponds to the new viewer name, and the URL must end with the trailing
 slash.
 
+#### Access via port-forwarding
+You can also access the instance directly by setting up port-forwarding to
+the Pod running the Tensorboard instance. Note that the serving path will
+still be under `/tensorboard/viewer-75tkf`, similar to the Ambassador routing
+scenario above.
 
+To set up port-forwarding to the viewer named `viewer-75ktf`, run the
+following command:
+```
+kubectl port-forward -n kubeflow \
+  $(kubectl get pods -n kubeflow --selector=viewer=viewer-t6qst -o jsonpath='{.items[0].metadata.name}') \
+  8000:6006
+```
+
+Notice that we port-forward the remote port 6006, which is the port that
+Tensorboard viewers are started on.
+
+The Tensorboard instance should now be accessible at
+http://localhost:8000/tensorboard/viewer-75tkf/.
