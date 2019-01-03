@@ -37,7 +37,7 @@ func NewFakeDb() (*DB, error) {
 		&model.ResourceReference{},
 		&model.RunDetail{},
 		&model.RunMetric{},
-		&model.SystemInfo{})
+		&model.DBStatus{})
 
 	return NewDB(db.DB(), NewSQLiteDialect()), nil
 }

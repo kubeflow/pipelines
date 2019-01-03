@@ -19,59 +19,64 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-type SystemInfoStoreInterface interface {
-	IsSampleLoaded() (bool, error)
+var (
+	defaultDBStatus = sq.Eq{"HaveSamplesLoaded": false}
+)
+
+type DBStatusStoreInterface interface {
+	HaveSamplesLoaded() (bool, error)
 	MarkSampleLoaded() error
 }
 
-type SystemInfoStore struct {
+// Implementation of a DBStatusStoreInterface. This store read/write state of the
+type DBStatusStore struct {
 	db *DB
 }
 
-func (s *SystemInfoStore) InitializeSystemInfoTable() error {
-	getSystemInfoSql, getSystemInfoArgs, err := sq.Select("*").From("system_infos").ToSql()
+func (s *DBStatusStore) InitializeDBStatusTable() error {
+	getDBStatusSql, getDBStatusArgs, err := sq.Select("*").From("db_statuses").ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err, "Error creating query to get system info.")
+		return util.NewInternalServerError(err, "Error creating query to get database status.")
 	}
 	tx, err := s.db.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create a new transaction to initialize system info.")
+		return util.NewInternalServerError(err, "Failed to create a new transaction to initialize database status.")
 	}
 
-	rows, err := tx.Query(getSystemInfoSql, getSystemInfoArgs...)
+	rows, err := tx.Query(getDBStatusSql, getDBStatusArgs...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to get load sample status")
+		return util.NewInternalServerError(err, "Failed to load database status.")
 	}
 
 	// The table is not initialized
 	if !rows.Next() {
 		sql, args, err := sq.
-			Insert("system_infos").
-			SetMap(sq.Eq{"IsSampleLoaded": false}).
+			Insert("db_statuses").
+			SetMap(defaultDBStatus).
 			ToSql()
 
 		if err != nil {
 			tx.Rollback()
-			return util.NewInternalServerError(err, "Error creating query to initialize system info table.")
+			return util.NewInternalServerError(err, "Error creating query to initialize database status table.")
 		}
 		_, err = tx.Exec(sql, args...)
 		if err != nil {
 			tx.Rollback()
-			return util.NewInternalServerError(err, "Error initializing the system info table.")
+			return util.NewInternalServerError(err, "Error initializing the database status table.")
 		}
 	}
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to initializing the system info table.")
+		return util.NewInternalServerError(err, "Failed to initializing the database status table.")
 	}
 	return nil
 }
 
-func (s *SystemInfoStore) IsSampleLoaded() (bool, error) {
-	var isSampleLoaded bool
-	sql, args, err := sq.Select("*").From("system_infos").ToSql()
+func (s *DBStatusStore) HaveSamplesLoaded() (bool, error) {
+	var haveSamplesLoaded bool
+	sql, args, err := sq.Select("*").From("db_statuses").ToSql()
 	if err != nil {
 		return false, util.NewInternalServerError(err, "Error creating query to get load sample status.")
 	}
@@ -80,19 +85,19 @@ func (s *SystemInfoStore) IsSampleLoaded() (bool, error) {
 		return false, util.NewInternalServerError(err, "Error when getting load sample status")
 	}
 	if rows.Next() {
-		err = rows.Scan(&isSampleLoaded)
+		err = rows.Scan(&haveSamplesLoaded)
 		if err != nil {
 			return false, util.NewInternalServerError(err, "Error when scanning row to load sample status")
 		}
-		return isSampleLoaded, nil
+		return haveSamplesLoaded, nil
 	}
 	return false, nil
 }
 
-func (s *SystemInfoStore) MarkSampleLoaded() error {
+func (s *DBStatusStore) MarkSampleLoaded() error {
 	sql, args, err := sq.
-		Update("system_infos").
-		SetMap(sq.Eq{"IsSampleLoaded": true}).
+		Update("db_statuses").
+		SetMap(sq.Eq{"HaveSamplesLoaded": true}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error creating query to mark samples as loaded.")
@@ -104,10 +109,10 @@ func (s *SystemInfoStore) MarkSampleLoaded() error {
 	return nil
 }
 
-// factory function for system info store
-func NewSystemInfoStore(db *DB) *SystemInfoStore {
-	s := &SystemInfoStore{db: db}
-	// Initialize system information table
-	s.InitializeSystemInfoTable()
+// factory function for database status store
+func NewDBStatusStore(db *DB) *DBStatusStore {
+	s := &DBStatusStore{db: db}
+	// Initialize database status table
+	s.InitializeDBStatusTable()
 	return s
 }

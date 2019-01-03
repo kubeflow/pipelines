@@ -41,7 +41,7 @@ type ClientManagerInterface interface {
 	JobStore() storage.JobStoreInterface
 	RunStore() storage.RunStoreInterface
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
-	SystemInfoStore() storage.SystemInfoStoreInterface
+	DBStatusStore() storage.DBStatusStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
@@ -55,7 +55,7 @@ type ResourceManager struct {
 	jobStore                storage.JobStoreInterface
 	runStore                storage.RunStoreInterface
 	resourceReferenceStore  storage.ResourceReferenceStoreInterface
-	systemInfoStore         storage.SystemInfoStoreInterface
+	dBStatusStore           storage.DBStatusStoreInterface
 	objectStore             storage.ObjectStoreInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
@@ -70,7 +70,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		jobStore:                clientManager.JobStore(),
 		runStore:                clientManager.RunStore(),
 		resourceReferenceStore:  clientManager.ResourceReferenceStore(),
-		systemInfoStore:         clientManager.SystemInfoStore(),
+		dBStatusStore:           clientManager.DBStatusStore(),
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
@@ -483,10 +483,10 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 	return r.objectStore.GetFile(artifactPath)
 }
 
-func (r *ResourceManager) IsSampleLoaded() (bool, error) {
-	return r.systemInfoStore.IsSampleLoaded()
+func (r *ResourceManager) HaveSamplesLoaded() (bool, error) {
+	return r.dBStatusStore.HaveSamplesLoaded()
 }
 
 func (r *ResourceManager) MarkSampleLoaded() error {
-	return r.systemInfoStore.MarkSampleLoaded()
+	return r.dBStatusStore.MarkSampleLoaded()
 }

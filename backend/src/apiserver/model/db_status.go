@@ -14,6 +14,6 @@
 
 package model
 
-type SystemInfo struct {
-	IsSampleLoaded bool `gorm:"column:IsSampleLoaded; not null"`
+type DBStatus struct {
+	HaveSamplesLoaded bool `gorm:"column:HaveSamplesLoaded; not null"`
 }

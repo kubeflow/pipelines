@@ -20,42 +20,42 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInitializeSystemInfoTable(t *testing.T) {
+func TestInitializeDBStatusTable(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	systemInfoStore := NewSystemInfoStore(db)
+	dBStatusStore := NewDBStatusStore(db)
 
 	// Initialize for the first time
-	err := systemInfoStore.InitializeSystemInfoTable()
+	err := dBStatusStore.InitializeDBStatusTable()
 	assert.Nil(t, err)
 	// Initialize again should be no-op and no error
-	err = systemInfoStore.InitializeSystemInfoTable()
+	err = dBStatusStore.InitializeDBStatusTable()
 	assert.Nil(t, err)
-	isSampleLoaded, err := systemInfoStore.IsSampleLoaded()
+	haveSamplesLoaded, err := dBStatusStore.HaveSamplesLoaded()
 	assert.Nil(t, err)
-	assert.False(t, isSampleLoaded)
+	assert.False(t, haveSamplesLoaded)
 
 	db.Close()
-	err = systemInfoStore.InitializeSystemInfoTable()
+	err = dBStatusStore.InitializeDBStatusTable()
 	assert.NotNil(t, err)
 }
 
 func TestMarkSampleLoaded(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
-	systemInfoStore := NewSystemInfoStore(db)
+	dBStatusStore := NewDBStatusStore(db)
 
 	// Initialize for the first time
-	err := systemInfoStore.InitializeSystemInfoTable()
+	err := dBStatusStore.InitializeDBStatusTable()
 	assert.Nil(t, err)
 	// Initialize again should be no-op and no error
-	err = systemInfoStore.MarkSampleLoaded()
+	err = dBStatusStore.MarkSampleLoaded()
 	assert.Nil(t, err)
-	isSampleLoaded, err := systemInfoStore.IsSampleLoaded()
+	haveSamplesLoaded, err := dBStatusStore.HaveSamplesLoaded()
 	assert.Nil(t, err)
-	assert.True(t, isSampleLoaded)
+	assert.True(t, haveSamplesLoaded)
 
 	db.Close()
-	err = systemInfoStore.MarkSampleLoaded()
+	err = dBStatusStore.MarkSampleLoaded()
 	assert.NotNil(t, err)
 }

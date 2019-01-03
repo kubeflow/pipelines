@@ -133,11 +133,11 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 // delete the samples.
 func loadSamples(resourceManager *resource.ResourceManager) error {
 	// Check if sample has being loaded already and skip loading if true.
-	isSampleLoaded, err := resourceManager.IsSampleLoaded()
+	haveSamplesLoaded, err := resourceManager.HaveSamplesLoaded()
 	if err != nil {
 		return err
 	}
-	if isSampleLoaded {
+	if haveSamplesLoaded {
 		glog.Infof("Samples already loaded in the past. Skip loading.")
 		return nil
 	}
