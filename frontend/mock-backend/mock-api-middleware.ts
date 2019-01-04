@@ -339,20 +339,14 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.post(v1beta1Prefix + '/runs/:rid::archive', (req, res) => {
-    const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
-    if (runDetail) {
-      runDetail.run!.storage_state = RunStorageState.ARCHIVED;
-      res.json({});
-    } else {
-      res.status(500).send('Cannot find a run with id ' + req.params.rid);
+  app.post(v1beta1Prefix + '/runs/:rid::method', (req, res) => {
+    if (req.params.method !== 'archive' && req.params.method !== 'unarchive') {
+      res.status(500).send('Bad method');
     }
-  });
-
-  app.post(v1beta1Prefix + '/runs/:rid::unarchive', (req, res) => {
     const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
     if (runDetail) {
-      runDetail.run!.storage_state = RunStorageState.AVAILABLE;
+      runDetail.run!.storage_state = req.params.method === 'archive' ?
+        RunStorageState.ARCHIVED : RunStorageState.AVAILABLE;
       res.json({});
     } else {
       res.status(500).send('Cannot find a run with id ' + req.params.rid);

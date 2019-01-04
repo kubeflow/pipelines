@@ -309,6 +309,7 @@ const runs: ApiRunDetail[] = [
     run: {
       error: 'Mock error retrieving this run. All fields will be empty besides ID and this',
       id: 'f9486999-e853-40ee-993d-a0199b2cb7bd',
+      storageState: RunStorageState.AVAILABLE,
     },
   },
   {

@@ -155,7 +155,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
             predicates: [{
               key: 'storageState',
               op: PredicateOp.EQUALS,
-              string_value: RunStorageState.ARCHIVED.toString(),
+              string_value: RunStorageState.AVAILABLE.toString(),
             }]
           } as ApiFilter)),
         );
@@ -202,6 +202,8 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       draft[1].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
       // Enable/Disable Clone button
       draft[2].disabled = selectedRunIds.length !== 1;
+      // Archive run button
+      draft[3].disabled = !selectedRunIds.length;
     });
     this.props.updateToolbar({ actions });
     this.setState({ selectedRunIds });

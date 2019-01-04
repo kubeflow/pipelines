@@ -347,6 +347,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     toolbarActions[2].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
     // Clone run button
     toolbarActions[3].disabled = selectedRunIds.length !== 1;
+    // Archive run button
+    toolbarActions[4].disabled = !selectedRunIds.length;
     this.setState({
       runListToolbarProps: {
         actions: toolbarActions,
