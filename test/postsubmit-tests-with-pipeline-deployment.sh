@@ -30,8 +30,8 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
-#TODO: use the staging images instead.
-GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_BASE_SHA}
+GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-staging/
+TARGET_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_BASE_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
 
@@ -132,11 +132,13 @@ ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 
 ## Update pipeline component image
 pushd ks_app
-ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api
-ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent
-ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow
-ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend
+ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api:${PULL_BASE_SHA}
+ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent:${PULL_BASE_SHA}
+ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${PULL_BASE_SHA}
+ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend:${PULL_BASE_SHA}
 popd
+
+##TODO: wait for cloudbuild of the merge
 
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
@@ -147,7 +149,9 @@ source "${DIR}/install-argo.sh"
 echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
--p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+-p commit-sha="${PULL_BASE_SHA}" \
+-p component-image-prefix="${GCR_IMAGE_BASE_DIR}" \
+-p target-image-prefix="${TARGET_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \
 -n ${NAMESPACE} \
