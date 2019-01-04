@@ -632,10 +632,11 @@ export const JobServiceApiFetchParamCreator = function (configuration?: Configur
          * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
          * @param {string} [resource_reference_key_type] The type of the resource that referred to.
          * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, options: any = {}): FetchArgs {
+        listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options: any = {}): FetchArgs {
             const localVarPath = `/apis/v1beta1/jobs`;
             const localVarUrlObj = url.parse(localVarPath, true);
             const localVarRequestOptions = Object.assign({ method: 'GET' }, options);
@@ -668,6 +669,10 @@ export const JobServiceApiFetchParamCreator = function (configuration?: Configur
 
             if (resource_reference_key_id !== undefined) {
                 localVarQueryParameter['resource_reference_key.id'] = resource_reference_key_id;
+            }
+
+            if (filter !== undefined) {
+                localVarQueryParameter['filter'] = filter;
             }
 
             localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
@@ -786,11 +791,12 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
          * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
          * @param {string} [resource_reference_key_type] The type of the resource that referred to.
          * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListJobsResponse> {
-            const localVarFetchArgs = JobServiceApiFetchParamCreator(configuration).listJobs(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, options);
+        listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiListJobsResponse> {
+            const localVarFetchArgs = JobServiceApiFetchParamCreator(configuration).listJobs(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, filter, options);
             return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -862,11 +868,12 @@ export const JobServiceApiFactory = function (configuration?: Configuration, fet
          * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
          * @param {string} [resource_reference_key_type] The type of the resource that referred to.
          * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
+         * @param {string} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, options?: any) {
-            return JobServiceApiFp(configuration).listJobs(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, options)(fetch, basePath);
+        listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options?: any) {
+            return JobServiceApiFp(configuration).listJobs(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, filter, options)(fetch, basePath);
         },
     };
 };
@@ -940,12 +947,13 @@ export class JobServiceApi extends BaseAPI {
      * @param {} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name des\&quot; Ascending by default.
      * @param {} [resource_reference_key_type] The type of the resource that referred to.
      * @param {} [resource_reference_key_id] The ID of the resource that referred to.
+     * @param {} [filter] A base-64 encoded, JSON-serialized Filter protocol buffer (see filter.proto).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof JobServiceApi
      */
-    public listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, options?: any) {
-        return JobServiceApiFp(this.configuration).listJobs(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, options)(this.fetch, this.basePath);
+    public listJobs(page_token?: string, page_size?: number, sort_by?: string, resource_reference_key_type?: string, resource_reference_key_id?: string, filter?: string, options?: any) {
+        return JobServiceApiFp(this.configuration).listJobs(page_token, page_size, sort_by, resource_reference_key_type, resource_reference_key_id, filter, options)(this.fetch, this.basePath);
     }
 
 }

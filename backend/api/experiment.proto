@@ -16,7 +16,6 @@ syntax = "proto3";
 
 package api;
 
-import "filter.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
@@ -98,7 +97,9 @@ message ListExperimentsRequest {
   // Ascending by default.
   string sort_by = 3;
 
-  Filter filter = 4;
+  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
+  // filter.proto).
+  string filter = 4;
 }
 
 message ListExperimentsResponse {

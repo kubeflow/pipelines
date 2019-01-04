@@ -52,6 +52,13 @@ all: dependencies
 		--grpc-gateway_out=logtostderr=true:go_client \
 		*.proto
 
+	# Filter.proto is implicitly used by clients and server, and transmitted as a
+	# serialized string in ListXXX requests. This hack defines a dummy service to
+	# coerce protoc-gen-swagger to generate Swagger JSON definitions for
+	# filter.proto.
+	cp -f filter.proto filter.proto.bak
+	printf "service DummyFilterService {\nrpc DoFilter(Filter) returns (Filter) {\n option (google.api.http) = { \nget: \"/apis/v1beta1/filters\"\n};\n }}" >> filter.proto
+
   # Compile the *.proto files into *.swagger.json (swagger specification).
 	$(protocompiler) -I$(protoinclude) -I/usr/local/include -I. \
 		-I../../vendor/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
@@ -59,6 +66,9 @@ all: dependencies
 		--plugin=protoc-gen-swagger=${TMPDIR}/protoc-gen-swagger \
 		--swagger_out=logtostderr=true:swagger \
 		*.proto
+
+	# Revert the dummy service definition.
+	mv -f filter.proto.bak filter.proto
 
 	# Compile the *.swagger.json into go REST clients.
 	# Instructions to install the 'swagger' command are located here:

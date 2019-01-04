@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -156,4 +157,28 @@ func deserializePageToken(pageToken string) (*common.Token, error) {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Invalid package token.")
 	}
 	return &token, nil
+}
+
+// parseAPIFilter attempts to decode a base-64 encoded JSON-stringified api
+// filter object. An empty string is considered valid input, and equivalent to
+// the nil filter, which trivially does nothing.
+func parseAPIFilter(encoded string) (*api.Filter, error) {
+	if encoded == "" {
+		return nil, nil
+	}
+
+	errorF := func(err error) (*api.Filter, error) {
+		return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
+	}
+
+	b, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return errorF(err)
+	}
+
+	f := &api.Filter{}
+	if err := jsonpb.UnmarshalString(string(b), f); err != nil {
+		return errorF(err)
+	}
+	return f, nil
 }
