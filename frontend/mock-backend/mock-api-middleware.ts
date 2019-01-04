@@ -12,24 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import * as _path from 'path';
 import * as express from 'express';
 import * as fs from 'fs';
-import * as _path from 'path';
 import RunUtils from '../src/lib/RunUtils';
 import helloWorldRuntime from './integration-test-runtime';
-<<<<<<< HEAD
 import proxyMiddleware from '../server/proxy-middleware';
-import { ApiFilter, PredicateOp } from '../src/apis/filter/api';
-=======
-import { data as fixedData, namedPipelines } from './fixed-data';
-import { ApiPipeline, ApiListPipelinesResponse } from '../src/apis/pipeline';
-import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
-import { ApiRun, ApiListRunsResponse, ApiResourceType, RunStorageState } from '../src/apis/run';
->>>>>>> wip mock backend changes, need to use filter for storagestate
+import { ApiFilter, ApiPredicate, PredicateOp } from '../src/apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
-import { ApiListPipelinesResponse, ApiPipeline } from '../src/apis/pipeline';
-import { ApiListRunsResponse, ApiResourceType, ApiRun } from '../src/apis/run';
+import { ApiPipeline, ApiListPipelinesResponse } from '../src/apis/pipeline';
+import { ApiRun, ApiListRunsResponse, ApiResourceType, RunStorageState } from '../src/apis/run';
 import { ExperimentSortKeys, PipelineSortKeys, RunSortKeys } from '../src/lib/Apis';
 import { Response } from 'express-serve-static-core';
 import { data as fixedData, namedPipelines } from './fixed-data';
@@ -84,7 +77,7 @@ export default (app: express.Application) => {
 
   app.get('/hub/', (_, res) => {
     res.sendStatus(200);
-  }); 
+  });
 
   function getSortKeyAndOrder(defaultSortKey: string, queryParam?: string): { desc: boolean, key: string } {
     let key = defaultSortKey;
@@ -114,25 +107,13 @@ export default (app: express.Application) => {
     };
 
     let jobs: ApiJob[] = fixedData.jobs;
-<<<<<<< HEAD
-<<<<<<< HEAD
     if (req.query.filter) {
       jobs = filterResources(fixedData.jobs, req.query.filter);
-=======
-    if (req.query.filter_by) {
-=======
-    if (req.query.filter) {
->>>>>>> filter_by -> filter, remove options handlers
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated when the backend implements filtering.
       jobs = fixedData.jobs.filter((j) =>
         j.name!.toLocaleLowerCase().indexOf(
-<<<<<<< HEAD
-          decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
->>>>>>> wip mock backend changes, need to use filter for storagestate
-=======
           decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
->>>>>>> filter_by -> filter, remove options handlers
     }
 
     const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.CREATED_AT, req.query.sort_by);
@@ -169,15 +150,7 @@ export default (app: express.Application) => {
 
     let experiments: ApiExperiment[] = fixedData.experiments;
     if (req.query.filter) {
-<<<<<<< HEAD
       experiments = filterResources(fixedData.experiments, req.query.filter);
-=======
-      // NOTE: We do not mock fuzzy matching. E.g. 'ep' doesn't match 'experiment'
-      experiments = fixedData.experiments.filter((exp) =>
-        exp.name!.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
-
->>>>>>> filter_by -> filter, remove options handlers
     }
 
     const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.NAME, req.query.sortBy);
@@ -281,62 +254,6 @@ export default (app: express.Application) => {
     }
   });
 
-<<<<<<< HEAD
-  app.get(v1beta1Prefix + '/jobs/:jid/runs', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    // Note: the way that we use the next_page_token here may not reflect the way the backend works.
-    const response: ApiListRunsResponse = {
-      next_page_token: '',
-      runs: [],
-    };
-
-    let runs: ApiRun[] = fixedData.runs.slice(0, 7).map((r) => r.run!);
-
-    if (req.params.jid.startsWith('new-job-')) {
-      response.runs = runs.slice(0, 1);
-      res.json(response);
-      return;
-    } else if (req.params.jid === '7fc01714-4a13-4c05-5902-a8a72c14253b') { // No runs job
-      res.json(response);
-      return;
-    }
-
-    const job = fixedData.jobs.find((j) => j.id === req.params.jid);
-    if (!job) {
-      res.status(404).send(`No job was found with ID: ${req.params.jid}`);
-      return;
-    }
-
-    if (req.query.filter) {
-      runs = filterResources(runs, req.query.filter);
-    }
-
-    const { desc, key } = getSortKeyAndOrder(RunSortKeys.CREATED_AT, req.query.sort_by);
-
-    runs.sort((a, b) => {
-      let result = 1;
-      if (a[key]! < b[key]!) {
-        result = -1;
-      }
-      if (a[key]! === b[key]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
-
-    const start = (req.query.page_token ? +req.query.page_token : 0);
-    const end = start + (+req.query.page_size || 20);
-    response.runs = runs.slice(start, end);
-
-    if (end < runs.length) {
-      response.next_page_token = end + '';
-    }
-
-    res.json(response);
-  });
-
-=======
->>>>>>> wip mock backend changes, need to use filter for storagestate
   app.get(v1beta1Prefix + '/runs', (req, res) => {
     res.header('Content-Type', 'application/json');
     // Note: the way that we use the next_page_token here may not reflect the way the backend works.
@@ -345,19 +262,23 @@ export default (app: express.Application) => {
       runs: [],
     };
 
-    let runs: ApiRun[] = fixedData.runs
-      .map(r => r.run!)
-      .filter(r => r.storageState === RunStorageState.AVAILABLE);
+    let runs: ApiRun[] = fixedData.runs.map(r => r.run!);
 
     if (req.query.filter) {
-<<<<<<< HEAD
       runs = filterResources(runs, req.query.filter);
-=======
-      // NOTE: We do not mock fuzzy matching. E.g. 'rn' doesn't match 'run'
-      // This may need to be updated when the backend implements filtering.
-      runs = runs.filter((r) => r.name!.toLocaleLowerCase().indexOf(
-        decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
->>>>>>> filter_by -> filter, remove options handlers
+      try {
+        const decodedFilter = JSON.parse(decodeURIComponent(req.query.filter)) as ApiFilter;
+        // For simplicity, assume the Op is EQUALS
+        const storageStatePredicate: ApiPredicate | undefined = decodedFilter.predicates ?
+          decodedFilter.predicates.find(p => p.key === 'storage_state') : undefined;
+        if (storageStatePredicate) {
+          runs = runs.filter(r =>
+            r.storage_state && r.storage_state.toString() === storageStatePredicate.string_value);
+        }
+      } catch (e) {
+        res.status(500).send('Bad filter');
+        return;
+      }
     }
 
     if (req.query['resource_reference_key.type'] === ApiResourceType.EXPERIMENT) {
@@ -421,7 +342,7 @@ export default (app: express.Application) => {
   app.post(v1beta1Prefix + '/runs/:rid::archive', (req, res) => {
     const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
     if (runDetail) {
-      runDetail.run!.storageState = RunStorageState.ARCHIVED;
+      runDetail.run!.storage_state = RunStorageState.ARCHIVED;
       res.json({});
     } else {
       res.status(500).send('Cannot find a run with id ' + req.params.rid);
@@ -431,7 +352,7 @@ export default (app: express.Application) => {
   app.post(v1beta1Prefix + '/runs/:rid::unarchive', (req, res) => {
     const runDetail = fixedData.runs.find(r => r.run!.id === req.params.rid);
     if (runDetail) {
-      runDetail.run!.storageState = RunStorageState.AVAILABLE;
+      runDetail.run!.storage_state = RunStorageState.AVAILABLE;
       res.json({});
     } else {
       res.status(500).send('Cannot find a run with id ' + req.params.rid);
@@ -469,7 +390,7 @@ export default (app: express.Application) => {
     const filter: ApiFilter = JSON.parse(decodeURIComponent(filterString));
     ((filter && filter.predicates) || []).forEach(p => {
       resources = resources.filter(r => {
-        switch(p.op) {
+        switch (p.op) {
           case PredicateOp.EQUALS:
             if (p.key !== 'name') {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
@@ -481,13 +402,13 @@ export default (app: express.Application) => {
             }
             return r.name && r.name.toLocaleLowerCase().includes((p.string_value || '').toLocaleLowerCase());
           case PredicateOp.NOTEQUALS:
-            // Fall through
+          // Fall through
           case PredicateOp.GREATERTHAN:
-            // Fall through
+          // Fall through
           case PredicateOp.GREATERTHANEQUALS:
-            // Fall through
+          // Fall through
           case PredicateOp.LESSTHAN:
-            // Fall through
+          // Fall through
           case PredicateOp.LESSTHANEQUALS:
             // Fall through
             throw new Error(`Op: ${p.op} is not yet supported by the mock API server`);
@@ -507,25 +428,13 @@ export default (app: express.Application) => {
     };
 
     let pipelines: ApiPipeline[] = fixedData.pipelines;
-<<<<<<< HEAD
-<<<<<<< HEAD
     if (req.query.filter) {
       pipelines = filterResources(fixedData.pipelines, req.query.filter);
-=======
-    if (req.query.filter_by) {
-=======
-    if (req.query.filter) {
->>>>>>> filter_by -> filter, remove options handlers
       // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
       // This may need to be updated depending on how the backend implements filtering.
       pipelines = fixedData.pipelines.filter((p) =>
         p.name!.toLocaleLowerCase().indexOf(
-<<<<<<< HEAD
-          decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
->>>>>>> wip mock backend changes, need to use filter for storagestate
-=======
           decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
->>>>>>> filter_by -> filter, remove options handlers
     }
 
     const { desc, key } = getSortKeyAndOrder(PipelineSortKeys.CREATED_AT, req.query.sort_by);

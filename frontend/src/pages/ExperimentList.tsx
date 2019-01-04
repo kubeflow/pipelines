@@ -19,8 +19,9 @@ import Buttons from '../lib/Buttons';
 import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
 import RunList from './RunList';
 import produce from 'immer';
+import { ApiFilter, PredicateOp } from '../apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
-import { ApiResourceType, ApiRun } from '../apis/run';
+import { ApiResourceType, ApiRun, RunStorageState } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
@@ -141,7 +142,14 @@ class ExperimentList extends Page<{}, ExperimentListState> {
           5 /* pageSize */,
           RunSortKeys.CREATED_AT + ' desc',
           ApiResourceType.EXPERIMENT.toString(),
-          experiment.id
+          experiment.id,
+          encodeURIComponent(JSON.stringify({
+            predicates: [{
+              key: 'storageState',
+              op: PredicateOp.EQUALS,
+              string_value: RunStorageState.ARCHIVED.toString(),
+            }]
+          } as ApiFilter)),
         );
         experiment.last5Runs = listRunsResponse.runs || [];
       } catch (err) {
@@ -200,6 +208,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       disablePaging={true} selectedIds={this.state.selectedIds} noFilterBox={true}
       onSelectionChange={this._selectionChanged.bind(this)} disableSorting={true} />;
   }
+
 }
 
 export default ExperimentList;
