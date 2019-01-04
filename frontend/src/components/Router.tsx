@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import Archive from 'src/pages/Archive';
+import Archive from '../pages/Archive';
 import Banner, { BannerProps } from '../components/Banner';
 import Button from '@material-ui/core/Button';
 import Compare from '../pages/Compare';
