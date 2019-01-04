@@ -279,9 +279,6 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   # CMLE model name format: A name should start with a letter and contain only letters, numbers and underscores.
   DEPLOYER_MODEL=`cat /proc/sys/kernel/random/uuid`
   DEPLOYER_MODEL=A`echo ${DEPLOYER_MODEL//-/_}`
-  DEV_DEPLOYER_MODEL=${DEPLOYER_MODEL}_dev
-  PROD_DEPLOYER_MODEL=${DEPLOYER_MODEL}_prod
-  MODEL_VERSION=beta
 
   cd ${BASE_DIR}/samples/notebooks
   export LC_ALL=C.UTF-8
@@ -310,9 +307,9 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp $SAMPLE_NOTEBOOK_TFX_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_TFX_TEST_RESULT
 
-  #Clean CMLE models
-  python3 clean_cmle_models.py --project ml-pipeline-test --model ${DEV_DEPLOYER_MODEL} --version ${MODEL_VERSION}
-  python3 clean_cmle_models.py --project ml-pipeline-test --model ${PROD_DEPLOYER_MODEL} --version ${MODEL_VERSION}
+  #Clean CMLE models. Not needed because we cleaned them up inside notebook.
+  # python3 clean_cmle_models.py --project ml-pipeline-test --model ${DEV_DEPLOYER_MODEL} --version ${MODEL_VERSION}
+  # python3 clean_cmle_models.py --project ml-pipeline-test --model ${PROD_DEPLOYER_MODEL} --version ${MODEL_VERSION}
 elif [ "$TEST_NAME" == "notebook-lightweight" ]; then
   SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT=junit_SampleNotebookLightweightOutput.xml
   SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_OUTPUT=${RESULTS_GCS_DIR}
