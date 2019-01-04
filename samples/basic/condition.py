@@ -49,8 +49,7 @@ class PrintOp(dsl.ContainerOp):
     super(PrintOp, self).__init__(
       name='Print',
       image='alpine:3.6',
-      command=['echo'],
-      arguments=[msg]
+      command=['echo', msg],
   )
     
 

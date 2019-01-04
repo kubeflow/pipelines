@@ -75,18 +75,22 @@ class Compiler(object):
       },
     }
 
+  def _process_args(self, raw_args, argument_inputs):
+    if not raw_args:
+      return []
+
+    processed_args = list(map(str, raw_args))
+    for i, _ in enumerate(processed_args):
+      for param in argument_inputs:
+        full_name = self._pipelineparam_full_name(param)
+        processed_args[i] = re.sub(
+            str(param), '{{inputs.parameters.%s}}' % full_name, str(processed_args[i]))
+
+    return processed_args
+  
   def _op_to_template(self, op):
     """Generate template given an operator inherited from dsl.ContainerOp."""
-
-    processed_args = None
-    if op.arguments:
-      processed_args = list(map(str, op.arguments))
-      for i, _ in enumerate(processed_args):
-        if op.argument_inputs:
-          for param in op.argument_inputs:
-            full_name = self._pipelineparam_full_name(param)
-            processed_args[i] = re.sub(str(param), '{{inputs.parameters.%s}}' % full_name,
-                                       processed_args[i])
+    
     input_parameters = []
     for param in op.inputs:
       one_parameter = {'name': self._pipelineparam_full_name(param)}
@@ -110,8 +114,12 @@ class Compiler(object):
         'image': op.image,
       }
     }
-    if processed_args:
-      template['container']['args'] = processed_args
+    processed_arguments = self._process_args(op.arguments, op.argument_inputs)
+    processed_command = self._process_args(op.command, op.argument_inputs)
+    if processed_arguments:
+      template['container']['args'] = processed_arguments
+    if processed_command:
+      template['container']['command'] = processed_command
     if input_parameters:
       template['inputs'] = {'parameters': input_parameters}
 
@@ -129,8 +137,7 @@ class Compiler(object):
     output_artifacts.append(self._build_conventional_artifact('mlpipeline-ui-metadata'))
     output_artifacts.append(self._build_conventional_artifact('mlpipeline-metrics'))
     template['outputs']['artifacts'] = output_artifacts
-    if op.command:
-      template['container']['command'] = op.command
+
 
     # Set resources.
     if op.resource_limits or op.resource_requests:
