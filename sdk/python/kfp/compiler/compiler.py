@@ -239,10 +239,18 @@ class Compiler(object):
     if op.arguments:
       processed_args = list(map(str, op.arguments))
       for i, _ in enumerate(processed_args):
+        # Replace the PipelineParam with input parameter names
+        matches = []
+        match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(processed_args[i]))
+        matches += match
+        unsanitized_argument_inputs = {}
+        for x in list(set(matches)):
+          unsanitized_argument_inputs[K8sHelper.sanitize_k8s_name(x[1])] = str(dsl.PipelineParam(x[1], x[0], x[2]))
+
         if op.argument_inputs:
           for param in op.argument_inputs:
             full_name = self._pipelineparam_full_name(param)
-            processed_args[i] = re.sub(str(param), '{{inputs.parameters.%s}}' % full_name,
+            processed_args[i] = re.sub(unsanitized_argument_inputs[param.name], '{{inputs.parameters.%s}}' % full_name,
                                        processed_args[i])
     input_parameters = []
     for param in op.inputs:
@@ -524,6 +532,9 @@ class Compiler(object):
         param.name = K8sHelper.sanitize_k8s_name(param.name)
         if param.op_name:
           param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
+      if op.output is not None:
+        op.output.name = K8sHelper.sanitize_k8s_name(op.output.name)
+        op.output.op_name = K8sHelper.sanitize_k8s_name(op.output.op_name)
       sanitized_ops[sanitized_name] = op
     p.ops = sanitized_ops
 
