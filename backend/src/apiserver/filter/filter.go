@@ -17,12 +17,11 @@
 package filter
 
 import (
-	"fmt"
-
 	"github.com/Masterminds/squirrel"
 	"github.com/golang/protobuf/ptypes"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 // Filter represents a filter that can be applied when querying an arbitrary API
@@ -68,7 +67,7 @@ func NewWithKeyMap(filterProto *api.Filter, keyMap map[string]string) (*Filter, 
 	for _, pred := range filterProto.Predicates {
 		k, ok := keyMap[pred.Key]
 		if !ok {
-			return nil, fmt.Errorf("no support for filtering on unrecognized field %q", pred.Key)
+			return nil, util.NewInvalidInputError("no support for filtering on unrecognized field %q", pred.Key)
 		}
 		pred.Key = k
 	}
@@ -115,17 +114,17 @@ func checkPredicate(p *api.Predicate) error {
 	case api.Predicate_IN:
 		switch t := p.Value.(type) {
 		case *api.Predicate_IntValue, *api.Predicate_LongValue, *api.Predicate_StringValue, *api.Predicate_TimestampValue:
-			return fmt.Errorf("cannot use IN operator with scalar type %T", t)
+			return util.NewInvalidInputError("cannot use IN operator with scalar type %T", t)
 		}
 
 	case api.Predicate_EQUALS, api.Predicate_NOT_EQUALS, api.Predicate_GREATER_THAN, api.Predicate_GREATER_THAN_EQUALS, api.Predicate_LESS_THAN, api.Predicate_LESS_THAN_EQUALS:
 		switch t := p.Value.(type) {
 		case *api.Predicate_IntValues, *api.Predicate_LongValues, *api.Predicate_StringValues:
-			return fmt.Errorf("cannot use scalar operator %v on array type %T", p.Op, t)
+			return util.NewInvalidInputError("cannot use scalar operator %v on array type %T", p.Op, t)
 		}
 
 	default:
-		return fmt.Errorf("invalid predicate operation: %v", p.Op)
+		return util.NewInvalidInputError("invalid predicate operation: %v", p.Op)
 	}
 
 	return nil
@@ -154,7 +153,7 @@ func (f *Filter) parseFilterProto() error {
 		case api.Predicate_IN:
 			m = f.in
 		default:
-			return fmt.Errorf("invalid predicate operation: %v", pred.Op)
+			return util.NewInvalidInputError("invalid predicate operation: %v", pred.Op)
 		}
 
 		if err := addPredicateValue(m, pred); err != nil {
@@ -176,7 +175,7 @@ func addPredicateValue(m map[string]interface{}, p *api.Predicate) error {
 	case *api.Predicate_TimestampValue:
 		ts, err := ptypes.Timestamp(p.GetTimestampValue())
 		if err != nil {
-			return fmt.Errorf("invalid timestamp: %v", err)
+			return util.NewInvalidInputError("invalid timestamp: %v", err)
 		}
 		m[p.Key] = ts.Unix()
 
@@ -202,10 +201,10 @@ func addPredicateValue(m map[string]interface{}, p *api.Predicate) error {
 		m[p.Key] = v
 
 	case nil:
-		return fmt.Errorf("no value set for predicate on key %q", p.Key)
+		return util.NewInvalidInputError("no value set for predicate on key %q", p.Key)
 
 	default:
-		return fmt.Errorf("unknown value type in Filter for predicate key %q: %T", p.Key, t)
+		return util.NewInvalidInputError("unknown value type in Filter for predicate key %q: %T", p.Key, t)
 	}
 
 	return nil
