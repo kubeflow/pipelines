@@ -52,7 +52,7 @@ def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', l
         file_outputs = {'train': '/output.txt'}
     )
     if use_gpu:
-        kubeflow_tf_training_op.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:85c6413a2e13da4b8f198aeac1abc2f3a74fe789',
+        kubeflow_tf_training_op.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:85c6413a2e13da4b8f198aeac1abc2f3a74fe789'
         kubeflow_tf_training_op.set_gpu_limit(1)
     
     return kubeflow_tf_training_op
@@ -102,7 +102,7 @@ def kubeflow_training(output, project,
   # TODO: use the argo job name as the workflow
   workflow = '{{workflow.name}}'
   # set the flag to use GPU trainer
-  use_gpu = True
+  use_gpu = False
 
   preprocess = dataflow_tf_transform_op(train, evaluation, schema, project, preprocess_mode, '', '%s/%s/transformed' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
   training = kubeflow_tf_training_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, '', '%s/%s/train' % (output, workflow), use_gpu=use_gpu).apply(gcp.use_gcp_secret('user-gcp-sa'))
