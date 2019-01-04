@@ -20,19 +20,23 @@ import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
 import ChevronLeft from '@material-ui/icons/ChevronLeft';
 import ChevronRight from '@material-ui/icons/ChevronRight';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import FilterIcon from '@material-ui/icons/FilterList';
 import IconButton from '@material-ui/core/IconButton';
+import Input from '../atoms/Input';
 import MenuItem from '@material-ui/core/MenuItem';
 import Radio from '@material-ui/core/Radio';
 import Separator from '../atoms/Separator';
 import TableSortLabel from '@material-ui/core/TableSortLabel';
-import TextField from '@material-ui/core/TextField';
+import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 import WarningIcon from '@material-ui/icons/WarningRounded';
 import { ListRequest } from '../lib/Apis';
-import { TextFieldProps } from '@material-ui/core/TextField';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding } from '../Css';
 import { logger } from '../lib/Utils';
+import { ApiFilter, PredicateOp } from '../apis/filter/api';
+import { debounce } from 'lodash';
+import { InputAdornment } from '@material-ui/core';
 
 export enum ExpandState {
   COLLAPSED,
@@ -106,6 +110,12 @@ export const css = stylesheet({
     boxSizing: 'border-box',
     height: '40px !important',
   },
+  filterBorderRadius: {
+    borderRadius: 8,
+  },
+  filterBox: {
+    margin: '16px 0',
+  },
   footer: {
     borderBottom: '1px solid ' + color.divider,
     fontFamily: fonts.secondary,
@@ -118,7 +128,6 @@ export const css = stylesheet({
     display: 'flex',
     flex: '0 0 40px',
     lineHeight: '40px', // must declare px
-    marginTop: 20,
   },
   icon: {
     color: color.alert,
@@ -126,6 +135,12 @@ export const css = stylesheet({
     paddingRight: 4,
     verticalAlign: 'sub',
     width: 18,
+  },
+  noLeftPadding: {
+    paddingLeft: 0,
+  },
+  noMargin: {
+    margin: 0,
   },
   row: {
     $nest: {
@@ -158,6 +173,7 @@ interface CustomTableProps {
   disableSelection?: boolean;
   disableSorting?: boolean;
   emptyMessage?: string;
+  filterLabel?: string;
   getExpandComponent?: (index: number) => React.ReactNode;
   initialSortColumn?: string;
   initialSortOrder?: 'asc' | 'desc';
@@ -171,6 +187,8 @@ interface CustomTableProps {
 
 interface CustomTableState {
   currentPage: number;
+  filterString: string;
+  filterStringEncoded: string;
   isBusy: boolean;
   maxPageIndex: number;
   sortOrder: 'asc' | 'desc';
@@ -182,11 +200,16 @@ interface CustomTableState {
 export default class CustomTable extends React.Component<CustomTableProps, CustomTableState> {
   private _isMounted = true;
 
+  private _debouncedRequest =
+    debounce((filterString: string) => this._requestFilter(filterString), 300);
+
   constructor(props: CustomTableProps) {
     super(props);
 
     this.state = {
       currentPage: 0,
+      filterString: '',
+      filterStringEncoded: '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,
@@ -241,16 +264,35 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   public componentWillUnmount(): void {
     this._isMounted = false;
+    this._debouncedRequest.cancel();
   }
 
   public render(): JSX.Element {
-    const { pageSize, sortBy, sortOrder } = this.state;
+    const { filterString, pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
     const totalFlex = this.props.columns.reduce((total, c) => total += (c.flex || 1), 0);
     const widths = this.props.columns.map(c => (c.flex || 1) / totalFlex * 100);
 
     return (
       <div className={commonCss.pageOverflowHidden}>
+
+        {/* Filter/Search bar */}
+        <div>
+          <Input label={this.props.filterLabel || 'Filter'} height={48} maxWidth={'100%'}
+            className={css.filterBox} InputLabelProps={{ classes: { root: css.noMargin }}}
+            onChange={this.handleChange('filterString')} value={filterString}
+            InputProps={{
+              classes: {
+                notchedOutline: css.filterBorderRadius,
+                root: css.noLeftPadding,
+              },
+              startAdornment: (
+                <InputAdornment position='end'>
+                  <FilterIcon style={{ color: color.lowContrast, paddingRight: 16 }}/>
+                </InputAdornment>
+              )
+            }} />
+        </div>
 
         {/* Header */}
         <div className={classes(
@@ -380,6 +422,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   public async reload(loadRequest?: ListRequest): Promise<string> {
     // Override the current state with incoming request
     const request: ListRequest = Object.assign({
+      filterBy: this.state.filterStringEncoded,
       orderAscending: this.state.sortOrder === 'asc',
       pageSize: this.state.pageSize,
       pageToken: this.state.tokenList[this.state.currentPage],
@@ -389,9 +432,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     let result = '';
     try {
       this.setStateSafe({
+        filterStringEncoded: request.filter,
         isBusy: true,
-        pageSize: request.pageSize!,
-        sortBy: request.sortBy!,
+        pageSize: request.pageSize,
+        sortBy: request.sortBy,
         sortOrder: request.orderAscending ? 'asc' : 'desc',
       });
 
@@ -404,6 +448,38 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       this.setStateSafe({ isBusy: false });
     }
     return result;
+  }
+
+  private _createAndEncodeFilter(filterString: string): string {
+    const filter: ApiFilter = {
+      predicates: [
+        {
+          // TODO: remove this hardcoding once more sophisticated filtering is supported
+          key: 'name',
+          // TODO: change this to the substring match operator once it's supported
+          op: PredicateOp.EQUALS,
+          string_value: filterString,
+        },
+      ],
+    };
+    return encodeURIComponent(JSON.stringify(filter));
+  }
+
+  private handleChange = (name: string) => (event: any) => {
+    const value = (event.target as TextFieldProps).value;
+    this.setStateSafe({ [name]: value } as any,
+      () => {
+        if (name === 'filterString') {
+          this._debouncedRequest(value as string);
+        }
+      });
+  }
+
+  private _requestFilter(filterString?: string): void {
+    const filterStringEncoded = filterString ? this._createAndEncodeFilter(filterString) : '';
+    this.setStateSafe({ filterString, filterStringEncoded },
+      async () => this._resetToFirstPage(await this.reload({ filter: filterStringEncoded }))
+    );
   }
 
   private setStateSafe(newState: Partial<CustomTableState>, cb?: () => void): void {

@@ -68,6 +68,7 @@ describe('ResourceSelector', () => {
     return {
       columns: selectorColumns,
       emptyMessage: testEmptyMessage,
+      filterLabel: 'test filter label',
       history: {} as any,
       initialSortColumn: 'created_at',
       listApi: listResourceSpy as any,

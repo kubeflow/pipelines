@@ -125,6 +125,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
           disableSelection={true} initialSortColumn={ExperimentSortKeys.CREATED_AT}
           reload={this._reload.bind(this)} toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
+          filterLabel='Filter experiments'
           emptyMessage='No experiments found. Click "Create experiment" to start.' />
       </div>
     );
@@ -143,7 +144,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     let displayExperiments: DisplayExperiment[];
     try {
       response = await Apis.experimentServiceApi.listExperiment(
-        request.pageToken, request.pageSize, request.sortBy);
+        request.pageToken, request.pageSize, request.sortBy, request.filter);
       displayExperiments = response.experiments || [];
       displayExperiments.forEach((exp) => exp.expandState = ExpandState.COLLAPSED);
     } catch (err) {
