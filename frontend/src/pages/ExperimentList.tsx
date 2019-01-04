@@ -242,7 +242,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     const experiment = this.state.displayExperiments[experimentIndex];
     const runIds = (experiment.last5Runs || []).map((r) => r.id!);
     return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
-      disablePaging={true} selectedIds={this.state.selectedRunIds}
+      disablePaging={true} selectedIds={this.state.selectedRunIds} noFilterBox={true}
       onSelectionChange={this._runSelectionChanged.bind(this)} disableSorting={true} />;
   }
 }

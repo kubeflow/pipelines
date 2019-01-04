@@ -4,6 +4,44 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -177,6 +215,11 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -228,6 +271,44 @@ exports[`CustomTable renders a collapsed row 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -362,6 +443,11 @@ exports[`CustomTable renders a collapsed row 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -413,6 +499,44 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -533,6 +657,11 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -584,6 +713,44 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -732,6 +899,11 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -783,6 +955,44 @@ exports[`CustomTable renders an expanded row 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -907,6 +1117,11 @@ exports[`CustomTable renders an expanded row 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -958,6 +1173,44 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1099,6 +1352,11 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1150,6 +1408,44 @@ exports[`CustomTable renders columns with specified widths 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1231,6 +1527,11 @@ exports[`CustomTable renders columns with specified widths 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1282,6 +1583,44 @@ exports[`CustomTable renders empty message on no rows 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1325,6 +1664,11 @@ exports[`CustomTable renders empty message on no rows 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1376,6 +1720,44 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1500,6 +1882,11 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1551,6 +1938,44 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1717,6 +2142,11 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1768,6 +2198,44 @@ exports[`CustomTable renders some columns with descending sort order on first co
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1850,6 +2318,11 @@ exports[`CustomTable renders some columns with descending sort order on first co
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1901,6 +2374,44 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1982,6 +2493,11 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -2033,6 +2549,44 @@ exports[`CustomTable renders some rows 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -2199,6 +2753,11 @@ exports[`CustomTable renders some rows 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -2250,6 +2809,44 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -2420,6 +3017,11 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -2471,6 +3073,44 @@ exports[`CustomTable renders without rows or columns 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -2508,6 +3148,11 @@ exports[`CustomTable renders without rows or columns 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -2559,6 +3204,44 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -2699,6 +3382,11 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}

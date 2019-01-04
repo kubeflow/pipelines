@@ -97,7 +97,7 @@ describe('ResourceSelector', () => {
     await (tree.instance() as TestResourceSelector)._load({});
 
     expect(listResourceSpy).toHaveBeenCalledTimes(1);
-    expect(listResourceSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined);
+    expect(listResourceSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined, undefined);
     expect(tree.state('resources')).toEqual(RESOURCES);
     expect(tree).toMatchSnapshot();
   });
