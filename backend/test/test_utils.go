@@ -44,20 +44,23 @@ var runIntegrationTests = flag.Bool("runIntegrationTests", false, "Whether to al
 func waitForReady(namespace string, initializeTimeout time.Duration) error {
 	var operation = func() error {
 		response, err := http.Get(fmt.Sprintf("http://ml-pipeline.%s.svc.cluster.local:8888/apis/v1beta1/healthz", namespace))
-		if err == nil {
-			return nil
+		if err != nil {
+			return err
 		}
-		// we wait only on 503 service unavailable. Stop retry otherwise.
-		if response.StatusCode != 503 {
-			return backoff.Permanent(errors.Wrapf(err, "Waiting for ml pipeline failed with non retriable error."))
+
+		// If we get a 503 service unavailable, it's a non-retriable error.
+		if response.StatusCode == 503 {
+			return backoff.Permanent(errors.Wrapf(
+				err, "Waiting for ml pipeline API server failed with non retriable error."))
 		}
-		return err
+
+		return nil
 	}
 
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initializeTimeout
 	err := backoff.Retry(operation, b)
-	return errors.Wrapf(err, "Waiting for ml pipeline failed after all attempts.")
+	return errors.Wrapf(err, "Waiting for ml pipeline API server failed after all attempts.")
 }
 
 func getClientConfig(namespace string) clientcmd.ClientConfig {
