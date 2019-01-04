@@ -19,6 +19,7 @@ set -x
 usage()
 {
     echo "usage: deploy.sh
+    [--platform             the deployment platform. Valid values are: [gcp, minikube]. Default is gcp.]
     [--workflow_file        the file name of the argo workflow to run]
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
@@ -26,6 +27,7 @@ usage()
     [-h help]"
 }
 
+PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
@@ -34,6 +36,9 @@ NAMESPACE=kubeflow
 
 while [ "$1" != "" ]; do
     case $1 in
+             --platform )             shift
+                                      PLATFORM=$1
+                                      ;;
              --workflow_file )        shift
                                       WORKFLOW_FILE=$1
                                       ;;
@@ -117,7 +122,7 @@ function clean_up {
 }
 trap clean_up EXIT
 
-${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT} --skipInitProject
+${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform ${PLATFORM} --project ${PROJECT} --skipInitProject
 
 cd ${KFAPP}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
