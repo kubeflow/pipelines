@@ -26,6 +26,7 @@ import { ApiRun, ApiListRunsResponse, ApiResourceType } from '../src/apis/run';
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import RunUtils from '../src/lib/RunUtils';
 import { Response } from 'express-serve-static-core';
+import { ApiFilter, PredicateOp } from '../src/apis/filter/api';
 
 const rocMetadataJsonPath = './eval-output/metadata.json';
 const rocMetadataJsonPath2 = './eval-output/metadata2.json';
@@ -41,6 +42,15 @@ const helloWorldBigHtmlPath = './model-output/hello-world-big.html';
 const v1beta1Prefix = '/apis/v1beta1';
 
 let tensorboardPod = '';
+
+// This is a copy of the BaseResource defined within src/pages/ResourceSelector
+interface BaseResource {
+  id?: string;
+  created_at?: Date;
+  description?: string;
+  name?: string;
+  error?: string;
+}
 
 // tslint:disable-next-line:no-default-export
 export default (app: express.Application) => {
@@ -92,13 +102,8 @@ export default (app: express.Application) => {
     };
 
     let jobs: ApiJob[] = fixedData.jobs;
-    if (req.query.filter_by) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
-      // This may need to be updated when the backend implements filtering.
-      jobs = fixedData.jobs.filter((j) =>
-        j.name!.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
-
+    if (req.query.filter) {
+      jobs = filterResources(fixedData.jobs, req.query.filter);
     }
 
     const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.CREATED_AT, req.query.sort_by);
@@ -134,12 +139,8 @@ export default (app: express.Application) => {
     };
 
     let experiments: ApiExperiment[] = fixedData.experiments;
-    if (req.query.filterBy) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'ep' doesn't match 'experiment'
-      experiments = fixedData.experiments.filter((exp) =>
-        exp.name!.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filterBy).toLocaleLowerCase()) > -1);
-
+    if (req.query.filter) {
+      experiments = filterResources(fixedData.experiments, req.query.filter);
     }
 
     const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.NAME, req.query.sortBy);
@@ -272,11 +273,8 @@ export default (app: express.Application) => {
       return;
     }
 
-    if (req.query.filter_by) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
-      // This may need to be updated when the backend implements filtering.
-      runs = runs.filter((r) => r.name!.toLocaleLowerCase().indexOf(
-        decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
+    if (req.query.filter) {
+      runs = filterResources(runs, req.query.filter);
     }
 
     const { desc, key } = getSortKeyAndOrder(RunSortKeys.CREATED_AT, req.query.sort_by);
@@ -313,11 +311,8 @@ export default (app: express.Application) => {
 
     let runs: ApiRun[] = fixedData.runs.map((r) => r.run!);
 
-    if (req.query.filter_by) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'rn' doesn't match 'run'
-      // This may need to be updated when the backend implements filtering.
-      runs = runs.filter((r) => r.name!.toLocaleLowerCase().indexOf(
-        decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
+    if (req.query.filter) {
+      runs = filterResources(runs, req.query.filter);
     }
 
     if (req.query['resource_reference_key.type'] === ApiResourceType.EXPERIMENT) {
@@ -409,6 +404,41 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
+  function filterResources(resources: BaseResource[], filterString?: string): BaseResource[] {
+    if (!filterString) {
+      return resources;
+    }
+    const filter: ApiFilter = JSON.parse(decodeURIComponent(filterString));
+    ((filter && filter.predicates) || []).forEach(p => {
+      resources = resources.filter(r => {
+        switch(p.op) {
+          // case PredicateOp.CONTAINS
+          //   return r.name!.toLocaleLowerCase().indexOf(
+          //     decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
+          case PredicateOp.EQUALS:
+            if (p.key !== 'name') {
+              throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
+            }
+            return r.name!.toLocaleLowerCase() === (p.string_value || '').toLocaleLowerCase();
+          case PredicateOp.NOTEQUALS:
+            // Fall through
+          case PredicateOp.GREATERTHAN:
+            // Fall through
+          case PredicateOp.GREATERTHANEQUALS:
+            // Fall through
+          case PredicateOp.LESSTHAN:
+            // Fall through
+          case PredicateOp.LESSTHANEQUALS:
+            // Fall through
+            throw new Error(`Op: ${p.op} is not yet supported by the mock API server`);
+          default:
+            throw new Error(`Unknown Predicate op: ${p.op}`);
+        }
+      });
+    });
+    return resources;
+  }
+
   app.get(v1beta1Prefix + '/pipelines', (req, res) => {
     res.header('Content-Type', 'application/json');
     const response: ApiListPipelinesResponse = {
@@ -417,17 +447,11 @@ export default (app: express.Application) => {
     };
 
     let pipelines: ApiPipeline[] = fixedData.pipelines;
-    if (req.query.filter_by) {
-      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
-      // This may need to be updated depending on how the backend implements filtering.
-      pipelines = fixedData.pipelines.filter((p) =>
-        p.name!.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filter_by).toLocaleLowerCase()) > -1);
-
+    if (req.query.filter) {
+      pipelines = filterResources(fixedData.pipelines, req.query.filter);
     }
 
     const { desc, key } = getSortKeyAndOrder(PipelineSortKeys.CREATED_AT, req.query.sort_by);
-
 
     pipelines.sort((a, b) => {
       let result = 1;

@@ -105,7 +105,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <CustomTable ref={this._tableRef} columns={columns} rows={rows} initialSortColumn={PipelineSortKeys.CREATED_AT}
           updateSelection={this._selectionChanged.bind(this)} selectedIds={this.state.selectedIds}
-          reload={this._reload.bind(this)}
+          reload={this._reload.bind(this)} filterLabel='Filter pipelines'
           emptyMessage='No pipelines found. Click "Upload pipeline" to start.' />
 
         <UploadPipelineDialog open={this.state.uploadDialogOpen}
@@ -124,7 +124,7 @@ class PipelineList extends Page<{}, PipelineListState> {
     let response: ApiListPipelinesResponse | null = null;
     try {
       response = await Apis.pipelineServiceApi.listPipelines(
-        request.pageToken, request.pageSize, request.sortBy);
+        request.pageToken, request.pageSize, request.sortBy, request.filter);
       this.clearBanner();
     } catch (err) {
       await this.showPageError('Error: failed to retrieve list of pipelines.', err);

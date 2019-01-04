@@ -167,7 +167,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         initialSortColumn={RunSortKeys.CREATED_AT} ref={this._tableRef}
         updateSelection={this.props.onSelectionChange} reload={this._loadRuns.bind(this)}
         disablePaging={this.props.disablePaging} disableSorting={this.props.disableSorting}
-        disableSelection={this.props.disableSelection}
+        disableSelection={this.props.disableSelection} filterLabel='Filter runs'
         emptyMessage={`No runs found${this.props.experimentIdMask ? ' for this experiment' : ''}.`}
       />
     </div>);
@@ -288,6 +288,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           request.sortBy,
           this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
           this.props.experimentIdMask,
+          request.filter,
         );
 
         displayRuns = (response.runs || []).map(r => ({ metadata: r }));
