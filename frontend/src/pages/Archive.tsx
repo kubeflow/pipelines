@@ -62,7 +62,7 @@ export default class Archive extends Page<{}, ArchiveState> {
         tooltip: 'Refresh the list of resources',
       }],
       breadcrumbs: [],
-      pageTitle: 'Experiments',
+      pageTitle: 'Archive',
     };
   }
 

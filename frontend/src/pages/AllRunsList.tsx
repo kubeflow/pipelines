@@ -23,9 +23,9 @@ import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { s, errorToMessage } from 'src/lib/Utils';
-import { Apis } from 'src/lib/Apis';
-import { RunStorageState } from 'src/apis/run';
+import { s, errorToMessage } from '../lib/Utils';
+import { Apis } from '../lib/Apis';
+import { RunStorageState } from '../apis/run';
 
 interface AllRunsListState {
   selectedIds: string[];

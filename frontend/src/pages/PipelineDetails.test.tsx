@@ -18,6 +18,7 @@ import * as React from 'react';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
 import PipelineDetails, { css } from './PipelineDetails';
 import TestUtils from '../TestUtils';
+import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline } from '../apis/pipeline';
 import { ApiRunDetail, ApiResourceType } from '../apis/run';
 import { Apis } from '../lib/Apis';
@@ -25,7 +26,6 @@ import { PageProps } from './Page';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { graphlib } from 'dagre';
 import { shallow, mount, ShallowWrapper, ReactWrapper } from 'enzyme';
-import { ApiExperiment } from 'src/apis/experiment';
 
 describe('PipelineDetails', () => {
   const updateBannerSpy = jest.fn();
