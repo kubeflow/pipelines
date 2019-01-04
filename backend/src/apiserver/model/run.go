@@ -68,11 +68,11 @@ func (r *Run) DefaultSortField() string {
 }
 
 var runAPIToModelFieldMap = map[string]string{
-	"id":            "UUID",
-	"name":          "DisplayName",
-	"created_at":    "CreatedAtInSec",
-	"description":   "Description",
-	"scheduled_at":  "ScheduledAtInSec",
+	"id":           "UUID",
+	"name":         "DisplayName",
+	"created_at":   "CreatedAtInSec",
+	"description":  "Description",
+	"scheduled_at": "ScheduledAtInSec",
 	"storageState": "StorageState",
 }
 
