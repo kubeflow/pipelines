@@ -239,7 +239,7 @@ class Compiler(object):
     if op.arguments:
       processed_args = list(map(str, op.arguments))
       for i, _ in enumerate(processed_args):
-        # Replace the PipelineParam with input parameter names
+        # unsanitized_argument_inputs stores a dict: sanitized param name -> string of unsanitized param
         matches = []
         match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(processed_args[i]))
         matches += match
@@ -249,9 +249,10 @@ class Compiler(object):
 
         if op.argument_inputs:
           for param in op.argument_inputs:
-            full_name = self._pipelineparam_full_name(param)
-            processed_args[i] = re.sub(unsanitized_argument_inputs[param.name], '{{inputs.parameters.%s}}' % full_name,
-                                       processed_args[i])
+            if param.name in unsanitized_argument_inputs:
+              full_name = self._pipelineparam_full_name(param)
+              processed_args[i] = re.sub(unsanitized_argument_inputs[param.name], '{{inputs.parameters.%s}}' % full_name,
+                                         processed_args[i])
     input_parameters = []
     for param in op.inputs:
       one_parameter = {'name': self._pipelineparam_full_name(param)}
