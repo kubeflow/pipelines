@@ -222,7 +222,7 @@ exports[`Status handles an unknown phase 1`] = `
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.3125,
+          "lineHeight": 1.5,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -630,7 +630,7 @@ exports[`Status renders an icon with tooltip for phase: ERROR 1`] = `
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.3125,
+          "lineHeight": 1.5,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -1038,7 +1038,7 @@ exports[`Status renders an icon with tooltip for phase: FAILED 1`] = `
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.3125,
+          "lineHeight": 1.5,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -1446,7 +1446,7 @@ exports[`Status renders an icon with tooltip for phase: PENDING 1`] = `
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.3125,
+          "lineHeight": 1.5,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -1854,7 +1854,7 @@ exports[`Status renders an icon with tooltip for phase: RUNNING 1`] = `
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.3125,
+          "lineHeight": 1.5,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -2262,7 +2262,7 @@ exports[`Status renders an icon with tooltip for phase: SKIPPED 1`] = `
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.3125,
+          "lineHeight": 1.5,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -2670,7 +2670,7 @@ exports[`Status renders an icon with tooltip for phase: SUCCEEDED 1`] = `
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.3125,
+          "lineHeight": 1.5,
           "textTransform": "uppercase",
         },
         "caption": Object {
@@ -3078,7 +3078,7 @@ exports[`Status renders an icon with tooltip for phase: UNKNOWN 1`] = `
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.3125,
+          "lineHeight": 1.5,
           "textTransform": "uppercase",
         },
         "caption": Object {

@@ -1117,7 +1117,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         "fontSize": "0.875rem",
                         "fontWeight": 500,
                         "letterSpacing": "0.02857em",
-                        "lineHeight": 1.3125,
+                        "lineHeight": 1.5,
                         "textTransform": "uppercase",
                       },
                       "caption": Object {
@@ -1702,7 +1702,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         "fontSize": "0.875rem",
                         "fontWeight": 500,
                         "letterSpacing": "0.02857em",
-                        "lineHeight": 1.3125,
+                        "lineHeight": 1.5,
                         "textTransform": "uppercase",
                       },
                       "caption": Object {
@@ -2286,7 +2286,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         "fontSize": "0.875rem",
                         "fontWeight": 500,
                         "letterSpacing": "0.02857em",
-                        "lineHeight": 1.3125,
+                        "lineHeight": 1.5,
                         "textTransform": "uppercase",
                       },
                       "caption": Object {
@@ -2870,7 +2870,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         "fontSize": "0.875rem",
                         "fontWeight": 500,
                         "letterSpacing": "0.02857em",
-                        "lineHeight": 1.3125,
+                        "lineHeight": 1.5,
                         "textTransform": "uppercase",
                       },
                       "caption": Object {
@@ -3454,7 +3454,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         "fontSize": "0.875rem",
                         "fontWeight": 500,
                         "letterSpacing": "0.02857em",
-                        "lineHeight": 1.3125,
+                        "lineHeight": 1.5,
                         "textTransform": "uppercase",
                       },
                       "caption": Object {
@@ -4038,7 +4038,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         "fontSize": "0.875rem",
                         "fontWeight": 500,
                         "letterSpacing": "0.02857em",
-                        "lineHeight": 1.3125,
+                        "lineHeight": 1.5,
                         "textTransform": "uppercase",
                       },
                       "caption": Object {
@@ -5286,7 +5286,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                                     "fontSize": "0.875rem",
                                                     "fontWeight": 500,
                                                     "letterSpacing": "0.02857em",
-                                                    "lineHeight": 1.3125,
+                                                    "lineHeight": 1.5,
                                                     "textTransform": "uppercase",
                                                   },
                                                   "caption": Object {
@@ -6243,7 +6243,7 @@ exports[`RunList renders status as icon 1`] = `
           "fontSize": "0.875rem",
           "fontWeight": 500,
           "letterSpacing": "0.02857em",
-          "lineHeight": 1.3125,
+          "lineHeight": 1.5,
           "textTransform": "uppercase",
         },
         "caption": Object {
