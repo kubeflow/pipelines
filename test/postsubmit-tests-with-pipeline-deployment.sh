@@ -31,7 +31,7 @@ PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 #TODO: use the staging images instead.
-GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
+GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_BASE_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
 
@@ -61,7 +61,7 @@ while [ "$1" != "" ]; do
     shift
 done
 
-TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
+TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_BASE_SHA}/${TEST_RESULT_FOLDER}
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
 WORKFLOW_FAILED_KEYWORD="phase=Failed"
@@ -78,7 +78,7 @@ gcloud config set core/project ${PROJECT}
 #Uploading the source code to GCS:
 local_code_archive_file=$(mktemp)
 date_string=$(TZ=PST8PDT date +%Y-%m-%d_%H-%M-%S_%Z)
-code_archive_prefix="gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/source_code"
+code_archive_prefix="gs://${TEST_RESULT_BUCKET}/${PULL_BASE_SHA}/source_code"
 remote_code_archive_uri="${code_archive_prefix}_${PULL_BASE_SHA}_${date_string}.tar.gz"
 
 tar -czf "$local_code_archive_file" .
@@ -110,7 +110,7 @@ cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
 KUBEFLOW_SRC=${KUBEFLOW_MASTER}
 
 TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
-TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
+TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_BASE_SHA:0:7}-${RANDOM}
 
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
@@ -144,7 +144,7 @@ gcloud container clusters get-credentials ${TEST_CLUSTER}
 
 source "${DIR}/install-argo.sh"
 
-echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
+echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
