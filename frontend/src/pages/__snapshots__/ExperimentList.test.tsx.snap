@@ -26,6 +26,7 @@ exports[`ExperimentList renders a list of one experiment 1`] = `
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -74,6 +75,7 @@ exports[`ExperimentList renders a list of one experiment with error 1`] = `
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -109,6 +111,7 @@ exports[`ExperimentList renders a list of one experiment with no description 1`]
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -144,6 +147,7 @@ exports[`ExperimentList renders an empty list with empty state message 1`] = `
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}

@@ -67,6 +67,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -192,6 +193,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction],
@@ -450,6 +452,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -579,6 +582,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction],
@@ -867,6 +871,7 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -992,6 +997,7 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction],
@@ -1242,6 +1248,7 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -1367,6 +1374,7 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction],
@@ -1623,6 +1631,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -1748,6 +1757,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction],
@@ -2006,6 +2016,7 @@ exports[`NewRun renders the new run page 1`] = `
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -2135,6 +2146,7 @@ exports[`NewRun renders the new run page 1`] = `
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction],
@@ -2397,6 +2409,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -2522,6 +2535,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction],
@@ -2782,6 +2796,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction] {
@@ -2924,6 +2939,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction] {
@@ -3197,6 +3213,7 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction] {
@@ -3339,6 +3356,7 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction] {
@@ -3648,6 +3666,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -3777,6 +3796,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction],
@@ -4039,6 +4059,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -4168,6 +4189,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction],
@@ -4466,6 +4488,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -4595,6 +4618,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction],
@@ -4857,6 +4881,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             ]
           }
           emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
           history={
             Object {
               "push": [MockFunction],
@@ -4986,6 +5011,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             ]
           }
           emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
           history={
             Object {
               "push": [MockFunction],

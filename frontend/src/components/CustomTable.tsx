@@ -165,6 +165,9 @@ export const css = stylesheet({
   selectionToggle: {
     marginRight: 12,
   },
+  verticalAlignInitial: {
+    verticalAlign: 'initial',
+  },
 });
 
 interface CustomTableProps {
@@ -177,6 +180,7 @@ interface CustomTableProps {
   getExpandComponent?: (index: number) => React.ReactNode;
   initialSortColumn?: string;
   initialSortOrder?: 'asc' | 'desc';
+  noFilterBox?: boolean;
   reload: (request: ListRequest) => Promise<string>;
   rows: Row[];
   selectedIds?: string[];
@@ -277,22 +281,24 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       <div className={commonCss.pageOverflowHidden}>
 
         {/* Filter/Search bar */}
-        <div>
-          <Input label={this.props.filterLabel || 'Filter'} height={48} maxWidth={'100%'}
-            className={css.filterBox} InputLabelProps={{ classes: { root: css.noMargin }}}
-            onChange={this.handleChange('filterString')} value={filterString}
-            InputProps={{
-              classes: {
-                notchedOutline: css.filterBorderRadius,
-                root: css.noLeftPadding,
-              },
-              startAdornment: (
-                <InputAdornment position='end'>
-                  <FilterIcon style={{ color: color.lowContrast, paddingRight: 16 }}/>
-                </InputAdornment>
-              )
-            }} />
-        </div>
+        {!this.props.noFilterBox && (
+          <div>
+            <Input label={this.props.filterLabel || 'Filter'} height={48} maxWidth={'100%'}
+              className={css.filterBox} InputLabelProps={{ classes: { root: css.noMargin }}}
+              onChange={this.handleChange('filterString')} value={filterString} variant='outlined'
+              InputProps={{
+                classes: {
+                  notchedOutline: css.filterBorderRadius,
+                  root: css.noLeftPadding,
+                },
+                startAdornment: (
+                  <InputAdornment position='end'>
+                    <FilterIcon style={{ color: color.lowContrast, paddingRight: 16 }}/>
+                  </InputAdornment>
+                )
+              }} />
+          </div>
+        )}
 
         {/* Header */}
         <div className={classes(
@@ -399,6 +405,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
           <div className={css.footer}>
             <span className={padding(10, 'r')}>Rows per page:</span>
             <TextField select={true} variant='standard' className={css.rowsPerPage}
+              classes={{ root: css.verticalAlignInitial }}
               InputProps={{ disableUnderline: true }} onChange={this._requestRowsPerPage.bind(this)}
               value={pageSize}>
               {[10, 20, 50, 100].map((size, i) => (
@@ -422,7 +429,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   public async reload(loadRequest?: ListRequest): Promise<string> {
     // Override the current state with incoming request
     const request: ListRequest = Object.assign({
-      filterBy: this.state.filterStringEncoded,
+      filter: this.state.filterStringEncoded,
       orderAscending: this.state.sortOrder === 'asc',
       pageSize: this.state.pageSize,
       pageToken: this.state.tokenList[this.state.currentPage],

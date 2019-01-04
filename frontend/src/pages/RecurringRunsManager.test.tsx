@@ -89,7 +89,8 @@ describe('RecurringRunsManager', () => {
       undefined,
       undefined,
       ApiResourceType.EXPERIMENT,
-      'test-experiment');
+      'test-experiment',
+      undefined);
     expect(tree.state('runs')).toEqual(JOBS);
     expect(tree).toMatchSnapshot();
     tree.unmount();
