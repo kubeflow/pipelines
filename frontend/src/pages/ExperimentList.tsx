@@ -19,8 +19,9 @@ import Buttons from '../lib/Buttons';
 import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
 import RunList from './RunList';
 import produce from 'immer';
+import { ApiFilter, PredicateOp } from '../apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
-import { ApiResourceType, ApiRun } from '../apis/run';
+import { ApiResourceType, ApiRun, RunStorageState } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
@@ -29,7 +30,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, s, errorToMessage } from '../lib/Utils';
 import { statusToIcon, NodePhase } from './Status';
 
 interface DisplayExperiment extends ApiExperiment {
@@ -63,6 +64,14 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         Buttons.newExperiment(this._newExperimentClicked.bind(this)),
         Buttons.compareRuns(this._compareRuns.bind(this)),
         Buttons.cloneRun(this._cloneRun.bind(this)),
+        Buttons.archive(() => this.props.updateDialog({
+          buttons: [
+            { onClick: async () => await this._archiveDialogClosed(true), text: 'Archive' },
+            { onClick: async () => await this._archiveDialogClosed(false), text: 'Cancel' },
+          ],
+          onClose: async () => await this._archiveDialogClosed(false),
+          title: `Archive ${this.state.selectedRunIds.length} run${s(this.state.selectedRunIds.length)}?`,
+        })),
         Buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [],
@@ -141,7 +150,14 @@ class ExperimentList extends Page<{}, ExperimentListState> {
           5 /* pageSize */,
           RunSortKeys.CREATED_AT + ' desc',
           ApiResourceType.EXPERIMENT.toString(),
-          experiment.id
+          experiment.id,
+          encodeURIComponent(JSON.stringify({
+            predicates: [{
+              key: 'storageState',
+              op: PredicateOp.EQUALS,
+              string_value: RunStorageState.ARCHIVED.toString(),
+            }]
+          } as ApiFilter)),
         );
         experiment.last5Runs = listRunsResponse.runs || [];
       } catch (err) {
@@ -222,8 +238,43 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     const runIds = (experiment.last5Runs || []).map((r) => r.id!);
     return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
       disablePaging={true} selectedIds={this.state.selectedRunIds} noFilterBox={true}
+      storageState={RunStorageState.AVAILABLE}
       onSelectionChange={this._runSelectionChanged.bind(this)} disableSorting={true} />;
   }
+
+  private async _archiveDialogClosed(confirmed: boolean): Promise<void> {
+    if (confirmed) {
+      const unsuccessfulIds: string[] = [];
+      const errorMessages: string[] = [];
+      await Promise.all(this.state.selectedRunIds.map(async (id) => {
+        try {
+          await Apis.runServiceApi.archiveRun(id);
+        } catch (err) {
+          unsuccessfulIds.push(id);
+          const errorMessage = await errorToMessage(err);
+          errorMessages.push(`Deleting run failed with error: "${errorMessage}"`);
+        }
+      }));
+
+      const successfulObjects = this.state.selectedRunIds.length - unsuccessfulIds.length;
+      if (successfulObjects > 0) {
+        this.props.updateSnackbar({
+          message: `Successfully archived ${successfulObjects} run${s(successfulObjects)}!`,
+          open: true,
+        });
+        this.refresh();
+      }
+
+      if (unsuccessfulIds.length > 0) {
+        this.showErrorDialog(
+          `Failed to archive ${unsuccessfulIds.length} run${s(unsuccessfulIds)}`,
+          errorMessages.join('\n\n'));
+      }
+
+      this._runSelectionChanged(unsuccessfulIds);
+    }
+  }
+
 }
 
 export default ExperimentList;

@@ -17,10 +17,11 @@
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
-import { ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric } from '../../src/apis/run';
+import { ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric, RunStorageState } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase, statusToIcon } from './Status';
+import { PredicateOp, ApiFilter } from '../apis/filter';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { URLParser } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
@@ -79,6 +80,7 @@ export interface RunListProps extends RouteComponentProps {
   onSelectionChange?: (selectedRunIds: string[]) => void;
   runIdListMask?: string[];
   selectedIds?: string[];
+  storageState?: RunStorageState;
 }
 
 interface RunListState {
@@ -169,7 +171,12 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         updateSelection={this.props.onSelectionChange} reload={this._loadRuns.bind(this)}
         disablePaging={this.props.disablePaging} disableSorting={this.props.disableSorting}
         disableSelection={this.props.disableSelection} noFilterBox={this.props.noFilterBox}
-        emptyMessage={`No runs found${this.props.experimentIdMask ? ' for this experiment' : ''}.`}
+        emptyMessage={
+          `No` +
+          `${this.props.storageState === RunStorageState.AVAILABLE ? ' available' : ' archived'}` +
+          ` runs found` +
+          `${this.props.experimentIdMask ? ' for this experiment' : ''}.`
+        }
       />
     </div>);
   }
@@ -282,6 +289,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       displayRuns = this.props.runIdListMask.map(id => ({ metadata: { id } }));
     } else {
       // Load all runs
+      const storageStateFilter = this.props.storageState ? encodeURIComponent(JSON.stringify({
+        predicates: [{
+          key: 'storageState',
+          op: PredicateOp.EQUALS,
+          string_value: this.props.storageState.toString(),
+        }]
+      } as ApiFilter)) : undefined;
       try {
         const response = await Apis.runServiceApi.listRuns(
           request.pageToken,
@@ -290,6 +304,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
           this.props.experimentIdMask,
           request.filter,
+          storageStateFilter,
         );
 
         displayRuns = (response.runs || []).map(r => ({ metadata: r }));
@@ -302,9 +317,14 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       }
     }
 
-    await this._getAndSetMetadataAndWorkflows(displayRuns);
-    await this._getAndSetPipelineNames(displayRuns);
-    await this._getAndSetExperimentNames(displayRuns);
+    displayRuns = await this._getAndSetMetadataAndWorkflows(displayRuns);
+
+    displayRuns = this.props.storageState ?
+      displayRuns.filter(r => r.metadata.storage_state === this.props.storageState) :
+      displayRuns;
+
+    displayRuns = await this._getAndSetPipelineNames(displayRuns);
+    displayRuns = await this._getAndSetExperimentNames(displayRuns);
 
     this.setState({
       metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.metadata)),

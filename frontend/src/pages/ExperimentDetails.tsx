@@ -32,10 +32,11 @@ import { ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { RunStorageState } from '../apis/run';
 import { URLParser } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, s, errorToMessage } from '../lib/Utils';
 
 const css = stylesheet({
   card: {
@@ -141,6 +142,20 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     id: 'cloneBtn',
     title: 'Clone',
     tooltip: 'Create a copy from this run\s initial state',
+  }, {
+    action: () => this.props.updateDialog({
+      buttons: [
+        { onClick: async () => await this._archiveDialogClosed(true), text: 'Archive' },
+        { onClick: async () => await this._archiveDialogClosed(false), text: 'Cancel' },
+      ],
+      onClose: async () => await this._archiveDialogClosed(false),
+      title: `Archive ${this.state.selectedRunIds.length} run${s(this.state.selectedRunIds.length)}?`,
+    }),
+    disabled: true,
+    disabledTitle: 'Select at least one run to archive',
+    id: 'archiveBtn',
+    title: 'Archive',
+    tooltip: 'Archive',
   }];
 
   constructor(props: any) {
@@ -218,7 +233,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
             <Toolbar {...this.state.runListToolbarProps} />
             <RunList onError={this.showPageError.bind(this)}
               experimentIdMask={experiment.id} ref={this._runlistRef}
-              selectedIds={this.state.selectedRunIds}
+              selectedIds={this.state.selectedRunIds} storageState={RunStorageState.AVAILABLE}
               onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />
 
             <Dialog open={this.state.recurringRunsManagerOpen} classes={{ paper: css.recurringRunsDialog }}
@@ -348,6 +363,40 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     // Reload the details to get any updated recurring runs
     this.refresh();
   }
+
+  private async _archiveDialogClosed(confirmed: boolean): Promise<void> {
+    if (confirmed) {
+      const unsuccessfulIds: string[] = [];
+      const errorMessages: string[] = [];
+      await Promise.all(this.state.selectedRunIds.map(async (id) => {
+        try {
+          await Apis.runServiceApi.archiveRun(id);
+        } catch (err) {
+          unsuccessfulIds.push(id);
+          const errorMessage = await errorToMessage(err);
+          errorMessages.push(`Deleting run failed with error: "${errorMessage}"`);
+        }
+      }));
+
+      const successfulObjects = this.state.selectedRunIds.length - unsuccessfulIds.length;
+      if (successfulObjects > 0) {
+        this.props.updateSnackbar({
+          message: `Successfully archived ${successfulObjects} run${s(successfulObjects)}!`,
+          open: true,
+        });
+        this.refresh();
+      }
+
+      if (unsuccessfulIds.length > 0) {
+        this.showErrorDialog(
+          `Failed to archive ${unsuccessfulIds.length} run${s(unsuccessfulIds)}`,
+          errorMessages.join('\n\n'));
+      }
+
+      this._selectionChanged(unsuccessfulIds);
+    }
+  }
+
 }
 
 export default ExperimentDetails;

@@ -25,6 +25,7 @@ import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { s, errorToMessage } from 'src/lib/Utils';
 import { Apis } from 'src/lib/Apis';
+import { RunStorageState } from 'src/apis/run';
 
 interface AllRunsListState {
   selectedIds: string[];
@@ -48,7 +49,6 @@ class AllRunsList extends Page<{}, AllRunsListState> {
         Buttons.newExperiment(this._newExperimentClicked.bind(this)),
         Buttons.compareRuns(this._compareRuns.bind(this)),
         Buttons.cloneRun(this._cloneRun.bind(this)),
-        Buttons.refresh(this.refresh.bind(this)),
         Buttons.archive(() => this.props.updateDialog({
           buttons: [
             { onClick: async () => await this._archiveDialogClosed(true), text: 'Archive' },
@@ -57,6 +57,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
           onClose: async () => await this._archiveDialogClosed(false),
           title: `Archive ${this.state.selectedIds.length} run${s(this.state.selectedIds.length)}?`,
         })),
+        Buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [],
       pageTitle: 'Experiments',
@@ -66,8 +67,8 @@ class AllRunsList extends Page<{}, AllRunsListState> {
   public render(): JSX.Element {
     return <div className={classes(commonCss.page, padding(20, 'lr'))}>
       <RunList onError={this.showPageError.bind(this)} selectedIds={this.state.selectedIds}
-        onSelectionChange={this._selectionChanged.bind(this)}
-        {...this.props} ref={this._runlistRef} />
+        onSelectionChange={this._selectionChanged.bind(this)} ref={this._runlistRef}
+        storageState={RunStorageState.AVAILABLE} {...this.props} />
     </div>;
   }
 
