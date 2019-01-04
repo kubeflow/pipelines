@@ -18,8 +18,8 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/jinzhu/gorm"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -36,7 +36,8 @@ func NewFakeDb() (*DB, error) {
 		&model.Pipeline{},
 		&model.ResourceReference{},
 		&model.RunDetail{},
-		&model.RunMetric{})
+		&model.RunMetric{},
+		&model.DBStatus{})
 
 	return NewDB(db.DB(), NewSQLiteDialect()), nil
 }

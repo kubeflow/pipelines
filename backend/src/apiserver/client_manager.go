@@ -22,13 +22,13 @@ import (
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	minio "github.com/minio/minio-go"
 )
 
@@ -50,6 +50,7 @@ type ClientManager struct {
 	jobStore               storage.JobStoreInterface
 	runStore               storage.RunStoreInterface
 	resourceReferenceStore storage.ResourceReferenceStoreInterface
+	dBStatusStore          storage.DBStatusStoreInterface
 	objectStore            storage.ObjectStoreInterface
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
@@ -75,6 +76,10 @@ func (c *ClientManager) RunStore() storage.RunStoreInterface {
 
 func (c *ClientManager) ResourceReferenceStore() storage.ResourceReferenceStoreInterface {
 	return c.resourceReferenceStore
+}
+
+func (c *ClientManager) DBStatusStore() storage.DBStatusStoreInterface {
+	return c.dBStatusStore
 }
 
 func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
@@ -114,6 +119,7 @@ func (c *ClientManager) init() {
 	c.jobStore = storage.NewJobStore(db, c.time)
 	c.runStore = storage.NewRunStore(db, c.time)
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
+	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
 
 	c.wfClient = client.CreateWorkflowClientOrFatal(
@@ -151,7 +157,8 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.Pipeline{},
 		&model.ResourceReference{},
 		&model.RunDetail{},
-		&model.RunMetric{})
+		&model.RunMetric{},
+		&model.DBStatus{})
 
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
