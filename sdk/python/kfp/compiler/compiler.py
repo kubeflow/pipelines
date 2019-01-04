@@ -46,8 +46,8 @@ class Compiler(object):
       param(PipelineParam): pipeline parameter
       """
     if param.op_name:
-      return param.op_name + '-' + param.name
-    return dsl._utils._sanitize_k8s_name(param.name)
+      return K8sHelper.sanitize_k8s_name(param.op_name) + '-' + K8sHelper.sanitize_k8s_name(param.name)
+    return K8sHelper.sanitize_k8s_name(param.name)
 
   def _get_groups_for_ops(self, root_group):
     """Helper function to get belonging groups for each op.
@@ -493,10 +493,10 @@ class Compiler(object):
       raise ValueError('Please use a function with @dsl.pipeline decorator.')
 
     pipeline_name, _ = dsl.Pipeline.get_pipeline_functions()[pipeline_func]
-    pipeline_name = dsl._utils._sanitize_k8s_name(pipeline_name)
+    pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_name)
 
     # Create the arg list with no default values and call pipeline function.
-    args_list = [dsl.PipelineParam(dsl._utils._sanitize_k8s_name(arg_name))
+    args_list = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
                  for arg_name in argspec.args]
     with dsl.Pipeline(pipeline_name) as p:
       pipeline_func(*args_list)
@@ -505,11 +505,19 @@ class Compiler(object):
     self._validate_exit_handler(p)
 
     # Fill in the default values.
-    args_list_with_defaults = [dsl.PipelineParam(dsl._utils._sanitize_k8s_name(arg_name))
+    args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
                                for arg_name in argspec.args]
     if argspec.defaults:
       for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
         arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+
+    # Sanitize operator names
+    sanitized_ops = {}
+    for op in p.ops.values():
+      sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
+      op.name = sanitized_name
+      sanitized_ops[sanitized_name] = op
+    p.ops = sanitized_ops
 
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
