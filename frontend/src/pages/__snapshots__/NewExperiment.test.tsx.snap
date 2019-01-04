@@ -29,6 +29,7 @@ exports[`NewExperiment enables the 'Next' button when an experiment name is ente
       onChange={[Function]}
       required={true}
       value="experiment name"
+      variant="outlined"
     />
     <Component
       id="experimentDescription"
@@ -36,6 +37,7 @@ exports[`NewExperiment enables the 'Next' button when an experiment name is ente
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div
       className="flex"
@@ -91,6 +93,7 @@ exports[`NewExperiment re-disables the 'Next' button when an experiment name is 
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       id="experimentDescription"
@@ -98,6 +101,7 @@ exports[`NewExperiment re-disables the 'Next' button when an experiment name is 
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div
       className="flex"
@@ -155,6 +159,7 @@ exports[`NewExperiment renders the new experiment page 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       id="experimentDescription"
@@ -162,6 +167,7 @@ exports[`NewExperiment renders the new experiment page 1`] = `
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div
       className="flex"
