@@ -33,7 +33,7 @@ import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
-import { logger, s, errorToMessage } from '../lib/Utils';
+import { logger } from '../lib/Utils';
 
 const css = stylesheet({
   card: {
@@ -278,6 +278,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     toolbarActions[2].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
     // Clone run button
     toolbarActions[3].disabled = selectedIds.length !== 1;
+    // Archive run button
+    toolbarActions[4].disabled = !selectedIds.length;
     this.setState({
       runListToolbarProps: {
         actions: toolbarActions,
@@ -293,39 +295,6 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     this.setState({ recurringRunsManagerOpen: false });
     // Reload the details to get any updated recurring runs
     this.refresh();
-  }
-
-  private async _archiveDialogClosed(confirmed: boolean): Promise<void> {
-    if (confirmed) {
-      const unsuccessfulIds: string[] = [];
-      const errorMessages: string[] = [];
-      await Promise.all(this.state.selectedRunIds.map(async (id) => {
-        try {
-          await Apis.runServiceApi.archiveRun(id);
-        } catch (err) {
-          unsuccessfulIds.push(id);
-          const errorMessage = await errorToMessage(err);
-          errorMessages.push(`Deleting run failed with error: "${errorMessage}"`);
-        }
-      }));
-
-      const successfulObjects = this.state.selectedRunIds.length - unsuccessfulIds.length;
-      if (successfulObjects > 0) {
-        this.props.updateSnackbar({
-          message: `Successfully archived ${successfulObjects} run${s(successfulObjects)}!`,
-          open: true,
-        });
-        this.refresh();
-      }
-
-      if (unsuccessfulIds.length > 0) {
-        this.showErrorDialog(
-          `Failed to archive ${unsuccessfulIds.length} run${s(unsuccessfulIds)}`,
-          errorMessages.join('\n\n'));
-      }
-
-      this._selectionChanged(unsuccessfulIds);
-    }
   }
 
 }
