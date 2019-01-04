@@ -125,8 +125,8 @@ func (s *JobStore) selectJob() sq.SelectBuilder {
 		Select("jobs.*", resourceRefConcatQuery+" AS refs").
 		From("jobs").
 		// Append all the resource references for the run as a json column
-		LeftJoin("resource_references AS r ON jobs.UUID=r.ResourceUUID").
-		Where(sq.Eq{"r.ResourceType": common.Job}).GroupBy("jobs.UUID")
+		LeftJoin("(select * from resource_references where ResourceType='Job') AS r ON jobs.UUID=r.ResourceUUID").
+		GroupBy("jobs.UUID")
 }
 
 func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {

@@ -74,3 +74,11 @@ func (c *RunClientFake) ListAll(params *runparams.ListRunsParams, maxResultSize 
 	[]*runmodel.APIRun, error) {
 	return listAllForRun(c, params, maxResultSize)
 }
+
+func (c *RunClientFake) Archive(params *runparams.ArchiveRunParams) error {
+	return nil
+}
+
+func (c *RunClientFake) Unarchive(params *runparams.UnarchiveRunParams) error {
+	return nil
+}

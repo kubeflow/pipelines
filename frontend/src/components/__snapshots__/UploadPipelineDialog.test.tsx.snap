@@ -1,5 +1,85 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
+<WithStyles(Dialog)
+  classes={
+    Object {
+      "paper": "root",
+    }
+  }
+  id="uploadDialog"
+  onClose={[Function]}
+  open={false}
+>
+  <WithStyles(DialogTitle)>
+    Upload and name your pipeline
+  </WithStyles(DialogTitle)>
+  <div
+    className=""
+  >
+    <div
+      className="flex"
+    >
+      <WithStyles(FormControlLabel)
+        checked={false}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="uploadLocalFileBtn"
+        label="Upload a file"
+        onChange={[Function]}
+      />
+      <WithStyles(FormControlLabel)
+        checked={true}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="uploadFromUrlBtn"
+        label="Import by URL"
+        onChange={[Function]}
+      />
+    </div>
+    <div
+      className=""
+    >
+      URL must be publicly accessible.
+    </div>
+    <Component
+      label="URL"
+      onChange={[Function]}
+      required={true}
+      value=""
+    />
+    <Component
+      id="uploadFileName"
+      label="Pipeline name"
+      onChange={[Function]}
+      required={true}
+      value=""
+    />
+  </div>
+  <WithStyles(DialogActions)>
+    <BusyButton
+      busy={false}
+      disabled={true}
+      id="confirmUploadBtn"
+      onClick={[Function]}
+      title="Upload"
+    />
+    <WithStyles(Button)
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
+  </WithStyles(DialogActions)>
+</WithStyles(Dialog)>
+`;
+
 exports[`UploadPipelineDialog renders an active dropzone 1`] = `
 <WithStyles(Dialog)
   classes={
@@ -14,70 +94,99 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
   <WithStyles(DialogTitle)>
     Upload and name your pipeline
   </WithStyles(DialogTitle)>
-  <n
+  <div
     className=""
-    disableClick={true}
-    disablePreview={false}
-    disabled={false}
-    getDataTransferItems={[Function]}
-    id="dropZone"
-    inputProps={
-      Object {
-        "tabIndex": -1,
-      }
-    }
-    maxSize={Infinity}
-    minSize={0}
-    multiple={true}
-    onDragEnter={[Function]}
-    onDragLeave={[Function]}
-    onDrop={[Function]}
-    preventDropOnDocument={true}
-    style={
-      Object {
-        "position": "relative",
-      }
-    }
   >
     <div
-      className="dropOverlay"
+      className="flex"
     >
-      Drop files..
+      <WithStyles(FormControlLabel)
+        checked={true}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="uploadLocalFileBtn"
+        label="Upload a file"
+        onChange={[Function]}
+      />
+      <WithStyles(FormControlLabel)
+        checked={false}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="uploadFromUrlBtn"
+        label="Import by URL"
+        onChange={[Function]}
+      />
     </div>
-    <div
-      className=""
-    >
-      Choose a pipeline package file from your computer, and give the pipeline a unique name.
-      <br />
-      You can also drag and drop the file here.
-    </div>
-    <Component
-      InputProps={
+    <n
+      disableClick={true}
+      disablePreview={false}
+      disabled={false}
+      getDataTransferItems={[Function]}
+      id="dropZone"
+      inputProps={
         Object {
-          "endAdornment": <WithStyles(InputAdornment)
-            position="end"
-          >
-            <WithStyles(Button)
-              color="secondary"
-              onClick={[Function]}
-              style={
-                Object {
-                  "margin": 0,
-                  "padding": "3px 5px",
-                }
-              }
-            >
-              Choose file
-            </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
-          "readOnly": true,
+          "tabIndex": -1,
         }
       }
-      label="File"
-      onChange={[Function]}
-      required={true}
-      value=""
-    />
+      maxSize={Infinity}
+      minSize={0}
+      multiple={true}
+      onDragEnter={[Function]}
+      onDragLeave={[Function]}
+      onDrop={[Function]}
+      preventDropOnDocument={true}
+      style={
+        Object {
+          "position": "relative",
+        }
+      }
+    >
+      <div
+        className="dropOverlay"
+      >
+        Drop files..
+      </div>
+      <div
+        className=""
+      >
+        Choose a pipeline package file from your computer, and give the pipeline a unique name.
+        <br />
+        You can also drag and drop the file here.
+      </div>
+      <Component
+        InputProps={
+          Object {
+            "endAdornment": <WithStyles(InputAdornment)
+              position="end"
+            >
+              <WithStyles(Button)
+                color="secondary"
+                onClick={[Function]}
+                style={
+                  Object {
+                    "margin": 0,
+                    "padding": "3px 5px",
+                  }
+                }
+              >
+                Choose file
+              </WithStyles(Button)>
+            </WithStyles(InputAdornment)>,
+            "readOnly": true,
+          }
+        }
+        label="File"
+        onChange={[Function]}
+        required={true}
+        value=""
+      />
+    </n>
     <Component
       id="uploadFileName"
       label="Pipeline name"
@@ -85,7 +194,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
       required={true}
       value=""
     />
-  </n>
+  </div>
   <WithStyles(DialogActions)>
     <BusyButton
       busy={false}
@@ -118,65 +227,94 @@ exports[`UploadPipelineDialog renders closed 1`] = `
   <WithStyles(DialogTitle)>
     Upload and name your pipeline
   </WithStyles(DialogTitle)>
-  <n
+  <div
     className=""
-    disableClick={true}
-    disablePreview={false}
-    disabled={false}
-    getDataTransferItems={[Function]}
-    id="dropZone"
-    inputProps={
-      Object {
-        "tabIndex": -1,
-      }
-    }
-    maxSize={Infinity}
-    minSize={0}
-    multiple={true}
-    onDragEnter={[Function]}
-    onDragLeave={[Function]}
-    onDrop={[Function]}
-    preventDropOnDocument={true}
-    style={
-      Object {
-        "position": "relative",
-      }
-    }
   >
     <div
-      className=""
+      className="flex"
     >
-      Choose a pipeline package file from your computer, and give the pipeline a unique name.
-      <br />
-      You can also drag and drop the file here.
+      <WithStyles(FormControlLabel)
+        checked={true}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="uploadLocalFileBtn"
+        label="Upload a file"
+        onChange={[Function]}
+      />
+      <WithStyles(FormControlLabel)
+        checked={false}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="uploadFromUrlBtn"
+        label="Import by URL"
+        onChange={[Function]}
+      />
     </div>
-    <Component
-      InputProps={
+    <n
+      disableClick={true}
+      disablePreview={false}
+      disabled={false}
+      getDataTransferItems={[Function]}
+      id="dropZone"
+      inputProps={
         Object {
-          "endAdornment": <WithStyles(InputAdornment)
-            position="end"
-          >
-            <WithStyles(Button)
-              color="secondary"
-              onClick={[Function]}
-              style={
-                Object {
-                  "margin": 0,
-                  "padding": "3px 5px",
-                }
-              }
-            >
-              Choose file
-            </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
-          "readOnly": true,
+          "tabIndex": -1,
         }
       }
-      label="File"
-      onChange={[Function]}
-      required={true}
-      value=""
-    />
+      maxSize={Infinity}
+      minSize={0}
+      multiple={true}
+      onDragEnter={[Function]}
+      onDragLeave={[Function]}
+      onDrop={[Function]}
+      preventDropOnDocument={true}
+      style={
+        Object {
+          "position": "relative",
+        }
+      }
+    >
+      <div
+        className=""
+      >
+        Choose a pipeline package file from your computer, and give the pipeline a unique name.
+        <br />
+        You can also drag and drop the file here.
+      </div>
+      <Component
+        InputProps={
+          Object {
+            "endAdornment": <WithStyles(InputAdornment)
+              position="end"
+            >
+              <WithStyles(Button)
+                color="secondary"
+                onClick={[Function]}
+                style={
+                  Object {
+                    "margin": 0,
+                    "padding": "3px 5px",
+                  }
+                }
+              >
+                Choose file
+              </WithStyles(Button)>
+            </WithStyles(InputAdornment)>,
+            "readOnly": true,
+          }
+        }
+        label="File"
+        onChange={[Function]}
+        required={true}
+        value=""
+      />
+    </n>
     <Component
       id="uploadFileName"
       label="Pipeline name"
@@ -184,7 +322,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
       required={true}
       value=""
     />
-  </n>
+  </div>
   <WithStyles(DialogActions)>
     <BusyButton
       busy={false}
@@ -217,65 +355,94 @@ exports[`UploadPipelineDialog renders open 1`] = `
   <WithStyles(DialogTitle)>
     Upload and name your pipeline
   </WithStyles(DialogTitle)>
-  <n
+  <div
     className=""
-    disableClick={true}
-    disablePreview={false}
-    disabled={false}
-    getDataTransferItems={[Function]}
-    id="dropZone"
-    inputProps={
-      Object {
-        "tabIndex": -1,
-      }
-    }
-    maxSize={Infinity}
-    minSize={0}
-    multiple={true}
-    onDragEnter={[Function]}
-    onDragLeave={[Function]}
-    onDrop={[Function]}
-    preventDropOnDocument={true}
-    style={
-      Object {
-        "position": "relative",
-      }
-    }
   >
     <div
-      className=""
+      className="flex"
     >
-      Choose a pipeline package file from your computer, and give the pipeline a unique name.
-      <br />
-      You can also drag and drop the file here.
+      <WithStyles(FormControlLabel)
+        checked={true}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="uploadLocalFileBtn"
+        label="Upload a file"
+        onChange={[Function]}
+      />
+      <WithStyles(FormControlLabel)
+        checked={false}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="uploadFromUrlBtn"
+        label="Import by URL"
+        onChange={[Function]}
+      />
     </div>
-    <Component
-      InputProps={
+    <n
+      disableClick={true}
+      disablePreview={false}
+      disabled={false}
+      getDataTransferItems={[Function]}
+      id="dropZone"
+      inputProps={
         Object {
-          "endAdornment": <WithStyles(InputAdornment)
-            position="end"
-          >
-            <WithStyles(Button)
-              color="secondary"
-              onClick={[Function]}
-              style={
-                Object {
-                  "margin": 0,
-                  "padding": "3px 5px",
-                }
-              }
-            >
-              Choose file
-            </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
-          "readOnly": true,
+          "tabIndex": -1,
         }
       }
-      label="File"
-      onChange={[Function]}
-      required={true}
-      value=""
-    />
+      maxSize={Infinity}
+      minSize={0}
+      multiple={true}
+      onDragEnter={[Function]}
+      onDragLeave={[Function]}
+      onDrop={[Function]}
+      preventDropOnDocument={true}
+      style={
+        Object {
+          "position": "relative",
+        }
+      }
+    >
+      <div
+        className=""
+      >
+        Choose a pipeline package file from your computer, and give the pipeline a unique name.
+        <br />
+        You can also drag and drop the file here.
+      </div>
+      <Component
+        InputProps={
+          Object {
+            "endAdornment": <WithStyles(InputAdornment)
+              position="end"
+            >
+              <WithStyles(Button)
+                color="secondary"
+                onClick={[Function]}
+                style={
+                  Object {
+                    "margin": 0,
+                    "padding": "3px 5px",
+                  }
+                }
+              >
+                Choose file
+              </WithStyles(Button)>
+            </WithStyles(InputAdornment)>,
+            "readOnly": true,
+          }
+        }
+        label="File"
+        onChange={[Function]}
+        required={true}
+        value=""
+      />
+    </n>
     <Component
       id="uploadFileName"
       label="Pipeline name"
@@ -283,7 +450,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
       required={true}
       value=""
     />
-  </n>
+  </div>
   <WithStyles(DialogActions)>
     <BusyButton
       busy={false}
@@ -316,65 +483,94 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
   <WithStyles(DialogTitle)>
     Upload and name your pipeline
   </WithStyles(DialogTitle)>
-  <n
+  <div
     className=""
-    disableClick={true}
-    disablePreview={false}
-    disabled={false}
-    getDataTransferItems={[Function]}
-    id="dropZone"
-    inputProps={
-      Object {
-        "tabIndex": -1,
-      }
-    }
-    maxSize={Infinity}
-    minSize={0}
-    multiple={true}
-    onDragEnter={[Function]}
-    onDragLeave={[Function]}
-    onDrop={[Function]}
-    preventDropOnDocument={true}
-    style={
-      Object {
-        "position": "relative",
-      }
-    }
   >
     <div
-      className=""
+      className="flex"
     >
-      Choose a pipeline package file from your computer, and give the pipeline a unique name.
-      <br />
-      You can also drag and drop the file here.
+      <WithStyles(FormControlLabel)
+        checked={true}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="uploadLocalFileBtn"
+        label="Upload a file"
+        onChange={[Function]}
+      />
+      <WithStyles(FormControlLabel)
+        checked={false}
+        control={
+          <WithStyles(Radio)
+            color="primary"
+          />
+        }
+        id="uploadFromUrlBtn"
+        label="Import by URL"
+        onChange={[Function]}
+      />
     </div>
-    <Component
-      InputProps={
+    <n
+      disableClick={true}
+      disablePreview={false}
+      disabled={false}
+      getDataTransferItems={[Function]}
+      id="dropZone"
+      inputProps={
         Object {
-          "endAdornment": <WithStyles(InputAdornment)
-            position="end"
-          >
-            <WithStyles(Button)
-              color="secondary"
-              onClick={[Function]}
-              style={
-                Object {
-                  "margin": 0,
-                  "padding": "3px 5px",
-                }
-              }
-            >
-              Choose file
-            </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
-          "readOnly": true,
+          "tabIndex": -1,
         }
       }
-      label="File"
-      onChange={[Function]}
-      required={true}
-      value=""
-    />
+      maxSize={Infinity}
+      minSize={0}
+      multiple={true}
+      onDragEnter={[Function]}
+      onDragLeave={[Function]}
+      onDrop={[Function]}
+      preventDropOnDocument={true}
+      style={
+        Object {
+          "position": "relative",
+        }
+      }
+    >
+      <div
+        className=""
+      >
+        Choose a pipeline package file from your computer, and give the pipeline a unique name.
+        <br />
+        You can also drag and drop the file here.
+      </div>
+      <Component
+        InputProps={
+          Object {
+            "endAdornment": <WithStyles(InputAdornment)
+              position="end"
+            >
+              <WithStyles(Button)
+                color="secondary"
+                onClick={[Function]}
+                style={
+                  Object {
+                    "margin": 0,
+                    "padding": "3px 5px",
+                  }
+                }
+              >
+                Choose file
+              </WithStyles(Button)>
+            </WithStyles(InputAdornment)>,
+            "readOnly": true,
+          }
+        }
+        label="File"
+        onChange={[Function]}
+        required={true}
+        value=""
+      />
+    </n>
     <Component
       id="uploadFileName"
       label="Pipeline name"
@@ -382,7 +578,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
       required={true}
       value=""
     />
-  </n>
+  </div>
   <WithStyles(DialogActions)>
     <BusyButton
       busy={false}

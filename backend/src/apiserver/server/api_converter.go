@@ -113,13 +113,14 @@ func toApiRun(run *model.Run) *api.Run {
 		}
 	}
 	return &api.Run{
-		CreatedAt:   &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
-		Id:          run.UUID,
-		Metrics:     metrics,
-		Name:        run.DisplayName,
-		Description: run.Description,
-		ScheduledAt: &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
-		Status:      run.Conditions,
+		CreatedAt:    &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
+		Id:           run.UUID,
+		Metrics:      metrics,
+		Name:         run.DisplayName,
+		StorageState: api.Run_StorageState(api.Run_StorageState_value[run.StorageState]),
+		Description:  run.Description,
+		ScheduledAt:  &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
+		Status:       run.Conditions,
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId:       run.PipelineId,
 			WorkflowManifest: run.WorkflowSpecManifest,

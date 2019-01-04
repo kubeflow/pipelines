@@ -23,7 +23,6 @@ import "google/protobuf/timestamp.proto";
 import "pipeline_spec.proto";
 import "resource_reference.proto";
 import "protoc-gen-swagger/options/annotations.proto";
-import "filter.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   responses: {
@@ -79,6 +78,18 @@ service RunService {
     };
   }
 
+  rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{id}:archive"
+    };
+  }
+
+  rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{id}:unarchive"
+    };
+  }
+
   rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/runs/{id}"
@@ -103,15 +114,15 @@ service RunService {
   }
 }
 
-message CreateRunRequest{
+message CreateRunRequest {
   Run run = 1;
 }
 
-message GetRunRequest{
+message GetRunRequest {
   string run_id = 1;
 }
 
-message ListRunsRequest{
+message ListRunsRequest {
   string page_token = 1;
   int32 page_size = 2;
   // Can be format of "field_name", "field_name asc" or "field_name des"
@@ -123,12 +134,22 @@ message ListRunsRequest{
   // resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
   ResourceKey resource_reference_key = 4;
 
-  Filter filter = 5;
+  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
+  // filter.proto).
+  string filter = 5;
 }
 
 message ListRunsResponse {
   repeated Run runs = 1;
   string next_page_token = 2;
+}
+
+message ArchiveRunRequest {
+  string id = 1;
+}
+
+message UnarchiveRunRequest {
+  string id = 1;
 }
 
 message DeleteRunRequest {
@@ -142,6 +163,13 @@ message Run {
   // Required input field. Name provided by user,
   // or auto generated if run is created by scheduled job. Not unique.
   string name = 2;
+
+  enum StorageState {
+    STORAGESTATE_AVAILABLE = 0;
+    STORAGESTATE_ARCHIVED = 1;
+  }
+
+  StorageState storageState = 10;
 
   // Optional input field. Describing the purpose of the run
   string description = 3;

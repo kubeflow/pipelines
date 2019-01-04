@@ -169,5 +169,14 @@ tensorflow-tensorboard,https://raw.githubusercontent.com/tensorflow/tensorboard/
 tensorflow-data-validation,https://raw.githubusercontent.com/tensorflow/data-validation/master/LICENSE,Apache 2.0
 tensorflow-metadata,https://raw.githubusercontent.com/tensorflow/metadata/master/LICENSE,Apache 2.0
 defusedxml,https://raw.githubusercontent.com/tiran/defusedxml/master/LICENSE,PSF
+backports.functools-lru-cache,https://raw.githubusercontent.com/jaraco/backports.functools_lru_cache/master/LICENSE,MIT
+cycler,https://raw.githubusercontent.com/matplotlib/cycler/master/LICENSE,MIT
+h5py,https://raw.githubusercontent.com/h5py/h5py/master/licenses/license.txt
+matplotlib,https://raw.githubusercontent.com/matplotlib/matplotlib/master/LICENSE/LICENSE
+Pillow,https://raw.githubusercontent.com/python-pillow/Pillow/master/LICENSE
+sklearn,https://raw.githubusercontent.com/scikit-learn/scikit-learn/master/COPYING,BSD
+tensorflow-gpu,https://raw.githubusercontent.com/tensorflow/tensorflow/master/LICENSE,Apache 2.0
+webencodings,https://raw.githubusercontent.com/gsnedders/python-webencodings/master/LICENSE,BSD
 google-api-core,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
 google-resumable-media,https://raw.githubusercontent.com/googleapis/google-resumable-media-python/master/LICENSE,Apache 2.0
+

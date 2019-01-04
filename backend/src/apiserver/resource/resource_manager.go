@@ -31,7 +31,7 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -41,6 +41,7 @@ type ClientManagerInterface interface {
 	JobStore() storage.JobStoreInterface
 	RunStore() storage.RunStoreInterface
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
+	DBStatusStore() storage.DBStatusStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
@@ -54,6 +55,7 @@ type ResourceManager struct {
 	jobStore                storage.JobStoreInterface
 	runStore                storage.RunStoreInterface
 	resourceReferenceStore  storage.ResourceReferenceStoreInterface
+	dBStatusStore           storage.DBStatusStoreInterface
 	objectStore             storage.ObjectStoreInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
@@ -68,6 +70,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		jobStore:                clientManager.JobStore(),
 		runStore:                clientManager.RunStore(),
 		resourceReferenceStore:  clientManager.ResourceReferenceStore(),
+		dBStatusStore:           clientManager.DBStatusStore(),
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
@@ -230,6 +233,14 @@ func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, opts *li
 	return r.runStore.ListRuns(filterContext, opts)
 }
 
+func (r *ResourceManager) ArchiveRun(runId string) error {
+	return r.runStore.ArchiveRun(runId)
+}
+
+func (r *ResourceManager) UnarchiveRun(runId string) error {
+	return r.runStore.UnarchiveRun(runId)
+}
+
 func (r *ResourceManager) DeleteRun(runID string) error {
 	runDetail, err := r.checkRunExist(runID)
 	if err != nil {
@@ -365,6 +376,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 			UUID:             runId,
 			DisplayName:      workflow.Name,
 			Name:             workflow.Name,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        workflow.Namespace,
 			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
 			ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
@@ -469,4 +481,12 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 			"arifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
 	return r.objectStore.GetFile(artifactPath)
+}
+
+func (r *ResourceManager) HaveSamplesLoaded() (bool, error) {
+	return r.dBStatusStore.HaveSamplesLoaded()
+}
+
+func (r *ResourceManager) MarkSampleLoaded() error {
+	return r.dBStatusStore.MarkSampleLoaded()
 }

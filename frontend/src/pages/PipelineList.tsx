@@ -17,7 +17,7 @@
 import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import CustomTable, { Column, Row } from '../components/CustomTable';
-import UploadPipelineDialog from '../components/UploadPipelineDialog';
+import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
 import produce from 'immer';
 import { ApiPipeline, ApiListPipelinesResponse } from '../apis/pipeline';
 import { Apis, PipelineSortKeys, ListRequest } from '../lib/Apis';
@@ -130,7 +130,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       await this.showPageError('Error: failed to retrieve list of pipelines.', err);
     }
 
-    this.setStateSafe({ pipelines: response ? response.pipelines || [] : [] });
+    this.setStateSafe({ pipelines: (response && response.pipelines) || [] });
 
     return response ? response.next_page_token || '' : '';
   }
@@ -189,20 +189,26 @@ class PipelineList extends Page<{}, PipelineListState> {
     }
   }
 
-  private async _uploadDialogClosed(name: string, file: File | null, description?: string): Promise<boolean> {
-    if (!!file) {
-      try {
-        await Apis.uploadPipeline(name, file);
-        this.setStateSafe({ uploadDialogOpen: false });
-        this.refresh();
-        return true;
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        this.showErrorDialog('Failed to upload pipeline', errorMessage);
-        return false;
-      }
-    } else {
+  private async _uploadDialogClosed(confirmed: boolean, name: string, file: File | null, url: string,
+      method: ImportMethod, description?: string): Promise<boolean> {
+
+    if (!confirmed
+      || (method === ImportMethod.LOCAL && !file)
+      || (method === ImportMethod.URL && !url)) {
       this.setStateSafe({ uploadDialogOpen: false });
+      return false;
+    }
+
+    try {
+      method === ImportMethod.LOCAL
+        ? await Apis.uploadPipeline(name, file!)
+        : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url } });
+      this.setStateSafe({ uploadDialogOpen: false });
+      this.refresh();
+      return true;
+    } catch (err) {
+      const errorMessage = await errorToMessage(err);
+      this.showErrorDialog('Failed to upload pipeline', errorMessage);
       return false;
     }
   }

@@ -55,7 +55,13 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 	if request.PageToken != "" {
 		opts, err = list.NewOptionsFromToken(request.PageToken, int(request.PageSize))
 	} else {
-		opts, err = list.NewOptions(&model.Pipeline{}, int(request.PageSize), request.SortBy, request.Filter)
+		var f *api.Filter
+		f, err = parseAPIFilter(request.Filter)
+		if err != nil {
+			return nil, err
+		}
+
+		opts, err = list.NewOptions(&model.Run{}, int(request.PageSize), request.SortBy, f)
 	}
 
 	if err != nil {
@@ -71,6 +77,22 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 		return nil, util.Wrap(err, "Failed to list runs.")
 	}
 	return &api.ListRunsResponse{Runs: ToApiRuns(runs), NextPageToken: nextPageToken}, nil
+}
+
+func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.ArchiveRun(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.UnarchiveRun(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
@@ -117,10 +139,6 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 	run := request.Run
 	if run.Name == "" {
 		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
-	}
-	// Run must be created under an experiment.
-	if err := ValidateExperimentResourceReference(s.resourceManager, run.ResourceReferences); err != nil {
-		return util.Wrap(err, "The run must have a valid experiment resource reference.")
 	}
 
 	if err := ValidatePipelineSpec(s.resourceManager, run.PipelineSpec); err != nil {

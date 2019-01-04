@@ -405,6 +405,7 @@ def main(unused_argv):
           per_host_input_for_training=tpu_config.InputPipelineConfig.PER_HOST_V2))  # pylint: disable=line-too-long
 
   resnet_classifier = tpu_estimator.TPUEstimator(
+      export_to_tpu=False,
       use_tpu=FLAGS.use_tpu,
       model_fn=resnet_model_fn,
       config=config,
