@@ -25,8 +25,8 @@ import (
 	_ "github.com/google/go-cmp/cmp/cmpopts"
 	viewerV1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -181,6 +181,117 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 							"--path_prefix=/tensorboard/viewer-123/"},
 						Ports: []corev1.ContainerPort{{ContainerPort: 6006}},
 					}}}}}}}
+
+	gotDpls := getDeployments(t, cli)
+
+	if !cmp.Equal(gotDpls, wantDpls) {
+		t.Errorf("Created viewer CRD %+v\nWant deployment: %+v\nGot deployment: %+v\nDiff: %s",
+			viewer, gotDpls, wantDpls, cmp.Diff(wantDpls, gotDpls))
+
+	}
+}
+
+func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
+	viewer := &viewerV1alpha1.Viewer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "viewer-123",
+			Namespace: "kubeflow",
+		},
+		Spec: viewerV1alpha1.ViewerSpec{
+			Type: viewerV1alpha1.ViewerTypeTensorboard,
+			TensorboardSpec: viewerV1alpha1.TensorboardSpec{
+				LogDir: "gs://tensorboard/logdir",
+			},
+			PodTemplateSpec: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						corev1.Container{
+							VolumeMounts: []corev1.VolumeMount{
+								corev1.VolumeMount{
+									Name:      "/volume-mount-name",
+									MountPath: "/mount/path",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						corev1.Volume{
+							Name: "/volume-mount-name",
+							VolumeSource: corev1.VolumeSource{
+								GCEPersistentDisk: &corev1.GCEPersistentDiskVolumeSource{
+									PDName: "my-persistent-volume",
+									FSType: "ext4",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	cli := fake.NewFakeClient(viewer)
+	reconciler, _ := New(cli, scheme.Scheme, &Options{MaxNumViewers: 10})
+
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: "viewer-123", Namespace: "kubeflow"},
+	}
+	_, err := reconciler.Reconcile(req)
+
+	if err != nil {
+		t.Fatalf("Reconcile(%+v) = %v; Want nil error", req, err)
+	}
+
+	wantDpls := []*appsv1.Deployment{{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "viewer-123-deployment",
+			Namespace: "kubeflow",
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion:         "kubeflow.org/v1alpha1",
+				Name:               "viewer-123",
+				Kind:               "Viewer",
+				Controller:         boolRef(true),
+				BlockOwnerDeletion: boolRef(true),
+			}}},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: nil,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"deployment": "viewer-123-deployment",
+					"app":        "viewer",
+					"viewer":     "viewer-123",
+				}},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"deployment": "viewer-123-deployment",
+						"app":        "viewer",
+						"viewer":     "viewer-123",
+					}},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "viewer-123-pod",
+						Image: "tensorflow/tensorflow:1.11.0",
+						Args: []string{
+							"tensorboard",
+							"--logdir=gs://tensorboard/logdir",
+							"--path_prefix=/tensorboard/viewer-123/"},
+						Ports: []corev1.ContainerPort{{ContainerPort: 6006}},
+						VolumeMounts: []v1.VolumeMount{
+							{Name: "/volume-mount-name", MountPath: "/mount/path"},
+						},
+					}},
+					Volumes: []v1.Volume{{
+						Name: "/volume-mount-name",
+						VolumeSource: v1.VolumeSource{
+							GCEPersistentDisk: &corev1.GCEPersistentDiskVolumeSource{
+								PDName: "my-persistent-volume",
+								FSType: "ext4",
+							},
+						},
+					}},
+				}}},
+	}}
 
 	gotDpls := getDeployments(t, cli)
 

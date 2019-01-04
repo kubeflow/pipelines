@@ -159,19 +159,22 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 }
 
 func setPodSpecForTensorboard(view *viewerV1alpha1.Viewer, s *corev1.PodSpec) {
-	c := corev1.Container{
-		Name:  view.Name + "-pod",
-		Image: "tensorflow/tensorflow:1.11.0",
-		Args: []string{
-			"tensorboard",
-			fmt.Sprintf("--logdir=%s", view.Spec.TensorboardSpec.LogDir),
-			fmt.Sprintf("--path_prefix=/tensorboard/%s/", view.Name),
-		},
-		Ports: []corev1.ContainerPort{
-			corev1.ContainerPort{ContainerPort: viewerTargetPort},
-		},
+	if len(s.Containers) == 0 {
+		s.Containers = append(s.Containers, corev1.Container{})
 	}
-	s.Containers = append(s.Containers, c)
+
+	c := &s.Containers[0]
+	c.Name = view.Name + "-pod"
+	c.Image = "tensorflow/tensorflow:1.11.0"
+	c.Args = []string{
+		"tensorboard",
+		fmt.Sprintf("--logdir=%s", view.Spec.TensorboardSpec.LogDir),
+		fmt.Sprintf("--path_prefix=/tensorboard/%s/", view.Name),
+	}
+	c.Ports = []corev1.ContainerPort{
+		corev1.ContainerPort{ContainerPort: viewerTargetPort},
+	}
+
 }
 
 func deploymentFrom(view *viewerV1alpha1.Viewer) (*appsv1.Deployment, error) {

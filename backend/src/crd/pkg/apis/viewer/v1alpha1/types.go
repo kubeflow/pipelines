@@ -15,7 +15,7 @@
 package v1alpha1
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -69,9 +69,5 @@ type ViewerSpec struct {
 	// TensorboardSpec is only checked if the Type is ViewerTypeTensorboard.
 	TensorboardSpec TensorboardSpec `json:"tensorboardSpec,omitempty"`
 	// PodTemplateSpec is the template spec used to launch the viewer.
-	// Note that the container field will be augmented by the CRD controller with
-	// a container set up to run the specific viewer type such that the routing of
-	// assets being served by the viewer instance is compatible with the service
-	// and Ambassador config that the controller sets up on behalf of the viewer.
 	PodTemplateSpec v1.PodTemplateSpec `json:"podTemplateSpec"`
 }
