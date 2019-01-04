@@ -105,9 +105,9 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
   }
 
   public render(): JSX.Element {
-
-    const width = this.props.maxDimension || 600;
+    const width = this.props.maxDimension || 800;
     const height = width * 0.65;
+    const isSmall = width < 600;
     const datasets = this.props.configs.map(d => d.data);
     const numLines = datasets.length;
     const labels = this.props.configs.map((_, i) => `threshold (Series #${i})`);
@@ -116,7 +116,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     const { hoveredValues, lastDrawLocation } = this.state;
 
     return <div>
-      <XYPlot width={width} height={height} animation={true}
+      <XYPlot width={width} height={height} animation={!isSmall}
         classes={{ root: css.root }}
         onMouseLeave={() => this.setState({ hoveredValues: new Array(numLines).fill('') })}
         xDomain={lastDrawLocation && [lastDrawLocation.left, lastDrawLocation.right]}>
@@ -136,21 +136,25 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
             strokeWidth={2} data={data} onNearestX={(d: any) => this._lineHovered(i, d)}
             curve='curveBasis' />)}
 
-        <Highlight onBrushEnd={(area: any) => this.setState({ lastDrawLocation: area })}
-          enableY={false} onDrag={(area: any) => this.setState({
-            lastDrawLocation: {
-              left: (lastDrawLocation ? lastDrawLocation.left : 0) - (area.right - area.left),
-              right: (lastDrawLocation ? lastDrawLocation.right : 0) - (area.right - area.left),
-            }
-          })} />
+        {!isSmall && (
+          <Highlight onBrushEnd={(area: any) => this.setState({ lastDrawLocation: area })}
+            enableY={false} onDrag={(area: any) => this.setState({
+              lastDrawLocation: {
+                left: (lastDrawLocation ? lastDrawLocation.left : 0) - (area.right - area.left),
+                right: (lastDrawLocation ? lastDrawLocation.right : 0) - (area.right - area.left),
+              }
+            })} />
+        )}
 
         {/* Hover effect to show labels */}
-        <Crosshair values={hoveredValues}>
-          <div className={css.crosshair}>
-            {hoveredValues.map((value, i) => (
-              <div key={i} className={css.crosshairLabel}>{`${labels[i]}: ${value.label}`}</div>))}
-          </div>
-        </Crosshair>
+        {!isSmall && (
+          <Crosshair values={hoveredValues}>
+            <div className={css.crosshair}>
+              {hoveredValues.map((value, i) => (
+                <div key={i} className={css.crosshairLabel}>{`${labels[i]}: ${value.label}`}</div>))}
+            </div>
+          </Crosshair>
+        )}
       </XYPlot>
 
       <div className={commonCss.flex}>
