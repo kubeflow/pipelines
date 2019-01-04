@@ -48,7 +48,7 @@ class ContainerOp(object):
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
 
-    self.name = name
+    self.human_name = name
     self.name = _pipeline.Pipeline.get_default_pipeline().add_op(self, is_exit_handler)
     self.image = image
     self.command = command

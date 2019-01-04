@@ -46,8 +46,8 @@ class Compiler(object):
       param(PipelineParam): pipeline parameter
       """
     if param.op_name:
-      return K8sHelper.sanitize_k8s_name(param.op_name) + '-' + K8sHelper.sanitize_k8s_name(param.name)
-    return K8sHelper.sanitize_k8s_name(param.name)
+      return param.op_name + '-' + param.name
+    return param.name
 
   def _get_groups_for_ops(self, root_group):
     """Helper function to get belonging groups for each op.
@@ -114,7 +114,7 @@ class Compiler(object):
       # op's inputs and all params used in conditions for that op are both considered.
       for param in op.inputs + list(condition_params[op.name]):
         # if the value is already provided (immediate value), then no need to expose
-        # it as input for its parent groups. 
+        # it as input for its parent groups.
         if param.value:
           continue
 
@@ -511,11 +511,19 @@ class Compiler(object):
       for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
         arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
 
-    # Sanitize operator names
+    # Sanitize operator names and param names
     sanitized_ops = {}
     for op in p.ops.values():
       sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
       op.name = sanitized_name
+      for param in op.inputs + op.argument_inputs:
+        param.name = K8sHelper.sanitize_k8s_name(param.name)
+        if param.op_name:
+          param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
+      for param in op.outputs.values():
+        param.name = K8sHelper.sanitize_k8s_name(param.name)
+        if param.op_name:
+          param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
       sanitized_ops[sanitized_name] = op
     p.ops = sanitized_ops
 

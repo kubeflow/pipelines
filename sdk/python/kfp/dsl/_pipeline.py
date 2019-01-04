@@ -107,7 +107,7 @@ class Pipeline():
       op_name: a unique op name.
     """
 
-    op_name = op.name
+    op_name = op.human_name
     #If there is an existing op with this name then generate a new name.
     if op_name in self.ops:
       for i in range(2, sys.maxsize**10):

@@ -48,9 +48,6 @@ class PipelineParam(object):
     if not re.match(valid_name_regex, name):
       raise ValueError('Only letters, numbers and "-" allowed in name. Must begin with letter.')
 
-    if op_name and not re.match(valid_name_regex, op_name):
-      raise ValueError('Only letters, numbers and "-" allowed in op_name. Must begin with letter.')
-
     if op_name and value:
       raise ValueError('op_name and value cannot be both set.')
 
