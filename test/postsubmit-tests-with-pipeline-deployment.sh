@@ -138,7 +138,48 @@ ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledwork
 ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend:${PULL_BASE_SHA}
 popd
 
-##TODO: wait for cloudbuild of the merge
+## Wait for the cloudbuild job to be started
+CLOUDBUILD_TIMEOUT_SECONDS=3600
+PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT=$(expr CLOUDBUILD_TIMEOUT_SECONDS / 20 )
+CLOUDBUILD_STARTED=TIMEOUT
+
+for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
+do
+  output=`gcloud builds list --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
+  if [[ ${output} != "" ]]; then
+    CLOUDBUILD_STARTED=True
+    break
+  fi
+  sleep 20
+done
+
+if [[ ${CLOUDBUILD_STARTED} == TIMEOUT ]];then
+  echo "Wait for cloudbuild job to start, timeout exiting..."
+  exit 1
+fi
+
+## Wait for the cloudbuild job to complete
+CLOUDBUILD_FINISHED=TIMEOUT
+for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
+do
+  output=`gcloud builds list --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
+  if [[ ${output} == *"SUCCESS"* ]]; then
+    CLOUDBUILD_FINISHED=SUCCESS
+    break
+  elif [[ ${output} == *"FAILURE"* ]]; then
+    CLOUDBUILD_FINISHED=FAILURE
+    break
+  fi
+  sleep 20
+done
+
+if [[ ${CLOUDBUILD_FINISHED} == FAILURE ]];then
+  echo "Cloud build failure, postsubmit tests cannot proceed. exiting..."
+  exit 1
+elif [[ ${CLOUDBUILD_FINISHED} == TIMEOUT ]];then
+  echo "Wait for cloudbuild job to finish, timeout exiting..."
+  exit 1
+fi
 
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
