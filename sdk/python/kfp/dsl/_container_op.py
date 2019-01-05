@@ -63,10 +63,9 @@ class ContainerOp(object):
     self.pod_labels = {}
 
     matches = []
-    if arguments:
-      for arg in arguments:
-        match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(arg))
-        matches += match
+    for arg in (command or []) + (arguments or []):
+      match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(arg))
+      matches += match
 
     self.argument_inputs = [_pipeline_param.PipelineParam(x[1], x[0], x[2])
                             for x in list(set(matches))]

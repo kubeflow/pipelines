@@ -78,6 +78,15 @@ class Compiler(object):
   def _op_to_template(self, op):
     """Generate template given an operator inherited from dsl.ContainerOp."""
 
+    processed_command = None
+    if op.command:
+      processed_command = list(map(str, op.command))
+      for i, _ in enumerate(processed_command):
+        if op.argument_inputs:
+          for param in op.argument_inputs:
+            full_name = self._pipelineparam_full_name(param)
+            processed_command[i] = re.sub(str(param), '{{inputs.parameters.%s}}' % full_name,
+                                       processed_command[i])
     processed_args = None
     if op.arguments:
       processed_args = list(map(str, op.arguments))
@@ -110,6 +119,8 @@ class Compiler(object):
         'image': op.image,
       }
     }
+    if processed_command:
+      template['container']['command'] = processed_command
     if processed_args:
       template['container']['args'] = processed_args
     if input_parameters:
@@ -129,8 +140,6 @@ class Compiler(object):
     output_artifacts.append(self._build_conventional_artifact('mlpipeline-ui-metadata'))
     output_artifacts.append(self._build_conventional_artifact('mlpipeline-metrics'))
     template['outputs']['artifacts'] = output_artifacts
-    if op.command:
-      template['container']['command'] = op.command
 
     # Set resources.
     if op.resource_limits or op.resource_requests:
