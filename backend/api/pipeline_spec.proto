@@ -16,7 +16,7 @@ syntax = "proto3";
 
 package api;
 
-import "parameter.proto";
+import "backend/api/parameter.proto";
 
 message PipelineSpec {
   // Optional input field. The ID of the pipeline user uploaded before.
