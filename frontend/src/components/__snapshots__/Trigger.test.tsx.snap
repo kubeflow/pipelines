@@ -8,6 +8,7 @@ exports[`Trigger enables a single day on click 1`] = `
     required={true}
     select={true}
     value={1}
+    variant="outlined"
   >
     <WithStyles(MenuItem)
       key="0"
@@ -28,11 +29,12 @@ exports[`Trigger enables a single day on click 1`] = `
       onChange={[Function]}
       required={true}
       value="10"
+      variant="outlined"
     />
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -60,6 +62,7 @@ exports[`Trigger enables a single day on click 1`] = `
         }
         type="date"
         value="2018-12-21"
+        variant="outlined"
         width={160}
       />
       <Component />
@@ -81,13 +84,14 @@ exports[`Trigger enables a single day on click 1`] = `
         }
         type="time"
         value="07:53"
+        variant="outlined"
         width={120}
       />
     </div>
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -115,6 +119,7 @@ exports[`Trigger enables a single day on click 1`] = `
         }
         type="date"
         value="2018-12-21"
+        variant="outlined"
         width={160}
       />
       <Component />
@@ -136,6 +141,7 @@ exports[`Trigger enables a single day on click 1`] = `
         }
         type="time"
         value="07:53"
+        variant="outlined"
         width={120}
       />
     </div>
@@ -150,6 +156,7 @@ exports[`Trigger enables a single day on click 1`] = `
         required={true}
         select={true}
         value="Week"
+        variant="outlined"
         width={95}
       >
         <WithStyles(MenuItem)
@@ -190,7 +197,7 @@ exports[`Trigger enables a single day on click 1`] = `
       <span>
         On:
       </span>
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -268,7 +275,7 @@ exports[`Trigger enables a single day on click 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -294,6 +301,7 @@ exports[`Trigger enables a single day on click 1`] = `
       label="cron expression"
       onChange={[Function]}
       value="0 0 0 ? * 0,2,4,5,6"
+      variant="outlined"
       width={300}
     />
     <div>
@@ -311,6 +319,7 @@ exports[`Trigger renders all week days enabled 1`] = `
     required={true}
     select={true}
     value={1}
+    variant="outlined"
   >
     <WithStyles(MenuItem)
       key="0"
@@ -331,11 +340,12 @@ exports[`Trigger renders all week days enabled 1`] = `
       onChange={[Function]}
       required={true}
       value="10"
+      variant="outlined"
     />
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -363,6 +373,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
         type="date"
         value="2018-12-21"
+        variant="outlined"
         width={160}
       />
       <Component />
@@ -384,13 +395,14 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
         type="time"
         value="07:53"
+        variant="outlined"
         width={120}
       />
     </div>
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -418,6 +430,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
         type="date"
         value="2018-12-21"
+        variant="outlined"
         width={160}
       />
       <Component />
@@ -439,6 +452,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
         type="time"
         value="07:53"
+        variant="outlined"
         width={120}
       />
     </div>
@@ -453,6 +467,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         required={true}
         select={true}
         value="Week"
+        variant="outlined"
         width={95}
       >
         <WithStyles(MenuItem)
@@ -493,7 +508,7 @@ exports[`Trigger renders all week days enabled 1`] = `
       <span>
         On:
       </span>
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -571,7 +586,7 @@ exports[`Trigger renders all week days enabled 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -597,6 +612,7 @@ exports[`Trigger renders all week days enabled 1`] = `
       label="cron expression"
       onChange={[Function]}
       value="0 0 0 ? *"
+      variant="outlined"
       width={300}
     />
     <div>
@@ -614,6 +630,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
     required={true}
     select={true}
     value={0}
+    variant="outlined"
   >
     <WithStyles(MenuItem)
       key="0"
@@ -634,11 +651,12 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
       onChange={[Function]}
       required={true}
       value="10"
+      variant="outlined"
     />
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -666,6 +684,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         }
         type="date"
         value="2018-12-21"
+        variant="outlined"
         width={160}
       />
       <Component />
@@ -687,13 +706,14 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         }
         type="time"
         value="07:53"
+        variant="outlined"
         width={120}
       />
     </div>
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -721,6 +741,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         }
         type="date"
         value="2018-12-21"
+        variant="outlined"
         width={160}
       />
       <Component />
@@ -742,6 +763,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         }
         type="time"
         value="07:53"
+        variant="outlined"
         width={120}
       />
     </div>
@@ -760,6 +782,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
           required={true}
           type="number"
           value={1}
+          variant="outlined"
           width={65}
         />
       </div>
@@ -770,6 +793,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         required={true}
         select={true}
         value="Minute"
+        variant="outlined"
         width={95}
       >
         <WithStyles(MenuItem)
@@ -816,6 +840,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
     required={true}
     select={true}
     value={1}
+    variant="outlined"
   >
     <WithStyles(MenuItem)
       key="0"
@@ -836,11 +861,12 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
       onChange={[Function]}
       required={true}
       value="10"
+      variant="outlined"
     />
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -868,6 +894,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         }
         type="date"
         value="2018-12-21"
+        variant="outlined"
         width={160}
       />
       <Component />
@@ -889,13 +916,14 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         }
         type="time"
         value="07:53"
+        variant="outlined"
         width={120}
       />
     </div>
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -923,6 +951,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         }
         type="date"
         value="2018-12-21"
+        variant="outlined"
         width={160}
       />
       <Component />
@@ -944,6 +973,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         }
         type="time"
         value="07:53"
+        variant="outlined"
         width={120}
       />
     </div>
@@ -958,6 +988,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         required={true}
         select={true}
         value="Minute"
+        variant="outlined"
         width={95}
       >
         <WithStyles(MenuItem)
@@ -997,7 +1028,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -1023,6 +1054,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
       label="cron expression"
       onChange={[Function]}
       value="0 * * * * ?"
+      variant="outlined"
       width={300}
     />
     <div>
@@ -1040,6 +1072,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
     required={true}
     select={true}
     value={1}
+    variant="outlined"
   >
     <WithStyles(MenuItem)
       key="0"
@@ -1060,11 +1093,12 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       onChange={[Function]}
       required={true}
       value="10"
+      variant="outlined"
     />
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -1092,6 +1126,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
         type="date"
         value="2018-12-21"
+        variant="outlined"
         width={160}
       />
       <Component />
@@ -1113,13 +1148,14 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
         type="time"
         value="07:53"
+        variant="outlined"
         width={120}
       />
     </div>
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -1147,6 +1183,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
         type="date"
         value="2018-12-21"
+        variant="outlined"
         width={160}
       />
       <Component />
@@ -1168,6 +1205,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
         type="time"
         value="07:53"
+        variant="outlined"
         width={120}
       />
     </div>
@@ -1182,6 +1220,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         required={true}
         select={true}
         value="Week"
+        variant="outlined"
         width={95}
       >
         <WithStyles(MenuItem)
@@ -1222,7 +1261,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       <span>
         On:
       </span>
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={true}
@@ -1300,7 +1339,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         control={
           <WithStyles(Checkbox)
             checked={false}
@@ -1326,6 +1365,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       label="cron expression"
       onChange={[Function]}
       value="0 0 0 ? * *"
+      variant="outlined"
       width={300}
     />
     <div>
