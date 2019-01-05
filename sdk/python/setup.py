@@ -56,6 +56,7 @@ setup(
       'Topic :: Software Development :: Libraries',
       'Topic :: Software Development :: Libraries :: Python Modules',
     ],
+    python_requires='>=3.5',
     include_package_data=True,
     entry_points = {
       'console_scripts': [ 
