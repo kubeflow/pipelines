@@ -58,6 +58,7 @@ RUN pip install absl-py==0.3.0 \
         monotonic==1.5 \
         numpy==1.15.0 \
         oauth2client==4.1.2 \
+        pathlib2 \
         pbr==4.2.0 \
         ply==3.8 \
         proto-google-cloud-datastore-v1==0.90.4 \
