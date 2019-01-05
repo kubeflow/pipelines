@@ -20,7 +20,7 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={false}
         control={
           <WithStyles(Radio)
@@ -31,7 +31,7 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
         label="Upload a file"
         onChange={[Function]}
       />
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={true}
         control={
           <WithStyles(Radio)
@@ -53,6 +53,7 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       id="uploadFileName"
@@ -60,6 +61,7 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
   </div>
   <WithStyles(DialogActions)>
@@ -100,7 +102,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={true}
         control={
           <WithStyles(Radio)
@@ -111,7 +113,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
         label="Upload a file"
         onChange={[Function]}
       />
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={false}
         control={
           <WithStyles(Radio)
@@ -185,6 +187,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
         onChange={[Function]}
         required={true}
         value=""
+        variant="outlined"
       />
     </n>
     <Component
@@ -193,6 +196,7 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
   </div>
   <WithStyles(DialogActions)>
@@ -233,7 +237,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={true}
         control={
           <WithStyles(Radio)
@@ -244,7 +248,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
         label="Upload a file"
         onChange={[Function]}
       />
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={false}
         control={
           <WithStyles(Radio)
@@ -313,6 +317,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
         onChange={[Function]}
         required={true}
         value=""
+        variant="outlined"
       />
     </n>
     <Component
@@ -321,6 +326,7 @@ exports[`UploadPipelineDialog renders closed 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
   </div>
   <WithStyles(DialogActions)>
@@ -361,7 +367,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={true}
         control={
           <WithStyles(Radio)
@@ -372,7 +378,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
         label="Upload a file"
         onChange={[Function]}
       />
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={false}
         control={
           <WithStyles(Radio)
@@ -441,6 +447,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
         onChange={[Function]}
         required={true}
         value=""
+        variant="outlined"
       />
     </n>
     <Component
@@ -449,6 +456,7 @@ exports[`UploadPipelineDialog renders open 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
   </div>
   <WithStyles(DialogActions)>
@@ -489,7 +497,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
     <div
       className="flex"
     >
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={true}
         control={
           <WithStyles(Radio)
@@ -500,7 +508,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
         label="Upload a file"
         onChange={[Function]}
       />
-      <WithStyles(FormControlLabel)
+      <WithStyles(WithFormControlContext(FormControlLabel))
         checked={false}
         control={
           <WithStyles(Radio)
@@ -569,6 +577,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
         onChange={[Function]}
         required={true}
         value=""
+        variant="outlined"
       />
     </n>
     <Component
@@ -577,6 +586,7 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
   </div>
   <WithStyles(DialogActions)>
