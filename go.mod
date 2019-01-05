@@ -15,6 +15,8 @@ require (
 	github.com/ghodss/yaml v0.0.0-20180820084758-c7ce16629ff4
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 // indirect
 	github.com/go-ini/ini v1.38.1 // indirect
+	github.com/go-logr/logr v0.1.0 // indirect
+	github.com/go-logr/zapr v0.1.0 // indirect
 	github.com/go-openapi/analysis v0.17.2 // indirect
 	github.com/go-openapi/errors v0.17.0
 	github.com/go-openapi/runtime v0.0.0-20181031204026-aadb2cc7b886
@@ -44,9 +46,11 @@ require (
 	github.com/json-iterator/go v0.0.0-20180701071628-ab8a2e0c74be // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kataras/iris v10.6.7+incompatible
+	github.com/kubernetes-sigs/controller-runtime v0.1.9
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v1.0.0 // indirect
+	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/mattn/go-sqlite3 v1.9.0
 	github.com/minio/minio-go v6.0.5+incompatible
 	github.com/mitchellh/go-homedir v0.0.0-20180523094522-3864e76763d9 // indirect
@@ -56,6 +60,7 @@ require (
 	github.com/onsi/gomega v1.4.3 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.8.0
+	github.com/prometheus/client_golang v0.9.2 // indirect
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 	github.com/sirupsen/logrus v1.0.6
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
@@ -65,7 +70,10 @@ require (
 	github.com/stretchr/testify v1.2.2
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v0.0.0-20170224212429-dcecefd839c4 // indirect
-	golang.org/x/net v0.0.0-20181106065722-10aee1819953
+	go.uber.org/atomic v1.3.2 // indirect
+	go.uber.org/multierr v1.1.0 // indirect
+	go.uber.org/zap v1.9.1 // indirect
+	golang.org/x/net v0.0.0-20181201002055-351d144fa1fc
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	google.golang.org/genproto v0.0.0-20181202183823-bd91e49a0898
 	google.golang.org/grpc v1.16.0
@@ -78,4 +86,5 @@ require (
 	k8s.io/client-go v0.0.0-20180718001006-59698c7d9724
 	k8s.io/kube-openapi v0.0.0-20180719232738-d8ea2fe547a4 // indirect
 	k8s.io/kubernetes v1.11.1
+	sigs.k8s.io/controller-runtime v0.0.0-20181121180216-5558165425ef
 )
