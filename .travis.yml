@@ -22,7 +22,17 @@ addons:
       - wget
   chrome: stable
 
-before_install: npm i -g npm@latest
+env:
+- BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-installer-linux-x86_64.sh"
+
+before_install:
+  - npm i -g npm@latest
+  # Install Bazel
+  - |
+    wget -O install.sh "${BAZEL_URL}"
+    chmod +x install.sh
+    ./install.sh --user
+    rm -f install.sh
 
 script:
   # Frontend tests
@@ -49,3 +59,21 @@ script:
   - gimme -f 1.11.4
   - source ~/.gimme/envs/go1.11.4.env
   - go test ./...
+
+  # Backend bazel build and test
+  - cd $TRAVIS_BUILD_DIR/backend/src
+  - |
+    bazel \
+      --batch \
+      --output_base=$HOME/.cache/bazel \
+      --host_jvm_args=-Xmx500m \
+      --host_jvm_args=-Xms500m \
+    build //backend/...
+  - |
+    bazel \
+      --batch \
+      --output_base=$HOME/.cache/bazel \
+      --host_jvm_args=-Xmx500m \
+      --host_jvm_args=-Xms500m \
+    test //backend/...
+
