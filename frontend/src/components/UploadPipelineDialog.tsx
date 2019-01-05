@@ -121,7 +121,7 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
                 You can also drag and drop the file here.
               </div>
               <Input onChange={this.handleChange('fileName')} value={fileName} required={true}
-                label='File'
+                label='File' variant='outlined'
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position='end'>
@@ -142,19 +142,20 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
               <div className={padding(10, 'b')}>
                 URL must be publicly accessible.
               </div>
-              <Input onChange={this.handleChange('fileUrl')} value={fileUrl} required={true} label='URL' />
+              <Input onChange={this.handleChange('fileUrl')} value={fileUrl} required={true}
+                label='URL' variant='outlined' />
             </React.Fragment>
           )}
 
           <Input id='uploadFileName' label='Pipeline name'
             onChange={this.handleChange('uploadPipelineName')}
-            required={true} value={uploadPipelineName} />
+            required={true} value={uploadPipelineName} variant='outlined' />
 
         </div>
 
         {/* <Input label='Pipeline description'
           onChange={this.handleChange('uploadPipelineDescription')}
-          value={uploadPipelineDescription} multiline={true} /> */}
+          value={uploadPipelineDescription} multiline={true} variant='outlined' /> */}
 
         <DialogActions>
           <BusyButton id='confirmUploadBtn' onClick={() => this._uploadDialogClosed.bind(this)(true)}

@@ -86,9 +86,9 @@ class NewExperiment extends Page<{}, NewExperimentState> {
 
           <Input id='experimentName' label='Experiment name' inputRef={this._experimentNameRef}
             required={true} onChange={this.handleChange('experimentName')} value={experimentName}
-            autoFocus={true} />
+            autoFocus={true} variant='outlined' />
           <Input id='experimentDescription' label='Description (optional)' multiline={true}
-            onChange={this.handleChange('description')} value={description} />
+            onChange={this.handleChange('description')} value={description} variant='outlined' />
 
           <div className={commonCss.flex}>
             <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={isbeingCreated}

@@ -12,7 +12,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
     >
       Run details
     </div>
-    <WithStyles(FormControlLabel)
+    <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
       control={
         <WithStyles(Radio)
@@ -22,7 +22,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       label="Use pipeline from previous step"
       onChange={[Function]}
     />
-    <WithStyles(FormControlLabel)
+    <WithStyles(WithFormControlContext(FormControlLabel))
       checked={false}
       control={
         <WithStyles(Radio)
@@ -288,12 +288,14 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -328,6 +330,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       label="Experiment"
       required={true}
       value=""
+      variant="outlined"
     />
     <div
       className="header"
@@ -410,6 +413,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       label="Pipeline"
       required={true}
       value=""
+      variant="outlined"
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -675,12 +679,14 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -715,6 +721,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
     />
     <div
       className="header"
@@ -767,7 +774,7 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
     >
       Run details
     </div>
-    <WithStyles(FormControlLabel)
+    <WithStyles(WithFormControlContext(FormControlLabel))
       checked={false}
       control={
         <WithStyles(Radio)
@@ -783,7 +790,7 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
     >
       [View pipeline]
     </Link>
-    <WithStyles(FormControlLabel)
+    <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
       control={
         <WithStyles(Radio)
@@ -823,6 +830,7 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
       label="Pipeline"
       required={true}
       value=""
+      variant="outlined"
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -1080,12 +1088,14 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
       onChange={[Function]}
       required={true}
       value="Clone of some mock run name"
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -1120,6 +1130,7 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
       label="Experiment"
       required={true}
       value=""
+      variant="outlined"
     />
     <div
       className="header"
@@ -1170,7 +1181,7 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
     >
       Run details
     </div>
-    <WithStyles(FormControlLabel)
+    <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
       control={
         <WithStyles(Radio)
@@ -1186,7 +1197,7 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
     >
       [View pipeline]
     </Link>
-    <WithStyles(FormControlLabel)
+    <WithStyles(WithFormControlContext(FormControlLabel))
       checked={false}
       control={
         <WithStyles(Radio)
@@ -1452,12 +1463,14 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
       onChange={[Function]}
       required={true}
       value="Clone of some mock run name"
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -1492,6 +1505,7 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
       label="Experiment"
       required={true}
       value=""
+      variant="outlined"
     />
     <div
       className="header"
@@ -1572,6 +1586,7 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
       label="Pipeline"
       required={true}
       value=""
+      variant="outlined"
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -1829,12 +1844,14 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -1869,6 +1886,7 @@ exports[`NewRun creating a new recurring run includes additional trigger input f
       label="Experiment"
       required={true}
       value=""
+      variant="outlined"
     />
     <div
       className="header"
@@ -1929,7 +1947,7 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
     >
       Run details
     </div>
-    <WithStyles(FormControlLabel)
+    <WithStyles(WithFormControlContext(FormControlLabel))
       checked={true}
       control={
         <WithStyles(Radio)
@@ -1945,7 +1963,7 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
     >
       [View pipeline]
     </Link>
-    <WithStyles(FormControlLabel)
+    <WithStyles(WithFormControlContext(FormControlLabel))
       checked={false}
       control={
         <WithStyles(Radio)
@@ -2245,12 +2263,14 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
       onChange={[Function]}
       required={true}
       value="Clone of some mock run name"
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -2285,6 +2305,7 @@ exports[`NewRun creating a new run copies pipeline from run in the create API ca
       label="Experiment"
       required={true}
       value=""
+      variant="outlined"
     />
     <div
       className="header"
@@ -2365,6 +2386,7 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
       label="Pipeline"
       required={true}
       value="some mock pipeline name"
+      variant="outlined"
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -2656,12 +2678,14 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
       onChange={[Function]}
       required={true}
       value="test run name"
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -2696,6 +2720,7 @@ exports[`NewRun creating a new run updates the pipeline in state when a user fil
       label="Experiment"
       required={true}
       value=""
+      variant="outlined"
     />
     <div
       className="header"
@@ -2812,6 +2837,7 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       label="Pipeline"
       required={true}
       value=""
+      variant="outlined"
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -3077,12 +3103,14 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -3117,6 +3145,7 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
     />
     <div
       className="header"
@@ -3199,6 +3228,7 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       label="Pipeline"
       required={true}
       value="some mock pipeline name"
+      variant="outlined"
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -3464,12 +3494,14 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -3504,6 +3536,7 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
     />
     <div
       className="header"
@@ -3622,6 +3655,7 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       label="Pipeline"
       required={true}
       value="some mock pipeline name"
+      variant="outlined"
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -3887,12 +3921,14 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -3927,6 +3963,7 @@ exports[`NewRun creating a new run updates the pipeline params as user selects d
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
     />
     <div
       className="header"
@@ -4009,6 +4046,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       label="Pipeline"
       required={true}
       value="some mock pipeline name"
+      variant="outlined"
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -4266,12 +4304,14 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -4306,6 +4346,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       label="Experiment"
       required={true}
       value=""
+      variant="outlined"
     />
     <div
       className="header"
@@ -4388,6 +4429,7 @@ exports[`NewRun renders the new run page 1`] = `
       label="Pipeline"
       required={true}
       value=""
+      variant="outlined"
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -4653,12 +4695,14 @@ exports[`NewRun renders the new run page 1`] = `
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -4693,6 +4737,7 @@ exports[`NewRun renders the new run page 1`] = `
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
     />
     <div
       className="header"
@@ -4775,6 +4820,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       label="Pipeline"
       required={true}
       value=""
+      variant="outlined"
     />
     <WithStyles(Dialog)
       PaperProps={
@@ -5040,12 +5086,14 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       onChange={[Function]}
       required={true}
       value=""
+      variant="outlined"
     />
     <Component
       label="Description (optional)"
       multiline={true}
       onChange={[Function]}
       value=""
+      variant="outlined"
     />
     <div>
       This run will be associated with the following experiment
@@ -5080,6 +5128,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       label="Experiment"
       required={true}
       value="some mock experiment name"
+      variant="outlined"
     />
     <div
       className="header"
