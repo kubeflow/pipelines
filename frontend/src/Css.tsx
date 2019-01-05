@@ -85,9 +85,6 @@ const palette = {
 export const theme = createMuiTheme({
   overrides: {
     MuiButton: {
-      disabled: {
-        backgroundColor: 'initial',
-      },
       flat: {
         fontSize: fontsize.base,
         fontWeight: 'bold',
@@ -105,6 +102,9 @@ export const theme = createMuiTheme({
         color: color.theme,
       },
       root: {
+        '&$disabled': {
+          backgroundColor: 'initial',
+        },
         color: color.theme,
         marginRight: 10,
         padding: '0 8px'
@@ -130,11 +130,11 @@ export const theme = createMuiTheme({
         marginLeft: 0,
         marginTop: 0,
       },
-      focused: {
-        marginLeft: 0,
-        marginTop: 0,
-      },
       root: {
+        '&$focused': {
+          marginLeft: 0,
+          marginTop: 0,
+        },
         fontSize: fontsize.base,
         marginLeft: 5,
         marginTop: -8,
@@ -167,6 +167,7 @@ export const theme = createMuiTheme({
   typography: {
     fontFamily: fonts.main,
     fontSize: fontsize.base + ' !important' as any,
+    useNextVariants: true,
   },
 });
 
