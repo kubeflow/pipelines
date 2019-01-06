@@ -69,6 +69,8 @@ script:
       --output_base=$HOME/.cache/bazel \
       --host_jvm_args=-Xmx500m \
       --host_jvm_args=-Xms500m \
+      --verbose_failures \
+      --noshow_progress \
     build //backend/...
   - |
     bazel \
@@ -76,5 +78,7 @@ script:
       --output_base=$HOME/.cache/bazel \
       --host_jvm_args=-Xmx500m \
       --host_jvm_args=-Xms500m \
+      --noshow_progress \
+      --test_output=errors \
     test //backend/...
 
