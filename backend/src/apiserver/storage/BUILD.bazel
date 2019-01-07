@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "db.go",
         "db_fake.go",
+        "db_status_store.go",
         "experiment_store.go",
         "job_store.go",
         "list_util.go",
@@ -42,6 +43,7 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
+        "db_status_store_test.go",
         "db_test.go",
         "experiment_store_test.go",
         "job_store_test.go",

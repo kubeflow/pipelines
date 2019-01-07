@@ -26,11 +26,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/crd/pkg/signals"
 
 	viewerV1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1alpha1"
-	"github.com/kubernetes-sigs/controller-runtime/pkg/builder"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // Needed for GCP authentication.
