@@ -18,6 +18,7 @@ import * as React from 'react';
 import CustomTable, { Column, Row, css, ExpandState } from './CustomTable';
 import TestUtils from '../TestUtils';
 import { shallow } from 'enzyme';
+import { PredicateOp } from '../apis/filter';
 
 const props = {
   columns: [],
@@ -54,6 +55,12 @@ const rows: Row[] = [
 const consoleErrorBackup = console.error;
 let consoleSpy: jest.Mock;
 
+class CustomTableTest extends CustomTable {
+  public _requestFilter(filterString?: string): Promise<void> {
+    return super._requestFilter(filterString);
+  }
+}
+
 describe('CustomTable', () => {
   beforeAll(() => {
     consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
@@ -62,6 +69,24 @@ describe('CustomTable', () => {
   afterAll(() => {
     // tslint:disable-next-line:no-console
     console.error = consoleErrorBackup;
+  });
+
+  it('renders with default filter label', async () => {
+    const tree = shallow(<CustomTable {...props} />);
+    await TestUtils.flushPromises();
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders with provided filter label', async () => {
+    const tree = shallow(<CustomTable {...props} filterLabel='test filter label' />);
+    await TestUtils.flushPromises();
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders without filter box', async () => {
+    const tree = shallow(<CustomTable {...props} noFilterBox={true} />);
+    await TestUtils.flushPromises();
+    expect(tree).toMatchSnapshot();
   });
 
   it('renders without rows or columns', async () => {
@@ -275,6 +300,15 @@ describe('CustomTable', () => {
     expect(spy).toHaveBeenLastCalledWith(['row2']);
   });
 
+  it('passes both selectedIds and newly selected row when clicked', () => {
+    // Keeping track of selection is the parent's job.
+    const selectedIds = ['previouslySelectedRow'];
+    const spy = jest.fn();
+    const tree = shallow(<CustomTable {...props} selectedIds={selectedIds} rows={rows} columns={columns} updateSelection={spy} />);
+    tree.find('.row').at(0).simulate('click', { stopPropagation: () => null });
+    expect(spy).toHaveBeenLastCalledWith(['previouslySelectedRow', 'row1']);
+  });
+
   it('does not call selectionCallback if disableSelection is true', () => {
     const spy = jest.fn();
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns}
@@ -322,6 +356,16 @@ describe('CustomTable', () => {
       target: { checked: true },
     });
     expect(spy).toHaveBeenLastCalledWith(['row1', 'row2']);
+  });
+
+  it('deselects all other items if one item is selected in radio button mode', () => {
+    // Simulate that another row has already been selected. Just clicking another row first won't
+    // work here because the parent is where the selectedIds state is kept
+    const selectedIds = ['previouslySelectedRow'];
+    const spy = jest.fn();
+    const tree = shallow(<CustomTable {...props} useRadioButtons={true} selectedIds={selectedIds} rows={rows} columns={columns} updateSelection={spy} />);
+    tree.find('.row').at(0).simulate('click', { stopPropagation: () => null });
+    expect(spy).toHaveBeenLastCalledWith(['row1']);
   });
 
   it('disables previous and next page buttons if no next page token given', async () => {
@@ -491,5 +535,41 @@ describe('CustomTable', () => {
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} disableSorting={true} />);
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
+  });
+
+  it('updates the filter string in state when the filter box input changes', async () => {
+    const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
+    (tree.instance() as CustomTable).handleChange('filterString')({ target: { value: 'test filter' } });
+    await TestUtils.flushPromises();
+    expect(tree.state('filterString')).toEqual('test filter');
+  });
+
+  it('reloads the table with the encoded filter object', async () => {
+    const reload = jest.fn();
+    const tree = shallow(<CustomTableTest {...props} reload={reload} rows={rows} columns={columns} />);
+    // lodash's debounce function doesn't play nice with Jest, so we skip the handleChange function
+    // and call _requestFilter directly.
+    (tree.instance() as CustomTableTest)._requestFilter('test filter');
+    const expectedEncodedFilter = encodeURIComponent(JSON.stringify({
+      predicates: [{
+        key: 'name',
+        op: PredicateOp.EQUALS,
+        string_value: 'test filter',
+      }]
+    }));
+    expect(tree.state('filterStringEncoded')).toEqual(expectedEncodedFilter);
+    expect(reload).toHaveBeenLastCalledWith({
+      filter: expectedEncodedFilter,
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: '',
+    });
+  });
+
+  it('uses an empty filter if requestFilter is called with no filter', async () => {
+    const tree = shallow(<CustomTableTest {...props} rows={rows} columns={columns} />);
+    (tree.instance() as CustomTableTest)._requestFilter();
+    expect(tree.state('filterStringEncoded')).toEqual('');
   });
 });

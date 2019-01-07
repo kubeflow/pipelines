@@ -226,6 +226,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   public handleSelectAllClick(event: React.MouseEvent): void {
     if (this.props.disableSelection === true) {
+      // This should be impossible to reach
       return;
     }
     const selectedIds =
@@ -457,36 +458,34 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     return result;
   }
 
-  private _createAndEncodeFilter(filterString: string): string {
-    const filter: ApiFilter = {
-      predicates: [
-        {
-          // TODO: remove this hardcoding once more sophisticated filtering is supported
-          key: 'name',
-          // TODO: change this to the substring match operator once it's supported
-          op: PredicateOp.EQUALS,
-          string_value: filterString,
-        },
-      ],
-    };
-    return encodeURIComponent(JSON.stringify(filter));
-  }
-
-  private handleChange = (name: string) => (event: any) => {
-    const value = (event.target as TextFieldProps).value;
+  public handleChange = (name: string) => (event: any) => {
+    const value = event.target.value;
     this.setStateSafe({ [name]: value } as any,
-      () => {
+      async () => {
         if (name === 'filterString') {
-          this._debouncedRequest(value as string);
+          await this._debouncedRequest(value as string);
         }
       });
   }
 
-  private _requestFilter(filterString?: string): void {
+  // Exposed for testing
+  protected async _requestFilter(filterString?: string): Promise<void> {
     const filterStringEncoded = filterString ? this._createAndEncodeFilter(filterString) : '';
-    this.setStateSafe({ filterString, filterStringEncoded },
-      async () => this._resetToFirstPage(await this.reload({ filter: filterStringEncoded }))
-    );
+    this.setStateSafe({ filterStringEncoded });
+    this._resetToFirstPage(await this.reload({ filter: filterStringEncoded }));
+  }
+
+  private _createAndEncodeFilter(filterString: string): string {
+    const filter: ApiFilter = {
+      predicates: [{
+        // TODO: remove this hardcoding once more sophisticated filtering is supported
+        key: 'name',
+        // TODO: change this to the substring match operator once it's supported
+        op: PredicateOp.EQUALS,
+        string_value: filterString,
+      }],
+    };
+    return encodeURIComponent(JSON.stringify(filter));
   }
 
   private setStateSafe(newState: Partial<CustomTableState>, cb?: () => void): void {
@@ -499,8 +498,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     if (sortBy) {
       // Set the sort column to the provided column if it's different, and
       // invert the sort order it if it's the same column
-      const sortOrder = this.state.sortBy === sortBy ?
-        (this.state.sortOrder === 'asc' ? 'desc' : 'asc') : 'asc';
+      const sortOrder =
+        this.state.sortBy === sortBy
+        ? (this.state.sortOrder === 'asc' ? 'desc' : 'asc')
+        : 'asc';
       this.setStateSafe({ sortOrder, sortBy }, async () => {
         this._resetToFirstPage(
           await this.reload({ pageToken: '', orderAscending: sortOrder === 'asc', sortBy }));
