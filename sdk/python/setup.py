@@ -32,6 +32,8 @@ setup(
       'kfp',
       'kfp.compiler',
       'kfp.components',
+      'kfp.components.structures',
+      'kfp.components.structures.kubernetes',
       'kfp.dsl',
       'kfp.notebook',
       'kfp_experiment',
