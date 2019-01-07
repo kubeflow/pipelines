@@ -30,11 +30,11 @@ class FlipCoinOp(dsl.ContainerOp):
 
 class PrintOp(dsl.ContainerOp):
   
-  def __init__(self, name):
+  def __init__(self, name, msg):
     super(PrintOp, self).__init__(
       name=name,
       image='alpine:3.6',
-      command=['echo', '"it was tail"'])
+      command=['echo', msg])
     
 
 @dsl.pipeline(
@@ -48,7 +48,7 @@ def flipcoin():
     flip2 = FlipCoinOp('flip-again')
 
     with dsl.Condition(flip2.output=='tails'):
-      PrintOp('print1')
+      PrintOp('print1', flip2.output)
 
   with dsl.Condition(flip.output=='tails'):
-      PrintOp('print2')
+      PrintOp('print2', flip2.output)

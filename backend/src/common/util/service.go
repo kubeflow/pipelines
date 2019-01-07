@@ -31,15 +31,17 @@ import (
 func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAddress string) error {
 	var operation = func() error {
 		response, err := http.Get(fmt.Sprintf("http://%s%s/healthz", apiAddress, basePath))
-		if err == nil {
-			return nil
+		if err != nil {
+			return err
 		}
-		// we wait only on 503 service unavailable. Stop retry otherwise.
-		if response.StatusCode != 503 {
+
+		// If we get a 503 service unavailable, it's a non-retriable error.
+		if response.StatusCode == 503 {
 			return backoff.Permanent(errors.Wrapf(
 				err, "Waiting for ml pipeline API server failed with non retriable error."))
 		}
-		return err
+
+		return nil
 	}
 
 	b := backoff.NewExponentialBackOff()
@@ -49,7 +51,7 @@ func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAd
 }
 
 func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
-		*kubernetes.Clientset, *rest.Config, string, error) {
+	*kubernetes.Clientset, *rest.Config, string, error) {
 	// Get the clientConfig
 	config, err := clientConfig.ClientConfig()
 	if err != nil {

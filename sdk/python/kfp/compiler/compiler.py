@@ -211,6 +211,27 @@ class Compiler(object):
     else:
       return str(value_or_reference)
 
+  def _process_args(self, raw_args, argument_inputs):
+    if not raw_args:
+      return []
+    processed_args = list(map(str, raw_args))
+    for i, _ in enumerate(processed_args):
+      # unsanitized_argument_inputs stores a dict: sanitized param name -> string of unsanitized param
+      matches = []
+      match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(processed_args[i]))
+      matches += match
+      unsanitized_argument_inputs = {}
+      for x in list(set(matches)):
+        unsanitized_argument_inputs[K8sHelper.sanitize_k8s_name(x[1])] = str(dsl.PipelineParam(x[1], x[0], x[2]))
+
+      if argument_inputs:
+        for param in argument_inputs:
+          if param.name in unsanitized_argument_inputs:
+            full_name = self._pipelineparam_full_name(param)
+            processed_args[i] = re.sub(unsanitized_argument_inputs[param.name], '{{inputs.parameters.%s}}' % full_name,
+                                       processed_args[i])
+    return processed_args
+
   def _op_to_template(self, op):
     """Generate template given an operator inherited from dsl.ContainerOp."""
 
@@ -235,24 +256,9 @@ class Compiler(object):
         },
       }
 
-    processed_args = None
-    if op.arguments:
-      processed_args = list(map(str, op.arguments))
-      for i, _ in enumerate(processed_args):
-        # unsanitized_argument_inputs stores a dict: sanitized param name -> string of unsanitized param
-        matches = []
-        match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(processed_args[i]))
-        matches += match
-        unsanitized_argument_inputs = {}
-        for x in list(set(matches)):
-          unsanitized_argument_inputs[K8sHelper.sanitize_k8s_name(x[1])] = str(dsl.PipelineParam(x[1], x[0], x[2]))
+    processed_arguments = self._process_args(op.arguments, op.argument_inputs)
+    processed_command = self._process_args(op.command, op.argument_inputs)
 
-        if op.argument_inputs:
-          for param in op.argument_inputs:
-            if param.name in unsanitized_argument_inputs:
-              full_name = self._pipelineparam_full_name(param)
-              processed_args[i] = re.sub(unsanitized_argument_inputs[param.name], '{{inputs.parameters.%s}}' % full_name,
-                                         processed_args[i])
     input_parameters = []
     for param in op.inputs:
       one_parameter = {'name': self._pipelineparam_full_name(param)}
@@ -276,8 +282,10 @@ class Compiler(object):
         'image': op.image,
       }
     }
-    if processed_args:
-      template['container']['args'] = processed_args
+    if processed_arguments:
+      template['container']['args'] = processed_arguments
+    if processed_command:
+      template['container']['command'] = processed_command
     if input_parameters:
       template['inputs'] = {'parameters': input_parameters}
 

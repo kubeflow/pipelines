@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["run_client.go"],
+    importpath = "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/api/go_http_client/run_client/run_service:go_default_library",
+        "@com_github_go_openapi_runtime//:go_default_library",
+        "@com_github_go_openapi_runtime//client:go_default_library",
+        "@com_github_go_openapi_strfmt//:go_default_library",
+    ],
+)

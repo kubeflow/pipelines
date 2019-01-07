@@ -85,7 +85,7 @@ interface RunListState {
   runs: DisplayRun[];
 }
 
-class RunList extends React.Component<RunListProps, RunListState> {
+class RunList extends React.PureComponent<RunListProps, RunListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
