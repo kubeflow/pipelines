@@ -58,14 +58,7 @@ class ContainerOp(object):
     self.pod_annotations = {}
     self.pod_labels = {}
 
-    matches = []
-    to_search = []
-    if arguments:
-      to_search += arguments
-    if command:
-      to_search += command
-
-    for arg in to_search:
+    for arg in (command or []) + (arguments or []):
       match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(arg))
       matches += match
 
