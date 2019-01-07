@@ -2,8 +2,8 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "b7a62250a3a73277ade0ce306d22f122365b513f5402222403e507f2f997d421",
-    urls = ["https://github.com/bazelbuild/rules_go/releases/download/0.16.3/rules_go-0.16.3.tar.gz"],
+    sha256 = "7be7dc01f1e0afdba6c8eb2b43d2fa01c743be1b9273ab1eaf6c233df078d705",
+    urls = ["https://github.com/bazelbuild/rules_go/releases/download/0.16.5/rules_go-0.16.5.tar.gz"],
 )
 
 load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_dependencies")
@@ -14,8 +14,8 @@ go_register_toolchains()
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "6e875ab4b6bf64a38c352887760f21203ab054676d9c1b274963907e0768740d",
-    urls = ["https://github.com/bazelbuild/bazel-gazelle/releases/download/0.15.0/bazel-gazelle-0.15.0.tar.gz"],
+    sha256 = "7949fc6cc17b5b191103e97481cf8889217263acf52e00b560683413af204fcb",
+    urls = ["https://github.com/bazelbuild/bazel-gazelle/releases/download/0.16.0/bazel-gazelle-0.16.0.tar.gz"],
 )
 
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
@@ -40,6 +40,13 @@ go_repository(
     name = "com_github_google_gofuzz",
     commit = "24818f796faf",
     importpath = "github.com/google/gofuzz",
+)
+
+go_repository(
+    name = "io_k8s_sigs_controller_runtime",
+    build_extra_args = ["-exclude=vendor"],
+    commit = "5558165425ef",
+    importpath = "sigs.k8s.io/controller-runtime",
 )
 
 go_repository(
@@ -749,7 +756,7 @@ go_repository(
 go_repository(
     name = "org_golang_x_net",
     build_file_proto_mode = "disable_global",
-    commit = "10aee1819953",
+    commit = "351d144fa1fc",
     importpath = "golang.org/x/net",
 )
 
@@ -761,7 +768,7 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_sync",
-    commit = "1d60e4601c6f",
+    commit = "42b317875d0f",
     importpath = "golang.org/x/sync",
 )
 
@@ -787,4 +794,82 @@ go_repository(
     name = "org_golang_x_tools",
     commit = "6cd1fcedba52",
     importpath = "golang.org/x/tools",
+)
+
+go_repository(
+    name = "com_github_beorn7_perks",
+    commit = "3a771d992973",
+    importpath = "github.com/beorn7/perks",
+)
+
+go_repository(
+    name = "com_github_go_logr_logr",
+    importpath = "github.com/go-logr/logr",
+    tag = "v0.1.0",
+)
+
+go_repository(
+    name = "com_github_go_logr_zapr",
+    importpath = "github.com/go-logr/zapr",
+    tag = "v0.1.0",
+)
+
+go_repository(
+    name = "com_github_golang_protobuf",
+    importpath = "github.com/golang/protobuf",
+    tag = "v1.2.0",
+)
+
+go_repository(
+    name = "com_github_mattbaird_jsonpatch",
+    commit = "81af80346b1a",
+    importpath = "github.com/mattbaird/jsonpatch",
+)
+
+go_repository(
+    name = "com_github_matttproud_golang_protobuf_extensions",
+    importpath = "github.com/matttproud/golang_protobuf_extensions",
+    tag = "v1.0.1",
+)
+
+go_repository(
+    name = "com_github_prometheus_client_golang",
+    importpath = "github.com/prometheus/client_golang",
+    tag = "v0.9.2",
+)
+
+go_repository(
+    name = "com_github_prometheus_client_model",
+    commit = "5c3871d89910",
+    importpath = "github.com/prometheus/client_model",
+)
+
+go_repository(
+    name = "com_github_prometheus_common",
+    commit = "4724e9255275",
+    importpath = "github.com/prometheus/common",
+)
+
+go_repository(
+    name = "com_github_prometheus_procfs",
+    commit = "1dc9a6cbc91a",
+    importpath = "github.com/prometheus/procfs",
+)
+
+go_repository(
+    name = "org_uber_go_atomic",
+    importpath = "go.uber.org/atomic",
+    tag = "v1.3.2",
+)
+
+go_repository(
+    name = "org_uber_go_multierr",
+    importpath = "go.uber.org/multierr",
+    tag = "v1.1.0",
+)
+
+go_repository(
+    name = "org_uber_go_zap",
+    importpath = "go.uber.org/zap",
+    tag = "v1.9.1",
 )

@@ -46,7 +46,6 @@ require (
 	github.com/json-iterator/go v0.0.0-20180701071628-ab8a2e0c74be // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kataras/iris v10.6.7+incompatible
-	github.com/kubernetes-sigs/controller-runtime v0.1.9
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v1.0.0 // indirect
