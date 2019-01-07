@@ -65,20 +65,20 @@ script:
   - cd $TRAVIS_BUILD_DIR/backend/src
   - |
     bazel \
-      --batch \
-      --output_base=$HOME/.cache/bazel \
-      --host_jvm_args=-Xmx500m \
-      --host_jvm_args=-Xms500m \
-      --verbose_failures \
-      --noshow_progress \
-    build //backend/...
+    --output_base=$HOME/.cache/bazel \
+    --host_jvm_args=-Xmx500m \
+    --host_jvm_args=-Xms500m \
+    build //backend/... \
+    --noshow_progress \
+    --noshow_loading_progress \
+    --verbose_failures
   - |
     bazel \
-      --batch \
       --output_base=$HOME/.cache/bazel \
       --host_jvm_args=-Xmx500m \
       --host_jvm_args=-Xms500m \
+      test //backend/... \
       --noshow_progress \
-      --test_output=errors \
-    test //backend/...
+      --noshow_loading_progress \
+      --test_output=errors
 
