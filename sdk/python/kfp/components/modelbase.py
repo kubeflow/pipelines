@@ -63,26 +63,29 @@ def check_type(typ: Type[T], x: Any) -> T:
             raise TypeError('Error: None object is incompatible with type {}'.format(typ))
 
         #assert isinstance(x, typ.__origin__)
-        if typ.__origin__ in [list, List, abc.Sequence, abc.MutableSequence]:
-            if not isinstance(x, typ.__origin__):
+        generic_type = typ.__origin__ or getattr(typ, '__extra__', None) #In python <3.7 typing.List.__origin__ == None; Python 3.7 has working __origin__, but no __extra__  TODO: Remove the __extra__ once we move to Python 3.7
+        if generic_type in [list, List, abc.Sequence, abc.MutableSequence, Sequence, MutableSequence] and type(x) is not str: #! str is also Sequence
+            if not isinstance(x, generic_type):
                 raise TypeError('Error: Object "{}" is incompatible with type "{}"'.format(x, typ))
-            inner_type = typ.__args__[0]
+            type_args = typ.__args__ if typ.__args__ is not None else (Any, Any) #Workaround for Python <3.7 (where Mapping.__args__ is None)
+            inner_type = type_args[0]
             for item in x:
                 check_type(inner_type, item)
             return x
 
-        elif typ.__origin__ in [dict, Dict, abc.Mapping, abc.MutableMapping]:
-            if not isinstance(x, typ.__origin__):
+        elif generic_type in [dict, Dict, abc.Mapping, abc.MutableMapping, Mapping, MutableMapping, OrderedDict]:
+            if not isinstance(x, generic_type):
                 raise TypeError('Error: Object "{}" is incompatible with type "{}"'.format(x, typ))
-            inner_key_type = typ.__args__[0]
-            inner_value_type = typ.__args__[1]
+            type_args = typ.__args__ if typ.__args__ is not None else (Any, Any) #Workaround for Python <3.7 (where Mapping.__args__ is None)
+            inner_key_type = type_args[0]
+            inner_value_type = type_args[1]
             for k, v in x.items():
                 check_type(inner_key_type, k)
                 check_type(inner_value_type, v)
             return x
 
         else:
-            raise TypeError('Error: Unsupported generic type {}'.format(typ))
+            raise TypeError('Error: Unsupported generic type "{}". type.__origin__ or type.__extra__ == "{}"'.format(typ, generic_type))
 
     raise TypeError('Error: Object "{}" is incompatible with type "{}"'.format(x, typ))
 
@@ -111,14 +114,17 @@ def parse_typed_object_from_struct(typ: Type[T], struct: Any) -> T:
         try: #More informative errors
             return typ.from_struct(struct)
         except Exception as ex:
-            raise TypeError('Error: {}.from_struct(struct={}) failed with exception: {}'.format(typ.__name__, struct, str(ex)))
+            raise TypeError('Error: {}.from_struct(struct={}) failed with exception:\n{}'.format(typ.__name__, struct, str(ex)))
     if hasattr(typ, '__origin__'): #Handling generic types
         if typ.__origin__ is Union: #Optional == Union
             results = {}
             exception_map = {}
-            possible_types = typ.__args__
+            possible_types = list(typ.__args__)
             #if type(None) in possible_types and struct is None: #Shortcut for Optional[] tests. Can be removed, but the exceptions will be more noisy.
             #    return None
+            #Hack for Python <3.7 which for some reason "simplifies" Union[bool, int, ...] to just Union[int, ...]
+            if int in possible_types:
+                possible_types = possible_types + [bool]
             if struct == True:
                 exception_map = exception_map
             for possible_type in possible_types:
@@ -144,21 +150,24 @@ def parse_typed_object_from_struct(typ: Type[T], struct: Any) -> T:
             raise TypeError('Error: None structure is incompatible with type {}'.format(typ))
 
         #assert isinstance(x, typ.__origin__)
-        if typ.__origin__ in [list, List, abc.Sequence, abc.MutableSequence] and type(struct) is not str: #! str is also Sequence
-            if not isinstance(struct, typ.__origin__):
+        generic_type = typ.__origin__ or getattr(typ, '__extra__', None) #In python <3.7 typing.List.__origin__ == None; Python 3.7 has working __origin__, but no __extra__  TODO: Remove the __extra__ once we move to Python 3.7
+        if generic_type in [list, List, abc.Sequence, abc.MutableSequence, Sequence, MutableSequence] and type(struct) is not str: #! str is also Sequence
+            if not isinstance(struct, generic_type):
                 raise TypeError('Error: Structure "{}" is incompatible with type "{}" - it does not have list type.'.format(struct, typ))
-            inner_type = typ.__args__[0]
+            type_args = typ.__args__ if typ.__args__ is not None else (Any, Any) #Workaround for Python <3.7 (where Mapping.__args__ is None)
+            inner_type = type_args[0]
             return [parse_typed_object_from_struct(inner_type, item) for item in struct]
 
-        elif typ.__origin__ in [dict, Dict, abc.Mapping, abc.MutableMapping]:
-            if not isinstance(struct, typ.__origin__):
+        elif generic_type in [dict, Dict, abc.Mapping, abc.MutableMapping, Mapping, MutableMapping, OrderedDict]: #in Python <3.7 there is a difference between abc.Mapping and typing.Mapping
+            if not isinstance(struct, generic_type):
                 raise TypeError('Error: Structure "{}" is incompatible with type "{}" - it does not have dict type.'.format(struct, typ))
-            inner_key_type = typ.__args__[0]
-            inner_value_type = typ.__args__[1]
+            type_args = typ.__args__ if typ.__args__ is not None else (Any, Any) #Workaround for Python <3.7 (where Mapping.__args__ is None)
+            inner_key_type = type_args[0]
+            inner_value_type = type_args[1]
             return {parse_typed_object_from_struct(inner_key_type, k): parse_typed_object_from_struct(inner_value_type, v) for k, v in struct.items()}
 
         else:
-            raise TypeError('Error: Unsupported generic type "{}"'.format(typ))
+            raise TypeError('Error: Unsupported generic type "{}". type.__origin__ or type.__extra__ == "{}"'.format(typ, generic_type))
 
     raise TypeError('Error: Structure "{}" is incompatible with type "{}". Structure is not the instance of the type, the type does not have .from_struct method and is not generic.'.format(struct, typ))
 
