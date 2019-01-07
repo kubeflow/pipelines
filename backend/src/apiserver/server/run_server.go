@@ -59,11 +59,11 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
-	runs, count, nextPageToken, err := s.resourceManager.ListRuns(filterContext, opts)
+	runs, total_size, nextPageToken, err := s.resourceManager.ListRuns(filterContext, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list runs.")
 	}
-	return &api.ListRunsResponse{Runs: ToApiRuns(runs), Count: count, NextPageToken: nextPageToken}, nil
+	return &api.ListRunsResponse{Runs: ToApiRuns(runs), TotalSize: total_size, NextPageToken: nextPageToken}, nil
 }
 
 func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {

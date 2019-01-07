@@ -62,7 +62,7 @@ type RunStore struct {
 }
 
 // Runs two SQL queries in a transaction to return a list of matching runs, as well as their
-// count. The count does not reflect the page size, but it does reflect the number of runs
+// total_size. The total_size does not reflect the page size, but it does reflect the number of runs
 // matching the supplied filters and resource references.
 func (s *RunStore) ListRuns(
 	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int32, string, error) {
@@ -70,26 +70,32 @@ func (s *RunStore) ListRuns(
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
 
-	sqlBuilder, err := s.addResourceReferenceToSelect(s.selectRunDetails(), filterContext)
+	// SQL for getting the filtered and paginated rows
+	rowsSqlBuilder, err := s.addResourceReferenceToSelect(s.selectRunDetails(), filterContext)
+	if err != nil {
+		return errorF(err)
+	}
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(opts.AddFilterToSelect(rowsSqlBuilder)).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
-	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
-
-	// SQL for row count
-	countSql, countArgs, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
+	// SQL for getting total count of the filtered rows
+	// This first query performs a filtered selection over the runs table, it should match
+	// the number of rows returned by the filtered query built above for the actual rows,
+	// but it tries to optimize out the left join, which isn't needed here for the count.
+	countSqlBuilder, err := s.addResourceReferenceToSelect(sq.Select("*").From("run_details"), filterContext)
+	countSqlBuilder = opts.AddFilterToSelect(countSqlBuilder)
+	countSelectBuilder := sq.Select("count(*)").FromSelect(countSqlBuilder, "rows")
+	if err != nil {
+		return errorF(err)
+	}
+	countSql, countArgs, err := countSelectBuilder.ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
-	// SQL for row list
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
-	if err != nil {
-		return errorF(err)
-	}
-
-	// Use a transaction to make sure we're returning the count of the same rows queried
+	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
 		return errorF(err)
@@ -112,7 +118,7 @@ func (s *RunStore) ListRuns(
 		tx.Rollback()
 		return errorF(err)
 	}
-	count, err := s.scanRowToCount(countRow)
+	total_size, err := s.scanRowToCount(countRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -132,11 +138,11 @@ func (s *RunStore) ListRuns(
 	}
 
 	if len(runs) <= opts.PageSize {
-		return runs, count, "", nil
+		return runs, total_size, "", nil
 	}
 
 	npt, err := opts.NextPageToken(runs[opts.PageSize])
-	return runs[:opts.PageSize], count, npt, err
+	return runs[:opts.PageSize], total_size, npt, err
 }
 
 func (s *RunStore) addResourceReferenceToSelect(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
@@ -209,13 +215,13 @@ func (s *RunStore) selectRunDetails(filteredSelectBuilder sq.SelectBuilder) sq.S
 }
 
 func (s *RunStore) scanRowToCount(rows *sql.Rows) (int32, error) {
-	var count int32
+	var total_size int32
 	rows.Next()
-	err := rows.Scan(&count)
+	err := rows.Scan(&total_size)
 	if err != nil {
-		return 0, util.NewInternalServerError(err, "Failed to scan row count")
+		return 0, util.NewInternalServerError(err, "Failed to scan row total_size")
 	}
-	return count, nil
+	return total_size, nil
 }
 
 func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, error) {

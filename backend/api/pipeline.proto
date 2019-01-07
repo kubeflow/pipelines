@@ -119,7 +119,7 @@ message ListPipelinesRequest {
 
 message ListPipelinesResponse {
   repeated Pipeline pipelines = 1;
-  int32 count = 3;
+  int32 total_size = 3;
   string next_page_token = 2;
 }
 
