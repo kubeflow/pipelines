@@ -40,7 +40,7 @@ type PipelineStore struct {
 }
 
 // Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
-// count. The count does not reflect the page size.
+// total_size. The total_size does not reflect the page size.
 func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, int32, string, error) {
 	errorF := func(err error) ([]*model.Pipeline, int32, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipelines: %v", err)
@@ -48,7 +48,7 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 
 	sqlBuilder := sq.Select("*").From("pipelines").Where(sq.Eq{"Status": model.PipelineReady})
 
-	// SQL for row count
+	// SQL for getting total size
 	countSql, countArgs, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
 	if err != nil {
 		return errorF(err)
@@ -60,7 +60,7 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 		return errorF(err)
 	}
 
-	// Use a transaction to make sure we're returning the count of the same rows queried
+	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
 		return errorF(err)
@@ -83,7 +83,7 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 		tx.Rollback()
 		return errorF(err)
 	}
-	count, err := s.scanRowToCount(countRow)
+	total_size, err := s.scanRowToCount(countRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -97,11 +97,11 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 	}
 
 	if len(pipelines) <= opts.PageSize {
-		return pipelines, count, "", nil
+		return pipelines, total_size, "", nil
 	}
 
 	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
-	return pipelines[:opts.PageSize], count, npt, err
+	return pipelines[:opts.PageSize], total_size, npt, err
 }
 
 func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
@@ -125,13 +125,13 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 }
 
 func (s *PipelineStore) scanRowToCount(rows *sql.Rows) (int32, error) {
-	var count int32
+	var total_size int32
 	rows.Next()
-	err := rows.Scan(&count)
+	err := rows.Scan(&total_size)
 	if err != nil {
-		return 0, util.NewInternalServerError(err, "Failed to scan row count")
+		return 0, util.NewInternalServerError(err, "Failed to scan row total_size")
 	}
-	return count, nil
+	return total_size, nil
 }
 
 func (s *PipelineStore) GetPipeline(id string) (*model.Pipeline, error) {

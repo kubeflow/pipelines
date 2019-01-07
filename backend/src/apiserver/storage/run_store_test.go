@@ -151,19 +151,19 @@ func TestListRuns_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	assert.Nil(t, err)
 
-	runs, count, nextPageToken, err := runStore.ListRuns(
+	runs, total_size, nextPageToken, err := runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, int32(2), count)
+	assert.Equal(t, int32(2), total_size)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, count, nextPageToken, err = runStore.ListRuns(
+	runs, total_size, nextPageToken, err = runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, int32(2), count)
+	assert.Equal(t, int32(2), total_size)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
 }
@@ -175,10 +175,10 @@ func TestListRuns_CountWithNoFilter(t *testing.T) {
 	opts, _ := list.NewOptions(&model.Run{}, 1, "", nil)
 
 	// No filter
-	runs, count, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	runs, total_size, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
-	assert.Equal(t, int32(3), count)
+	assert.Equal(t, int32(3), total_size)
 }
 
 func TestListRuns_CountWithFilter(t *testing.T) {
@@ -199,10 +199,10 @@ func TestListRuns_CountWithFilter(t *testing.T) {
 			},
 		},
 	})
-	runs, count, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	runs, total_size, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
-	assert.Equal(t, int32(2), count)
+	assert.Equal(t, int32(2), total_size)
 }
 
 func TestListRuns_Pagination_Descend(t *testing.T) {
@@ -248,20 +248,20 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "id desc", nil)
 	assert.Nil(t, err)
-	runs, count, nextPageToken, err := runStore.ListRuns(
+	runs, total_size, nextPageToken, err := runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 
 	assert.Nil(t, err)
-	assert.Equal(t, int32(2), count)
+	assert.Equal(t, int32(2), total_size)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, count, nextPageToken, err = runStore.ListRuns(
+	runs, total_size, nextPageToken, err = runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, int32(2), count)
+	assert.Equal(t, int32(2), total_size)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
 }
@@ -308,10 +308,10 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 10, "", nil)
 	assert.Nil(t, err)
-	runs, count, nextPageToken, err := runStore.ListRuns(
+	runs, total_size, nextPageToken, err := runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, int32(2), count)
+	assert.Equal(t, int32(2), total_size)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 	assert.Empty(t, nextPageToken)
 }
@@ -715,8 +715,8 @@ func TestListRuns_WithMetrics(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 2, "", nil)
 	assert.Nil(t, err)
-	runs, count, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
-	assert.Equal(t, int32(3), count)
+	runs, total_size, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	assert.Equal(t, int32(3), total_size)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
 }
@@ -822,10 +822,10 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 			},
 		}}
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
-	runs, count, nextPageToken, err := runStore.ListRuns(
+	runs, total_size, nextPageToken, err := runStore.ListRuns(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, int32(2), count)
+	assert.Equal(t, int32(2), total_size)
 	assert.Equal(t, expectedRuns, runs)
 	assert.NotEmpty(t, nextPageToken)
 }
