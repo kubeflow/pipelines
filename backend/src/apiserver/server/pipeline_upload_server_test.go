@@ -70,10 +70,10 @@ func TestUploadPipeline_YAML(t *testing.T) {
 			Name:           "hello-world.yaml",
 			Parameters:     "[]",
 			Status:         model.PipelineReady}}
-	pkg, count, str, err := clientManager.PipelineStore().ListPipelines(opts)
+	pkg, total_size, str, err := clientManager.PipelineStore().ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
-	assert.Equal(t, int32(1), count)
+	assert.Equal(t, int32(1), total_size)
 	assert.Equal(t, pkgsExpect, pkg)
 }
 
@@ -112,10 +112,10 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 			Name:           "arguments.tar.gz",
 			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
 			Status:         model.PipelineReady}}
-	pkg, count, str, err := clientManager.PipelineStore().ListPipelines(opts)
+	pkg, total_size, str, err := clientManager.PipelineStore().ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
-	assert.Equal(t, int32(1), count)
+	assert.Equal(t, int32(1), total_size)
 	assert.Equal(t, pkgsExpect, pkg)
 }
 
@@ -171,9 +171,9 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 			Name:           "foo bar",
 			Parameters:     "[]",
 			Status:         model.PipelineReady}}
-	pkg, count, str, err := clientManager.PipelineStore().ListPipelines(opts)
+	pkg, total_size, str, err := clientManager.PipelineStore().ListPipelines(opts)
 	assert.Nil(t, err)
-	assert.Equal(t, int32(1), count)
+	assert.Equal(t, int32(1), total_size)
 	assert.Equal(t, str, "")
 	assert.Equal(t, pkgsExpect, pkg)
 }
