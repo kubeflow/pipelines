@@ -44,6 +44,11 @@ spec:
       parameters:
       - name: flip-output
     name: condition-1
+    outputs:
+      parameters:
+      - name: flip-again-output
+        valueFrom:
+          parameter: '{{tasks.flip-again.outputs.parameters.flip-again-output}}'
   - dag:
       tasks:
       - arguments:
@@ -63,12 +68,15 @@ spec:
       tasks:
       - arguments:
           parameters:
+          - name: flip-again-output
+            value: '{{inputs.parameters.flip-again-output}}'
           - name: flip-output
             value: '{{inputs.parameters.flip-output}}'
         name: print2
         template: print2
     inputs:
       parameters:
+      - name: flip-again-output
       - name: flip-output
     name: condition-3
   - container:
@@ -166,9 +174,12 @@ spec:
         when: '{{tasks.flip.outputs.parameters.flip-output}} == heads'
       - arguments:
           parameters:
+          - name: flip-again-output
+            value: '{{tasks.condition-1.outputs.parameters.flip-again-output}}'
           - name: flip-output
             value: '{{tasks.flip.outputs.parameters.flip-output}}'
         dependencies:
+        - condition-1
         - flip
         name: condition-3
         template: condition-3
@@ -179,8 +190,11 @@ spec:
   - container:
       command:
       - echo
-      - '"it was tail"'
+      - '{{inputs.parameters.flip-again-output}}'
       image: alpine:3.6
+    inputs:
+      parameters:
+      - name: flip-again-output
     name: print1
     outputs:
       artifacts:
@@ -213,8 +227,11 @@ spec:
   - container:
       command:
       - echo
-      - '"it was tail"'
+      - '{{inputs.parameters.flip-again-output}}'
       image: alpine:3.6
+    inputs:
+      parameters:
+      - name: flip-again-output
     name: print2
     outputs:
       artifacts:

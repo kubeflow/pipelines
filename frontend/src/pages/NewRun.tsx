@@ -165,6 +165,7 @@ class NewRun extends Page<{}, NewRunState> {
           </React.Fragment>)}
           {!usePipelineFromRun && (
             <Input value={pipelineName} required={true} label='Pipeline' disabled={true}
+              variant='outlined'
               InputProps={{
                 classes: { disabled: css.nonEditableInput },
                 endAdornment: (
@@ -237,12 +238,13 @@ class NewRun extends Page<{}, NewRunState> {
           </Dialog>
 
           <Input label='Run name' required={true} onChange={this.handleChange('runName')}
-            autoFocus={true} value={runName} />
+            autoFocus={true} value={runName} variant='outlined' />
           <Input label='Description (optional)' multiline={true}
-            onChange={this.handleChange('description')} value={description} />
+            onChange={this.handleChange('description')} value={description} variant='outlined' />
 
           <div>This run will be associated with the following experiment</div>
           <Input value={experimentName} required={true} label='Experiment' disabled={true}
+            variant='outlined'
             InputProps={{
               classes: { disabled: css.nonEditableInput },
               endAdornment: (
