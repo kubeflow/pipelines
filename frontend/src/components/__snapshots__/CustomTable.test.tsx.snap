@@ -3069,6 +3069,361 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
 </div>
 `;
 
+exports[`CustomTable renders with default filter label 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName cell selectionToggle"
+    >
+      <WithStyles(Checkbox)
+        checked={false}
+        color="primary"
+        indeterminate={false}
+        onChange={[Function]}
+      />
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
+  />
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
+      className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="standard"
+    >
+      <WithStyles(MenuItem)
+        key="0"
+        value={10}
+      >
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
+exports[`CustomTable renders with provided filter label 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      label="test filter label"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName cell selectionToggle"
+    >
+      <WithStyles(Checkbox)
+        checked={false}
+        color="primary"
+        indeterminate={false}
+        onChange={[Function]}
+      />
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
+  />
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
+      className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="standard"
+    >
+      <WithStyles(MenuItem)
+        key="0"
+        value={10}
+      >
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
+exports[`CustomTable renders without filter box 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName cell selectionToggle"
+    >
+      <WithStyles(Checkbox)
+        checked={false}
+        color="primary"
+        indeterminate={false}
+        onChange={[Function]}
+      />
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
+  />
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
+      className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="standard"
+    >
+      <WithStyles(MenuItem)
+        key="0"
+        value={10}
+      >
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
 exports[`CustomTable renders without rows or columns 1`] = `
 <div
   className="pageOverflowHidden"
