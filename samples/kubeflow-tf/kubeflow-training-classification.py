@@ -21,7 +21,7 @@ import datetime
 def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:85c6413a2e13da4b8f198aeac1abc2f3a74fe789',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:65d0f6a1a3b1a4c2254a4398cc6b92550803fe62',
         arguments = [
             '--train', train_data,
             '--eval', evaluation_data,
@@ -38,7 +38,7 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
 def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training', use_gpu=False):
     kubeflow_tf_training_op = dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:85c6413a2e13da4b8f198aeac1abc2f3a74fe789',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:65d0f6a1a3b1a4c2254a4398cc6b92550803fe62',
         arguments = [
             '--transformed-data-dir', transformed_data_dir,
             '--schema', schema,
@@ -52,7 +52,7 @@ def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', l
         file_outputs = {'train': '/output.txt'}
     )
     if use_gpu:
-        kubeflow_tf_training_op.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:85c6413a2e13da4b8f198aeac1abc2f3a74fe789'
+        kubeflow_tf_training_op.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:65d0f6a1a3b1a4c2254a4398cc6b92550803fe62'
         kubeflow_tf_training_op.set_gpu_limit(1)
     
     return kubeflow_tf_training_op
@@ -60,7 +60,7 @@ def kubeflow_tf_training_op(transformed_data_dir, schema: 'GcsUri[text/json]', l
 def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:85c6413a2e13da4b8f198aeac1abc2f3a74fe789',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:65d0f6a1a3b1a4c2254a4398cc6b92550803fe62',
         arguments = [
             '--data', evaluation_data,
             '--schema', schema,
@@ -76,7 +76,7 @@ def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]
 def confusion_matrix_op(predictions, output, step_name='confusionmatrix'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:85c6413a2e13da4b8f198aeac1abc2f3a74fe789',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:65d0f6a1a3b1a4c2254a4398cc6b92550803fe62',
         arguments = [
           '--predictions', predictions,
           '--output', output,
