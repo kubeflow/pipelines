@@ -26,7 +26,7 @@ import (
 )
 
 type JobStoreInterface interface {
-	ListJobs(filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int32, string, error)
+	ListJobs(filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error)
 	GetJob(id string) (*model.Job, error)
 	CreateJob(*model.Job) (*model.Job, error)
 	DeleteJob(id string) error
@@ -43,8 +43,8 @@ type JobStore struct {
 // Runs two SQL queries in a transaction to return a list of matching jobs, as well as their
 // total_size. The total_size does not reflect the page size.
 func (s *JobStore) ListJobs(
-	filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int32, string, error) {
-	errorF := func(err error) ([]*model.Job, int32, string, error) {
+	filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
+	errorF := func(err error) ([]*model.Job, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
 
@@ -168,8 +168,8 @@ func (s *JobStore) selectJob() sq.SelectBuilder {
 		GroupBy("jobs.UUID")
 }
 
-func (s *JobStore) scanRowToCount(rows *sql.Rows) (int32, error) {
-	var total_size int32
+func (s *JobStore) scanRowToCount(rows *sql.Rows) (int, error) {
+	var total_size int
 	rows.Next()
 	err := rows.Scan(&total_size)
 	if err != nil {

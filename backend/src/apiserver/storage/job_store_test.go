@@ -139,7 +139,7 @@ func TestListJobs_Pagination(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
-	assert.Equal(t, int32(2), total_size)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected, jobs)
 	jobsExpected2 := []*model.Job{
 		{
@@ -175,7 +175,7 @@ func TestListJobs_Pagination(t *testing.T) {
 	jobs, total_size, newToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
-	assert.Equal(t, int32(2), total_size)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected2, jobs)
 }
 
@@ -216,7 +216,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
-	assert.Equal(t, int32(2), total_size)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected, jobs)
 
 	jobsExpected2 := []*model.Job{
@@ -253,7 +253,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 	jobs, total_size, newToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
-	assert.Equal(t, int32(2), total_size)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected2, jobs)
 }
 
@@ -322,7 +322,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, int32(2), total_size)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected, jobs)
 }
 
@@ -365,7 +365,7 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
-	assert.Equal(t, int32(1), total_size)
+	assert.Equal(t, 1, total_size)
 	assert.Equal(t, jobsExpected, jobs)
 }
 

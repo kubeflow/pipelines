@@ -13,7 +13,7 @@ import (
 )
 
 type ExperimentStoreInterface interface {
-	ListExperiments(opts *list.Options) ([]*model.Experiment, int32, string, error)
+	ListExperiments(opts *list.Options) ([]*model.Experiment, int, string, error)
 	GetExperiment(uuid string) (*model.Experiment, error)
 	CreateExperiment(*model.Experiment) (*model.Experiment, error)
 	DeleteExperiment(uuid string) error
@@ -28,8 +28,8 @@ type ExperimentStore struct {
 
 // Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
 // total_size. The total_size does not reflect the page size.
-func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experiment, int32, string, error) {
-	errorF := func(err error) ([]*model.Experiment, int32, string, error) {
+func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experiment, int, string, error) {
+	errorF := func(err error) ([]*model.Experiment, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
 
@@ -135,8 +135,8 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 	return experiments, nil
 }
 
-func (s *ExperimentStore) scanRowToCount(rows *sql.Rows) (int32, error) {
-	var total_size int32
+func (s *ExperimentStore) scanRowToCount(rows *sql.Rows) (int, error) {
+	var total_size int
 	rows.Next()
 	err := rows.Scan(&total_size)
 	if err != nil {

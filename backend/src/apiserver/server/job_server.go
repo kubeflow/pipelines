@@ -77,7 +77,7 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list jobs.")
 	}
-	return &api.ListJobsResponse{Jobs: ToApiJobs(jobs), TotalSize: total_size, NextPageToken: nextPageToken}, nil
+	return &api.ListJobsResponse{Jobs: ToApiJobs(jobs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
 func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest) (*empty.Empty, error) {
