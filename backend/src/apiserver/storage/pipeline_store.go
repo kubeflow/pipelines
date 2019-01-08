@@ -48,14 +48,14 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 
 	sqlBuilder := sq.Select("*").From("pipelines").Where(sq.Eq{"Status": model.PipelineReady})
 
-	// SQL for getting total size
-	countSql, countArgs, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
+	// SQL for row list
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
-	// SQL for row list
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
+	// SQL for getting total size
+	countSql, countArgs, err := sq.Select("count(*)").From("pipelines").Where(sq.Eq{"Status": model.PipelineReady}).ToSql()
 	if err != nil {
 		return errorF(err)
 	}

@@ -48,20 +48,26 @@ func (s *JobStore) ListJobs(
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
 
-	// Add filter condition
-	sqlBuilder, err := s.toFilteredQuery(s.selectJob(), filterContext)
+	// SQL for getting the filtered and paginated rows
+	rowsQuery, err := s.toFilteredQuery(s.selectJob(), filterContext)
+	if err != nil {
+		return errorF(err)
+	}
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(rowsQuery).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
-	// SQL for getting total size
-	countSql, countArgs, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
+	// SQL for getting total count of the filtered rows
+	// This first query performs a filtered selection over the jobs table, it should match
+	// the number of rows returned by the filtered query built above for the actual rows,
+	// but it tries to optimize out the left join, which isn't needed here for the count.
+	countQuery, err := s.toFilteredQuery(sq.Select("*").From("jobs"), filterContext)
 	if err != nil {
 		return errorF(err)
 	}
-
-	// SQL for row list
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
+	countSql, countArgs, err := sq.Select("count(*)").FromSelect(countQuery, "rows").ToSql()
+	// countSql, countArgs, err := countQuery.ToSql()
 	if err != nil {
 		return errorF(err)
 	}

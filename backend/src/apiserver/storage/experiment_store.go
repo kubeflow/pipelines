@@ -33,16 +33,15 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
 
+	// SQL for getting the filtered and paginated rows
 	sqlBuilder := opts.AddFilterToSelect(sq.Select("*").From("experiments"))
-
-	// SQL for getting total size
-	countSql, countArgs, err := sq.Select("count(*)").FromSelect(sqlBuilder, "rows").ToSql()
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
-	// SQL for row list
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
+	// SQL for getting total count of the filtered rows
+	countSql, countArgs, err := opts.AddFilterToSelect(sq.Select("count(*)").From("experiments")).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
