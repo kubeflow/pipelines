@@ -73,7 +73,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	pkg, total_size, str, err := clientManager.PipelineStore().ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
-	assert.Equal(t, int32(1), total_size)
+	assert.Equal(t, 1, total_size)
 	assert.Equal(t, pkgsExpect, pkg)
 }
 
@@ -115,7 +115,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	pkg, total_size, str, err := clientManager.PipelineStore().ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
-	assert.Equal(t, int32(1), total_size)
+	assert.Equal(t, 1, total_size)
 	assert.Equal(t, pkgsExpect, pkg)
 }
 
@@ -173,7 +173,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 			Status:         model.PipelineReady}}
 	pkg, total_size, str, err := clientManager.PipelineStore().ListPipelines(opts)
 	assert.Nil(t, err)
-	assert.Equal(t, int32(1), total_size)
+	assert.Equal(t, 1, total_size)
 	assert.Equal(t, str, "")
 	assert.Equal(t, pkgsExpect, pkg)
 }

@@ -82,7 +82,7 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPip
 		return nil, util.Wrap(err, "List pipelines failed.")
 	}
 	apiPipelines := ToApiPipelines(pipelines)
-	return &api.ListPipelinesResponse{Pipelines: apiPipelines, TotalSize: total_size, NextPageToken: nextPageToken}, nil
+	return &api.ListPipelinesResponse{Pipelines: apiPipelines, TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
 func (s *PipelineServer) DeletePipeline(ctx context.Context, request *api.DeletePipelineRequest) (*empty.Empty, error) {
