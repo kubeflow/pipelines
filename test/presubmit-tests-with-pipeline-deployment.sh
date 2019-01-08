@@ -28,7 +28,6 @@ usage()
 }
 
 PLATFORM=gcp
-PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 TIMEOUT_SECONDS=1800
@@ -69,11 +68,6 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "presubmit test starts"
 
-# activating the service account
-gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
-gcloud config set compute/zone us-central1-a
-gcloud config set core/project ${PROJECT}
-
 #Uploading the source code to GCS:
 local_code_archive_file=$(mktemp)
 date_string=$(TZ=PST8PDT date +%Y-%m-%d_%H-%M-%S_%Z)
@@ -83,61 +77,10 @@ remote_code_archive_uri="${code_archive_prefix}_${PULL_BASE_SHA}_${date_string}.
 tar -czf "$local_code_archive_file" .
 gsutil cp "$local_code_archive_file" "$remote_code_archive_uri"
 
-# Install ksonnet
-KS_VERSION="0.11.0"
-curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
-tar -xzf ks_${KS_VERSION}_linux_amd64.tar.gz
-chmod +x ./ks_${KS_VERSION}_linux_amd64/ks
-mv ./ks_${KS_VERSION}_linux_amd64/ks /usr/local/bin/
-
-# Download kubeflow master
-KUBEFLOW_MASTER=${DIR}/kubeflow_master
-git clone https://github.com/kubeflow/kubeflow.git ${KUBEFLOW_MASTER}
-
-## Download latest kubeflow release source code
-KUBEFLOW_SRC=${DIR}/kubeflow_latest_release
-mkdir ${KUBEFLOW_SRC}
-cd ${KUBEFLOW_SRC}
-export KUBEFLOW_TAG=v0.3.1
-curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash
-
-## Override the pipeline config with code from master
-cp -r ${KUBEFLOW_MASTER}/kubeflow/pipeline ${KUBEFLOW_SRC}/kubeflow/pipeline
-cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
-
-# TODO temporarily set KUBEFLOW_SRC as KUBEFLOW_MASTER. This should be deleted when latest release have the pipeline entry
-KUBEFLOW_SRC=${KUBEFLOW_MASTER}
-
 TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
 
-export CLIENT_ID=${RANDOM}
-export CLIENT_SECRET=${RANDOM}
-KFAPP=${TEST_CLUSTER}
-
-function clean_up {
-  echo "Clean up..."
-  cd ${KFAPP}
-  ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
-}
-trap clean_up EXIT
-
-${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform ${PLATFORM} --project ${PROJECT} --skipInitProject
-
-cd ${KFAPP}
-${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
-${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
-${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
-
-## Update pipeline component image
-pushd ks_app
-ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api
-ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent
-ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow
-ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend
-popd
-
-${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
+./deploy-pipeline.sh --platform ${PLATFORM} --project ml-pipeline-test --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
 
