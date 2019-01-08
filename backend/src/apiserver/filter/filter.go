@@ -112,6 +112,8 @@ func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
 
 	if len(f.substring) > 0 {
 		like := make(squirrel.Like)
+		// Modify each string value v so it looks like %v% so we are doing a substring
+		// match with the LIKE operator.
 		for k, v := range f.substring {
 			like[k] = fmt.Sprintf("%%%s%%", v)
 		}
