@@ -118,7 +118,7 @@ func (s *RunStore) ListRuns(
 		tx.Rollback()
 		return errorF(err)
 	}
-	total_size, err := s.scanRowToCount(countRow)
+	total_size, err := ScanRowToTotalSize(countRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -207,16 +207,6 @@ func (s *RunStore) selectRunDetails() sq.SelectBuilder {
 		// Append all the resource references for the run as a json column
 		LeftJoin("(select * from resource_references where ResourceType='Run') AS r ON subq.UUID=r.ResourceUUID").
 		GroupBy("subq.UUID")
-}
-
-func (s *RunStore) scanRowToCount(rows *sql.Rows) (int, error) {
-	var total_size int
-	rows.Next()
-	err := rows.Scan(&total_size)
-	if err != nil {
-		return 0, util.NewInternalServerError(err, "Failed to scan row total_size")
-	}
-	return total_size, nil
 }
 
 func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, error) {
