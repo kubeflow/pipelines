@@ -27,7 +27,6 @@ import (
 // creates a new client for the Kubernetes ScheduledWorkflow CRD.
 func CreateScheduledWorkflowClientOrFatal(namespace string, initConnectionTimeout time.Duration) v1alpha1.ScheduledWorkflowInterface {
 	var swfClient v1alpha1.ScheduledWorkflowInterface
-	var err error
 	var operation = func() error {
 		restConfig, err := rest.InClusterConfig()
 		if err != nil {
@@ -37,12 +36,12 @@ func CreateScheduledWorkflowClientOrFatal(namespace string, initConnectionTimeou
 		swfClient = swfClientSet.ScheduledworkflowV1alpha1().ScheduledWorkflows(namespace)
 		return nil
 	}
+
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
-	err = backoff.Retry(operation, b)
-
-	if err != nil {
+	if err := backoff.Retry(operation, b); err != nil {
 		glog.Fatalf("Failed to create scheduled workflow client. Error: %v", err)
 	}
+
 	return swfClient
 }

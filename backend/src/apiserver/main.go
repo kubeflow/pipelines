@@ -151,23 +151,23 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		File        string
 	}
 	var configs []config
-	if err := json.Unmarshal(configBytes, &configs); err != nil {
-		return errors.New(fmt.Sprintf("Failed to read sample configurations. Err: %v", err.Error()))
+	if err = json.Unmarshal(configBytes, &configs); err != nil {
+		return errors.New(fmt.Sprintf("Failed to read sample configurations. Err: %v", err))
 	}
 	for _, config := range configs {
-		reader, err := os.Open(config.File)
-		if err != nil {
-			return errors.New(fmt.Sprintf("Failed to load sample %s. Error: %v", config.Name, err.Error()))
+		reader, configErr := os.Open(config.File)
+		if configErr != nil {
+			return errors.New(fmt.Sprintf("Failed to load sample %s. Error: %v", config.Name, configErr))
 		}
-		pipelineFile, err := server.ReadPipelineFile(config.File, reader, server.MaxFileLength)
-		if err != nil {
-			return errors.New(fmt.Sprintf("Failed to decompress the file %s. Error: %v", config.Name, err.Error()))
+		pipelineFile, configErr := server.ReadPipelineFile(config.File, reader, server.MaxFileLength)
+		if configErr != nil {
+			return errors.New(fmt.Sprintf("Failed to decompress the file %s. Error: %v", config.Name, configErr))
 		}
-		_, err = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
-		if err != nil {
+		_, configErr = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
+		if configErr != nil {
 			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
 			// In the future, we might consider loading samples during deployment, instead of when API server starts.
-			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, err.Error()))
+			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, configErr))
 			continue
 		}
 
