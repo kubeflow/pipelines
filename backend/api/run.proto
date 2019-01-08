@@ -169,7 +169,7 @@ message Run {
     STORAGESTATE_ARCHIVED = 1;
   }
 
-  StorageState storageState = 10;
+  StorageState storage_state = 10;
 
   // Optional input field. Describing the purpose of the run
   string description = 3;
