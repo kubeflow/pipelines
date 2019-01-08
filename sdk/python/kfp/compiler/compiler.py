@@ -218,7 +218,7 @@ class Compiler(object):
     for i, _ in enumerate(processed_args):
       # unsanitized_argument_inputs stores a dict: string of sanitized param -> string of unsanitized param
       matches = []
-      match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(processed_args[i]))
+      match = re.findall(r'{{pipelineparam:op=([\w\s\_-]*);name=([\w\s\_-]+);value=(.*?)}}', str(processed_args[i]))
       matches += match
       unsanitized_argument_inputs = {}
       for x in list(set(matches)):
