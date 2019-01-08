@@ -60,6 +60,8 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from .modelbase import ModelBase
 
+from .structures.kubernetes import v1
+
 
 PrimitiveTypes = Union[str, int, float, bool]
 PrimitiveTypesIncludingNone = Optional[PrimitiveTypes]
@@ -86,7 +88,7 @@ class OutputSpec(ModelBase):
 
 
 class InputValuePlaceholder(ModelBase): #Non-standard attr names
-    _original_names = {
+    _serialized_names = {
         #'input_name': 'inputValue',
         'input_name': 'value', #TODO: Rename to inputValue
     }
@@ -98,7 +100,7 @@ class InputValuePlaceholder(ModelBase): #Non-standard attr names
 
 
 class InputPathPlaceholder(ModelBase): #Non-standard attr names
-    _original_names = {
+    _serialized_names = {
         #'input_name': 'inputPath',
         'input_name': 'file', #TODO: Rename to inputPath
     }
@@ -110,7 +112,7 @@ class InputPathPlaceholder(ModelBase): #Non-standard attr names
 
 
 class OutputPathPlaceholder(ModelBase): #Non-standard attr names
-    _original_names = {
+    _serialized_names = {
         #'output_name': 'outputPath',
         'output_name': 'output', #TODO: Rename to outputPath
     }
@@ -129,7 +131,7 @@ CommandlineArgumentType = Optional[Union[
 
 
 class ConcatPlaceholder(ModelBase): #Non-standard attr names
-    _original_names = {
+    _serialized_names = {
         'items': 'concat',
     }
 
@@ -140,7 +142,7 @@ class ConcatPlaceholder(ModelBase): #Non-standard attr names
 
 
 class IsPresentPlaceholder(ModelBase): #Non-standard attr names
-    _original_names = {
+    _serialized_names = {
         'input_name': 'isPresent',
     }
 
@@ -154,7 +156,7 @@ IfConditionArgumentType = Union[bool, str, IsPresentPlaceholder, InputValuePlace
 
 
 class IfPlaceholderStructure(ModelBase): #Non-standard attr names
-    _original_names = {
+    _serialized_names = {
         'condition': 'cond',
         'then_value': 'then',
         'else_value': 'else',
@@ -169,7 +171,7 @@ class IfPlaceholderStructure(ModelBase): #Non-standard attr names
 
 
 class IfPlaceholder(ModelBase): #Non-standard attr names
-    _original_names = {
+    _serialized_names = {
         'if_structure': 'if',
     }
 
@@ -180,7 +182,7 @@ class IfPlaceholder(ModelBase): #Non-standard attr names
 
 
 class ContainerSpec(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'file_outputs': 'fileOutputs', #TODO: rename to something like legacy_unconfigurable_output_paths
     }
 
@@ -310,7 +312,7 @@ class ComponentReference(ModelBase):
 
 
 class GraphInputArgument(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'input_name': 'graphInput',
     }
 
@@ -321,7 +323,7 @@ class GraphInputArgument(ModelBase):
 
 
 class TaskOutputReference(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'task_id': 'taskId',
         'output_name': 'outputName',
     }
@@ -334,7 +336,7 @@ class TaskOutputReference(ModelBase):
 
 
 class TaskOutputArgument(ModelBase): #Has additional constructor for convenience
-    _original_names = {
+    _serialized_names = {
         'task_output': 'taskOutput',
     }
 
@@ -373,27 +375,27 @@ class BinaryPredicate(ModelBase): #abstract base type
 
 
 class EqualsPredicate(BinaryPredicate):
-    _original_names = {'operands': '=='}
+    _serialized_names = {'operands': '=='}
 
 
 class NotEqualsPredicate(BinaryPredicate):
-    _original_names = {'operands': '!='}
+    _serialized_names = {'operands': '!='}
 
 
 class GreaterThanPredicate(BinaryPredicate):
-    _original_names = {'operands': '>'}
+    _serialized_names = {'operands': '>'}
 
 
 class GreaterThanOrEqualsPredicate(BinaryPredicate):
-    _original_names = {'operands': '>='}
+    _serialized_names = {'operands': '>='}
 
 
 class LessThenPredicate(BinaryPredicate):
-    _original_names = {'operands': '<'}
+    _serialized_names = {'operands': '<'}
 
 
 class LessThenOrEqualsPredicate(BinaryPredicate):
-    _original_names = { 'operands': '<='}
+    _serialized_names = { 'operands': '<='}
 
 
 PredicateType = Union[
@@ -412,7 +414,7 @@ class TwoBooleanOperands(ModelBase):
 
 
 class NotPredicate(ModelBase):
-    _original_names = {'operand': 'not'}
+    _serialized_names = {'operand': 'not'}
 
     def __init__(self,
         operand: PredicateType
@@ -421,7 +423,7 @@ class NotPredicate(ModelBase):
 
 
 class AndPredicate(ModelBase):
-    _original_names = {'operands': 'and'}
+    _serialized_names = {'operands': 'and'}
 
     def __init__(self,
         operands: TwoBooleanOperands
@@ -429,7 +431,7 @@ class AndPredicate(ModelBase):
         super().__init__(locals())
 
 class OrPredicate(ModelBase):
-    _original_names = {'operands': 'or'}
+    _serialized_names = {'operands': 'or'}
 
     def __init__(self,
         operands: TwoBooleanOperands
@@ -438,8 +440,7 @@ class OrPredicate(ModelBase):
 
 
 class TaskSpec(ModelBase):
-    from .structures.kubernetes import v1
-    _original_names = {
+    _serialized_names = {
         'component_ref': 'componentRef',
         'is_enabled': 'isEnabled',
         'k8s_container_options': 'k8sContainerOptions',
@@ -457,7 +458,7 @@ class TaskSpec(ModelBase):
 
 
 class GraphSpec(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'output_values': 'outputValues',
     }
 
@@ -512,7 +513,7 @@ class GraphImplementation(ModelBase):
 
 
 class PipelineRunSpec(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'root_task': 'rootTask',
         #'on_exit_task': 'onExitTask',
     }

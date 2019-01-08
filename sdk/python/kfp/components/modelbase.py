@@ -221,7 +221,7 @@ def model_from_struct(cls : Type[T], struct: Mapping, original_names: Mapping[st
 
 
 class ModelBase:
-    _original_names = {}
+    _serialized_names = {}
     def __init__(self, args):
         parameter_types = get_type_hints(self.__class__.__init__)
         field_values = {k: v for k, v in args.items() if k != 'self' and not k.startswith('_')}
@@ -233,10 +233,10 @@ class ModelBase:
 
     @classmethod
     def from_struct(cls: Type[T], struct: Mapping) -> T:
-        return model_from_struct(cls, struct, original_names=cls._original_names)
+        return model_from_struct(cls, struct, original_names=cls._serialized_names)
 
     def to_struct(self) -> Mapping:
-        return model_to_struct(self, original_names=self._original_names)
+        return model_to_struct(self, original_names=self._serialized_names)
 
     def __repr__(self):
         return self.__class__.__name__ + '.from_struct(' + str(self.to_struct()) + ')'

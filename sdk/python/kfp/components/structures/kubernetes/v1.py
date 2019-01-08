@@ -12,7 +12,7 @@ from ...modelbase import ModelBase
 
 
 class EnvVar(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'value_from': 'valueFrom',
     }
     def __init__(self,
@@ -31,7 +31,7 @@ class ExecAction(ModelBase):
 
 
 class Handler(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'http_get': 'httpGet',
         'tcp_socket': 'tcpSocket',
     }
@@ -44,7 +44,7 @@ class Handler(ModelBase):
 
 
 class Lifecycle(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'post_start': 'postStart',
         'pre_stop': 'preStop',
     }
@@ -56,7 +56,7 @@ class Lifecycle(ModelBase):
 
 
 class VolumeMount(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'mount_path': 'mountPath',
         'mount_propagation': 'mountPropagation',
         'read_only': 'readOnly',
@@ -81,7 +81,7 @@ class ResourceRequirements(ModelBase):
 
 
 class ContainerPort(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'container_port': 'containerPort',
         'host_ip': 'hostIP',
         'host_port': 'hostPort',
@@ -97,7 +97,7 @@ class ContainerPort(ModelBase):
 
 
 class VolumeDevice(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'device_path': 'devicePath',
     }
     def __init__(self,
@@ -108,7 +108,7 @@ class VolumeDevice(ModelBase):
 
 
 class Probe(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'failure_threshold': 'failureThreshold',
         'http_get': 'httpGet',
         'initial_delay_seconds': 'initialDelaySeconds',
@@ -131,7 +131,7 @@ class Probe(ModelBase):
 
 
 class SecurityContext(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'allow_privilege_escalation': 'allowPrivilegeEscalation',
         'capabilities': 'capabilities',
         'privileged': 'privileged',
@@ -155,7 +155,7 @@ class SecurityContext(ModelBase):
 
 
 class Container(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'env_from': 'envFrom',
         'image_pull_policy': 'imagePullPolicy',
         'liveness_probe': 'livenessProbe',
@@ -205,7 +205,7 @@ class Container(ModelBase):
 
 
 #class NodeAffinity(ModelBase):
-#    _original_names = {
+#    _serialized_names = {
 #        'preferred_during_scheduling_ignored_during_execution': 'preferredDuringSchedulingIgnoredDuringExecution',
 #        'required_during_scheduling_ignored_during_execution': 'requiredDuringSchedulingIgnoredDuringExecution',
 #    }
@@ -217,7 +217,7 @@ class Container(ModelBase):
 
 
 #class Affinity(ModelBase):
-#    _original_names = {
+#    _serialized_names = {
 #        'node_affinity': 'nodeAffinity',
 #        'pod_affinity': 'podAffinity',
 #        'pod_anti_affinity': 'podAntiAffinity',
@@ -231,7 +231,7 @@ class Container(ModelBase):
 
 
 class Toleration(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'toleration_seconds': 'tolerationSeconds',
     }
     def __init__(self,
@@ -254,7 +254,7 @@ class KeyToPath(ModelBase):
 
 
 class SecretVolumeSource(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'default_mode': 'defaultMode',
         'secret_name': 'secretName'
     }
@@ -268,7 +268,7 @@ class SecretVolumeSource(ModelBase):
 
 
 class NFSVolumeSource(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'read_only': 'readOnly',
     }
     def __init__(self,
@@ -280,7 +280,7 @@ class NFSVolumeSource(ModelBase):
 
 
 class PersistentVolumeClaimVolumeSource(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'claim_name': 'claimName',
         'read_only': 'readOnly'
     }
@@ -292,7 +292,7 @@ class PersistentVolumeClaimVolumeSource(ModelBase):
 
 
 class Volume(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'aws_elastic_block_store': 'awsElasticBlockStore',
         'azure_disk': 'azureDisk',
         'azure_file': 'azureFile',
@@ -359,7 +359,7 @@ class Volume(ModelBase):
 
 
 class PodSpecArgoSubset(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'active_deadline_seconds': 'activeDeadlineSeconds',
         'affinity': 'affinity',
         #'automount_service_account_token': 'automountServiceAccountToken',
@@ -436,7 +436,7 @@ class ObjectMetaArgoSubset(ModelBase):
 
 
 class PodArgoSubset(ModelBase):
-    _original_names = {
+    _serialized_names = {
         'api_version': 'apiVersion',
         'kind': 'kind',
         'metadata': 'metadata',
