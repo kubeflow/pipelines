@@ -412,14 +412,16 @@ export default (app: express.Application) => {
     ((filter && filter.predicates) || []).forEach(p => {
       resources = resources.filter(r => {
         switch(p.op) {
-          // case PredicateOp.CONTAINS
-          //   return r.name!.toLocaleLowerCase().indexOf(
-          //     decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
           case PredicateOp.EQUALS:
             if (p.key !== 'name') {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
-            return r.name!.toLocaleLowerCase() === (p.string_value || '').toLocaleLowerCase();
+            return r.name && r.name.toLocaleLowerCase() === (p.string_value || '').toLocaleLowerCase();
+          case PredicateOp.ISSUBSTRING:
+            if (p.key !== 'name') {
+              throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
+            }
+            return r.name && r.name.toLocaleLowerCase().includes((p.string_value || '').toLocaleLowerCase());
           case PredicateOp.NOTEQUALS:
             // Fall through
           case PredicateOp.GREATERTHAN:

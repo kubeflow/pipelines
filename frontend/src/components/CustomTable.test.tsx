@@ -553,7 +553,7 @@ describe('CustomTable', () => {
     const expectedEncodedFilter = encodeURIComponent(JSON.stringify({
       predicates: [{
         key: 'name',
-        op: PredicateOp.EQUALS,
+        op: PredicateOp.ISSUBSTRING,
         string_value: 'test filter',
       }]
     }));

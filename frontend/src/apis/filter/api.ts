@@ -209,7 +209,8 @@ export enum PredicateOp {
     GREATERTHANEQUALS = <any> 'GREATER_THAN_EQUALS',
     LESSTHAN = <any> 'LESS_THAN',
     LESSTHANEQUALS = <any> 'LESS_THAN_EQUALS',
-    IN = <any> 'IN'
+    IN = <any> 'IN',
+    ISSUBSTRING = <any> 'IS_SUBSTRING'
 }
 
 
