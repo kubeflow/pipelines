@@ -21,7 +21,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/old_kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 )
