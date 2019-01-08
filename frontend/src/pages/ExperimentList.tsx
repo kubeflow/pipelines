@@ -153,7 +153,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
           experiment.id,
           encodeURIComponent(JSON.stringify({
             predicates: [{
-              key: 'storageState',
+              key: 'storage_state',
               op: PredicateOp.EQUALS,
               string_value: RunStorageState.AVAILABLE.toString(),
             }]

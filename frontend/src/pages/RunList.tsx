@@ -291,7 +291,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       // Load all runs
       const storageStateFilter = this.props.storageState ? encodeURIComponent(JSON.stringify({
         predicates: [{
-          key: 'storageState',
+          key: 'storage_state',
           op: PredicateOp.EQUALS,
           string_value: this.props.storageState.toString(),
         }]

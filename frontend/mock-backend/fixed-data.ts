@@ -299,7 +299,7 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-03-17T20:58:23.000Z'),
       status: 'Failed:Succeeded',
-      storageState: RunStorageState.AVAILABLE,
+      storage_state: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -309,7 +309,7 @@ const runs: ApiRunDetail[] = [
     run: {
       error: 'Mock error retrieving this run. All fields will be empty besides ID and this',
       id: 'f9486999-e853-40ee-993d-a0199b2cb7bd',
-      storageState: RunStorageState.AVAILABLE,
+      storage_state: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -349,7 +349,6 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-04-17T21:00:00.000Z'),
       status: 'Error',
-      storageState: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -382,7 +381,7 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-05-17T21:58:23.000Z'),
       status: 'Running',
-      storageState: RunStorageState.AVAILABLE,
+      storage_state: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -408,7 +407,7 @@ const runs: ApiRunDetail[] = [
       },
       scheduled_at: new Date('2018-06-17T22:58:23.000Z'),
       status: 'Failed',
-      storageState: RunStorageState.AVAILABLE,
+      storage_state: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -455,7 +454,7 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-07-17T23:58:23.000Z'),
       status: 'Pending',
-      storageState: RunStorageState.AVAILABLE,
+      storage_state: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -503,7 +502,7 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-08-18T20:58:23.000Z'),
       status: 'Succeeded',
-      storageState: RunStorageState.AVAILABLE,
+      storage_state: RunStorageState.AVAILABLE,
     },
   },
   {
@@ -543,7 +542,7 @@ const runs: ApiRunDetail[] = [
       }],
       scheduled_at: new Date('2018-08-18T20:58:23.000Z'),
       status: 'Succeeded',
-      storageState: RunStorageState.AVAILABLE,
+      storage_state: RunStorageState.AVAILABLE,
     },
   },
 ];
@@ -617,7 +616,7 @@ function generateNRuns(): ApiRunDetail[] {
         }],
         scheduled_at: new Date('2018-02-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
         status: 'Succeeded',
-        storageState: RunStorageState.AVAILABLE,
+        storage_state: RunStorageState.AVAILABLE,
       },
     });
   }
