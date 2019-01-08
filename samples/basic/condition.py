@@ -22,7 +22,7 @@ class RandomNumOp(dsl.ContainerOp):
 
   def __init__(self, low, high):
     super(RandomNumOp, self).__init__(
-      name='Random number',
+      name='RandonNumber',
       image='python:alpine3.6',
       command=['sh', '-c'],
       arguments=['python -c "import random; print(random.randint(%s,%s))" | tee /tmp/output' % (low, high)],

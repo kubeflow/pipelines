@@ -44,6 +44,10 @@ class ContainerOp(object):
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
 
+    valid_name_regex = r'^[A-Za-z][A-Za-z0-9-]*$'
+    if not re.match(valid_name_regex, name):
+      raise ValueError('Only letters, numbers and "-" are allowed in name. Must begin with letter: %s' % (name))
+
     self.human_name = name
     self.name = _pipeline.Pipeline.get_default_pipeline().add_op(self, is_exit_handler)
     self.image = image

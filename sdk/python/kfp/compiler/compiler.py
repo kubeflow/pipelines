@@ -216,19 +216,20 @@ class Compiler(object):
       return []
     processed_args = list(map(str, raw_args))
     for i, _ in enumerate(processed_args):
-      # unsanitized_argument_inputs stores a dict: sanitized param name -> string of unsanitized param
+      # unsanitized_argument_inputs stores a dict: string of sanitized param -> string of unsanitized param
       matches = []
       match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(processed_args[i]))
       matches += match
       unsanitized_argument_inputs = {}
       for x in list(set(matches)):
-        unsanitized_argument_inputs[K8sHelper.sanitize_k8s_name(x[1])] = str(dsl.PipelineParam(x[1], x[0], x[2]))
+        sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(x[1]), K8sHelper.sanitize_k8s_name(x[0]), x[2]))
+        unsanitized_argument_inputs[sanitized_str] = str(dsl.PipelineParam(x[1], x[0], x[2]))
 
       if argument_inputs:
         for param in argument_inputs:
-          if param.name in unsanitized_argument_inputs:
+          if str(param) in unsanitized_argument_inputs:
             full_name = self._pipelineparam_full_name(param)
-            processed_args[i] = re.sub(unsanitized_argument_inputs[param.name], '{{inputs.parameters.%s}}' % full_name,
+            processed_args[i] = re.sub(unsanitized_argument_inputs[str(param)], '{{inputs.parameters.%s}}' % full_name,
                                        processed_args[i])
     return processed_args
 
@@ -303,8 +304,6 @@ class Compiler(object):
     output_artifacts.append(_build_conventional_artifact('mlpipeline-ui-metadata'))
     output_artifacts.append(_build_conventional_artifact('mlpipeline-metrics'))
     template['outputs']['artifacts'] = output_artifacts
-    if op.command:
-      template['container']['command'] = op.command
 
     # Set resources.
     if op.resource_limits or op.resource_requests:
@@ -544,6 +543,11 @@ class Compiler(object):
       if op.output is not None:
         op.output.name = K8sHelper.sanitize_k8s_name(op.output.name)
         op.output.op_name = K8sHelper.sanitize_k8s_name(op.output.op_name)
+      if op.file_outputs is not None:
+        sanitized_file_outputs = {}
+        for key in op.file_outputs.keys():
+          sanitized_file_outputs[K8sHelper.sanitize_k8s_name(key)] = op.file_outputs[key]
+        op.file_outputs = sanitized_file_outputs
       sanitized_ops[sanitized_name] = op
     p.ops = sanitized_ops
 
