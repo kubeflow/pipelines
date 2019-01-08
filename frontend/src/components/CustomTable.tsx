@@ -480,8 +480,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       predicates: [{
         // TODO: remove this hardcoding once more sophisticated filtering is supported
         key: 'name',
-        // TODO: change this to the substring match operator once it's supported
-        op: PredicateOp.EQUALS,
+        op: PredicateOp.ISSUBSTRING,
         string_value: filterString,
       }],
     };
