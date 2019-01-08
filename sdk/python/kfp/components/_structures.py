@@ -248,7 +248,7 @@ class ComponentSpec(ModelBase):
             for input in self.inputs:
                 if input.name in self._inputs_dict:
                     raise ValueError('Non-unique input name "{}"'.format(input.name))
-                self._inputs_dict[input.name] = input.name
+                self._inputs_dict[input.name] = input
 
         #Checking output names for uniqueness
         self._outputs_dict = {}
@@ -256,7 +256,7 @@ class ComponentSpec(ModelBase):
             for output in self.outputs:
                 if output.name in self._outputs_dict:
                     raise ValueError('Non-unique output name "{}"'.format(output.name))
-                self._outputs_dict[output.name] = output.name
+                self._outputs_dict[output.name] = output
 
         if isinstance(self.implementation, ContainerImplementation):
             container = self.implementation.container
