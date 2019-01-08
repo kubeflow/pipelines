@@ -69,14 +69,14 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 		tx.Rollback()
 		return errorF(err)
 	}
-	total_size, err := s.scanRowToCount(countRow)
+	total_size, err := ScanRowToTotalSize(countRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
 	countRow.Close()
 
-	tx.Commit()
+	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -133,16 +133,6 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 		})
 	}
 	return experiments, nil
-}
-
-func (s *ExperimentStore) scanRowToCount(rows *sql.Rows) (int, error) {
-	var total_size int
-	rows.Next()
-	err := rows.Scan(&total_size)
-	if err != nil {
-		return 0, util.NewInternalServerError(err, "Failed to scan row total_size")
-	}
-	return total_size, nil
 }
 
 func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {

@@ -203,7 +203,7 @@
             "$ref": "#/definitions/apiPipeline"
           }
         },
-        "count": {
+        "total_size": {
           "type": "integer",
           "format": "int32"
         },

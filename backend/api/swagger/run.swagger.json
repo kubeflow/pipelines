@@ -383,7 +383,7 @@
             "$ref": "#/definitions/apiRun"
           }
         },
-        "count": {
+        "total_size": {
           "type": "integer",
           "format": "int32"
         },

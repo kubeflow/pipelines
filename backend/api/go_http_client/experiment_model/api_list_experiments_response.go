@@ -32,14 +32,14 @@ import (
 // swagger:model apiListExperimentsResponse
 type APIListExperimentsResponse struct {
 
-	// count
-	Count int32 `json:"count,omitempty"`
-
 	// experiments
 	Experiments []*APIExperiment `json:"experiments"`
 
 	// next page token
 	NextPageToken string `json:"next_page_token,omitempty"`
+
+	// total size
+	TotalSize int32 `json:"total_size,omitempty"`
 }
 
 // Validate validates this api list experiments response

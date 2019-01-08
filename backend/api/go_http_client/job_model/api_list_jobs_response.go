@@ -32,14 +32,14 @@ import (
 // swagger:model apiListJobsResponse
 type APIListJobsResponse struct {
 
-	// count
-	Count int32 `json:"count,omitempty"`
-
 	// jobs
 	Jobs []*APIJob `json:"jobs"`
 
 	// next page token
 	NextPageToken string `json:"next_page_token,omitempty"`
+
+	// total size
+	TotalSize int32 `json:"total_size,omitempty"`
 }
 
 // Validate validates this api list jobs response
