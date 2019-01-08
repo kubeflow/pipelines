@@ -39,9 +39,9 @@ __all__ = [
     'EqualsPredicate',
     'NotEqualsPredicate',
     'GreaterThanPredicate',
-    'GreaterThanOrEqualsPredicate',
+    'GreaterThanOrEqualPredicate',
     'LessThenPredicate',
-    'LessThenOrEqualsPredicate',
+    'LessThenOrEqualPredicate',
     'NotPredicate',
     'AndPredicate',
     'OrPredicate',
@@ -68,6 +68,7 @@ PrimitiveTypesIncludingNone = Optional[PrimitiveTypes]
 
 
 class InputSpec(ModelBase):
+    '''Describes the component input specification'''
     def __init__(self,
         name: str,
         type: Optional[Union[str, Dict, List]] = None,
@@ -79,6 +80,7 @@ class InputSpec(ModelBase):
 
 
 class OutputSpec(ModelBase):
+    '''Describes the component output specification'''
     def __init__(self,
         name: str,
         type: Optional[Union[str, Dict, List]] = None,
@@ -88,6 +90,7 @@ class OutputSpec(ModelBase):
 
 
 class InputValuePlaceholder(ModelBase): #Non-standard attr names
+    '''Represents the command-line argument placeholder that will be replaced at run-time by the input argument value.'''
     _serialized_names = {
         #'input_name': 'inputValue',
         'input_name': 'value', #TODO: Rename to inputValue
@@ -100,6 +103,7 @@ class InputValuePlaceholder(ModelBase): #Non-standard attr names
 
 
 class InputPathPlaceholder(ModelBase): #Non-standard attr names
+    '''Represents the command-line argument placeholder that will be replaced at run-time by a local file path pointing to a file containing the input argument value.'''
     _serialized_names = {
         #'input_name': 'inputPath',
         'input_name': 'file', #TODO: Rename to inputPath
@@ -112,6 +116,7 @@ class InputPathPlaceholder(ModelBase): #Non-standard attr names
 
 
 class OutputPathPlaceholder(ModelBase): #Non-standard attr names
+    '''Represents the command-line argument placeholder that will be replaced at run-time by a local file path pointing to a file where the program should write its output data.'''
     _serialized_names = {
         #'output_name': 'outputPath',
         'output_name': 'output', #TODO: Rename to outputPath
@@ -131,6 +136,7 @@ CommandlineArgumentType = Optional[Union[
 
 
 class ConcatPlaceholder(ModelBase): #Non-standard attr names
+    '''Represents the command-line argument placeholder that will be replaced at run-time by the concatenated values of its items.'''
     _serialized_names = {
         'items': 'concat',
     }
@@ -142,6 +148,7 @@ class ConcatPlaceholder(ModelBase): #Non-standard attr names
 
 
 class IsPresentPlaceholder(ModelBase): #Non-standard attr names
+    '''Represents the command-line argument placeholder that will be replaced at run-time by a boolean value specifying whether the caller has passed an argument for the specified optional input.'''
     _serialized_names = {
         'input_name': 'isPresent',
     }
@@ -156,6 +163,7 @@ IfConditionArgumentType = Union[bool, str, IsPresentPlaceholder, InputValuePlace
 
 
 class IfPlaceholderStructure(ModelBase): #Non-standard attr names
+    '''Used in by the IfPlaceholder - the command-line argument placeholder that will be replaced at run-time by the expanded value of either "then_value" or "else_value" depending on the submissio-time resolved value of the "cond" predicate.'''
     _serialized_names = {
         'condition': 'cond',
         'then_value': 'then',
@@ -171,6 +179,7 @@ class IfPlaceholderStructure(ModelBase): #Non-standard attr names
 
 
 class IfPlaceholder(ModelBase): #Non-standard attr names
+    '''Represents the command-line argument placeholder that will be replaced at run-time by the expanded value of either "then_value" or "else_value" depending on the submissio-time resolved value of the "cond" predicate.'''
     _serialized_names = {
         'if_structure': 'if',
     }
@@ -182,6 +191,7 @@ class IfPlaceholder(ModelBase): #Non-standard attr names
 
 
 class ContainerSpec(ModelBase):
+    '''Describes the container component implementation.'''
     _serialized_names = {
         'file_outputs': 'fileOutputs', #TODO: rename to something like legacy_unconfigurable_output_paths
     }
@@ -197,6 +207,7 @@ class ContainerSpec(ModelBase):
 
 
 class ContainerImplementation(ModelBase):
+    '''Represents the container component implementation.'''
     def __init__(self,
         container: ContainerSpec,
     ):
@@ -207,6 +218,7 @@ ImplementationType = Union[ContainerImplementation, 'GraphImplementation']
 
 
 class SourceSpec(ModelBase):
+    '''Specifies the location of the component source code.'''
     def __init__(self,
         url: str = None
     ):
@@ -214,6 +226,7 @@ class SourceSpec(ModelBase):
 
 
 class ComponentSpec(ModelBase):
+    '''Component specification. Describes the metadata (name, description, source), the interface (inputs and outputs) and the implementation of the component.'''
     def __init__(
         self,
         implementation: ImplementationType,
@@ -297,6 +310,7 @@ class ComponentSpec(ModelBase):
 
 
 class ComponentReference(ModelBase):
+    '''Component reference. Contains information that can be used to locate and load a component by name, digest or URL'''
     def __init__(self,
         name: Optional[str] = None,
         digest: Optional[str] = None,
@@ -312,6 +326,7 @@ class ComponentReference(ModelBase):
 
 
 class GraphInputArgument(ModelBase):
+    '''Represents the component argument value that comes from the graph component input.'''
     _serialized_names = {
         'input_name': 'graphInput',
     }
@@ -323,6 +338,7 @@ class GraphInputArgument(ModelBase):
 
 
 class TaskOutputReference(ModelBase):
+    '''References the output of some task (the scope is a single graph).'''
     _serialized_names = {
         'task_id': 'taskId',
         'output_name': 'outputName',
@@ -336,6 +352,7 @@ class TaskOutputReference(ModelBase):
 
 
 class TaskOutputArgument(ModelBase): #Has additional constructor for convenience
+    '''Represents the component argument value that comes from the output of another task.'''
     _serialized_names = {
         'task_output': 'taskOutput',
     }
@@ -375,32 +392,38 @@ class BinaryPredicate(ModelBase): #abstract base type
 
 
 class EqualsPredicate(BinaryPredicate):
+    '''Represents the "equals" comparison predicate.'''
     _serialized_names = {'operands': '=='}
 
 
 class NotEqualsPredicate(BinaryPredicate):
+    '''Represents the "not equals" comparison predicate.'''
     _serialized_names = {'operands': '!='}
 
 
 class GreaterThanPredicate(BinaryPredicate):
+    '''Represents the "greater than" comparison predicate.'''
     _serialized_names = {'operands': '>'}
 
 
-class GreaterThanOrEqualsPredicate(BinaryPredicate):
+class GreaterThanOrEqualPredicate(BinaryPredicate):
+    '''Represents the "greater than or equal" comparison predicate.'''
     _serialized_names = {'operands': '>='}
 
 
 class LessThenPredicate(BinaryPredicate):
+    '''Represents the "less than" comparison predicate.'''
     _serialized_names = {'operands': '<'}
 
 
-class LessThenOrEqualsPredicate(BinaryPredicate):
+class LessThenOrEqualPredicate(BinaryPredicate):
+    '''Represents the "less than or equal" comparison predicate.'''
     _serialized_names = { 'operands': '<='}
 
 
 PredicateType = Union[
     ArgumentType,
-    EqualsPredicate, NotEqualsPredicate, GreaterThanPredicate, GreaterThanOrEqualsPredicate, LessThenPredicate, LessThenOrEqualsPredicate,
+    EqualsPredicate, NotEqualsPredicate, GreaterThanPredicate, GreaterThanOrEqualPredicate, LessThenPredicate, LessThenOrEqualPredicate,
     'NotPredicate', 'AndPredicate', 'OrPredicate',
 ]
 
@@ -414,6 +437,7 @@ class TwoBooleanOperands(ModelBase):
 
 
 class NotPredicate(ModelBase):
+    '''Represents the "not" logical operation.'''
     _serialized_names = {'operand': 'not'}
 
     def __init__(self,
@@ -423,6 +447,7 @@ class NotPredicate(ModelBase):
 
 
 class AndPredicate(ModelBase):
+    '''Represents the "and" logical operation.'''
     _serialized_names = {'operands': 'and'}
 
     def __init__(self,
@@ -431,6 +456,7 @@ class AndPredicate(ModelBase):
         super().__init__(locals())
 
 class OrPredicate(ModelBase):
+    '''Represents the "or" logical operation.'''
     _serialized_names = {'operands': 'or'}
 
     def __init__(self,
@@ -440,6 +466,7 @@ class OrPredicate(ModelBase):
 
 
 class TaskSpec(ModelBase):
+    '''Task specification. Task is a "configured" component - a component supplied with arguments and other applied configuration changes.'''
     _serialized_names = {
         'component_ref': 'componentRef',
         'is_enabled': 'isEnabled',
@@ -458,6 +485,7 @@ class TaskSpec(ModelBase):
 
 
 class GraphSpec(ModelBase):
+    '''Describes the graph component implementation. It represents a graph of component tasks connected to the upstream sources of data using the argument specifications. It also describes the sources of graph output values.'''
     _serialized_names = {
         'output_values': 'outputValues',
     }
@@ -506,6 +534,7 @@ class GraphSpec(ModelBase):
 
 
 class GraphImplementation(ModelBase):
+    '''Represents the graph component implementation.'''
     def __init__(self,
         graph: GraphSpec,
     ):
@@ -513,6 +542,7 @@ class GraphImplementation(ModelBase):
 
 
 class PipelineRunSpec(ModelBase):
+    '''The object that can be sent to the backend to start a new Run.'''
     _serialized_names = {
         'root_task': 'rootTask',
         #'on_exit_task': 'onExitTask',
