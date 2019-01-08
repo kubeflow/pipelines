@@ -38,6 +38,10 @@ message Predicate {
     // Checks if the value is a member of a given array, which should be one of
     // |int_values|, |long_values| or |string_values|.
     IN = 8;
+
+    // Checks if the value contains |string_value| as a substring match. Only
+    // applies to |string_value|.
+    IS_SUBSTRING = 9;
   }
   Op op = 1;
 
@@ -115,4 +119,6 @@ message Filter {
   repeated Predicate predicates = 1;
 }
 
-
+service DummyFilterService {
+  rpc GetFilter(Filter) returns (Filter) {}
+}
