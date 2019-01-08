@@ -117,9 +117,9 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	if err := r.Client.Get(context.Background(), nsn, foundDpl); err != nil {
 		if errors.IsNotFound(err) {
 			// Create a new instance.
-			if err := r.Client.Create(context.Background(), dpl); err != nil {
-				utilruntime.HandleError(fmt.Errorf("error creating deployment: %v", err))
-				return reconcile.Result{}, err
+			if createErr := r.Client.Create(context.Background(), dpl); createErr != nil {
+				utilruntime.HandleError(fmt.Errorf("error creating deployment: %v", createErr))
+				return reconcile.Result{}, createErr
 			}
 		} else {
 			// Some other error.
@@ -143,9 +143,9 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	if err := r.Client.Get(context.Background(), nsn, foundSvc); err != nil {
 		if errors.IsNotFound(err) {
 			// Create a new instance.
-			if err := r.Client.Create(context.Background(), svc); err != nil {
-				utilruntime.HandleError(fmt.Errorf("error creating service: %v", err))
-				return reconcile.Result{}, err
+			if createErr := r.Client.Create(context.Background(), svc); createErr != nil {
+				utilruntime.HandleError(fmt.Errorf("error creating service: %v", createErr))
+				return reconcile.Result{}, createErr
 			}
 		} else {
 			// Some other error.
