@@ -118,12 +118,12 @@ func TestReportMetrics_Succeed(t *testing.T) {
 			&api.RunMetric{
 				Name:   "accuracy",
 				NodeId: "node-1",
-				Value:  &api.RunMetric_NumberValue{0.77},
+				Value:  &api.RunMetric_NumberValue{NumberValue: 0.77},
 			},
 			&api.RunMetric{
 				Name:   "logloss",
 				NodeId: "node-1",
-				Value:  &api.RunMetric_NumberValue{1.2},
+				Value:  &api.RunMetric_NumberValue{NumberValue: 1.2},
 			},
 		},
 	}
@@ -301,12 +301,12 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 			&api.RunMetric{
 				Name:   "accuracy",
 				NodeId: "node-2",
-				Value:  &api.RunMetric_NumberValue{0.77},
+				Value:  &api.RunMetric_NumberValue{NumberValue: 0.77},
 			},
 			&api.RunMetric{
 				Name:   "logloss",
 				NodeId: "node-2",
-				Value:  &api.RunMetric_NumberValue{1.2},
+				Value:  &api.RunMetric_NumberValue{NumberValue: 1.2},
 			},
 		},
 	}

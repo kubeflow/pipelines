@@ -68,7 +68,7 @@ type ScheduledWorkflowSpec struct {
 
 	// Specification of the workflow to schedule.
 	// +optional
-	Workflow *WorkflowResource `json:"workflow, omitempty"`
+	Workflow *WorkflowResource `json:"workflow,omitempty"`
 
 	// TODO: support additional resource types: K8 jobs, etc.
 
@@ -189,13 +189,13 @@ type ScheduledWorkflowCondition struct {
 
 type TriggerStatus struct {
 	// Time of the last creation of a workflow.
-	LastTriggeredTime *metav1.Time `json:lastTriggeredTime,omitempty`
+	LastTriggeredTime *metav1.Time `json:"lastTriggeredTime,omitempty"`
 
 	// Time of the next creation of a workflow (assuming that the schedule is enabled).
-	NextTriggeredTime *metav1.Time `json:nextTriggeredTime,omitempty`
+	NextTriggeredTime *metav1.Time `json:"nextTriggeredTime,omitempty"`
 
 	// Index of the last workflow created.
-	LastIndex *int64 `json:lastWorkflowIndex,omitempty`
+	LastIndex *int64 `json:"lastWorkflowIndex,omitempty"`
 }
 
 type WorkflowHistory struct {
@@ -220,7 +220,7 @@ type WorkflowStatus struct {
 	UID types.UID `json:"uid,omitempty"`
 
 	// Phase is a high level summary of the status of the workflow.
-	Phase v1alpha1.NodePhase `json:phase,omitempty`
+	Phase v1alpha1.NodePhase `json:"phase,omitempty"`
 
 	// A human readable message indicating details about why the workflow is in
 	// this condition.

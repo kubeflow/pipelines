@@ -194,15 +194,14 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 	}
 	var workflow util.Workflow
-	err = json.Unmarshal(workflowSpecManifestBytes, &workflow)
-	if err != nil {
+	if err = json.Unmarshal(workflowSpecManifestBytes, &workflow); err != nil {
 		return nil, util.NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
 	}
 
 	parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
 	// Verify no additional parameter provided
-	if err := workflow.VerifyParameters(parameters); err != nil {
+	if err = workflow.VerifyParameters(parameters); err != nil {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 	// Append provided parameter
