@@ -40,8 +40,8 @@ describe('NewRun', () => {
   let tree: ReactWrapper | ShallowWrapper;
 
   const consoleErrorSpy = jest.spyOn(console, 'error');
-  const createJobSpy = jest.spyOn(Apis.jobServiceApi, 'createJob');
-  const createRunSpy = jest.spyOn(Apis.runServiceApi, 'createRun');
+  const startJobSpy = jest.spyOn(Apis.jobServiceApi, 'createJob');
+  const startRunSpy = jest.spyOn(Apis.runServiceApi, 'createRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
   const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
@@ -115,7 +115,7 @@ describe('NewRun', () => {
     jest.clearAllMocks();
 
     consoleErrorSpy.mockImplementation(() => null);
-    createRunSpy.mockImplementation(() => ({ id: 'new-run-id' }));
+    startRunSpy.mockImplementation(() => ({ id: 'new-run-id' }));
     getExperimentSpy.mockImplementation(() => MOCK_EXPERIMENT);
     getPipelineSpy.mockImplementation(() => MOCK_PIPELINE);
     getRunSpy.mockImplementation(() => MOCK_RUN_DETAIL);
@@ -853,16 +853,16 @@ describe('NewRun', () => {
     });
   });
 
-  describe('creating a new run', () => {
+  describe('starting a new run', () => {
 
-    it('disables \'Create\' new run button by default', async () => {
+    it('disables \'Start\' new run button by default', async () => {
       tree = shallow(<TestNewRun {...generateProps() as any} />);
       await TestUtils.flushPromises();
 
-      expect(tree.find('#createNewRunBtn').props()).toHaveProperty('disabled', true);
+      expect(tree.find('#startNewRunBtn').props()).toHaveProperty('disabled', true);
     });
 
-    it('enables the \'Create\' new run button if pipeline ID in query params and run name entered', async () => {
+    it('enables the \'Start\' new run button if pipeline ID in query params and run name entered', async () => {
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
@@ -870,23 +870,23 @@ describe('NewRun', () => {
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'run name' } });
       await TestUtils.flushPromises();
 
-      expect(tree.find('#createNewRunBtn').props()).toHaveProperty('disabled', false);
+      expect(tree.find('#startNewRunBtn').props()).toHaveProperty('disabled', false);
     });
 
-    it('re-disables the \'Create\' new run button if pipeline ID in query params and run name entered then cleared', async () => {
+    it('re-disables the \'Start\' new run button if pipeline ID in query params and run name entered then cleared', async () => {
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
       tree = shallow(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'run name' } });
       await TestUtils.flushPromises();
-      expect(tree.find('#createNewRunBtn').props()).toHaveProperty('disabled', false);
+      expect(tree.find('#startNewRunBtn').props()).toHaveProperty('disabled', false);
 
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: '' } });
-      expect(tree.find('#createNewRunBtn').props()).toHaveProperty('disabled', true);
+      expect(tree.find('#startNewRunBtn').props()).toHaveProperty('disabled', true);
     });
 
-    it('sends a request to create a new run when \'Create\' is clicked', async () => {
+    it('sends a request to start a new run when \'Start\' is clicked', async () => {
       const props = generateProps();
       props.location.search =
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
@@ -897,12 +897,12 @@ describe('NewRun', () => {
       (tree.instance() as TestNewRun).handleChange('description')({ target: { value: 'test run description' } });
       await TestUtils.flushPromises();
 
-      tree.find('#createNewRunBtn').simulate('click');
-      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
+      tree.find('#startNewRunBtn').simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
-      expect(createRunSpy).toHaveBeenCalledTimes(1);
-      expect(createRunSpy).toHaveBeenLastCalledWith({
+      expect(startRunSpy).toHaveBeenCalledTimes(1);
+      expect(startRunSpy).toHaveBeenLastCalledWith({
         description: 'test run description',
         name: 'test run name',
         pipeline_spec: {
@@ -937,12 +937,12 @@ describe('NewRun', () => {
       tree.find('#newRunPipelineParam0').simulate('change', { target: { value: 'test param value' } });
       await TestUtils.flushPromises();
 
-      tree.find('#createNewRunBtn').simulate('click');
-      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
+      tree.find('#startNewRunBtn').simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
-      expect(createRunSpy).toHaveBeenCalledTimes(1);
-      expect(createRunSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      expect(startRunSpy).toHaveBeenCalledTimes(1);
+      expect(startRunSpy).toHaveBeenLastCalledWith(expect.objectContaining({
         pipeline_spec: {
           parameters: [
             { name: 'param-1', value: 'test param value' },
@@ -954,7 +954,7 @@ describe('NewRun', () => {
       expect(tree).toMatchSnapshot();
     });
 
-    it('copies pipeline from run in the create API call when cloning a run with embedded pipeline', async () => {
+    it('copies pipeline from run in the start API call when cloning a run with embedded pipeline', async () => {
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
 
@@ -963,12 +963,12 @@ describe('NewRun', () => {
       tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
-      tree.find('#createNewRunBtn').simulate('click');
-      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
+      tree.find('#startNewRunBtn').simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
-      expect(createRunSpy).toHaveBeenCalledTimes(1);
-      expect(createRunSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      expect(startRunSpy).toHaveBeenCalledTimes(1);
+      expect(startRunSpy).toHaveBeenLastCalledWith(expect.objectContaining({
         pipeline_spec: {
           parameters: [],
           pipeline_id: undefined,
@@ -1010,7 +1010,7 @@ describe('NewRun', () => {
       expect(tree).toMatchSnapshot();
     });
 
-    it('sets the page to a busy state upon clicking \'Create\'', async () => {
+    it('sets the page to a busy state upon clicking \'Start\'', async () => {
       const props = generateProps();
       props.location.search =
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
@@ -1020,12 +1020,12 @@ describe('NewRun', () => {
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
-      tree.find('#createNewRunBtn').simulate('click');
+      tree.find('#startNewRunBtn').simulate('click');
 
-      expect(tree.state('isBeingCreated')).toBe(true);
+      expect(tree.state('isBeingStarted')).toBe(true);
     });
 
-    it('navigates to the ExperimentDetails page upon successful creation if there was an experiment', async () => {
+    it('navigates to the ExperimentDetails page upon successful start if there was an experiment', async () => {
       const props = generateProps();
       props.location.search =
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
@@ -1035,15 +1035,15 @@ describe('NewRun', () => {
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
-      tree.find('#createNewRunBtn').simulate('click');
-      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
+      tree.find('#startNewRunBtn').simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
       expect(historyPushSpy).toHaveBeenCalledWith(
         RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, MOCK_EXPERIMENT.id!));
     });
 
-    it('navigates to the AllRuns page upon successful creation if there was not an experiment', async () => {
+    it('navigates to the AllRuns page upon successful start if there was not an experiment', async () => {
       const props = generateProps();
       // No experiment in query params
       props.location.search = `?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
@@ -1052,27 +1052,27 @@ describe('NewRun', () => {
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
-      tree.find('#createNewRunBtn').simulate('click');
-      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
+      tree.find('#startNewRunBtn').simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
       expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.RUNS);
     });
 
-    it('shows an error dialog if creating the new run fails', async () => {
+    it('shows an error dialog if Starting the new run fails', async () => {
       const props = generateProps();
       props.location.search =
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
         + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      TestUtils.makeErrorResponseOnce(createRunSpy, 'test error message');
+      TestUtils.makeErrorResponseOnce(startRunSpy, 'test error message');
 
       tree = shallow(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
-      tree.find('#createNewRunBtn').simulate('click');
-      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
+      tree.find('#startNewRunBtn').simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
       expect(updateDialogSpy).toHaveBeenCalledTimes(1);
@@ -1082,7 +1082,7 @@ describe('NewRun', () => {
       });
     });
 
-    it('shows an error dialog if \'Create\' is clicked and the new run somehow has no pipeline', async () => {
+    it('shows an error dialog if \'Start\' is clicked and the new run somehow has no pipeline', async () => {
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`;
 
@@ -1090,37 +1090,37 @@ describe('NewRun', () => {
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
-      tree.find('#createNewRunBtn').simulate('click');
-      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
+      tree.find('#startNewRunBtn').simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
       expect(updateDialogSpy).toHaveBeenCalledTimes(1);
       expect(updateDialogSpy.mock.calls[0][0]).toMatchObject({
-        content: 'Cannot create run without pipeline',
+        content: 'Cannot start run without pipeline',
         title: 'Run creation failed',
       });
     });
 
-    it('unsets the page to a busy state if creation fails', async () => {
+    it('unsets the page to a busy state if starting run fails', async () => {
       const props = generateProps();
       props.location.search =
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
         + `&${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`;
 
-      TestUtils.makeErrorResponseOnce(createRunSpy, 'test error message');
+      TestUtils.makeErrorResponseOnce(startRunSpy, 'test error message');
 
       tree = shallow(<TestNewRun {...props} />);
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
-      tree.find('#createNewRunBtn').simulate('click');
-      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
+      tree.find('#startNewRunBtn').simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
-      expect(tree.state('isBeingCreated')).toBe(false);
+      expect(tree.state('isBeingStarted')).toBe(false);
     });
 
-    it('shows snackbar confirmation after experiment is created', async () => {
+    it('shows snackbar confirmation after experiment is started', async () => {
       const props = generateProps();
       props.location.search =
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
@@ -1130,18 +1130,18 @@ describe('NewRun', () => {
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       await TestUtils.flushPromises();
 
-      tree.find('#createNewRunBtn').simulate('click');
-      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
+      tree.find('#startNewRunBtn').simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
       expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-        message: 'Successfully created new Run: test run name',
+        message: 'Successfully started new Run: test run name',
         open: true,
       });
     });
   });
 
-  describe('creating a new recurring run', () => {
+  describe('starting a new recurring run', () => {
 
     it('changes the title if the new run will recur, based on query param', async () => {
       const props = generateProps();
@@ -1165,7 +1165,7 @@ describe('NewRun', () => {
       expect(tree).toMatchSnapshot();
     });
 
-    it('sends a request to create a new recurring run with default periodic schedule when \'Create\' is clicked', async () => {
+    it('sends a request to start a new recurring run with default periodic schedule when \'Start\' is clicked', async () => {
 
       const props = generateProps();
       props.location.search =
@@ -1179,13 +1179,13 @@ describe('NewRun', () => {
       instance.handleChange('description')({ target: { value: 'test run description' } });
       await TestUtils.flushPromises();
 
-      tree.find('#createNewRunBtn').at(0).simulate('click');
-      // The create APIs are called in a callback triggered by clicking 'Create', so we wait again
+      tree.find('#startNewRunBtn').at(0).simulate('click');
+      // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
       await TestUtils.flushPromises();
 
-      expect(createRunSpy).toHaveBeenCalledTimes(0);
-      expect(createJobSpy).toHaveBeenCalledTimes(1);
-      expect(createJobSpy).toHaveBeenLastCalledWith({
+      expect(startRunSpy).toHaveBeenCalledTimes(0);
+      expect(startJobSpy).toHaveBeenCalledTimes(1);
+      expect(startJobSpy).toHaveBeenLastCalledWith({
         description: 'test run description',
         enabled: true,
         max_concurrency: '10',
