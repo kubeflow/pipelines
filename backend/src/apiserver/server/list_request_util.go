@@ -24,6 +24,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -182,4 +183,38 @@ func parseAPIFilter(encoded string) (*api.Filter, error) {
 		return errorF(err)
 	}
 	return f, nil
+}
+
+func validatedListOptions(listable list.Listable, pageToken string, pageSize int, sortBy string, filterSpec string) (*list.Options, error) {
+	defaultOpts := func() (*list.Options, error) {
+		f, err := parseAPIFilter(filterSpec)
+		if err != nil {
+			return nil, err
+		}
+
+		return list.NewOptions(listable, pageSize, sortBy, f)
+	}
+
+	if pageToken == "" {
+		return defaultOpts()
+	}
+
+	opts, err := list.NewOptionsFromToken(pageToken, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	if sortBy != "" || filterSpec != "" {
+		// Sanity check that these match the page token.
+		do, err := defaultOpts()
+		if err != nil {
+			return nil, err
+		}
+
+		if !opts.Matches(do) {
+			return nil, util.NewInvalidInputError("page token does not match the supplied sort by and/or filtering criteria. Either specify the same criteria or leave the latter empty if page token is specified.")
+		}
+	}
+
+	return opts, nil
 }
