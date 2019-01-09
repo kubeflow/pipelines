@@ -681,7 +681,7 @@ describe('NewRun', () => {
 
       tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
-      tree.find('WithStyles(FormControlLabel)').at(1).simulate('change');
+      tree.find('WithStyles(WithFormControlContext(FormControlLabel))').at(1).simulate('change');
       expect(tree).toMatchSnapshot();
     });
 
@@ -694,10 +694,10 @@ describe('NewRun', () => {
       tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
       expect(tree.state('pipeline')).toEqual({ parameters: [] });
-      tree.find('WithStyles(FormControlLabel)').at(1).simulate('change');
+      tree.find('WithStyles(WithFormControlContext(FormControlLabel))').at(1).simulate('change');
       expect(tree.state('pipeline')).toBeUndefined();
 
-      tree.find('WithStyles(FormControlLabel)').at(0).simulate('change');
+      tree.find('WithStyles(WithFormControlContext(FormControlLabel))').at(0).simulate('change');
       expect(tree.state('pipeline')).toEqual({ parameters: [] });
     });
 

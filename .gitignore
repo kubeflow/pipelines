@@ -44,3 +44,6 @@ ml.iml
 
 # go vendor
 vendor
+
+# Bazel output artifacts
+bazel-*

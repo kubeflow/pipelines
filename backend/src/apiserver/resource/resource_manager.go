@@ -41,6 +41,7 @@ type ClientManagerInterface interface {
 	JobStore() storage.JobStoreInterface
 	RunStore() storage.RunStoreInterface
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
+	DBStatusStore() storage.DBStatusStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
@@ -54,6 +55,7 @@ type ResourceManager struct {
 	jobStore                storage.JobStoreInterface
 	runStore                storage.RunStoreInterface
 	resourceReferenceStore  storage.ResourceReferenceStoreInterface
+	dBStatusStore           storage.DBStatusStoreInterface
 	objectStore             storage.ObjectStoreInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
@@ -68,6 +70,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		jobStore:                clientManager.JobStore(),
 		runStore:                clientManager.RunStore(),
 		resourceReferenceStore:  clientManager.ResourceReferenceStore(),
+		dBStatusStore:           clientManager.DBStatusStore(),
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
@@ -191,15 +194,14 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 	}
 	var workflow util.Workflow
-	err = json.Unmarshal(workflowSpecManifestBytes, &workflow)
-	if err != nil {
+	if err = json.Unmarshal(workflowSpecManifestBytes, &workflow); err != nil {
 		return nil, util.NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
 	}
 
 	parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
 	// Verify no additional parameter provided
-	if err := workflow.VerifyParameters(parameters); err != nil {
+	if err = workflow.VerifyParameters(parameters); err != nil {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 	// Append provided parameter
@@ -478,4 +480,12 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 			"arifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
 	return r.objectStore.GetFile(artifactPath)
+}
+
+func (r *ResourceManager) HaveSamplesLoaded() (bool, error) {
+	return r.dBStatusStore.HaveSamplesLoaded()
+}
+
+func (r *ResourceManager) MarkSampleLoaded() error {
+	return r.dBStatusStore.MarkSampleLoaded()
 }

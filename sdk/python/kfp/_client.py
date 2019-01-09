@@ -28,13 +28,15 @@ class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
 
-  def __init__(self, host='ml-pipeline.kubeflow.svc.cluster.local:8888'):
+  # in-cluster DNS name of the pipeline service
+  IN_CLUSTER_DNS_NAME = 'ml-pipeline.kubeflow.svc.cluster.local:8888'
+
+  def __init__(self, host=None):
     """Create a new instance of kfp client.
 
     Args:
-      host: the host name to use to talk to Kubeflow Pipelines. Default value
-          "ml-pipeline.kubeflow.svc.cluster.local:8888" is the in-cluster DNS name
-          of the pipeline service. It only works if the current environment is a pod
+      host: the host name to use to talk to Kubeflow Pipelines. If not set, the in-cluster
+          service DNS name will be used, which only works if the current environment is a pod
           in the same cluster (such as a Jupyter instance spawned by Kubeflow's
           JupyterHub). If you have a different connection to cluster, such as a kubectl
           proxy connection, then set it to something like "127.0.0.1:8080/pipeline".
@@ -50,13 +52,15 @@ class Client(object):
     except ImportError:
       raise Exception('This module requires installation of kfp_run')
 
+    self._host = host
+
     config = kfp_run.configuration.Configuration()
-    config.host = host
+    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
     api_client = kfp_run.api_client.ApiClient(config)
     self._run_api = kfp_run.api.run_service_api.RunServiceApi(api_client)
 
     config = kfp_experiment.configuration.Configuration()
-    config.host = host
+    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
     api_client = kfp_experiment.api_client.ApiClient(config)
     self._experiment_api = \
         kfp_experiment.api.experiment_service_api.ExperimentServiceApi(api_client)
@@ -69,6 +73,17 @@ class Client(object):
       return False
 
     return True
+
+  def _get_url_prefix(self):
+    if self._host:
+      # User's own connection.
+      if self._host.startswith('http://'):
+        return self._host
+      else:
+        return 'http://' + self._host
+
+    # In-cluster pod. We could use relative URL.
+    return '/pipeline'
 
   def create_experiment(self, name):
     """Create a new experiment.
@@ -85,8 +100,8 @@ class Client(object):
     if self._is_ipython():
       import IPython
       html = \
-          ('Experiment link <a href="/pipeline/#/experiments/details/%s" target="_blank" >here</a>'
-          % response.id)
+          ('Experiment link <a href="%s/#/experiments/details/%s" target="_blank" >here</a>'
+          % (self._get_url_prefix(), response.id))
       IPython.display.display(IPython.display.HTML(html))
     return response
 
@@ -170,8 +185,8 @@ class Client(object):
     
     if self._is_ipython():
       import IPython
-      html = ('Run link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>'
-              % response.run.id)
+      html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
+              % (self._get_url_prefix(), response.run.id))
       IPython.display.display(IPython.display.HTML(html))
     return response.run
 

@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
@@ -48,13 +48,13 @@ type PipelineClient struct {
 }
 
 func NewPipelineClient(
-		namespace string,
-		initializeTimeout time.Duration,
-		timeout time.Duration,
-		basePath string,
-		mlPipelineServiceName string,
-		mlPipelineServiceHttpPort string,
-		mlPipelineServiceGRPCPort string) (*PipelineClient, error) {
+	namespace string,
+	initializeTimeout time.Duration,
+	timeout time.Duration,
+	basePath string,
+	mlPipelineServiceName string,
+	mlPipelineServiceHttpPort string,
+	mlPipelineServiceGRPCPort string) (*PipelineClient, error) {
 	httpAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, namespace, mlPipelineServiceHttpPort)
 	grpcAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, namespace, mlPipelineServiceGRPCPort)
 	err := util.WaitForAPIAvailable(initializeTimeout, basePath, httpAddress)

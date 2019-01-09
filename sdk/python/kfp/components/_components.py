@@ -223,7 +223,6 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     container_spec = component_spec.implementation.container
     container_image = container_spec.image
 
-    file_inputs={}
     file_outputs_from_def = OrderedDict()
     if container_spec.file_outputs != None:
         for param, path in container_spec.file_outputs.items():
@@ -267,7 +266,6 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                     input_key = input_name_to_kubernetes[port_name]
                     input_value = pythonic_input_argument_values[input_name_to_pythonic[port_name]]
                     if input_value is not None:
-                        file_inputs[input_key] = {'local_path': input_filename, 'data_source': input_value}
                         return input_filename
                     else:
                         input_spec = inputs_dict[port_name]
@@ -350,7 +348,6 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             container_image=container_image,
             command=expanded_command,
             arguments=expanded_args,
-            file_inputs=file_inputs,
             file_outputs=file_outputs_to_pass,
         )
 
