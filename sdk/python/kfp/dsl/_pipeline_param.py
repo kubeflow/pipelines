@@ -44,12 +44,9 @@ class PipelineParam(object):
             and value are set.
     """
 
-    valid_name_regex = r'^[A-Za-z][A-Za-z0-9-]*$'
+    valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
     if not re.match(valid_name_regex, name):
-      raise ValueError('Only letters, numbers and "-" allowed in name. Must begin with letter.')
-
-    if op_name and not re.match(valid_name_regex, op_name):
-      raise ValueError('Only letters, numbers and "-" allowed in op_name. Must begin with letter.')
+      raise ValueError('Only letters, numbers, spaces, "_", and "-" are allowed in name. Must begin with letter: %s' % (name))
 
     if op_name and value:
       raise ValueError('op_name and value cannot be both set.')
