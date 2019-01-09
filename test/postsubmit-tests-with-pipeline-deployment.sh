@@ -61,11 +61,8 @@ while [ "$1" != "" ]; do
     shift
 done
 
+#Variables
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_BASE_SHA}/${TEST_RESULT_FOLDER}
-ARTIFACT_DIR=$WORKSPACE/_artifacts
-WORKFLOW_COMPLETE_KEYWORD="completed=true"
-WORKFLOW_FAILED_KEYWORD="phase=Failed"
-PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "postsubmit test starts"
@@ -75,7 +72,6 @@ local_code_archive_file=$(mktemp)
 date_string=$(TZ=PST8PDT date +%Y-%m-%d_%H-%M-%S_%Z)
 code_archive_prefix="gs://${TEST_RESULT_BUCKET}/${PULL_BASE_SHA}/source_code"
 remote_code_archive_uri="${code_archive_prefix}_${PULL_BASE_SHA}_${date_string}.tar.gz"
-
 tar -czf "$local_code_archive_file" .
 gsutil cp "$local_code_archive_file" "$remote_code_archive_uri"
 
@@ -125,12 +121,12 @@ elif [[ ${CLOUDBUILD_FINISHED} == TIMEOUT ]];then
   exit 1
 fi
 
+#Deploy the pipeline
 ./deploy-pipeline.sh --platform ${PLATFORM} --project ml-pipeline-test --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}
 
+#Submit the argo job and check the results
 gcloud container clusters get-credentials ${TEST_CLUSTER}
-
 source "${DIR}/install-argo.sh"
-
 echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
@@ -143,8 +139,6 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 --serviceaccount test-runner \
 -o name
 `
-
 echo argo workflow submitted successfully
-
 source "${DIR}/check-argo-status.sh"
 
