@@ -2,7 +2,7 @@ module github.com/kubeflow/pipelines
 
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
-	github.com/Masterminds/squirrel v0.0.0-20170825200431-a6b93000bd21
+	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
 	github.com/argoproj/argo v2.2.0+incompatible
 	github.com/cenkalti/backoff v2.0.0+incompatible
@@ -46,8 +46,6 @@ require (
 	github.com/json-iterator/go v0.0.0-20180701071628-ab8a2e0c74be // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kataras/iris v10.6.7+incompatible
-	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
-	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v1.0.0 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/mattn/go-sqlite3 v1.9.0
