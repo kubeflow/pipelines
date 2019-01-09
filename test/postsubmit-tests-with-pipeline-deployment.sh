@@ -122,7 +122,7 @@ elif [[ ${CLOUDBUILD_FINISHED} == TIMEOUT ]];then
 fi
 
 #Deploy the pipeline
-./deploy-pipeline.sh --platform ${PLATFORM} --project ml-pipeline-test --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}
+${DIR}/deploy-pipeline.sh --platform ${PLATFORM} --project ml-pipeline-test --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}
 
 #Submit the argo job and check the results
 gcloud container clusters get-credentials ${TEST_CLUSTER}
