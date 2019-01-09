@@ -127,7 +127,6 @@ func (s *RunStore) ListRuns(
 
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
 		return errorF(err)
 	}
 
@@ -354,7 +353,6 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 	}
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to store run %v and its resource references to table", r.Name)
 	}
 	return r, nil
@@ -467,7 +465,6 @@ func (s *RunStore) DeleteRun(id string) error {
 	}
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete run %v and its resource references from table", id)
 	}
 	return nil

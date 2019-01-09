@@ -105,7 +105,6 @@ func (s *JobStore) ListJobs(
 
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
 		return errorF(err)
 	}
 
@@ -248,7 +247,6 @@ func (s *JobStore) DeleteJob(id string) error {
 	}
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete job %v and its resource references from table", id)
 	}
 	return nil
@@ -302,7 +300,6 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to store job %v and its resource references to table", j.Name)
 	}
 	return j, nil

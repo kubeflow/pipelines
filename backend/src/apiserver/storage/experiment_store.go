@@ -40,7 +40,8 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 		return errorF(err)
 	}
 
-	// SQL for getting total count of the filtered rows
+	// SQL for getting total size. This matches the query to get all the rows above, in order
+	// to do the same filter, but counts instead of scanning the rows.
 	countSql, countArgs, err := opts.AddFilterToSelect(sq.Select("count(*)").From("experiments")).ToSql()
 	if err != nil {
 		return errorF(err)
@@ -78,7 +79,6 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
 		return errorF(err)
 	}
 
@@ -192,7 +192,6 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 	}
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete experiment %v and its resource references from table", id)
 	}
 	return nil

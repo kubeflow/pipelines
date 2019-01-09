@@ -70,7 +70,6 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 	}
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to initializing the database status table.")
 	}
 	return nil
