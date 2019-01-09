@@ -17,11 +17,13 @@
 package filter
 
 import (
+	"fmt"
+
 	"github.com/Masterminds/squirrel"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 // Filter represents a filter that can be applied when querying an arbitrary API
@@ -37,6 +39,8 @@ type Filter struct {
 	lte map[string]interface{}
 
 	in map[string]interface{}
+
+	substring map[string]interface{}
 }
 
 // New creates a new Filter from parsing the API filter protocol buffer.
@@ -50,6 +54,7 @@ func New(filterProto *api.Filter) (*Filter, error) {
 		lt:          make(map[string]interface{}),
 		lte:         make(map[string]interface{}),
 		in:          make(map[string]interface{}),
+		substring:   make(map[string]interface{}),
 	}
 
 	if err := f.parseFilterProto(); err != nil {
@@ -106,6 +111,16 @@ func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
 		sb = sb.Where(squirrel.Eq(f.in))
 	}
 
+	if len(f.substring) > 0 {
+		like := make(squirrel.Like)
+		// Modify each string value v so it looks like %v% so we are doing a substring
+		// match with the LIKE operator.
+		for k, v := range f.substring {
+			like[k] = fmt.Sprintf("%%%s%%", v)
+		}
+		sb = sb.Where(like)
+	}
+
 	return sb
 }
 
@@ -121,6 +136,14 @@ func checkPredicate(p *api.Predicate) error {
 		switch t := p.Value.(type) {
 		case *api.Predicate_IntValues, *api.Predicate_LongValues, *api.Predicate_StringValues:
 			return util.NewInvalidInputError("cannot use scalar operator %v on array type %T", p.Op, t)
+		}
+
+	case api.Predicate_IS_SUBSTRING:
+		switch t := p.Value.(type) {
+		case *api.Predicate_StringValue:
+			return nil
+		default:
+			return util.NewInvalidInputError("cannot use non string value type %T with operator %v", p.Op, t)
 		}
 
 	default:
@@ -152,6 +175,8 @@ func (f *Filter) parseFilterProto() error {
 			m = f.lte
 		case api.Predicate_IN:
 			m = f.in
+		case api.Predicate_IS_SUBSTRING:
+			m = f.substring
 		default:
 			return util.NewInvalidInputError("invalid predicate operation: %v", pred.Op)
 		}

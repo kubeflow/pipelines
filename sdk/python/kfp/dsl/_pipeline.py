@@ -15,7 +15,6 @@
 
 from . import _container_op
 from . import _ops_group
-import re
 import sys
 
 
@@ -37,9 +36,6 @@ def pipeline(name, description):
     return func
 
   return _pipeline
-
-def _make_kubernetes_name(name):
-    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
 
 class Pipeline():
   """A pipeline contains a list of operators.
@@ -106,22 +102,24 @@ class Pipeline():
 
     Args:
       op: An operator of ContainerOp or its inherited type.
+
+    Returns
+      op_name: a unique op name.
     """
 
-    kubernetes_name = _make_kubernetes_name(op.human_name)
-    step_id = kubernetes_name
+    op_name = op.human_name
     #If there is an existing op with this name then generate a new name.
-    if step_id in self.ops:
+    if op_name in self.ops:
       for i in range(2, sys.maxsize**10):
-        step_id = kubernetes_name + '-' + str(i)
-        if step_id not in self.ops:
+        op_name = op_name + '-' + str(i)
+        if op_name not in self.ops:
           break
 
-    self.ops[step_id] = op
+    self.ops[op_name] = op
     if not define_only:
       self.groups[-1].ops.append(op)
 
-    return step_id
+    return op_name
 
   def push_ops_group(self, group: _ops_group.OpsGroup):
     """Push an OpsGroup into the stack.

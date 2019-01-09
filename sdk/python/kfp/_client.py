@@ -22,6 +22,7 @@ import yaml
 from datetime import datetime
 
 from .compiler import compiler
+from .compiler import _k8s_helper
 
 
 class Client(object):
@@ -171,7 +172,7 @@ class Client(object):
 
     pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
     pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_run.ApiParameter(name=compiler.Compiler()._sanitize_name(k), value=str(v))
+    api_params = [kfp_run.ApiParameter(name=_k8s_helper.K8sHelper.sanitize_k8s_name(k), value=str(v))
                   for k,v in params.items()]
     key = kfp_run.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_run.models.ApiResourceType.EXPERIMENT)
