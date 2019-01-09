@@ -50,7 +50,7 @@ interface NewRunState {
   experiment?: ApiExperiment;
   experimentName: string;
   experimentSelectorOpen: boolean;
-  isBeingCreated: boolean;
+  isBeingStarted: boolean;
   isFirstRunInExperiment: boolean;
   isRecurringRun: boolean;
   maxConcurrentRuns?: string;
@@ -105,7 +105,7 @@ class NewRun extends Page<{}, NewRunState> {
       errorMessage: '',
       experimentName: '',
       experimentSelectorOpen: false,
-      isBeingCreated: false,
+      isBeingStarted: false,
       isFirstRunInExperiment: false,
       isRecurringRun: false,
       pipelineName: '',
@@ -284,10 +284,10 @@ class NewRun extends Page<{}, NewRunState> {
           )}
 
           <div className={classes(commonCss.flex, padding(20, 'tb'))}>
-            <BusyButton id='createNewRunBtn' disabled={!!errorMessage}
-              busy={this.state.isBeingCreated}
-              className={commonCss.buttonAction} title='Create'
-              onClick={this._create.bind(this)} />
+            <BusyButton id='startNewRunBtn' disabled={!!errorMessage}
+              busy={this.state.isBeingStarted}
+              className={commonCss.buttonAction} title='Start'
+              onClick={this._start.bind(this)} />
             <Button id='exitNewRunPageBtn' onClick={() => {
               this.props.history.push(
                 !!this.state.experiment
@@ -535,13 +535,13 @@ class NewRun extends Page<{}, NewRunState> {
     return 'Parameters will appear after you select a pipeline';
   }
 
-  private _create(): void {
+  private _start(): void {
     const { pipelineFromRun, pipeline, usePipelineFromRun } = this.state;
     // TODO: This cannot currently be reached because _validate() is called everywhere and blocks
     // the button from being clicked without first having a pipeline.
     if (!pipeline) {
-      this.showErrorDialog('Run creation failed', 'Cannot create run without pipeline');
-      logger.error('Cannot create run without pipeline');
+      this.showErrorDialog('Run creation failed', 'Cannot start run without pipeline');
+      logger.error('Cannot start run without pipeline');
       return;
     }
     const references: ApiResourceReference[] = [];
@@ -574,7 +574,7 @@ class NewRun extends Page<{}, NewRunState> {
       });
     }
 
-    this.setStateSafe({ isBeingCreated: true }, async () => {
+    this.setStateSafe({ isBeingStarted: true }, async () => {
       // TODO: there was previously a bug here where the await wasn't being applied to the API
       // calls, so a run creation could fail, and the success path would still be taken. We need
       // tests for this and other similar situations.
@@ -588,7 +588,7 @@ class NewRun extends Page<{}, NewRunState> {
         logger.error('Error creating Run:', err);
         return;
       } finally {
-        this.setStateSafe({ isBeingCreated: false });
+        this.setStateSafe({ isBeingStarted: false });
       }
 
       if (this.state.experiment) {
@@ -599,7 +599,7 @@ class NewRun extends Page<{}, NewRunState> {
         this.props.history.push(RoutePage.RUNS);
       }
       this.props.updateSnackbar({
-        message: `Successfully created new Run: ${newRun.name}`,
+        message: `Successfully started new Run: ${newRun.name}`,
         open: true,
       });
     });
