@@ -84,9 +84,9 @@ def main():
   utils.add_junit_test(test_cases, 'create pipeline run', True)
 
   ###### Monitor Job ######
-  start_time = datetime.now()
-  response = client.wait_for_run_completion(run_id, 1200)
   try:
+    start_time = datetime.now()
+    response = client.wait_for_run_completion(run_id, 1200)
     succ = (response.run.status.lower()=='succeeded')
     end_time = datetime.now()
     elapsed_time = (end_time - start_time).seconds

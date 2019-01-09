@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -109,7 +109,8 @@ import (
 type ProtobufAny struct {
 
 	// A URL/resource name that uniquely identifies the type of the serialized
-	// protocol buffer message. The last segment of the URL's path must represent
+	// protocol buffer message. This string must contain at least
+	// one "/" character. The last segment of the URL's path must represent
 	// the fully qualified name of the type (as in
 	// `path/google.protobuf.Duration`). The name should be in a canonical form
 	// (e.g., leading "." is not accepted).

@@ -14,7 +14,7 @@
 
 _dummy_pipeline=None
 
-def _create_task_object(name:str, container_image:str, command=None, arguments=None, file_inputs=None, file_outputs=None):
+def _create_task_object(name:str, container_image:str, command=None, arguments=None, file_outputs=None):
     from .. import dsl
     global _dummy_pipeline
     need_dummy = dsl.Pipeline._default_pipeline is None
@@ -28,7 +28,6 @@ def _create_task_object(name:str, container_image:str, command=None, arguments=N
         image=container_image,
         command=command,
         arguments=arguments,
-        file_inputs=file_inputs,
         file_outputs=file_outputs,
     )
 
