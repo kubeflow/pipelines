@@ -34,12 +34,13 @@ bazel build @com_github_go_swagger//cmd/swagger
 # Build .pb.go and .gw.pb.go files from the proto sources.
 bazel build //backend/api:api_generated_go_sources
 
+set -x
 # Copy the generated files into the source tree and add license.
 for f in $GENERATED_GO_PROTO_FILES; do
-  name=$(basename ${f})
-  cp $f go_client/${name}
-  chmod 766 $f
-  ${AUTOGEN_CMD} -i --no-tlc -c "Google LLC" -l apache go_client/${name}
+  target=go_client/$(basename ${f})
+  cp $f $target
+  chmod 766 $target
+  ${AUTOGEN_CMD} -i --no-tlc -c "Google LLC" -l apache $target
 done
 
 # Generate and copy back into source tree .swagger.json files.

@@ -472,7 +472,7 @@ go_repository(
 
 go_repository(
     name = "com_github_masterminds_squirrel",
-    commit = "a6b93000bd21",
+    commit = "fa735ea14f09",
     importpath = "github.com/Masterminds/squirrel",
 )
 
