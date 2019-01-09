@@ -23,6 +23,7 @@ import (
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -213,5 +214,51 @@ func TestParseAPIFilter_DecodesEncodedString(t *testing.T) {
 	if !cmp.Equal(got, want) || err != nil {
 		t.Errorf("parseAPIString(%q) =\nGot %+v, %v\n Want %+v, <nil>\nDiff: %s",
 			in, got, err, want, cmp.Diff(want, got))
+	}
+}
+
+type fakeListable struct {
+	PrimaryKey       string
+	FakeName         string
+	CreatedTimestamp int64
+}
+
+func (f *fakeListable) PrimaryKeyColumnName() string {
+	return "PrimaryKey"
+}
+
+func (f *fakeListable) DefaultSortField() string {
+	return "CreatedTimestamp"
+}
+
+var fakeAPIToModelMap = map[string]string{
+	"timestamp": "CreatedTimestamp",
+	"name":      "FakeName",
+	"id":        "PrimaryKey",
+}
+
+func (f *fakeListable) APIToModelFieldMap() map[string]string {
+	return fakeAPIToModelMap
+}
+
+func TestValidatedListOptions_Errors(t *testing.T) {
+	opts, err := list.NewOptions(&fakeListable{}, 10, "name asc", nil)
+	if err != nil {
+		t.Fatalf("list.NewOptions() = _, %+v; Want nil error", err)
+	}
+
+	npt, err := opts.NextPageToken(&fakeListable{})
+	if err != nil {
+		t.Fatalf("opt.NextPageToken() = _, %+v; Want nil error", err)
+	}
+
+	_, err = validatedListOptions(&fakeListable{}, npt, 10, "name asc", "")
+	if err != nil {
+		t.Fatalf("validatedListOptions(fakeListable, 10, \"name asc\") = _, %+v; Want nil error", err)
+	}
+
+	_, err = validatedListOptions(&fakeListable{}, npt, 10, "name desc", "")
+	if err == nil {
+		t.Fatalf("validatedListOptions(fakeListable, 10, \"name desc\") = _, %+v; Want error", err)
 	}
 }

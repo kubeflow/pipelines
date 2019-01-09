@@ -86,12 +86,20 @@ type Options struct {
 	*token
 }
 
+// Matches returns trues if the sorting and filtering criteria in o matches that
+// of the one supplied in opts.
+func (o *Options) Matches(opts *Options) bool {
+	return o.SortByFieldName == opts.SortByFieldName &&
+		o.IsDesc == opts.IsDesc &&
+		reflect.DeepEqual(o.Filter, opts.Filter)
+}
+
 // NewOptionsFromToken creates a new Options struct from the passed in token
 // which represents the next page of results. An empty nextPageToken will result
 // in an error.
 func NewOptionsFromToken(nextPageToken string, pageSize int) (*Options, error) {
 	if nextPageToken == "" {
-		return nil, fmt.Errorf("cannot create list.Options from empty page token")
+		return nil, util.NewInvalidInputError("cannot create list.Options from empty page token")
 	}
 	pageSize, err := validatePageSize(pageSize)
 	if err != nil {
@@ -215,12 +223,12 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 
 	sortByField := elem.FieldByName(o.SortByFieldName)
 	if !sortByField.IsValid() {
-		return nil, fmt.Errorf("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
+		return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
 	}
 
 	keyField := elem.FieldByName(listable.PrimaryKeyColumnName())
 	if !keyField.IsValid() {
-		return nil, fmt.Errorf("type %q does not have key field %q", elemName, o.KeyFieldName)
+		return nil, util.NewInvalidInputError("type %q does not have key field %q", elemName, o.KeyFieldName)
 	}
 
 	return &token{

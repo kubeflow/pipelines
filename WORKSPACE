@@ -873,3 +873,15 @@ go_repository(
     importpath = "go.uber.org/zap",
     tag = "v1.9.1",
 )
+
+go_repository(
+    name = "com_github_google_pprof",
+    commit = "3ea8567a2e57",
+    importpath = "github.com/google/pprof",
+)
+
+go_repository(
+    name = "org_golang_x_arch",
+    commit = "5a4828bb7045",
+    importpath = "golang.org/x/arch",
+)
