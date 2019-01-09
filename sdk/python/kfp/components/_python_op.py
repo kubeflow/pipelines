@@ -19,7 +19,7 @@ __all__ = [
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
-from ._structures import InputSpec, OutputSpec, ImplementationSpec, ContainerSpec, ComponentSpec
+from ._structures import *
 
 from pathlib import Path
 from typing import TypeVar, Generic
@@ -79,73 +79,50 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
     extra_output_names = []
     arguments = []
 
-    def annotation_to_argument_kind_and_type_name(annotation):
+    def annotation_to_type_struct(annotation):
         if not annotation or annotation == inspect.Parameter.empty:
-            return ('value', None)
-        if hasattr(annotation, '__origin__'): #Generic type
-            type_name = annotation.__origin__.__name__
-            type_args = annotation.__args__
-            #if len(type_args) != 1:
-            #    raise TypeError('Unsupported generic type {}'.format(type_name))
-            inner_type = type_args[0]
-            if type_name == InputFile.__name__:
-                return ('file', inner_type.__name__)
-            elif type_name == OutputFile.__name__:
-                return ('output', inner_type.__name__)
+            return None
         if isinstance(annotation, type):
-            return ('value', annotation.__name__)
+            return str(annotation.__name__)
         else:
-            #!!! It's important to preserve string anotations as strings. Annotations that are neither types nor strings are converted to strings.
-            #Materializer adds double quotes to the types it does not recognize. - fix it to not quote strings.
-            #We need two kind of strings: we can use any type name for component YAML, but for generated Python code we must use valid python type annotations.
-            return ('value', "'" + str(annotation) + "'") 
+            return str(annotation)
 
     for parameter in parameters:
-        annotation = parameter.annotation
-        
-        (argument_kind, parameter_type_name) = annotation_to_argument_kind_and_type_name(annotation)
-
-        parameter_to_type_name[parameter.name] = parameter_type_name
-
+        type_struct = annotation_to_type_struct(parameter.annotation)
+        parameter_to_type_name[parameter.name] = str(type_struct)
         #TODO: Humanize the input/output names
-        arguments.append({argument_kind: parameter.name})
+        arguments.append(InputValuePlaceholder(parameter.name))
 
-        parameter_spec = OrderedDict([('name', parameter.name)])
-        if parameter_type_name:
-            parameter_spec['type'] = parameter_type_name
-        if argument_kind == 'value' or argument_kind == 'file':
-            inputs.append(parameter_spec)
-        elif argument_kind == 'output':
-            outputs.append(parameter_spec)
-        else:
-            #Cannot happen
-            raise ValueError('Unrecognized argument kind {}.'.format(argument_kind))
+        input_spec = InputSpec(
+            name=parameter.name,
+            type=type_struct,
+        )
+        inputs.append(input_spec)
 
     #Analyzing the return type annotations.
     return_ann = signature.return_annotation
     if hasattr(return_ann, '_fields'): #NamedTuple
         for field_name in return_ann._fields:
-            output_spec = OrderedDict([('name', field_name)])
+            type_struct = None
             if hasattr(return_ann, '_field_types'):
-                output_type = return_ann._field_types.get(field_name, None)
-                if isinstance(output_type, type):
-                    output_type_name = output_type.__name__
-                else:
-                    output_type_name = str(output_type)
-                
-                if output_type:
-                    output_spec['type'] = output_type_name
+                type_struct = annotation_to_type_struct(return_ann._field_types.get(field_name, None))
+
+            output_spec = OutputSpec(
+                name=field_name,
+                type=type_struct,
+            )
             outputs.append(output_spec)
             extra_output_names.append(field_name)
-            arguments.append({'output': field_name})
-    else:
-        output_spec = OrderedDict([('name', single_output_name_const)])
-        (_, output_type_name) = annotation_to_argument_kind_and_type_name(signature.return_annotation)
-        if output_type_name:
-            output_spec['type'] = output_type_name
+            arguments.append(OutputPathPlaceholder(field_name))
+    elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
+        type_struct = annotation_to_type_struct(signature.return_annotation)
+        output_spec = OutputSpec(
+            name=single_output_name_const,
+            type=type_struct,
+        )
         outputs.append(output_spec)
         extra_output_names.append(single_output_pythonic_name_const)
-        arguments.append({'output': single_output_name_const})
+        arguments.append(OutputPathPlaceholder(single_output_name_const))
 
     func_name=func.__name__
 
@@ -226,9 +203,9 @@ for idx, filename in enumerate(_output_files):
     component_spec = ComponentSpec(
         name=component_name,
         description=description,
-        inputs=[InputSpec.from_struct(input) for input in inputs],
-        outputs=[OutputSpec.from_struct(output) for output in outputs],
-        implementation=ImplementationSpec(
+        inputs=inputs,
+        outputs=outputs,
+        implementation=ContainerImplementation(
             container=ContainerSpec(
                 image=base_image,
                 command=['python3', '-c', full_source],
