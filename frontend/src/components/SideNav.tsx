@@ -29,6 +29,7 @@ import { RoutePage } from '../components/Router';
 import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, dimension, commonCss } from '../Css';
+import Tooltip from '@material-ui/core/Tooltip';
 
 export const sideNavColors = {
   bg: '#0f4471',
@@ -166,39 +167,55 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
 
     return (
       <div id='sideNav' className={classes(css.root, commonCss.noShrink, collapsed && css.collapsedRoot)}>
-        <div className={classes(css.button, collapsed && css.collapsedButton, css.logo)}>
-          <KubeflowLogo color={iconColor.active} style={{ flexShrink: 0 }} />
-          <span className={classes(collapsed && css.collapsedLabel, css.label, css.logoLabel)}>
-            Kubeflow
-          </span>
-        </div>
-        <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
-          <Button className={classes(css.button,
-            page.startsWith(RoutePage.PIPELINES) && css.active,
-            collapsed && css.collapsedButton)}>
-            <PipelinesIcon color={page.startsWith(RoutePage.PIPELINES) ? iconColor.active : iconColor.inactive} />
-            <span className={classes(collapsed && css.collapsedLabel, css.label)}>Pipelines</span>
-          </Button>
-        </Link>
-        <Link id='experimentsBtn' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
-          <Button className={
-            classes(
-              css.button,
-              this._highlightExperimentsButton(page) && css.active,
+        <Tooltip title={'Kubeflow Pipelines'} enterDelay={300} placement={'right'}
+          disableFocusListener={!collapsed} disableHoverListener={!collapsed}
+          disableTouchListener={!collapsed}>
+          <Link id='kfpLogoBtn' to={RoutePage.PIPELINES} className={classes(css.button, collapsed && css.collapsedButton, css.logo, commonCss.unstyled)}>
+            <KubeflowLogo color={iconColor.active} style={{ flexShrink: 0 }} />
+            <span className={classes(collapsed && css.collapsedLabel, css.label, css.logoLabel)}>
+              Kubeflow
+            </span>
+          </Link>
+        </Tooltip>
+        <Tooltip title={'Pipeline List'} enterDelay={300} placement={'right-start'}
+          disableFocusListener={!collapsed} disableHoverListener={!collapsed}
+          disableTouchListener={!collapsed}>
+          <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
+            <Button className={classes(css.button,
+              page.startsWith(RoutePage.PIPELINES) && css.active,
               collapsed && css.collapsedButton)}>
-            <ExperimentsIcon color={this._highlightExperimentsButton(page) ? iconColor.active : iconColor.inactive} />
-            <span className={classes(collapsed && css.collapsedLabel, css.label)}>Experiments</span>
-          </Button>
-        </Link>
-        {this.state.jupyterHubAvailable && (
-          <a id='jupyterhubBtn' href={this._HUB_ADDRESS} className={commonCss.unstyled} target='_blank'>
-            <Button className={
-              classes(css.button, collapsed && css.collapsedButton)}>
-              <JupyterhubIcon style={{ height: 20, width: 20 }} />
-              <span className={classes(collapsed && css.collapsedLabel, css.label)}>Notebooks</span>
-              <OpenInNewIcon style={{ height: 12, width: 12, marginLeft: 5, marginBottom: 8 }} />
+              <PipelinesIcon color={page.startsWith(RoutePage.PIPELINES) ? iconColor.active : iconColor.inactive} />
+              <span className={classes(collapsed && css.collapsedLabel, css.label)}>Pipelines</span>
             </Button>
-          </a>
+          </Link>
+        </Tooltip>
+        <Tooltip title={'Experiment List'} enterDelay={300} placement={'right-start'}
+          disableFocusListener={!collapsed} disableHoverListener={!collapsed}
+          disableTouchListener={!collapsed}>
+          <Link id='experimentsBtn' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
+            <Button className={
+              classes(
+                css.button,
+                this._highlightExperimentsButton(page) && css.active,
+                collapsed && css.collapsedButton)}>
+              <ExperimentsIcon color={this._highlightExperimentsButton(page) ? iconColor.active : iconColor.inactive} />
+              <span className={classes(collapsed && css.collapsedLabel, css.label)}>Experiments</span>
+            </Button>
+          </Link>
+        </Tooltip>
+        {this.state.jupyterHubAvailable && (
+          <Tooltip title={'Open Jupyter Notebook'} enterDelay={300} placement={'right-start'}
+            disableFocusListener={!collapsed} disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}>
+            <a id='jupyterhubBtn' href={this._HUB_ADDRESS} className={commonCss.unstyled} target='_blank'>
+              <Button className={
+                classes(css.button, collapsed && css.collapsedButton)}>
+                <JupyterhubIcon style={{ height: 20, width: 20 }} />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Notebooks</span>
+                <OpenInNewIcon style={{ height: 12, width: 12, marginLeft: 5, marginBottom: 8 }} />
+              </Button>
+            </a>
+          </Tooltip>
         )}
         <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
         <IconButton className={classes(css.chevron, collapsed && css.collapsedChevron)}
