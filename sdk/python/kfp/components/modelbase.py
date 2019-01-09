@@ -16,6 +16,7 @@ __all__ = [
     'ModelBase',
 ]
 
+import inspect
 from collections import abc, OrderedDict
 from typing import Any, Callable, Dict, List, Mapping, MutableMapping, MutableSequence, Optional, Sequence, Tuple, Type, TypeVar, Union, cast, get_type_hints
 
@@ -180,7 +181,6 @@ def convert_object_to_struct(obj, serialized_names: Mapping[str, str] = {}):
     If the type of some property is a class that has .to_struct class method, that method is used for conversion.
     Used by the ModelBase class.
     '''
-    import inspect
     signature = inspect.signature(obj.__init__) #Needed for default values
     result = {}
     for python_name, value in obj.__dict__.items(): #TODO: Should we take the fields from the constructor parameters instead? #TODO: Make it possible to specify the field ordering
@@ -270,7 +270,15 @@ class ModelBase:
 
     def to_struct(self) -> Mapping:
         return convert_object_to_struct(self, serialized_names=self._serialized_names)
+    
+    def _get_field_names(self):
+        return list(inspect.signature(self.__init__).parameters)
 
     def __repr__(self):
-        return self.__class__.__name__ + '.from_struct(' + str(self.to_struct()) + ')'
+        return self.__class__.__name__ + '(' + ', '.join(param + '=' + repr(getattr(self, param)) for param in self._get_field_names()) + ')'
 
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and {k: getattr(self, k) for k in self._get_field_names()} == {k: getattr(self, k) for k in other._get_field_names()}
+
+    def __ne__(self, other):
+        return not self == other
