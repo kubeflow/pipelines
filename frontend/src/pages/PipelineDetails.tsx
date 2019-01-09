@@ -137,9 +137,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       actions.push({
         action: this._createNewExperiment.bind(this),
         icon: AddIcon,
-        id: 'startNewExperimentBtn',
+        id: 'createNewExperimentBtn',
         outlined: true,
-        title: 'Start an experiment',
+        title: 'Create an experiment',
         tooltip: 'Create a new experiment beginning with this pipeline',
       }, {
         action: () => this.props.updateDialog({
