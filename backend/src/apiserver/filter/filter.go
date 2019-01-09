@@ -21,6 +21,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 )
@@ -38,6 +39,8 @@ type Filter struct {
 	lte map[string]interface{}
 
 	in map[string]interface{}
+
+	substring map[string]interface{}
 }
 
 // New creates a new Filter from parsing the API filter protocol buffer.
@@ -51,6 +54,7 @@ func New(filterProto *api.Filter) (*Filter, error) {
 		lt:          make(map[string]interface{}),
 		lte:         make(map[string]interface{}),
 		in:          make(map[string]interface{}),
+		substring:   make(map[string]interface{}),
 	}
 
 	if err := f.parseFilterProto(); err != nil {
@@ -68,7 +72,7 @@ func NewWithKeyMap(filterProto *api.Filter, keyMap map[string]string) (*Filter, 
 	for _, pred := range filterProto.Predicates {
 		k, ok := keyMap[pred.Key]
 		if !ok {
-			return nil, fmt.Errorf("no support for filtering on unrecognized field %q", pred.Key)
+			return nil, util.NewInvalidInputError("no support for filtering on unrecognized field %q", pred.Key)
 		}
 		pred.Key = k
 	}
@@ -107,6 +111,16 @@ func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
 		sb = sb.Where(squirrel.Eq(f.in))
 	}
 
+	if len(f.substring) > 0 {
+		like := make(squirrel.Like)
+		// Modify each string value v so it looks like %v% so we are doing a substring
+		// match with the LIKE operator.
+		for k, v := range f.substring {
+			like[k] = fmt.Sprintf("%%%s%%", v)
+		}
+		sb = sb.Where(like)
+	}
+
 	return sb
 }
 
@@ -115,17 +129,25 @@ func checkPredicate(p *api.Predicate) error {
 	case api.Predicate_IN:
 		switch t := p.Value.(type) {
 		case *api.Predicate_IntValue, *api.Predicate_LongValue, *api.Predicate_StringValue, *api.Predicate_TimestampValue:
-			return fmt.Errorf("cannot use IN operator with scalar type %T", t)
+			return util.NewInvalidInputError("cannot use IN operator with scalar type %T", t)
 		}
 
 	case api.Predicate_EQUALS, api.Predicate_NOT_EQUALS, api.Predicate_GREATER_THAN, api.Predicate_GREATER_THAN_EQUALS, api.Predicate_LESS_THAN, api.Predicate_LESS_THAN_EQUALS:
 		switch t := p.Value.(type) {
 		case *api.Predicate_IntValues, *api.Predicate_LongValues, *api.Predicate_StringValues:
-			return fmt.Errorf("cannot use scalar operator %v on array type %T", p.Op, t)
+			return util.NewInvalidInputError("cannot use scalar operator %v on array type %T", p.Op, t)
+		}
+
+	case api.Predicate_IS_SUBSTRING:
+		switch t := p.Value.(type) {
+		case *api.Predicate_StringValue:
+			return nil
+		default:
+			return util.NewInvalidInputError("cannot use non string value type %T with operator %v", p.Op, t)
 		}
 
 	default:
-		return fmt.Errorf("invalid predicate operation: %v", p.Op)
+		return util.NewInvalidInputError("invalid predicate operation: %v", p.Op)
 	}
 
 	return nil
@@ -153,8 +175,10 @@ func (f *Filter) parseFilterProto() error {
 			m = f.lte
 		case api.Predicate_IN:
 			m = f.in
+		case api.Predicate_IS_SUBSTRING:
+			m = f.substring
 		default:
-			return fmt.Errorf("invalid predicate operation: %v", pred.Op)
+			return util.NewInvalidInputError("invalid predicate operation: %v", pred.Op)
 		}
 
 		if err := addPredicateValue(m, pred); err != nil {
@@ -176,7 +200,7 @@ func addPredicateValue(m map[string]interface{}, p *api.Predicate) error {
 	case *api.Predicate_TimestampValue:
 		ts, err := ptypes.Timestamp(p.GetTimestampValue())
 		if err != nil {
-			return fmt.Errorf("invalid timestamp: %v", err)
+			return util.NewInvalidInputError("invalid timestamp: %v", err)
 		}
 		m[p.Key] = ts.Unix()
 
@@ -202,10 +226,10 @@ func addPredicateValue(m map[string]interface{}, p *api.Predicate) error {
 		m[p.Key] = v
 
 	case nil:
-		return fmt.Errorf("no value set for predicate on key %q", p.Key)
+		return util.NewInvalidInputError("no value set for predicate on key %q", p.Key)
 
 	default:
-		return fmt.Errorf("unknown value type in Filter for predicate key %q: %T", p.Key, t)
+		return util.NewInvalidInputError("unknown value type in Filter for predicate key %q: %T", p.Key, t)
 	}
 
 	return nil

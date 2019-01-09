@@ -65,6 +65,11 @@ func TestValidNewFilters(t *testing.T) {
 				long_values { values: 100 values: 200 } }`,
 			&Filter{in: map[string]interface{}{"longvalues": []int64{100, 200}}},
 		},
+		{
+			`predicates {
+				key: "label" op: IS_SUBSTRING string_value: "label_substring" }`,
+			&Filter{substring: map[string]interface{}{"label": "label_substring"}},
+		},
 	}
 
 	for _, test := range tests {
@@ -108,6 +113,14 @@ func TestInvalidFilters(t *testing.T) {
 		{
 			`predicates { key: "total" op: LESS_THAN_EQUALS
 			 long_values { values: 10 values: 20} }`,
+		},
+		{
+			`predicates { key: "total" op: IS_SUBSTRING
+			 long_values { values: 10 values: 20} }`,
+		},
+		{
+			`predicates { key: "total" op: IS_SUBSTRING
+			 int_values { values: 10  values: 20} }`,
 		},
 
 		{
@@ -194,6 +207,11 @@ func TestAddToSelect(t *testing.T) {
 			`predicates { key: "label" op: IN  string_values {values: "l1" values: "l2"}}`,
 			"SELECT mycolumn WHERE label IN (?,?)",
 			[]interface{}{"l1", "l2"},
+		},
+		{
+			`predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring" }`,
+			"SELECT mycolumn WHERE label LIKE ?",
+			[]interface{}{"%label_substring%"},
 		},
 	}
 
