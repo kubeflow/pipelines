@@ -11,3 +11,5 @@ frontend/package-lock.json linguist-generated
 frontend/server/package-lock.json linguist-generated
 frontend/test/package-lock.json linguist-generated
 
+# Ignore generated TS client library
+frontend/src/apis/* linguist-generated
