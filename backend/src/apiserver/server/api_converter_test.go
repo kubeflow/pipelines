@@ -115,13 +115,13 @@ func TestToApiRuns(t *testing.T) {
 	apiMetric1 := &api.RunMetric{
 		Name:   metric1.Name,
 		NodeId: metric1.NodeID,
-		Value:  &api.RunMetric_NumberValue{metric1.NumberValue},
+		Value:  &api.RunMetric_NumberValue{NumberValue: metric1.NumberValue},
 		Format: api.RunMetric_RAW,
 	}
 	apiMetric2 := &api.RunMetric{
 		Name:   metric2.Name,
 		NodeId: metric2.NodeID,
-		Value:  &api.RunMetric_NumberValue{metric2.NumberValue},
+		Value:  &api.RunMetric_NumberValue{NumberValue: metric2.NumberValue},
 		Format: api.RunMetric_PERCENTAGE,
 	}
 	modelRun1 := model.Run{
