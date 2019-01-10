@@ -542,6 +542,7 @@ describe('CustomTable', () => {
     (tree.instance() as CustomTable).handleFilterChange({ target: { value: 'test filter' } });
     await TestUtils.flushPromises();
     expect(tree.state('filterString')).toEqual('test filter');
+    expect(tree).toMatchSnapshot();
   });
 
   it('reloads the table with the encoded filter object', async () => {
