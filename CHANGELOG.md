@@ -6,8 +6,11 @@
 
 **Closed issues:**
 
+- Use "Start" for runs, "Create" for experiments [\#649](https://github.com/kubeflow/pipelines/issues/649)
+- go vet in Travis tests breaks tests for unrelated PRs [\#646](https://github.com/kubeflow/pipelines/issues/646)
 - Building backend using Bazel fails on mac [\#638](https://github.com/kubeflow/pipelines/issues/638)
 - ml-pipeline-persistenceagent fails a few times. [\#624](https://github.com/kubeflow/pipelines/issues/624)
+- Unable to plug-in default values to Pipeline [\#618](https://github.com/kubeflow/pipelines/issues/618)
 - Add deployed model cleanup code to the Kubeflow notebook [\#608](https://github.com/kubeflow/pipelines/issues/608)
 - Compare page perf optimizations [\#597](https://github.com/kubeflow/pipelines/issues/597)
 - OAth client instructions are ambiguous [\#586](https://github.com/kubeflow/pipelines/issues/586)
@@ -17,10 +20,18 @@
 - Failing e2e sample tests do not log any errors [\#515](https://github.com/kubeflow/pipelines/issues/515)
 - Authentication and service account plan for Pipeline + Kubeflow  [\#374](https://github.com/kubeflow/pipelines/issues/374)
 - Error getting logs [\#290](https://github.com/kubeflow/pipelines/issues/290)
+- Support filtering in list APIs [\#270](https://github.com/kubeflow/pipelines/issues/270)
 - Switch to Go 1.11 modules and package management. [\#187](https://github.com/kubeflow/pipelines/issues/187)
 
 **Merged pull requests:**
 
+- Release component image version d3c4add0a95e930c70a330466d0923827784eb9a [\#655](https://github.com/kubeflow/pipelines/pull/655) ([IronPan](https://github.com/IronPan))
+- Correctly ignore src/apis when building frontend [\#654](https://github.com/kubeflow/pipelines/pull/654) ([yebrahim](https://github.com/yebrahim))
+- Use linguist annotations to skip diffing generated files [\#652](https://github.com/kubeflow/pipelines/pull/652) ([yebrahim](https://github.com/yebrahim))
+- Use "create" rather than "start" except when initiating a run [\#650](https://github.com/kubeflow/pipelines/pull/650) ([rileyjbauer](https://github.com/rileyjbauer))
+- Fix shadowing errors in Viewer reconciler [\#648](https://github.com/kubeflow/pipelines/pull/648) ([neuromage](https://github.com/neuromage))
+- Add IS\_SUBSTRING operator for use in API resource filtering. [\#645](https://github.com/kubeflow/pipelines/pull/645) ([neuromage](https://github.com/neuromage))
+- Add changelog to pipeline repo [\#644](https://github.com/kubeflow/pipelines/pull/644) ([IronPan](https://github.com/IronPan))
 - Update WORKSPACE and BUILD files incoporating recent changes [\#639](https://github.com/kubeflow/pipelines/pull/639) ([neuromage](https://github.com/neuromage))
 - fix deploy model name conflict in case of concurrent notebook sample test [\#636](https://github.com/kubeflow/pipelines/pull/636) ([gaoning777](https://github.com/gaoning777))
 - Print sample test logs in case of exception throw [\#635](https://github.com/kubeflow/pipelines/pull/635) ([gaoning777](https://github.com/gaoning777))
@@ -30,9 +41,13 @@
 - Updates material-ui and react npm libraries [\#630](https://github.com/kubeflow/pipelines/pull/630) ([rileyjbauer](https://github.com/rileyjbauer))
 - Generate pipeline and job python client as part of SDK [\#628](https://github.com/kubeflow/pipelines/pull/628) ([IronPan](https://github.com/IronPan))
 - Fix gpu sample issues [\#627](https://github.com/kubeflow/pipelines/pull/627) ([hongye-sun](https://github.com/hongye-sun))
+- Run `go vet` as part of the Travis CI. [\#626](https://github.com/kubeflow/pipelines/pull/626) ([neuromage](https://github.com/neuromage))
+- Sanity check filtering/sorting options in list requests. [\#625](https://github.com/kubeflow/pipelines/pull/625) ([neuromage](https://github.com/neuromage))
 - Support replacable arguments in command as well \(besides arguments\) in container op. [\#623](https://github.com/kubeflow/pipelines/pull/623) ([qimingj](https://github.com/qimingj))
 - Update sample notebook to clean up deployed models. [\#622](https://github.com/kubeflow/pipelines/pull/622) ([qimingj](https://github.com/qimingj))
 - URLEncode instead of base64 encode the filter string [\#620](https://github.com/kubeflow/pipelines/pull/620) ([neuromage](https://github.com/neuromage))
+- DSL refactor [\#619](https://github.com/kubeflow/pipelines/pull/619) ([gaoning777](https://github.com/gaoning777))
+- Expose that the python API is Python3.5+ only [\#616](https://github.com/kubeflow/pipelines/pull/616) ([TimZaman](https://github.com/TimZaman))
 - Load sample when pipeline initially started [\#615](https://github.com/kubeflow/pipelines/pull/615) ([IronPan](https://github.com/IronPan))
 - Use Bazel to build the entire backend and perform API code generation [\#609](https://github.com/kubeflow/pipelines/pull/609) ([neuromage](https://github.com/neuromage))
 - Improve condition sample to demonstrate ==, \>= and \<. [\#607](https://github.com/kubeflow/pipelines/pull/607) ([qimingj](https://github.com/qimingj))
