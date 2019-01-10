@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -64,6 +65,7 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
+		glog.Errorf("Failed to start transaction to list pipelines")
 		return errorF(err)
 	}
 
@@ -93,6 +95,7 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 
 	err = tx.Commit()
 	if err != nil {
+		glog.Errorf("Failed to commit transaction to list pipelines")
 		return errorF(err)
 	}
 

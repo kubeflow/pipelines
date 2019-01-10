@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -50,6 +51,7 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
+		glog.Errorf("Failed to start transaction to list jobs")
 		return errorF(err)
 	}
 
@@ -79,6 +81,7 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 
 	err = tx.Commit()
 	if err != nil {
+		glog.Errorf("Failed to commit transaction to list experiments")
 		return errorF(err)
 	}
 

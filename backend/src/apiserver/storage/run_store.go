@@ -98,6 +98,7 @@ func (s *RunStore) ListRuns(
 	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
+		glog.Errorf("Failed to start transaction to list runs")
 		return errorF(err)
 	}
 
@@ -127,6 +128,7 @@ func (s *RunStore) ListRuns(
 
 	err = tx.Commit()
 	if err != nil {
+		glog.Errorf("Failed to commit transaction to list runs")
 		return errorF(err)
 	}
 
