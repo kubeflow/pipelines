@@ -15,10 +15,10 @@
  */
 
 import * as React from 'react';
-import CustomTable, { Column, Row, css, ExpandState } from './CustomTable';
+import CustomTable, { Column, ExpandState, Row, css } from './CustomTable';
 import TestUtils from '../TestUtils';
-import { shallow } from 'enzyme';
 import { PredicateOp } from '../apis/filter';
+import { shallow } from 'enzyme';
 
 const props = {
   columns: [],
@@ -291,7 +291,7 @@ describe('CustomTable', () => {
     expect(spy).toHaveBeenLastCalledWith(['row1']);
   });
 
-  it('does not add items to selection when multiple clicked', () => {
+  it('does not add items to selection when multiple rows are clicked', () => {
     // Keeping track of selection is the parent's job.
     const spy = jest.fn();
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} updateSelection={spy} />);
@@ -300,7 +300,7 @@ describe('CustomTable', () => {
     expect(spy).toHaveBeenLastCalledWith(['row2']);
   });
 
-  it('passes both selectedIds and newly selected row when clicked', () => {
+  it('passes both selectedIds and the newly selected row to updateSelection when a row is clicked', () => {
     // Keeping track of selection is the parent's job.
     const selectedIds = ['previouslySelectedRow'];
     const spy = jest.fn();
@@ -539,7 +539,7 @@ describe('CustomTable', () => {
 
   it('updates the filter string in state when the filter box input changes', async () => {
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
-    (tree.instance() as CustomTable).handleChange('filterString')({ target: { value: 'test filter' } });
+    (tree.instance() as CustomTable).handleFilterChange({ target: { value: 'test filter' } });
     await TestUtils.flushPromises();
     expect(tree.state('filterString')).toEqual('test filter');
   });

@@ -204,7 +204,7 @@ interface CustomTableState {
 export default class CustomTable extends React.Component<CustomTableProps, CustomTableState> {
   private _isMounted = true;
 
-  private _debouncedRequest =
+  private _debouncedFilterRequest =
     debounce((filterString: string) => this._requestFilter(filterString), 300);
 
   constructor(props: CustomTableProps) {
@@ -269,7 +269,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   public componentWillUnmount(): void {
     this._isMounted = false;
-    this._debouncedRequest.cancel();
+    this._debouncedFilterRequest.cancel();
   }
 
   public render(): JSX.Element {
@@ -286,7 +286,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
           <div>
             <Input label={this.props.filterLabel || 'Filter'} height={48} maxWidth={'100%'}
               className={css.filterBox} InputLabelProps={{ classes: { root: css.noMargin }}}
-              onChange={this.handleChange('filterString')} value={filterString} variant='outlined'
+              onChange={this.handleFilterChange} value={filterString}
+              variant='outlined'
               InputProps={{
                 classes: {
                   notchedOutline: css.filterBorderRadius,
@@ -458,14 +459,13 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     return result;
   }
 
-  public handleChange = (name: string) => (event: any) => {
+  public handleFilterChange = (event: any) => {
     const value = event.target.value;
-    this.setStateSafe({ [name]: value } as any,
-      async () => {
-        if (name === 'filterString') {
-          await this._debouncedRequest(value as string);
-        }
-      });
+    // Set state here so that the UI will be updated even if the actual filter request is debounced
+    this.setStateSafe(
+      { filterString: value } as any,
+      async () => await this._debouncedFilterRequest(value as string)
+    );
   }
 
   // Exposed for testing
