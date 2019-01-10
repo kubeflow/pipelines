@@ -47,7 +47,11 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipelines: %v", err)
 	}
 
-	sqlBuilder := sq.Select("*").From("pipelines").Where(sq.Eq{"Status": model.PipelineReady})
+	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+		return sqlBuilder.From("pipelines").Where(sq.Eq{"Status": model.PipelineReady})
+	}
+
+	sqlBuilder := buildQuery(sq.Select("*"))
 
 	// SQL for row list
 	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
@@ -57,7 +61,7 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
-	countSql, countArgs, err := sq.Select("count(*)").From("pipelines").Where(sq.Eq{"Status": model.PipelineReady}).ToSql()
+	countSql, countArgs, err := buildQuery(sq.Select("count(*)")).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
