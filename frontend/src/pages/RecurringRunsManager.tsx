@@ -83,9 +83,10 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     return (<React.Fragment>
       <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle='Recurring runs' />
       <CustomTable columns={columns} rows={rows} ref={this._tableRef} selectedIds={selectedIds}
-        updateSelection={ids => this.setState({ selectedIds: ids })} initialSortColumn={JobSortKeys.CREATED_AT}
-        reload={this._loadRuns.bind(this)} emptyMessage={'No recurring runs found in this experiment.'}
-        disableSelection={true} />
+        updateSelection={ids => this.setState({ selectedIds: ids })}
+        initialSortColumn={JobSortKeys.CREATED_AT} reload={this._loadRuns.bind(this)}
+        filterLabel='Filter recurring runs' disableSelection={true}
+        emptyMessage={'No recurring runs found in this experiment.'}/>
     </React.Fragment>);
   }
 
@@ -105,6 +106,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
         request.sortBy,
         ApiResourceType.EXPERIMENT.toString(),
         this.props.experimentId,
+        request.filter,
       );
       runs = response.jobs || [];
       nextPageToken = response.next_page_token || '';

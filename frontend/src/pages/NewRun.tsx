@@ -188,6 +188,7 @@ class NewRun extends Page<{}, NewRunState> {
             <DialogContent>
               <ResourceSelector {...this.props}
                 title='Choose a pipeline'
+                filterLabel='Filter pipelines'
                 listApi={async (...args) => {
                   const response = await Apis.pipelineServiceApi.listPipelines(...args);
                   return { resources: response.pipelines || [], nextPageToken: response.next_page_token || '' };
@@ -216,6 +217,7 @@ class NewRun extends Page<{}, NewRunState> {
             <DialogContent>
               <ResourceSelector {...this.props}
                 title='Choose an experiment'
+                filterLabel='Filter experiments'
                 listApi={async (...args) => {
                   const response = await Apis.experimentServiceApi.listExperiment(...args);
                   return { resources: response.experiments || [], nextPageToken: response.next_page_token || '' };

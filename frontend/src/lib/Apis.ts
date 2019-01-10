@@ -22,7 +22,7 @@ import { StoragePath } from './WorkflowParser';
 const v1beta1Prefix = 'apis/v1beta1';
 
 export interface ListRequest {
-  filterBy?: string;
+  filter?: string;
   orderAscending?: boolean;
   pageSize?: number;
   pageToken?: string;
