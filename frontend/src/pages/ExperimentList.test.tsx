@@ -126,7 +126,7 @@ describe('ExperimentList', () => {
 
   it('calls Apis to list experiments, sorted by creation time in descending order', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(listRunsSpy).toHaveBeenLastCalledWith(undefined, 5, 'created_at desc',
       ApiResourceType.EXPERIMENT.toString(), 'test-experiment-id0');
     expect(tree.state()).toHaveProperty('displayExperiments', [{
@@ -146,7 +146,7 @@ describe('ExperimentList', () => {
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
     tree.unmount();
   });
@@ -189,7 +189,7 @@ describe('ExperimentList', () => {
     TestUtils.makeErrorResponseOnce(listExperimentsSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       additionalInfo: 'bad stuff happened',
       message: 'Error: failed to retrieve list of experiments. Click Details for more information.',

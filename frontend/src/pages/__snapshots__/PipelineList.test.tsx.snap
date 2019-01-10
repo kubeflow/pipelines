@@ -25,6 +25,7 @@ exports[`PipelineList renders a list of one pipeline 1`] = `
       ]
     }
     emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
+    filterLabel="Filter pipelines"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -74,6 +75,7 @@ exports[`PipelineList renders a list of one pipeline with error 1`] = `
       ]
     }
     emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
+    filterLabel="Filter pipelines"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -123,6 +125,7 @@ exports[`PipelineList renders a list of one pipeline with no description or crea
       ]
     }
     emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
+    filterLabel="Filter pipelines"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -172,6 +175,7 @@ exports[`PipelineList renders an empty list with empty state message 1`] = `
       ]
     }
     emptyMessage="No pipelines found. Click \\"Upload pipeline\\" to start."
+    filterLabel="Filter pipelines"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={Array []}

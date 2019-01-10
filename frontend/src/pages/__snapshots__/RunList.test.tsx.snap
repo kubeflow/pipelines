@@ -53,6 +53,7 @@ exports[`RunList adds metrics columns 1`] = `
       ]
     }
     emptyMessage="No runs found."
+    filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -175,6 +176,7 @@ exports[`RunList displays error in run row if experiment could not be fetched 1`
       ]
     }
     emptyMessage="No runs found."
+    filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -235,6 +237,7 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
       ]
     }
     emptyMessage="No runs found."
+    filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -307,6 +310,7 @@ exports[`RunList displays error in run row if it failed to parse 1`] = `
       ]
     }
     emptyMessage="No runs found."
+    filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -367,6 +371,7 @@ exports[`RunList displays error in run row if pipeline could not be fetched 1`] 
       ]
     }
     emptyMessage="No runs found."
+    filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -439,6 +444,7 @@ exports[`RunList loads multiple runs 1`] = `
       ]
     }
     emptyMessage="No runs found."
+    filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -547,6 +553,7 @@ exports[`RunList loads one run 1`] = `
       ]
     }
     emptyMessage="No runs found."
+    filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -617,6 +624,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
         ]
       }
       emptyMessage="No runs found."
+      filterLabel="Filter runs"
       initialSortColumn="created_at"
       reload={[Function]}
       rows={Array []}
@@ -624,6 +632,1000 @@ exports[`RunList reloads the run when refresh is called 1`] = `
       <div
         className="pageOverflowHidden"
       >
+        <div>
+          <Component
+            InputLabelProps={
+              Object {
+                "classes": Object {
+                  "root": "noMargin",
+                },
+              }
+            }
+            InputProps={
+              Object {
+                "classes": Object {
+                  "notchedOutline": "filterBorderRadius",
+                  "root": "noLeftPadding",
+                },
+                "startAdornment": <WithStyles(InputAdornment)
+                  position="end"
+                >
+                  <pure(FilterListIcon)
+                    style={
+                      Object {
+                        "color": "#80868b",
+                        "paddingRight": 16,
+                      }
+                    }
+                  />
+                </WithStyles(InputAdornment)>,
+              }
+            }
+            className="filterBox"
+            height={48}
+            label="Filter runs"
+            maxWidth="100%"
+            onChange={[Function]}
+            value=""
+            variant="outlined"
+          >
+            <TextField
+              InputLabelProps={
+                Object {
+                  "classes": Object {
+                    "root": "noMargin",
+                  },
+                }
+              }
+              InputProps={
+                Object {
+                  "classes": Object {
+                    "notchedOutline": "filterBorderRadius",
+                    "root": "noLeftPadding",
+                  },
+                  "startAdornment": <WithStyles(InputAdornment)
+                    position="end"
+                  >
+                    <pure(FilterListIcon)
+                      style={
+                        Object {
+                          "color": "#80868b",
+                          "paddingRight": 16,
+                        }
+                      }
+                    />
+                  </WithStyles(InputAdornment)>,
+                }
+              }
+              className="filterBox"
+              label="Filter runs"
+              onChange={[Function]}
+              required={false}
+              select={false}
+              spellCheck={false}
+              style={
+                Object {
+                  "height": 48,
+                  "maxWidth": "100%",
+                  "width": "100%",
+                }
+              }
+              value=""
+              variant="outlined"
+            >
+              <WithStyles(FormControl)
+                className="filterBox"
+                required={false}
+                spellCheck={false}
+                style={
+                  Object {
+                    "height": 48,
+                    "maxWidth": "100%",
+                    "width": "100%",
+                  }
+                }
+                variant="outlined"
+              >
+                <FormControl
+                  className="filterBox"
+                  classes={
+                    Object {
+                      "fullWidth": "MuiFormControl-fullWidth-4",
+                      "marginDense": "MuiFormControl-marginDense-3",
+                      "marginNormal": "MuiFormControl-marginNormal-2",
+                      "root": "MuiFormControl-root-1",
+                    }
+                  }
+                  component="div"
+                  disabled={false}
+                  error={false}
+                  fullWidth={false}
+                  margin="none"
+                  required={false}
+                  spellCheck={false}
+                  style={
+                    Object {
+                      "height": 48,
+                      "maxWidth": "100%",
+                      "width": "100%",
+                    }
+                  }
+                  variant="outlined"
+                >
+                  <div
+                    className="MuiFormControl-root-1 filterBox"
+                    spellCheck={false}
+                    style={
+                      Object {
+                        "height": 48,
+                        "maxWidth": "100%",
+                        "width": "100%",
+                      }
+                    }
+                  >
+                    <WithStyles(WithFormControlContext(InputLabel))
+                      classes={
+                        Object {
+                          "root": "noMargin",
+                        }
+                      }
+                    >
+                      <WithFormControlContext(InputLabel)
+                        classes={
+                          Object {
+                            "animated": "MuiInputLabel-animated-13",
+                            "disabled": "MuiInputLabel-disabled-7",
+                            "error": "MuiInputLabel-error-8",
+                            "filled": "MuiInputLabel-filled-14",
+                            "focused": "MuiInputLabel-focused-6",
+                            "formControl": "MuiInputLabel-formControl-10",
+                            "marginDense": "MuiInputLabel-marginDense-11",
+                            "outlined": "MuiInputLabel-outlined-15",
+                            "required": "MuiInputLabel-required-9",
+                            "root": "MuiInputLabel-root-5 noMargin",
+                            "shrink": "MuiInputLabel-shrink-12",
+                          }
+                        }
+                      >
+                        <InputLabel
+                          classes={
+                            Object {
+                              "animated": "MuiInputLabel-animated-13",
+                              "disabled": "MuiInputLabel-disabled-7",
+                              "error": "MuiInputLabel-error-8",
+                              "filled": "MuiInputLabel-filled-14",
+                              "focused": "MuiInputLabel-focused-6",
+                              "formControl": "MuiInputLabel-formControl-10",
+                              "marginDense": "MuiInputLabel-marginDense-11",
+                              "outlined": "MuiInputLabel-outlined-15",
+                              "required": "MuiInputLabel-required-9",
+                              "root": "MuiInputLabel-root-5 noMargin",
+                              "shrink": "MuiInputLabel-shrink-12",
+                            }
+                          }
+                          disableAnimation={false}
+                          muiFormControl={
+                            Object {
+                              "adornedStart": true,
+                              "disabled": false,
+                              "error": false,
+                              "filled": false,
+                              "focused": false,
+                              "margin": "none",
+                              "onBlur": [Function],
+                              "onEmpty": [Function],
+                              "onFilled": [Function],
+                              "onFocus": [Function],
+                              "required": false,
+                              "variant": "outlined",
+                            }
+                          }
+                        >
+                          <WithStyles(WithFormControlContext(FormLabel))
+                            className="MuiInputLabel-root-5 noMargin MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
+                            classes={
+                              Object {
+                                "disabled": "MuiInputLabel-disabled-7",
+                                "error": "MuiInputLabel-error-8",
+                                "focused": "MuiInputLabel-focused-6",
+                                "required": "MuiInputLabel-required-9",
+                              }
+                            }
+                            data-shrink={true}
+                          >
+                            <WithFormControlContext(FormLabel)
+                              className="MuiInputLabel-root-5 noMargin MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
+                              classes={
+                                Object {
+                                  "asterisk": "MuiFormLabel-asterisk-22",
+                                  "disabled": "MuiFormLabel-disabled-18 MuiInputLabel-disabled-7",
+                                  "error": "MuiFormLabel-error-19 MuiInputLabel-error-8",
+                                  "filled": "MuiFormLabel-filled-20",
+                                  "focused": "MuiFormLabel-focused-17 MuiInputLabel-focused-6",
+                                  "required": "MuiFormLabel-required-21 MuiInputLabel-required-9",
+                                  "root": "MuiFormLabel-root-16",
+                                }
+                              }
+                              data-shrink={true}
+                            >
+                              <FormLabel
+                                className="MuiInputLabel-root-5 noMargin MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
+                                classes={
+                                  Object {
+                                    "asterisk": "MuiFormLabel-asterisk-22",
+                                    "disabled": "MuiFormLabel-disabled-18 MuiInputLabel-disabled-7",
+                                    "error": "MuiFormLabel-error-19 MuiInputLabel-error-8",
+                                    "filled": "MuiFormLabel-filled-20",
+                                    "focused": "MuiFormLabel-focused-17 MuiInputLabel-focused-6",
+                                    "required": "MuiFormLabel-required-21 MuiInputLabel-required-9",
+                                    "root": "MuiFormLabel-root-16",
+                                  }
+                                }
+                                component="label"
+                                data-shrink={true}
+                                muiFormControl={
+                                  Object {
+                                    "adornedStart": true,
+                                    "disabled": false,
+                                    "error": false,
+                                    "filled": false,
+                                    "focused": false,
+                                    "margin": "none",
+                                    "onBlur": [Function],
+                                    "onEmpty": [Function],
+                                    "onFilled": [Function],
+                                    "onFocus": [Function],
+                                    "required": false,
+                                    "variant": "outlined",
+                                  }
+                                }
+                              >
+                                <label
+                                  className="MuiFormLabel-root-16 MuiInputLabel-root-5 noMargin MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
+                                  data-shrink={true}
+                                >
+                                  Filter runs
+                                </label>
+                              </FormLabel>
+                            </WithFormControlContext(FormLabel)>
+                          </WithStyles(WithFormControlContext(FormLabel))>
+                        </InputLabel>
+                      </WithFormControlContext(InputLabel)>
+                    </WithStyles(WithFormControlContext(InputLabel))>
+                    <WithStyles(OutlinedInput)
+                      classes={
+                        Object {
+                          "notchedOutline": "filterBorderRadius",
+                          "root": "noLeftPadding",
+                        }
+                      }
+                      labelWidth={0}
+                      onChange={[Function]}
+                      startAdornment={
+                        <WithStyles(InputAdornment)
+                          position="end"
+                        >
+                          <pure(FilterListIcon)
+                            style={
+                              Object {
+                                "color": "#80868b",
+                                "paddingRight": 16,
+                              }
+                            }
+                          />
+                        </WithStyles(InputAdornment)>
+                      }
+                      value=""
+                    >
+                      <OutlinedInput
+                        classes={
+                          Object {
+                            "adornedEnd": "MuiOutlinedInput-adornedEnd-27",
+                            "adornedStart": "MuiOutlinedInput-adornedStart-26",
+                            "disabled": "MuiOutlinedInput-disabled-25",
+                            "error": "MuiOutlinedInput-error-28",
+                            "focused": "MuiOutlinedInput-focused-24",
+                            "input": "MuiOutlinedInput-input-31",
+                            "inputAdornedEnd": "MuiOutlinedInput-inputAdornedEnd-35",
+                            "inputAdornedStart": "MuiOutlinedInput-inputAdornedStart-34",
+                            "inputMarginDense": "MuiOutlinedInput-inputMarginDense-32",
+                            "inputMultiline": "MuiOutlinedInput-inputMultiline-33",
+                            "multiline": "MuiOutlinedInput-multiline-29",
+                            "notchedOutline": "MuiOutlinedInput-notchedOutline-30 filterBorderRadius",
+                            "root": "MuiOutlinedInput-root-23 noLeftPadding",
+                          }
+                        }
+                        labelWidth={0}
+                        onChange={[Function]}
+                        startAdornment={
+                          <WithStyles(InputAdornment)
+                            position="end"
+                          >
+                            <pure(FilterListIcon)
+                              style={
+                                Object {
+                                  "color": "#80868b",
+                                  "paddingRight": 16,
+                                }
+                              }
+                            />
+                          </WithStyles(InputAdornment)>
+                        }
+                        value=""
+                      >
+                        <WithStyles(WithFormControlContext(InputBase))
+                          classes={
+                            Object {
+                              "adornedEnd": "MuiOutlinedInput-adornedEnd-27",
+                              "adornedStart": "MuiOutlinedInput-adornedStart-26",
+                              "disabled": "MuiOutlinedInput-disabled-25",
+                              "error": "MuiOutlinedInput-error-28",
+                              "focused": "MuiOutlinedInput-focused-24",
+                              "input": "MuiOutlinedInput-input-31",
+                              "inputAdornedEnd": "MuiOutlinedInput-inputAdornedEnd-35",
+                              "inputAdornedStart": "MuiOutlinedInput-inputAdornedStart-34",
+                              "inputMarginDense": "MuiOutlinedInput-inputMarginDense-32",
+                              "inputMultiline": "MuiOutlinedInput-inputMultiline-33",
+                              "multiline": "MuiOutlinedInput-multiline-29",
+                              "notchedOutline": null,
+                              "root": "MuiOutlinedInput-root-23 noLeftPadding",
+                            }
+                          }
+                          fullWidth={false}
+                          inputComponent="input"
+                          multiline={false}
+                          onChange={[Function]}
+                          renderPrefix={[Function]}
+                          startAdornment={
+                            <WithStyles(InputAdornment)
+                              position="end"
+                            >
+                              <pure(FilterListIcon)
+                                style={
+                                  Object {
+                                    "color": "#80868b",
+                                    "paddingRight": 16,
+                                  }
+                                }
+                              />
+                            </WithStyles(InputAdornment)>
+                          }
+                          type="text"
+                          value=""
+                        >
+                          <WithFormControlContext(InputBase)
+                            classes={
+                              Object {
+                                "adornedEnd": "MuiInputBase-adornedEnd-41 MuiOutlinedInput-adornedEnd-27",
+                                "adornedStart": "MuiInputBase-adornedStart-40 MuiOutlinedInput-adornedStart-26",
+                                "disabled": "MuiInputBase-disabled-39 MuiOutlinedInput-disabled-25",
+                                "error": "MuiInputBase-error-42 MuiOutlinedInput-error-28",
+                                "focused": "MuiInputBase-focused-38 MuiOutlinedInput-focused-24",
+                                "formControl": "MuiInputBase-formControl-37",
+                                "fullWidth": "MuiInputBase-fullWidth-45",
+                                "input": "MuiInputBase-input-46 MuiOutlinedInput-input-31",
+                                "inputAdornedEnd": "MuiInputBase-inputAdornedEnd-52 MuiOutlinedInput-inputAdornedEnd-35",
+                                "inputAdornedStart": "MuiInputBase-inputAdornedStart-51 MuiOutlinedInput-inputAdornedStart-34",
+                                "inputMarginDense": "MuiInputBase-inputMarginDense-47 MuiOutlinedInput-inputMarginDense-32",
+                                "inputMultiline": "MuiInputBase-inputMultiline-48 MuiOutlinedInput-inputMultiline-33",
+                                "inputType": "MuiInputBase-inputType-49",
+                                "inputTypeSearch": "MuiInputBase-inputTypeSearch-50",
+                                "marginDense": "MuiInputBase-marginDense-43",
+                                "multiline": "MuiInputBase-multiline-44 MuiOutlinedInput-multiline-29",
+                                "root": "MuiInputBase-root-36 MuiOutlinedInput-root-23 noLeftPadding",
+                              }
+                            }
+                            fullWidth={false}
+                            inputComponent="input"
+                            multiline={false}
+                            onChange={[Function]}
+                            renderPrefix={[Function]}
+                            startAdornment={
+                              <WithStyles(InputAdornment)
+                                position="end"
+                              >
+                                <pure(FilterListIcon)
+                                  style={
+                                    Object {
+                                      "color": "#80868b",
+                                      "paddingRight": 16,
+                                    }
+                                  }
+                                />
+                              </WithStyles(InputAdornment)>
+                            }
+                            type="text"
+                            value=""
+                          >
+                            <InputBase
+                              classes={
+                                Object {
+                                  "adornedEnd": "MuiInputBase-adornedEnd-41 MuiOutlinedInput-adornedEnd-27",
+                                  "adornedStart": "MuiInputBase-adornedStart-40 MuiOutlinedInput-adornedStart-26",
+                                  "disabled": "MuiInputBase-disabled-39 MuiOutlinedInput-disabled-25",
+                                  "error": "MuiInputBase-error-42 MuiOutlinedInput-error-28",
+                                  "focused": "MuiInputBase-focused-38 MuiOutlinedInput-focused-24",
+                                  "formControl": "MuiInputBase-formControl-37",
+                                  "fullWidth": "MuiInputBase-fullWidth-45",
+                                  "input": "MuiInputBase-input-46 MuiOutlinedInput-input-31",
+                                  "inputAdornedEnd": "MuiInputBase-inputAdornedEnd-52 MuiOutlinedInput-inputAdornedEnd-35",
+                                  "inputAdornedStart": "MuiInputBase-inputAdornedStart-51 MuiOutlinedInput-inputAdornedStart-34",
+                                  "inputMarginDense": "MuiInputBase-inputMarginDense-47 MuiOutlinedInput-inputMarginDense-32",
+                                  "inputMultiline": "MuiInputBase-inputMultiline-48 MuiOutlinedInput-inputMultiline-33",
+                                  "inputType": "MuiInputBase-inputType-49",
+                                  "inputTypeSearch": "MuiInputBase-inputTypeSearch-50",
+                                  "marginDense": "MuiInputBase-marginDense-43",
+                                  "multiline": "MuiInputBase-multiline-44 MuiOutlinedInput-multiline-29",
+                                  "root": "MuiInputBase-root-36 MuiOutlinedInput-root-23 noLeftPadding",
+                                }
+                              }
+                              fullWidth={false}
+                              inputComponent="input"
+                              muiFormControl={
+                                Object {
+                                  "adornedStart": true,
+                                  "disabled": false,
+                                  "error": false,
+                                  "filled": false,
+                                  "focused": false,
+                                  "margin": "none",
+                                  "onBlur": [Function],
+                                  "onEmpty": [Function],
+                                  "onFilled": [Function],
+                                  "onFocus": [Function],
+                                  "required": false,
+                                  "variant": "outlined",
+                                }
+                              }
+                              multiline={false}
+                              onChange={[Function]}
+                              renderPrefix={[Function]}
+                              startAdornment={
+                                <WithStyles(InputAdornment)
+                                  position="end"
+                                >
+                                  <pure(FilterListIcon)
+                                    style={
+                                      Object {
+                                        "color": "#80868b",
+                                        "paddingRight": 16,
+                                      }
+                                    }
+                                  />
+                                </WithStyles(InputAdornment)>
+                              }
+                              type="text"
+                              value=""
+                            >
+                              <div
+                                className="MuiInputBase-root-36 MuiOutlinedInput-root-23 noLeftPadding MuiInputBase-formControl-37 MuiInputBase-adornedStart-40 MuiOutlinedInput-adornedStart-26"
+                                onClick={[Function]}
+                              >
+                                <WithStyles(NotchedOutline)
+                                  className="MuiOutlinedInput-notchedOutline-30 filterBorderRadius"
+                                  labelWidth={0}
+                                  notched={true}
+                                >
+                                  <NotchedOutline
+                                    className="MuiOutlinedInput-notchedOutline-30 filterBorderRadius"
+                                    classes={
+                                      Object {
+                                        "legend": "MuiPrivateNotchedOutline-legend-54",
+                                        "root": "MuiPrivateNotchedOutline-root-53",
+                                      }
+                                    }
+                                    labelWidth={0}
+                                    notched={true}
+                                    theme={
+                                      Object {
+                                        "breakpoints": Object {
+                                          "between": [Function],
+                                          "down": [Function],
+                                          "keys": Array [
+                                            "xs",
+                                            "sm",
+                                            "md",
+                                            "lg",
+                                            "xl",
+                                          ],
+                                          "only": [Function],
+                                          "up": [Function],
+                                          "values": Object {
+                                            "lg": 1280,
+                                            "md": 960,
+                                            "sm": 600,
+                                            "xl": 1920,
+                                            "xs": 0,
+                                          },
+                                          "width": [Function],
+                                        },
+                                        "direction": "ltr",
+                                        "mixins": Object {
+                                          "gutters": [Function],
+                                          "toolbar": Object {
+                                            "@media (min-width:0px) and (orientation: landscape)": Object {
+                                              "minHeight": 48,
+                                            },
+                                            "@media (min-width:600px)": Object {
+                                              "minHeight": 64,
+                                            },
+                                            "minHeight": 56,
+                                          },
+                                        },
+                                        "overrides": Object {},
+                                        "palette": Object {
+                                          "action": Object {
+                                            "active": "rgba(0, 0, 0, 0.54)",
+                                            "disabled": "rgba(0, 0, 0, 0.26)",
+                                            "disabledBackground": "rgba(0, 0, 0, 0.12)",
+                                            "hover": "rgba(0, 0, 0, 0.08)",
+                                            "hoverOpacity": 0.08,
+                                            "selected": "rgba(0, 0, 0, 0.14)",
+                                          },
+                                          "augmentColor": [Function],
+                                          "background": Object {
+                                            "default": "#fafafa",
+                                            "paper": "#fff",
+                                          },
+                                          "common": Object {
+                                            "black": "#000",
+                                            "white": "#fff",
+                                          },
+                                          "contrastThreshold": 3,
+                                          "divider": "rgba(0, 0, 0, 0.12)",
+                                          "error": Object {
+                                            "contrastText": "#fff",
+                                            "dark": "#d32f2f",
+                                            "light": "#e57373",
+                                            "main": "#f44336",
+                                          },
+                                          "getContrastText": [Function],
+                                          "grey": Object {
+                                            "100": "#f5f5f5",
+                                            "200": "#eeeeee",
+                                            "300": "#e0e0e0",
+                                            "400": "#bdbdbd",
+                                            "50": "#fafafa",
+                                            "500": "#9e9e9e",
+                                            "600": "#757575",
+                                            "700": "#616161",
+                                            "800": "#424242",
+                                            "900": "#212121",
+                                            "A100": "#d5d5d5",
+                                            "A200": "#aaaaaa",
+                                            "A400": "#303030",
+                                            "A700": "#616161",
+                                          },
+                                          "primary": Object {
+                                            "contrastText": "#fff",
+                                            "dark": "#303f9f",
+                                            "light": "#7986cb",
+                                            "main": "#3f51b5",
+                                          },
+                                          "secondary": Object {
+                                            "contrastText": "#fff",
+                                            "dark": "#c51162",
+                                            "light": "#ff4081",
+                                            "main": "#f50057",
+                                          },
+                                          "text": Object {
+                                            "disabled": "rgba(0, 0, 0, 0.38)",
+                                            "hint": "rgba(0, 0, 0, 0.38)",
+                                            "primary": "rgba(0, 0, 0, 0.87)",
+                                            "secondary": "rgba(0, 0, 0, 0.54)",
+                                          },
+                                          "tonalOffset": 0.2,
+                                          "type": "light",
+                                        },
+                                        "props": Object {},
+                                        "shadows": Array [
+                                          "none",
+                                          "0px 1px 3px 0px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 2px 1px -1px rgba(0,0,0,0.12)",
+                                          "0px 1px 5px 0px rgba(0,0,0,0.2),0px 2px 2px 0px rgba(0,0,0,0.14),0px 3px 1px -2px rgba(0,0,0,0.12)",
+                                          "0px 1px 8px 0px rgba(0,0,0,0.2),0px 3px 4px 0px rgba(0,0,0,0.14),0px 3px 3px -2px rgba(0,0,0,0.12)",
+                                          "0px 2px 4px -1px rgba(0,0,0,0.2),0px 4px 5px 0px rgba(0,0,0,0.14),0px 1px 10px 0px rgba(0,0,0,0.12)",
+                                          "0px 3px 5px -1px rgba(0,0,0,0.2),0px 5px 8px 0px rgba(0,0,0,0.14),0px 1px 14px 0px rgba(0,0,0,0.12)",
+                                          "0px 3px 5px -1px rgba(0,0,0,0.2),0px 6px 10px 0px rgba(0,0,0,0.14),0px 1px 18px 0px rgba(0,0,0,0.12)",
+                                          "0px 4px 5px -2px rgba(0,0,0,0.2),0px 7px 10px 1px rgba(0,0,0,0.14),0px 2px 16px 1px rgba(0,0,0,0.12)",
+                                          "0px 5px 5px -3px rgba(0,0,0,0.2),0px 8px 10px 1px rgba(0,0,0,0.14),0px 3px 14px 2px rgba(0,0,0,0.12)",
+                                          "0px 5px 6px -3px rgba(0,0,0,0.2),0px 9px 12px 1px rgba(0,0,0,0.14),0px 3px 16px 2px rgba(0,0,0,0.12)",
+                                          "0px 6px 6px -3px rgba(0,0,0,0.2),0px 10px 14px 1px rgba(0,0,0,0.14),0px 4px 18px 3px rgba(0,0,0,0.12)",
+                                          "0px 6px 7px -4px rgba(0,0,0,0.2),0px 11px 15px 1px rgba(0,0,0,0.14),0px 4px 20px 3px rgba(0,0,0,0.12)",
+                                          "0px 7px 8px -4px rgba(0,0,0,0.2),0px 12px 17px 2px rgba(0,0,0,0.14),0px 5px 22px 4px rgba(0,0,0,0.12)",
+                                          "0px 7px 8px -4px rgba(0,0,0,0.2),0px 13px 19px 2px rgba(0,0,0,0.14),0px 5px 24px 4px rgba(0,0,0,0.12)",
+                                          "0px 7px 9px -4px rgba(0,0,0,0.2),0px 14px 21px 2px rgba(0,0,0,0.14),0px 5px 26px 4px rgba(0,0,0,0.12)",
+                                          "0px 8px 9px -5px rgba(0,0,0,0.2),0px 15px 22px 2px rgba(0,0,0,0.14),0px 6px 28px 5px rgba(0,0,0,0.12)",
+                                          "0px 8px 10px -5px rgba(0,0,0,0.2),0px 16px 24px 2px rgba(0,0,0,0.14),0px 6px 30px 5px rgba(0,0,0,0.12)",
+                                          "0px 8px 11px -5px rgba(0,0,0,0.2),0px 17px 26px 2px rgba(0,0,0,0.14),0px 6px 32px 5px rgba(0,0,0,0.12)",
+                                          "0px 9px 11px -5px rgba(0,0,0,0.2),0px 18px 28px 2px rgba(0,0,0,0.14),0px 7px 34px 6px rgba(0,0,0,0.12)",
+                                          "0px 9px 12px -6px rgba(0,0,0,0.2),0px 19px 29px 2px rgba(0,0,0,0.14),0px 7px 36px 6px rgba(0,0,0,0.12)",
+                                          "0px 10px 13px -6px rgba(0,0,0,0.2),0px 20px 31px 3px rgba(0,0,0,0.14),0px 8px 38px 7px rgba(0,0,0,0.12)",
+                                          "0px 10px 13px -6px rgba(0,0,0,0.2),0px 21px 33px 3px rgba(0,0,0,0.14),0px 8px 40px 7px rgba(0,0,0,0.12)",
+                                          "0px 10px 14px -6px rgba(0,0,0,0.2),0px 22px 35px 3px rgba(0,0,0,0.14),0px 8px 42px 7px rgba(0,0,0,0.12)",
+                                          "0px 11px 14px -7px rgba(0,0,0,0.2),0px 23px 36px 3px rgba(0,0,0,0.14),0px 9px 44px 8px rgba(0,0,0,0.12)",
+                                          "0px 11px 15px -7px rgba(0,0,0,0.2),0px 24px 38px 3px rgba(0,0,0,0.14),0px 9px 46px 8px rgba(0,0,0,0.12)",
+                                        ],
+                                        "shape": Object {
+                                          "borderRadius": 4,
+                                        },
+                                        "spacing": Object {
+                                          "unit": 8,
+                                        },
+                                        "transitions": Object {
+                                          "create": [Function],
+                                          "duration": Object {
+                                            "complex": 375,
+                                            "enteringScreen": 225,
+                                            "leavingScreen": 195,
+                                            "short": 250,
+                                            "shorter": 200,
+                                            "shortest": 150,
+                                            "standard": 300,
+                                          },
+                                          "easing": Object {
+                                            "easeIn": "cubic-bezier(0.4, 0, 1, 1)",
+                                            "easeInOut": "cubic-bezier(0.4, 0, 0.2, 1)",
+                                            "easeOut": "cubic-bezier(0.0, 0, 0.2, 1)",
+                                            "sharp": "cubic-bezier(0.4, 0, 0.6, 1)",
+                                          },
+                                          "getAutoHeightDuration": [Function],
+                                        },
+                                        "typography": Object {
+                                          "body1": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "0.875rem",
+                                            "fontWeight": 400,
+                                            "lineHeight": "1.46429em",
+                                          },
+                                          "body1Next": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "1rem",
+                                            "fontWeight": 400,
+                                            "letterSpacing": "0.00938em",
+                                            "lineHeight": 1.5,
+                                          },
+                                          "body2": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "0.875rem",
+                                            "fontWeight": 500,
+                                            "lineHeight": "1.71429em",
+                                          },
+                                          "body2Next": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "0.875rem",
+                                            "fontWeight": 400,
+                                            "letterSpacing": "0.01071em",
+                                            "lineHeight": 1.5,
+                                          },
+                                          "button": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "0.875rem",
+                                            "fontWeight": 500,
+                                            "textTransform": "uppercase",
+                                          },
+                                          "buttonNext": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "0.875rem",
+                                            "fontWeight": 500,
+                                            "letterSpacing": "0.02857em",
+                                            "lineHeight": 1.5,
+                                            "textTransform": "uppercase",
+                                          },
+                                          "caption": Object {
+                                            "color": "rgba(0, 0, 0, 0.54)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "0.75rem",
+                                            "fontWeight": 400,
+                                            "lineHeight": "1.375em",
+                                          },
+                                          "captionNext": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "0.75rem",
+                                            "fontWeight": 400,
+                                            "letterSpacing": "0.03333em",
+                                            "lineHeight": 1.66,
+                                          },
+                                          "display1": Object {
+                                            "color": "rgba(0, 0, 0, 0.54)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "2.125rem",
+                                            "fontWeight": 400,
+                                            "lineHeight": "1.20588em",
+                                          },
+                                          "display2": Object {
+                                            "color": "rgba(0, 0, 0, 0.54)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "2.8125rem",
+                                            "fontWeight": 400,
+                                            "lineHeight": "1.13333em",
+                                            "marginLeft": "-.02em",
+                                          },
+                                          "display3": Object {
+                                            "color": "rgba(0, 0, 0, 0.54)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "3.5rem",
+                                            "fontWeight": 400,
+                                            "letterSpacing": "-.02em",
+                                            "lineHeight": "1.30357em",
+                                            "marginLeft": "-.02em",
+                                          },
+                                          "display4": Object {
+                                            "color": "rgba(0, 0, 0, 0.54)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "7rem",
+                                            "fontWeight": 300,
+                                            "letterSpacing": "-.04em",
+                                            "lineHeight": "1.14286em",
+                                            "marginLeft": "-.04em",
+                                          },
+                                          "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                          "fontSize": 14,
+                                          "fontWeightLight": 300,
+                                          "fontWeightMedium": 500,
+                                          "fontWeightRegular": 400,
+                                          "h1": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "6rem",
+                                            "fontWeight": 300,
+                                            "letterSpacing": "-0.01562em",
+                                            "lineHeight": 1,
+                                          },
+                                          "h2": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "3.75rem",
+                                            "fontWeight": 300,
+                                            "letterSpacing": "-0.00833em",
+                                            "lineHeight": 1,
+                                          },
+                                          "h3": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "3rem",
+                                            "fontWeight": 400,
+                                            "letterSpacing": "0em",
+                                            "lineHeight": 1.04,
+                                          },
+                                          "h4": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "2.125rem",
+                                            "fontWeight": 400,
+                                            "letterSpacing": "0.00735em",
+                                            "lineHeight": 1.17,
+                                          },
+                                          "h5": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "1.5rem",
+                                            "fontWeight": 400,
+                                            "letterSpacing": "0em",
+                                            "lineHeight": 1.33,
+                                          },
+                                          "h6": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "1.25rem",
+                                            "fontWeight": 500,
+                                            "letterSpacing": "0.0075em",
+                                            "lineHeight": 1.6,
+                                          },
+                                          "headline": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "1.5rem",
+                                            "fontWeight": 400,
+                                            "lineHeight": "1.35417em",
+                                          },
+                                          "overline": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "0.75rem",
+                                            "fontWeight": 400,
+                                            "letterSpacing": "0.08333em",
+                                            "lineHeight": 2.66,
+                                            "textTransform": "uppercase",
+                                          },
+                                          "pxToRem": [Function],
+                                          "round": [Function],
+                                          "subheading": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "1rem",
+                                            "fontWeight": 400,
+                                            "lineHeight": "1.5em",
+                                          },
+                                          "subtitle1": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "1rem",
+                                            "fontWeight": 400,
+                                            "letterSpacing": "0.00938em",
+                                            "lineHeight": 1.75,
+                                          },
+                                          "subtitle2": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "0.875rem",
+                                            "fontWeight": 500,
+                                            "letterSpacing": "0.00714em",
+                                            "lineHeight": 1.57,
+                                          },
+                                          "title": Object {
+                                            "color": "rgba(0, 0, 0, 0.87)",
+                                            "fontFamily": "\\"Roboto\\", \\"Helvetica\\", \\"Arial\\", sans-serif",
+                                            "fontSize": "1.3125rem",
+                                            "fontWeight": 500,
+                                            "lineHeight": "1.16667em",
+                                          },
+                                          "useNextVariants": false,
+                                        },
+                                        "zIndex": Object {
+                                          "appBar": 1100,
+                                          "drawer": 1200,
+                                          "mobileStepper": 1000,
+                                          "modal": 1300,
+                                          "snackbar": 1400,
+                                          "tooltip": 1500,
+                                        },
+                                      }
+                                    }
+                                  >
+                                    <fieldset
+                                      aria-hidden={true}
+                                      className="MuiPrivateNotchedOutline-root-53 MuiOutlinedInput-notchedOutline-30 filterBorderRadius"
+                                      style={
+                                        Object {
+                                          "paddingLeft": 8,
+                                        }
+                                      }
+                                    >
+                                      <legend
+                                        className="MuiPrivateNotchedOutline-legend-54"
+                                        style={
+                                          Object {
+                                            "width": 0,
+                                          }
+                                        }
+                                      >
+                                        <span
+                                          dangerouslySetInnerHTML={
+                                            Object {
+                                              "__html": "&#8203;",
+                                            }
+                                          }
+                                        />
+                                      </legend>
+                                    </fieldset>
+                                  </NotchedOutline>
+                                </WithStyles(NotchedOutline)>
+                                <WithStyles(InputAdornment)
+                                  position="end"
+                                >
+                                  <InputAdornment
+                                    classes={
+                                      Object {
+                                        "filled": "MuiInputAdornment-filled-56",
+                                        "positionEnd": "MuiInputAdornment-positionEnd-58",
+                                        "positionStart": "MuiInputAdornment-positionStart-57",
+                                        "root": "MuiInputAdornment-root-55",
+                                      }
+                                    }
+                                    component="div"
+                                    disableTypography={false}
+                                    position="end"
+                                  >
+                                    <div
+                                      className="MuiInputAdornment-root-55 MuiInputAdornment-positionEnd-58"
+                                    >
+                                      <pure(FilterListIcon)
+                                        style={
+                                          Object {
+                                            "color": "#80868b",
+                                            "paddingRight": 16,
+                                          }
+                                        }
+                                      >
+                                        <FilterListIcon
+                                          style={
+                                            Object {
+                                              "color": "#80868b",
+                                              "paddingRight": 16,
+                                            }
+                                          }
+                                        >
+                                          <WithStyles(SvgIcon)
+                                            style={
+                                              Object {
+                                                "color": "#80868b",
+                                                "paddingRight": 16,
+                                              }
+                                            }
+                                          >
+                                            <SvgIcon
+                                              classes={
+                                                Object {
+                                                  "colorAction": "MuiSvgIcon-colorAction-62",
+                                                  "colorDisabled": "MuiSvgIcon-colorDisabled-64",
+                                                  "colorError": "MuiSvgIcon-colorError-63",
+                                                  "colorPrimary": "MuiSvgIcon-colorPrimary-60",
+                                                  "colorSecondary": "MuiSvgIcon-colorSecondary-61",
+                                                  "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
+                                                  "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
+                                                  "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
+                                                  "root": "MuiSvgIcon-root-59",
+                                                }
+                                              }
+                                              color="inherit"
+                                              component="svg"
+                                              fontSize="default"
+                                              style={
+                                                Object {
+                                                  "color": "#80868b",
+                                                  "paddingRight": 16,
+                                                }
+                                              }
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <svg
+                                                aria-hidden="true"
+                                                className="MuiSvgIcon-root-59"
+                                                focusable="false"
+                                                role="presentation"
+                                                style={
+                                                  Object {
+                                                    "color": "#80868b",
+                                                    "paddingRight": 16,
+                                                  }
+                                                }
+                                                viewBox="0 0 24 24"
+                                              >
+                                                <path
+                                                  d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"
+                                                />
+                                                <path
+                                                  d="M0 0h24v24H0z"
+                                                  fill="none"
+                                                />
+                                              </svg>
+                                            </SvgIcon>
+                                          </WithStyles(SvgIcon)>
+                                        </FilterListIcon>
+                                      </pure(FilterListIcon)>
+                                    </div>
+                                  </InputAdornment>
+                                </WithStyles(InputAdornment)>
+                                <input
+                                  aria-invalid={false}
+                                  className="MuiInputBase-input-46 MuiOutlinedInput-input-31 MuiInputBase-inputAdornedStart-51 MuiOutlinedInput-inputAdornedStart-34"
+                                  disabled={false}
+                                  onBlur={[Function]}
+                                  onChange={[Function]}
+                                  onFocus={[Function]}
+                                  required={false}
+                                  type="text"
+                                  value=""
+                                />
+                              </div>
+                            </InputBase>
+                          </WithFormControlContext(InputBase)>
+                        </WithStyles(WithFormControlContext(InputBase))>
+                      </OutlinedInput>
+                    </WithStyles(OutlinedInput)>
+                  </div>
+                </FormControl>
+              </WithStyles(FormControl)>
+            </TextField>
+          </Component>
+        </div>
         <div
           className="header"
         >
@@ -641,12 +1643,12 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 checkedIcon={<pure(CheckBox) />}
                 classes={
                   Object {
-                    "checked": "MuiCheckbox-checked-2",
-                    "colorPrimary": "MuiCheckbox-colorPrimary-5",
-                    "colorSecondary": "MuiCheckbox-colorSecondary-6",
-                    "disabled": "MuiCheckbox-disabled-3",
-                    "indeterminate": "MuiCheckbox-indeterminate-4",
-                    "root": "MuiCheckbox-root-1",
+                    "checked": "MuiCheckbox-checked-69",
+                    "colorPrimary": "MuiCheckbox-colorPrimary-72",
+                    "colorSecondary": "MuiCheckbox-colorSecondary-73",
+                    "disabled": "MuiCheckbox-disabled-70",
+                    "indeterminate": "MuiCheckbox-indeterminate-71",
+                    "root": "MuiCheckbox-root-68",
                   }
                 }
                 color="primary"
@@ -661,9 +1663,9 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                   className=""
                   classes={
                     Object {
-                      "checked": "MuiCheckbox-checked-2",
-                      "disabled": "MuiCheckbox-disabled-3",
-                      "root": "MuiCheckbox-root-1 MuiCheckbox-colorPrimary-5",
+                      "checked": "MuiCheckbox-checked-69",
+                      "disabled": "MuiCheckbox-disabled-70",
+                      "root": "MuiCheckbox-root-68 MuiCheckbox-colorPrimary-72",
                     }
                   }
                   icon={<pure(CheckBoxOutlineBlank) />}
@@ -681,10 +1683,10 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                     className=""
                     classes={
                       Object {
-                        "checked": "MuiPrivateSwitchBase-checked-8 MuiCheckbox-checked-2",
-                        "disabled": "MuiPrivateSwitchBase-disabled-9 MuiCheckbox-disabled-3",
-                        "input": "MuiPrivateSwitchBase-input-10",
-                        "root": "MuiPrivateSwitchBase-root-7 MuiCheckbox-root-1 MuiCheckbox-colorPrimary-5",
+                        "checked": "MuiPrivateSwitchBase-checked-75 MuiCheckbox-checked-69",
+                        "disabled": "MuiPrivateSwitchBase-disabled-76 MuiCheckbox-disabled-70",
+                        "input": "MuiPrivateSwitchBase-input-77",
+                        "root": "MuiPrivateSwitchBase-root-74 MuiCheckbox-root-68 MuiCheckbox-colorPrimary-72",
                       }
                     }
                     icon={<pure(CheckBoxOutlineBlank) />}
@@ -702,10 +1704,10 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       className=""
                       classes={
                         Object {
-                          "checked": "MuiPrivateSwitchBase-checked-8 MuiCheckbox-checked-2",
-                          "disabled": "MuiPrivateSwitchBase-disabled-9 MuiCheckbox-disabled-3",
-                          "input": "MuiPrivateSwitchBase-input-10",
-                          "root": "MuiPrivateSwitchBase-root-7 MuiCheckbox-root-1 MuiCheckbox-colorPrimary-5",
+                          "checked": "MuiPrivateSwitchBase-checked-75 MuiCheckbox-checked-69",
+                          "disabled": "MuiPrivateSwitchBase-disabled-76 MuiCheckbox-disabled-70",
+                          "input": "MuiPrivateSwitchBase-input-77",
+                          "root": "MuiPrivateSwitchBase-root-74 MuiCheckbox-root-68 MuiCheckbox-colorPrimary-72",
                         }
                       }
                       icon={<pure(CheckBoxOutlineBlank) />}
@@ -718,22 +1720,22 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       type="checkbox"
                     >
                       <WithStyles(IconButton)
-                        className="MuiPrivateSwitchBase-root-7 MuiCheckbox-root-1 MuiCheckbox-colorPrimary-5"
+                        className="MuiPrivateSwitchBase-root-74 MuiCheckbox-root-68 MuiCheckbox-colorPrimary-72"
                         component="span"
                         onBlur={[Function]}
                         onFocus={[Function]}
                         tabIndex={null}
                       >
                         <IconButton
-                          className="MuiPrivateSwitchBase-root-7 MuiCheckbox-root-1 MuiCheckbox-colorPrimary-5"
+                          className="MuiPrivateSwitchBase-root-74 MuiCheckbox-root-68 MuiCheckbox-colorPrimary-72"
                           classes={
                             Object {
-                              "colorInherit": "MuiIconButton-colorInherit-12",
-                              "colorPrimary": "MuiIconButton-colorPrimary-13",
-                              "colorSecondary": "MuiIconButton-colorSecondary-14",
-                              "disabled": "MuiIconButton-disabled-15",
-                              "label": "MuiIconButton-label-16",
-                              "root": "MuiIconButton-root-11",
+                              "colorInherit": "MuiIconButton-colorInherit-79",
+                              "colorPrimary": "MuiIconButton-colorPrimary-80",
+                              "colorSecondary": "MuiIconButton-colorSecondary-81",
+                              "disabled": "MuiIconButton-disabled-82",
+                              "label": "MuiIconButton-label-83",
+                              "root": "MuiIconButton-root-78",
                             }
                           }
                           color="default"
@@ -745,7 +1747,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         >
                           <WithStyles(ButtonBase)
                             centerRipple={true}
-                            className="MuiIconButton-root-11 MuiPrivateSwitchBase-root-7 MuiCheckbox-root-1 MuiCheckbox-colorPrimary-5"
+                            className="MuiIconButton-root-78 MuiPrivateSwitchBase-root-74 MuiCheckbox-root-68 MuiCheckbox-colorPrimary-72"
                             component="span"
                             disabled={false}
                             focusRipple={true}
@@ -755,12 +1757,12 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           >
                             <ButtonBase
                               centerRipple={true}
-                              className="MuiIconButton-root-11 MuiPrivateSwitchBase-root-7 MuiCheckbox-root-1 MuiCheckbox-colorPrimary-5"
+                              className="MuiIconButton-root-78 MuiPrivateSwitchBase-root-74 MuiCheckbox-root-68 MuiCheckbox-colorPrimary-72"
                               classes={
                                 Object {
-                                  "disabled": "MuiButtonBase-disabled-18",
-                                  "focusVisible": "MuiButtonBase-focusVisible-19",
-                                  "root": "MuiButtonBase-root-17",
+                                  "disabled": "MuiButtonBase-disabled-85",
+                                  "focusVisible": "MuiButtonBase-focusVisible-86",
+                                  "root": "MuiButtonBase-root-84",
                                 }
                               }
                               component="span"
@@ -774,7 +1776,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                               type="button"
                             >
                               <span
-                                className="MuiButtonBase-root-17 MuiIconButton-root-11 MuiPrivateSwitchBase-root-7 MuiCheckbox-root-1 MuiCheckbox-colorPrimary-5"
+                                className="MuiButtonBase-root-84 MuiIconButton-root-78 MuiPrivateSwitchBase-root-74 MuiCheckbox-root-68 MuiCheckbox-colorPrimary-72"
                                 onBlur={[Function]}
                                 onContextMenu={[Function]}
                                 onFocus={[Function]}
@@ -789,7 +1791,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                 tabIndex={null}
                               >
                                 <span
-                                  className="MuiIconButton-label-16"
+                                  className="MuiIconButton-label-83"
                                 >
                                   <pure(CheckBoxOutlineBlank)>
                                     <CheckBoxOutlineBlank>
@@ -797,15 +1799,15 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                         <SvgIcon
                                           classes={
                                             Object {
-                                              "colorAction": "MuiSvgIcon-colorAction-23",
-                                              "colorDisabled": "MuiSvgIcon-colorDisabled-25",
-                                              "colorError": "MuiSvgIcon-colorError-24",
-                                              "colorPrimary": "MuiSvgIcon-colorPrimary-21",
-                                              "colorSecondary": "MuiSvgIcon-colorSecondary-22",
-                                              "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-26",
-                                              "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-28",
-                                              "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-27",
-                                              "root": "MuiSvgIcon-root-20",
+                                              "colorAction": "MuiSvgIcon-colorAction-62",
+                                              "colorDisabled": "MuiSvgIcon-colorDisabled-64",
+                                              "colorError": "MuiSvgIcon-colorError-63",
+                                              "colorPrimary": "MuiSvgIcon-colorPrimary-60",
+                                              "colorSecondary": "MuiSvgIcon-colorSecondary-61",
+                                              "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
+                                              "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
+                                              "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
+                                              "root": "MuiSvgIcon-root-59",
                                             }
                                           }
                                           color="inherit"
@@ -815,7 +1817,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                         >
                                           <svg
                                             aria-hidden="true"
-                                            className="MuiSvgIcon-root-20"
+                                            className="MuiSvgIcon-root-59"
                                             focusable="false"
                                             role="presentation"
                                             viewBox="0 0 24 24"
@@ -830,7 +1832,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                   </pure(CheckBoxOutlineBlank)>
                                   <input
                                     checked={false}
-                                    className="MuiPrivateSwitchBase-input-10"
+                                    className="MuiPrivateSwitchBase-input-77"
                                     data-indeterminate={false}
                                     onChange={[Function]}
                                     type="checkbox"
@@ -848,25 +1850,25 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                       center={true}
                                       classes={
                                         Object {
-                                          "child": "MuiTouchRipple-child-91",
-                                          "childLeaving": "MuiTouchRipple-childLeaving-92",
-                                          "childPulsate": "MuiTouchRipple-childPulsate-93",
-                                          "ripple": "MuiTouchRipple-ripple-88",
-                                          "ripplePulsate": "MuiTouchRipple-ripplePulsate-90",
-                                          "rippleVisible": "MuiTouchRipple-rippleVisible-89",
-                                          "root": "MuiTouchRipple-root-87",
+                                          "child": "MuiTouchRipple-child-128",
+                                          "childLeaving": "MuiTouchRipple-childLeaving-129",
+                                          "childPulsate": "MuiTouchRipple-childPulsate-130",
+                                          "ripple": "MuiTouchRipple-ripple-125",
+                                          "ripplePulsate": "MuiTouchRipple-ripplePulsate-127",
+                                          "rippleVisible": "MuiTouchRipple-rippleVisible-126",
+                                          "root": "MuiTouchRipple-root-124",
                                         }
                                       }
                                     >
                                       <TransitionGroup
                                         childFactory={[Function]}
-                                        className="MuiTouchRipple-root-87"
+                                        className="MuiTouchRipple-root-124"
                                         component="span"
                                         enter={true}
                                         exit={true}
                                       >
                                         <span
-                                          className="MuiTouchRipple-root-87"
+                                          className="MuiTouchRipple-root-124"
                                         />
                                       </TransitionGroup>
                                     </TouchRipple>
@@ -900,14 +1902,14 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 TransitionComponent={[Function]}
                 classes={
                   Object {
-                    "popper": "MuiTooltip-popper-29",
-                    "popperInteractive": "MuiTooltip-popperInteractive-30",
-                    "tooltip": "MuiTooltip-tooltip-31",
-                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-36",
-                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-33",
-                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-34",
-                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-35",
-                    "touch": "MuiTooltip-touch-32",
+                    "popper": "MuiTooltip-popper-87",
+                    "popperInteractive": "MuiTooltip-popperInteractive-88",
+                    "tooltip": "MuiTooltip-tooltip-89",
+                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-94",
+                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-91",
+                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-92",
+                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-93",
+                    "touch": "MuiTooltip-touch-90",
                   }
                 }
                 disableFocusListener={false}
@@ -1307,11 +2309,11 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       className="ellipsis"
                       classes={
                         Object {
-                          "active": "MuiTableSortLabel-active-38",
-                          "icon": "MuiTableSortLabel-icon-39",
-                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-41",
-                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-40",
-                          "root": "MuiTableSortLabel-root-37",
+                          "active": "MuiTableSortLabel-active-96",
+                          "icon": "MuiTableSortLabel-icon-97",
+                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-99",
+                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-98",
+                          "root": "MuiTableSortLabel-root-95",
                         }
                       }
                       direction="desc"
@@ -1327,7 +2329,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                     >
                       <WithStyles(ButtonBase)
                         aria-describedby={null}
-                        className="MuiTableSortLabel-root-37 ellipsis"
+                        className="MuiTableSortLabel-root-95 ellipsis"
                         component="span"
                         disableRipple={true}
                         onBlur={[Function]}
@@ -1342,12 +2344,12 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         <ButtonBase
                           aria-describedby={null}
                           centerRipple={false}
-                          className="MuiTableSortLabel-root-37 ellipsis"
+                          className="MuiTableSortLabel-root-95 ellipsis"
                           classes={
                             Object {
-                              "disabled": "MuiButtonBase-disabled-18",
-                              "focusVisible": "MuiButtonBase-focusVisible-19",
-                              "root": "MuiButtonBase-root-17",
+                              "disabled": "MuiButtonBase-disabled-85",
+                              "focusVisible": "MuiButtonBase-focusVisible-86",
+                              "root": "MuiButtonBase-root-84",
                             }
                           }
                           component="span"
@@ -1367,7 +2369,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         >
                           <span
                             aria-describedby={null}
-                            className="MuiButtonBase-root-17 MuiTableSortLabel-root-37 ellipsis"
+                            className="MuiButtonBase-root-84 MuiTableSortLabel-root-95 ellipsis"
                             onBlur={[Function]}
                             onClick={[Function]}
                             onContextMenu={[Function]}
@@ -1387,27 +2389,27 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           >
                             Run name
                             <pure(ArrowDownward)
-                              className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                              className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                             >
                               <ArrowDownward
-                                className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                               >
                                 <WithStyles(SvgIcon)
-                                  className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                  className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                 >
                                   <SvgIcon
-                                    className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                    className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                     classes={
                                       Object {
-                                        "colorAction": "MuiSvgIcon-colorAction-23",
-                                        "colorDisabled": "MuiSvgIcon-colorDisabled-25",
-                                        "colorError": "MuiSvgIcon-colorError-24",
-                                        "colorPrimary": "MuiSvgIcon-colorPrimary-21",
-                                        "colorSecondary": "MuiSvgIcon-colorSecondary-22",
-                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-26",
-                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-28",
-                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-27",
-                                        "root": "MuiSvgIcon-root-20",
+                                        "colorAction": "MuiSvgIcon-colorAction-62",
+                                        "colorDisabled": "MuiSvgIcon-colorDisabled-64",
+                                        "colorError": "MuiSvgIcon-colorError-63",
+                                        "colorPrimary": "MuiSvgIcon-colorPrimary-60",
+                                        "colorSecondary": "MuiSvgIcon-colorSecondary-61",
+                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
+                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
+                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
+                                        "root": "MuiSvgIcon-root-59",
                                       }
                                     }
                                     color="inherit"
@@ -1417,7 +2419,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                   >
                                     <svg
                                       aria-hidden="true"
-                                      className="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                      className="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                       focusable="false"
                                       role="presentation"
                                       viewBox="0 0 24 24"
@@ -1439,7 +2441,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 <Popper
                   anchorEl={
                     <span
-                      class="MuiButtonBase-root-17 MuiTableSortLabel-root-37 ellipsis"
+                      class="MuiButtonBase-root-84 MuiTableSortLabel-root-95 ellipsis"
                       role="button"
                       tabindex="0"
                       title="Sort"
@@ -1447,7 +2449,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       Run name
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                        class="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                         focusable="false"
                         role="presentation"
                         viewBox="0 0 24 24"
@@ -1458,7 +2460,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       </svg>
                     </span>
                   }
-                  className="MuiTooltip-popper-29"
+                  className="MuiTooltip-popper-87"
                   disablePortal={false}
                   id={null}
                   open={false}
@@ -1485,14 +2487,14 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 TransitionComponent={[Function]}
                 classes={
                   Object {
-                    "popper": "MuiTooltip-popper-29",
-                    "popperInteractive": "MuiTooltip-popperInteractive-30",
-                    "tooltip": "MuiTooltip-tooltip-31",
-                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-36",
-                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-33",
-                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-34",
-                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-35",
-                    "touch": "MuiTooltip-touch-32",
+                    "popper": "MuiTooltip-popper-87",
+                    "popperInteractive": "MuiTooltip-popperInteractive-88",
+                    "tooltip": "MuiTooltip-tooltip-89",
+                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-94",
+                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-91",
+                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-92",
+                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-93",
+                    "touch": "MuiTooltip-touch-90",
                   }
                 }
                 disableFocusListener={false}
@@ -1891,11 +2893,11 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       className="ellipsis"
                       classes={
                         Object {
-                          "active": "MuiTableSortLabel-active-38",
-                          "icon": "MuiTableSortLabel-icon-39",
-                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-41",
-                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-40",
-                          "root": "MuiTableSortLabel-root-37",
+                          "active": "MuiTableSortLabel-active-96",
+                          "icon": "MuiTableSortLabel-icon-97",
+                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-99",
+                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-98",
+                          "root": "MuiTableSortLabel-root-95",
                         }
                       }
                       direction="desc"
@@ -1911,7 +2913,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                     >
                       <WithStyles(ButtonBase)
                         aria-describedby={null}
-                        className="MuiTableSortLabel-root-37 ellipsis"
+                        className="MuiTableSortLabel-root-95 ellipsis"
                         component="span"
                         disableRipple={true}
                         onBlur={[Function]}
@@ -1926,12 +2928,12 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         <ButtonBase
                           aria-describedby={null}
                           centerRipple={false}
-                          className="MuiTableSortLabel-root-37 ellipsis"
+                          className="MuiTableSortLabel-root-95 ellipsis"
                           classes={
                             Object {
-                              "disabled": "MuiButtonBase-disabled-18",
-                              "focusVisible": "MuiButtonBase-focusVisible-19",
-                              "root": "MuiButtonBase-root-17",
+                              "disabled": "MuiButtonBase-disabled-85",
+                              "focusVisible": "MuiButtonBase-focusVisible-86",
+                              "root": "MuiButtonBase-root-84",
                             }
                           }
                           component="span"
@@ -1951,7 +2953,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         >
                           <span
                             aria-describedby={null}
-                            className="MuiButtonBase-root-17 MuiTableSortLabel-root-37 ellipsis"
+                            className="MuiButtonBase-root-84 MuiTableSortLabel-root-95 ellipsis"
                             onBlur={[Function]}
                             onClick={[Function]}
                             onContextMenu={[Function]}
@@ -1971,27 +2973,27 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           >
                             Status
                             <pure(ArrowDownward)
-                              className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                              className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                             >
                               <ArrowDownward
-                                className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                               >
                                 <WithStyles(SvgIcon)
-                                  className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                  className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                 >
                                   <SvgIcon
-                                    className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                    className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                     classes={
                                       Object {
-                                        "colorAction": "MuiSvgIcon-colorAction-23",
-                                        "colorDisabled": "MuiSvgIcon-colorDisabled-25",
-                                        "colorError": "MuiSvgIcon-colorError-24",
-                                        "colorPrimary": "MuiSvgIcon-colorPrimary-21",
-                                        "colorSecondary": "MuiSvgIcon-colorSecondary-22",
-                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-26",
-                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-28",
-                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-27",
-                                        "root": "MuiSvgIcon-root-20",
+                                        "colorAction": "MuiSvgIcon-colorAction-62",
+                                        "colorDisabled": "MuiSvgIcon-colorDisabled-64",
+                                        "colorError": "MuiSvgIcon-colorError-63",
+                                        "colorPrimary": "MuiSvgIcon-colorPrimary-60",
+                                        "colorSecondary": "MuiSvgIcon-colorSecondary-61",
+                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
+                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
+                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
+                                        "root": "MuiSvgIcon-root-59",
                                       }
                                     }
                                     color="inherit"
@@ -2001,7 +3003,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                   >
                                     <svg
                                       aria-hidden="true"
-                                      className="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                      className="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                       focusable="false"
                                       role="presentation"
                                       viewBox="0 0 24 24"
@@ -2023,7 +3025,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 <Popper
                   anchorEl={
                     <span
-                      class="MuiButtonBase-root-17 MuiTableSortLabel-root-37 ellipsis"
+                      class="MuiButtonBase-root-84 MuiTableSortLabel-root-95 ellipsis"
                       role="button"
                       tabindex="0"
                       title="Cannot sort by this column"
@@ -2031,7 +3033,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       Status
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                        class="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                         focusable="false"
                         role="presentation"
                         viewBox="0 0 24 24"
@@ -2042,7 +3044,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       </svg>
                     </span>
                   }
-                  className="MuiTooltip-popper-29"
+                  className="MuiTooltip-popper-87"
                   disablePortal={false}
                   id={null}
                   open={false}
@@ -2069,14 +3071,14 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 TransitionComponent={[Function]}
                 classes={
                   Object {
-                    "popper": "MuiTooltip-popper-29",
-                    "popperInteractive": "MuiTooltip-popperInteractive-30",
-                    "tooltip": "MuiTooltip-tooltip-31",
-                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-36",
-                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-33",
-                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-34",
-                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-35",
-                    "touch": "MuiTooltip-touch-32",
+                    "popper": "MuiTooltip-popper-87",
+                    "popperInteractive": "MuiTooltip-popperInteractive-88",
+                    "tooltip": "MuiTooltip-tooltip-89",
+                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-94",
+                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-91",
+                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-92",
+                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-93",
+                    "touch": "MuiTooltip-touch-90",
                   }
                 }
                 disableFocusListener={false}
@@ -2475,11 +3477,11 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       className="ellipsis"
                       classes={
                         Object {
-                          "active": "MuiTableSortLabel-active-38",
-                          "icon": "MuiTableSortLabel-icon-39",
-                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-41",
-                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-40",
-                          "root": "MuiTableSortLabel-root-37",
+                          "active": "MuiTableSortLabel-active-96",
+                          "icon": "MuiTableSortLabel-icon-97",
+                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-99",
+                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-98",
+                          "root": "MuiTableSortLabel-root-95",
                         }
                       }
                       direction="desc"
@@ -2495,7 +3497,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                     >
                       <WithStyles(ButtonBase)
                         aria-describedby={null}
-                        className="MuiTableSortLabel-root-37 ellipsis"
+                        className="MuiTableSortLabel-root-95 ellipsis"
                         component="span"
                         disableRipple={true}
                         onBlur={[Function]}
@@ -2510,12 +3512,12 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         <ButtonBase
                           aria-describedby={null}
                           centerRipple={false}
-                          className="MuiTableSortLabel-root-37 ellipsis"
+                          className="MuiTableSortLabel-root-95 ellipsis"
                           classes={
                             Object {
-                              "disabled": "MuiButtonBase-disabled-18",
-                              "focusVisible": "MuiButtonBase-focusVisible-19",
-                              "root": "MuiButtonBase-root-17",
+                              "disabled": "MuiButtonBase-disabled-85",
+                              "focusVisible": "MuiButtonBase-focusVisible-86",
+                              "root": "MuiButtonBase-root-84",
                             }
                           }
                           component="span"
@@ -2535,7 +3537,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         >
                           <span
                             aria-describedby={null}
-                            className="MuiButtonBase-root-17 MuiTableSortLabel-root-37 ellipsis"
+                            className="MuiButtonBase-root-84 MuiTableSortLabel-root-95 ellipsis"
                             onBlur={[Function]}
                             onClick={[Function]}
                             onContextMenu={[Function]}
@@ -2555,27 +3557,27 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           >
                             Duration
                             <pure(ArrowDownward)
-                              className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                              className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                             >
                               <ArrowDownward
-                                className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                               >
                                 <WithStyles(SvgIcon)
-                                  className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                  className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                 >
                                   <SvgIcon
-                                    className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                    className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                     classes={
                                       Object {
-                                        "colorAction": "MuiSvgIcon-colorAction-23",
-                                        "colorDisabled": "MuiSvgIcon-colorDisabled-25",
-                                        "colorError": "MuiSvgIcon-colorError-24",
-                                        "colorPrimary": "MuiSvgIcon-colorPrimary-21",
-                                        "colorSecondary": "MuiSvgIcon-colorSecondary-22",
-                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-26",
-                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-28",
-                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-27",
-                                        "root": "MuiSvgIcon-root-20",
+                                        "colorAction": "MuiSvgIcon-colorAction-62",
+                                        "colorDisabled": "MuiSvgIcon-colorDisabled-64",
+                                        "colorError": "MuiSvgIcon-colorError-63",
+                                        "colorPrimary": "MuiSvgIcon-colorPrimary-60",
+                                        "colorSecondary": "MuiSvgIcon-colorSecondary-61",
+                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
+                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
+                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
+                                        "root": "MuiSvgIcon-root-59",
                                       }
                                     }
                                     color="inherit"
@@ -2585,7 +3587,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                   >
                                     <svg
                                       aria-hidden="true"
-                                      className="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                      className="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                       focusable="false"
                                       role="presentation"
                                       viewBox="0 0 24 24"
@@ -2607,7 +3609,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 <Popper
                   anchorEl={
                     <span
-                      class="MuiButtonBase-root-17 MuiTableSortLabel-root-37 ellipsis"
+                      class="MuiButtonBase-root-84 MuiTableSortLabel-root-95 ellipsis"
                       role="button"
                       tabindex="0"
                       title="Cannot sort by this column"
@@ -2615,7 +3617,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       Duration
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                        class="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                         focusable="false"
                         role="presentation"
                         viewBox="0 0 24 24"
@@ -2626,7 +3628,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       </svg>
                     </span>
                   }
-                  className="MuiTooltip-popper-29"
+                  className="MuiTooltip-popper-87"
                   disablePortal={false}
                   id={null}
                   open={false}
@@ -2653,14 +3655,14 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 TransitionComponent={[Function]}
                 classes={
                   Object {
-                    "popper": "MuiTooltip-popper-29",
-                    "popperInteractive": "MuiTooltip-popperInteractive-30",
-                    "tooltip": "MuiTooltip-tooltip-31",
-                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-36",
-                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-33",
-                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-34",
-                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-35",
-                    "touch": "MuiTooltip-touch-32",
+                    "popper": "MuiTooltip-popper-87",
+                    "popperInteractive": "MuiTooltip-popperInteractive-88",
+                    "tooltip": "MuiTooltip-tooltip-89",
+                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-94",
+                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-91",
+                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-92",
+                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-93",
+                    "touch": "MuiTooltip-touch-90",
                   }
                 }
                 disableFocusListener={false}
@@ -3059,11 +4061,11 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       className="ellipsis"
                       classes={
                         Object {
-                          "active": "MuiTableSortLabel-active-38",
-                          "icon": "MuiTableSortLabel-icon-39",
-                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-41",
-                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-40",
-                          "root": "MuiTableSortLabel-root-37",
+                          "active": "MuiTableSortLabel-active-96",
+                          "icon": "MuiTableSortLabel-icon-97",
+                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-99",
+                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-98",
+                          "root": "MuiTableSortLabel-root-95",
                         }
                       }
                       direction="desc"
@@ -3079,7 +4081,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                     >
                       <WithStyles(ButtonBase)
                         aria-describedby={null}
-                        className="MuiTableSortLabel-root-37 ellipsis"
+                        className="MuiTableSortLabel-root-95 ellipsis"
                         component="span"
                         disableRipple={true}
                         onBlur={[Function]}
@@ -3094,12 +4096,12 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         <ButtonBase
                           aria-describedby={null}
                           centerRipple={false}
-                          className="MuiTableSortLabel-root-37 ellipsis"
+                          className="MuiTableSortLabel-root-95 ellipsis"
                           classes={
                             Object {
-                              "disabled": "MuiButtonBase-disabled-18",
-                              "focusVisible": "MuiButtonBase-focusVisible-19",
-                              "root": "MuiButtonBase-root-17",
+                              "disabled": "MuiButtonBase-disabled-85",
+                              "focusVisible": "MuiButtonBase-focusVisible-86",
+                              "root": "MuiButtonBase-root-84",
                             }
                           }
                           component="span"
@@ -3119,7 +4121,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         >
                           <span
                             aria-describedby={null}
-                            className="MuiButtonBase-root-17 MuiTableSortLabel-root-37 ellipsis"
+                            className="MuiButtonBase-root-84 MuiTableSortLabel-root-95 ellipsis"
                             onBlur={[Function]}
                             onClick={[Function]}
                             onContextMenu={[Function]}
@@ -3139,27 +4141,27 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           >
                             Experiment
                             <pure(ArrowDownward)
-                              className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                              className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                             >
                               <ArrowDownward
-                                className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                               >
                                 <WithStyles(SvgIcon)
-                                  className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                  className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                 >
                                   <SvgIcon
-                                    className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                    className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                     classes={
                                       Object {
-                                        "colorAction": "MuiSvgIcon-colorAction-23",
-                                        "colorDisabled": "MuiSvgIcon-colorDisabled-25",
-                                        "colorError": "MuiSvgIcon-colorError-24",
-                                        "colorPrimary": "MuiSvgIcon-colorPrimary-21",
-                                        "colorSecondary": "MuiSvgIcon-colorSecondary-22",
-                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-26",
-                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-28",
-                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-27",
-                                        "root": "MuiSvgIcon-root-20",
+                                        "colorAction": "MuiSvgIcon-colorAction-62",
+                                        "colorDisabled": "MuiSvgIcon-colorDisabled-64",
+                                        "colorError": "MuiSvgIcon-colorError-63",
+                                        "colorPrimary": "MuiSvgIcon-colorPrimary-60",
+                                        "colorSecondary": "MuiSvgIcon-colorSecondary-61",
+                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
+                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
+                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
+                                        "root": "MuiSvgIcon-root-59",
                                       }
                                     }
                                     color="inherit"
@@ -3169,7 +4171,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                   >
                                     <svg
                                       aria-hidden="true"
-                                      className="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                      className="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                       focusable="false"
                                       role="presentation"
                                       viewBox="0 0 24 24"
@@ -3191,7 +4193,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 <Popper
                   anchorEl={
                     <span
-                      class="MuiButtonBase-root-17 MuiTableSortLabel-root-37 ellipsis"
+                      class="MuiButtonBase-root-84 MuiTableSortLabel-root-95 ellipsis"
                       role="button"
                       tabindex="0"
                       title="Cannot sort by this column"
@@ -3199,7 +4201,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       Experiment
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                        class="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                         focusable="false"
                         role="presentation"
                         viewBox="0 0 24 24"
@@ -3210,7 +4212,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       </svg>
                     </span>
                   }
-                  className="MuiTooltip-popper-29"
+                  className="MuiTooltip-popper-87"
                   disablePortal={false}
                   id={null}
                   open={false}
@@ -3237,14 +4239,14 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 TransitionComponent={[Function]}
                 classes={
                   Object {
-                    "popper": "MuiTooltip-popper-29",
-                    "popperInteractive": "MuiTooltip-popperInteractive-30",
-                    "tooltip": "MuiTooltip-tooltip-31",
-                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-36",
-                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-33",
-                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-34",
-                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-35",
-                    "touch": "MuiTooltip-touch-32",
+                    "popper": "MuiTooltip-popper-87",
+                    "popperInteractive": "MuiTooltip-popperInteractive-88",
+                    "tooltip": "MuiTooltip-tooltip-89",
+                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-94",
+                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-91",
+                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-92",
+                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-93",
+                    "touch": "MuiTooltip-touch-90",
                   }
                 }
                 disableFocusListener={false}
@@ -3643,11 +4645,11 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       className="ellipsis"
                       classes={
                         Object {
-                          "active": "MuiTableSortLabel-active-38",
-                          "icon": "MuiTableSortLabel-icon-39",
-                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-41",
-                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-40",
-                          "root": "MuiTableSortLabel-root-37",
+                          "active": "MuiTableSortLabel-active-96",
+                          "icon": "MuiTableSortLabel-icon-97",
+                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-99",
+                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-98",
+                          "root": "MuiTableSortLabel-root-95",
                         }
                       }
                       direction="desc"
@@ -3663,7 +4665,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                     >
                       <WithStyles(ButtonBase)
                         aria-describedby={null}
-                        className="MuiTableSortLabel-root-37 ellipsis"
+                        className="MuiTableSortLabel-root-95 ellipsis"
                         component="span"
                         disableRipple={true}
                         onBlur={[Function]}
@@ -3678,12 +4680,12 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         <ButtonBase
                           aria-describedby={null}
                           centerRipple={false}
-                          className="MuiTableSortLabel-root-37 ellipsis"
+                          className="MuiTableSortLabel-root-95 ellipsis"
                           classes={
                             Object {
-                              "disabled": "MuiButtonBase-disabled-18",
-                              "focusVisible": "MuiButtonBase-focusVisible-19",
-                              "root": "MuiButtonBase-root-17",
+                              "disabled": "MuiButtonBase-disabled-85",
+                              "focusVisible": "MuiButtonBase-focusVisible-86",
+                              "root": "MuiButtonBase-root-84",
                             }
                           }
                           component="span"
@@ -3703,7 +4705,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         >
                           <span
                             aria-describedby={null}
-                            className="MuiButtonBase-root-17 MuiTableSortLabel-root-37 ellipsis"
+                            className="MuiButtonBase-root-84 MuiTableSortLabel-root-95 ellipsis"
                             onBlur={[Function]}
                             onClick={[Function]}
                             onContextMenu={[Function]}
@@ -3723,27 +4725,27 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           >
                             Pipeline
                             <pure(ArrowDownward)
-                              className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                              className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                             >
                               <ArrowDownward
-                                className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                               >
                                 <WithStyles(SvgIcon)
-                                  className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                  className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                 >
                                   <SvgIcon
-                                    className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                    className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                     classes={
                                       Object {
-                                        "colorAction": "MuiSvgIcon-colorAction-23",
-                                        "colorDisabled": "MuiSvgIcon-colorDisabled-25",
-                                        "colorError": "MuiSvgIcon-colorError-24",
-                                        "colorPrimary": "MuiSvgIcon-colorPrimary-21",
-                                        "colorSecondary": "MuiSvgIcon-colorSecondary-22",
-                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-26",
-                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-28",
-                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-27",
-                                        "root": "MuiSvgIcon-root-20",
+                                        "colorAction": "MuiSvgIcon-colorAction-62",
+                                        "colorDisabled": "MuiSvgIcon-colorDisabled-64",
+                                        "colorError": "MuiSvgIcon-colorError-63",
+                                        "colorPrimary": "MuiSvgIcon-colorPrimary-60",
+                                        "colorSecondary": "MuiSvgIcon-colorSecondary-61",
+                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
+                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
+                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
+                                        "root": "MuiSvgIcon-root-59",
                                       }
                                     }
                                     color="inherit"
@@ -3753,7 +4755,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                   >
                                     <svg
                                       aria-hidden="true"
-                                      className="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                      className="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                       focusable="false"
                                       role="presentation"
                                       viewBox="0 0 24 24"
@@ -3775,7 +4777,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 <Popper
                   anchorEl={
                     <span
-                      class="MuiButtonBase-root-17 MuiTableSortLabel-root-37 ellipsis"
+                      class="MuiButtonBase-root-84 MuiTableSortLabel-root-95 ellipsis"
                       role="button"
                       tabindex="0"
                       title="Cannot sort by this column"
@@ -3783,7 +4785,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       Pipeline
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                        class="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                         focusable="false"
                         role="presentation"
                         viewBox="0 0 24 24"
@@ -3794,7 +4796,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       </svg>
                     </span>
                   }
-                  className="MuiTooltip-popper-29"
+                  className="MuiTooltip-popper-87"
                   disablePortal={false}
                   id={null}
                   open={false}
@@ -3821,14 +4823,14 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 TransitionComponent={[Function]}
                 classes={
                   Object {
-                    "popper": "MuiTooltip-popper-29",
-                    "popperInteractive": "MuiTooltip-popperInteractive-30",
-                    "tooltip": "MuiTooltip-tooltip-31",
-                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-36",
-                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-33",
-                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-34",
-                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-35",
-                    "touch": "MuiTooltip-touch-32",
+                    "popper": "MuiTooltip-popper-87",
+                    "popperInteractive": "MuiTooltip-popperInteractive-88",
+                    "tooltip": "MuiTooltip-tooltip-89",
+                    "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-94",
+                    "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-91",
+                    "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-92",
+                    "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-93",
+                    "touch": "MuiTooltip-touch-90",
                   }
                 }
                 disableFocusListener={false}
@@ -4228,11 +5230,11 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       className="ellipsis"
                       classes={
                         Object {
-                          "active": "MuiTableSortLabel-active-38",
-                          "icon": "MuiTableSortLabel-icon-39",
-                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-41",
-                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-40",
-                          "root": "MuiTableSortLabel-root-37",
+                          "active": "MuiTableSortLabel-active-96",
+                          "icon": "MuiTableSortLabel-icon-97",
+                          "iconDirectionAsc": "MuiTableSortLabel-iconDirectionAsc-99",
+                          "iconDirectionDesc": "MuiTableSortLabel-iconDirectionDesc-98",
+                          "root": "MuiTableSortLabel-root-95",
                         }
                       }
                       direction="desc"
@@ -4248,7 +5250,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                     >
                       <WithStyles(ButtonBase)
                         aria-describedby={null}
-                        className="MuiTableSortLabel-root-37 MuiTableSortLabel-active-38 ellipsis"
+                        className="MuiTableSortLabel-root-95 MuiTableSortLabel-active-96 ellipsis"
                         component="span"
                         disableRipple={true}
                         onBlur={[Function]}
@@ -4263,12 +5265,12 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         <ButtonBase
                           aria-describedby={null}
                           centerRipple={false}
-                          className="MuiTableSortLabel-root-37 MuiTableSortLabel-active-38 ellipsis"
+                          className="MuiTableSortLabel-root-95 MuiTableSortLabel-active-96 ellipsis"
                           classes={
                             Object {
-                              "disabled": "MuiButtonBase-disabled-18",
-                              "focusVisible": "MuiButtonBase-focusVisible-19",
-                              "root": "MuiButtonBase-root-17",
+                              "disabled": "MuiButtonBase-disabled-85",
+                              "focusVisible": "MuiButtonBase-focusVisible-86",
+                              "root": "MuiButtonBase-root-84",
                             }
                           }
                           component="span"
@@ -4288,7 +5290,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         >
                           <span
                             aria-describedby={null}
-                            className="MuiButtonBase-root-17 MuiTableSortLabel-root-37 MuiTableSortLabel-active-38 ellipsis"
+                            className="MuiButtonBase-root-84 MuiTableSortLabel-root-95 MuiTableSortLabel-active-96 ellipsis"
                             onBlur={[Function]}
                             onClick={[Function]}
                             onContextMenu={[Function]}
@@ -4308,27 +5310,27 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           >
                             Start time
                             <pure(ArrowDownward)
-                              className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                              className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                             >
                               <ArrowDownward
-                                className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                               >
                                 <WithStyles(SvgIcon)
-                                  className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                  className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                 >
                                   <SvgIcon
-                                    className="MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                    className="MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                     classes={
                                       Object {
-                                        "colorAction": "MuiSvgIcon-colorAction-23",
-                                        "colorDisabled": "MuiSvgIcon-colorDisabled-25",
-                                        "colorError": "MuiSvgIcon-colorError-24",
-                                        "colorPrimary": "MuiSvgIcon-colorPrimary-21",
-                                        "colorSecondary": "MuiSvgIcon-colorSecondary-22",
-                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-26",
-                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-28",
-                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-27",
-                                        "root": "MuiSvgIcon-root-20",
+                                        "colorAction": "MuiSvgIcon-colorAction-62",
+                                        "colorDisabled": "MuiSvgIcon-colorDisabled-64",
+                                        "colorError": "MuiSvgIcon-colorError-63",
+                                        "colorPrimary": "MuiSvgIcon-colorPrimary-60",
+                                        "colorSecondary": "MuiSvgIcon-colorSecondary-61",
+                                        "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
+                                        "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
+                                        "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
+                                        "root": "MuiSvgIcon-root-59",
                                       }
                                     }
                                     color="inherit"
@@ -4338,7 +5340,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                   >
                                     <svg
                                       aria-hidden="true"
-                                      className="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                                      className="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                                       focusable="false"
                                       role="presentation"
                                       viewBox="0 0 24 24"
@@ -4360,7 +5362,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 <Popper
                   anchorEl={
                     <span
-                      class="MuiButtonBase-root-17 MuiTableSortLabel-root-37 MuiTableSortLabel-active-38 ellipsis"
+                      class="MuiButtonBase-root-84 MuiTableSortLabel-root-95 MuiTableSortLabel-active-96 ellipsis"
                       role="button"
                       tabindex="0"
                       title="Sort"
@@ -4368,7 +5370,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       Start time
                       <svg
                         aria-hidden="true"
-                        class="MuiSvgIcon-root-20 MuiTableSortLabel-icon-39 MuiTableSortLabel-iconDirectionDesc-40"
+                        class="MuiSvgIcon-root-59 MuiTableSortLabel-icon-97 MuiTableSortLabel-iconDirectionDesc-98"
                         focusable="false"
                         role="presentation"
                         viewBox="0 0 24 24"
@@ -4379,7 +5381,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       </svg>
                     </span>
                   }
-                  className="MuiTooltip-popper-29"
+                  className="MuiTooltip-popper-87"
                   disablePortal={false}
                   id={null}
                   open={false}
@@ -4419,6 +5421,11 @@ exports[`RunList reloads the run when refresh is called 1`] = `
               }
             }
             className="rowsPerPage"
+            classes={
+              Object {
+                "root": "verticalAlignInitial",
+              }
+            }
             onChange={[Function]}
             required={false}
             select={true}
@@ -4427,6 +5434,11 @@ exports[`RunList reloads the run when refresh is called 1`] = `
           >
             <WithStyles(FormControl)
               className="rowsPerPage"
+              classes={
+                Object {
+                  "root": "verticalAlignInitial",
+                }
+              }
               required={false}
               variant="standard"
             >
@@ -4434,10 +5446,10 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 className="rowsPerPage"
                 classes={
                   Object {
-                    "fullWidth": "MuiFormControl-fullWidth-45",
-                    "marginDense": "MuiFormControl-marginDense-44",
-                    "marginNormal": "MuiFormControl-marginNormal-43",
-                    "root": "MuiFormControl-root-42",
+                    "fullWidth": "MuiFormControl-fullWidth-4",
+                    "marginDense": "MuiFormControl-marginDense-3",
+                    "marginNormal": "MuiFormControl-marginNormal-2",
+                    "root": "MuiFormControl-root-1 verticalAlignInitial",
                   }
                 }
                 component="div"
@@ -4449,7 +5461,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 variant="standard"
               >
                 <div
-                  className="MuiFormControl-root-42 rowsPerPage"
+                  className="MuiFormControl-root-1 verticalAlignInitial rowsPerPage"
                 >
                   <WithStyles(WithFormControlContext(Select))
                     input={
@@ -4479,13 +5491,13 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                     <WithFormControlContext(Select)
                       classes={
                         Object {
-                          "disabled": "MuiSelect-disabled-51",
-                          "filled": "MuiSelect-filled-48",
-                          "icon": "MuiSelect-icon-52",
-                          "outlined": "MuiSelect-outlined-49",
-                          "root": "MuiSelect-root-46",
-                          "select": "MuiSelect-select-47",
-                          "selectMenu": "MuiSelect-selectMenu-50",
+                          "disabled": "MuiSelect-disabled-105",
+                          "filled": "MuiSelect-filled-102",
+                          "icon": "MuiSelect-icon-106",
+                          "outlined": "MuiSelect-outlined-103",
+                          "root": "MuiSelect-root-100",
+                          "select": "MuiSelect-select-101",
+                          "selectMenu": "MuiSelect-selectMenu-104",
                         }
                       }
                       input={
@@ -4517,13 +5529,13 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         autoWidth={false}
                         classes={
                           Object {
-                            "disabled": "MuiSelect-disabled-51",
-                            "filled": "MuiSelect-filled-48",
-                            "icon": "MuiSelect-icon-52",
-                            "outlined": "MuiSelect-outlined-49",
-                            "root": "MuiSelect-root-46",
-                            "select": "MuiSelect-select-47",
-                            "selectMenu": "MuiSelect-selectMenu-50",
+                            "disabled": "MuiSelect-disabled-105",
+                            "filled": "MuiSelect-filled-102",
+                            "icon": "MuiSelect-icon-106",
+                            "outlined": "MuiSelect-outlined-103",
+                            "root": "MuiSelect-root-100",
+                            "select": "MuiSelect-select-101",
+                            "selectMenu": "MuiSelect-selectMenu-104",
                           }
                         }
                         displayEmpty={false}
@@ -4601,13 +5613,13 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                 </WithStyles(MenuItem)>,
                               ],
                               "classes": Object {
-                                "disabled": "MuiSelect-disabled-51",
-                                "filled": "MuiSelect-filled-48",
-                                "icon": "MuiSelect-icon-52",
-                                "outlined": "MuiSelect-outlined-49",
-                                "root": "MuiSelect-root-46",
-                                "select": "MuiSelect-select-47",
-                                "selectMenu": "MuiSelect-selectMenu-50",
+                                "disabled": "MuiSelect-disabled-105",
+                                "filled": "MuiSelect-filled-102",
+                                "icon": "MuiSelect-icon-106",
+                                "outlined": "MuiSelect-outlined-103",
+                                "root": "MuiSelect-root-100",
+                                "select": "MuiSelect-select-101",
+                                "selectMenu": "MuiSelect-selectMenu-104",
                               },
                               "displayEmpty": false,
                               "multiple": false,
@@ -4625,19 +5637,19 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           <Input
                             classes={
                               Object {
-                                "disabled": "MuiInput-disabled-56",
-                                "error": "MuiInput-error-58",
-                                "focused": "MuiInput-focused-55",
-                                "formControl": "MuiInput-formControl-54",
-                                "fullWidth": "MuiInput-fullWidth-60",
-                                "input": "MuiInput-input-61",
-                                "inputMarginDense": "MuiInput-inputMarginDense-62",
-                                "inputMultiline": "MuiInput-inputMultiline-63",
-                                "inputType": "MuiInput-inputType-64",
-                                "inputTypeSearch": "MuiInput-inputTypeSearch-65",
-                                "multiline": "MuiInput-multiline-59",
-                                "root": "MuiInput-root-53",
-                                "underline": "MuiInput-underline-57",
+                                "disabled": "MuiInput-disabled-110",
+                                "error": "MuiInput-error-112",
+                                "focused": "MuiInput-focused-109",
+                                "formControl": "MuiInput-formControl-108",
+                                "fullWidth": "MuiInput-fullWidth-114",
+                                "input": "MuiInput-input-115",
+                                "inputMarginDense": "MuiInput-inputMarginDense-116",
+                                "inputMultiline": "MuiInput-inputMultiline-117",
+                                "inputType": "MuiInput-inputType-118",
+                                "inputTypeSearch": "MuiInput-inputTypeSearch-119",
+                                "multiline": "MuiInput-multiline-113",
+                                "root": "MuiInput-root-107",
+                                "underline": "MuiInput-underline-111",
                               }
                             }
                             disableUnderline={true}
@@ -4671,13 +5683,13 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                   </WithStyles(MenuItem)>,
                                 ],
                                 "classes": Object {
-                                  "disabled": "MuiSelect-disabled-51",
-                                  "filled": "MuiSelect-filled-48",
-                                  "icon": "MuiSelect-icon-52",
-                                  "outlined": "MuiSelect-outlined-49",
-                                  "root": "MuiSelect-root-46",
-                                  "select": "MuiSelect-select-47",
-                                  "selectMenu": "MuiSelect-selectMenu-50",
+                                  "disabled": "MuiSelect-disabled-105",
+                                  "filled": "MuiSelect-filled-102",
+                                  "icon": "MuiSelect-icon-106",
+                                  "outlined": "MuiSelect-outlined-103",
+                                  "root": "MuiSelect-root-100",
+                                  "select": "MuiSelect-select-101",
+                                  "selectMenu": "MuiSelect-selectMenu-104",
                                 },
                                 "displayEmpty": false,
                                 "multiple": false,
@@ -4695,18 +5707,18 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             <WithStyles(WithFormControlContext(InputBase))
                               classes={
                                 Object {
-                                  "disabled": "MuiInput-disabled-56",
-                                  "error": "MuiInput-error-58",
-                                  "focused": "MuiInput-focused-55",
-                                  "formControl": "MuiInput-formControl-54",
-                                  "fullWidth": "MuiInput-fullWidth-60",
-                                  "input": "MuiInput-input-61",
-                                  "inputMarginDense": "MuiInput-inputMarginDense-62",
-                                  "inputMultiline": "MuiInput-inputMultiline-63",
-                                  "inputType": "MuiInput-inputType-64",
-                                  "inputTypeSearch": "MuiInput-inputTypeSearch-65",
-                                  "multiline": "MuiInput-multiline-59",
-                                  "root": "MuiInput-root-53",
+                                  "disabled": "MuiInput-disabled-110",
+                                  "error": "MuiInput-error-112",
+                                  "focused": "MuiInput-focused-109",
+                                  "formControl": "MuiInput-formControl-108",
+                                  "fullWidth": "MuiInput-fullWidth-114",
+                                  "input": "MuiInput-input-115",
+                                  "inputMarginDense": "MuiInput-inputMarginDense-116",
+                                  "inputMultiline": "MuiInput-inputMultiline-117",
+                                  "inputType": "MuiInput-inputType-118",
+                                  "inputTypeSearch": "MuiInput-inputTypeSearch-119",
+                                  "multiline": "MuiInput-multiline-113",
+                                  "root": "MuiInput-root-107",
                                   "underline": null,
                                 }
                               }
@@ -4741,13 +5753,13 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                     </WithStyles(MenuItem)>,
                                   ],
                                   "classes": Object {
-                                    "disabled": "MuiSelect-disabled-51",
-                                    "filled": "MuiSelect-filled-48",
-                                    "icon": "MuiSelect-icon-52",
-                                    "outlined": "MuiSelect-outlined-49",
-                                    "root": "MuiSelect-root-46",
-                                    "select": "MuiSelect-select-47",
-                                    "selectMenu": "MuiSelect-selectMenu-50",
+                                    "disabled": "MuiSelect-disabled-105",
+                                    "filled": "MuiSelect-filled-102",
+                                    "icon": "MuiSelect-icon-106",
+                                    "outlined": "MuiSelect-outlined-103",
+                                    "root": "MuiSelect-root-100",
+                                    "select": "MuiSelect-select-101",
+                                    "selectMenu": "MuiSelect-selectMenu-104",
                                   },
                                   "displayEmpty": false,
                                   "multiple": false,
@@ -4767,23 +5779,23 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                               <WithFormControlContext(InputBase)
                                 classes={
                                   Object {
-                                    "adornedEnd": "MuiInputBase-adornedEnd-71",
-                                    "adornedStart": "MuiInputBase-adornedStart-70",
-                                    "disabled": "MuiInputBase-disabled-69 MuiInput-disabled-56",
-                                    "error": "MuiInputBase-error-72 MuiInput-error-58",
-                                    "focused": "MuiInputBase-focused-68 MuiInput-focused-55",
-                                    "formControl": "MuiInputBase-formControl-67 MuiInput-formControl-54",
-                                    "fullWidth": "MuiInputBase-fullWidth-75 MuiInput-fullWidth-60",
-                                    "input": "MuiInputBase-input-76 MuiInput-input-61",
-                                    "inputAdornedEnd": "MuiInputBase-inputAdornedEnd-82",
-                                    "inputAdornedStart": "MuiInputBase-inputAdornedStart-81",
-                                    "inputMarginDense": "MuiInputBase-inputMarginDense-77 MuiInput-inputMarginDense-62",
-                                    "inputMultiline": "MuiInputBase-inputMultiline-78 MuiInput-inputMultiline-63",
-                                    "inputType": "MuiInputBase-inputType-79 MuiInput-inputType-64",
-                                    "inputTypeSearch": "MuiInputBase-inputTypeSearch-80 MuiInput-inputTypeSearch-65",
-                                    "marginDense": "MuiInputBase-marginDense-73",
-                                    "multiline": "MuiInputBase-multiline-74 MuiInput-multiline-59",
-                                    "root": "MuiInputBase-root-66 MuiInput-root-53",
+                                    "adornedEnd": "MuiInputBase-adornedEnd-41",
+                                    "adornedStart": "MuiInputBase-adornedStart-40",
+                                    "disabled": "MuiInputBase-disabled-39 MuiInput-disabled-110",
+                                    "error": "MuiInputBase-error-42 MuiInput-error-112",
+                                    "focused": "MuiInputBase-focused-38 MuiInput-focused-109",
+                                    "formControl": "MuiInputBase-formControl-37 MuiInput-formControl-108",
+                                    "fullWidth": "MuiInputBase-fullWidth-45 MuiInput-fullWidth-114",
+                                    "input": "MuiInputBase-input-46 MuiInput-input-115",
+                                    "inputAdornedEnd": "MuiInputBase-inputAdornedEnd-52",
+                                    "inputAdornedStart": "MuiInputBase-inputAdornedStart-51",
+                                    "inputMarginDense": "MuiInputBase-inputMarginDense-47 MuiInput-inputMarginDense-116",
+                                    "inputMultiline": "MuiInputBase-inputMultiline-48 MuiInput-inputMultiline-117",
+                                    "inputType": "MuiInputBase-inputType-49 MuiInput-inputType-118",
+                                    "inputTypeSearch": "MuiInputBase-inputTypeSearch-50 MuiInput-inputTypeSearch-119",
+                                    "marginDense": "MuiInputBase-marginDense-43",
+                                    "multiline": "MuiInputBase-multiline-44 MuiInput-multiline-113",
+                                    "root": "MuiInputBase-root-36 MuiInput-root-107",
                                   }
                                 }
                                 fullWidth={false}
@@ -4817,13 +5829,13 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                       </WithStyles(MenuItem)>,
                                     ],
                                     "classes": Object {
-                                      "disabled": "MuiSelect-disabled-51",
-                                      "filled": "MuiSelect-filled-48",
-                                      "icon": "MuiSelect-icon-52",
-                                      "outlined": "MuiSelect-outlined-49",
-                                      "root": "MuiSelect-root-46",
-                                      "select": "MuiSelect-select-47",
-                                      "selectMenu": "MuiSelect-selectMenu-50",
+                                      "disabled": "MuiSelect-disabled-105",
+                                      "filled": "MuiSelect-filled-102",
+                                      "icon": "MuiSelect-icon-106",
+                                      "outlined": "MuiSelect-outlined-103",
+                                      "root": "MuiSelect-root-100",
+                                      "select": "MuiSelect-select-101",
+                                      "selectMenu": "MuiSelect-selectMenu-104",
                                     },
                                     "displayEmpty": false,
                                     "multiple": false,
@@ -4843,23 +5855,23 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                 <InputBase
                                   classes={
                                     Object {
-                                      "adornedEnd": "MuiInputBase-adornedEnd-71",
-                                      "adornedStart": "MuiInputBase-adornedStart-70",
-                                      "disabled": "MuiInputBase-disabled-69 MuiInput-disabled-56",
-                                      "error": "MuiInputBase-error-72 MuiInput-error-58",
-                                      "focused": "MuiInputBase-focused-68 MuiInput-focused-55",
-                                      "formControl": "MuiInputBase-formControl-67 MuiInput-formControl-54",
-                                      "fullWidth": "MuiInputBase-fullWidth-75 MuiInput-fullWidth-60",
-                                      "input": "MuiInputBase-input-76 MuiInput-input-61",
-                                      "inputAdornedEnd": "MuiInputBase-inputAdornedEnd-82",
-                                      "inputAdornedStart": "MuiInputBase-inputAdornedStart-81",
-                                      "inputMarginDense": "MuiInputBase-inputMarginDense-77 MuiInput-inputMarginDense-62",
-                                      "inputMultiline": "MuiInputBase-inputMultiline-78 MuiInput-inputMultiline-63",
-                                      "inputType": "MuiInputBase-inputType-79 MuiInput-inputType-64",
-                                      "inputTypeSearch": "MuiInputBase-inputTypeSearch-80 MuiInput-inputTypeSearch-65",
-                                      "marginDense": "MuiInputBase-marginDense-73",
-                                      "multiline": "MuiInputBase-multiline-74 MuiInput-multiline-59",
-                                      "root": "MuiInputBase-root-66 MuiInput-root-53",
+                                      "adornedEnd": "MuiInputBase-adornedEnd-41",
+                                      "adornedStart": "MuiInputBase-adornedStart-40",
+                                      "disabled": "MuiInputBase-disabled-39 MuiInput-disabled-110",
+                                      "error": "MuiInputBase-error-42 MuiInput-error-112",
+                                      "focused": "MuiInputBase-focused-38 MuiInput-focused-109",
+                                      "formControl": "MuiInputBase-formControl-37 MuiInput-formControl-108",
+                                      "fullWidth": "MuiInputBase-fullWidth-45 MuiInput-fullWidth-114",
+                                      "input": "MuiInputBase-input-46 MuiInput-input-115",
+                                      "inputAdornedEnd": "MuiInputBase-inputAdornedEnd-52",
+                                      "inputAdornedStart": "MuiInputBase-inputAdornedStart-51",
+                                      "inputMarginDense": "MuiInputBase-inputMarginDense-47 MuiInput-inputMarginDense-116",
+                                      "inputMultiline": "MuiInputBase-inputMultiline-48 MuiInput-inputMultiline-117",
+                                      "inputType": "MuiInputBase-inputType-49 MuiInput-inputType-118",
+                                      "inputTypeSearch": "MuiInputBase-inputTypeSearch-50 MuiInput-inputTypeSearch-119",
+                                      "marginDense": "MuiInputBase-marginDense-43",
+                                      "multiline": "MuiInputBase-multiline-44 MuiInput-multiline-113",
+                                      "root": "MuiInputBase-root-36 MuiInput-root-107",
                                     }
                                   }
                                   fullWidth={false}
@@ -4893,13 +5905,13 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                         </WithStyles(MenuItem)>,
                                       ],
                                       "classes": Object {
-                                        "disabled": "MuiSelect-disabled-51",
-                                        "filled": "MuiSelect-filled-48",
-                                        "icon": "MuiSelect-icon-52",
-                                        "outlined": "MuiSelect-outlined-49",
-                                        "root": "MuiSelect-root-46",
-                                        "select": "MuiSelect-select-47",
-                                        "selectMenu": "MuiSelect-selectMenu-50",
+                                        "disabled": "MuiSelect-disabled-105",
+                                        "filled": "MuiSelect-filled-102",
+                                        "icon": "MuiSelect-icon-106",
+                                        "outlined": "MuiSelect-outlined-103",
+                                        "root": "MuiSelect-root-100",
+                                        "select": "MuiSelect-select-101",
+                                        "selectMenu": "MuiSelect-selectMenu-104",
                                       },
                                       "displayEmpty": false,
                                       "multiple": false,
@@ -4933,23 +5945,23 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                   value={10}
                                 >
                                   <div
-                                    className="MuiInputBase-root-66 MuiInput-root-53 MuiInputBase-formControl-67 MuiInput-formControl-54"
+                                    className="MuiInputBase-root-36 MuiInput-root-107 MuiInputBase-formControl-37 MuiInput-formControl-108"
                                     onClick={[Function]}
                                   >
                                     <SelectInput
                                       IconComponent={[Function]}
                                       aria-invalid={false}
                                       autoWidth={false}
-                                      className="MuiInputBase-input-76 MuiInput-input-61"
+                                      className="MuiInputBase-input-46 MuiInput-input-115"
                                       classes={
                                         Object {
-                                          "disabled": "MuiSelect-disabled-51",
-                                          "filled": "MuiSelect-filled-48",
-                                          "icon": "MuiSelect-icon-52",
-                                          "outlined": "MuiSelect-outlined-49",
-                                          "root": "MuiSelect-root-46",
-                                          "select": "MuiSelect-select-47",
-                                          "selectMenu": "MuiSelect-selectMenu-50",
+                                          "disabled": "MuiSelect-disabled-105",
+                                          "filled": "MuiSelect-filled-102",
+                                          "icon": "MuiSelect-icon-106",
+                                          "outlined": "MuiSelect-outlined-103",
+                                          "root": "MuiSelect-root-100",
+                                          "select": "MuiSelect-select-101",
+                                          "selectMenu": "MuiSelect-selectMenu-104",
                                         }
                                       }
                                       disabled={false}
@@ -4964,12 +5976,12 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                       variant="standard"
                                     >
                                       <div
-                                        className="MuiSelect-root-46"
+                                        className="MuiSelect-root-100"
                                       >
                                         <div
                                           aria-haspopup="true"
                                           aria-pressed="false"
-                                          className="MuiSelect-select-47 MuiSelect-selectMenu-50 MuiInputBase-input-76 MuiInput-input-61"
+                                          className="MuiSelect-select-101 MuiSelect-selectMenu-104 MuiInputBase-input-46 MuiInput-input-115"
                                           onBlur={[Function]}
                                           onClick={[Function]}
                                           onFocus={[Function]}
@@ -4984,27 +5996,27 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                           value={10}
                                         />
                                         <pure(ArrowDropDown)
-                                          className="MuiSelect-icon-52"
+                                          className="MuiSelect-icon-106"
                                         >
                                           <ArrowDropDown
-                                            className="MuiSelect-icon-52"
+                                            className="MuiSelect-icon-106"
                                           >
                                             <WithStyles(SvgIcon)
-                                              className="MuiSelect-icon-52"
+                                              className="MuiSelect-icon-106"
                                             >
                                               <SvgIcon
-                                                className="MuiSelect-icon-52"
+                                                className="MuiSelect-icon-106"
                                                 classes={
                                                   Object {
-                                                    "colorAction": "MuiSvgIcon-colorAction-23",
-                                                    "colorDisabled": "MuiSvgIcon-colorDisabled-25",
-                                                    "colorError": "MuiSvgIcon-colorError-24",
-                                                    "colorPrimary": "MuiSvgIcon-colorPrimary-21",
-                                                    "colorSecondary": "MuiSvgIcon-colorSecondary-22",
-                                                    "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-26",
-                                                    "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-28",
-                                                    "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-27",
-                                                    "root": "MuiSvgIcon-root-20",
+                                                    "colorAction": "MuiSvgIcon-colorAction-62",
+                                                    "colorDisabled": "MuiSvgIcon-colorDisabled-64",
+                                                    "colorError": "MuiSvgIcon-colorError-63",
+                                                    "colorPrimary": "MuiSvgIcon-colorPrimary-60",
+                                                    "colorSecondary": "MuiSvgIcon-colorSecondary-61",
+                                                    "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
+                                                    "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
+                                                    "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
+                                                    "root": "MuiSvgIcon-root-59",
                                                   }
                                                 }
                                                 color="inherit"
@@ -5014,7 +6026,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                               >
                                                 <svg
                                                   aria-hidden="true"
-                                                  className="MuiSvgIcon-root-20 MuiSelect-icon-52"
+                                                  className="MuiSvgIcon-root-59 MuiSelect-icon-106"
                                                   focusable="false"
                                                   role="presentation"
                                                   viewBox="0 0 24 24"
@@ -5044,7 +6056,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                             <div
                                               aria-haspopup="true"
                                               aria-pressed="false"
-                                              class="MuiSelect-select-47 MuiSelect-selectMenu-50 MuiInputBase-input-76 MuiInput-input-61"
+                                              class="MuiSelect-select-101 MuiSelect-selectMenu-104 MuiInputBase-input-46 MuiInput-input-115"
                                               role="button"
                                               tabindex="0"
                                             >
@@ -5072,7 +6084,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                               <div
                                                 aria-haspopup="true"
                                                 aria-pressed="false"
-                                                class="MuiSelect-select-47 MuiSelect-selectMenu-50 MuiInputBase-input-76 MuiInput-input-61"
+                                                class="MuiSelect-select-101 MuiSelect-selectMenu-104 MuiInputBase-input-46 MuiInput-input-115"
                                                 role="button"
                                                 tabindex="0"
                                               >
@@ -5081,7 +6093,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                             }
                                             classes={
                                               Object {
-                                                "paper": "MuiMenu-paper-83",
+                                                "paper": "MuiMenu-paper-120",
                                               }
                                             }
                                             disableAutoFocusItem={false}
@@ -5456,7 +6468,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                               PaperProps={
                                                 Object {
                                                   "classes": Object {
-                                                    "root": "MuiMenu-paper-83",
+                                                    "root": "MuiMenu-paper-120",
                                                   },
                                                   "style": Object {
                                                     "minWidth": null,
@@ -5467,7 +6479,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                                 <div
                                                   aria-haspopup="true"
                                                   aria-pressed="false"
-                                                  class="MuiSelect-select-47 MuiSelect-selectMenu-50 MuiInputBase-input-76 MuiInput-input-61"
+                                                  class="MuiSelect-select-101 MuiSelect-selectMenu-104 MuiInputBase-input-46 MuiInput-input-115"
                                                   role="button"
                                                   tabindex="0"
                                                 >
@@ -5497,7 +6509,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                                 PaperProps={
                                                   Object {
                                                     "classes": Object {
-                                                      "root": "MuiMenu-paper-83",
+                                                      "root": "MuiMenu-paper-120",
                                                     },
                                                     "style": Object {
                                                       "minWidth": null,
@@ -5509,7 +6521,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                                   <div
                                                     aria-haspopup="true"
                                                     aria-pressed="false"
-                                                    class="MuiSelect-select-47 MuiSelect-selectMenu-50 MuiInputBase-input-76 MuiInput-input-61"
+                                                    class="MuiSelect-select-101 MuiSelect-selectMenu-104 MuiInputBase-input-46 MuiInput-input-115"
                                                     role="button"
                                                     tabindex="0"
                                                   >
@@ -5525,7 +6537,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                                 anchorReference="anchorEl"
                                                 classes={
                                                   Object {
-                                                    "paper": "MuiPopover-paper-84",
+                                                    "paper": "MuiPopover-paper-121",
                                                   }
                                                 }
                                                 elevation={8}
@@ -5563,8 +6575,8 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                                     }
                                                     classes={
                                                       Object {
-                                                        "hidden": "MuiModal-hidden-86",
-                                                        "root": "MuiModal-root-85",
+                                                        "hidden": "MuiModal-hidden-123",
+                                                        "root": "MuiModal-root-122",
                                                       }
                                                     }
                                                     container={<body />}
@@ -5615,12 +6627,12 @@ exports[`RunList reloads the run when refresh is called 1`] = `
             <IconButton
               classes={
                 Object {
-                  "colorInherit": "MuiIconButton-colorInherit-12",
-                  "colorPrimary": "MuiIconButton-colorPrimary-13",
-                  "colorSecondary": "MuiIconButton-colorSecondary-14",
-                  "disabled": "MuiIconButton-disabled-15",
-                  "label": "MuiIconButton-label-16",
-                  "root": "MuiIconButton-root-11",
+                  "colorInherit": "MuiIconButton-colorInherit-79",
+                  "colorPrimary": "MuiIconButton-colorPrimary-80",
+                  "colorSecondary": "MuiIconButton-colorSecondary-81",
+                  "disabled": "MuiIconButton-disabled-82",
+                  "label": "MuiIconButton-label-83",
+                  "root": "MuiIconButton-root-78",
                 }
               }
               color="default"
@@ -5629,19 +6641,19 @@ exports[`RunList reloads the run when refresh is called 1`] = `
             >
               <WithStyles(ButtonBase)
                 centerRipple={true}
-                className="MuiIconButton-root-11 MuiIconButton-disabled-15"
+                className="MuiIconButton-root-78 MuiIconButton-disabled-82"
                 disabled={true}
                 focusRipple={true}
                 onClick={[Function]}
               >
                 <ButtonBase
                   centerRipple={true}
-                  className="MuiIconButton-root-11 MuiIconButton-disabled-15"
+                  className="MuiIconButton-root-78 MuiIconButton-disabled-82"
                   classes={
                     Object {
-                      "disabled": "MuiButtonBase-disabled-18",
-                      "focusVisible": "MuiButtonBase-focusVisible-19",
-                      "root": "MuiButtonBase-root-17",
+                      "disabled": "MuiButtonBase-disabled-85",
+                      "focusVisible": "MuiButtonBase-focusVisible-86",
+                      "root": "MuiButtonBase-root-84",
                     }
                   }
                   component="button"
@@ -5654,7 +6666,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                   type="button"
                 >
                   <button
-                    className="MuiButtonBase-root-17 MuiButtonBase-disabled-18 MuiIconButton-root-11 MuiIconButton-disabled-15"
+                    className="MuiButtonBase-root-84 MuiButtonBase-disabled-85 MuiIconButton-root-78 MuiIconButton-disabled-82"
                     disabled={true}
                     onBlur={[Function]}
                     onClick={[Function]}
@@ -5672,7 +6684,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                     type="button"
                   >
                     <span
-                      className="MuiIconButton-label-16"
+                      className="MuiIconButton-label-83"
                     >
                       <pure(ChevronLeftIcon)>
                         <ChevronLeftIcon>
@@ -5680,15 +6692,15 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             <SvgIcon
                               classes={
                                 Object {
-                                  "colorAction": "MuiSvgIcon-colorAction-23",
-                                  "colorDisabled": "MuiSvgIcon-colorDisabled-25",
-                                  "colorError": "MuiSvgIcon-colorError-24",
-                                  "colorPrimary": "MuiSvgIcon-colorPrimary-21",
-                                  "colorSecondary": "MuiSvgIcon-colorSecondary-22",
-                                  "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-26",
-                                  "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-28",
-                                  "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-27",
-                                  "root": "MuiSvgIcon-root-20",
+                                  "colorAction": "MuiSvgIcon-colorAction-62",
+                                  "colorDisabled": "MuiSvgIcon-colorDisabled-64",
+                                  "colorError": "MuiSvgIcon-colorError-63",
+                                  "colorPrimary": "MuiSvgIcon-colorPrimary-60",
+                                  "colorSecondary": "MuiSvgIcon-colorSecondary-61",
+                                  "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
+                                  "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
+                                  "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
+                                  "root": "MuiSvgIcon-root-59",
                                 }
                               }
                               color="inherit"
@@ -5698,7 +6710,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             >
                               <svg
                                 aria-hidden="true"
-                                className="MuiSvgIcon-root-20"
+                                className="MuiSvgIcon-root-59"
                                 focusable="false"
                                 role="presentation"
                                 viewBox="0 0 24 24"
@@ -5728,12 +6740,12 @@ exports[`RunList reloads the run when refresh is called 1`] = `
             <IconButton
               classes={
                 Object {
-                  "colorInherit": "MuiIconButton-colorInherit-12",
-                  "colorPrimary": "MuiIconButton-colorPrimary-13",
-                  "colorSecondary": "MuiIconButton-colorSecondary-14",
-                  "disabled": "MuiIconButton-disabled-15",
-                  "label": "MuiIconButton-label-16",
-                  "root": "MuiIconButton-root-11",
+                  "colorInherit": "MuiIconButton-colorInherit-79",
+                  "colorPrimary": "MuiIconButton-colorPrimary-80",
+                  "colorSecondary": "MuiIconButton-colorSecondary-81",
+                  "disabled": "MuiIconButton-disabled-82",
+                  "label": "MuiIconButton-label-83",
+                  "root": "MuiIconButton-root-78",
                 }
               }
               color="default"
@@ -5742,19 +6754,19 @@ exports[`RunList reloads the run when refresh is called 1`] = `
             >
               <WithStyles(ButtonBase)
                 centerRipple={true}
-                className="MuiIconButton-root-11 MuiIconButton-disabled-15"
+                className="MuiIconButton-root-78 MuiIconButton-disabled-82"
                 disabled={true}
                 focusRipple={true}
                 onClick={[Function]}
               >
                 <ButtonBase
                   centerRipple={true}
-                  className="MuiIconButton-root-11 MuiIconButton-disabled-15"
+                  className="MuiIconButton-root-78 MuiIconButton-disabled-82"
                   classes={
                     Object {
-                      "disabled": "MuiButtonBase-disabled-18",
-                      "focusVisible": "MuiButtonBase-focusVisible-19",
-                      "root": "MuiButtonBase-root-17",
+                      "disabled": "MuiButtonBase-disabled-85",
+                      "focusVisible": "MuiButtonBase-focusVisible-86",
+                      "root": "MuiButtonBase-root-84",
                     }
                   }
                   component="button"
@@ -5767,7 +6779,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                   type="button"
                 >
                   <button
-                    className="MuiButtonBase-root-17 MuiButtonBase-disabled-18 MuiIconButton-root-11 MuiIconButton-disabled-15"
+                    className="MuiButtonBase-root-84 MuiButtonBase-disabled-85 MuiIconButton-root-78 MuiIconButton-disabled-82"
                     disabled={true}
                     onBlur={[Function]}
                     onClick={[Function]}
@@ -5785,7 +6797,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                     type="button"
                   >
                     <span
-                      className="MuiIconButton-label-16"
+                      className="MuiIconButton-label-83"
                     >
                       <pure(ChevronRightIcon)>
                         <ChevronRightIcon>
@@ -5793,15 +6805,15 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             <SvgIcon
                               classes={
                                 Object {
-                                  "colorAction": "MuiSvgIcon-colorAction-23",
-                                  "colorDisabled": "MuiSvgIcon-colorDisabled-25",
-                                  "colorError": "MuiSvgIcon-colorError-24",
-                                  "colorPrimary": "MuiSvgIcon-colorPrimary-21",
-                                  "colorSecondary": "MuiSvgIcon-colorSecondary-22",
-                                  "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-26",
-                                  "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-28",
-                                  "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-27",
-                                  "root": "MuiSvgIcon-root-20",
+                                  "colorAction": "MuiSvgIcon-colorAction-62",
+                                  "colorDisabled": "MuiSvgIcon-colorDisabled-64",
+                                  "colorError": "MuiSvgIcon-colorError-63",
+                                  "colorPrimary": "MuiSvgIcon-colorPrimary-60",
+                                  "colorSecondary": "MuiSvgIcon-colorSecondary-61",
+                                  "fontSizeInherit": "MuiSvgIcon-fontSizeInherit-65",
+                                  "fontSizeLarge": "MuiSvgIcon-fontSizeLarge-67",
+                                  "fontSizeSmall": "MuiSvgIcon-fontSizeSmall-66",
+                                  "root": "MuiSvgIcon-root-59",
                                 }
                               }
                               color="inherit"
@@ -5811,7 +6823,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             >
                               <svg
                                 aria-hidden="true"
-                                className="MuiSvgIcon-root-20"
+                                className="MuiSvgIcon-root-59"
                                 focusable="false"
                                 role="presentation"
                                 viewBox="0 0 24 24"
@@ -6026,14 +7038,14 @@ exports[`RunList renders status as icon 1`] = `
   TransitionComponent={[Function]}
   classes={
     Object {
-      "popper": "MuiTooltip-popper-29",
-      "popperInteractive": "MuiTooltip-popperInteractive-30",
-      "tooltip": "MuiTooltip-tooltip-31",
-      "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-36",
-      "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-33",
-      "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-34",
-      "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-35",
-      "touch": "MuiTooltip-touch-32",
+      "popper": "MuiTooltip-popper-87",
+      "popperInteractive": "MuiTooltip-popperInteractive-88",
+      "tooltip": "MuiTooltip-tooltip-89",
+      "tooltipPlacementBottom": "MuiTooltip-tooltipPlacementBottom-94",
+      "tooltipPlacementLeft": "MuiTooltip-tooltipPlacementLeft-91",
+      "tooltipPlacementRight": "MuiTooltip-tooltipPlacementRight-92",
+      "tooltipPlacementTop": "MuiTooltip-tooltipPlacementTop-93",
+      "touch": "MuiTooltip-touch-90",
     }
   }
   disableFocusListener={false}
@@ -6467,6 +7479,7 @@ exports[`RunList renders the empty experience 1`] = `
       ]
     }
     emptyMessage="No runs found."
+    filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={Array []}
@@ -6529,6 +7542,7 @@ exports[`RunList shows experiment name 1`] = `
       ]
     }
     emptyMessage="No runs found."
+    filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -6592,6 +7606,7 @@ exports[`RunList shows pipeline name 1`] = `
       ]
     }
     emptyMessage="No runs found."
+    filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
@@ -6656,6 +7671,7 @@ exports[`RunList shows run time for each run 1`] = `
       ]
     }
     emptyMessage="No runs found."
+    filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
     rows={
