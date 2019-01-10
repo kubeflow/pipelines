@@ -186,7 +186,7 @@ implementation:
   container:
     image: busybox
     args:
-      - {value: Wrong}
+      - {inputValue: Wrong}
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
@@ -295,7 +295,7 @@ implementation:
     image: busybox
     args:
       - --data
-      - value: Data
+      - inputValue: Data
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1('some-data')
@@ -311,7 +311,7 @@ implementation:
     image: busybox
     args:
       - --output-data
-      - {output: Data}
+      - {outputPath: Data}
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1()
@@ -349,7 +349,7 @@ implementation:
     image: busybox
     command:
       - a
-      - {value: input 1}
+      - {inputValue: input 1}
       - z
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -367,7 +367,7 @@ implementation:
     image: busybox
     command:
       - a
-      - {file: input 1}
+      - {inputPath: input 1}
       - z
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -384,7 +384,7 @@ implementation:
   container:
     image: busybox
     args:
-      - concat: [{value: In1}, {value: In2}]
+      - concat: [{inputValue: In1}, {inputValue: In2}]
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1('some', 'data')
@@ -462,7 +462,7 @@ implementation:
     args:
       - if:
           cond: {isPresent: In}
-          then: [--in, {value: In}]
+          then: [--in, {inputValue: In}]
           #else: --no-in
 '''
         task_factory1 = comp.load_component(text=component_text)
@@ -483,7 +483,7 @@ implementation:
     args:
       - if:
           cond: {isPresent: In}
-          then: [--in, {value: In}]
+          then: [--in, {inputValue: In}]
           else: --no-in
 '''
         task_factory1 = comp.load_component(text=component_text)
@@ -506,8 +506,8 @@ implementation:
     image: busybox
     args:
       - if:
-          cond: {value: Do test}
-          then: [--test-data, {value: Test data}, --test-param1, {value: Test parameter 1}]
+          cond: {inputValue: Do test}
+          then: [--test-data, {inputValue: Test data}, --test-param1, {inputValue: Test parameter 1}]
 '''
         task_factory1 = comp.load_component(text=component_text)
 

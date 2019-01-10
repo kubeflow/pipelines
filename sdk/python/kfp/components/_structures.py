@@ -92,8 +92,7 @@ class OutputSpec(ModelBase):
 class InputValuePlaceholder(ModelBase): #Non-standard attr names
     '''Represents the command-line argument placeholder that will be replaced at run-time by the input argument value.'''
     _serialized_names = {
-        #'input_name': 'inputValue',
-        'input_name': 'value', #TODO: Rename to inputValue
+        'input_name': 'inputValue',
     }
 
     def __init__(self,
@@ -105,8 +104,7 @@ class InputValuePlaceholder(ModelBase): #Non-standard attr names
 class InputPathPlaceholder(ModelBase): #Non-standard attr names
     '''Represents the command-line argument placeholder that will be replaced at run-time by a local file path pointing to a file containing the input argument value.'''
     _serialized_names = {
-        #'input_name': 'inputPath',
-        'input_name': 'file', #TODO: Rename to inputPath
+        'input_name': 'inputPath',
     }
 
     def __init__(self,
@@ -118,8 +116,7 @@ class InputPathPlaceholder(ModelBase): #Non-standard attr names
 class OutputPathPlaceholder(ModelBase): #Non-standard attr names
     '''Represents the command-line argument placeholder that will be replaced at run-time by a local file path pointing to a file where the program should write its output data.'''
     _serialized_names = {
-        #'output_name': 'outputPath',
-        'output_name': 'output', #TODO: Rename to outputPath
+        'output_name': 'outputPath',
     }
 
     def __init__(self,
