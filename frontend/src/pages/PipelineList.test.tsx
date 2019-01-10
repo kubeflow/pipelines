@@ -121,7 +121,7 @@ describe('PipelineList', () => {
     listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ name: 'pipeline1' }] }));
     tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
     await listPipelinesSpy;
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(tree.state()).toHaveProperty('pipelines', [{ name: 'pipeline1' }]);
   });
 
@@ -133,7 +133,7 @@ describe('PipelineList', () => {
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
@@ -157,7 +157,7 @@ describe('PipelineList', () => {
     TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
-    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listPipelinesSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       additionalInfo: 'bad stuff happened',
       message: 'Error: failed to retrieve list of pipelines. Click Details for more information.',

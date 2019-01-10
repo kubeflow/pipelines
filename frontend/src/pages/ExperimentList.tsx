@@ -125,6 +125,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
           disableSelection={true} initialSortColumn={ExperimentSortKeys.CREATED_AT}
           reload={this._reload.bind(this)} toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
+          filterLabel='Filter experiments'
           emptyMessage='No experiments found. Click "Create experiment" to start.' />
       </div>
     );
@@ -143,7 +144,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     let displayExperiments: DisplayExperiment[];
     try {
       response = await Apis.experimentServiceApi.listExperiment(
-        request.pageToken, request.pageSize, request.sortBy);
+        request.pageToken, request.pageSize, request.sortBy, request.filter);
       displayExperiments = response.experiments || [];
       displayExperiments.forEach((exp) => exp.expandState = ExpandState.COLLAPSED);
     } catch (err) {
@@ -241,7 +242,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     const experiment = this.state.displayExperiments[experimentIndex];
     const runIds = (experiment.last5Runs || []).map((r) => r.id!);
     return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
-      disablePaging={true} selectedIds={this.state.selectedRunIds}
+      disablePaging={true} selectedIds={this.state.selectedRunIds} noFilterBox={true}
       onSelectionChange={this._runSelectionChanged.bind(this)} disableSorting={true} />;
   }
 }
