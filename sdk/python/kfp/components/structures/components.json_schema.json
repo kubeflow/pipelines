@@ -1,0 +1,402 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$id": "http://kubeflow.org/pipelines/components.json_schema.json",
+
+  "$ref": "#/definitions/PipelineRunSpec",
+
+  "definitions": {
+    "PrimitiveTypes": {
+      "oneOf": [
+        {"type": "string"},
+        {"type": "integer"},
+        {"type": "number"},
+        {"type": "boolean"}
+      ]
+    },
+
+    "TypeType": {
+      "oneOf": [
+        {"type": "string"},
+        {"type": "array", "items": {"$ref": "#/definitions/TypeType"}},
+        {"type": "object", "additionalProperties": {"$ref": "#/definitions/TypeType"}}
+      ]
+    },
+
+    "InputSpec": {
+      "description": "Describes the component input specification",
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "type": {"$ref": "#/definitions/TypeType"},
+        "description": {"type": "string"},
+        "default": {"$ref": "#/definitions/PrimitiveTypes"},
+        "optional": {"type": "boolean", "default": false}
+      },
+      "additionalProperties": false
+    },
+
+    "OutputSpec": {
+      "description": "Describes the component output specification",
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string"},
+        "type": {"$ref": "#/definitions/TypeType"},
+        "description": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+
+    "InputValuePlaceholder": {
+      "description": "Represents the command-line argument placeholder that will be replaced at run-time by the input argument value.",
+      "type": "object",
+      "required": ["inputValue"],
+      "properties": {
+        "inputValue" : {
+          "description": "Name of the input.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "InputPathPlaceholder": {
+      "description": "Represents the command-line argument placeholder that will be replaced at run-time by a local file path pointing to a file containing the input argument value.",
+      "type": "object",
+      "required": ["inputPath"],
+      "properties": {
+        "inputPath" : {
+          "description": "Name of the input.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "OutputPathPlaceholder": {
+      "description": "Represents the command-line argument placeholder that will be replaced at run-time by a local file path pointing to a file where the program should write its output data.",
+      "type": "object",
+      "required": ["outputPath"],
+      "properties": {
+        "outputPath" : {
+          "description": "Name of the output.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "CommandlineArgumentType": {
+      "oneOf": [
+        {"$ref": "#/definitions/PrimitiveTypes"},
+        {"$ref": "#/definitions/InputValuePlaceholder"},
+        {"$ref": "#/definitions/InputPathPlaceholder"},
+        {"$ref": "#/definitions/OutputPathPlaceholder"},
+        {"$ref": "#/definitions/ConcatPlaceholder"},
+        {"$ref": "#/definitions/IfPlaceholder"}
+      ]
+    },
+
+    "CommandlineArgumentOrArrayType": {
+      "oneOf": [
+        {"$ref": "#/definitions/CommandlineArgumentType"},
+        {"type": "array", "items": {"$ref": "#/definitions/CommandlineArgumentType"}}
+      ]
+    },
+
+    "ConcatPlaceholder": {
+      "description": "Represents the command-line argument placeholder that will be replaced at run-time by the concatenated values of its items.",
+      "type": "object",
+      "required": ["concat"],
+      "properties": {
+        "concat" : {
+          "description": "Items to concatenate",
+          "type": "array",
+          "items": {"$ref": "#/definitions/CommandlineArgumentType"}
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "IsPresentPlaceholder": {
+      "description": "Represents the command-line argument placeholder that will be replaced at run-time by a boolean value specifying whether the caller has passed an argument for the specified optional input.",
+      "type": "object",
+      "properties": {
+        "isPresent": {
+          "description": "Name of the input.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "IfConditionArgumentType": {
+      "oneOf": [
+        {"$ref": "#/definitions/IsPresentPlaceholder"},
+        {"type": "boolean"},
+        {"type": "string"},
+        {"$ref": "#/definitions/InputValuePlaceholder"}
+      ]
+    },
+
+    "IfPlaceholder": {
+      "description": "Represents the command-line argument placeholder that will be replaced at run-time by a boolean value specifying whether the caller has passed an argument for the specified optional input.",
+      "type": "object",
+      "required": ["if"],
+      "properties": {
+        "if" : {
+          "type": "object",
+          "required": ["cond", "then"],
+          "properties": {
+            "cond": {"$ref": "#/definitions/IfConditionArgumentType"},
+            "then": {"$ref": "#/definitions/CommandlineArgumentOrArrayType"},
+            "else": {"$ref": "#/definitions/CommandlineArgumentOrArrayType"}
+          }
+        }
+      }
+    },
+
+    "ContainerSpec": {
+      "type": "object",
+      "required": ["image"],
+      "properties": {
+        "image": {
+          "description": "Docker image name.",
+          "type": "string"
+        },
+        "command": {
+          "description": "Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided.",
+          "type": "array",
+          "items": {"$ref": "#/definitions/CommandlineArgumentType"}
+        },
+        "args": {
+          "description": "Arguments to the entrypoint. The docker image's CMD is used if this is not provided.",
+          "type": "array",
+          "items": {"$ref": "#/definitions/CommandlineArgumentType"}
+        },
+        "env": {
+          "description": "List of environment variables to set in the container.",
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        },
+        "unconfigurableOutputPaths": {
+          "description": "Legacy. Deprecated. Can be used to specify local output file paths for containers that do not allow setting the path of some output using command-line.",
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "ContainerImplementation": {
+      "description": "Represents the container component implementation.",
+      "type": "object",
+      "required": ["container"],
+      "properties": {
+        "container": {"$ref": "#/definitions/ContainerSpec"}
+      }
+    },
+
+    "ImplementationType": {
+      "oneOf": [
+        {"$ref": "#/definitions/ContainerImplementation"},
+        {"$ref": "#/definitions/GraphImplementation"}
+      ]
+    },
+
+    "SourceSpec": {
+      "description": "Specifies the location of the component source code.",
+      "type": "object",
+      "properties": {
+        "url": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+
+    "ComponentSpec": {
+      "description": "Component specification. Describes the metadata (name, description, source), the interface (inputs and outputs) and the implementation of the component.",
+      "type": "object",
+      "required": ["implementation"],
+      "properties": {
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "source": {"$ref": "#/definitions/SourceSpec"},
+        "inputs": {"type": "array", "items": {"$ref": "#/definitions/InputSpec"}},
+        "outputs": {"type": "array", "items": {"$ref": "#/definitions/OutputSpec"}},
+        "implementation": {"$ref": "#/definitions/ImplementationType"},
+        "schemaVersion": {"type": "string", "default": "kubeflow.org/pipelines/component/v1"}
+      },
+      "additionalProperties": false
+    },
+
+    "ComponentReference": {
+      "description": "Component reference. Contains information that can be used to locate and load a component by name, digest or URL",
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "digest": {"type": "string"},
+        "tag": {"type": "string"},
+        "url": {"type": "string"},
+        "spec": {"$ref": "#/definitions/ComponentSpec"}
+      },
+      "additionalProperties": false
+    },
+
+    "GraphInputArgument": {
+      "description": "Represents the component argument value that comes from the graph component input.",
+      "type": "object",
+      "required": ["graphInput"],
+      "properties": {
+        "graphInput": {
+          "description": "Input name",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "TaskOutputArgument": {
+      "description": "Represents the component argument value that comes from the output of a sibling task.",
+      "type": "object",
+      "required": ["taskOutput"],
+      "properties": {
+        "taskOutput": {
+          "description": "References the output of a sibling task.",
+          "type": "object",
+          "required": ["taskId", "outputName"],
+          "properties": {
+            "taskId": {"type": "string"},
+            "outputName": {"type": "string"}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "ArgumentType": {
+      "oneOf": [
+        {"$ref": "#/definitions/PrimitiveTypes"},
+        {"$ref": "#/definitions/GraphInputArgument"},
+        {"$ref": "#/definitions/TaskOutputArgument"}
+      ]
+    },
+
+    "TwoArgumentOperands": {
+      "description": "Pair of operands for a binary operation.",
+      "type": "object",
+      "required": ["op1", "op2"],
+      "properties": {
+        "op1":  {"$ref": "#/definitions/ArgumentType"},
+        "op2":  {"$ref": "#/definitions/ArgumentType"}
+      },
+      "additionalProperties": false
+    },
+
+    "TwoLogicalOperands": {
+      "description": "Pair of operands for a binary logical operation.",
+      "type": "object",
+      "required": ["op1", "op2"],
+      "properties": {
+        "op1":  {"$ref": "#/definitions/PredicateType"},
+        "op2":  {"$ref": "#/definitions/PredicateType"}
+      },
+      "additionalProperties": false
+    },
+
+    "PredicateType": {
+      "oneOf": [
+        {"type": "object", "required": ["=="], "properties": {"==":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+        {"type": "object", "required": ["!="], "properties": {"!=":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+        {"type": "object", "required": [">"], "properties": {">":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+        {"type": "object", "required": [">="], "properties": {">=":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+        {"type": "object", "required": ["<"], "properties": {"<":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+        {"type": "object", "required": ["<="], "properties": {"<=":  {"$ref": "#/definitions/TwoArgumentOperands"}}},
+
+        {"type": "object", "required": ["and"], "properties": {"and":  {"$ref": "#/definitions/TwoLogicalOperands"}}},
+        {"type": "object", "required": ["or"], "properties": {"or":  {"$ref": "#/definitions/TwoLogicalOperands"}}},
+
+        {"type": "object", "required": ["not"], "properties": {"not":  {"$ref": "#/definitions/PredicateType"}}}
+      ]
+    },
+
+    "ObjectMetaArgoSubset": {
+      "description": "Subset of io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta structure supported by Argo",
+      "type": "object",
+      "properties": {
+        "annotations": {"type": "object", "additionalItems": {"type": "string"}},
+        "labels": {"type": "object", "additionalItems": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+
+    "PodSpecArgoSubset": {
+      "description": "Subset of Kubernetes PodSpec structure supported by Argo",
+      "type": "object",
+      "properties": {
+        "activeDeadlineSeconds": {"type": "integer"},
+        "affinity": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Affinity"},
+        "tolerations": {"type": "array", "items": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Toleration"}},
+        "volumes": {"type": "array", "items": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Volume"}},
+        "nodeSelector": {"type": "object", "additionalItems": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+
+    "PodArgoSubset": {
+      "description": "Subset of io.k8s.api.core.v1.Pod structure supported by Argo",
+      "type": "object",
+      "properties": {
+        "metadata": {"$ref": "#/definitions/ObjectMetaArgoSubset"},
+        "spec": {"$ref": "#/definitions/PodSpecArgoSubset"}
+      },
+      "additionalProperties": false
+    },
+
+    "TaskSpec": {
+      "description": "'Task specification. Task is a configured component - a component supplied with arguments and other applied configuration changes.",
+      "type": "object",
+      "required": ["componentRef"],
+      "properties": {
+        "componentRef": {"$ref": "#/definitions/ComponentReference"},
+        "arguments": {"type": "object", "additionalProperties": {"$ref": "#/definitions/ArgumentType"}},
+        "isEnabled": {"$ref": "#/definitions/PredicateType"},
+        "k8sContainerOptions": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Container"},
+        "k8sPodOptions": {"$ref": "#/definitions/PodArgoSubset"}
+      },
+      "additionalProperties": false
+    },
+
+    "GraphSpec": {
+      "description": "Describes the graph component implementation. It represents a graph of component tasks connected to the upstream sources of data using the argument specifications. It also describes the sources of graph output values.",
+      "type": "object",
+      "required": ["tasks"],
+      "properties": {
+        "tasks": {"type": "object", "additionalProperties": {"$ref": "#/definitions/TaskSpec"}},
+        "outputValues": {"type": "object", "additionalProperties": {"$ref": "#/definitions/TaskOutputArgument"}}
+      },
+      "additionalProperties": false
+    },
+
+    "GraphImplementation": {
+      "description": "Represents the graph component implementation.",
+      "type": "object",
+      "required": ["graph"],
+      "properties": {
+        "graph": {"$ref": "#/definitions/GraphSpec"}
+      },
+      "additionalProperties": false
+    },
+
+    "PipelineRunSpec": {
+      "description": "The object that can be sent to the backend to start a new Run.",
+      "type": "object",
+      "required": ["rootTask"],
+      "properties": {
+        "rootTask": {"$ref": "#/definitions/TaskSpec"},
+        "onExitTask": {"$ref": "#/definitions/TaskSpec"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

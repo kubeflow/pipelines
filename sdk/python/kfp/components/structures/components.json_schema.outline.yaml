@@ -1,0 +1,77 @@
+<ComponentSpec>:
+    name: string
+    description: string
+    source: #SourceSpec
+        url: string
+    schemaVersion: string
+    inputs: #InputSpec[]
+        <InputSpec[]>:
+            name: string
+            type: TypeType
+            description: string
+            default: PrimitiveTypes
+            optional: boolean
+    outputs: #OutputSpec[]
+        <OutputSpec[]>:
+            name: string
+            type: TypeType
+            description: string
+    implementation: #ImplementationType
+        <oneOf>:
+            <ContainerImplementation>:
+                container: #ContainerSpec
+                    image: string
+                    command: #CommandlineArgumentType
+                        <oneOf>:
+                            <PrimitiveTypes>:
+                                <oneOf>: string, integer, number, boolean
+                            <InputValuePlaceholder>:
+                                inputValue: string
+                            <InputPathPlaceholder>:
+                                inputPath: string
+                            <OutputPathPlaceholder>:
+                                outputPath: string
+                            <ConcatPlaceholder>:
+                                concat: CommandlineArgumentType[]
+                            <IfPlaceholder>:
+                                if:
+                                    cond: IfConditionArgumentType
+                                    then: CommandlineArgumentType[]
+                                    else: CommandlineArgumentType[]
+                    args: CommandlineArgumentType
+                    env: Map[str, str]
+                    unconfigurableOutputPaths: Map[str, str]
+            <GraphImplementation>:
+                graph: #GraphSpec
+                    outputValues: Map str -> TaskOutputArgument
+                    tasks: #Map str -> TaskSpec
+                        <Map str -> TaskSpec>:
+                            componentRef: #ComponentReference
+                                name: string
+                                digest: string
+                                tag: string
+                                url: string
+                                spec: ComponentSpec
+                            arguments: #Map str -> ArgumentType
+                                <Map str -> ArgumentType>:
+                                    <oneOf>:
+                                        <PrimitiveTypes>:
+                                            oneOf: string, integer, number, boolean
+                                        <GraphInputArgument>:
+                                            graphInput: string
+                                        <TaskOutputArgument>:
+                                            taskOutput:
+                                                taskId: string
+                                                outputName: string
+                            isEnabled: PredicateType
+                            k8sContainerOptions: io.k8s.api.core.v1.Container
+                            k8sPodOptions: #PodArgoSubset
+                                metadata: #ObjectMetaArgoSubset
+                                    annotations: Map str -> str
+                                    labels: Map str -> str
+                                spec: #PodSpecArgoSubset
+                                    activeDeadlineSeconds: integer
+                                    affinity: io.k8s.api.core.v1.Affinity
+                                    tolerations: io.k8s.api.core.v1.Toleration[]
+                                    volumes: io.k8s.api.core.v1.Volume[]
+                                    nodeSelector: Map str -> str
