@@ -527,7 +527,7 @@
           "type": "string",
           "description": "Required input field. Name provided by user,\nor auto generated if run is created by scheduled job. Not unique."
         },
-        "storageState": {
+        "storage_state": {
           "$ref": "#/definitions/RunStorageState"
         },
         "description": {
