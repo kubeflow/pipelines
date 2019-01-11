@@ -70,6 +70,7 @@ script:
 
 
 cache:
+  timeout: 1200
   directories:
     - ${HOME}/.bazel_repository_cache
     - ${HOME}/.cache/bazel
