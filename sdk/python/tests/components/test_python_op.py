@@ -57,7 +57,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.assertEqual(float(actual_str), float(expected_str))
 
-    def helper_test_2_in_2_out_component_using_local_call(self, func, op):
+    def helper_test_2_in_2_out_component_using_local_call(self, func, op, output_names):
         arg1 = float(3)
         arg2 = float(5)
 
@@ -73,7 +73,8 @@ class PythonOpTestCase(unittest.TestCase):
 
             process = subprocess.run(full_command)
 
-            (output_path1, output_path2) = list(task.file_outputs.values()) #Relying on the fact the file_outputs dict should be preserving the insertion order which should match the outputs order for python components. Otherwise a component spec is needed to generate the mapping.
+            (output_path1, output_path2) = (task.file_outputs[output_names[0]], task.file_outputs[output_names[1]])
+            print(task.file_outputs)
             actual1_str = Path(output_path1).read_text()
             actual2_str = Path(output_path2).read_text()
 
@@ -105,7 +106,7 @@ class PythonOpTestCase(unittest.TestCase):
         func = add_multiply_two_numbers
         op = comp.func_to_container_op(func)
 
-        self.helper_test_2_in_2_out_component_using_local_call(func, op)
+        self.helper_test_2_in_2_out_component_using_local_call(func, op, output_names=['sum', 'product'])
 
     @unittest.skip #TODO: #Simplified multi-output syntax is not implemented yet
     def test_func_to_container_op_multiple_named_typed_outputs_using_list_syntax(self):
@@ -116,7 +117,7 @@ class PythonOpTestCase(unittest.TestCase):
         func = add_multiply_two_numbers
         op = comp.func_to_container_op(func)
 
-        self.helper_test_2_in_2_out_component_using_local_call(func, op)
+        self.helper_test_2_in_2_out_component_using_local_call(func, op, output_names=['sum', 'product'])
 
     def test_func_to_container_op_named_typed_outputs_with_underscores(self):
         from typing import NamedTuple
@@ -150,7 +151,7 @@ class PythonOpTestCase(unittest.TestCase):
         func = add_multiply_two_numbers
         op = comp.func_to_container_op(func)
 
-        self.helper_test_2_in_2_out_component_using_local_call(func, op)
+        self.helper_test_2_in_2_out_component_using_local_call(func, op, output_names=['a', 'b'])
 
     def test_handling_same_input_default_output_names(self):
         def add_two_numbers_indented(a: float, Output: float) -> float:
