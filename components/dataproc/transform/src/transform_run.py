@@ -109,7 +109,7 @@ def make_process_rows_fn(
       if col in number_cols:
         v_max = stats['column_stats'][col]['max']
         v_min = stats['column_stats'][col]['min']
-        value = -1 + (col_value - v_min) * 2 / (v_max - v_min)
+        value = -1 + (col_value - v_min) * 2 / (v_max - v_min) if v_max != v_min else 0
         feature_indices.append(start_index)
         feature_values.append(value)
         start_index += 1
