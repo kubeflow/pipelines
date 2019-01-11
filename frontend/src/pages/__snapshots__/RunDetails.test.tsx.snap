@@ -270,7 +270,13 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
   className="flex"
 >
   <WithStyles(Tooltip)
-    title="Executed successfully"
+    title={
+      <div>
+        <div>
+          Executed successfully
+        </div>
+      </div>
+    }
   >
     <span
       style={
@@ -307,7 +313,13 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
   className="flex"
 >
   <WithStyles(Tooltip)
-    title="Resource failed to execute"
+    title={
+      <div>
+        <div>
+          Resource failed to execute
+        </div>
+      </div>
+    }
   >
     <span
       style={
@@ -990,7 +1002,13 @@ exports[`RunDetails shows failure run status in page title 1`] = `
   className="flex"
 >
   <WithStyles(Tooltip)
-    title="Resource failed to execute"
+    title={
+      <div>
+        <div>
+          Resource failed to execute
+        </div>
+      </div>
+    }
   >
     <span
       style={
@@ -1227,7 +1245,13 @@ exports[`RunDetails shows success run status in page title 1`] = `
   className="flex"
 >
   <WithStyles(Tooltip)
-    title="Executed successfully"
+    title={
+      <div>
+        <div>
+          Executed successfully
+        </div>
+      </div>
+    }
   >
     <span
       style={

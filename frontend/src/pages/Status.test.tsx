@@ -25,9 +25,14 @@ describe('Status', () => {
     expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
   });
 
+  it('does not display a date if none was provided', () => {
+    const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, /* No date */));
+    expect(tree).toMatchSnapshot();
+  });
+
   Object.keys(NodePhase).map(status => (
     it('renders an icon with tooltip for phase: ' + status, () => {
-      const tree = shallow(statusToIcon(NodePhase[status]));
+      const tree = shallow(statusToIcon(NodePhase[status], new Date('Fri Jan 11 2019 15:36:01 GMT-0800')));
       expect(tree).toMatchSnapshot();
     })
   ));
