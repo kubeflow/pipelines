@@ -74,7 +74,7 @@ require (
 	golang.org/x/arch v0.0.0-20181203225421-5a4828bb7045 // indirect
 	golang.org/x/net v0.0.0-20181201002055-351d144fa1fc
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
-	google.golang.org/genproto v0.0.0-20181202183823-bd91e49a0898
+	google.golang.org/genproto v0.0.0-20190108161440-ae2f86662275
 	google.golang.org/grpc v1.16.0
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect

@@ -68,11 +68,12 @@ func (r *Run) DefaultSortField() string {
 }
 
 var runAPIToModelFieldMap = map[string]string{
-	"id":           "UUID",
-	"name":         "DisplayName",
-	"created_at":   "CreatedAtInSec",
-	"description":  "Description",
-	"scheduled_at": "ScheduledAtInSec",
+	"id":            "UUID",
+	"name":          "DisplayName",
+	"created_at":    "CreatedAtInSec",
+	"description":   "Description",
+	"scheduled_at":  "ScheduledAtInSec",
+	"storage_state": "StorageState",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model Run.

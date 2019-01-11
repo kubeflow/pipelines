@@ -75,7 +75,7 @@ type APIRun struct {
 	Status string `json:"status,omitempty"`
 
 	// storage state
-	StorageState RunStorageState `json:"storageState,omitempty"`
+	StorageState RunStorageState `json:"storage_state,omitempty"`
 }
 
 // Validate validates this api run
@@ -214,7 +214,7 @@ func (m *APIRun) validateStorageState(formats strfmt.Registry) error {
 
 	if err := m.StorageState.Validate(formats); err != nil {
 		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("storageState")
+			return ve.ValidateName("storage_state")
 		}
 		return err
 	}
