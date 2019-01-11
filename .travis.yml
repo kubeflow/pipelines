@@ -33,14 +33,6 @@ before_install:
     chmod +x install.sh
     ./install.sh --user
     rm -f install.sh
-  # Decrypt GCP credentials for use with Bazel caching on GCS.
-  # See https://docs.travis-ci.com/user/encrypting-files/
-  - |
-    openssl aes-256-cbc \
-      -K $encrypted_0a6446eb3ae3_key \
-      -iv $encrypted_0a6446eb3ae3_iv \
-      -in gcp-credentials-bazel.json.enc \
-      -out gcp-credentials-bazel.json -d
 
 script:
   # Frontend tests
@@ -74,3 +66,8 @@ script:
   - bazel --bazelrc=.bazelrc.travis build //backend/...
   - bazel --bazelrc=.bazelrc.travis test //backend/...
 
+
+cache:
+  directories:
+    - ${HOME}/.bazel_repository_cache
+    - ${HOME}/.cache/bazel

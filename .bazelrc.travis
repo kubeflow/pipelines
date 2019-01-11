@@ -1,16 +1,14 @@
 startup --host_jvm_args=-Xmx500m
 startup --host_jvm_args=-Xms500m
-startup --output_base=$HOME/.cache/bazel
+startup --output_base="$HOME/.cache/bazel"
 
 build --noshow_progress
 build --noshow_loading_progress
 build --verbose_failures
-build --remote_http_cache=https://storage.googleapis.com/ml-pipelines-testing-bazel-cache
-build --google_credentials=gcp-credentials-bazel.json
+build --experimental_repository_cache="${HOME}/.bazel_repository_cache"
 
 test --noshow_progress
 test --noshow_loading_progress
 test --test_output=errors
-test --remote_http_cache=https://storage.googleapis.com/ml-pipelines-testing-bazel-cache
-test --google_credentials=gcp-credentials-bazel.json
+test --experimental_repository_cache="${HOME}/.bazel_repository_cache"
 
