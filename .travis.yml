@@ -22,6 +22,8 @@ addons:
       - wget
   chrome: stable
 
+sudo: required
+
 env:
 - BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/0.21.0/bazel-0.21.0-installer-linux-x86_64.sh"
 
