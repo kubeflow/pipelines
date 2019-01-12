@@ -17,7 +17,11 @@
 import { shallow } from 'enzyme';
 import { statusToIcon, NodePhase } from './Status';
 
+
 describe('Status', () => {
+  const startDate = new Date('Wed Jan 9 2019 13:23:22 GMT-0800');
+  const endDate = new Date('Fri Jan 11 2019 15:36:01 GMT-0800');
+
   it('handles an unknown phase', () => {
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
     const tree = shallow(statusToIcon('bad phase' as any));
@@ -25,14 +29,29 @@ describe('Status', () => {
     expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
   });
 
-  it('does not display a date if none was provided', () => {
-    const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, /* No date */));
+  it('displays start and end dates if both are provided', () => {
+    const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate, endDate));
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does not display a end date if none was provided', () => {
+    const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate));
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does not display a start date if none was provided', () => {
+    const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, undefined, endDate));
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does not display any dates if neither was provided', () => {
+    const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, /* No dates */));
     expect(tree).toMatchSnapshot();
   });
 
   Object.keys(NodePhase).map(status => (
     it('renders an icon with tooltip for phase: ' + status, () => {
-      const tree = shallow(statusToIcon(NodePhase[status], new Date('Fri Jan 11 2019 15:36:01 GMT-0800')));
+      const tree = shallow(statusToIcon(NodePhase[status]));
       expect(tree).toMatchSnapshot();
     })
   ));

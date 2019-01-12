@@ -35,7 +35,7 @@ export enum NodePhase {
   UNKNOWN = 'Unknown',
 }
 
-export function statusToIcon(status: NodePhase, runDate?: Date): JSX.Element {
+export function statusToIcon(status: NodePhase, startDate?: Date | string, endDate?: Date | string): JSX.Element {
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
@@ -80,8 +80,9 @@ export function statusToIcon(status: NodePhase, runDate?: Date): JSX.Element {
     <Tooltip title={
         <div>
           <div>{title}</div>
-          {/* runDate is actually a string, not a Date due to a bug in swagger's handling of dates */}
-          {runDate && (<div>{formatDateString(runDate)}</div>)}
+          {/* These dates may actually be strings, not a Dates due to a bug in swagger's handling of dates */}
+          {startDate && (<div>Start: {formatDateString(startDate)}</div>)}
+          {endDate && (<div>End: {formatDateString(endDate)}</div>)}
         </div>
       }>
       <span style={{ height: 18 }}>
