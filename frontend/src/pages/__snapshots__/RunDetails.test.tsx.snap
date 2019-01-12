@@ -275,6 +275,10 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
         <div>
           Executed successfully
         </div>
+        <div>
+          Start: 
+          9/5/2018, 4:03:02 AM
+        </div>
       </div>
     }
   >
@@ -317,6 +321,10 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
       <div>
         <div>
           Resource failed to execute
+        </div>
+        <div>
+          Start: 
+          9/5/2018, 4:03:02 AM
         </div>
       </div>
     }
@@ -1007,6 +1015,10 @@ exports[`RunDetails shows failure run status in page title 1`] = `
         <div>
           Resource failed to execute
         </div>
+        <div>
+          Start: 
+          9/5/2018, 4:03:02 AM
+        </div>
       </div>
     }
   >
@@ -1249,6 +1261,10 @@ exports[`RunDetails shows success run status in page title 1`] = `
       <div>
         <div>
           Executed successfully
+        </div>
+        <div>
+          Start: 
+          9/5/2018, 4:03:02 AM
         </div>
       </div>
     }
