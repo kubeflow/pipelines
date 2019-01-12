@@ -9,7 +9,7 @@ RUN apk update && apk upgrade && \
 
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 
-FROM python:3.5 as compiler
+FROM python:3.6 as compiler
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q default-jdk wget
