@@ -17,9 +17,11 @@
 import * as React from 'react';
 
 import SideNav, { css } from './SideNav';
-import { shallow, ShallowWrapper } from 'enzyme';
-import { RoutePage } from './Router';
+import TestUtils from '../TestUtils';
+import { Apis } from '../lib/Apis';
 import { LocalStorage } from '../lib/LocalStorage';
+import { ReactWrapper, ShallowWrapper, shallow, } from 'enzyme';
+import { RoutePage } from './Router';
 import { RouterProps } from 'react-router';
 
 const wideWidth = 1000;
@@ -29,117 +31,148 @@ const isCollapsed = (tree: ShallowWrapper<any>) =>
 const routerProps: RouterProps = { history: {} as any };
 
 describe('SideNav', () => {
-  it('renders expanded state', () => {
-    jest.spyOn(LocalStorage, 'hasKey').mockImplementationOnce(() => false);
+  let tree: ReactWrapper | ShallowWrapper;
+
+  const consoleErrorSpy = jest.spyOn(console, 'error');
+  const buildInfoSpy = jest.spyOn(Apis, 'getBuildInfo');
+  const checkHubSpy = jest.spyOn(Apis, 'isJupyterHubAvailable');
+  const localStorageHasKeySpy = jest.spyOn(LocalStorage, 'hasKey');
+  const localStorageIsCollapsedSpy = jest.spyOn(LocalStorage, 'isNavbarCollapsed');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    consoleErrorSpy.mockImplementation(() => null);
+
+    buildInfoSpy.mockImplementation(() => ({
+      apiServerCommitHash: 'd3c4add0a95e930c70a330466d0923827784eb9a',
+      apiServerReady: true,
+      buildDate: 'Wed Jan 9 19:40:24 UTC 2019',
+      frontendCommitHash: '8efb2fcff9f666ba5b101647e909dc9c6889cecb'
+    }));
+    checkHubSpy.mockImplementation(() => ({ ok: true }));
+
+    localStorageHasKeySpy.mockImplementation(() => false);
+    localStorageIsCollapsedSpy.mockImplementation(() => false);
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+    tree.unmount();
     (window as any).innerWidth = wideWidth;
-    const tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+  });
+
+  it('renders expanded state', () => {
+    localStorageHasKeySpy.mockImplementationOnce(() => false);
+    (window as any).innerWidth = wideWidth;
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders collapsed state', () => {
-    jest.spyOn(LocalStorage, 'hasKey').mockImplementationOnce(() => false);
+    localStorageHasKeySpy.mockImplementationOnce(() => false);
     (window as any).innerWidth = narrowWidth;
-    const tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders Pipelines as active page', () => {
-    const tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders Pipelines as active when on PipelineDetails page', () => {
-    const tree = shallow(<SideNav page={RoutePage.PIPELINE_DETAILS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.PIPELINE_DETAILS} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page', () => {
-    const tree = shallow(<SideNav page={RoutePage.EXPERIMENTS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.EXPERIMENTS} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active when on ExperimentDetails page', () => {
-    const tree = shallow(<SideNav page={RoutePage.EXPERIMENT_DETAILS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.EXPERIMENT_DETAILS} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on NewExperiment page', () => {
-    const tree = shallow(<SideNav page={RoutePage.NEW_EXPERIMENT} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.NEW_EXPERIMENT} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on Compare page', () => {
-    const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on AllRuns page', () => {
-    const tree = shallow(<SideNav page={RoutePage.RUNS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.RUNS} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on RunDetails page', () => {
-    const tree = shallow(<SideNav page={RoutePage.RUN_DETAILS} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.RUN_DETAILS} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on RecurringRunDetails page', () => {
-    const tree = shallow(<SideNav page={RoutePage.RECURRING_RUN} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.RECURRING_RUN} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('renders experiments as active page when on NewRun page', () => {
-    const tree = shallow(<SideNav page={RoutePage.NEW_RUN} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.NEW_RUN} {...routerProps} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('show jupyterhub link if accessible', () => {
-    const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
     tree.setState({ jupyterHubAvailable: true });
     expect(tree).toMatchSnapshot();
   });
 
   it('collapses if collapse state is true localStorage', () => {
-    jest.spyOn(LocalStorage, 'isNavbarCollapsed').mockImplementationOnce(() => true);
-    jest.spyOn(LocalStorage, 'hasKey').mockImplementationOnce(() => true);
+    localStorageIsCollapsedSpy.mockImplementationOnce(() => true);
+    localStorageHasKeySpy.mockImplementationOnce(() => true);
 
     (window as any).innerWidth = wideWidth;
-    const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
     expect(isCollapsed(tree)).toBe(true);
   });
 
   it('expands if collapse state is false in localStorage', () => {
-    jest.spyOn(LocalStorage, 'isNavbarCollapsed').mockImplementationOnce(() => false);
-    jest.spyOn(LocalStorage, 'hasKey').mockImplementationOnce(() => true);
+    localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
+    localStorageHasKeySpy.mockImplementationOnce(() => true);
 
-    const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
     expect(isCollapsed(tree)).toBe(false);
   });
 
   it('collapses if no collapse state in localStorage, and window is too narrow', () => {
-    jest.spyOn(LocalStorage, 'isNavbarCollapsed').mockImplementationOnce(() => false);
-    jest.spyOn(LocalStorage, 'hasKey').mockImplementationOnce(() => false);
+    localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
+    localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = narrowWidth;
-    const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
     expect(isCollapsed(tree)).toBe(true);
   });
 
   it('expands if no collapse state in localStorage, and window is wide', () => {
-    jest.spyOn(LocalStorage, 'isNavbarCollapsed').mockImplementationOnce(() => false);
-    jest.spyOn(LocalStorage, 'hasKey').mockImplementationOnce(() => false);
+    localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
+    localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = wideWidth;
-    const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
     expect(isCollapsed(tree)).toBe(false);
   });
 
   it('collapses if no collapse state in localStorage, and window goes from wide to narrow', () => {
-    jest.spyOn(LocalStorage, 'isNavbarCollapsed').mockImplementationOnce(() => false);
-    jest.spyOn(LocalStorage, 'hasKey').mockImplementationOnce(() => false);
+    localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
+    localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = wideWidth;
-    const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
     expect(isCollapsed(tree)).toBe(false);
 
     (window as any).innerWidth = narrowWidth;
@@ -149,11 +182,11 @@ describe('SideNav', () => {
   });
 
   it('expands if no collapse state in localStorage, and window goes from narrow to wide', () => {
-    jest.spyOn(LocalStorage, 'isNavbarCollapsed').mockImplementationOnce(() => false);
-    jest.spyOn(LocalStorage, 'hasKey').mockImplementationOnce(() => false);
+    localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
+    localStorageHasKeySpy.mockImplementationOnce(() => false);
 
     (window as any).innerWidth = narrowWidth;
-    const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
     expect(isCollapsed(tree)).toBe(true);
 
     (window as any).innerWidth = wideWidth;
@@ -163,12 +196,12 @@ describe('SideNav', () => {
   });
 
   it('saves state in localStorage if chevron is clicked', () => {
-    jest.spyOn(LocalStorage, 'isNavbarCollapsed').mockImplementationOnce(() => false);
-    jest.spyOn(LocalStorage, 'hasKey').mockImplementationOnce(() => false);
+    localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
+    localStorageHasKeySpy.mockImplementationOnce(() => false);
     const spy = jest.spyOn(LocalStorage, 'saveNavbarCollapsed');
 
     (window as any).innerWidth = narrowWidth;
-    const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
     expect(isCollapsed(tree)).toBe(true);
 
     tree.find('WithStyles(IconButton)').simulate('click');
@@ -176,16 +209,141 @@ describe('SideNav', () => {
   });
 
   it('does not collapse if collapse state is saved in localStorage, and window resizes', () => {
-    jest.spyOn(LocalStorage, 'isNavbarCollapsed').mockImplementationOnce(() => false);
-    jest.spyOn(LocalStorage, 'hasKey').mockImplementationOnce(() => true);
+    localStorageIsCollapsedSpy.mockImplementationOnce(() => false);
+    localStorageHasKeySpy.mockImplementationOnce(() => true);
 
     (window as any).innerWidth = wideWidth;
-    const tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
+    tree = shallow(<SideNav page={RoutePage.COMPARE} {...routerProps} />);
     expect(isCollapsed(tree)).toBe(false);
 
     (window as any).innerWidth = narrowWidth;
     const resizeEvent = new Event('resize');
     window.dispatchEvent(resizeEvent);
     expect(isCollapsed(tree)).toBe(false);
+  });
+
+  it('populates the display build information using the response from the healthz endpoint', async () => {
+    const buildInfo = {
+      apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
+      apiServerReady: true,
+      buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
+      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98'
+    };
+    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    await TestUtils.flushPromises();
+    expect(tree).toMatchSnapshot();
+
+    expect(tree.state('displayBuildInfo')).toEqual({
+      commitHash: buildInfo.apiServerCommitHash.substring(0, 7),
+      commitUrl: 'https://www.github.com/kubeflow/pipelines/commit/' + buildInfo.apiServerCommitHash,
+      date: new Date(buildInfo.buildDate).toLocaleDateString(),
+    });
+  });
+
+  it('displays the frontend commit hash if the api server hash is not returned', async () => {
+    const buildInfo = {
+      apiServerReady: true,
+      // No apiServerCommitHash
+      buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
+      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98'
+    };
+    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.state('displayBuildInfo')).toEqual(expect.objectContaining({
+      commitHash: buildInfo.frontendCommitHash.substring(0, 7),
+    }));
+  });
+
+  it('uses the frontend commit hash for the link URL if the api server hash is not returned', async () => {
+    const buildInfo = {
+      apiServerReady: true,
+      // No apiServerCommitHash
+      buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
+      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98'
+    };
+    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.state('displayBuildInfo')).toEqual(expect.objectContaining({
+      commitUrl: 'https://www.github.com/kubeflow/pipelines/commit/' + buildInfo.frontendCommitHash,
+    }));
+  });
+
+  it('displays \'unknown\' if the frontend and api server commit hashes are not returned', async () => {
+    const buildInfo = {
+      apiServerReady: true,
+      // No apiServerCommitHash
+      buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
+      // No frontendCommitHash
+    };
+    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.state('displayBuildInfo')).toEqual(expect.objectContaining({
+      commitHash: 'unknown',
+    }));
+  });
+
+  it('links to the github repo root if the frontend and api server commit hashes are not returned', async () => {
+    const buildInfo = {
+      apiServerReady: true,
+      // No apiServerCommitHash
+      buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
+      // No frontendCommitHash
+    };
+    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.state('displayBuildInfo')).toEqual(expect.objectContaining({
+      commitUrl: 'https://www.github.com/kubeflow/pipelines',
+    }));
+  });
+
+  it('displays \'unknown\' if the date is not returned', async () => {
+    const buildInfo = {
+      apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
+      apiServerReady: true,
+      // No buildDate
+      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98'
+    };
+    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.state('displayBuildInfo')).toEqual(expect.objectContaining({
+      date: 'unknown',
+    }));
+  });
+
+  it('logs an error if the call getBuildInfo fails', async () => {
+    TestUtils.makeErrorResponseOnce(buildInfoSpy, 'Uh oh!');
+
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.state('displayBuildInfo')).toBeUndefined();
+    expect(consoleErrorSpy.mock.calls[0][0]).toBe('Failed to retrieve build info');
+  });
+
+  it('logs an error if the call isJupyterHubAvailable fails', async () => {
+    TestUtils.makeErrorResponseOnce(checkHubSpy, 'Uh oh!');
+
+    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.state('jupyterHubAvailable')).toEqual(false);
+    expect(consoleErrorSpy.mock.calls[0][0]).toBe('Failed to reach Jupyter Hub');
   });
 });
