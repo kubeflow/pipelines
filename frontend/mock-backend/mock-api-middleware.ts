@@ -66,12 +66,18 @@ export default (app: express.Application) => {
   app.use(express.json());
 
   app.get(v1beta1Prefix + '/healthz', (_, res) => {
-    res.send({ apiServerReady: true });
+    res.header('Content-Type', 'application/json');
+    res.send({
+      apiServerCommitHash: 'd3c4add0a95e930c70a330466d0923827784eb9a',
+      apiServerReady: true,
+      buildDate: 'Wed Jan 9 19:40:24 UTC 2019',
+      frontendCommitHash: '8efb2fcff9f666ba5b101647e909dc9c6889cecb'
+    });
   });
 
   app.get('/hub/', (_, res) => {
     res.sendStatus(200);
-  });
+  }); 
 
   function getSortKeyAndOrder(defaultSortKey: string, queryParam?: string): { desc: boolean, key: string } {
     let key = defaultSortKey;

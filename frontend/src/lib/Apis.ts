@@ -29,6 +29,13 @@ export interface ListRequest {
   sortBy?: string;
 }
 
+export interface BuildInfo {
+  apiServerCommitHash?: string;
+  apiServerReady?: boolean;
+  buildDate?: string;
+  frontendCommitHash?: string;
+}
+
 export class Apis {
 
   /**
@@ -73,15 +80,18 @@ export class Apis {
   }
 
   /**
-   * Checks if the API server is ready for traffic.
+   * Retrieve various information about the build.
    */
-  public static async isApiServerReady(): Promise<boolean> {
-    try {
-      const healthStats = await this._fetchAndParse<any>('/healthz', v1beta1Prefix);
-      return healthStats.apiServerReady;
-    } catch (_) {
-      return false;
-    }
+  public static async getBuildInfo(): Promise<BuildInfo> {
+    return await this._fetchAndParse<BuildInfo>('/healthz', v1beta1Prefix);
+  }
+
+  /**
+   * Verifies that Jupyter Hub is reachable.
+   */
+  public static async isJupyterHubAvailable(): Promise<boolean> {
+    const response = await fetch('/hub/', { credentials: 'same-origin' });
+    return response ? response.ok : false;
   }
 
   /**

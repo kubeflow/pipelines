@@ -1,971 +1,1636 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`SideNav renders Pipelines as active page 1`] = `
+exports[`SideNav populates the display build information using the response from the healthz endpoint 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <PipelinesIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <ExperimentsIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Open Jupyter Notebook"
+    >
+      <a
+        className="unstyled"
+        href="/hub/"
+        id="jupyterhubBtn"
+        target="_blank"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(CodeIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Notebooks
+          </span>
+          <pure(OpenInNewIcon)
+            className="openInNewTabIcon marginBottom8"
+          />
+        </WithStyles(Button)>
+      </a>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
+  <WithStyles(Tooltip)
+    enterDelay={300}
+    placement="top-start"
+    title="Build date: 10/23/2018"
   >
-    <WithStyles(Button)
-      className="button active"
+    <div
+      className="buildInfo"
     >
-      <PipelinesIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
+      <span>
+        Build commit: 
       </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
+      <a
+        className="buildHash unstyled"
+        href="https://www.github.com/kubeflow/pipelines/commit/0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5"
+        target="_blank"
+      >
+        0a7b9e3
+        <pure(OpenInNewIcon)
+          className="openInNewTabIcon"
+        />
+      </a>
+    </div>
+  </WithStyles(Tooltip)>
+</div>
+`;
+
+exports[`SideNav renders Pipelines as active page 1`] = `
+<div
+  className="root flexColumn noShrink"
+  id="sideNav"
+>
+  <div
+    style={
+      Object {
+        "flexGrow": 1,
+      }
+    }
   >
-    <WithStyles(Button)
-      className="button"
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
     >
-      <ExperimentsIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
       >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <PipelinesIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <ExperimentsIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+  </div>
 </div>
 `;
 
 exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <PipelinesIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <ExperimentsIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <PipelinesIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <ExperimentsIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders collapsed state 1`] = `
 <div
-  className="root noShrink collapsedRoot"
+  className="root flexColumn noShrink collapsedRoot"
   id="sideNav"
 >
   <div
-    className="button collapsedButton logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button collapsedButton logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="collapsedLabel label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button active collapsedButton"
+        >
+          <PipelinesIcon
+            color="#fff"
+          />
+          <span
+            className="collapsedLabel label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button collapsedButton"
+        >
+          <ExperimentsIcon
+            color="#87a1b8"
+          />
+          <span
+            className="collapsedLabel label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator collapsedSeparator"
     />
-    <span
-      className="collapsedLabel label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron collapsedChevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button active collapsedButton"
-    >
-      <PipelinesIcon
-        color="#fff"
-      />
-      <span
-        className="collapsedLabel label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button collapsedButton"
-    >
-      <ExperimentsIcon
-        color="#87a1b8"
-      />
-      <span
-        className="collapsedLabel label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator collapsedSeparator"
-  />
-  <WithStyles(IconButton)
-    className="chevron collapsedChevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders expanded state 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <PipelinesIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <ExperimentsIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <PipelinesIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <ExperimentsIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on Compare page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on NewExperiment page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on RecurringRunDetails page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active page when on RunDetails page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav renders experiments as active when on ExperimentDetails page 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
 
 exports[`SideNav show jupyterhub link if accessible 1`] = `
 <div
-  className="root noShrink"
+  className="root flexColumn noShrink"
   id="sideNav"
 >
   <div
-    className="button logo"
-  >
-    <KubeflowLogo
-      color="#fff"
-      style={
-        Object {
-          "flexShrink": 0,
-        }
+    style={
+      Object {
+        "flexGrow": 1,
       }
+    }
+  >
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right"
+      title="Kubeflow Pipelines"
+    >
+      <Link
+        className="button logo unstyled"
+        id="kfpLogoBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <KubeflowLogo
+          color="#fff"
+          style={
+            Object {
+              "flexShrink": 0,
+            }
+          }
+        />
+        <span
+          className="label logoLabel"
+        >
+          Kubeflow
+        </span>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Pipeline List"
+    >
+      <Link
+        className="unstyled"
+        id="pipelinesBtn"
+        replace={false}
+        to="/pipelines"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <PipelinesIcon
+            color="#87a1b8"
+          />
+          <span
+            className="label"
+          >
+            Pipelines
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Experiment List"
+    >
+      <Link
+        className="unstyled"
+        id="experimentsBtn"
+        replace={false}
+        to="/experiments"
+      >
+        <WithStyles(Button)
+          className="button active"
+        >
+          <ExperimentsIcon
+            color="#fff"
+          />
+          <span
+            className="label"
+          >
+            Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Open Jupyter Notebook"
+    >
+      <a
+        className="unstyled"
+        href="/hub/"
+        id="jupyterhubBtn"
+        target="_blank"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(CodeIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Notebooks
+          </span>
+          <pure(OpenInNewIcon)
+            className="openInNewTabIcon marginBottom8"
+          />
+        </WithStyles(Button)>
+      </a>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
     />
-    <span
-      className="label logoLabel"
+    <WithStyles(IconButton)
+      className="chevron"
+      onClick={[Function]}
     >
-      Kubeflow
-    </span>
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
   </div>
-  <Link
-    className="unstyled"
-    id="pipelinesBtn"
-    replace={false}
-    to="/pipelines"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <PipelinesIcon
-        color="#87a1b8"
-      />
-      <span
-        className="label"
-      >
-        Pipelines
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <Link
-    className="unstyled"
-    id="experimentsBtn"
-    replace={false}
-    to="/experiments"
-  >
-    <WithStyles(Button)
-      className="button active"
-    >
-      <ExperimentsIcon
-        color="#fff"
-      />
-      <span
-        className="label"
-      >
-        Experiments
-      </span>
-    </WithStyles(Button)>
-  </Link>
-  <a
-    className="unstyled"
-    href="/hub/"
-    id="jupyterhubBtn"
-    target="_blank"
-  >
-    <WithStyles(Button)
-      className="button"
-    >
-      <pure(CodeIcon)
-        style={
-          Object {
-            "height": 20,
-            "width": 20,
-          }
-        }
-      />
-      <span
-        className="label"
-      >
-        Notebooks
-      </span>
-      <pure(OpenInNewIcon)
-        style={
-          Object {
-            "height": 12,
-            "marginBottom": 8,
-            "marginLeft": 5,
-            "width": 12,
-          }
-        }
-      />
-    </WithStyles(Button)>
-  </a>
-  <hr
-    className="separator"
-  />
-  <WithStyles(IconButton)
-    className="chevron"
-    onClick={[Function]}
-  >
-    <pure(ChevronLeftIcon) />
-  </WithStyles(IconButton)>
 </div>
 `;
