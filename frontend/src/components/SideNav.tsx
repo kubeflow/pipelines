@@ -23,12 +23,15 @@ import JupyterhubIcon from '@material-ui/icons/Code';
 import KubeflowLogo from '../icons/kubeflowLogo';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import PipelinesIcon from '../icons/pipelines';
+import Tooltip from '@material-ui/core/Tooltip';
+import { Apis } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { RoutePage } from '../components/Router';
 import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, dimension, commonCss } from '../Css';
+import { logger } from '../lib/Utils';
 
 export const sideNavColors = {
   bg: '#0f4471',
@@ -43,6 +46,22 @@ export const css = stylesheet({
   active: {
     backgroundColor: sideNavColors.hover + ' !important',
     color: sideNavColors.fgActive + ' !important',
+  },
+  buildHash: {
+    color: '#b7d1e8'
+  },
+  buildInfo: {
+    color: sideNavColors.fgDefault,
+    marginBottom: 30,
+    marginLeft: 30,
+    opacity: 'initial',
+    transition: 'opacity 0.2s',
+    transitionDelay: '0.3s',
+  },
+  buildInfoHidden: {
+    opacity: 0,
+    transition: 'opacity 0s',
+    transitionDelay: '0s',
   },
   button: {
     borderRadius: dimension.base / 2,
@@ -78,7 +97,7 @@ export const css = stylesheet({
   },
   collapsedLabel: {
     // Hide text when collapsing, but do it with a transition
-    color: `${sideNavColors.fgActiveInvisible} !important`,
+    opacity: 0,
   },
   collapsedRoot: {
     width: '72px !important',
@@ -90,7 +109,7 @@ export const css = stylesheet({
     fontSize: fontsize.base,
     letterSpacing: 0.25,
     marginLeft: 20,
-    transition: 'color 0.3s',
+    transition: 'opacity 0.3s',
     verticalAlign: 'super',
   },
   logo: {
@@ -107,6 +126,14 @@ export const css = stylesheet({
     justifyContent: 'center',
     marginLeft: 12,
   },
+  marginBottom8: {
+    marginBottom: 8,
+  },
+  openInNewTabIcon: {
+    height: 12,
+    marginLeft: 5,
+    width: 12,
+  },
   root: {
     background: sideNavColors.bg,
     paddingTop: 12,
@@ -120,17 +147,25 @@ export const css = stylesheet({
   },
 });
 
+interface DisplayBuildInfo {
+  commitHash: string;
+  commitUrl: string;
+  date: string;
+}
+
 interface SideNavProps extends RouterProps {
   page: string;
 }
 
 interface SideNavState {
+  displayBuildInfo?: DisplayBuildInfo;
   collapsed: boolean;
   jupyterHubAvailable: boolean;
   manualCollapseState: boolean;
 }
 
-class SideNav extends React.Component<SideNavProps, SideNavState> {
+export default class SideNav extends React.Component<SideNavProps, SideNavState> {
+  private _isMounted = true;
   private readonly _AUTO_COLLAPSE_WIDTH = 800;
   private readonly _HUB_ADDRESS = '/hub/';
 
@@ -150,61 +185,115 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
     window.addEventListener('resize', this._maybeResize.bind(this));
     this._maybeResize();
 
-    const hub = await fetch(this._HUB_ADDRESS);
-    if (hub.ok) {
-      this.setState({ jupyterHubAvailable: true });
+    // Fetch build info
+    let displayBuildInfo: DisplayBuildInfo | undefined;
+    try {
+      const buildInfo = await Apis.getBuildInfo();
+      const commitHash = buildInfo.apiServerCommitHash || buildInfo.frontendCommitHash || '';
+      displayBuildInfo = {
+        commitHash: commitHash ? commitHash.substring(0, 7) : 'unknown',
+        commitUrl: 'https://www.github.com/kubeflow/pipelines'
+          + (commitHash ? `/commit/${commitHash}` : ''),
+        date: buildInfo.buildDate ? new Date(buildInfo.buildDate).toLocaleDateString() : 'unknown',
+      };
+    } catch (err) {
+      logger.error('Failed to retrieve build info', err);
     }
+
+    // Verify Jupyter Hub is reachable
+    let jupyterHubAvailable = false;
+    try {
+      jupyterHubAvailable = await Apis.isJupyterHubAvailable();
+    } catch (err) {
+      logger.error('Failed to reach Jupyter Hub', err);
+    }
+
+    this.setStateSafe({ displayBuildInfo, jupyterHubAvailable });
+  }
+
+  public componentWillUnmount(): void {
+    this._isMounted = false;
   }
 
   public render(): JSX.Element {
     const page = this.props.page;
-    const { collapsed } = this.state;
+    const { collapsed, displayBuildInfo} = this.state;
     const iconColor = {
       active: sideNavColors.fgActive,
       inactive: sideNavColors.fgDefault,
     };
 
     return (
-      <div id='sideNav' className={classes(css.root, commonCss.noShrink, collapsed && css.collapsedRoot)}>
-        <div className={classes(css.button, collapsed && css.collapsedButton, css.logo)}>
-          <KubeflowLogo color={iconColor.active} style={{ flexShrink: 0 }} />
-          <span className={classes(collapsed && css.collapsedLabel, css.label, css.logoLabel)}>
-            Kubeflow
-          </span>
+      <div id='sideNav' className={classes(css.root, commonCss.flexColumn, commonCss.noShrink, collapsed && css.collapsedRoot)}>
+        <div style={{ flexGrow: 1 }}>
+          <Tooltip title={'Kubeflow Pipelines'} enterDelay={300} placement={'right'}
+            disableFocusListener={!collapsed} disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}>
+            <Link id='kfpLogoBtn' to={RoutePage.PIPELINES} className={classes(css.button, collapsed && css.collapsedButton, css.logo, commonCss.unstyled)}>
+              <KubeflowLogo color={iconColor.active} style={{ flexShrink: 0 }} />
+              <span className={classes(collapsed && css.collapsedLabel, css.label, css.logoLabel)}>
+                Kubeflow
+              </span>
+            </Link>
+          </Tooltip>
+          <Tooltip title={'Pipeline List'} enterDelay={300} placement={'right-start'}
+            disableFocusListener={!collapsed} disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}>
+            <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
+              <Button className={classes(css.button,
+                page.startsWith(RoutePage.PIPELINES) && css.active,
+                collapsed && css.collapsedButton)}>
+                <PipelinesIcon color={page.startsWith(RoutePage.PIPELINES) ? iconColor.active : iconColor.inactive} />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Pipelines</span>
+              </Button>
+            </Link>
+          </Tooltip>
+          <Tooltip title={'Experiment List'} enterDelay={300} placement={'right-start'}
+            disableFocusListener={!collapsed} disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}>
+            <Link id='experimentsBtn' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
+              <Button className={
+                classes(
+                  css.button,
+                  this._highlightExperimentsButton(page) && css.active,
+                  collapsed && css.collapsedButton)}>
+                <ExperimentsIcon color={this._highlightExperimentsButton(page) ? iconColor.active : iconColor.inactive} />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Experiments</span>
+              </Button>
+            </Link>
+          </Tooltip>
+          {this.state.jupyterHubAvailable && (
+            <Tooltip title={'Open Jupyter Notebook'} enterDelay={300} placement={'right-start'}
+              disableFocusListener={!collapsed} disableHoverListener={!collapsed}
+              disableTouchListener={!collapsed}>
+              <a id='jupyterhubBtn' href={this._HUB_ADDRESS} className={commonCss.unstyled} target='_blank'>
+                <Button className={
+                  classes(css.button, collapsed && css.collapsedButton)}>
+                  <JupyterhubIcon style={{ height: 20, width: 20 }} />
+                  <span className={classes(collapsed && css.collapsedLabel, css.label)}>Notebooks</span>
+                  <OpenInNewIcon className={classes(css.openInNewTabIcon, css.marginBottom8)} />
+                </Button>
+              </a>
+            </Tooltip>
+          )}
+          <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
+          <IconButton className={classes(css.chevron, collapsed && css.collapsedChevron)}
+            onClick={this._toggleNavClicked.bind(this)}>
+            <ChevronLeftIcon />
+          </IconButton>
         </div>
-        <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
-          <Button className={classes(css.button,
-            page.startsWith(RoutePage.PIPELINES) && css.active,
-            collapsed && css.collapsedButton)}>
-            <PipelinesIcon color={page.startsWith(RoutePage.PIPELINES) ? iconColor.active : iconColor.inactive} />
-            <span className={classes(collapsed && css.collapsedLabel, css.label)}>Pipelines</span>
-          </Button>
-        </Link>
-        <Link id='experimentsBtn' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
-          <Button className={
-            classes(
-              css.button,
-              this._highlightExperimentsButton(page) && css.active,
-              collapsed && css.collapsedButton)}>
-            <ExperimentsIcon color={this._highlightExperimentsButton(page) ? iconColor.active : iconColor.inactive} />
-            <span className={classes(collapsed && css.collapsedLabel, css.label)}>Experiments</span>
-          </Button>
-        </Link>
-        {this.state.jupyterHubAvailable && (
-          <a id='jupyterhubBtn' href={this._HUB_ADDRESS} className={commonCss.unstyled} target='_blank'>
-            <Button className={
-              classes(css.button, collapsed && css.collapsedButton)}>
-              <JupyterhubIcon style={{ height: 20, width: 20 }} />
-              <span className={classes(collapsed && css.collapsedLabel, css.label)}>Notebooks</span>
-              <OpenInNewIcon style={{ height: 12, width: 12, marginLeft: 5, marginBottom: 8 }} />
-            </Button>
-          </a>
+        {displayBuildInfo && (
+          <Tooltip title={'Build date: ' + displayBuildInfo.date} enterDelay={300} placement={'top-start'}>
+            <div className={classes(css.buildInfo, collapsed && css.buildInfoHidden)}>
+              <span>Build commit: </span>
+              <a href={displayBuildInfo.commitUrl} className={classes(css.buildHash, commonCss.unstyled)}
+                target='_blank'>
+                {displayBuildInfo.commitHash}
+                <OpenInNewIcon className={classes(css.openInNewTabIcon)} />
+              </a>
+            </div>
+          </Tooltip>
         )}
-        <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
-        <IconButton className={classes(css.chevron, collapsed && css.collapsedChevron)}
-          onClick={this._toggleNavClicked.bind(this)}>
-          <ChevronLeftIcon />
-        </IconButton>
       </div >
     );
   }
@@ -219,7 +308,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
   }
 
   private _toggleNavClicked(): void {
-    this.setState({
+    this.setStateSafe({
       collapsed: !this.state.collapsed,
       manualCollapseState: true,
     }, () => LocalStorage.saveNavbarCollapsed(this.state.collapsed));
@@ -227,7 +316,7 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
   }
 
   private _toggleNavCollapsed(shouldCollapse?: boolean): void {
-    this.setState({
+    this.setStateSafe({
       collapsed: shouldCollapse !== undefined ? shouldCollapse : !this.state.collapsed,
     });
   }
@@ -237,6 +326,10 @@ class SideNav extends React.Component<SideNavProps, SideNavState> {
       this._toggleNavCollapsed(window.innerWidth < this._AUTO_COLLAPSE_WIDTH);
     }
   }
-}
 
-export default SideNav;
+  private setStateSafe(newState: Partial<SideNavState>, cb?: () => void): void {
+    if (this._isMounted) {
+      this.setState(newState as any, cb);
+    }
+  }
+}
