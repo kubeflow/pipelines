@@ -52,15 +52,16 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 
 	// The table is not initialized
 	if !rows.Next() {
-		sql, args, err := sq.
+		sql, args, queryErr := sq.
 			Insert("db_statuses").
 			SetMap(defaultDBStatus).
 			ToSql()
 
-		if err != nil {
+		if queryErr != nil {
 			tx.Rollback()
-			return util.NewInternalServerError(err, "Error creating query to initialize database status table.")
+			return util.NewInternalServerError(queryErr, "Error creating query to initialize database status table.")
 		}
+
 		_, err = tx.Exec(sql, args...)
 		if err != nil {
 			tx.Rollback()

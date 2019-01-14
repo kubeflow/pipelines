@@ -17,6 +17,7 @@ import sys
 import unittest
 from pathlib import Path
 
+sys.path.insert(0, __file__ + '/../../../')
 
 import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml
@@ -41,6 +42,7 @@ class LoadComponentTestCase(unittest.TestCase):
         assert task1.arguments[0] == str(arg1)
         assert task1.arguments[1] == str(arg2)
 
+    @unittest.skip
     @unittest.expectedFailure #The repo is non-public and will change soon. TODO: Update the URL and enable the test once we move to a public repo
     def test_load_component_from_url(self):
         url = 'https://raw.githubusercontent.com/kubeflow/pipelines/638045974d688b473cda9f4516a2cf1d7d1e02dd/sdk/python/tests/components/test_data/python_add.component.yaml'
@@ -73,7 +75,7 @@ implementation:
         task1 = task_factory1()
         assert task1.image == component_dict['implementation']['container']['image']
 
-    @unittest.expectedFailure #TODO: Check this in the ComponentSpec class, not during materialization.
+    @unittest.expectedFailure
     def test_fail_on_duplicate_input_names(self):
         component_text = '''\
 inputs:
@@ -85,7 +87,6 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.skip #TODO: Fix in the ComponentSpec class
     @unittest.expectedFailure
     def test_fail_on_duplicate_output_names(self):
         component_text = '''\
@@ -176,7 +177,6 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.skip #TODO: FIX:
     @unittest.expectedFailure
     def test_fail_on_unknown_value_argument(self):
         component_text = '''\
@@ -186,7 +186,7 @@ implementation:
   container:
     image: busybox
     args:
-      - {value: Wrong}
+      - {inputValue: Wrong}
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
@@ -295,7 +295,7 @@ implementation:
     image: busybox
     args:
       - --data
-      - value: Data
+      - inputValue: Data
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1('some-data')
@@ -311,12 +311,14 @@ implementation:
     image: busybox
     args:
       - --output-data
-      - {output: Data}
+      - {outputPath: Data}
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1()
 
         self.assertEqual(len(task1.arguments), 2)
+        self.assertEqual(task1.arguments[0], '--output-data')
+        self.assertTrue(task1.arguments[1].startswith('/'))
 
     def test_optional_inputs_reordering(self):
         '''Tests optional input reordering.
@@ -347,7 +349,7 @@ implementation:
     image: busybox
     command:
       - a
-      - {value: input 1}
+      - {inputValue: input 1}
       - z
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -365,7 +367,7 @@ implementation:
     image: busybox
     command:
       - a
-      - {file: input 1}
+      - {inputPath: input 1}
       - z
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -382,7 +384,7 @@ implementation:
   container:
     image: busybox
     args:
-      - concat: [{value: In1}, {value: In2}]
+      - concat: [{inputValue: In1}, {inputValue: In2}]
 '''
         task_factory1 = comp.load_component(text=component_text)
         task1 = task_factory1('some', 'data')
@@ -460,7 +462,7 @@ implementation:
     args:
       - if:
           cond: {isPresent: In}
-          then: [--in, {value: In}]
+          then: [--in, {inputValue: In}]
           #else: --no-in
 '''
         task_factory1 = comp.load_component(text=component_text)
@@ -481,7 +483,7 @@ implementation:
     args:
       - if:
           cond: {isPresent: In}
-          then: [--in, {value: In}]
+          then: [--in, {inputValue: In}]
           else: --no-in
 '''
         task_factory1 = comp.load_component(text=component_text)
@@ -504,8 +506,8 @@ implementation:
     image: busybox
     args:
       - if:
-          cond: {value: Do test}
-          then: [--test-data, {value: Test data}, --test-param1, {value: Test parameter 1}]
+          cond: {inputValue: Do test}
+          then: [--test-data, {inputValue: Test data}, --test-param1, {inputValue: Test parameter 1}]
 '''
         task_factory1 = comp.load_component(text=component_text)
 

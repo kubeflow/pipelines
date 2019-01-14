@@ -41,22 +41,22 @@ func NewRootCmd(factory ClientFactoryInterface) *RootCommand {
 
 			pipelineClient, err := factory.CreatePipelineClient(root.ClientConfig(), root.debug)
 			if err != nil {
-				fmt.Errorf("Could not create pipelineClient: %v", err)
+				return fmt.Errorf("Could not create pipelineClient: %v", err)
 			}
 
 			jobClient, err := factory.CreateJobClient(root.ClientConfig(), root.debug)
 			if err != nil {
-				fmt.Errorf("Could not create jobClient: %v", err)
+				return fmt.Errorf("Could not create jobClient: %v", err)
 			}
 
 			runClient, err := factory.CreateRunClient(root.ClientConfig(), root.debug)
 			if err != nil {
-				fmt.Errorf("Could not create runClient: %v", err)
+				return fmt.Errorf("Could not create runClient: %v", err)
 			}
 
 			experimentClient, err := factory.CreateExperimentClient(root.ClientConfig(), root.debug)
 			if err != nil {
-				fmt.Errorf("Could not create experimentClient: %v", err)
+				return fmt.Errorf("Could not create experimentClient: %v", err)
 			}
 			root.pipelineUploadClient = pipelineUploadClient
 			root.pipelineClient = pipelineClient

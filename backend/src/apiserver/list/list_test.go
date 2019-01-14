@@ -1,14 +1,15 @@
 package list
 
 import (
-	"errors"
 	"reflect"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 )
 
@@ -97,11 +98,11 @@ func TestNextPageToken_InvalidSortByField(t *testing.T) {
 	inOpts := &Options{
 		PageSize: 10, token: &token{SortByFieldName: "Timestamp", IsDesc: true},
 	}
-	want := errors.New(`cannot sort by field "Timestamp" on type "fakeListable"`)
+	want := util.NewInvalidInputError(`cannot sort by field "Timestamp" on type "fakeListable"`)
 
 	got, err := inOpts.nextPageToken(l)
 
-	if !reflect.DeepEqual(err, want) {
+	if !cmp.Equal(err, want, cmpopts.IgnoreUnexported(util.UserError{})) {
 		t.Errorf("nextPageToken(%+v, %+v) =\nGot: %+v, %v\nWant: _, %v",
 			inOpts, l, got, err, want)
 	}
@@ -530,6 +531,77 @@ func TestTokenSerialization(t *testing.T) {
 		if !cmp.Equal(got, test.want) {
 			t.Errorf("token.unmarshal(%q) =\nGot: %+v\nWant: %+v\nDiff:\n%s",
 				s, got, test.want, cmp.Diff(test.want, got))
+		}
+	}
+}
+
+func TestMatches(t *testing.T) {
+	protoFilter1 := &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key:   "Name",
+				Op:    api.Predicate_EQUALS,
+				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+			},
+		},
+	}
+	f1, err := filter.New(protoFilter1)
+	if err != nil {
+		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter1, err)
+	}
+
+	protoFilter2 := &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key:   "Name",
+				Op:    api.Predicate_NOT_EQUALS, // Not equals as opposed to equals above.
+				Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+			},
+		},
+	}
+	f2, err := filter.New(protoFilter2)
+	if err != nil {
+		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter2, err)
+	}
+
+	tests := []struct {
+		o1   *Options
+		o2   *Options
+		want bool
+	}{
+		{
+			o1:   &Options{token: &token{SortByFieldName: "SortField1", IsDesc: true}},
+			o2:   &Options{token: &token{SortByFieldName: "SortField2", IsDesc: true}},
+			want: false,
+		},
+		{
+			o1:   &Options{token: &token{SortByFieldName: "SortField1", IsDesc: true}},
+			o2:   &Options{token: &token{SortByFieldName: "SortField1", IsDesc: true}},
+			want: true,
+		},
+		{
+			o1:   &Options{token: &token{SortByFieldName: "SortField1", IsDesc: true}},
+			o2:   &Options{token: &token{SortByFieldName: "SortField1", IsDesc: false}},
+			want: false,
+		},
+		{
+			o1:   &Options{token: &token{Filter: f1}},
+			o2:   &Options{token: &token{Filter: f1}},
+			want: true,
+		},
+		{
+			o1:   &Options{token: &token{Filter: f1}},
+			o2:   &Options{token: &token{Filter: f2}},
+			want: false,
+		},
+	}
+
+	for _, test := range tests {
+		got := test.o1.Matches(test.o2)
+
+		if got != test.want {
+			t.Errorf("Matches(%+v, %+v) = %v, Want nil %v", test.o1, test.o2, got, test.want)
+			continue
 		}
 	}
 }

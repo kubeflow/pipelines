@@ -57,19 +57,32 @@ describe('Apis', () => {
     expect(Apis.getPodLogs('some-pod-name')).rejects.toThrowError('bad response');
   });
 
-  it('isApiServerReady returns true', async () => {
-    fetchSpy(JSON.stringify({ apiServerReady: true }));
-    expect(await Apis.isApiServerReady()).toEqual(true);
+  it('getBuildInfo returns build information', async () => {
+    const expectedBuildInfo = {
+      apiServerCommitHash: 'd3c4add0a95e930c70a330466d0923827784eb9a',
+      apiServerReady: true,
+      buildDate: 'Wed Jan 9 19:40:24 UTC 2019',
+      frontendCommitHash: '8efb2fcff9f666ba5b101647e909dc9c6889cecb'
+    };
+    const spy = fetchSpy(JSON.stringify(expectedBuildInfo));
+    const actualBuildInfo = await Apis.getBuildInfo();
+    expect(spy).toHaveBeenCalledWith('apis/v1beta1/healthz', { credentials: 'same-origin' });
+    expect(actualBuildInfo).toEqual(expectedBuildInfo);
   });
 
-  it('isApiServerReady returns false on unreachable', async () => {
-    window.fetch = () => { throw new Error('nope!'); };
-    expect(await Apis.isApiServerReady()).toEqual(false);
+  it('isJupyterHubAvailable returns true if the response for the /hub/ url was ok', async () => {
+    const spy = fetchSpy('{}');
+    const isJupyterHubAvailable = await Apis.isJupyterHubAvailable();
+    expect(spy).toHaveBeenCalledWith('/hub/', { credentials: 'same-origin' });
+    expect(isJupyterHubAvailable).toEqual(true);
   });
 
-  it('isApiServerReady returns false on bad json', async () => {
-    fetchSpy('bad json');
-    expect(await Apis.isApiServerReady()).toEqual(false);
+  it('isJupyterHubAvailable returns false if the response for the /hub/ url was not ok', async () => {
+    const spy = jest.fn(() => Promise.resolve({ ok: false }));
+    window.fetch = spy;
+    const isJupyterHubAvailable = await Apis.isJupyterHubAvailable();
+    expect(spy).toHaveBeenCalledWith('/hub/', { credentials: 'same-origin' });
+    expect(isJupyterHubAvailable).toEqual(false);
   });
 
   it('readFile', async () => {

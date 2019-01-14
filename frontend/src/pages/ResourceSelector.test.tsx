@@ -68,6 +68,7 @@ describe('ResourceSelector', () => {
     return {
       columns: selectorColumns,
       emptyMessage: testEmptyMessage,
+      filterLabel: 'test filter label',
       history: {} as any,
       initialSortColumn: 'created_at',
       listApi: listResourceSpy as any,
@@ -96,7 +97,7 @@ describe('ResourceSelector', () => {
     await (tree.instance() as TestResourceSelector)._load({});
 
     expect(listResourceSpy).toHaveBeenCalledTimes(1);
-    expect(listResourceSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined);
+    expect(listResourceSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined, undefined);
     expect(tree.state('resources')).toEqual(RESOURCES);
     expect(tree).toMatchSnapshot();
   });

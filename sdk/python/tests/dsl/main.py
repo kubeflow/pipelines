@@ -14,6 +14,7 @@
 
 
 import unittest
+import sys
 
 import pipeline_tests
 import pipeline_param_tests

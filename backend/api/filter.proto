@@ -38,6 +38,10 @@ message Predicate {
     // Checks if the value is a member of a given array, which should be one of
     // |int_values|, |long_values| or |string_values|.
     IN = 8;
+
+    // Checks if the value contains |string_value| as a substring match. Only
+    // applies to |string_value|.
+    IS_SUBSTRING = 9;
   }
   Op op = 1;
 
@@ -115,4 +119,10 @@ message Filter {
   repeated Predicate predicates = 1;
 }
 
-
+// This dummy service is required so that grpc-gateway will generate Swagger
+// definitions for the Filter message. Otherwise, it does not get generated
+// since Filter itself is not used in any of the RPC calls - only a serialized
+// encoded version of it is used.
+service DummyFilterService {
+  rpc GetFilter(Filter) returns (Filter) {}
+}

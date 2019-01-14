@@ -17,7 +17,7 @@ from kubernetes import client as k8s_client
 from kubernetes import config
 import time
 import logging
-
+import re
 
 class K8sHelper(object):
   """ Kubernetes Helper """
@@ -118,6 +118,13 @@ class K8sHelper(object):
     # print(self._read_pod_log(pod_name, yaml_spec))
     self._delete_k8s_job(pod_name, yaml_spec)
     return succ
+
+  @staticmethod
+  def sanitize_k8s_name(name):
+    """From _make_kubernetes_name
+      sanitize_k8s_name cleans and converts the names in the workflow.
+    """
+    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
 
   @staticmethod
   def convert_k8s_obj_to_json(k8s_obj):

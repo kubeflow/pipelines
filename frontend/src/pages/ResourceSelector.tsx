@@ -39,6 +39,7 @@ export interface ResourceSelectorProps extends RouteComponentProps {
   listApi: (...args: any[]) => Promise<BaseResponse>;
   columns: Column[];
   emptyMessage: string;
+  filterLabel: string;
   initialSortColumn: any;
   selectionChanged: (resource: BaseResource) => void;
   title: string;
@@ -68,13 +69,13 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
 
   public render(): JSX.Element {
     const { rows, selectedIds, toolbarActions } = this.state;
-    const { columns, title, emptyMessage, initialSortColumn } = this.props;
+    const { columns, title, filterLabel, emptyMessage, initialSortColumn } = this.props;
 
     return (
       <React.Fragment>
         <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle={title} />
         <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
-          updateSelection={this._selectionChanged.bind(this)}
+          updateSelection={this._selectionChanged.bind(this)} filterLabel={filterLabel}
           initialSortColumn={initialSortColumn} reload={this._load.bind(this)}
           emptyMessage={emptyMessage} />
       </React.Fragment>
@@ -110,7 +111,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
     let nextPageToken = '';
     try {
       const response =
-        await this.props.listApi(request.pageToken, request.pageSize, request.sortBy);
+        await this.props.listApi(request.pageToken, request.pageSize, request.sortBy, request.filter);
 
       this.setStateSafe({
         resources: response.resources,
