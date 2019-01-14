@@ -277,7 +277,7 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
         </div>
         <div>
           Start: 
-          9/5/2018, 4:03:02 AM
+          1/2/2019, 12:34:56 PM
         </div>
       </div>
     }
@@ -324,7 +324,7 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
         </div>
         <div>
           Start: 
-          9/5/2018, 4:03:02 AM
+          1/2/2019, 12:34:56 PM
         </div>
       </div>
     }
@@ -1017,7 +1017,7 @@ exports[`RunDetails shows failure run status in page title 1`] = `
         </div>
         <div>
           Start: 
-          9/5/2018, 4:03:02 AM
+          1/2/2019, 12:34:56 PM
         </div>
       </div>
     }
@@ -1089,15 +1089,15 @@ exports[`RunDetails shows run config fields - handles no description 1`] = `
               ],
               Array [
                 "Created at",
-                "7/5/2018, 4:03:02 AM",
+                "1/2/2019, 12:34:56 PM",
               ],
               Array [
                 "Started at",
-                "7/5/2018, 4:03:02 AM",
+                "1/2/2019, 12:34:56 PM",
               ],
               Array [
                 "Finished at",
-                "7/6/2018, 5:04:03 AM",
+                "1/2/2019, 12:34:56 PM",
               ],
               Array [
                 "Duration",
@@ -1154,11 +1154,11 @@ exports[`RunDetails shows run config fields - handles no metadata 1`] = `
               ],
               Array [
                 "Started at",
-                "7/5/2018, 4:03:02 AM",
+                "1/2/2019, 12:34:56 PM",
               ],
               Array [
                 "Finished at",
-                "7/6/2018, 5:04:03 AM",
+                "1/2/2019, 12:34:56 PM",
               ],
               Array [
                 "Duration",
@@ -1211,15 +1211,15 @@ exports[`RunDetails shows run config fields 1`] = `
               ],
               Array [
                 "Created at",
-                "7/5/2018, 4:03:02 AM",
+                "1/2/2019, 12:34:56 PM",
               ],
               Array [
                 "Started at",
-                "7/5/2018, 4:03:02 AM",
+                "1/2/2019, 12:34:56 PM",
               ],
               Array [
                 "Finished at",
-                "7/6/2018, 5:04:03 AM",
+                "1/2/2019, 12:34:56 PM",
               ],
               Array [
                 "Duration",
@@ -1264,7 +1264,7 @@ exports[`RunDetails shows success run status in page title 1`] = `
         </div>
         <div>
           Start: 
-          9/5/2018, 4:03:02 AM
+          1/2/2019, 12:34:56 PM
         </div>
       </div>
     }

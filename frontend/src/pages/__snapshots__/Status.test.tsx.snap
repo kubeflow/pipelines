@@ -393,11 +393,11 @@ exports[`Status displays start and end dates if both are provided 1`] = `
       </div>
       <div>
         Start: 
-        1/9/2019, 1:23:22 PM
+        1/2/2019, 9:10:11 AM
       </div>
       <div>
         End: 
-        1/11/2019, 3:36:01 PM
+        1/3/2019, 10:11:12 AM
       </div>
     </div>
   }
@@ -815,7 +815,7 @@ exports[`Status does not display a end date if none was provided 1`] = `
       </div>
       <div>
         Start: 
-        1/9/2019, 1:23:22 PM
+        1/2/2019, 9:10:11 AM
       </div>
     </div>
   }
@@ -1233,7 +1233,7 @@ exports[`Status does not display a start date if none was provided 1`] = `
       </div>
       <div>
         End: 
-        1/11/2019, 3:36:01 PM
+        1/3/2019, 10:11:12 AM
       </div>
     </div>
   }

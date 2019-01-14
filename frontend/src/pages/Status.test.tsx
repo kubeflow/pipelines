@@ -14,13 +14,24 @@
  * limitations under the License.
  */
 
+import * as Utils from '../lib/Utils';
 import { shallow } from 'enzyme';
 import { statusToIcon, NodePhase } from './Status';
 
 
 describe('Status', () => {
-  const startDate = new Date('Wed Jan 9 2019 13:23:22 GMT-0800');
-  const endDate = new Date('Fri Jan 11 2019 15:36:01 GMT-0800');
+  // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
+  // test enviroments
+  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
+
+  const startDate = new Date('Wed Jan 2 2019 9:10:11 GMT-0800');
+  const endDate = new Date('Thu Jan 3 2019 10:11:12 GMT-0800');
+
+  beforeEach(() => {
+    formatDateStringSpy.mockImplementation((date: Date) => {
+      return (date === startDate) ? '1/2/2019, 9:10:11 AM' : '1/3/2019, 10:11:12 AM';
+    });
+  });
 
   it('handles an unknown phase', () => {
     const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
