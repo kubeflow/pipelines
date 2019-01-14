@@ -290,7 +290,6 @@ describe('SideNav', () => {
 
     expect(tree.state('displayBuildInfo')).toEqual(expect.objectContaining({
       commitHash: 'unknown',
-      commitUrl: 'https://www.github.com/kubeflow/pipelines',
     }));
   });
 

@@ -77,8 +77,7 @@ export default (app: express.Application) => {
 
   app.get('/hub/', (_, res) => {
     res.sendStatus(200);
-    // res.send({ ok: true });
-  });
+  }); 
 
   function getSortKeyAndOrder(defaultSortKey: string, queryParam?: string): { desc: boolean, key: string } {
     let key = defaultSortKey;

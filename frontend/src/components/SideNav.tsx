@@ -126,6 +126,14 @@ export const css = stylesheet({
     justifyContent: 'center',
     marginLeft: 12,
   },
+  marginBottom8: {
+    marginBottom: 8,
+  },
+  openInNewTabIcon: {
+    height: 12,
+    marginLeft: 5,
+    width: 12,
+  },
   root: {
     background: sideNavColors.bg,
     paddingTop: 12,
@@ -263,7 +271,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                   classes(css.button, collapsed && css.collapsedButton)}>
                   <JupyterhubIcon style={{ height: 20, width: 20 }} />
                   <span className={classes(collapsed && css.collapsedLabel, css.label)}>Notebooks</span>
-                  <OpenInNewIcon style={{ height: 12, width: 12, marginLeft: 5, marginBottom: 8 }} />
+                  <OpenInNewIcon className={classes(css.openInNewTabIcon, css.marginBottom8)} />
                 </Button>
               </a>
             </Tooltip>
@@ -281,7 +289,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
               <a href={displayBuildInfo.commitUrl} className={classes(css.buildHash, commonCss.unstyled)}
                 target='_blank'>
                 {displayBuildInfo.commitHash}
-                <OpenInNewIcon style={{ height: 12, width: 12, marginLeft: 5 }} />
+                <OpenInNewIcon className={classes(css.openInNewTabIcon)} />
               </a>
             </div>
           </Tooltip>

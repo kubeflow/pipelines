@@ -128,14 +128,7 @@ exports[`SideNav populates the display build information using the response from
             Notebooks
           </span>
           <pure(OpenInNewIcon)
-            style={
-              Object {
-                "height": 12,
-                "marginBottom": 8,
-                "marginLeft": 5,
-                "width": 12,
-              }
-            }
+            className="openInNewTabIcon marginBottom8"
           />
         </WithStyles(Button)>
       </a>
@@ -168,13 +161,7 @@ exports[`SideNav populates the display build information using the response from
       >
         0a7b9e3
         <pure(OpenInNewIcon)
-          style={
-            Object {
-              "height": 12,
-              "marginLeft": 5,
-              "width": 12,
-            }
-          }
+          className="openInNewTabIcon"
         />
       </a>
     </div>
@@ -1630,14 +1617,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
             Notebooks
           </span>
           <pure(OpenInNewIcon)
-            style={
-              Object {
-                "height": 12,
-                "marginBottom": 8,
-                "marginLeft": 5,
-                "width": 12,
-              }
-            }
+            className="openInNewTabIcon marginBottom8"
           />
         </WithStyles(Button)>
       </a>
