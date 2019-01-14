@@ -18,7 +18,7 @@
 # 'my-persistent-disk' in the cluster. This persistent disk will be mounted to
 # /mountedlogdir, which is also specified as the logdir parameter for
 # Tensorboard.
-apiVersion: "kubeflow.org/v1alpha1"
+apiVersion: "kubeflow.org/v1beta1"
 kind: Viewer
 metadata:
   generateName: viewer-

@@ -16,7 +16,7 @@
 package fake
 
 import (
-	v1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	v1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -27,29 +27,29 @@ import (
 
 // FakeScheduledWorkflows implements ScheduledWorkflowInterface
 type FakeScheduledWorkflows struct {
-	Fake *FakeScheduledworkflowV1alpha1
+	Fake *FakeScheduledworkflowV1beta1
 	ns   string
 }
 
-var scheduledworkflowsResource = schema.GroupVersionResource{Group: "scheduledworkflow.kubeflow.org", Version: "v1alpha1", Resource: "scheduledworkflows"}
+var scheduledworkflowsResource = schema.GroupVersionResource{Group: "scheduledworkflow.kubeflow.org", Version: "v1beta1", Resource: "scheduledworkflows"}
 
-var scheduledworkflowsKind = schema.GroupVersionKind{Group: "scheduledworkflow.kubeflow.org", Version: "v1alpha1", Kind: "ScheduledWorkflow"}
+var scheduledworkflowsKind = schema.GroupVersionKind{Group: "scheduledworkflow.kubeflow.org", Version: "v1beta1", Kind: "ScheduledWorkflow"}
 
 // Get takes name of the scheduledWorkflow, and returns the corresponding scheduledWorkflow object, and an error if there is any.
-func (c *FakeScheduledWorkflows) Get(name string, options v1.GetOptions) (result *v1alpha1.ScheduledWorkflow, err error) {
+func (c *FakeScheduledWorkflows) Get(name string, options v1.GetOptions) (result *v1beta1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(scheduledworkflowsResource, c.ns, name), &v1alpha1.ScheduledWorkflow{})
+		Invokes(testing.NewGetAction(scheduledworkflowsResource, c.ns, name), &v1beta1.ScheduledWorkflow{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.ScheduledWorkflow), err
+	return obj.(*v1beta1.ScheduledWorkflow), err
 }
 
 // List takes label and field selectors, and returns the list of ScheduledWorkflows that match those selectors.
-func (c *FakeScheduledWorkflows) List(opts v1.ListOptions) (result *v1alpha1.ScheduledWorkflowList, err error) {
+func (c *FakeScheduledWorkflows) List(opts v1.ListOptions) (result *v1beta1.ScheduledWorkflowList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(scheduledworkflowsResource, scheduledworkflowsKind, c.ns, opts), &v1alpha1.ScheduledWorkflowList{})
+		Invokes(testing.NewListAction(scheduledworkflowsResource, scheduledworkflowsKind, c.ns, opts), &v1beta1.ScheduledWorkflowList{})
 
 	if obj == nil {
 		return nil, err
@@ -59,8 +59,8 @@ func (c *FakeScheduledWorkflows) List(opts v1.ListOptions) (result *v1alpha1.Sch
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.ScheduledWorkflowList{ListMeta: obj.(*v1alpha1.ScheduledWorkflowList).ListMeta}
-	for _, item := range obj.(*v1alpha1.ScheduledWorkflowList).Items {
+	list := &v1beta1.ScheduledWorkflowList{ListMeta: obj.(*v1beta1.ScheduledWorkflowList).ListMeta}
+	for _, item := range obj.(*v1beta1.ScheduledWorkflowList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -76,31 +76,31 @@ func (c *FakeScheduledWorkflows) Watch(opts v1.ListOptions) (watch.Interface, er
 }
 
 // Create takes the representation of a scheduledWorkflow and creates it.  Returns the server's representation of the scheduledWorkflow, and an error, if there is any.
-func (c *FakeScheduledWorkflows) Create(scheduledWorkflow *v1alpha1.ScheduledWorkflow) (result *v1alpha1.ScheduledWorkflow, err error) {
+func (c *FakeScheduledWorkflows) Create(scheduledWorkflow *v1beta1.ScheduledWorkflow) (result *v1beta1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(scheduledworkflowsResource, c.ns, scheduledWorkflow), &v1alpha1.ScheduledWorkflow{})
+		Invokes(testing.NewCreateAction(scheduledworkflowsResource, c.ns, scheduledWorkflow), &v1beta1.ScheduledWorkflow{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.ScheduledWorkflow), err
+	return obj.(*v1beta1.ScheduledWorkflow), err
 }
 
 // Update takes the representation of a scheduledWorkflow and updates it. Returns the server's representation of the scheduledWorkflow, and an error, if there is any.
-func (c *FakeScheduledWorkflows) Update(scheduledWorkflow *v1alpha1.ScheduledWorkflow) (result *v1alpha1.ScheduledWorkflow, err error) {
+func (c *FakeScheduledWorkflows) Update(scheduledWorkflow *v1beta1.ScheduledWorkflow) (result *v1beta1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(scheduledworkflowsResource, c.ns, scheduledWorkflow), &v1alpha1.ScheduledWorkflow{})
+		Invokes(testing.NewUpdateAction(scheduledworkflowsResource, c.ns, scheduledWorkflow), &v1beta1.ScheduledWorkflow{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.ScheduledWorkflow), err
+	return obj.(*v1beta1.ScheduledWorkflow), err
 }
 
 // Delete takes name of the scheduledWorkflow and deletes it. Returns an error if one occurs.
 func (c *FakeScheduledWorkflows) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(scheduledworkflowsResource, c.ns, name), &v1alpha1.ScheduledWorkflow{})
+		Invokes(testing.NewDeleteAction(scheduledworkflowsResource, c.ns, name), &v1beta1.ScheduledWorkflow{})
 
 	return err
 }
@@ -109,17 +109,17 @@ func (c *FakeScheduledWorkflows) Delete(name string, options *v1.DeleteOptions) 
 func (c *FakeScheduledWorkflows) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(scheduledworkflowsResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &v1alpha1.ScheduledWorkflowList{})
+	_, err := c.Fake.Invokes(action, &v1beta1.ScheduledWorkflowList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched scheduledWorkflow.
-func (c *FakeScheduledWorkflows) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ScheduledWorkflow, err error) {
+func (c *FakeScheduledWorkflows) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ScheduledWorkflow, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(scheduledworkflowsResource, c.ns, name, data, subresources...), &v1alpha1.ScheduledWorkflow{})
+		Invokes(testing.NewPatchSubresourceAction(scheduledworkflowsResource, c.ns, name, data, subresources...), &v1beta1.ScheduledWorkflow{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.ScheduledWorkflow), err
+	return obj.(*v1beta1.ScheduledWorkflow), err
 }
