@@ -77,7 +77,7 @@ TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
 
 #Deploy the pipeline
-${DIR}/deploy-pipeline.sh --platform ${PLATFORM} --project ml-pipeline-test --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+source ${DIR}/deploy-pipeline.sh --platform ${PLATFORM} --project ml-pipeline-test --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
 
 #Submit the argo job and check the results
 gcloud container clusters get-credentials ${TEST_CLUSTER}
