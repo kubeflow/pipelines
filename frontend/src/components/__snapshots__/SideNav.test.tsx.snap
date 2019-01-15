@@ -128,7 +128,7 @@ exports[`SideNav populates the display build information using the response from
             Notebooks
           </span>
           <pure(OpenInNewIcon)
-            className="openInNewTabIcon marginBottom8"
+            className="openInNewTabIcon"
           />
         </WithStyles(Button)>
       </a>
@@ -143,29 +143,47 @@ exports[`SideNav populates the display build information using the response from
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
   </div>
-  <WithStyles(Tooltip)
-    enterDelay={300}
-    placement="top-start"
-    title="Build date: 10/23/2018"
+  <div
+    className="infoVisible"
   >
     <div
-      className="buildInfo"
+      className="privacyInfo"
     >
       <span>
-        Build commit: 
+        Privacy
       </span>
+      <span
+        className="privacySeparator"
+      />
       <a
-        className="buildHash unstyled"
-        href="https://www.github.com/kubeflow/pipelines/commit/0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5"
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
         target="_blank"
       >
-        0a7b9e3
-        <pure(OpenInNewIcon)
-          className="openInNewTabIcon"
-        />
+        Usage reporting
       </a>
     </div>
-  </WithStyles(Tooltip)>
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      placement="top-start"
+      title="Build date: 10/23/2018"
+    >
+      <div
+        className="buildInfo"
+      >
+        <span>
+          Build commit: 
+        </span>
+        <a
+          className="link unstyled"
+          href="https://www.github.com/kubeflow/pipelines/commit/0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5"
+          target="_blank"
+        >
+          0a7b9e3
+        </a>
+      </div>
+    </WithStyles(Tooltip)>
+  </div>
 </div>
 `;
 
@@ -275,6 +293,27 @@ exports[`SideNav renders Pipelines as active page 1`] = `
     >
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
+  </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
   </div>
 </div>
 `;
@@ -386,6 +425,27 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
   </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
+  </div>
 </div>
 `;
 
@@ -495,6 +555,27 @@ exports[`SideNav renders collapsed state 1`] = `
     >
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
+  </div>
+  <div
+    className="infoHidden"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
   </div>
 </div>
 `;
@@ -606,6 +687,27 @@ exports[`SideNav renders expanded state 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
   </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
+  </div>
 </div>
 `;
 
@@ -715,6 +817,27 @@ exports[`SideNav renders experiments as active page 1`] = `
     >
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
+  </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
   </div>
 </div>
 `;
@@ -826,6 +949,27 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
   </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
+  </div>
 </div>
 `;
 
@@ -935,6 +1079,27 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
     >
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
+  </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
   </div>
 </div>
 `;
@@ -1046,6 +1211,27 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
   </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
+  </div>
 </div>
 `;
 
@@ -1155,6 +1341,27 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
     >
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
+  </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
   </div>
 </div>
 `;
@@ -1266,6 +1473,27 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
   </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
+  </div>
 </div>
 `;
 
@@ -1376,6 +1604,27 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
   </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
+  </div>
 </div>
 `;
 
@@ -1485,6 +1734,27 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
     >
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
+  </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
   </div>
 </div>
 `;
@@ -1617,7 +1887,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
             Notebooks
           </span>
           <pure(OpenInNewIcon)
-            className="openInNewTabIcon marginBottom8"
+            className="openInNewTabIcon"
           />
         </WithStyles(Button)>
       </a>
@@ -1631,6 +1901,27 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
     >
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
+  </div>
+  <div
+    className="infoVisible"
+  >
+    <div
+      className="privacyInfo"
+    >
+      <span>
+        Privacy
+      </span>
+      <span
+        className="privacySeparator"
+      />
+      <a
+        className="link unstyled"
+        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
+        target="_blank"
+      >
+        Usage reporting
+      </a>
+    </div>
   </div>
 </div>
 `;
