@@ -67,9 +67,13 @@ func (s *RunStore) ListRuns(
 		return nil, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
 
-	sqlBuilder := s.selectRunDetails()
 	// Add filter condition
-	sqlBuilder, err := s.toFilteredQuery(sqlBuilder, filterContext)
+	filteredSelectBuilder, err := s.toFilteredQuery(filterContext)
+	if err != nil {
+		return errorF(err)
+	}
+
+	sqlBuilder := s.selectRunDetails(filteredSelectBuilder)
 	if err != nil {
 		return errorF(err)
 	}
@@ -104,26 +108,27 @@ func (s *RunStore) ListRuns(
 	return runs[:opts.PageSize], npt, err
 }
 
-func (s *RunStore) toFilteredQuery(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
-	sql, args, err := selectBuilder.ToSql()
-	if err != nil {
-		return selectBuilder, util.NewInternalServerError(err, "Failed to append filter condition to list run: %v",
-			err.Error())
-	}
+func (s *RunStore) toFilteredQuery(filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+	selectBuilder := sq.Select("*").From("run_details")
 	if filterContext.ReferenceKey != nil {
-		selectBuilder = sq.Select("list_run.*").
-			From("resource_references AS rf").
-			Join(fmt.Sprintf("(%s) as list_run on list_run.UUID=rf.ResourceUUID", sql), args...).
+		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
+			From("resource_references as rf").
 			Where(sq.And{
+				sq.Eq{"rf.ResourceType": common.Run},
 				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
-				sq.Eq{"rf.ReferenceType": filterContext.Type}})
+				sq.Eq{"rf.ReferenceType": filterContext.Type}}).ToSql()
+		if err != nil {
+			return selectBuilder, util.NewInternalServerError(
+				err, "Failed to create subquery to filter by resource reference: %v", err.Error())
+		}
+		return selectBuilder.Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), args...), nil
 	}
 	return selectBuilder, nil
 }
 
 // GetRun Get the run manifest from Workflow CRD
 func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
-	sql, args, err := s.selectRunDetails().
+	sql, args, err := s.selectRunDetails(sq.Select("*").From("run_details")).
 		Where(sq.Eq{"UUID": runId}).
 		Limit(1).
 		ToSql()
@@ -151,11 +156,11 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 	return runs[0], nil
 }
 
-func (s *RunStore) selectRunDetails() sq.SelectBuilder {
+func (s *RunStore) selectRunDetails(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
 	metricConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("m.Payload", ","), `"]"`}, "")
 	subQ := sq.
 		Select("rd.*", metricConcatQuery+" AS metrics").
-		From("run_details AS rd").
+		FromSelect(filteredSelectBuilder, "rd").
 		LeftJoin("run_metrics AS m ON rd.UUID=m.RunUUID").
 		GroupBy("rd.UUID")
 
