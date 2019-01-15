@@ -65,6 +65,11 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "presubmit test starts"
 
+# activating the service account
+gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+gcloud config set compute/zone us-central1-a
+gcloud config set core/project ${PROJECT}
+
 #Uploading the source code to GCS:
 local_code_archive_file=$(mktemp)
 date_string=$(TZ=PST8PDT date +%Y-%m-%d_%H-%M-%S_%Z)

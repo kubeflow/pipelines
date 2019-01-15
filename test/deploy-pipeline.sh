@@ -57,11 +57,6 @@ done
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-# activating the service account
-gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
-gcloud config set compute/zone us-central1-a
-gcloud config set core/project ${PROJECT}
-
 # Install ksonnet
 KS_VERSION="0.11.0"
 curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
