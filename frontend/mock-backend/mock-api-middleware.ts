@@ -18,7 +18,7 @@ import * as fs from 'fs';
 import RunUtils from '../src/lib/RunUtils';
 import helloWorldRuntime from './integration-test-runtime';
 import proxyMiddleware from '../server/proxy-middleware';
-import { ApiFilter, ApiPredicate, PredicateOp } from '../src/apis/filter';
+import { ApiFilter, PredicateOp } from '../src/apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
 import { ApiPipeline, ApiListPipelinesResponse } from '../src/apis/pipeline';
@@ -266,19 +266,6 @@ export default (app: express.Application) => {
 
     if (req.query.filter) {
       runs = filterResources(runs, req.query.filter);
-      try {
-        const decodedFilter = JSON.parse(decodeURIComponent(req.query.filter)) as ApiFilter;
-        // For simplicity, assume the Op is EQUALS
-        const storageStatePredicate: ApiPredicate | undefined = decodedFilter.predicates ?
-          decodedFilter.predicates.find(p => p.key === 'storage_state') : undefined;
-        if (storageStatePredicate) {
-          runs = runs.filter(r =>
-            r.storage_state && r.storage_state.toString() === storageStatePredicate.string_value);
-        }
-      } catch (e) {
-        res.status(500).send('Bad filter');
-        return;
-      }
     }
 
     if (req.query['resource_reference_key.type'] === ApiResourceType.EXPERIMENT) {
@@ -386,12 +373,15 @@ export default (app: express.Application) => {
       resources = resources.filter(r => {
         switch (p.op) {
           case PredicateOp.EQUALS:
-            if (p.key !== 'name') {
+            if (p.key === 'name') {
+              return r.name && r.name.toLocaleLowerCase() === (p.string_value || '').toLocaleLowerCase();
+            } else if (p.key === 'storage_state') {
+              return (r as ApiRun).storage_state && (r as ApiRun).storage_state!.toString() === p.string_value;
+            } else {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
-            return r.name && r.name.toLocaleLowerCase() === (p.string_value || '').toLocaleLowerCase();
           case PredicateOp.ISSUBSTRING:
-            if (p.key !== 'name') {
+            if (p.key !== 'name' && p.key !== 'storage_state') {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
             return r.name && r.name.toLocaleLowerCase().includes((p.string_value || '').toLocaleLowerCase());
