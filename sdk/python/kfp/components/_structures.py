@@ -190,7 +190,7 @@ class IfPlaceholder(ModelBase): #Non-standard attr names
 class ContainerSpec(ModelBase):
     '''Describes the container component implementation.'''
     _serialized_names = {
-        'file_outputs': 'fileOutputs', #TODO: rename to something like legacy_unconfigurable_output_paths
+        'unconfigurable_output_paths': 'unconfigurableOutputPaths', #TODO: rename to something like legacy_unconfigurable_output_paths
     }
 
     def __init__(self,
@@ -198,7 +198,7 @@ class ContainerSpec(ModelBase):
         command: Optional[List[CommandlineArgumentType]] = None,
         args: Optional[List[CommandlineArgumentType]] = None,
         env: Optional[Mapping[str, str]] = None,
-        file_outputs: Optional[Mapping[str, str]] = None, #TODO: rename to something like legacy_unconfigurable_output_paths
+        unconfigurable_output_paths: Optional[Mapping[str, str]] = None, #Deprecated. For legacy components only.
     ):
         super().__init__(locals())
 
@@ -258,8 +258,8 @@ class ComponentSpec(ModelBase):
         if isinstance(self.implementation, ContainerImplementation):
             container = self.implementation.container
 
-            if container.file_outputs:
-                for output_name, path in container.file_outputs.items():
+            if container.unconfigurable_output_paths:
+                for output_name, path in container.unconfigurable_output_paths.items():
                     if output_name not in self._outputs_dict:
                         raise TypeError('Unconfigurable output entry "{}" references non-existing output.'.format({output_name: path}))
 

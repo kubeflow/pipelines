@@ -25,7 +25,7 @@ def create_container_op_from_task(task_spec: TaskSpec):
     container_spec = component_spec.implementation.container
 
     output_paths = OrderedDict() #Preserving the order to make the kubernetes output names deterministic
-    unconfigurable_output_paths = container_spec.file_outputs or {}
+    unconfigurable_output_paths = container_spec.unconfigurable_output_paths or {}
     for output in component_spec.outputs or []:
         if output.name in unconfigurable_output_paths:
             output_paths[output.name] = unconfigurable_output_paths[output.name]

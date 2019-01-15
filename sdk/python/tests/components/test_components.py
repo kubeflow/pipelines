@@ -141,14 +141,14 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
-    def test_handle_file_outputs_with_spaces(self):
+    def test_handle_output_names_with_spaces_in_unconfigurable_output_paths(self):
         component_text = '''\
 outputs:
 - {name: Output data}
 implementation:
   container:
     image: busybox
-    fileOutputs:
+    unconfigurableOutputPaths:
       Output data: /outputs/output-data
 '''
         task_factory1 = comp.load_component_from_text(component_text)
@@ -191,14 +191,27 @@ implementation:
         task_factory1 = comp.load_component_from_text(component_text)
 
     @unittest.expectedFailure
-    def test_fail_on_unknown_file_output(self):
+    def test_fail_on_unknown_output_in_output_path(self):
         component_text = '''\
 outputs:
 - {name: Data}
 implementation:
   container:
     image: busybox
-    fileOutputs:
+    command:
+        - {outputPath: Wrong output}
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+
+    @unittest.expectedFailure
+    def test_fail_on_unknown_output_in_unconfigurable_output_path(self):
+        component_text = '''\
+outputs:
+- {name: Data}
+implementation:
+  container:
+    image: busybox
+    unconfigurableOutputPaths:
         Wrong: '/outputs/output.txt'
 '''
         task_factory1 = comp.load_component_from_text(component_text)
