@@ -71,7 +71,7 @@ func (s *RunStore) ListRuns(
 	}
 
 	// SQL for getting the filtered and paginated rows
-	rowsSqlBuilder, err := s.addResourceReferenceToSelect(s.selectRunDetails(), filterContext)
+	rowsSqlBuilder, err := s.buildQueryWithResourceReferences(s.selectRunDetails(), filterContext)
 	if err != nil {
 		return errorF(err)
 	}
@@ -84,7 +84,7 @@ func (s *RunStore) ListRuns(
 	// This first query performs a filtered selection over the runs table, it should match
 	// the number of rows returned by the filtered query built above for the actual rows,
 	// but it tries to optimize out the left join, which isn't needed here for the count.
-	countSqlBuilder, err := s.addResourceReferenceToSelect(sq.Select("*").From("run_details"), filterContext)
+	countSqlBuilder, err := s.buildQueryWithResourceReferences(sq.Select("*").From("run_details"), filterContext)
 	countSqlBuilder = opts.AddFilterToSelect(countSqlBuilder)
 	countSelectBuilder := sq.Select("count(*)").FromSelect(countSqlBuilder, "rows")
 	if err != nil {
@@ -146,7 +146,7 @@ func (s *RunStore) ListRuns(
 	return runs[:opts.PageSize], total_size, npt, err
 }
 
-func (s *RunStore) addResourceReferenceToSelect(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+func (s *RunStore) buildQueryWithResourceReferences(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
 	sql, args, err := selectBuilder.ToSql()
 	if err != nil {
 		return selectBuilder, util.NewInternalServerError(err, "Failed to append filter condition to list run: %v",
