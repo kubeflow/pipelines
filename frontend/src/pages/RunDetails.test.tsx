@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import * as Utils from '../lib/Utils';
 import RunDetails from './RunDetails';
 import TestUtils from '../TestUtils';
 import WorkflowParser from '../lib/WorkflowParser';
@@ -39,6 +40,9 @@ describe('RunDetails', () => {
   const pathsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths');
   const pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
   const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
+  // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
+  // test enviroments
+  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
   let testRun: ApiRunDetail = {};
   let tree: ShallowWrapper;
@@ -84,6 +88,7 @@ describe('RunDetails', () => {
     pathsParser.mockImplementation(() => []);
     pathsWithStepsParser.mockImplementation(() => []);
     loaderSpy.mockImplementation(() => Promise.resolve([]));
+    formatDateStringSpy.mockImplementation(() => '1/2/2019, 12:34:56 PM');
     jest.clearAllMocks();
   });
 
