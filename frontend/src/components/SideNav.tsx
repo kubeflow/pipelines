@@ -47,21 +47,10 @@ export const css = stylesheet({
     backgroundColor: sideNavColors.hover + ' !important',
     color: sideNavColors.fgActive + ' !important',
   },
-  buildHash: {
-    color: '#b7d1e8'
-  },
   buildInfo: {
     color: sideNavColors.fgDefault,
-    marginBottom: 30,
+    marginBottom: 16,
     marginLeft: 30,
-    opacity: 'initial',
-    transition: 'opacity 0.2s',
-    transitionDelay: '0.3s',
-  },
-  buildInfoHidden: {
-    opacity: 0,
-    transition: 'opacity 0s',
-    transitionDelay: '0s',
   },
   button: {
     borderRadius: dimension.base / 2,
@@ -103,7 +92,17 @@ export const css = stylesheet({
     width: '72px !important',
   },
   collapsedSeparator: {
-    margin: `20px !important`,
+    margin: '20px !important',
+  },
+  infoHidden: {
+    opacity: 0,
+    transition: 'opacity 0s',
+    transitionDelay: '0s',
+  },
+  infoVisible: {
+    opacity: 'initial',
+    transition: 'opacity 0.2s',
+    transitionDelay: '0.3s',
   },
   label: {
     fontSize: fontsize.base,
@@ -111,6 +110,9 @@ export const css = stylesheet({
     marginLeft: 20,
     transition: 'opacity 0.3s',
     verticalAlign: 'super',
+  },
+  link: {
+    color: '#b7d1e8'
   },
   logo: {
     display: 'flex',
@@ -126,13 +128,26 @@ export const css = stylesheet({
     justifyContent: 'center',
     marginLeft: 12,
   },
-  marginBottom8: {
-    marginBottom: 8,
-  },
   openInNewTabIcon: {
     height: 12,
+    marginBottom: 8,
     marginLeft: 5,
     width: 12,
+  },
+  privacyInfo: {
+    color: sideNavColors.fgDefault,
+    marginBottom: 6,
+    marginLeft: 30,
+  },
+  privacySeparator: {
+    background: sideNavColors.fgDefault,
+    borderRadius: 2,
+    display: 'inline-block',
+    height: 4,
+    marginBottom: 3,
+    marginLeft: 10,
+    marginRight: 10,
+    width: 4,
   },
   root: {
     background: sideNavColors.bg,
@@ -217,7 +232,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
 
   public render(): JSX.Element {
     const page = this.props.page;
-    const { collapsed, displayBuildInfo} = this.state;
+    const { collapsed, displayBuildInfo } = this.state;
     const iconColor = {
       active: sideNavColors.fgActive,
       inactive: sideNavColors.fgDefault,
@@ -271,7 +286,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                   classes(css.button, collapsed && css.collapsedButton)}>
                   <JupyterhubIcon style={{ height: 20, width: 20 }} />
                   <span className={classes(collapsed && css.collapsedLabel, css.label)}>Notebooks</span>
-                  <OpenInNewIcon className={classes(css.openInNewTabIcon, css.marginBottom8)} />
+                  <OpenInNewIcon className={css.openInNewTabIcon} />
                 </Button>
               </a>
             </Tooltip>
@@ -282,18 +297,27 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
             <ChevronLeftIcon />
           </IconButton>
         </div>
-        {displayBuildInfo && (
-          <Tooltip title={'Build date: ' + displayBuildInfo.date} enterDelay={300} placement={'top-start'}>
-            <div className={classes(css.buildInfo, collapsed && css.buildInfoHidden)}>
-              <span>Build commit: </span>
-              <a href={displayBuildInfo.commitUrl} className={classes(css.buildHash, commonCss.unstyled)}
-                target='_blank'>
-                {displayBuildInfo.commitHash}
-                <OpenInNewIcon className={classes(css.openInNewTabIcon)} />
-              </a>
-            </div>
-          </Tooltip>
-        )}
+        <div className={collapsed ? css.infoHidden : css.infoVisible}>
+          <div className={css.privacyInfo}>
+            <span>Privacy</span>
+            <span className={css.privacySeparator}/>
+            <a href='https://www.kubeflow.org/docs/guides/usage-reporting/'
+              className={classes(css.link, commonCss.unstyled)} target='_blank'>
+              Usage reporting
+            </a>
+          </div>
+          {displayBuildInfo && (
+            <Tooltip title={'Build date: ' + displayBuildInfo.date} enterDelay={300} placement={'top-start'}>
+              <div className={css.buildInfo}>
+                <span>Build commit: </span>
+                <a href={displayBuildInfo.commitUrl} className={classes(css.link, commonCss.unstyled)}
+                  target='_blank'>
+                  {displayBuildInfo.commitHash}
+                </a>
+              </div>
+            </Tooltip>
+          )}
+        </div>
       </div >
     );
   }
