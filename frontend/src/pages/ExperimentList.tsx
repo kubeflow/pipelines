@@ -195,7 +195,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     return <div className={commonCss.flex}>
       {(runs || []).map((run, i) => (
         <span key={i} style={{ margin: '0 1px' }}>
-          {statusToIcon(run.status as NodePhase || NodePhase.UNKNOWN)}
+          {statusToIcon(run.status as NodePhase || NodePhase.UNKNOWN, run.created_at)}
         </span>
       ))}
     </div>;

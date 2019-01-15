@@ -286,7 +286,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         );
       }
       const pageTitle = <div className={commonCss.flex}>
-        {statusToIcon(runMetadata.status as NodePhase)}
+        {statusToIcon(runMetadata.status as NodePhase, runDetail.run!.created_at)}
         <span style={{ marginLeft: 10 }}>{runMetadata.name!}</span>
       </div>;
 
