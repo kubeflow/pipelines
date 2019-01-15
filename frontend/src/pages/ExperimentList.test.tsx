@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import * as Utils from '../lib/Utils';
 import ExperimentList from './ExperimentList';
 import TestUtils from '../TestUtils';
 import { ApiResourceType } from '../apis/run';
@@ -34,6 +35,9 @@ describe('ExperimentList', () => {
   const historyPushSpy = jest.fn();
   const listExperimentsSpy = jest.spyOn(Apis.experimentServiceApi, 'listExperiment');
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
+    // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
+  // test enviroments
+  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
   function generateProps(): PageProps {
     return {
@@ -71,6 +75,7 @@ describe('ExperimentList', () => {
     updateToolbarSpy.mockReset();
     listExperimentsSpy.mockReset();
     listRunsSpy.mockReset();
+    formatDateStringSpy.mockImplementation(() => '1/2/2019, 12:34:56 PM');
   });
 
   it('renders an empty list with empty state message', () => {
