@@ -71,7 +71,6 @@ interface DisplayMetric {
 }
 
 export interface RunListProps extends RouteComponentProps {
-  archivedRunsOnly?: boolean;
   disablePaging?: boolean;
   disableSelection?: boolean;
   disableSorting?: boolean;
@@ -81,6 +80,7 @@ export interface RunListProps extends RouteComponentProps {
   onSelectionChange?: (selectedRunIds: string[]) => void;
   runIdListMask?: string[];
   selectedIds?: string[];
+  storageState?: RunStorageState;
 }
 
 interface RunListState {
@@ -173,7 +173,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         disableSelection={this.props.disableSelection} noFilterBox={this.props.noFilterBox}
         emptyMessage={
           `No` +
-          `${this.props.archivedRunsOnly ? ' archived' : ' available'}` +
+          `${this.props.storageState === RunStorageState.AVAILABLE ? ' available' : ' archived'}` +
           ` runs found` +
           `${this.props.experimentIdMask ? ' for this experiment' : ''}.`
         }
@@ -289,13 +289,23 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       displayRuns = this.props.runIdListMask.map(id => ({ metadata: { id } }));
     } else {
       // Load all runs
-      const storageStateFilter = this.props.archivedRunsOnly ? encodeURIComponent(JSON.stringify({
-        predicates: [{
-          key: 'storage_state',
-          op: PredicateOp.NOTEQUALS,
-          string_value: RunStorageState.AVAILABLE.toString(),
-        }]
-      } as ApiFilter)) : undefined;
+      if (this.props.storageState) {
+        try {
+          // Augment the request filter with the storage state predicate
+          const filter = JSON.parse(decodeURIComponent(request.filter || '{"predicates": []}')) as ApiFilter;
+          filter.predicates = (filter.predicates || []).concat([{
+            key: 'storage_state',
+            op: PredicateOp.NOTEQUALS,
+            // Use NOTEQUALS of the opposite state to account for cases where the field is empty
+            string_value: this.props.storageState === RunStorageState.ARCHIVED ?
+              RunStorageState.AVAILABLE.toString() : RunStorageState.ARCHIVED.toString(),
+          }]);
+          request.filter = encodeURIComponent(JSON.stringify(filter));
+        } catch (err) {
+          logger.error('Could not parse request filter: ', request.filter);
+        }
+      }
+
       try {
         const response = await Apis.runServiceApi.listRuns(
           request.pageToken,
@@ -304,7 +314,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
           this.props.experimentIdMask,
           request.filter,
-          storageStateFilter,
         );
 
         displayRuns = (response.runs || []).map(r => ({ metadata: r }));
@@ -318,11 +327,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     }
 
     displayRuns = await this._getAndSetMetadataAndWorkflows(displayRuns);
-
-    displayRuns = this.props.archivedRunsOnly ?
-      displayRuns.filter(r => r.metadata.storage_state === RunStorageState.ARCHIVED) :
-      displayRuns;
-
     displayRuns = await this._getAndSetPipelineNames(displayRuns);
     displayRuns = await this._getAndSetExperimentNames(displayRuns);
 
