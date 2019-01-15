@@ -71,6 +71,7 @@ interface DisplayMetric {
 }
 
 export interface RunListProps extends RouteComponentProps {
+  archivedRunsOnly?: boolean;
   disablePaging?: boolean;
   disableSelection?: boolean;
   disableSorting?: boolean;
@@ -80,7 +81,6 @@ export interface RunListProps extends RouteComponentProps {
   onSelectionChange?: (selectedRunIds: string[]) => void;
   runIdListMask?: string[];
   selectedIds?: string[];
-  storageState?: RunStorageState;
 }
 
 interface RunListState {
@@ -173,7 +173,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         disableSelection={this.props.disableSelection} noFilterBox={this.props.noFilterBox}
         emptyMessage={
           `No` +
-          `${this.props.storageState === RunStorageState.AVAILABLE ? ' available' : ' archived'}` +
+          `${this.props.archivedRunsOnly ? ' archived' : ' available'}` +
           ` runs found` +
           `${this.props.experimentIdMask ? ' for this experiment' : ''}.`
         }
@@ -289,11 +289,11 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       displayRuns = this.props.runIdListMask.map(id => ({ metadata: { id } }));
     } else {
       // Load all runs
-      const storageStateFilter = this.props.storageState ? encodeURIComponent(JSON.stringify({
+      const storageStateFilter = this.props.archivedRunsOnly ? encodeURIComponent(JSON.stringify({
         predicates: [{
           key: 'storage_state',
-          op: PredicateOp.EQUALS,
-          string_value: this.props.storageState.toString(),
+          op: PredicateOp.NOTEQUALS,
+          string_value: RunStorageState.AVAILABLE.toString(),
         }]
       } as ApiFilter)) : undefined;
       try {
@@ -319,8 +319,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
     displayRuns = await this._getAndSetMetadataAndWorkflows(displayRuns);
 
-    displayRuns = this.props.storageState ?
-      displayRuns.filter(r => r.metadata.storage_state === this.props.storageState) :
+    displayRuns = this.props.archivedRunsOnly ?
+      displayRuns.filter(r => r.metadata.storage_state === RunStorageState.ARCHIVED) :
       displayRuns;
 
     displayRuns = await this._getAndSetPipelineNames(displayRuns);

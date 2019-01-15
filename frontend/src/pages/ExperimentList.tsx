@@ -146,8 +146,8 @@ class ExperimentList extends Page<{}, ExperimentListState> {
           encodeURIComponent(JSON.stringify({
             predicates: [{
               key: 'storage_state',
-              op: PredicateOp.EQUALS,
-              string_value: RunStorageState.AVAILABLE.toString(),
+              op: PredicateOp.NOTEQUALS,
+              string_value: RunStorageState.ARCHIVED.toString(),
             }]
           } as ApiFilter)),
         );

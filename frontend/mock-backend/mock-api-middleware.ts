@@ -375,6 +375,14 @@ export default (app: express.Application) => {
             } else {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
+          case PredicateOp.NOTEQUALS:
+            if (p.key === 'name') {
+              return r.name && r.name.toLocaleLowerCase() !== (p.string_value || '').toLocaleLowerCase();
+            } else if (p.key === 'storage_state') {
+              return ((r as ApiRun).storage_state || {}).toString() !== p.string_value;
+            } else {
+              throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
+            }
           case PredicateOp.ISSUBSTRING:
             if (p.key !== 'name') {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);

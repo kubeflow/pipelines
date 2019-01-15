@@ -18,7 +18,6 @@ import * as React from 'react';
 import RunList from './RunList';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
-import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
@@ -70,7 +69,7 @@ export default class Archive extends Page<{}, ArchiveState> {
     return <div className={classes(commonCss.page, padding(20, 'lr'))}>
       <RunList onError={this.showPageError.bind(this)} selectedIds={this.state.selectedIds}
         onSelectionChange={this._selectionChanged.bind(this)} ref={this._runlistRef}
-        storageState={RunStorageState.ARCHIVED} {...this.props} />
+        archivedRunsOnly={true} {...this.props} />
     </div>;
   }
 
