@@ -100,8 +100,10 @@ describe('ExperimentDetails', () => {
     await mockNRuns(0);
   });
 
-  afterEach(() => {
-    tree.unmount();
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
   });
 
   it('renders a page with no runs or recurring runs', async () => {

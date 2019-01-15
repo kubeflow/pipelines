@@ -35,6 +35,26 @@ export enum NodePhase {
   UNKNOWN = 'Unknown',
 }
 
+export function hasCompleted(status?: NodePhase): boolean {
+  if (!status) {
+    return false;
+  }
+
+  switch(status) {
+    case NodePhase.SUCCEEDED: // Fall through
+    case NodePhase.FAILED: // Fall through
+    case NodePhase.ERROR: // Fall through
+    case NodePhase.SKIPPED:
+      return true;
+    case NodePhase.PENDING: // Fall through
+    case NodePhase.RUNNING: // Fall through
+    case NodePhase.UNKNOWN:
+      return false;
+    default:
+      return false;
+  }
+}
+
 export function statusToIcon(status: NodePhase, startDate?: Date | string, endDate?: Date | string): JSX.Element {
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
