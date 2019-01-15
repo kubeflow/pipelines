@@ -21,8 +21,8 @@ import proxyMiddleware from '../server/proxy-middleware';
 import { ApiFilter, PredicateOp } from '../src/apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../src/apis/experiment';
 import { ApiListJobsResponse, ApiJob } from '../src/apis/job';
-import { ApiPipeline, ApiListPipelinesResponse } from '../src/apis/pipeline';
-import { ApiRun, ApiListRunsResponse, ApiResourceType, RunStorageState } from '../src/apis/run';
+import { ApiListPipelinesResponse, ApiPipeline } from '../src/apis/pipeline';
+import { ApiListRunsResponse, ApiResourceType, ApiRun, RunStorageState } from '../src/apis/run';
 import { ExperimentSortKeys, PipelineSortKeys, RunSortKeys } from '../src/lib/Apis';
 import { Response } from 'express-serve-static-core';
 import { data as fixedData, namedPipelines } from './fixed-data';
@@ -109,11 +109,6 @@ export default (app: express.Application) => {
     let jobs: ApiJob[] = fixedData.jobs;
     if (req.query.filter) {
       jobs = filterResources(fixedData.jobs, req.query.filter);
-      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
-      // This may need to be updated when the backend implements filtering.
-      jobs = fixedData.jobs.filter((j) =>
-        j.name!.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
     }
 
     const { desc, key } = getSortKeyAndOrder(ExperimentSortKeys.CREATED_AT, req.query.sort_by);
@@ -262,7 +257,7 @@ export default (app: express.Application) => {
       runs: [],
     };
 
-    let runs: ApiRun[] = fixedData.runs.map(r => r.run!);
+    let runs: ApiRun[] = fixedData.runs.map((r) => r.run!);
 
     if (req.query.filter) {
       runs = filterResources(runs, req.query.filter);
@@ -381,7 +376,7 @@ export default (app: express.Application) => {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
           case PredicateOp.ISSUBSTRING:
-            if (p.key !== 'name' && p.key !== 'storage_state') {
+            if (p.key !== 'name') {
               throw new Error(`Key: ${p.key} is not yet supported by the mock API server`);
             }
             return r.name && r.name.toLocaleLowerCase().includes((p.string_value || '').toLocaleLowerCase());
@@ -414,11 +409,6 @@ export default (app: express.Application) => {
     let pipelines: ApiPipeline[] = fixedData.pipelines;
     if (req.query.filter) {
       pipelines = filterResources(fixedData.pipelines, req.query.filter);
-      // NOTE: We do not mock fuzzy matching. E.g. 'jb' doesn't match 'job'
-      // This may need to be updated depending on how the backend implements filtering.
-      pipelines = fixedData.pipelines.filter((p) =>
-        p.name!.toLocaleLowerCase().indexOf(
-          decodeURIComponent(req.query.filter).toLocaleLowerCase()) > -1);
     }
 
     const { desc, key } = getSortKeyAndOrder(PipelineSortKeys.CREATED_AT, req.query.sort_by);
