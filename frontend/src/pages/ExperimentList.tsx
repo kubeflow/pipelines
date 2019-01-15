@@ -154,8 +154,8 @@ class ExperimentList extends Page<{}, ExperimentListState> {
           encodeURIComponent(JSON.stringify({
             predicates: [{
               key: 'storage_state',
-              op: PredicateOp.EQUALS,
-              string_value: RunStorageState.AVAILABLE.toString(),
+              op: PredicateOp.NOTEQUALS,
+              string_value: RunStorageState.ARCHIVED.toString(),
             }]
           } as ApiFilter)),
         );
@@ -240,7 +240,6 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     const runIds = (experiment.last5Runs || []).map((r) => r.id!);
     return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
       disablePaging={true} selectedIds={this.state.selectedRunIds} noFilterBox={true}
-      storageState={RunStorageState.AVAILABLE}
       onSelectionChange={this._runSelectionChanged.bind(this)} disableSorting={true} />;
   }
 
