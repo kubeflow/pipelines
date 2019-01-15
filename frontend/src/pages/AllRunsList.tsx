@@ -25,6 +25,7 @@ import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { s, errorToMessage } from '../lib/Utils';
 import { Apis } from '../lib/Apis';
+import { RunStorageState } from '../apis/run';
 
 interface AllRunsListState {
   selectedIds: string[];
@@ -66,7 +67,8 @@ class AllRunsList extends Page<{}, AllRunsListState> {
   public render(): JSX.Element {
     return <div className={classes(commonCss.page, padding(20, 'lr'))}>
       <RunList onError={this.showPageError.bind(this)} selectedIds={this.state.selectedIds}
-        onSelectionChange={this._selectionChanged.bind(this)} ref={this._runlistRef} {...this.props} />
+        onSelectionChange={this._selectionChanged.bind(this)} ref={this._runlistRef}
+        storageState={RunStorageState.AVAILABLE} {...this.props} />
     </div>;
   }
 

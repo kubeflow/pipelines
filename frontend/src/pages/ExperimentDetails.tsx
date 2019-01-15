@@ -32,6 +32,7 @@ import { ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { RunStorageState } from '../apis/run';
 import { URLParser } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
@@ -232,7 +233,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
             <Toolbar {...this.state.runListToolbarProps} />
             <RunList onError={this.showPageError.bind(this)}
               experimentIdMask={experiment.id} ref={this._runlistRef}
-              selectedIds={this.state.selectedRunIds}
+              selectedIds={this.state.selectedRunIds} storageState={RunStorageState.AVAILABLE}
               onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />
 
             <Dialog open={this.state.recurringRunsManagerOpen} classes={{ paper: css.recurringRunsDialog }}
