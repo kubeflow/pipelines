@@ -190,7 +190,7 @@ class IfPlaceholder(ModelBase): #Non-standard attr names
 class ContainerSpec(ModelBase):
     '''Describes the container component implementation.'''
     _serialized_names = {
-        'unconfigurable_output_paths': 'unconfigurableOutputPaths', #TODO: rename to something like legacy_unconfigurable_output_paths
+        'unconfigurable_output_paths': 'unconfigurableOutputPaths', #Deprecated and will be removed soon. For legacy components only.
     }
 
     def __init__(self,
@@ -200,6 +200,15 @@ class ContainerSpec(ModelBase):
         env: Optional[Mapping[str, str]] = None,
         unconfigurable_output_paths: Optional[Mapping[str, str]] = None, #Deprecated. For legacy components only.
     ):
+        '''
+        Arguments:
+
+        unconfigurable_output_paths: #Deprecated. For legacy components only.
+        #This feature is a workaround for cases when component code has some output file paths hardcoded (unconfigurable) instead of getting them from command-line. Thus the name - "unconfigurable output paths".
+        #The feature is current not used by any developer.
+        #The feature is only needed to support the current version of our sample components and will be #TODO: removed right after https://github.com/kubeflow/pipelines/pull/580 is completed.
+        #The feature is incompatible with most of the future storage and data management scenarios that need the paths to be set by the system and that cannot work with files written to the filesystem root (e.g. "/output.txt").
+        '''
         super().__init__(locals())
 
 
