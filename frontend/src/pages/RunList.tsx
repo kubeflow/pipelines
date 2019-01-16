@@ -173,7 +173,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         disableSelection={this.props.disableSelection} noFilterBox={this.props.noFilterBox}
         emptyMessage={
           `No` +
-          `${this.props.storageState === RunStorageState.AVAILABLE ? ' available' : ' archived'}` +
+          `${this.props.storageState === RunStorageState.ARCHIVED ? ' archived' : ' available'}` +
           ` runs found` +
           `${this.props.experimentIdMask ? ' for this experiment' : ''}.`
         }
@@ -326,9 +326,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       }
     }
 
-    displayRuns = await this._getAndSetMetadataAndWorkflows(displayRuns);
-    displayRuns = await this._getAndSetPipelineNames(displayRuns);
-    displayRuns = await this._getAndSetExperimentNames(displayRuns);
+    await this._getAndSetMetadataAndWorkflows(displayRuns);
+    await this._getAndSetPipelineNames(displayRuns);
+    await this._getAndSetExperimentNames(displayRuns);
 
     this.setState({
       metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.metadata)),

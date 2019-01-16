@@ -158,7 +158,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       const successfulDeletes = this.state.selectedIds.length - unsuccessfulDeleteIds.length;
       if (successfulDeletes > 0) {
         this.props.updateSnackbar({
-          message: `Successfully deleted ${successfulDeletes} pipeline${successfulDeletes === 1 ? '' : 's'}!`,
+          message: `Successfully deleted ${successfulDeletes} pipeline${s(successfulDeletes)}!`,
           open: true,
         });
         this.refresh();
@@ -166,7 +166,7 @@ class PipelineList extends Page<{}, PipelineListState> {
 
       if (unsuccessfulDeleteIds.length > 0) {
         this.showErrorDialog(
-          `Failed to delete ${unsuccessfulDeleteIds.length} pipeline${unsuccessfulDeleteIds.length === 1 ? '' : 's'}`,
+          `Failed to delete ${unsuccessfulDeleteIds.length} pipeline${s(unsuccessfulDeleteIds)}`,
           errorMessages.join('\n\n'));
       }
 
