@@ -153,14 +153,15 @@ def _generate_unique_suffix(data):
 
 _inputs_dir = '/inputs'
 _outputs_dir = '/outputs'
+_single_io_file_name = 'data'
 
 
 def _generate_input_file_name(port_name):
-    return _inputs_dir + '/' + _sanitize_file_name(port_name)
+    return _inputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
 
 
 def _generate_output_file_name(port_name):
-    return _outputs_dir + '/' + _sanitize_file_name(port_name)
+    return _outputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
 
 
 def _try_get_object_by_name(obj_name):
