@@ -18,7 +18,8 @@ import * as React from 'react';
 import * as Utils from '../lib/Utils';
 import ExperimentList from './ExperimentList';
 import TestUtils from '../TestUtils';
-import { ApiResourceType } from '../apis/run';
+import { ApiFilter, PredicateOp } from '../apis/filter';
+import { ApiResourceType, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { ExpandState } from '../components/CustomTable';
 import { NodePhase } from './Status';
@@ -125,7 +126,13 @@ describe('ExperimentList', () => {
     const tree = await mountWithNExperiments(1, 1);
     expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(listRunsSpy).toHaveBeenLastCalledWith(undefined, 5, 'created_at desc',
-      ApiResourceType.EXPERIMENT.toString(), 'test-experiment-id0');
+      ApiResourceType.EXPERIMENT.toString(), 'test-experiment-id0', encodeURIComponent(JSON.stringify({
+        predicates: [{
+          key: 'storage_state',
+          op: PredicateOp.NOTEQUALS,
+          string_value: RunStorageState.ARCHIVED.toString(),
+        }],
+      } as ApiFilter)));
     expect(tree.state()).toHaveProperty('displayExperiments', [{
       expandState: ExpandState.COLLAPSED,
       id: 'test-experiment-id0',
