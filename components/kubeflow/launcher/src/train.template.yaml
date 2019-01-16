@@ -31,6 +31,17 @@ spec:
               - python
               - -m
               - trainer.task
+            env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/etc/secrets/user-gcp-sa.json"
+            volumeMounts:
+            - name: sa
+              mountPath: "/etc/secrets"
+              readOnly: true
+          volumes:
+          - name: sa
+            secret:
+              secretName: user-gcp-sa
     Worker:
       replicas: 1
       restartPolicy: OnFailure
@@ -43,6 +54,17 @@ spec:
               - python
               - -m
               - trainer.task
+            env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/etc/secrets/user-gcp-sa.json"
+            volumeMounts:
+            - name: sa
+              mountPath: "/etc/secrets"
+              readOnly: true
+          volumes:
+          - name: sa
+            secret:
+              secretName: user-gcp-sa
     MASTER:
           replicas: 1
           restartPolicy: OnFailure
@@ -55,3 +77,14 @@ spec:
                   - python
                   - -m
                   - trainer.task
+                env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: "/etc/secrets/user-gcp-sa.json"
+                volumeMounts:
+                - name: sa
+                  mountPath: "/etc/secrets"
+                  readOnly: true
+              volumes:
+              - name: sa
+                secret:
+                  secretName: user-gcp-sa
