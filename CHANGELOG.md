@@ -1,8 +1,38 @@
 # Change Log
 
-## [Unreleased](https://github.com/kubeflow/pipelines/tree/HEAD)
+## [0.1.8](https://github.com/kubeflow/pipelines/tree/0.1.8) (2019-01-17)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.7...0.1.8)
 
-[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.6...HEAD)
+**Closed issues:**
+
+- Docs about how to write mlpipeline-ui-metadata and mlpipeline-metrics artifacts [\#660](https://github.com/kubeflow/pipelines/issues/660)
+- Pipeline run created from python shows experiment but not pipeline \(in UI\). [\#617](https://github.com/kubeflow/pipelines/issues/617)
+- Load samples returns an error in 0.4 Kubeflow [\#603](https://github.com/kubeflow/pipelines/issues/603)
+- Error deploying latest bootstrapper [\#594](https://github.com/kubeflow/pipelines/issues/594)
+- Provide argument to assign GCP service account to use for DSL operator [\#218](https://github.com/kubeflow/pipelines/issues/218)
+- Run status tooltip should include creation time [\#61](https://github.com/kubeflow/pipelines/issues/61)
+
+**Merged pull requests:**
+
+- Components release 2ed60100d1db9efeb38c6c358f90b21c144179be [\#694](https://github.com/kubeflow/pipelines/pull/694) ([yebrahim](https://github.com/yebrahim))
+- add gcp credential for tf-job template [\#689](https://github.com/kubeflow/pipelines/pull/689) ([IronPan](https://github.com/IronPan))
+- improve the list run query [\#687](https://github.com/kubeflow/pipelines/pull/687) ([IronPan](https://github.com/IronPan))
+- Adds a link in the side nav to the KF 'usage-reporting' doc [\#682](https://github.com/kubeflow/pipelines/pull/682) ([rileyjbauer](https://github.com/rileyjbauer))
+- Fix Makefile to add licenses using Go modules. [\#674](https://github.com/kubeflow/pipelines/pull/674) ([neuromage](https://github.com/neuromage))
+- Include date in run status tooltips [\#671](https://github.com/kubeflow/pipelines/pull/671) ([rileyjbauer](https://github.com/rileyjbauer))
+- Add build version to side nav [\#670](https://github.com/kubeflow/pipelines/pull/670) ([rileyjbauer](https://github.com/rileyjbauer))
+- SDK/Tests - Fixed the output ordering instability in tests [\#664](https://github.com/kubeflow/pipelines/pull/664) ([Ark-kun](https://github.com/Ark-kun))
+- SDK/Components - Added /data to the generated file paths [\#663](https://github.com/kubeflow/pipelines/pull/663) ([Ark-kun](https://github.com/Ark-kun))
+- SDK/Components - Simplified \_create\_task\_factory\_from\_component\_spec function [\#662](https://github.com/kubeflow/pipelines/pull/662) ([Ark-kun](https://github.com/Ark-kun))
+- SDK/Components - Renamed serialized command-line argument tokens [\#659](https://github.com/kubeflow/pipelines/pull/659) ([Ark-kun](https://github.com/Ark-kun))
+- update change log [\#657](https://github.com/kubeflow/pipelines/pull/657) ([IronPan](https://github.com/IronPan))
+- Add simple filtering by name to CustomTable [\#656](https://github.com/kubeflow/pipelines/pull/656) ([rileyjbauer](https://github.com/rileyjbauer))
+- SDK/Components - Reworked the component model structures. [\#642](https://github.com/kubeflow/pipelines/pull/642) ([Ark-kun](https://github.com/Ark-kun))
+- Support filtering on storage state [\#629](https://github.com/kubeflow/pipelines/pull/629) ([yebrahim](https://github.com/yebrahim))
+- SDK - Fixed the unittest script [\#556](https://github.com/kubeflow/pipelines/pull/556) ([Ark-kun](https://github.com/Ark-kun))
+
+## [0.1.7](https://github.com/kubeflow/pipelines/tree/0.1.7) (2019-01-09)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.6...0.1.7)
 
 **Closed issues:**
 
