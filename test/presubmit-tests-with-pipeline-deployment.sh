@@ -115,17 +115,23 @@ export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
 KFAPP=${TEST_CLUSTER}
 
-function clean_up {
-  echo "Clean up..."
-  cd ${KFAPP}
-  ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
-}
-trap clean_up EXIT
+# function clean_up {
+#   echo "Clean up..."
+#   cd ${KFAPP}
+#   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
+# }
+# trap clean_up EXIT
 
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform ${PLATFORM} --project ${PROJECT} --skipInitProject
 
 cd ${KFAPP}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
+
+## Add one gpu node for covering gpu sample
+sed -i -e 's|gpu-pool-initialNodeCount:\s*0|gpu-pool-initialNodeCount: 1|g' ./gcp_config/cluster-kubeflow.yaml
+sed -i -e 's|gpu-pool-max-nodes:\s*0|gpu-pool-max-nodes: 1|g' ./gcp_config/cluster-kubeflow.yaml
+sed -i -e 's|gpu-pool-min-nodes:\s*0|gpu-pool-min-nodes: 1|g' ./gcp_config/cluster-kubeflow.yaml
+
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 
