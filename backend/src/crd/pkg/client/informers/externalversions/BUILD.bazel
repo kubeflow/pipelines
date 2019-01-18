@@ -9,7 +9,7 @@ go_library(
     importpath = "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions",
     visibility = ["//visibility:public"],
     deps = [
-        "//backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1:go_default_library",
+        "//backend/src/crd/pkg/apis/scheduledworkflow/v1beta1:go_default_library",
         "//backend/src/crd/pkg/client/clientset/versioned:go_default_library",
         "//backend/src/crd/pkg/client/informers/externalversions/internalinterfaces:go_default_library",
         "//backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow:go_default_library",

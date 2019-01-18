@@ -7,6 +7,7 @@ require (
 	github.com/argoproj/argo v2.2.0+incompatible
 	github.com/cenkalti/backoff v2.0.0+incompatible
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
+	github.com/docker/distribution v2.7.0+incompatible // indirect
 	github.com/docker/spdystream v0.0.0-20170912183627-bc6354cbbc29 // indirect
 	github.com/elazarl/goproxy v0.0.0-20181111060418-2ce16c963a8a // indirect
 	github.com/emicklei/go-restful v2.8.0+incompatible // indirect
@@ -24,7 +25,7 @@ require (
 	github.com/go-openapi/swag v0.17.0
 	github.com/go-openapi/validate v0.17.2
 	github.com/go-sql-driver/mysql v1.4.0
-	github.com/gogo/protobuf v1.1.1 // indirect
+	github.com/gogo/protobuf v1.1.1
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/golang/protobuf v1.2.0
@@ -56,6 +57,7 @@ require (
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
+	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.8.0
 	github.com/prometheus/client_golang v0.9.2 // indirect
@@ -81,8 +83,11 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.39.3 // indirect
 	k8s.io/api v0.0.0-20180712090710-2d6f90ab1293
+	k8s.io/apiextensions-apiserver v0.0.0-20190103235604-e7617803aceb // indirect
 	k8s.io/apimachinery v0.0.0-20180621070125-103fd098999d
+	k8s.io/apiserver v0.0.0-20190112184317-d55c9aeff1eb
 	k8s.io/client-go v0.0.0-20180718001006-59698c7d9724
+	k8s.io/klog v0.1.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20180719232738-d8ea2fe547a4 // indirect
 	k8s.io/kubernetes v1.11.1
 	sigs.k8s.io/controller-runtime v0.0.0-20181121180216-5558165425ef
