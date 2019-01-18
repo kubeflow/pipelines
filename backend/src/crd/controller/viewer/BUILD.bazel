@@ -7,7 +7,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//backend/src/crd/controller/viewer/reconciler:go_default_library",
-        "//backend/src/crd/pkg/apis/viewer/v1alpha1:go_default_library",
+        "//backend/src/crd/pkg/apis/viewer/v1beta1:go_default_library",
         "//backend/src/crd/pkg/signals:go_default_library",
         "@com_github_golang_glog//:go_default_library",
         "@io_k8s_api//apps/v1:go_default_library",

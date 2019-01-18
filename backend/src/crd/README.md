@@ -94,7 +94,7 @@ Namespace:    default
 Labels:       scheduledworkflows.kubeflow.org/enabled=true
               scheduledworkflows.kubeflow.org/status=Enabled
 Annotations:  <none>
-API Version:  kubeflow.org/v1alpha1
+API Version:  kubeflow.org/v1beta1
 Kind:         ScheduledWorkflow
 Metadata:
   Cluster Name:
@@ -102,7 +102,7 @@ Metadata:
   Generation:          0
   Initializers:        <nil>
   Resource Version:    3056202
-  Self Link:           /apis/kubeflow.org/v1alpha1/namespaces/default/scheduledworkflows/every-minute-cron
+  Self Link:           /apis/kubeflow.org/v1beta1/namespaces/default/scheduledworkflows/every-minute-cron
   UID:                 6b11874e-6928-11e8-9fd5-42010a8a0021
 Spec:
   Enabled:      true

@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1alpha1
+package v1beta1
 
 import (
+	"github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	controller "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 )
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: controller.GroupName, Version: "v1alpha1"}
+var SchemeGroupVersion = schema.GroupVersion{Group: viewer.GroupName, Version: "v1beta1"}
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind
 func Kind(kind string) schema.GroupKind {
@@ -36,15 +35,19 @@ func Resource(resource string) schema.GroupResource {
 }
 
 var (
+	// SchemeBuilder is a runtime scheme builder for adding viewer types to the
+	// scheme.
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	// AddToScheme is a method for adding viewer type schemes to any passed in
+	// runtime scheme.
+	AddToScheme = SchemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&ScheduledWorkflow{},
-		&ScheduledWorkflowList{},
+		&Viewer{},
+		&ViewerList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
