@@ -1025,42 +1025,6 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
   <Component
     orientation="vertical"
   />
-  <div
-    key="0"
-  >
-    <CollapseButton
-      collapseSections={Object {}}
-      compareSetState={[Function]}
-      sectionName="Tensorboard"
-    />
-    <div
-      className="flex outputsRow"
-    >
-      <Component />
-    </div>
-    <Component />
-    <Component
-      orientation="vertical"
-    />
-  </div>
-  <div
-    key="1"
-  >
-    <CollapseButton
-      collapseSections={Object {}}
-      compareSetState={[Function]}
-      sectionName="Table"
-    />
-    <div
-      className="flex outputsRow"
-    >
-      <Component />
-    </div>
-    <Component />
-    <Component
-      orientation="vertical"
-    />
-  </div>
 </div>
 `;
 

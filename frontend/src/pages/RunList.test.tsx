@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import * as Utils from '../lib/Utils';
 import RunList, { RunListProps } from './RunList';
 import TestUtils from '../TestUtils';
 import produce from 'immer';
@@ -37,6 +38,9 @@ describe('RunList', () => {
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
+  // test enviroments
+  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
   function generateProps(): RunListProps {
     return {
@@ -69,6 +73,9 @@ describe('RunList', () => {
   }
 
   beforeEach(() => {
+    formatDateStringSpy.mockImplementation((date?: Date) => {
+      return date ? '1/2/2019, 12:34:56 PM' : '-';
+    });
     onErrorSpy.mockClear();
     listRunsSpy.mockClear();
     getRunSpy.mockClear();
@@ -85,7 +92,7 @@ describe('RunList', () => {
     const props = generateProps();
     const tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
-    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(undefined, undefined, undefined, undefined, undefined);
+    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(undefined, undefined, undefined, undefined, undefined, undefined);
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });
@@ -97,7 +104,7 @@ describe('RunList', () => {
     await (tree.instance() as RunList).refresh();
     tree.update();
     expect(Apis.runServiceApi.listRuns).toHaveBeenCalledTimes(2);
-    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith('', 10, RunSortKeys.CREATED_AT + ' desc', undefined, undefined);
+    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith('', 10, RunSortKeys.CREATED_AT + ' desc', undefined, undefined, '');
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });
@@ -187,7 +194,7 @@ describe('RunList', () => {
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
-      undefined, undefined, undefined, ApiResourceType.EXPERIMENT.toString(), 'experiment1');
+      undefined, undefined, undefined, ApiResourceType.EXPERIMENT.toString(), 'experiment1', undefined);
   });
 
   it('loads given list of runs only', async () => {

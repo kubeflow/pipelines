@@ -53,6 +53,13 @@ def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-
                         value=secret_volume_mount_path + secret_file_path_in_volume,
                     )
                 )
+                .add_env_variable(
+                    k8s_client.V1EnvVar(
+                        name='CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE',
+                        value=secret_volume_mount_path + secret_file_path_in_volume,
+                    )
+                ) # Set GCloud Credentials by using the env var override.
+                  # TODO: Is there a better way for GCloud to pick up the credential?
         )
     
     return _use_gcp_secret

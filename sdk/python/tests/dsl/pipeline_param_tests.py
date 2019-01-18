@@ -24,9 +24,6 @@ class TestPipelineParam(unittest.TestCase):
     with self.assertRaises(ValueError):
       p = PipelineParam(name='123_abc')
 
-    with self.assertRaises(ValueError):
-      p = PipelineParam(name='param1', op_name='a b')
-
   def test_str_repr(self):
     """Test string representation."""
 

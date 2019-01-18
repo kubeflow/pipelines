@@ -112,20 +112,20 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   private _runlistRef = React.createRef<RunList>();
 
   private _runListToolbarActions: ToolbarActionConfig[] = [{
-    action: () => this._startNewRun(false),
+    action: () => this._createNewRun(false),
     icon: AddIcon,
-    id: 'startNewRunBtn',
+    id: 'createNewRunBtn',
     outlined: true,
     primary: true,
     title: 'Create run',
-    tooltip: 'Start a new run within this experiment',
+    tooltip: 'Create a new run within this experiment',
   }, {
-    action: () => this._startNewRun(true),
+    action: () => this._createNewRun(true),
     icon: AddIcon,
-    id: 'startNewRecurringRunBtn',
+    id: 'createNewRecurringRunBtn',
     outlined: true,
     title: 'Create recurring run',
-    tooltip: 'Start a new recurring run in this experiment',
+    tooltip: 'Create a new recurring run in this experiment',
   }, {
     action: this._compareRuns.bind(this),
     disabled: true,
@@ -313,7 +313,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     }
   }
 
-  private _startNewRun(isRecurring: boolean): void {
+  private _createNewRun(isRecurring: boolean): void {
     const searchString = new URLParser(this.props).build(Object.assign(
       { [QUERY_PARAMS.experimentId]: this.state.experiment!.id || '', },
       isRecurring ? { [QUERY_PARAMS.isRecurring]: '1' } : {}));

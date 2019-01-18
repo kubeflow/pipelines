@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "clientset.go",
+        "doc.go",
+    ],
+    importpath = "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1:go_default_library",
+        "@io_k8s_client_go//discovery:go_default_library",
+        "@io_k8s_client_go//rest:go_default_library",
+        "@io_k8s_client_go//util/flowcontrol:go_default_library",
+    ],
+)

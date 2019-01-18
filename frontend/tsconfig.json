@@ -32,7 +32,7 @@
     "node_modules",
     "scripts",
     "server",
-    "src/api",
+    "src/apis",
     "src/setupTests.ts",
     "third_party",
     "webpack"

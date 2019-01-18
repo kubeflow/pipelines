@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import * as Utils from '../lib/Utils';
 import ExperimentList from './ExperimentList';
 import TestUtils from '../TestUtils';
 import { ApiResourceType } from '../apis/run';
@@ -34,6 +35,9 @@ describe('ExperimentList', () => {
   const historyPushSpy = jest.fn();
   const listExperimentsSpy = jest.spyOn(Apis.experimentServiceApi, 'listExperiment');
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
+    // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
+  // test enviroments
+  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
   function generateProps(): PageProps {
     return {
@@ -71,6 +75,7 @@ describe('ExperimentList', () => {
     updateToolbarSpy.mockReset();
     listExperimentsSpy.mockReset();
     listRunsSpy.mockReset();
+    formatDateStringSpy.mockImplementation(() => '1/2/2019, 12:34:56 PM');
   });
 
   it('renders an empty list with empty state message', () => {
@@ -126,7 +131,7 @@ describe('ExperimentList', () => {
 
   it('calls Apis to list experiments, sorted by creation time in descending order', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(listRunsSpy).toHaveBeenLastCalledWith(undefined, 5, 'created_at desc',
       ApiResourceType.EXPERIMENT.toString(), 'test-experiment-id0');
     expect(tree.state()).toHaveProperty('displayExperiments', [{
@@ -146,7 +151,7 @@ describe('ExperimentList', () => {
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
     tree.unmount();
   });
@@ -189,7 +194,7 @@ describe('ExperimentList', () => {
     TestUtils.makeErrorResponseOnce(listExperimentsSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       additionalInfo: 'bad stuff happened',
       message: 'Error: failed to retrieve list of experiments. Click Details for more information.',

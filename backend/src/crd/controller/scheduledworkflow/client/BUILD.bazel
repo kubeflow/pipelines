@@ -1,0 +1,46 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "kube_client.go",
+        "swf_client.go",
+        "workflow_client.go",
+    ],
+    importpath = "github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/src/common/util:go_default_library",
+        "//backend/src/crd/controller/scheduledworkflow/util:go_default_library",
+        "//backend/src/crd/pkg/apis/scheduledworkflow/v1beta1:go_default_library",
+        "//backend/src/crd/pkg/client/clientset/versioned:go_default_library",
+        "//backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1beta1:go_default_library",
+        "@com_github_argoproj_argo//pkg/apis/workflow/v1alpha1:go_default_library",
+        "@com_github_argoproj_argo//pkg/client/clientset/versioned:go_default_library",
+        "@com_github_argoproj_argo//pkg/client/informers/externalversions/workflow/v1alpha1:go_default_library",
+        "@com_github_pkg_errors//:go_default_library",
+        "@io_k8s_api//core/v1:go_default_library",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
+        "@io_k8s_apimachinery//pkg/labels:go_default_library",
+        "@io_k8s_client_go//kubernetes:go_default_library",
+        "@io_k8s_client_go//plugin/pkg/client/auth/gcp:go_default_library",
+        "@io_k8s_client_go//tools/cache:go_default_library",
+        "@io_k8s_client_go//tools/record:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["workflow_client_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//backend/src/common/util:go_default_library",
+        "//backend/src/crd/pkg/apis/scheduledworkflow/v1beta1:go_default_library",
+        "@com_github_argoproj_argo//pkg/apis/workflow/v1alpha1:go_default_library",
+        "@com_github_argoproj_argo//workflow/common:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
+        "@io_k8s_apimachinery//pkg/labels:go_default_library",
+        "@io_k8s_apimachinery//pkg/selection:go_default_library",
+    ],
+)

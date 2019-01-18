@@ -26,6 +26,7 @@ exports[`ExperimentList renders a list of one experiment 1`] = `
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -74,6 +75,7 @@ exports[`ExperimentList renders a list of one experiment with error 1`] = `
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -109,6 +111,7 @@ exports[`ExperimentList renders a list of one experiment with no description 1`]
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -144,6 +147,7 @@ exports[`ExperimentList renders an empty list with empty state message 1`] = `
     }
     disableSelection={true}
     emptyMessage="No experiments found. Click \\"Create experiment\\" to start."
+    filterLabel="Filter experiments"
     getExpandComponent={[Function]}
     initialSortColumn="created_at"
     reload={[Function]}
@@ -183,7 +187,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     }
   >
     <WithStyles(Tooltip)
-      title="Executed successfully"
+      title={
+        <div>
+          <div>
+            Executed successfully
+          </div>
+        </div>
+      }
     >
       <span
         style={
@@ -213,7 +223,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     }
   >
     <WithStyles(Tooltip)
-      title="Pending execution"
+      title={
+        <div>
+          <div>
+            Pending execution
+          </div>
+        </div>
+      }
     >
       <span
         style={
@@ -243,7 +259,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     }
   >
     <WithStyles(Tooltip)
-      title="Resource failed to execute"
+      title={
+        <div>
+          <div>
+            Resource failed to execute
+          </div>
+        </div>
+      }
     >
       <span
         style={
@@ -273,7 +295,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     }
   >
     <WithStyles(Tooltip)
-      title="Unknown status"
+      title={
+        <div>
+          <div>
+            Unknown status
+          </div>
+        </div>
+      }
     >
       <span
         style={
@@ -303,7 +331,13 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     }
   >
     <WithStyles(Tooltip)
-      title="Executed successfully"
+      title={
+        <div>
+          <div>
+            Executed successfully
+          </div>
+        </div>
+      }
     >
       <span
         style={

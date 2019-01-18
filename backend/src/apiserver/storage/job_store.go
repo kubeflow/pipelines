@@ -46,9 +46,13 @@ func (s *JobStore) ListJobs(
 		return nil, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
 
-	sqlBuilder := s.selectJob()
 	// Add filter condition
-	sqlBuilder, err := s.toFilteredQuery(sqlBuilder, filterContext)
+	filteredSelectBuilder, err := s.toFilteredQuery(filterContext)
+	if err != nil {
+		return errorF(err)
+	}
+
+	sqlBuilder := s.selectJob(filteredSelectBuilder)
 	if err != nil {
 		return errorF(err)
 	}
@@ -77,25 +81,26 @@ func (s *JobStore) ListJobs(
 	return jobs[:opts.PageSize], npt, err
 }
 
-func (s *JobStore) toFilteredQuery(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
-	sql, args, err := selectBuilder.ToSql()
-	if err != nil {
-		return selectBuilder, util.NewInternalServerError(err, "Failed to append filter condition to list job: %v",
-			err.Error())
-	}
+func (s *JobStore) toFilteredQuery(filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+	selectBuilder := sq.Select("*").From("jobs")
 	if filterContext.ReferenceKey != nil {
-		selectBuilder = sq.Select("list_job.*").
-			From("resource_references AS rf").
-			Join(fmt.Sprintf("(%s) as list_job on list_job.UUID=rf.ResourceUUID", sql), args...).
+		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
+			From("resource_references as rf").
 			Where(sq.And{
+				sq.Eq{"rf.ResourceType": common.Job},
 				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
-				sq.Eq{"rf.ReferenceType": filterContext.Type}})
+				sq.Eq{"rf.ReferenceType": filterContext.Type}}).ToSql()
+		if err != nil {
+			return selectBuilder, util.NewInternalServerError(
+				err, "Failed to create subquery to filter by resource reference: %v", err.Error())
+		}
+		return selectBuilder.Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), args...), nil
 	}
 	return selectBuilder, nil
 }
 
 func (s *JobStore) GetJob(id string) (*model.Job, error) {
-	sql, args, err := s.selectJob().
+	sql, args, err := s.selectJob(sq.Select("*").From("jobs")).
 		Where(sq.Eq{"uuid": id}).
 		Limit(1).
 		ToSql()
@@ -119,11 +124,11 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	return jobs[0], nil
 }
 
-func (s *JobStore) selectJob() sq.SelectBuilder {
+func (s *JobStore) selectJob(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
 	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("r.Payload", ","), `"]"`}, "")
 	return sq.
 		Select("jobs.*", resourceRefConcatQuery+" AS refs").
-		From("jobs").
+		FromSelect(filteredSelectBuilder, "jobs").
 		// Append all the resource references for the run as a json column
 		LeftJoin("(select * from resource_references where ResourceType='Job') AS r ON jobs.UUID=r.ResourceUUID").
 		GroupBy("jobs.UUID")
