@@ -49,7 +49,7 @@ func NewPersistenceAgent(
 	pipelineClient *client.PipelineClient,
 	time util.TimeInterface) *PersistenceAgent {
 	// obtain references to shared informers
-	swfInformer := swfInformerFactory.Scheduledworkflow().V1alpha1().ScheduledWorkflows()
+	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
 	workflowInformer := workflowInformerFactory.Argoproj().V1alpha1().Workflows()
 
 	// Add controller types to the default Kubernetes Scheme so Events can be

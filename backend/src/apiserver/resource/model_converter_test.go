@@ -23,9 +23,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestToModelRunMetric(t *testing.T) {
@@ -133,7 +133,7 @@ func TestToModelJob(t *testing.T) {
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
-				Cron: util.StringPointer("1 * * * *"),
+				Cron:                       util.StringPointer("1 * * * *"),
 			},
 		},
 		MaxConcurrency: 1,

@@ -8,7 +8,7 @@ go_library(
         "types.go",
         "zz_generated.deepcopy.go",
     ],
-    importpath = "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1alpha1",
+    importpath = "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1",
     visibility = ["//visibility:public"],
     deps = [
         "//backend/src/crd/pkg/apis/viewer:go_default_library",
