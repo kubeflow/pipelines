@@ -23,7 +23,7 @@ go_library(
     deps = [
         "//backend/api:go_default_library",
         "//backend/src/crd/pkg/apis/scheduledworkflow:go_default_library",
-        "//backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1:go_default_library",
+        "//backend/src/crd/pkg/apis/scheduledworkflow/v1beta1:go_default_library",
         "@com_github_argoproj_argo//pkg/apis/workflow/v1alpha1:go_default_library",
         "@com_github_cenkalti_backoff//:go_default_library",
         "@com_github_ghodss_yaml//:go_default_library",
@@ -60,7 +60,7 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
-        "//backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1:go_default_library",
+        "//backend/src/crd/pkg/apis/scheduledworkflow/v1beta1:go_default_library",
         "@com_github_argoproj_argo//pkg/apis/workflow/v1alpha1:go_default_library",
         "@com_github_ghodss_yaml//:go_default_library",
         "@com_github_kataras_iris//core/errors:go_default_library",

@@ -15,7 +15,7 @@
 # This sample launches a viewer instance on Tensorboard, pointing to Tensorflow
 # output from training the standard MNIST model located at
 # gs://ml-pipeline-playground/mnist
-apiVersion: "kubeflow.org/v1alpha1"
+apiVersion: "kubeflow.org/v1beta1"
 kind: Viewer
 metadata:
   generateName: viewer-

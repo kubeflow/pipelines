@@ -16,22 +16,22 @@
 package fake
 
 import (
-	v1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
+	v1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
 
-type FakeScheduledworkflowV1alpha1 struct {
+type FakeScheduledworkflowV1beta1 struct {
 	*testing.Fake
 }
 
-func (c *FakeScheduledworkflowV1alpha1) ScheduledWorkflows(namespace string) v1alpha1.ScheduledWorkflowInterface {
+func (c *FakeScheduledworkflowV1beta1) ScheduledWorkflows(namespace string) v1beta1.ScheduledWorkflowInterface {
 	return &FakeScheduledWorkflows{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeScheduledworkflowV1alpha1) RESTClient() rest.Interface {
+func (c *FakeScheduledworkflowV1beta1) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }

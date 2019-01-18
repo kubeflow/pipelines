@@ -26,7 +26,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	viewerV1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1alpha1"
+	viewerV1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/viewer/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -71,7 +71,7 @@ func New(cli client.Client, scheme *runtime.Scheme, opts *Options) (*Reconciler,
 func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	glog.Infof("Reconcile request: %+v", req)
 
-	view := &viewerV1alpha1.Viewer{}
+	view := &viewerV1beta1.Viewer{}
 	if err := r.Get(context.Background(), req.NamespacedName, view); err != nil {
 		if errors.IsNotFound(err) {
 			// No viewer instance, so this may be the result of a delete.
@@ -84,7 +84,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	glog.Infof("Got instance: %+v", view)
 
 	// Ignore other viewer types for now.
-	if view.Spec.Type != viewerV1alpha1.ViewerTypeTensorboard {
+	if view.Spec.Type != viewerV1beta1.ViewerTypeTensorboard {
 		glog.Infof("Unsupported spec type: %q", view.Spec.Type)
 		// Return nil to indicate nothing more to do here.
 		return reconcile.Result{}, nil
@@ -158,7 +158,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	return reconcile.Result{}, nil
 }
 
-func setPodSpecForTensorboard(view *viewerV1alpha1.Viewer, s *corev1.PodSpec) {
+func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 	if len(s.Containers) == 0 {
 		s.Containers = append(s.Containers, corev1.Container{})
 	}
@@ -177,7 +177,7 @@ func setPodSpecForTensorboard(view *viewerV1alpha1.Viewer, s *corev1.PodSpec) {
 
 }
 
-func deploymentFrom(view *viewerV1alpha1.Viewer) (*appsv1.Deployment, error) {
+func deploymentFrom(view *viewerV1beta1.Viewer) (*appsv1.Deployment, error) {
 	name := view.Name + "-deployment"
 	dpl := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -205,7 +205,7 @@ func deploymentFrom(view *viewerV1alpha1.Viewer) (*appsv1.Deployment, error) {
 	dpl.Spec.Template.ObjectMeta.Labels["viewer"] = view.Name
 
 	switch view.Spec.Type {
-	case viewerV1alpha1.ViewerTypeTensorboard:
+	case viewerV1beta1.ViewerTypeTensorboard:
 		setPodSpecForTensorboard(view, &dpl.Spec.Template.Spec)
 	default:
 		return nil, fmt.Errorf("unknown viewer type: %q", view.Spec.Type)
@@ -223,7 +223,7 @@ prefix: %s
 rewrite: %s
 service: %s`
 
-func serviceFrom(v *viewerV1alpha1.Viewer, deploymentName string) *corev1.Service {
+func serviceFrom(v *viewerV1beta1.Viewer, deploymentName string) *corev1.Service {
 	name := v.Name + "-service"
 	path := fmt.Sprintf("/%s/%s/", v.Spec.Type, v.Name)
 	mapping := fmt.Sprintf(mappingTpl, v.Name, path, path, name)
@@ -254,8 +254,8 @@ func serviceFrom(v *viewerV1alpha1.Viewer, deploymentName string) *corev1.Servic
 	}
 }
 
-func (r *Reconciler) maybeDeleteOldestViewer(t viewerV1alpha1.ViewerType) error {
-	list := &viewerV1alpha1.ViewerList{}
+func (r *Reconciler) maybeDeleteOldestViewer(t viewerV1beta1.ViewerType) error {
+	list := &viewerV1beta1.ViewerList{}
 
 	if err := r.Client.List(context.Background(), &client.ListOptions{}, list); err != nil {
 		return fmt.Errorf("failed to list viewers: %v", err)

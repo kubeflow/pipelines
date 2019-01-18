@@ -152,7 +152,7 @@ spec:
         tf-version.cloud-tpus.google.com: "1.12"
     name: save
     nodeSelector:
-      cloud.google.com/gke-accelerator: nvidia-tesla-k80 
+      cloud.google.com/gke-accelerator: nvidia-tesla-k80
     outputs:
       artifacts:
       - name: mlpipeline-ui-metadata
