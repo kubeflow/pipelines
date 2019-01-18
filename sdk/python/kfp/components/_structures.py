@@ -313,12 +313,13 @@ class ComponentReference(ModelBase):
         digest: Optional[str] = None,
         tag: Optional[str] = None,
         url: Optional[str] = None,
+        spec: Optional[ComponentSpec] = None,
     ):
         super().__init__(locals())
         self._post_init()
     
     def _post_init(self) -> None:
-        if not any([self.name, self.digest, self.tag, self.url]):
+        if not any([self.name, self.digest, self.tag, self.url, self.spec]):
             raise TypeError('Need at least one argument.')
 
 

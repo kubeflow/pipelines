@@ -172,5 +172,33 @@ implementation:
 
 #TODO: Test task name conversion to Argo-compatible names
 
+
+    def test_handle_parsing_nested_graph_component(self):
+        component_text = '''\
+name: Top-level component
+implementation:
+  graph:
+    tasks:
+      task 1:
+        componentRef:
+          spec:
+            name: Nested component
+            inputs:
+            - {name: Input 1}
+            implementation:
+              container:
+                image: busybox
+                command:
+                - program.py
+                - {inputValue: Input 1}
+        arguments:
+          Input 1: 11
+'''
+        struct = load_yaml(component_text)
+        ComponentSpec.from_struct(struct)
+
+
+#TODO: Verify checking argument names against the component input names
+
 if __name__ == '__main__':
     unittest.main()
