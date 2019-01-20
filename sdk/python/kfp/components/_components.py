@@ -187,11 +187,6 @@ def _try_get_object_by_name(obj_name):
 _created_task_transformation_handler = []
 
 
-#TODO: Move to the dsl.Pipeline context class
-from . import _dsl_bridge
-_created_task_transformation_handler.append(_dsl_bridge.create_container_op_from_task)
-
-
 #TODO: Refactor the function to make it shorter
 def _create_task_factory_from_component_spec(component_spec:ComponentSpec, component_filename=None, component_ref: ComponentReference = None):
     name = component_spec.name or _default_component_name
@@ -215,7 +210,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
 
     def create_task_from_component_and_arguments(pythonic_arguments):
         #Converting the argument names and not passing None arguments
-        valid_argument_types = (str, int, float, bool, GraphInputArgument, TaskOutputArgument, PipelineParam) #Hack for passed PipelineParams. TODO: Remove the hack once they're no longer passed here.
+        valid_argument_types = (str, GraphInputArgument, TaskOutputArgument, PipelineParam) #Hack for passed PipelineParams. TODO: Remove the hack once they're no longer passed here.
         arguments = {
             pythonic_name_to_input_name[k]: (v if isinstance(v, valid_argument_types) else str(v))
             for k, v in pythonic_arguments.items()

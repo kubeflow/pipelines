@@ -23,6 +23,7 @@ import kfp
 import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml
 from kfp.dsl.types import InconsistentTypeException
+from kfp import dsl
 
 class LoadComponentTestCase(unittest.TestCase):
     def _test_load_component_from_file(self, component_path: str):
@@ -32,11 +33,11 @@ class LoadComponentTestCase(unittest.TestCase):
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
 
-        self.assertEqual(task1.human_name, 'Add')
+        self.assertEqual(task1.component_ref._component_spec.name, 'Add')
         self.assertEqual(task_factory1.__doc__.strip(), 'Add\nReturns sum of two arguments')
-        self.assertEqual(task1.container.image, 'python:3.5')
-        self.assertEqual(task1.container.args[0], str(arg1))
-        self.assertEqual(task1.container.args[1], str(arg2))
+        self.assertEqual(task1.component_ref._component_spec.implementation.container.image, 'python:3.5')
+        self.assertEqual(task1.arguments['a'], str(arg1))
+        self.assertEqual(task1.arguments['b'], str(arg2))
 
     def test_load_component_from_yaml_file(self):
         _this_file = Path(__file__).resolve()
@@ -67,11 +68,11 @@ class LoadComponentTestCase(unittest.TestCase):
         arg1 = 3
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
-        assert task1.human_name == component_dict['name']
-        assert task1.container.image == component_dict['implementation']['container']['image']
+        assert task1.component_ref._component_spec.name == component_dict['name']
+        assert task1.component_ref._component_spec.implementation.container.image == component_dict['implementation']['container']['image']
 
-        assert task1.arguments[0] == str(arg1)
-        assert task1.arguments[1] == str(arg2)
+        assert str(task1.arguments['a']) == str(arg1)
+        assert str(task1.arguments['b']) == str(arg2)
 
     def test_loading_minimal_component(self):
         component_text = '''\
@@ -83,7 +84,7 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task1 = task_factory1()
-        assert task1.container.image == component_dict['implementation']['container']['image']
+        assert task1.component_ref._component_spec.implementation.container.image == component_dict['implementation']['container']['image']
 
     @unittest.expectedFailure
     def test_fail_on_duplicate_input_names(self):
@@ -249,7 +250,8 @@ implementation:
       - inputValue: Data
 '''
         task_factory1 = comp.load_component(text=component_text)
-        task1 = task_factory1('some-data')
+        with dsl.Pipeline('Test pipeline'):
+            task1 = task_factory1('some-data')
 
         self.assertEqual(task1.arguments, ['--data', 'some-data'])
 
@@ -265,7 +267,8 @@ implementation:
       - {outputPath: Data}
 '''
         task_factory1 = comp.load_component(text=component_text)
-        task1 = task_factory1()
+        with dsl.Pipeline('Test pipeline'):
+            task1 = task_factory1()
 
         self.assertEqual(len(task1.arguments), 2)
         self.assertEqual(task1.arguments[0], '--output-data')
@@ -347,7 +350,8 @@ implementation:
       - z
 '''
         task_factory1 = comp.load_component_from_text(component_text)
-        task1 = task_factory1()
+        with dsl.Pipeline('Test pipeline'):
+            task1 = task_factory1()
 
         self.assertEqual(task1.command, ['a', 'z'])
 
@@ -365,7 +369,8 @@ implementation:
       - z
 '''
         task_factory1 = comp.load_component_from_text(component_text)
-        task1 = task_factory1()
+        with dsl.Pipeline('Test pipeline'):
+            task1 = task_factory1()
 
         self.assertEqual(task1.command, ['a', 'z'])
 
@@ -381,7 +386,8 @@ implementation:
       - concat: [{inputValue: In1}, {inputValue: In2}]
 '''
         task_factory1 = comp.load_component(text=component_text)
-        task1 = task_factory1('some', 'data')
+        with dsl.Pipeline('Test pipeline'):
+            task1 = task_factory1('some', 'data')
 
         self.assertEqual(task1.arguments, ['somedata'])
 
@@ -397,7 +403,8 @@ implementation:
           else: --false-arg
 '''
         task_factory1 = comp.load_component(text=component_text)
-        task = task_factory1()
+        with dsl.Pipeline('Test pipeline'):
+            task = task_factory1()
         self.assertEqual(task.arguments, ['--true-arg']) 
 
     def test_command_if_boolean_false_then_else(self):
@@ -412,7 +419,8 @@ implementation:
           else: --false-arg
 '''
         task_factory1 = comp.load_component(text=component_text)
-        task = task_factory1()
+        with dsl.Pipeline('Test pipeline'):
+            task = task_factory1()
         self.assertEqual(task.arguments, ['--false-arg']) 
 
     def test_command_if_true_string_then_else(self):
@@ -427,7 +435,8 @@ implementation:
           else: --false-arg
 '''
         task_factory1 = comp.load_component(text=component_text)
-        task = task_factory1()
+        with dsl.Pipeline('Test pipeline'):
+            task = task_factory1()
         self.assertEqual(task.arguments, ['--true-arg']) 
 
     def test_command_if_false_string_then_else(self):
@@ -442,8 +451,8 @@ implementation:
           else: --false-arg
 '''
         task_factory1 = comp.load_component(text=component_text)
-
-        task = task_factory1()
+        with dsl.Pipeline('Test pipeline'):
+            task = task_factory1()
         self.assertEqual(task.arguments, ['--false-arg']) 
 
     def test_command_if_is_present_then(self):
@@ -461,10 +470,12 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
 
-        task_then = task_factory1('data')
+        with dsl.Pipeline('Test pipeline'):
+            task_then = task_factory1('data')
         self.assertEqual(task_then.arguments, ['--in', 'data']) 
         
-        task_else = task_factory1()
+        with dsl.Pipeline('Test pipeline'):
+            task_else = task_factory1()
         self.assertEqual(task_else.arguments, [])
 
     def test_command_if_is_present_then_else(self):
@@ -482,10 +493,12 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
 
-        task_then = task_factory1('data')
+        with dsl.Pipeline('Test pipeline'):
+            task_then = task_factory1('data')
         self.assertEqual(task_then.arguments, ['--in', 'data']) 
         
-        task_else = task_factory1()
+        with dsl.Pipeline('Test pipeline'):
+            task_else = task_factory1()
         self.assertEqual(task_else.arguments, ['--no-in'])
 
 
@@ -505,10 +518,12 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
 
-        task_then = task_factory1(True, 'test_data.txt', 42)
+        with dsl.Pipeline('Test pipeline'):
+            task_then = task_factory1(True, 'test_data.txt', 42)
         self.assertEqual(task_then.arguments, ['--test-data', 'test_data.txt', '--test-param1', '42'])
         
-        task_else = task_factory1()
+        with dsl.Pipeline('Test pipeline'):
+            task_else = task_factory1()
         self.assertEqual(task_else.arguments, [])
 
     def test_handling_env(self):
@@ -541,10 +556,12 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(text=component_text)
 
-        task1 = task_factory1()
+        with dsl.Pipeline('Test pipeline'):
+            task1 = task_factory1()
         self.assertEqual(task1.arguments, ['123'])
 
-        task2 = task_factory1('456')
+        with dsl.Pipeline('Test pipeline'):
+            task2 = task_factory1('456')
         self.assertEqual(task2.arguments, ['456'])
 
     def test_type_compatibility_check_for_simple_types(self):
@@ -567,8 +584,9 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        b_task = task_factory_b(in1=a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_type_compatibility_check_for_types_with_parameters(self):
         component_a = '''\
@@ -590,8 +608,9 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        b_task = task_factory_b(in1=a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_type_compatibility_check_when_using_positional_arguments(self):
         """Tests that `op2(task1.output)` works as good as `op2(in1=task1.output)`"""
@@ -614,8 +633,9 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        b_task = task_factory_b(a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            b_task = task_factory_b(a_task.outputs['out1'])
 
     def test_type_compatibility_check_when_input_type_is_missing(self):
         component_a = '''\
@@ -637,8 +657,9 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        b_task = task_factory_b(in1=a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_type_compatibility_check_when_argument_type_is_missing(self):
         component_a = '''\
@@ -660,8 +681,9 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        b_task = task_factory_b(in1=a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_fail_type_compatibility_check_when_simple_type_name_is_different(self):
         component_a = '''\
@@ -683,9 +705,10 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        with self.assertRaises(InconsistentTypeException):
-            b_task = task_factory_b(in1=a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            with self.assertRaises(InconsistentTypeException):
+                b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_fail_type_compatibility_check_when_parametrized_type_name_is_different(self):
         component_a = '''\
@@ -707,9 +730,10 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        with self.assertRaises(InconsistentTypeException):
-            b_task = task_factory_b(in1=a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            with self.assertRaises(InconsistentTypeException):
+                b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_fail_type_compatibility_check_when_type_property_value_is_different(self):
         component_a = '''\
@@ -731,9 +755,10 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        with self.assertRaises(InconsistentTypeException):
-            b_task = task_factory_b(in1=a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            with self.assertRaises(InconsistentTypeException):
+                b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     @unittest.skip('Type compatibility check currently works the opposite way')
     def test_type_compatibility_check_when_argument_type_has_extra_type_parameters(self):
@@ -756,8 +781,9 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        b_task = task_factory_b(in1=a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     @unittest.skip('Type compatibility check currently works the opposite way')
     def test_fail_type_compatibility_check_when_argument_type_has_missing_type_parameters(self):
@@ -780,9 +806,10 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        with self.assertRaises(InconsistentTypeException):
-            b_task = task_factory_b(in1=a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            with self.assertRaises(InconsistentTypeException):
+                b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_type_compatibility_check_not_failing_when_disabled(self):
         component_a = '''\
@@ -804,8 +831,11 @@ implementation:
         kfp.TYPE_CHECK = False
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
+
         kfp.TYPE_CHECK = True
 
     def test_type_compatibility_check_not_failing_when_type_is_ignored(self):
@@ -828,8 +858,9 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        b_task = task_factory_b(in1=a_task.outputs['out1'].ignore_type())
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            b_task = task_factory_b(in1=a_task.outputs['out1'].ignore_type())
 
     def test_type_compatibility_check_for_types_with_schema(self):
         component_a = '''\
@@ -851,8 +882,9 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        b_task = task_factory_b(in1=a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
 
     def test_fail_type_compatibility_check_for_types_with_different_schemas(self):
         component_a = '''\
@@ -874,9 +906,10 @@ implementation:
         kfp.TYPE_CHECK = True
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
-        a_task = task_factory_a()
-        with self.assertRaises(InconsistentTypeException):
-            b_task = task_factory_b(in1=a_task.outputs['out1'])
+        with dsl.Pipeline('Test pipeline'):
+            a_task = task_factory_a()
+            with self.assertRaises(InconsistentTypeException):
+                b_task = task_factory_b(in1=a_task.outputs['out1'])
 
 
 if __name__ == '__main__':

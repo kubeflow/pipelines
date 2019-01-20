@@ -19,6 +19,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import kfp.components as comp
+from kfp import dsl
 
 def add_two_numbers(a: float, b: float) -> float:
     '''Returns sum of two arguments'''
@@ -46,7 +47,8 @@ class PythonOpTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
             with components_local_output_dir_context(temp_dir_name):
-                task = op(arg1, arg2)
+                with dsl.Pipeline('Test pipeline'):
+                    task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
             process = subprocess.run(full_command)
@@ -66,7 +68,8 @@ class PythonOpTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
             with components_local_output_dir_context(temp_dir_name):
-                task = op(arg1, arg2)
+                with dsl.Pipeline('Test pipeline'):
+                    task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
 

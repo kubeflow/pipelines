@@ -144,10 +144,14 @@ class Pipeline():
       raise Exception('Nested pipelines are not allowed.')
 
     Pipeline._default_pipeline = self
+    from ..components import _components, _dsl_bridge
+    _components._created_task_transformation_handler.append(_dsl_bridge.create_container_op_from_task)
     return self
 
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
+    from ..components import _components
+    _components._created_task_transformation_handler.pop()
         
   def add_op(self, op: _container_op.ContainerOp, define_only: bool):
     """Add a new operator.
