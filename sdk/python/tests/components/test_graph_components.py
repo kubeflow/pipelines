@@ -172,5 +172,16 @@ implementation:
 
 #TODO: Test task name conversion to Argo-compatible names
 
+    def test_handle_loading_graph_component_using_load_component(self):
+        component_text = '''\
+name: Graph component
+implementation:
+  graph:
+    tasks: {}
+'''
+        component = comp.load_component_from_text(component_text)
+        task = component()
+        self.assertEqual(task.component_ref._component_spec.name, 'Graph component')
+
 if __name__ == '__main__':
     unittest.main()

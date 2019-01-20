@@ -191,11 +191,6 @@ def _make_name_unique_by_adding_index(name:str, collection, delimiter:str):
 _created_task_transformation_handler = []
 
 
-#TODO: Move to the dsl.Pipeline context class
-from . import _dsl_bridge
-_created_task_transformation_handler.append(_dsl_bridge.create_container_op_from_task)
-
-
 #TODO: Refactor the function to make it shorter
 def _create_task_factory_from_component_spec(component_spec:ComponentSpec, component_filename=None, component_ref: ComponentReference = None):
     name = component_spec.name or _default_component_name
