@@ -125,11 +125,14 @@ class OutputPathPlaceholder(ModelBase): #Non-standard attr names
         super().__init__(locals())
 
 
-CommandlineArgumentType = Optional[Union[
-    PrimitiveTypes, InputValuePlaceholder, InputPathPlaceholder, OutputPathPlaceholder,
+CommandlineArgumentType = Union[
+    str,
+    InputValuePlaceholder,
+    InputPathPlaceholder,
+    OutputPathPlaceholder,
     'ConcatPlaceholder',
     'IfPlaceholder',
-]]
+]
 
 
 class ConcatPlaceholder(ModelBase): #Non-standard attr names
@@ -479,6 +482,7 @@ class TaskSpec(ModelBase):
         k8s_pod_options: Optional[v1.PodArgoSubset] = None,
     ):
         super().__init__(locals())
+        #TODO: If component_ref is resolved to component spec, then check that the arguments correspond to the inputs
 
 
 class GraphSpec(ModelBase):
