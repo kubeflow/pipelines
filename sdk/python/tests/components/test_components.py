@@ -24,6 +24,8 @@ import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml
 from kfp.dsl.types import InconsistentTypeException
 from kfp import dsl
+from ._contextmanagers import resolve_container_task_context
+
 
 class LoadComponentTestCase(unittest.TestCase):
     def _test_load_component_from_file(self, component_path: str):
@@ -250,7 +252,7 @@ implementation:
       - inputValue: Data
 '''
         task_factory1 = comp.load_component(text=component_text)
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task1 = task_factory1('some-data')
 
         self.assertEqual(task1.arguments, ['--data', 'some-data'])
@@ -267,7 +269,7 @@ implementation:
       - {outputPath: Data}
 '''
         task_factory1 = comp.load_component(text=component_text)
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task1 = task_factory1()
 
         self.assertEqual(len(task1.arguments), 2)
@@ -350,7 +352,7 @@ implementation:
       - z
 '''
         task_factory1 = comp.load_component_from_text(component_text)
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task1 = task_factory1()
 
         self.assertEqual(task1.command, ['a', 'z'])
@@ -369,7 +371,7 @@ implementation:
       - z
 '''
         task_factory1 = comp.load_component_from_text(component_text)
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task1 = task_factory1()
 
         self.assertEqual(task1.command, ['a', 'z'])
@@ -386,7 +388,7 @@ implementation:
       - concat: [{inputValue: In1}, {inputValue: In2}]
 '''
         task_factory1 = comp.load_component(text=component_text)
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task1 = task_factory1('some', 'data')
 
         self.assertEqual(task1.arguments, ['somedata'])
@@ -403,7 +405,7 @@ implementation:
           else: --false-arg
 '''
         task_factory1 = comp.load_component(text=component_text)
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task = task_factory1()
         self.assertEqual(task.arguments, ['--true-arg']) 
 
@@ -419,7 +421,7 @@ implementation:
           else: --false-arg
 '''
         task_factory1 = comp.load_component(text=component_text)
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task = task_factory1()
         self.assertEqual(task.arguments, ['--false-arg']) 
 
@@ -435,7 +437,7 @@ implementation:
           else: --false-arg
 '''
         task_factory1 = comp.load_component(text=component_text)
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task = task_factory1()
         self.assertEqual(task.arguments, ['--true-arg']) 
 
@@ -451,7 +453,7 @@ implementation:
           else: --false-arg
 '''
         task_factory1 = comp.load_component(text=component_text)
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task = task_factory1()
         self.assertEqual(task.arguments, ['--false-arg']) 
 
@@ -470,11 +472,11 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
 
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task_then = task_factory1('data')
         self.assertEqual(task_then.arguments, ['--in', 'data']) 
         
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task_else = task_factory1()
         self.assertEqual(task_else.arguments, [])
 
@@ -493,11 +495,11 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
 
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task_then = task_factory1('data')
         self.assertEqual(task_then.arguments, ['--in', 'data']) 
         
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task_else = task_factory1()
         self.assertEqual(task_else.arguments, ['--no-in'])
 
@@ -518,11 +520,11 @@ implementation:
 '''
         task_factory1 = comp.load_component(text=component_text)
 
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task_then = task_factory1(True, 'test_data.txt', 42)
         self.assertEqual(task_then.arguments, ['--test-data', 'test_data.txt', '--test-param1', '42'])
         
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task_else = task_factory1()
         self.assertEqual(task_else.arguments, [])
 
@@ -556,11 +558,11 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(text=component_text)
 
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task1 = task_factory1()
         self.assertEqual(task1.arguments, ['123'])
 
-        with dsl.Pipeline('Test pipeline'):
+        with resolve_container_task_context():
             task2 = task_factory1('456')
         self.assertEqual(task2.arguments, ['456'])
 

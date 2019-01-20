@@ -19,7 +19,8 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import kfp.components as comp
-from kfp import dsl
+from ._contextmanagers import resolve_container_task_context
+
 
 def add_two_numbers(a: float, b: float) -> float:
     '''Returns sum of two arguments'''
@@ -47,13 +48,13 @@ class PythonOpTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
             with components_local_output_dir_context(temp_dir_name):
-                with dsl.Pipeline('Test pipeline'):
+                with resolve_container_task_context():
                     task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
             process = subprocess.run(full_command)
 
-            output_path = list(task.file_outputs.values())[0]
+            output_path = list(task.output_paths.values())[0]
             actual_str = Path(output_path).read_text()
 
         self.assertEqual(float(actual_str), float(expected_str))
@@ -68,14 +69,14 @@ class PythonOpTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
             with components_local_output_dir_context(temp_dir_name):
-                with dsl.Pipeline('Test pipeline'):
+                with resolve_container_task_context():
                     task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
 
             process = subprocess.run(full_command)
 
-            (output_path1, output_path2) = (task.file_outputs[output_names[0]], task.file_outputs[output_names[1]])
+            (output_path1, output_path2) = (task.output_paths[output_names[0]], task.output_paths[output_names[1]])
             actual1_str = Path(output_path1).read_text()
             actual2_str = Path(output_path2).read_text()
 

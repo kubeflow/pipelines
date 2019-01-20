@@ -13,12 +13,32 @@
 # limitations under the License.
 
 from collections import OrderedDict
-from typing import Mapping
+from typing import Any, List, Mapping, NamedTuple
 from ._structures import ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
-from ._components import _generate_output_file_name, _default_component_name
+from ._components import _generate_input_file_name, _generate_output_file_name, _default_component_name
 from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 
-def create_container_op_from_task(task_spec: TaskSpec):
+ResolvedContainerTask = NamedTuple(
+    'ResolvedContainerTask', [
+        ('component_name', str),                        #Name of the component
+        ('container_image', str),                       #Docker container image name
+        ('command', List[str]),                         #Command-line
+        ('arguments', str),                             #Command-line arguments
+        ('env', str),                                   #Environment variable values
+        ('input_paths', Mapping[str, str]),             #Mapping between input names and local paths where the data will be put for use by the containerized program
+        ('input_path_arguments', Mapping[str, Any]),    #Whatever was passed as argument to the artifact inputs of the component
+        ('output_paths', Mapping[str, str]),            #Mapping between input names and local paths where the data will be put for use by the containerized program
+        ('component_spec', TaskSpec),                   #Original ComponentSpec instance
+        ('task', TaskSpec),                             #Original TaskSpec instance
+    ]
+)
+
+
+#Holds the stack of transformation functions. The last function is called each time ResolvedContainerTask instance is created from TaskSpec.
+_created_resolved_container_task_transformation_handler = []
+
+
+def resolve_container_task(task_spec: TaskSpec):
     argument_values = task_spec.arguments
     component_spec = task_spec.component_ref._component_spec
 
@@ -28,7 +48,10 @@ def create_container_op_from_task(task_spec: TaskSpec):
     inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
     container_spec = component_spec.implementation.container
 
-    output_paths = OrderedDict() #Preserving the order to make the kubernetes output names deterministic
+    #Preserving the order to make the kubernetes output names deterministic
+    input_paths = OrderedDict()
+    input_path_arguments = OrderedDict()
+    output_paths = OrderedDict()
     unconfigurable_output_paths = container_spec.file_outputs or {}
     for output in component_spec.outputs or []:
         if output.name in unconfigurable_output_paths:
@@ -55,10 +78,12 @@ def create_container_op_from_task(task_spec: TaskSpec):
 
         if isinstance(arg, InputPathPlaceholder):
             input_name = arg.input_name
-            input_value = argument_values.get(input_name, None)
-            if input_value is not None:
-                raise ValueError('ContainerOp does not support input artifacts - input {}'.format(input_name))
-                #return input_value
+            input_path = _generate_input_file_name(input_name)
+            input_paths[input_name] = input_path
+            argument_value = argument_values.get(input_name, None)
+            if argument_value is not None:
+                input_path_arguments[input_name] = argument_value
+                return input_path
             else:
                 input_spec = inputs_dict[input_name]
                 if input_spec.optional:
@@ -118,20 +143,29 @@ def create_container_op_from_task(task_spec: TaskSpec):
     expanded_command = expand_argument_list(container_spec.command)
     expanded_args = expand_argument_list(container_spec.args)
 
-    return _task_object_factory(
-        name=component_spec.name or _default_component_name,
+    resolved_task = ResolvedContainerTask(
+        component_name=component_spec.name or _default_component_name,
         container_image=container_spec.image,
         command=expanded_command,
         arguments=expanded_args,
+        input_paths=input_paths,
+        input_path_arguments=input_path_arguments,
         output_paths=output_paths,
         env=container_spec.env,
         component_spec=component_spec,
+        task=task_spec,
     )
+
+    #Applying optional transformation to the newly created ResolvedContainerTask
+    if _created_resolved_container_task_transformation_handler:
+        resolved_task = _created_resolved_container_task_transformation_handler[-1](resolved_task)
+
+    return resolved_task
 
 
 _dummy_pipeline=None
 
-def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, output_paths=None, env : Mapping[str, str]=None, component_spec=None):
+def _create_container_op_from_resolved_task(resolved_task: ResolvedContainerTask):
     from .. import dsl
     global _dummy_pipeline
     need_dummy = dsl.Pipeline._default_pipeline is None
@@ -139,42 +173,43 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         if _dummy_pipeline == None:
             _dummy_pipeline = dsl.Pipeline('dummy pipeline')
         _dummy_pipeline.__enter__()
+    
+    if resolved_task.input_paths:
+        raise ValueError('ContainerOp does not support input artifacts "{}"'.format(resolved_task.input_paths))
 
     #Renaming outputs to conform with ContainerOp/Argo
     from ._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
-    output_names = (output_paths or {}).keys()
+    output_names = (resolved_task.output_paths or {}).keys()
     output_name_to_kubernetes = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
-    output_paths_for_container_op = {output_name_to_kubernetes[name]: path for name, path in output_paths.items()}
+    output_paths_for_container_op = {output_name_to_kubernetes[name]: path for name, path in resolved_task.output_paths.items()}
+
 
     # Construct the ComponentMeta
-    component_meta = ComponentMeta(name=component_spec.name, description=component_spec.description)
+    component_meta = ComponentMeta(name=resolved_task.component_spec.name, description=resolved_task.component_spec.description)
     # Inputs
-    if component_spec.inputs is not None:
-        for input in component_spec.inputs:
+    if resolved_task.component_spec.inputs is not None:
+        for input in resolved_task.component_spec.inputs:
             component_meta.inputs.append(ParameterMeta(name=input.name, description=input.description, param_type=_annotation_to_typemeta(input.type), default=input.default))
-    if component_spec.outputs is not None:
-        for output in component_spec.outputs:
+    if resolved_task.component_spec.outputs is not None:
+        for output in resolved_task.component_spec.outputs:
             component_meta.outputs.append(ParameterMeta(name=output.name, description=output.description, param_type=_annotation_to_typemeta(output.type)))
 
     task = dsl.ContainerOp(
-        name=name,
-        image=container_image,
-        command=command,
-        arguments=arguments,
+        name=resolved_task.component_name,
+        image=resolved_task.container_image,
+        command=resolved_task.command,
+        arguments=resolved_task.arguments,
         file_outputs=output_paths_for_container_op,
     )
 
     task._set_metadata(component_meta)
 
-    if env:
+    if resolved_task.env:
         from kubernetes import client as k8s_client
-        for name, value in env.items():
+        for name, value in resolved_task.env.items():
             task.container.add_env_variable(k8s_client.V1EnvVar(name=name, value=value))
   
     if need_dummy:
         _dummy_pipeline.__exit__()
 
     return task
-
-
-_task_object_factory=_create_container_op_from_resolved_task
