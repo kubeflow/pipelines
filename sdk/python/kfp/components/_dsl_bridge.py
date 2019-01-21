@@ -168,7 +168,7 @@ def _create_container_op_from_resolved_task(resolved_task: ResolvedContainerTask
     if resolved_task.input_paths:
         raise ValueError('ContainerOp does not support input artifacts "{}"'.format(resolved_task.input_paths))
 
-    from ._components import _sanitize_kubernetes_resource_name, _make_name_unique_by_adding_index
+    from ._naming import _sanitize_kubernetes_resource_name, _make_name_unique_by_adding_index
     output_name_to_kubernetes = {}
     kubernetes_name_to_output_name = {}
     for output_name in (resolved_task.output_paths or {}).keys():

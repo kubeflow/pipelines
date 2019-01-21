@@ -21,6 +21,7 @@ __all__ = [
 
 import sys
 from collections import OrderedDict
+from ._naming import _sanitize_file_name, _sanitize_python_function_name, _make_name_unique_by_adding_index
 from ._yaml_utils import load_yaml
 from ._structures import ComponentSpec
 from ._structures import *
@@ -122,35 +123,6 @@ def _create_task_factory_from_component_dict(component_dict, component_filename=
     return _create_task_factory_from_component_spec(component_spec, component_filename)
 
 
-def _normalize_identifier_name(name):
-    import re
-    normalized_name = name.lower()
-    normalized_name = re.sub(r'[\W_]', ' ', normalized_name)           #No non-word characters
-    normalized_name = re.sub(' +', ' ', normalized_name).strip()    #No double spaces, leading or trailing spaces
-    if re.match(r'\d', normalized_name):
-        normalized_name = 'n' + normalized_name                     #No leading digits
-    return normalized_name
-
-
-def _sanitize_kubernetes_resource_name(name):
-    return _normalize_identifier_name(name).replace(' ', '-')
-
-
-def _sanitize_python_function_name(name):
-    return _normalize_identifier_name(name).replace(' ', '_')
-
-
-def _sanitize_file_name(name):
-    import re
-    return re.sub('[^-_.0-9a-zA-Z]+', '_', name)
-
-
-def _generate_unique_suffix(data):
-    import time
-    import hashlib
-    string_data = str( (data, time.time()) )
-    return hashlib.sha256(string_data.encode()).hexdigest()[0:8]
-
 _inputs_dir = '/inputs'
 _outputs_dir = '/outputs'
 _single_io_file_name = 'data'
@@ -176,15 +148,6 @@ def _try_get_object_by_name(obj_name):
         pass
     return obj_name
 
-
-def _make_name_unique_by_adding_index(name:str, collection, delimiter:str):
-    unique_name = name
-    if unique_name in collection:
-        for i in range(2, sys.maxsize**10):
-            unique_name = name + delimiter + str(i)
-            if unique_name not in collection:
-                break
-    return unique_name
 
 
 #Holds the transformation functions that are called each time TaskSpec instance is created from a component. If there are multiple handlers, the last one is used.
