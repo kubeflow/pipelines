@@ -17,6 +17,7 @@ __all__ = [
     '_sanitize_kubernetes_resource_name',
     '_sanitize_python_function_name',
     '_sanitize_file_name',
+    '_convert_to_human_name',
     '_generate_unique_suffix',
     '_make_name_unique_by_adding_index',
 ]
@@ -47,6 +48,13 @@ def _sanitize_python_function_name(name):
 def _sanitize_file_name(name):
     import re
     return re.sub('[^-_.0-9a-zA-Z]+', '_', name)
+
+
+def _convert_to_human_name(name: str):
+    '''Converts underscore or dash delimited name to space-delimited name that starts with a capital letter.
+    Does not handle "camelCase" names.
+    '''
+    return name.replace('_', ' ').replace('-', ' ').strip().capitalize()
 
 
 def _generate_unique_suffix(data):
