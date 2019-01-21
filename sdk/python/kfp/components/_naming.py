@@ -20,11 +20,14 @@ __all__ = [
     '_convert_to_human_name',
     '_generate_unique_suffix',
     '_make_name_unique_by_adding_index',
+    '_convert_name_and_make_it_unique_by_adding_number',
+    'generate_unique_name_conversion_table',
 ]
 
 
 import re
 import sys
+from typing import Callable, Sequence, Mapping
 
 
 def _normalize_identifier_name(name):
@@ -72,3 +75,27 @@ def _make_name_unique_by_adding_index(name:str, collection, delimiter:str):
             if unique_name not in collection:
                 break
     return unique_name
+
+
+def _convert_name_and_make_it_unique_by_adding_number(name: str, used_converted_names, conversion_func: Callable[[str], str]):
+    converted_name = conversion_func(name)
+    if converted_name in used_converted_names:
+        for i in range(2, sys.maxsize ** 10): #Starting indices from 2: "Something", "Something_2", ...
+            converted_name = conversion_func(name + ' ' + str(i))
+            if converted_name not in used_converted_names:
+                break
+    return converted_name
+
+
+def generate_unique_name_conversion_table(names: Sequence[str], conversion_func: Callable[[str], str]) -> Mapping[str, str]:
+    '''Given a list of names and conversion_func, this function generates a map from original names to converted names that are made unique by adding numbers.
+    '''
+    forward_map = {}
+    reverse_map = {}
+    for name in names:
+        if name in forward_map:
+            raise ValueError('Original name {} is not unique.'.format(name))
+        converted_name = _convert_name_and_make_it_unique_by_adding_number(name, reverse_map, conversion_func)
+        forward_map[name] = converted_name
+        reverse_map[converted_name] = name
+    return forward_map

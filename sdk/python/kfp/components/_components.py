@@ -21,7 +21,7 @@ __all__ = [
 
 import sys
 from collections import OrderedDict
-from ._naming import _sanitize_file_name, _sanitize_python_function_name, _make_name_unique_by_adding_index
+from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from ._structures import ComponentSpec
 from ._structures import *
@@ -165,15 +165,11 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     description = component_spec.description
     
     inputs_list = component_spec.inputs or [] #List[InputSpec]
+    input_names = [input.name for input in inputs_list]
 
     #Creating the name translation tables : Original <-> Pythonic 
-    input_name_to_pythonic = {}
-    pythonic_name_to_input_name = {}
-    for io_port in inputs_list:
-        pythonic_name = _sanitize_python_function_name(io_port.name)
-        pythonic_name = _make_name_unique_by_adding_index(pythonic_name, pythonic_name_to_input_name, '_')
-        input_name_to_pythonic[io_port.name] = pythonic_name
-        pythonic_name_to_input_name[pythonic_name] = io_port.name
+    input_name_to_pythonic = generate_unique_name_conversion_table(input_names, _sanitize_python_function_name)
+    pythonic_name_to_input_name = {v: k for k, v in input_name_to_pythonic.items()}
 
     if component_ref is None:
         component_ref = ComponentReference(name=component_spec.name or component_filename or _default_component_name)
