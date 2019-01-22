@@ -695,7 +695,7 @@ describe('RunDetails', () => {
     }, 10000);
 
 
-    for(const status of [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED]) {
+    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
       it(`sets \'runFinished\' to true if run has status: ${status}`, async () => {
         testRun.run!.status = status;
         tree = shallow(<RunDetails {...generateProps()} />);
@@ -703,9 +703,9 @@ describe('RunDetails', () => {
 
         expect(tree.state('runFinished')).toBe(true);
       });
-    }
+    });
 
-    for(const status of [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN]) {
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach(status => {
       it(`leaves \'runFinished\' false if run has status: ${status}`, async () => {
         testRun.run!.status = status;
         tree = shallow(<RunDetails {...generateProps()} />);
@@ -713,7 +713,7 @@ describe('RunDetails', () => {
 
         expect(tree.state('runFinished')).toBe(false);
       });
-    }
+    });
 
     it('pauses auto refreshing if window loses focus', async () => {
       tree = shallow(<RunDetails {...generateProps()} />);

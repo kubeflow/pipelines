@@ -40,7 +40,7 @@ export function hasCompleted(status?: NodePhase): boolean {
     return false;
   }
 
-  switch(status) {
+  switch (status) {
     case NodePhase.SUCCEEDED: // Fall through
     case NodePhase.FAILED: // Fall through
     case NodePhase.ERROR: // Fall through
@@ -98,13 +98,13 @@ export function statusToIcon(status: NodePhase, startDate?: Date | string, endDa
 
   return (
     <Tooltip title={
-        <div>
-          <div>{title}</div>
-          {/* These dates may actually be strings, not a Dates due to a bug in swagger's handling of dates */}
-          {startDate && (<div>Start: {formatDateString(startDate)}</div>)}
-          {endDate && (<div>End: {formatDateString(endDate)}</div>)}
-        </div>
-      }>
+      <div>
+        <div>{title}</div>
+        {/* These dates may actually be strings, not a Dates due to a bug in swagger's handling of dates */}
+        {startDate && (<div>Start: {formatDateString(startDate)}</div>)}
+        {endDate && (<div>End: {formatDateString(endDate)}</div>)}
+      </div>
+    }>
       <span style={{ height: 18 }}>
         <IconComponent style={{ color: iconColor, height: 18, width: 18 }} />
       </span>
