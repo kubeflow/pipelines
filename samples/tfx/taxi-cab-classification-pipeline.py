@@ -156,7 +156,7 @@ def taxi_cab_classification(
     steps=3000,
     analyze_slice_column='trip_start_hour'):
 
-  tf_server_name = 'taxi-cab-classification-model-{{workflow.name}}'
+  tf_server_name = 'taxi-cab-classification-model-{{workflow.uid}}'
   validation = dataflow_tf_data_validation_op(train, evaluation, column_names, 
       key_columns, project, mode, output
   ).apply(gcp.use_gcp_secret('user-gcp-sa'))
