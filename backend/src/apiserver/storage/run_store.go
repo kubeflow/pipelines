@@ -61,74 +61,36 @@ type RunStore struct {
 	time                   util.TimeInterface
 }
 
-// Runs two SQL queries in a transaction to return a list of matching runs, as well as their
-// total_size. The total_size does not reflect the page size, but it does reflect the number of runs
-// matching the supplied filters and resource references.
 func (s *RunStore) ListRuns(
 	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
 	errorF := func(err error) ([]*model.Run, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
 
-	// SQL for getting the filtered and paginated rows
-	rowsSqlBuilder, err := s.buildQueryWithResourceReferences(s.selectRunDetails(), filterContext)
-	if err != nil {
-		return errorF(err)
-	}
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(opts.AddFilterToSelect(rowsSqlBuilder)).ToSql()
+	// Add filter condition
+	filteredSelectBuilder, err := s.toFilteredQuery(filterContext)
 	if err != nil {
 		return errorF(err)
 	}
 
-	// SQL for getting total count of the filtered rows
-	// This first query performs a filtered selection over the runs table, it should match
-	// the number of rows returned by the filtered query built above for the actual rows,
-	// but it tries to optimize out the left join, which isn't needed here for the count.
-	countSqlBuilder, err := s.buildQueryWithResourceReferences(sq.Select("*").From("run_details"), filterContext)
-	countSqlBuilder = opts.AddFilterToSelect(countSqlBuilder)
-	countSelectBuilder := sq.Select("count(*)").FromSelect(countSqlBuilder, "rows")
-	if err != nil {
-		return errorF(err)
-	}
-	countSql, countArgs, err := countSelectBuilder.ToSql()
+	sqlBuilder := s.selectRunDetails(filteredSelectBuilder)
 	if err != nil {
 		return errorF(err)
 	}
 
-	// Use a transaction to make sure we're returning the total_size of the same rows queried
-	tx, err := s.db.Begin()
+	sql, args, err := opts.AddFilterToSelect(sqlBuilder).ToSql()
 	if err != nil {
-		glog.Errorf("Failed to start transaction to list runs")
 		return errorF(err)
 	}
 
-	rows, err := tx.Query(rowsSql, rowsArgs...)
+	rows, err := s.db.Query(sql, args...)
 	if err != nil {
-		tx.Rollback()
 		return errorF(err)
 	}
-	runDetails, err := s.scanRowsToRunDetails(rows)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	rows.Close()
+	defer rows.Close()
 
-	countRow, err := tx.Query(countSql, countArgs...)
+	runDetails, err := s.scanRows(rows)
 	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	total_size, err := ScanRowToTotalSize(countRow)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	countRow.Close()
-
-	err = tx.Commit()
-	if err != nil {
-		glog.Errorf("Failed to commit transaction to list runs")
 		return errorF(err)
 	}
 
@@ -139,19 +101,15 @@ func (s *RunStore) ListRuns(
 	}
 
 	if len(runs) <= opts.PageSize {
-		return runs, total_size, "", nil
+		return runs, 0, "", nil
 	}
 
 	npt, err := opts.NextPageToken(runs[opts.PageSize])
-	return runs[:opts.PageSize], total_size, npt, err
+	return runs[:opts.PageSize], 0, npt, err
 }
 
-func (s *RunStore) buildQueryWithResourceReferences(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
-	sql, args, err := selectBuilder.ToSql()
-	if err != nil {
-		return selectBuilder, util.NewInternalServerError(err, "Failed to append filter condition to list run: %v",
-			err.Error())
-	}
+func (s *RunStore) toFilteredQuery(filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+	selectBuilder := sq.Select("*").From("run_details")
 	if filterContext.ReferenceKey != nil {
 		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
 			From("resource_references as rf").
@@ -183,7 +141,7 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
 	}
 	defer r.Close()
-	runs, err := s.scanRowsToRunDetails(r)
+	runs, err := s.scanRows(r)
 
 	if err != nil || len(runs) > 1 {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
@@ -215,7 +173,7 @@ func (s *RunStore) selectRunDetails(filteredSelectBuilder sq.SelectBuilder) sq.S
 		GroupBy("subq.UUID")
 }
 
-func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, error) {
+func (s *RunStore) scanRows(rows *sql.Rows) ([]*model.RunDetail, error) {
 	var runs []*model.RunDetail
 	for rows.Next() {
 		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineSpecManifest,
@@ -355,6 +313,7 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 	}
 	err = tx.Commit()
 	if err != nil {
+		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to store run %v and its resource references to table", r.Name)
 	}
 	return r, nil
@@ -467,6 +426,7 @@ func (s *RunStore) DeleteRun(id string) error {
 	}
 	err = tx.Commit()
 	if err != nil {
+		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete run %v and its resource references from table", id)
 	}
 	return nil
