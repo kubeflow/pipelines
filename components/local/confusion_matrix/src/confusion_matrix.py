@@ -40,6 +40,10 @@ def main(argv=None):
                            'If not set, the input must include a "target" column.')
   args = parser.parse_args()
 
+  on_cloud = args.output.startswith('gs://')
+  if not on_cloud and not os.path.exists(args.output):
+    os.makedirs(args.output)
+
   schema_file = os.path.join(os.path.dirname(args.predictions), 'schema.json')
   schema = json.loads(file_io.read_file_to_string(schema_file))
   names = [x['name'] for x in schema]
