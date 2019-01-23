@@ -62,6 +62,7 @@ class ContainerOp(object):
     self.env_variables = []
     self.pod_annotations = {}
     self.pod_labels = {}
+    self.num_retry = 0
 
     matches = []
     for arg in (command or []) + (arguments or []):
@@ -216,7 +217,6 @@ class ContainerOp(object):
 
     return self.add_resource_limit("%s.com/gpu" % vendor, gpu)
 
-
   def add_volume(self, volume):
     """Add K8s volume to the container
 
@@ -286,6 +286,16 @@ class ContainerOp(object):
     """
 
     self.pod_labels[name] = value
+    return self
+
+  def set_retry(self, num_retry: int):
+    """Sets retry times.
+
+    Args:
+      num_retry: Number of times to retry on failures.
+    """
+
+    self.num_retry = num_retry
     return self
 
   def __repr__(self):
