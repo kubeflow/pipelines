@@ -20,6 +20,8 @@ frontend/server/*.js
 
 # Python built package
 *.egg-info
+dist
+.tox
 
 # UI test outputs
 frontend/test/ui/visual-regression/errorShots
@@ -47,3 +49,6 @@ vendor
 
 # Bazel output artifacts
 bazel-*
+
+# VSCode
+.vscode
