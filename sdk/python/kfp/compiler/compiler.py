@@ -329,8 +329,8 @@ class Compiler(object):
       if op.pod_labels:
         template['metadata']['labels'] = op.pod_labels
 
-    if op.num_retry:
-      template['retryStrategy'] = {'limit': op.num_retry}
+    if op.num_retries:
+      template['retryStrategy'] = {'limit': op.num_retries}
 
     return template
 

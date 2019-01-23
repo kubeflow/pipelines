@@ -62,7 +62,7 @@ class ContainerOp(object):
     self.env_variables = []
     self.pod_annotations = {}
     self.pod_labels = {}
-    self.num_retry = 0
+    self.num_retries = 0
 
     matches = []
     for arg in (command or []) + (arguments or []):
@@ -288,14 +288,14 @@ class ContainerOp(object):
     self.pod_labels[name] = value
     return self
 
-  def set_retry(self, num_retry: int):
+  def set_retry(self, num_retries: int):
     """Sets retry times.
 
     Args:
-      num_retry: Number of times to retry on failures.
+      num_retries: Number of times to retry on failures.
     """
 
-    self.num_retry = num_retry
+    self.num_retries = num_retries
     return self
 
   def __repr__(self):
