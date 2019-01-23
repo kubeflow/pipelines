@@ -33,8 +33,8 @@ class RandomFailure1Op(dsl.ContainerOp):
   description='shows how to use ContainerOp set_retry().'
 )
 def retry_sample_pipeline():
-  op1 = RandomFailure1Op('0,1,2,3').set_retry(10)
-  op2 = RandomFailure1Op('0,1').set_retry(5)
+  op1 = RandomFailure1Op('0,1,2,3').set_retry(100)
+  op2 = RandomFailure1Op('0,1').set_retry(50)
 
 
 if __name__ == '__main__':
