@@ -289,7 +289,7 @@ class ContainerOp(object):
     return self
 
   def set_retry(self, num_retries: int):
-    """Sets retry times.
+    """Sets the number of times the task is retried until it's declared failed.
 
     Args:
       num_retries: Number of times to retry on failures.
