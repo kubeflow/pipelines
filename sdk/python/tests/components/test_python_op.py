@@ -74,7 +74,6 @@ class PythonOpTestCase(unittest.TestCase):
             process = subprocess.run(full_command)
 
             (output_path1, output_path2) = (task.file_outputs[output_names[0]], task.file_outputs[output_names[1]])
-            print(task.file_outputs)
             actual1_str = Path(output_path1).read_text()
             actual2_str = Path(output_path2).read_text()
 
