@@ -11,6 +11,16 @@ import sys
 import re
 
 class BaseOp:
+    """Base operation to connect external services.
+    The base class recovers states from persistent storage in the KFP environment.
+    It enables subclasses to resume operation from the recovered state.
+    It handles SIGTERM signal to allow subclasses to cancel operation in case
+    of workflow timeout.
+    Args:
+        name (str):
+            The name of the operation, which will be used as part of the path
+            to store the ```stage_states``` in persistent storage.
+    """
     def __init__(self, name):
         self.name = name
         self.staging_states = {}
@@ -25,6 +35,7 @@ class BaseOp:
         self._load_staging_states()
 
     def execute(self):
+        """Executes the operation."""
         original_sigterm_hanlder = signal.getsignal(signal.SIGTERM)
         signal.signal(signal.SIGTERM, self._exit_gracefully)
         try:
@@ -38,9 +49,15 @@ class BaseOp:
             signal.signal(signal.SIGTERM, original_sigterm_hanlder)
 
     def on_executing(self):
+        """Triggers when execute method is called.
+        Subclass should override this method.
+        """
         pass
 
     def on_cancelling(self):
+        """Triggers when the operation should be cancelled.
+        Subclass should override this method.
+        """
         pass
 
     def _exit_gracefully(self, signum, frame):
@@ -51,6 +68,12 @@ class BaseOp:
             self._stage_states()
 
     def _should_cancel(self):
+        """Checks argo's execution config deadline and decide whether the operation
+        should be cancelled.
+
+        Argo cancels workflow by setting deadline to 0 and sends SIGTERM
+        signal to main container with 10s graceful period.
+        """
         pod = self._load_pod()
         if not pod or not pod.metadata or not pod.metadata.annotations:
             return False
@@ -163,9 +186,9 @@ class BaseOp:
             return
   
     def _load_pod(self):
-        pod_name = os.environ.get('POD_NAME', None)
+        pod_name = os.environ.get('KFP_POD_NAME', None)
         if not pod_name:
-            logging.warning("No POD_NAME env var. Exit without cancelling.")
+            logging.warning("No KFP_POD_NAME env var. Exit without cancelling.")
             return None
 
         logging.info('Fetching latest pod metadata: {}.'.format(pod_name))

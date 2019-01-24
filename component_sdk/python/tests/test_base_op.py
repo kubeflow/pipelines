@@ -16,7 +16,7 @@ class BaseOpTest(unittest.TestCase):
     @mock.patch('kubernetes.client.CoreV1Api')
     @mock.patch('kubernetes.config.load_incluster_config')
     @mock.patch.dict('os.environ', {
-        'POD_NAME': 'mock-pod-id',
+        'KFP_POD_NAME': 'mock-pod-id',
         'KFP_TMP_LOCATION': 'gs://mock-tmp-location/dir'
     })
     def test_init_success(self, mock_load_incluster_config, mock_core_v1_api, mock_storage_client):
@@ -51,7 +51,7 @@ class BaseOpTest(unittest.TestCase):
     @mock.patch('kubernetes.client.CoreV1Api')
     @mock.patch('kubernetes.config.load_incluster_config')
     @mock.patch.dict('os.environ', {
-        'POD_NAME': 'mock-pod-id',
+        'KFP_POD_NAME': 'mock-pod-id',
         'KFP_TMP_LOCATION': 'gs://mock-tmp-location/dir'
     })
     def test_init_ignore_get_pod_error(self, mock_load_incluster_config, mock_core_v1_api, mock_storage_client):
@@ -64,7 +64,7 @@ class BaseOpTest(unittest.TestCase):
     @mock.patch('kubernetes.client.CoreV1Api')
     @mock.patch('kubernetes.config.load_incluster_config')
     @mock.patch.dict('os.environ', {
-        'POD_NAME': 'mock-pod-id'
+        'KFP_POD_NAME': 'mock-pod-id'
     })
     def test_init_ignore_no_tmp_location(self, mock_load_incluster_config, mock_core_v1_api, mock_storage_client):
         mock_pod = mock_core_v1_api().read_namespaced_pod()
@@ -84,7 +84,7 @@ class BaseOpTest(unittest.TestCase):
     @mock.patch('kubernetes.client.CoreV1Api')
     @mock.patch('kubernetes.config.load_incluster_config')
     @mock.patch.dict('os.environ', {
-        'POD_NAME': 'mock-pod-id',
+        'KFP_POD_NAME': 'mock-pod-id',
         'KFP_TMP_LOCATION': 'gs://mock-tmp-location/dir'
     })
     def test_execute_fail_staging_states(self, mock_load_incluster_config, mock_core_v1_api, mock_storage_client):
@@ -116,7 +116,7 @@ class BaseOpTest(unittest.TestCase):
     @mock.patch('kubernetes.client.CoreV1Api')
     @mock.patch('kubernetes.config.load_incluster_config')
     @mock.patch.dict('os.environ', {
-        'POD_NAME': 'mock-pod-id',
+        'KFP_POD_NAME': 'mock-pod-id',
         'KFP_TMP_LOCATION': 'gs://mock-tmp-location/dir'
     })
     def test__exit_gracefully_cancel(self, mock_load_incluster_config, mock_core_v1_api, mock_storage_client):
