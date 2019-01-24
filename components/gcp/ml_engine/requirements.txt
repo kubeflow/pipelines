@@ -1,0 +1,6 @@
+google-api-python-client
+fire
+kubernetes
+google-cloud-storage
+
+-e ../../../component_sdk/python
