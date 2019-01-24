@@ -35,7 +35,7 @@ describe('ExperimentList', () => {
   const historyPushSpy = jest.fn();
   const listExperimentsSpy = jest.spyOn(Apis.experimentServiceApi, 'listExperiment');
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
-    // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
+  // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
