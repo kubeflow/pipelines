@@ -329,6 +329,9 @@ class Compiler(object):
       if op.pod_labels:
         template['metadata']['labels'] = op.pod_labels
 
+    if op.num_retries:
+      template['retryStrategy'] = {'limit': op.num_retries}
+
     return template
 
   def _group_to_template(self, group, inputs, outputs, dependencies):
