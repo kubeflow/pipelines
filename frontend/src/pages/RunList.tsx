@@ -295,10 +295,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           const filter = JSON.parse(decodeURIComponent(request.filter || '{"predicates": []}')) as ApiFilter;
           filter.predicates = (filter.predicates || []).concat([{
             key: 'storage_state',
-            op: PredicateOp.NOTEQUALS,
-            // Use NOTEQUALS of the opposite state to account for cases where the field is empty
-            string_value: this.props.storageState === RunStorageState.ARCHIVED ?
-              RunStorageState.AVAILABLE.toString() : RunStorageState.ARCHIVED.toString(),
+            // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
+            // is missing, in which case it should be counted as available.
+            op: this.props.storageState === RunStorageState.ARCHIVED ? PredicateOp.EQUALS : PredicateOp.NOTEQUALS,
+            string_value: RunStorageState.ARCHIVED.toString(),
           }]);
           request.filter = encodeURIComponent(JSON.stringify(filter));
         } catch (err) {
