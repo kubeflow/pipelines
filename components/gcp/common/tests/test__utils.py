@@ -12,10 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import mock
+from gcp_common import normalize_name
 import unittest
 
-class BaseOpTest(unittest.TestCase):
+class UtilsTest(unittest.TestCase):
 
-    def test_normalize_name(self):
-        
+    def test_normalize_name_valid_name_unchanged(self):
+        name = 'validname'
+
+        normalized_name = normalize_name(name)
+
+        self.assertEqual(name, normalized_name)
+
+    def test_normalize_name_replace_invalid_char(self):
+        name = 'invalid-name' # - is an invalid char
+
+        normalized_name = normalize_name(name)
+
+        self.assertEqual('invalid_name', normalized_name)
+
+    def test_normalize_name_add_prefix(self):
+        name = '9invalid-name' # 9 is invalid in first char.
+
+        normalized_name = normalize_name(name)
+
+        self.assertEqual('x_9invalid_name', normalized_name)  

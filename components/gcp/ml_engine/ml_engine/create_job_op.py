@@ -30,7 +30,7 @@ class CreateJobOp(BaseOp):
         super().__init__('CreateJobOp')
         self._ml = utils.create_ml_client()
         self._project_id = project_id
-        self._job_id = gcp_common.normalize(job['jobId'])
+        self._job_id = gcp_common.normalize_name(job['jobId'])
         job['jobId'] = self._job_id
         self._job = job
     

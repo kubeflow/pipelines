@@ -4,3 +4,4 @@ kubernetes
 google-cloud-storage
 
 -e ../../../component_sdk/python
+-e ../common

@@ -17,7 +17,7 @@ import re
 
 def normalize_name(name,
               valid_first_char_pattern='a-zA-Z',
-              valid_char_pattern='0-9a-zA-Z',
+              valid_char_pattern='0-9a-zA-Z_',
               invalid_char_placeholder='_',
               prefix_placeholder='x_'):
         """Normalize a name to a valid resource name.
