@@ -179,8 +179,7 @@ _output_files = [
 
 _outputs = {func_name}(**_args)
 
-from collections.abc import Sequence
-if not isinstance(_outputs, Sequence) or isinstance(_outputs, str):
+if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
     _outputs = [_outputs]
 
 from pathlib import Path
