@@ -23,8 +23,7 @@ import sys
 from collections import OrderedDict
 from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
-from ._structures import ComponentSpec
-from ._structures import *
+from ._structures import ComponentReference, ComponentSpec, GraphInputArgument, TaskSpec, TaskOutputArgument, TaskOutputReference
 
 
 _default_component_name = 'Component'
@@ -154,16 +153,18 @@ def _try_get_object_by_name(obj_name):
 _created_task_transformation_handler = []
 
 
-#TODO: Refactor the function to make it shorter
 def _create_task_factory_from_component_spec(component_spec:ComponentSpec, component_filename=None, component_ref: ComponentReference = None):
     name = component_spec.name or _default_component_name
     description = component_spec.description
     
     inputs_list = component_spec.inputs or [] #List[InputSpec]
+    outputs_list = component_spec.outputs or []
     input_names = [input.name for input in inputs_list]
+    output_names = [output.name for output in outputs_list]
 
     #Creating the name translation tables : Original <-> Pythonic 
     input_name_to_pythonic = generate_unique_name_conversion_table(input_names, _sanitize_python_function_name)
+    output_name_to_pythonic = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
     pythonic_name_to_input_name = {v: k for k, v in input_name_to_pythonic.items()}
 
     if component_ref is None:
@@ -182,6 +183,22 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             component_ref=component_ref,
             arguments=arguments,
         )
+
+        #Adding output references to the task
+        task_outputs = OrderedDict() #This dict object will also have an attribute for every output name i.e. task1.outputs.output_1
+        task_id = (component_spec.name or "Task") + ' ' + hex(2**63 + object.__hash__(task)) #Task ID is not known until the task is in graph context, so we generate some unique name
+        for output in outputs_list:
+            task_output_ref = TaskOutputReference(task_id, output.name)
+            task_output_ref._task = task
+            task_output_ref._type = output.type #TODO: Resolve type expressions. E.g. type: {TypeOf: Input 1}
+            task_output_arg = TaskOutputArgument(task_output=task_output_ref)
+            task_outputs[output.name] = task_output_arg
+
+            #Strongly-typed outputs: task1.outputs.output_1
+            setattr(task_outputs, output_name_to_pythonic[output.name], task_output_arg)
+
+        task.outputs = task_outputs
+
         if _created_task_transformation_handler:
             task = _created_task_transformation_handler[-1](task)
         return task

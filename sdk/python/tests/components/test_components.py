@@ -474,6 +474,59 @@ implementation:
             task_else = task_factory1()
         self.assertEqual(task_else.arguments, [])
 
+    def test_check_task_outputs_dictionary(self):
+        component_text = '''\
+outputs:
+- {name: Output 1}
+- {name: Output 2}
+implementation:
+  container:
+    image: busybox
+'''
+        op = comp.load_component_from_text(component_text)
+        task = op()
+
+        self.assertListEqual(list(task.outputs.keys()), ['Output 1', 'Output 2'])
+
+    def test_check_task_output_attributes(self):
+        component_text = '''\
+outputs:
+- {name: Output 1}
+- {name: Output 2}
+implementation:
+  container:
+    image: busybox
+'''
+        op = comp.load_component_from_text(component_text)
+        task = op()
+
+        self.assertEqual(task.outputs.output_1.task_output.output_name, 'Output 1')
+        self.assertEqual(task.outputs.output_2.task_output.output_name, 'Output 2')
+
+    def test_handle_passing_task_outputs_as_arguments(self):
+        producer_component_text = '''\
+outputs:
+- {name: Output 1}
+- {name: Output 2}
+implementation:
+  container:
+    image: busybox
+'''
+        consumer_component_text = '''\
+inputs:
+- {name: Input 1}
+- {name: Input 2}
+implementation:
+  container:
+    image: busybox
+'''
+        producer_op = comp.load_component_from_text(producer_component_text)
+        consumer_op = comp.load_component_from_text(consumer_component_text)
+        producer_task = producer_op()
+        consumer_task = consumer_op(producer_task.outputs.output_1, producer_task.outputs['Output 2'])
+
+        self.assertEqual(consumer_task.arguments['Input 1'].task_output.output_name, 'Output 1')
+        self.assertEqual(consumer_task.arguments['Input 2'].task_output.output_name, 'Output 2')
 
 if __name__ == '__main__':
     unittest.main()
