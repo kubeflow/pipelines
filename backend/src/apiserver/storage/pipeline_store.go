@@ -61,7 +61,7 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
-	countSql, countArgs, err := buildQuery(sq.Select("count(*)")).ToSql()
+	sizeSql, sizeArgs, err := buildQuery(sq.Select("count(*)")).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -85,17 +85,17 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 	}
 	rows.Close()
 
-	countRow, err := tx.Query(countSql, countArgs...)
+	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	total_size, err := ScanRowToTotalSize(countRow)
+	total_size, err := ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	countRow.Close()
+	sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {

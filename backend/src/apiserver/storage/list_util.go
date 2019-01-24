@@ -16,9 +16,35 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
+
+func FilterOnResourceReference(tableName string, resourceType interface{}, selectCount bool,
+	filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+	selectBuilder := sq.Select("*")
+	if selectCount {
+		selectBuilder = sq.Select("count(*)")
+	}
+	selectBuilder = selectBuilder.From(tableName)
+	if filterContext.ReferenceKey != nil {
+		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
+			From("resource_references as rf").
+			Where(sq.And{
+				sq.Eq{"rf.ResourceType": resourceType},
+				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
+				sq.Eq{"rf.ReferenceType": filterContext.Type}}).ToSql()
+		if err != nil {
+			return selectBuilder, util.NewInternalServerError(
+				err, "Failed to create subquery to filter by resource reference: %v", err.Error())
+		}
+		return selectBuilder.Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), args...), nil
+	}
+	return selectBuilder, nil
+}
 
 func ScanRowToTotalSize(rows *sql.Rows) (int, error) {
 	var total_size int

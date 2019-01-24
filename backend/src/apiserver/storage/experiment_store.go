@@ -43,7 +43,7 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
-	countSql, countArgs, err := opts.AddFilterToSelect(sq.Select("count(*)").From("experiments")).ToSql()
+	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sq.Select("count(*)").From("experiments")).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -67,17 +67,17 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 	}
 	rows.Close()
 
-	countRow, err := tx.Query(countSql, countArgs...)
+	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	total_size, err := ScanRowToTotalSize(countRow)
+	total_size, err := ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	countRow.Close()
+	sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {

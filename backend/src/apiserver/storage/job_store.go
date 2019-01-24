@@ -106,8 +106,7 @@ func (s *JobStore) ListJobs(
 
 func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	filterContext *common.FilterContext) (string, []interface{}, error) {
-	// Add filter condition
-	filteredSelectBuilder, err := s.toFilteredQuery(selectCount, filterContext)
+	filteredSelectBuilder, err := FilterOnResourceReference("jobs", common.Job, selectCount, filterContext)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
@@ -117,10 +116,10 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
 
-	// If we're not just counting, then also add select columns to get the metrics string,
-	// and a left join to get resource reference information. Also add pagination.
+	// If we're not just counting, then also add select columns and perform a left join
+	// to get resource reference information. Also add pagination.
 	if !selectCount {
-		sqlBuilder = s.addMetricsAndResourceReferences(sqlBuilder)
+		sqlBuilder = s.addResourceReferences(sqlBuilder)
 		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
 	}
 	sql, args, err := sqlBuilder.ToSql()
@@ -131,30 +130,8 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	return sql, args, err
 }
 
-func (s *JobStore) toFilteredQuery(selectCount bool, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
-	selectBuilder := sq.Select("*")
-	if selectCount {
-		selectBuilder = sq.Select("count(*)")
-	}
-	selectBuilder = selectBuilder.From("jobs")
-	if filterContext.ReferenceKey != nil {
-		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
-			From("resource_references as rf").
-			Where(sq.And{
-				sq.Eq{"rf.ResourceType": common.Job},
-				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
-				sq.Eq{"rf.ReferenceType": filterContext.Type}}).ToSql()
-		if err != nil {
-			return selectBuilder, util.NewInternalServerError(
-				err, "Failed to create subquery to filter by resource reference: %v", err.Error())
-		}
-		return selectBuilder.Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), args...), nil
-	}
-	return selectBuilder, nil
-}
-
 func (s *JobStore) GetJob(id string) (*model.Job, error) {
-	sql, args, err := s.addMetricsAndResourceReferences(sq.Select("*").From("jobs")).
+	sql, args, err := s.addResourceReferences(sq.Select("*").From("jobs")).
 		Where(sq.Eq{"uuid": id}).
 		Limit(1).
 		ToSql()
@@ -178,7 +155,7 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	return jobs[0], nil
 }
 
-func (s *JobStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
+func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
 	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("r.Payload", ","), `"]"`}, "")
 	return sq.
 		Select("jobs.*", resourceRefConcatQuery+" AS refs").
