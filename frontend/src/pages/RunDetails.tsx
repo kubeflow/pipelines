@@ -30,7 +30,7 @@ import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiRun } from '../apis/run';
 import { Apis } from '../lib/Apis';
-import { NodePhase, statusToIcon } from './Status';
+import { NodePhase, statusToIcon, hasFinished } from './Status';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
@@ -73,6 +73,7 @@ interface RunDetailsState {
   logsBannerMessage: string;
   logsBannerMode: Mode;
   graph?: dagre.graphlib.Graph;
+  runFinished: boolean;
   runMetadata?: ApiRun;
   selectedTab: number;
   selectedNodeDetails: SelectedNodeDetails | null;
@@ -82,15 +83,24 @@ interface RunDetailsState {
 }
 
 class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
+  private _onBlur: EventListener;
+  private _onFocus: EventListener;
+  private readonly AUTO_REFRESH_INTERVAL = 5000;
+
+  private _interval?: NodeJS.Timeout;
 
   constructor(props: any) {
     super(props);
+
+    this._onBlur = this.onBlurHandler.bind(this);
+    this._onFocus = this.onFocusHandler.bind(this);
 
     this.state = {
       allArtifactConfigs: [],
       logsBannerAdditionalInfo: '',
       logsBannerMessage: '',
       logsBannerMode: 'error',
+      runFinished: false,
       selectedNodeDetails: null,
       selectedTab: 0,
       sidepanelBusy: false,
@@ -238,7 +248,23 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public async componentDidMount(): Promise<void> {
-    await this.load();
+    window.addEventListener('focus', this._onFocus);
+    window.addEventListener('blur', this._onBlur);
+    await this._startAutoRefresh();
+  }
+
+  public onBlurHandler(): void {
+    this._stopAutoRefresh();
+  }
+
+  public async onFocusHandler(): Promise<void> {
+    await this._startAutoRefresh();
+  }
+
+  public componentWillUnmount(): void {
+    this._stopAutoRefresh();
+    window.removeEventListener('focus', this._onFocus);
+    window.removeEventListener('blur', this._onBlur);
   }
 
   public async refresh(): Promise<void> {
@@ -256,8 +282,17 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       if (relatedExperimentId) {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
       }
-      const workflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}') as Workflow;
       const runMetadata = runDetail.run!;
+
+      let runFinished = this.state.runFinished;
+      // If the run has finished, stop auto refreshing
+      if (hasFinished(runMetadata.status as NodePhase)) {
+        this._stopAutoRefresh();
+        // This prevents other events, such as onFocus, from resuming the autorefresh
+        runFinished = true;
+      }
+
+      const workflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}') as Workflow;
 
       // Show workflow errors
       const workflowError = WorkflowParser.getWorkflowError(workflow);
@@ -295,6 +330,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       this.setStateSafe({
         experiment,
         graph,
+        runFinished,
         runMetadata,
         workflow,
       });
@@ -311,6 +347,32 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     await this._loadAllOutputs();
   }
 
+  private async _startAutoRefresh(): Promise<void> {
+    // If the run was not finished last time we checked, check again in case anything changed
+    // before proceeding to set auto-refresh interval
+    if (!this.state.runFinished) {
+      // refresh() updates runFinished's value
+      await this.refresh();
+    }
+
+    // Only set interval if run has not finished, and verify that the interval is undefined to
+    // avoid setting multiple intervals
+    if (!this.state.runFinished && this._interval === undefined) {
+      this._interval = setInterval(
+        () => this.refresh(),
+        this.AUTO_REFRESH_INTERVAL
+      );
+    }
+  }
+
+  private _stopAutoRefresh(): void {
+    if (this._interval !== undefined) {
+      clearInterval(this._interval);
+    }
+    // Reset interval to indicate that a new one can be set
+    this._interval = undefined;
+  }
+
   private async _loadAllOutputs(): Promise<void> {
     const workflow = this.state.workflow;
 
@@ -320,8 +382,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
 
-    const configLists = await Promise.all(outputPathsList.map(
-      ({ stepName, path }) => OutputArtifactLoader.load(path)
+    const configLists =
+      await Promise.all(outputPathsList.map(({ stepName, path }) => OutputArtifactLoader.load(path)
         .then(configs => configs.map(config => ({ config, stepName })))));
     const allArtifactConfigs = flatten(configLists);
 

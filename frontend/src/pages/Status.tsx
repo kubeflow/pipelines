@@ -35,6 +35,26 @@ export enum NodePhase {
   UNKNOWN = 'Unknown',
 }
 
+export function hasFinished(status?: NodePhase): boolean {
+  if (!status) {
+    return false;
+  }
+
+  switch (status) {
+    case NodePhase.SUCCEEDED: // Fall through
+    case NodePhase.FAILED: // Fall through
+    case NodePhase.ERROR: // Fall through
+    case NodePhase.SKIPPED:
+      return true;
+    case NodePhase.PENDING: // Fall through
+    case NodePhase.RUNNING: // Fall through
+    case NodePhase.UNKNOWN:
+      return false;
+    default:
+      return false;
+  }
+}
+
 export function statusToIcon(status: NodePhase, startDate?: Date | string, endDate?: Date | string): JSX.Element {
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
@@ -78,13 +98,13 @@ export function statusToIcon(status: NodePhase, startDate?: Date | string, endDa
 
   return (
     <Tooltip title={
-        <div>
-          <div>{title}</div>
-          {/* These dates may actually be strings, not a Dates due to a bug in swagger's handling of dates */}
-          {startDate && (<div>Start: {formatDateString(startDate)}</div>)}
-          {endDate && (<div>End: {formatDateString(endDate)}</div>)}
-        </div>
-      }>
+      <div>
+        <div>{title}</div>
+        {/* These dates may actually be strings, not a Dates due to a bug in swagger's handling of dates */}
+        {startDate && (<div>Start: {formatDateString(startDate)}</div>)}
+        {endDate && (<div>End: {formatDateString(endDate)}</div>)}
+      </div>
+    }>
       <span style={{ height: 18 }}>
         <IconComponent style={{ color: iconColor, height: 18, width: 18 }} />
       </span>

@@ -126,9 +126,11 @@ describe('NewRun', () => {
     MOCK_RUN_WITH_EMBEDDED_PIPELINE = newMockRunWithEmbeddedPipeline();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
     jest.resetAllMocks();
-    tree.unmount();
   });
 
   it('renders the new run page', async () => {

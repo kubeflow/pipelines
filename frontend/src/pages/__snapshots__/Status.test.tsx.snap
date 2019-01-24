@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Status displays start and end dates if both are provided 1`] = `
+exports[`Status statusToIcon displays start and end dates if both are provided 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={
@@ -422,7 +422,7 @@ exports[`Status displays start and end dates if both are provided 1`] = `
 </Tooltip>
 `;
 
-exports[`Status does not display a end date if none was provided 1`] = `
+exports[`Status statusToIcon does not display a end date if none was provided 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={
@@ -840,7 +840,7 @@ exports[`Status does not display a end date if none was provided 1`] = `
 </Tooltip>
 `;
 
-exports[`Status does not display a start date if none was provided 1`] = `
+exports[`Status statusToIcon does not display a start date if none was provided 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={
@@ -1258,7 +1258,7 @@ exports[`Status does not display a start date if none was provided 1`] = `
 </Tooltip>
 `;
 
-exports[`Status does not display any dates if neither was provided 1`] = `
+exports[`Status statusToIcon does not display any dates if neither was provided 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={
@@ -1672,7 +1672,7 @@ exports[`Status does not display any dates if neither was provided 1`] = `
 </Tooltip>
 `;
 
-exports[`Status handles an unknown phase 1`] = `
+exports[`Status statusToIcon handles an unknown phase 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={
@@ -2086,7 +2086,7 @@ exports[`Status handles an unknown phase 1`] = `
 </Tooltip>
 `;
 
-exports[`Status renders an icon with tooltip for phase: ERROR 1`] = `
+exports[`Status statusToIcon renders an icon with tooltip for phase: ERROR 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={
@@ -2500,7 +2500,7 @@ exports[`Status renders an icon with tooltip for phase: ERROR 1`] = `
 </Tooltip>
 `;
 
-exports[`Status renders an icon with tooltip for phase: FAILED 1`] = `
+exports[`Status statusToIcon renders an icon with tooltip for phase: FAILED 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={
@@ -2914,7 +2914,7 @@ exports[`Status renders an icon with tooltip for phase: FAILED 1`] = `
 </Tooltip>
 `;
 
-exports[`Status renders an icon with tooltip for phase: PENDING 1`] = `
+exports[`Status statusToIcon renders an icon with tooltip for phase: PENDING 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={
@@ -3328,7 +3328,7 @@ exports[`Status renders an icon with tooltip for phase: PENDING 1`] = `
 </Tooltip>
 `;
 
-exports[`Status renders an icon with tooltip for phase: RUNNING 1`] = `
+exports[`Status statusToIcon renders an icon with tooltip for phase: RUNNING 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={
@@ -3742,7 +3742,7 @@ exports[`Status renders an icon with tooltip for phase: RUNNING 1`] = `
 </Tooltip>
 `;
 
-exports[`Status renders an icon with tooltip for phase: SKIPPED 1`] = `
+exports[`Status statusToIcon renders an icon with tooltip for phase: SKIPPED 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={
@@ -4156,7 +4156,7 @@ exports[`Status renders an icon with tooltip for phase: SKIPPED 1`] = `
 </Tooltip>
 `;
 
-exports[`Status renders an icon with tooltip for phase: SUCCEEDED 1`] = `
+exports[`Status statusToIcon renders an icon with tooltip for phase: SUCCEEDED 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={
@@ -4570,7 +4570,7 @@ exports[`Status renders an icon with tooltip for phase: SUCCEEDED 1`] = `
 </Tooltip>
 `;
 
-exports[`Status renders an icon with tooltip for phase: UNKNOWN 1`] = `
+exports[`Status statusToIcon renders an icon with tooltip for phase: UNKNOWN 1`] = `
 <Tooltip
   TransitionComponent={[Function]}
   classes={

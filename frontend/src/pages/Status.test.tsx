@@ -16,7 +16,7 @@
 
 import * as Utils from '../lib/Utils';
 import { shallow } from 'enzyme';
-import { statusToIcon, NodePhase } from './Status';
+import { statusToIcon, NodePhase, hasFinished } from './Status';
 
 
 describe('Status', () => {
@@ -33,37 +33,57 @@ describe('Status', () => {
     });
   });
 
-  it('handles an unknown phase', () => {
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
-    const tree = shallow(statusToIcon('bad phase' as any));
-    expect(tree).toMatchSnapshot();
-    expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
-  });
-
-  it('displays start and end dates if both are provided', () => {
-    const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate, endDate));
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('does not display a end date if none was provided', () => {
-    const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate));
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('does not display a start date if none was provided', () => {
-    const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, undefined, endDate));
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('does not display any dates if neither was provided', () => {
-    const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, /* No dates */));
-    expect(tree).toMatchSnapshot();
-  });
-
-  Object.keys(NodePhase).map(status => (
-    it('renders an icon with tooltip for phase: ' + status, () => {
-      const tree = shallow(statusToIcon(NodePhase[status]));
+  describe('statusToIcon', () => {
+    it('handles an unknown phase', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
+      const tree = shallow(statusToIcon('bad phase' as any));
       expect(tree).toMatchSnapshot();
-    })
-  ));
+      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
+    });
+
+    it('displays start and end dates if both are provided', () => {
+      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate, endDate));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('does not display a end date if none was provided', () => {
+      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('does not display a start date if none was provided', () => {
+      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, undefined, endDate));
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('does not display any dates if neither was provided', () => {
+      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, /* No dates */));
+      expect(tree).toMatchSnapshot();
+    });
+
+    Object.keys(NodePhase).map(status => (
+      it('renders an icon with tooltip for phase: ' + status, () => {
+        const tree = shallow(statusToIcon(NodePhase[status]));
+        expect(tree).toMatchSnapshot();
+      })
+    ));
+  });
+
+  describe('hasFinished', () => {
+    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
+      it(`returns \'true\' if status is: ${status}`, () => {
+        expect(hasFinished(status)).toBe(true);
+      });
+    });
+
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach(status => {
+      it(`returns \'false\' if status is: ${status}`, () => {
+        expect(hasFinished(status)).toBe(false);
+      });
+    });
+
+    it('returns \'false\' if status is undefined', () => {
+      expect(hasFinished(undefined)).toBe(false);
+    });
+  });
 });
