@@ -30,7 +30,7 @@ import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiRun } from '../apis/run';
 import { Apis } from '../lib/Apis';
-import { NodePhase, statusToIcon, hasCompleted } from './Status';
+import { NodePhase, statusToIcon, hasFinished } from './Status';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
@@ -83,8 +83,9 @@ interface RunDetailsState {
 }
 
 class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
-  private _onBlur: any;
-  private _onFocus: any;
+  private _onBlur: EventListener;
+  private _onFocus: EventListener;
+  private readonly AUTO_REFRESH_INTERVAL = 5000;
 
   private _interval?: NodeJS.Timeout;
 
@@ -249,7 +250,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   public async componentDidMount(): Promise<void> {
     window.addEventListener('focus', this._onFocus);
     window.addEventListener('blur', this._onBlur);
-    await this.refresh();
     await this._startAutoRefresh();
   }
 
@@ -258,14 +258,13 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public async onFocusHandler(): Promise<void> {
-    await this.refresh();
     await this._startAutoRefresh();
   }
 
   public componentWillUnmount(): void {
+    this._stopAutoRefresh();
     window.removeEventListener('focus', this._onFocus);
     window.removeEventListener('blur', this._onBlur);
-    this._stopAutoRefresh();
   }
 
   public async refresh(): Promise<void> {
@@ -287,7 +286,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
       let runFinished = this.state.runFinished;
       // If the run has finished, stop auto refreshing
-      if (hasCompleted(runMetadata.status as NodePhase)) {
+      if (hasFinished(runMetadata.status as NodePhase)) {
         this._stopAutoRefresh();
         // This prevents other events, such as onFocus, from resuming the autorefresh
         runFinished = true;
@@ -349,15 +348,19 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   private async _startAutoRefresh(): Promise<void> {
-    if (this.state.runFinished) {
-      return;
+    // If the run was not finished last time we checked, check again in case anything changed
+    // before proceeding to set auto-refresh interval
+    if (!this.state.runFinished) {
+      // refresh() updates runFinished's value
+      await this.refresh();
     }
 
-    // Check if undefined to avoid setting multiple intervals
-    if (this._interval === undefined) {
+    // Only set interval if run has not finished, and verify that the interval is undefined to
+    // avoid setting multiple intervals
+    if (!this.state.runFinished && this._interval === undefined) {
       this._interval = setInterval(
         () => this.refresh(),
-        5000
+        this.AUTO_REFRESH_INTERVAL
       );
     }
   }

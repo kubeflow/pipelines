@@ -16,7 +16,7 @@
 
 import * as Utils from '../lib/Utils';
 import { shallow } from 'enzyme';
-import { statusToIcon, NodePhase, hasCompleted } from './Status';
+import { statusToIcon, NodePhase, hasFinished } from './Status';
 
 
 describe('Status', () => {
@@ -69,21 +69,21 @@ describe('Status', () => {
     ));
   });
 
-  describe('hasCompleted', () => {
+  describe('hasFinished', () => {
     [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
-      it(`returns \'true\' to true if status is: ${status}`, () => {
-        expect(hasCompleted(status)).toBe(true);
+      it(`returns \'true\' if status is: ${status}`, () => {
+        expect(hasFinished(status)).toBe(true);
       });
     });
 
     [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach(status => {
-      it(`returns \'false\' to true if status is: ${status}`, () => {
-        expect(hasCompleted(status)).toBe(false);
+      it(`returns \'false\' if status is: ${status}`, () => {
+        expect(hasFinished(status)).toBe(false);
       });
     });
 
-    it('returns \'false\' to true if status is undefined', () => {
-      expect(hasCompleted(undefined)).toBe(false);
+    it('returns \'false\' if status is undefined', () => {
+      expect(hasFinished(undefined)).toBe(false);
     });
   });
 });

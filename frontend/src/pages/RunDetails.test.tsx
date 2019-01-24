@@ -729,7 +729,7 @@ describe('RunDetails', () => {
     });
 
     it('resumes auto refreshing if window loses focus and then regains it', async () => {
-      // Declare that the run has not completed
+      // Declare that the run has not finished
       testRun.run!.status = NodePhase.PENDING;
       tree = shallow(<RunDetails {...generateProps()} />);
       await TestUtils.flushPromises();
@@ -750,7 +750,7 @@ describe('RunDetails', () => {
     });
 
     it('does not resume auto refreshing if window loses focus and then regains it but run is finished', async () => {
-      // Declare that the run has completed
+      // Declare that the run has finished
       testRun.run!.status = NodePhase.SUCCEEDED;
       tree = shallow(<RunDetails {...generateProps()} />);
       await TestUtils.flushPromises();

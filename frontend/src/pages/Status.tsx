@@ -35,7 +35,7 @@ export enum NodePhase {
   UNKNOWN = 'Unknown',
 }
 
-export function hasCompleted(status?: NodePhase): boolean {
+export function hasFinished(status?: NodePhase): boolean {
   if (!status) {
     return false;
   }
