@@ -53,7 +53,7 @@ spec:
             key: secretkey
             name: mlpipeline-minio-artifact
     retryStrategy:
-      limit: 10
+      limit: 100
   - container:
       args:
       - import random; import sys; exit_code = random.choice([0,1]); print(exit_code);
@@ -92,4 +92,4 @@ spec:
             key: secretkey
             name: mlpipeline-minio-artifact
     retryStrategy:
-      limit: 5
+      limit: 50
