@@ -136,8 +136,10 @@ describe('Compare', () => {
     getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
   });
 
-  afterEach(() => {
-    tree.unmount();
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
   });
 
   it('clears banner upon initial load', () => {

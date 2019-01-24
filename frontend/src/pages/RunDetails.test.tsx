@@ -27,6 +27,7 @@ import { PlotType } from '../components/viewers/Viewer';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { shallow, ShallowWrapper } from 'enzyme';
+import { NodePhase } from './Status';
 
 describe('RunDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -66,6 +67,9 @@ describe('RunDetails', () => {
   beforeAll(() => jest.spyOn(console, 'error').mockImplementation());
 
   beforeEach(() => {
+    // The RunDetails page uses timers to periodically refresh
+    jest.useFakeTimers();
+
     testRun = {
       pipeline_runtime: {
         workflow_manifest: '{}',
@@ -92,9 +96,11 @@ describe('RunDetails', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
     jest.resetAllMocks();
-    tree.unmount();
   });
 
   it('shows success run status in page title', async () => {
@@ -660,5 +666,109 @@ describe('RunDetails', () => {
       b => b.title === 'Refresh');
     await refreshBtn!.action();
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
+  });
+
+  describe('auto refresh', () => {
+    beforeEach(() => {
+      testRun.run!.status = NodePhase.PENDING;
+    });
+
+    it('starts an interval of 5 seconds to auto refresh the page', async () => {
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await TestUtils.flushPromises();
+
+      expect(setInterval).toHaveBeenCalledTimes(1);
+      expect(setInterval).toHaveBeenCalledWith(expect.any(Function), 5000);
+    });
+
+    it('refreshes after each interval', async () => {
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await TestUtils.flushPromises();
+
+      const refreshSpy = jest.spyOn((tree.instance() as RunDetails), 'refresh');
+
+      expect(refreshSpy).toHaveBeenCalledTimes(0);
+
+      jest.runOnlyPendingTimers();
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
+      await TestUtils.flushPromises();
+    }, 10000);
+
+
+    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
+      it(`sets \'runFinished\' to true if run has status: ${status}`, async () => {
+        testRun.run!.status = status;
+        tree = shallow(<RunDetails {...generateProps()} />);
+        await TestUtils.flushPromises();
+
+        expect(tree.state('runFinished')).toBe(true);
+      });
+    });
+
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach(status => {
+      it(`leaves \'runFinished\' false if run has status: ${status}`, async () => {
+        testRun.run!.status = status;
+        tree = shallow(<RunDetails {...generateProps()} />);
+        await TestUtils.flushPromises();
+
+        expect(tree.state('runFinished')).toBe(false);
+      });
+    });
+
+    it('pauses auto refreshing if window loses focus', async () => {
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await TestUtils.flushPromises();
+
+      expect(setInterval).toHaveBeenCalledTimes(1);
+      expect(clearInterval).toHaveBeenCalledTimes(0);
+
+      window.dispatchEvent(new Event('blur'));
+      await TestUtils.flushPromises();
+
+      expect(clearInterval).toHaveBeenCalledTimes(1);
+    });
+
+    it('resumes auto refreshing if window loses focus and then regains it', async () => {
+      // Declare that the run has not finished
+      testRun.run!.status = NodePhase.PENDING;
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await TestUtils.flushPromises();
+
+      expect(tree.state('runFinished')).toBe(false);
+      expect(setInterval).toHaveBeenCalledTimes(1);
+      expect(clearInterval).toHaveBeenCalledTimes(0);
+
+      window.dispatchEvent(new Event('blur'));
+      await TestUtils.flushPromises();
+
+      expect(clearInterval).toHaveBeenCalledTimes(1);
+
+      window.dispatchEvent(new Event('focus'));
+      await TestUtils.flushPromises();
+
+      expect(setInterval).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not resume auto refreshing if window loses focus and then regains it but run is finished', async () => {
+      // Declare that the run has finished
+      testRun.run!.status = NodePhase.SUCCEEDED;
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await TestUtils.flushPromises();
+
+      expect(tree.state('runFinished')).toBe(true);
+      expect(setInterval).toHaveBeenCalledTimes(0);
+      expect(clearInterval).toHaveBeenCalledTimes(0);
+
+      window.dispatchEvent(new Event('blur'));
+      await TestUtils.flushPromises();
+
+      // We expect 0 calls because the interval was never set, so it doesn't need to be cleared
+      expect(clearInterval).toHaveBeenCalledTimes(0);
+
+      window.dispatchEvent(new Event('focus'));
+      await TestUtils.flushPromises();
+
+      expect(setInterval).toHaveBeenCalledTimes(0);
+    });
   });
 });

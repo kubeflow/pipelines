@@ -22,8 +22,10 @@ import TestUtils from '../TestUtils';
 describe('UploadPipelineDialog', () => {
   let tree: ReactWrapper | ShallowWrapper;
 
-  afterEach(() => {
-    tree.unmount();
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
   });
 
   it('renders closed', () => {
