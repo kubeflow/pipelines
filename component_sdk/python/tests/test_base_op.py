@@ -24,11 +24,11 @@ import google
 import mock
 import unittest
 
+@mock.patch('google.cloud.storage.Client')
+@mock.patch('kubernetes.client.CoreV1Api')
+@mock.patch('kubernetes.config.load_incluster_config')
 class BaseOpTest(unittest.TestCase):
 
-    @mock.patch('google.cloud.storage.Client')
-    @mock.patch('kubernetes.client.CoreV1Api')
-    @mock.patch('kubernetes.config.load_incluster_config')
     @mock.patch.dict('os.environ', {
         'KFP_POD_NAME': 'mock-pod-id',
         'KFP_TMP_LOCATION': 'gs://mock-tmp-location/dir'
@@ -53,17 +53,11 @@ class BaseOpTest(unittest.TestCase):
         self.assertEqual(op._staging_path, 'dir/tmp/mock-workflow/mock-node/test-op')
         self.assertEqual(op.staging_states, {'mock_id': 'mock_value'})
 
-    @mock.patch('google.cloud.storage.Client')
-    @mock.patch('kubernetes.client.CoreV1Api')
-    @mock.patch('kubernetes.config.load_incluster_config')
     @mock.patch.dict('os.environ', {})
     def test_init_ignore_no_pod_name(self, mock_load_incluster_config, mock_core_v1_api, mock_storage_client):
         op = BaseOp('test-op')
         self.assertEqual(op.name, 'test-op')
 
-    @mock.patch('google.cloud.storage.Client')
-    @mock.patch('kubernetes.client.CoreV1Api')
-    @mock.patch('kubernetes.config.load_incluster_config')
     @mock.patch.dict('os.environ', {
         'KFP_POD_NAME': 'mock-pod-id',
         'KFP_TMP_LOCATION': 'gs://mock-tmp-location/dir'
@@ -74,9 +68,6 @@ class BaseOpTest(unittest.TestCase):
         op = BaseOp('test-op')
         self.assertEqual(op.name, 'test-op')
 
-    @mock.patch('google.cloud.storage.Client')
-    @mock.patch('kubernetes.client.CoreV1Api')
-    @mock.patch('kubernetes.config.load_incluster_config')
     @mock.patch.dict('os.environ', {
         'KFP_POD_NAME': 'mock-pod-id'
     })
@@ -94,9 +85,6 @@ class BaseOpTest(unittest.TestCase):
         self.assertEqual(op._argo_workflow_name, 'mock-workflow')
         self.assertEqual(op._argo_node_name, 'mock-node')
 
-    @mock.patch('google.cloud.storage.Client')
-    @mock.patch('kubernetes.client.CoreV1Api')
-    @mock.patch('kubernetes.config.load_incluster_config')
     @mock.patch.dict('os.environ', {
         'KFP_POD_NAME': 'mock-pod-id',
         'KFP_TMP_LOCATION': 'gs://mock-tmp-location/dir'
@@ -126,9 +114,6 @@ class BaseOpTest(unittest.TestCase):
 
         mock_blob.upload_from_string.assert_called_once_with('{"mock-key": "mock-value"}')
 
-    @mock.patch('google.cloud.storage.Client')
-    @mock.patch('kubernetes.client.CoreV1Api')
-    @mock.patch('kubernetes.config.load_incluster_config')
     @mock.patch.dict('os.environ', {
         'KFP_POD_NAME': 'mock-pod-id',
         'KFP_TMP_LOCATION': 'gs://mock-tmp-location/dir'
