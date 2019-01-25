@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import Buttons from '../lib/Buttons';
 import RunList from './RunList';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
@@ -41,26 +42,17 @@ export default class Archive extends Page<{}, ArchiveState> {
 
   public getInitialToolbarState(): ToolbarProps {
     return {
-      actions: [{
-        action: () => this.props.updateDialog({
+      actions: [
+        Buttons.archive(() => this.props.updateDialog({
           buttons: [
             { onClick: async () => await this._unarchiveDialogClosed(true), text: 'Restore' },
             { onClick: async () => await this._unarchiveDialogClosed(false), text: 'Cancel' },
           ],
           onClose: async () => await this._unarchiveDialogClosed(false),
           title: `Restore ${this.state.selectedIds.length} resource${s(this.state.selectedIds.length)}?`,
-        }),
-        disabled: true,
-        disabledTitle: 'Select at least one resource to restore',
-        id: 'restoreBtn',
-        title: 'Restore',
-        tooltip: 'Restore',
-      }, {
-        action: this.refresh.bind(this),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh the list of resources',
-      }],
+        })),
+        Buttons.refresh(this.refresh.bind(this)),
+      ],
       breadcrumbs: [],
       pageTitle: 'Archive',
     };
