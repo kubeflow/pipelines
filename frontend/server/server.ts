@@ -18,6 +18,7 @@ import { Application, static as StaticHandler } from 'express';
 import * as fs from 'fs';
 import * as proxy from 'http-proxy-middleware';
 import { Client as MinioClient } from 'minio';
+import * as AWS from 'aws-sdk';
 import fetch from 'node-fetch';
 import * as path from 'path';
 import * as process from 'process';
@@ -39,6 +40,19 @@ const minioClient = new MinioClient({
   useSSL: false,
 } as any);
 
+// s3 
+var httpOptions:AWS.HTTPOptions = {
+  timeout: 6000
+}
+var options = {
+  credentialProvider: new AWS.CredentialProviderChain([
+      () => new AWS.EC2MetadataCredentials()
+  ]),
+  httpOptions
+};
+const s3 = new AWS.S3(options);
+
+// ---
 const app = express() as Application;
 
 app.use(function (req, _, next) {
@@ -108,6 +122,7 @@ const artifactsHandler = async (req, res) => {
   const key = decodeURIComponent(encodedKey);
   console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
   switch (source) {
+    
     case 'gcs':
       try {
         // Read all files that match the key pattern, which can include wildcards '*'.
@@ -150,6 +165,7 @@ const artifactsHandler = async (req, res) => {
         res.status(500).send('Failed to download GCS file(s). Error: ' + err);
       }
       break;
+
     case 'minio':
       minioClient.getObject(bucket, key, (err, stream) => {
         if (err) {
@@ -171,6 +187,30 @@ const artifactsHandler = async (req, res) => {
         }
       });
       break;
+
+    case 's3':
+      var request = {
+          Bucket: bucket,
+          Key: key
+      };
+      
+      try {
+        var stream = s3.getObject(request).createReadStream();            
+
+        let contents = '';
+        stream.pipe(new tar.Parse()).on('entry', (entry: Stream) => {
+          entry.on('data', (buffer) => contents += buffer.toString());
+        });
+        stream.on('end', () => {
+          res.send(contents);
+        });
+        
+      } catch (err) {
+        console.error(`error reading artifact for ${bucket} at path ${key}: ${err}`);
+        res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
+      }
+      break;
+
     default:
       res.status(500).send('Unknown storage source: ' + source);
       return;

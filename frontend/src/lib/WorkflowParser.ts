@@ -21,6 +21,7 @@ import { statusToIcon, NodePhase } from '../pages/Status';
 export enum StorageService {
   GCS = 'gcs',
   MINIO = 'minio',
+  S3 = 's3',
 }
 
 export interface StoragePath {
@@ -143,17 +144,24 @@ export default class WorkflowParser {
 
   // Returns a list of output paths for the given workflow Node, by looking for
   // and the Argo artifacts syntax in the outputs section.
-  public static loadNodeOutputPaths(selectedWorkflowNode: NodeStatus): StoragePath[] {
-    const outputPaths: StoragePath[] = [];
-    if (selectedWorkflowNode && selectedWorkflowNode.outputs) {
+  public static loadNodeOutputPaths(selectedWorkflowNode: NodeStatus): StoragePath[] {    
+    const outputPaths: StoragePath[] = [];    
+    if (selectedWorkflowNode && selectedWorkflowNode.outputs) {      
       (selectedWorkflowNode.outputs.artifacts || [])
         .filter((a) => a.name === 'mlpipeline-ui-metadata' && !!a.s3)
-        .forEach((a) =>
-          outputPaths.push({
-            bucket: a.s3!.bucket,
-            key: a.s3!.key,
-            source: StorageService.MINIO,
-          })
+        .forEach((a) => {            
+            let source = StorageService.MINIO;
+            if(a.s3!.endpoint.indexOf('s3.amazonaws.com') >= 0){
+              source = StorageService.S3;
+            } else if(a.s3!.endpoint.indexOf('storage.googleapis.com') >= 0) {
+              source = StorageService.GCS;
+            }            
+            outputPaths.push({
+              bucket: a.s3!.bucket,
+              key: a.s3!.key,
+              source: source!,
+            });            
+          }
         );
     }
 
@@ -174,7 +182,7 @@ export default class WorkflowParser {
 
   // Given a storage path, returns a structured object that contains the storage
   // service (currently only GCS), and bucket and key in that service.
-  public static parseStoragePath(strPath: string): StoragePath {
+  public static parseStoragePath(strPath: string): StoragePath {    
     if (strPath.startsWith('gs://')) {
       const pathParts = strPath.substr('gs://'.length).split('/');
       return {
@@ -188,6 +196,13 @@ export default class WorkflowParser {
           bucket: pathParts[0],
           key: pathParts.slice(1).join('/'),
           source: StorageService.MINIO,
+        };
+    } else if (strPath.startsWith('s3://')) {
+        const pathParts = strPath.substr('s3://'.length).split('/');
+        return {
+          bucket: pathParts[0],
+          key: pathParts.slice(1).join('/'),
+          source: StorageService.S3,
         };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);
