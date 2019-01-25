@@ -15,8 +15,12 @@
  */
 
 import * as dagre from 'dagre';
+import * as React from 'react';
+import MoreIcon from '@material-ui/icons/MoreHoriz';
+import Tooltip from '@material-ui/core/Tooltip';
 import { Workflow, NodeStatus, Parameter } from '../../third_party/argo-ui/argo_template';
-import { statusToIcon, NodePhase } from '../pages/Status';
+import { statusToIcon, NodePhase, hasFinished } from '../pages/Status';
+import { color } from '../Css';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -37,6 +41,7 @@ export default class WorkflowParser {
 
     const NODE_WIDTH = 180;
     const NODE_HEIGHT = 70;
+    const PLACEHOLDER_NODE_DIMENSION = 28;
 
     if (!workflow || !workflow.status || !workflow.status.nodes ||
       !workflow.metadata || !workflow.metadata.name) {
@@ -50,8 +55,7 @@ export default class WorkflowParser {
     // Uses the root node, so this needs to happen before we remove the root
     // node below.
     const onExitHandlerNodeId =
-      Object.keys(workflowNodes).find((id) =>
-        workflowNodes[id].name === `${workflowName}.onExit`);
+      Object.keys(workflowNodes).find((id) => workflowNodes[id].name === `${workflowName}.onExit`);
     if (onExitHandlerNodeId) {
       this.getOutboundNodes(workflow, workflowName).forEach((nodeId) =>
         g.setEdge(nodeId, onExitHandlerNodeId));
@@ -64,17 +68,28 @@ export default class WorkflowParser {
       delete workflowNodes[workflowName];
     }
 
+    const runningNodeSuffix = '-running-placeholder';
+
     // Create dagre graph nodes from workflow nodes.
     (Object as any).values(workflowNodes)
       .forEach((node: NodeStatus) => {
-        const workflowNode = workflowNodes[node.id];
         g.setNode(node.id, {
           height: NODE_HEIGHT,
-          icon: statusToIcon(workflowNode.phase as NodePhase, workflowNode.startedAt, workflowNode.finishedAt),
+          icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt),
           label: node.displayName || node.id,
           width: NODE_WIDTH,
           ...node,
         });
+
+        if (!hasFinished(node.phase as NodePhase)) {
+          g.setNode(node.id + runningNodeSuffix, {
+            height: PLACEHOLDER_NODE_DIMENSION,
+            icon: this._placeholderNodeIcon(),
+            isPlaceholder: true,
+            width: PLACEHOLDER_NODE_DIMENSION,
+          });
+          g.setEdge(node.id, node.id + runningNodeSuffix, { color: color.weak, isPlaceholder: true });
+        }
       });
 
     // Connect dagre graph nodes with edges.
@@ -246,5 +261,15 @@ export default class WorkflowParser {
     } else {
       return '';
     }
+  }
+
+  private static _placeholderNodeIcon(): JSX.Element {
+    return (
+      <Tooltip title='More nodes may appear here as execution progresses'>
+        <span style={{ height: 18 }}>
+          <MoreIcon style={{ color: color.weak, height: 18, width: 18 }} />
+        </span>
+      </Tooltip>
+    );
   }
 }

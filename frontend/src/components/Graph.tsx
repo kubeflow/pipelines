@@ -32,9 +32,11 @@ interface Line {
 }
 
 interface Edge {
+  color?: string;
   from: string;
   to: string;
   lines: Line[];
+  isPlaceholder?: boolean;
 }
 
 const css = stylesheet({
@@ -92,6 +94,12 @@ const css = stylesheet({
   nodeSelected: {
     backgroundColor: '#e4ebff !important',
     borderColor: color.theme,
+  },
+  placeholderNode: {
+    margin: 10,
+    position: 'absolute',
+    // TODO: can this be calculated?
+    transform: 'translate(76px, 20px)'
   },
   root: {
     backgroundColor: color.graphBg,
@@ -153,15 +161,22 @@ export default class Graph extends React.Component<GraphProps> {
           }
         }
       }
-      displayEdges.push({ from: edgeInfo.v, to: edgeInfo.w, lines });
+      displayEdges.push({
+        color: edge.color,
+        from: edgeInfo.v,
+        isPlaceholder: edge.isPlaceholder,
+        lines,
+        to: edgeInfo.w
+      });
     });
 
     return (
       <div className={css.root}>
         {graph.nodes().map(id => Object.assign(graph.node(id), { id })).map((node, i) => (
-          <div className={classes(css.node, 'graphNode',
+          <div className={classes(node.isPlaceholder ? css.placeholderNode : css.node, 'graphNode',
             node.id === this.props.selectedNodeId ? css.nodeSelected : '')} key={i}
-            onClick={() => this.props.onClick && this.props.onClick(node.id)} style={{
+            onClick={() => (!node.isPlaceholder && this.props.onClick) && this.props.onClick(node.id)}
+            style={{
               backgroundColor: node.bgColor, left: node.x,
               maxHeight: node.height, minHeight: node.height, top: node.y, width: node.width,
             }}>
@@ -173,8 +188,13 @@ export default class Graph extends React.Component<GraphProps> {
         {displayEdges.map((edge, i) => (
           <div key={i}>
             {edge.lines.map((line, l) => (
-              <div className={classes(css.line, l === edge.lines.length - 1 ? css.lastEdgeLine : '')}
+              <div className={classes(
+                  css.line,
+                  (l === edge.lines.length - 1 && !edge.isPlaceholder) ? css.lastEdgeLine : ''
+                )}
                 key={l} style={{
+                  borderTopColor: edge.color,
+                  borderTopStyle: edge.isPlaceholder ? 'dotted' : 'solid',
                   left: line.left,
                   top: line.yMid,
                   transform: `translate(100px, 44px) rotate(${line.angle}deg)`,
