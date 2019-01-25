@@ -22,13 +22,13 @@ from googleapiclient import errors
 
 import gcp_common
 from kfp_component import BaseOp
-from ml_engine import utils
+from ml_engine.mlengine_client import MLEngineClient
 
 class CreateJobOp(BaseOp):
     
     def __init__(self, project_id, job):
-        super().__init__('CreateJobOp')
-        self._ml = utils.create_ml_client()
+        super().__init__()
+        self._ml = MLEngineClient()
         self._project_id = project_id
         self._job_id = gcp_common.normalize_name(job['jobId'])
         job['jobId'] = self._job_id
@@ -36,13 +36,12 @@ class CreateJobOp(BaseOp):
     
     def on_executing(self):
         self._dump_metadata()
-        request = self._ml.projects().jobs().create(
-            parent = 'projects/{}'.format(self._project_id),
-            body = self._job
-        )
 
         try:
-            request.execute()
+            self._ml.create_job(
+                project_id = self._project_id,
+                job = self._job
+            )
         except errors.HttpError as e:
             if e.resp.status == 409:
                 if not self._is_dup_job():
@@ -56,19 +55,14 @@ class CreateJobOp(BaseOp):
         finished_job = self._wait_for_done()
         self._dump_job(finished_job)
         if finished_job['state'] != 'SUCCEEDED':
-            raise RuntimeError('Job failed with state {}. Error: {}'.format(finished_job['state'], finished_job.get('errorMessage', '')))
+            raise RuntimeError('Job failed with state {}. Error: {}'.format(
+                finished_job['state'], finished_job.get('errorMessage', '')))
+        return finished_job
 
     def on_cancelling(self):
-        job_name = 'projects/{}/jobs/{}'.format(self._project_id, self._job_id)
-        request = self._ml.projects().jobs().cancel(
-            name = job_name,
-            body = {
-                'name': job_name
-            },
-        )
         try:
             logging.info('Cancelling job {}.'.format(job_name))
-            request.execute()
+            self._ml.cancel_job(self._project_id, self._job_id)
             logging.info('Cancelled job {}.'.format(job_name))
         except errors.HttpError as e:
             # Best effort to cancel the job
@@ -82,18 +76,13 @@ class CreateJobOp(BaseOp):
 
     def _wait_for_done(self):
         while True:
-            job = self._get_job()
+            job = self._ml.get_job(self._project_id, self._job_id)
             if job.get('state', None) in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
                 return job
             # Move to config from flag
             logging.info('job status is {}, wait for {}s'.format(job.get('state', None), 30))
             time.sleep(30)
         return job
-
-    def _get_job(self):
-        job_name = 'projects/{}/jobs/{}'.format(self._project_id, self._job_id)
-        request = self._ml.projects().jobs().get(name=job_name)
-        return request.execute()
 
     def _dump_metadata(self):
         metadata = {

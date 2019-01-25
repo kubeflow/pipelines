@@ -14,15 +14,13 @@ import unittest
 
 from ml_engine.create_job_op import CreateJobOp
 
-@mock.patch('google.cloud.storage.Client')
-@mock.patch('kubernetes.client.CoreV1Api')
 @mock.patch('kubernetes.config.load_incluster_config')
-@mock.patch('googleapiclient.discovery.build')
+@mock.patch('kubernetes.client.CoreV1Api')
+@mock.patch('ml_engine.mlengine_client.MLEngineClient')
 class TestCreateJobOp(unittest.TestCase):
 
-    def test_init(self, mock_discovery_build, 
-        mock_load_incluster_config, mock_core_v1_api, 
-        mock_storage_client):
+    def test_init(self, mock_mlengine_client,
+        mock_core_v1_api, mock_load_incluster_config):
         job = {
             'jobId': 'mock_job'
         }
@@ -32,14 +30,17 @@ class TestCreateJobOp(unittest.TestCase):
         self.assertEqual(job['jobId'], op._job_id)
         self.assertEqual(job, op._job)
 
-    def test_execute_submit_job(self, mock_discovery_build, 
-        mock_load_incluster_config, mock_core_v1_api, 
-        mock_storage_client):
+    def test_execute_submit_job(self, mock_mlengine_client,
+        mock_core_v1_api, mock_load_incluster_config):
         job = {
             'jobId': 'mock_job'
+        }
+        mock_mlengine_client().get_job.return_value = {
+            'state': 'SUCCEEDED'
         }
         op = CreateJobOp('mock_project', job)
 
         op.execute()
+
 
 
