@@ -14,9 +14,6 @@
 
 import signal
 import os
-from kubernetes import client, config
-from kubernetes.client.rest import ApiException
-from google.cloud import storage
 import google
 import json
 from datetime import datetime
@@ -24,29 +21,21 @@ import logging
 import sys
 import re
 
+from kubernetes import client, config
+from kubernetes.client.rest import ApiException
+
+KF_NAMESPACE = 'kubeflow'
+
 class BaseOp:
-    """Base operation to connect external services.
-    The base class recovers states from persistent storage in the KFP environment.
-    It enables subclasses to resume operation from the recovered state.
-    It handles SIGTERM signal to allow subclasses to cancel operation in case
-    of workflow timeout.
-    Args:
-        name (str):
-            The name of the operation, which will be used as part of the path
-            to store the ```stage_states``` in persistent storage.
+    """Base class for operation running inside Kubeflow Pipelines.
+    
+    The base class is aware of the KFP environment and can cascade pipeline
+    cancel or deadline event to the operation through ``on_cancelling`` 
+    handler.
     """
-    def __init__(self, name):
-        self.name = name
-        self.staging_states = {}
-        self._storage = storage.Client()
-        self._staging_bucket = None
-        self._staging_path = None
-        self._argo_workflow_name = None
-        self._argo_node_name = None
-        self._load_k8s_client()
-        self._load_argo_metadata()
-        self._load_staging_location()
-        self._load_staging_states()
+    def __init__(self):
+        config.load_incluster_config()
+        self._v1_core = client.CoreV1Api()
 
     def execute(self):
         """Executes the operation."""
@@ -54,10 +43,8 @@ class BaseOp:
         signal.signal(signal.SIGTERM, self._exit_gracefully)
         try:
             self.on_executing()
-        except:
-            e = sys.exc_info()[0]
+        except Exception as e:
             logging.error('Failed to execute the op: {}'.format(e))
-            self._stage_states()
             raise
         finally:
             signal.signal(signal.SIGTERM, original_sigterm_hanlder)
@@ -78,8 +65,6 @@ class BaseOp:
         logging.info('SIGTERM signal received.')
         if self._should_cancel():
             self.on_cancelling()
-        else:
-            self._stage_states()
 
     def _should_cancel(self):
         """Checks argo's execution config deadline and decide whether the operation
@@ -113,91 +98,6 @@ class BaseOp:
             return False
         
         return datetime.now() > deadline
-
-    def _stage_states(self):
-        if not self._staging_bucket or not self._staging_path or not self.staging_states:
-            return
-
-        try:
-            bucket = self._storage.get_bucket(self._staging_bucket)
-        except google.cloud.exceptions.NotFound:
-            logging.error('Unable to find staging bucket {}.'.format(self._staging_bucket))
-            return
- 
-        blob = bucket.blob(self._staging_path)
-
-        try:
-            states_json = json.dumps(self.staging_states)
-        except TypeError as e:
-            logging.error('Unable to dump staging states: {}'.format(self.staging_states))
-            return
-
-        try:
-            blob.upload_from_string(states_json)
-        except google.cloud.exceptions.GoogleCloudError as e:
-            logging.error('Failed to upload staging states: {}'.format(e))
-            return
-
-    def _load_k8s_client(self):
-        config.load_incluster_config()
-        self._v1_core = client.CoreV1Api()
-
-    def _load_argo_metadata(self):
-        # Load argo metadata at start of an OP, as pod might be deleted in case of preemption.
-        pod = self._load_pod()
-        if not pod or not pod.metadata or not pod.metadata.labels or not pod.metadata.annotations:
-            return
-
-        self._argo_workflow_name = pod.metadata.labels.get('workflows.argoproj.io/workflow', None)
-        argo_node_name = pod.metadata.annotations.get('workflows.argoproj.io/node-name', None)
-        if argo_node_name:
-            self._argo_node_name = re.sub(r'\s+\(\d\)', '', argo_node_name)
-
-    def _load_staging_location(self):
-        tmp_location = os.environ.get('KFP_TMP_LOCATION', None)
-        if not tmp_location:
-            return
-
-        if not self._argo_workflow_name or not self._argo_node_name:
-            return
-
-        gs_prefix = 'gs://'
-        if tmp_location.startswith(gs_prefix):
-            tmp_location = tmp_location[len(gs_prefix):]
-        splits = tmp_location.split('/', 1)
-        self._staging_bucket = splits[0]
-        blob_path_prefix = ''
-        if len(splits) == 2:
-            blob_path_prefix = splits[1]
-        self._staging_path = os.path.join(blob_path_prefix, 'tmp/{}/{}/{}'.format(
-            self._argo_workflow_name,
-            self._argo_node_name,
-            self.name
-        ))
-
-    def _load_staging_states(self):
-        if not self._staging_bucket or not self._staging_path:
-            return
-
-        try:
-            bucket = self._storage.get_bucket(self._staging_bucket)
-        except google.cloud.exceptions.NotFound:
-            logging.error('Unable to find staging bucket {}.'.format(self._staging_bucket))
-            return
-
-        blob = bucket.blob(self._staging_path)
-
-        try:
-            states_json = blob.download_as_string()
-        except google.cloud.exceptions.NotFound:
-            logging.info('Unable to find staging blob {}.'.format(self._staging_path))
-            return
-
-        try:
-            self.staging_states = json.loads(states_json)
-        except ValueError as e:
-            logging.error('Unable to decode staging states: {}. Error: {}.'.format(states_json, e))
-            return
   
     def _load_pod(self):
         pod_name = os.environ.get('KFP_POD_NAME', None)
@@ -207,7 +107,7 @@ class BaseOp:
 
         logging.info('Fetching latest pod metadata: {}.'.format(pod_name))
         try:
-            return self._v1_core.read_namespaced_pod(pod_name, 'kubeflow')
+            return self._v1_core.read_namespaced_pod(pod_name, KF_NAMESPACE)
         except ApiException as e:
-            logging.error("Exception when calling CoreV1Api->read_namespaced_pod: {}\n".format(e))
+            logging.error("Exception when calling read pod {}: {}\n".format(pod_name, e))
             return None
