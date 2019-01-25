@@ -42,7 +42,7 @@ class BaseOp:
         original_sigterm_hanlder = signal.getsignal(signal.SIGTERM)
         signal.signal(signal.SIGTERM, self._exit_gracefully)
         try:
-            self.on_executing()
+            return self.on_executing()
         except Exception as e:
             logging.error('Failed to execute the op: {}'.format(e))
             raise
