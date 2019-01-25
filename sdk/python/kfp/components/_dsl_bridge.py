@@ -134,7 +134,7 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
             _dummy_pipeline = dsl.Pipeline('dummy pipeline')
         _dummy_pipeline.__enter__()
 
-    from ._components import _sanitize_kubernetes_resource_name, _make_name_unique_by_adding_index
+    from ._naming import _sanitize_kubernetes_resource_name, _make_name_unique_by_adding_index
     output_name_to_kubernetes = {}
     kubernetes_name_to_output_name = {}
     for output_name in (output_paths or {}).keys():
