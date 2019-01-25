@@ -262,7 +262,10 @@ class ModelBase:
         for k, v in field_values.items():
             parameter_type = parameter_types.get(k, None)
             if parameter_type is not None:
-                verify_object_against_type(v, parameter_type)
+                try:
+                    verify_object_against_type(v, parameter_type)
+                except Exception as e:
+                    raise TypeError('Argument for {} is not compatible with type "{}". Exception: {}'.format(k, parameter_type, e))
         self.__dict__.update(field_values)
 
     @classmethod
