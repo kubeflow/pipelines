@@ -60,6 +60,8 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -72,6 +74,8 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -252,6 +256,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 39.57233047033631,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-45deg)",
@@ -264,6 +270,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 32.25,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -280,6 +288,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 74.57233047033631,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-135deg)",
@@ -292,6 +302,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 92.25,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -308,6 +320,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 32.25,
           "top": 82.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -320,6 +334,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 32.25,
           "top": 107.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -336,6 +352,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 0.375,
           "top": 81.875,
           "transform": "translate(100px, 44px) rotate(-36.86989764584402deg)",
@@ -348,6 +366,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -10.25,
           "top": 110,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -360,6 +380,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="2"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -10.25,
           "top": 140,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -372,6 +394,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="3"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 167.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -388,6 +412,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 45.375,
           "top": 81.875,
           "transform": "translate(100px, 44px) rotate(-143.13010235415598deg)",
@@ -400,6 +426,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 69.75,
           "top": 110,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -412,6 +440,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="2"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 69.75,
           "top": 140,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -424,6 +454,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="3"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 72.25,
           "top": 167.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -440,6 +472,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 32.25,
           "top": 142.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -452,6 +486,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 5.375,
           "top": 168.125,
           "transform": "translate(100px, 44px) rotate(-36.86989764584402deg)",
@@ -468,6 +504,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 46.50406530937789,
           "top": 141.25,
           "transform": "translate(100px, 44px) rotate(-153.43494882292202deg)",
@@ -480,6 +518,8 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 81.39353635223337,
           "top": 167.5,
           "transform": "translate(100px, 44px) rotate(-56.30993247402021deg)",
@@ -628,6 +668,8 @@ exports[`Graph renders a graph with a selected node 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -640,6 +682,8 @@ exports[`Graph renders a graph with a selected node 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -753,6 +797,8 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -765,6 +811,8 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -847,6 +895,8 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
@@ -859,6 +909,8 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
