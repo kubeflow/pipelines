@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -177,6 +178,43 @@ func TestListJobs_Pagination(t *testing.T) {
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected2, jobs)
+}
+
+func TestListJobs_TotalSizeWithNoFilter(t *testing.T) {
+	db, jobStore := initializeDbAndStore()
+	defer db.Close()
+
+	opts, _ := list.NewOptions(&model.Job{}, 1, "name", nil)
+
+	// No filter
+	jobs, total_size, _, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(jobs))
+	assert.Equal(t, 2, total_size)
+}
+
+func TestListJobs_TotalSizeWithFilter(t *testing.T) {
+	db, jobStore := initializeDbAndStore()
+	defer db.Close()
+
+	// Add a filter
+	opts, _ := list.NewOptions(&model.Job{}, 1, "name", &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key: "name",
+				Op:  api.Predicate_IN,
+				Value: &api.Predicate_StringValues{
+					StringValues: &api.StringValues{
+						Values: []string{"pp 1"},
+					},
+				},
+			},
+		},
+	})
+	jobs, total_size, _, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(jobs))
+	assert.Equal(t, 1, total_size)
 }
 
 func TestListJobs_Pagination_Descent(t *testing.T) {
