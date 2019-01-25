@@ -183,7 +183,8 @@ def convert_object_to_struct(obj, serialized_names: Mapping[str, str] = {}):
     '''
     signature = inspect.signature(obj.__init__) #Needed for default values
     result = {}
-    for python_name, value in obj.__dict__.items(): #TODO: Should we take the fields from the constructor parameters instead? #TODO: Make it possible to specify the field ordering
+    for python_name in signature.parameters: #TODO: Make it possible to specify the field ordering regardless of the presence of default values
+        value = getattr(obj, python_name)
         if python_name.startswith('_'):
             continue
         attr_name = serialized_names.get(python_name, python_name)
