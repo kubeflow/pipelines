@@ -81,7 +81,7 @@ export default class WorkflowParser {
           ...node,
         });
 
-        if (!hasFinished(node.phase as NodePhase)) {
+        if (!hasFinished(node.phase as NodePhase) && !this.isVirtual(node)) {
           g.setNode(node.id + runningNodeSuffix, {
             height: PLACEHOLDER_NODE_DIMENSION,
             icon: this._placeholderNodeIcon(),

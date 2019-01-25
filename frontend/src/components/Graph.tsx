@@ -178,7 +178,11 @@ export default class Graph extends React.Component<GraphProps> {
             onClick={() => (!node.isPlaceholder && this.props.onClick) && this.props.onClick(node.id)}
             style={{
               backgroundColor: node.bgColor, left: node.x,
-              maxHeight: node.height, minHeight: node.height, top: node.y, width: node.width,
+              maxHeight: node.height,
+              minHeight: node.height,
+              top: node.y,
+              transition: 'left 0.5s, top 0.5s',
+              width: node.width,
             }}>
             <div className={css.label}>{node.label}</div>
             <div className={css.icon}>{node.icon}</div>
@@ -198,6 +202,7 @@ export default class Graph extends React.Component<GraphProps> {
                   left: line.left,
                   top: line.yMid,
                   transform: `translate(100px, 44px) rotate(${line.angle}deg)`,
+                  transition: 'left 0.5s, top 0.5s',
                   width: line.distance,
                 }} />
             ))}

@@ -89,6 +89,11 @@ export const css = stylesheet({
     display: 'flex',
     padding: '0 0 20px 20px',
   },
+  graphPane: {
+    backgroundColor: color.graphBg,
+    overflow: 'hidden',
+    position: 'relative',
+  },
   infoSpan: {
     color: color.lowContrast,
     fontFamily: fonts.secondary,
@@ -159,8 +164,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
               onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })} />
             <div className={commonCss.page}>
 
-              {selectedTab === 0 && <div className={commonCss.page} style={{ backgroundColor: color.graphBg }}>
-                {graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+              {selectedTab === 0 && <div className={classes(commonCss.page, css.graphPane)}>
+                {graph && <div className={commonCss.page}>
                   <Graph graph={graph} selectedNodeId={selectedNodeId}
                     onClick={(id) => this._selectNode(id)} />
 
@@ -404,9 +409,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   private _stopAutoRefresh(): void {
     if (this._interval !== undefined) {
       clearInterval(this._interval);
+
+      // Reset interval to indicate that a new one can be set
+      this._interval = undefined;
     }
-    // Reset interval to indicate that a new one can be set
-    this._interval = undefined;
   }
 
   private async _loadAllOutputs(): Promise<void> {
