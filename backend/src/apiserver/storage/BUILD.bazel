@@ -47,6 +47,7 @@ go_test(
         "db_test.go",
         "experiment_store_test.go",
         "job_store_test.go",
+        "list_util_test.go",
         "object_store_test.go",
         "pipeline_store_test.go",
         "resource_reference_store_test.go",

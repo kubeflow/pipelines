@@ -23,7 +23,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-func FilterOnResourceReference(tableName string, resourceType interface{}, selectCount bool,
+func FilterOnResourceReference(tableName string, resourceType common.ResourceType, selectCount bool,
 	filterContext *common.FilterContext) (sq.SelectBuilder, error) {
 	selectBuilder := sq.Select("*")
 	if selectCount {
