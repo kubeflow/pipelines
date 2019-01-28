@@ -34,7 +34,7 @@ spec:
       - name: scheduledworkflow-image
       - name: persistenceagent-image
     steps:
-      - name: build-api-server-image
+    - - name: build-api-server-image
         template: build-image
         arguments:
           parameters:
