@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import Buttons from '../lib/Buttons';
 import DetailsTable from '../components/DetailsTable';
 import RunUtils from '../lib/RunUtils';
 import { ApiExperiment } from '../apis/experiment';
@@ -44,38 +45,19 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
 
   public getInitialToolbarState(): ToolbarProps {
     return {
-      actions: [{
-        action: this.refresh.bind(this),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh',
-      }, {
-        action: () => this._setEnabledState(true),
-        disabled: true,
-        disabledTitle: 'Run schedule already enabled',
-        id: 'enableBtn',
-        title: 'Enable',
-        tooltip: 'Enable the run\'s trigger',
-      }, {
-        action: () => this._setEnabledState(false),
-        disabled: true,
-        disabledTitle: 'Run schedule already disabled',
-        id: 'disableBtn',
-        title: 'Disable',
-        tooltip: 'Disable the run\'s trigger',
-      }, {
-        action: () => this.props.updateDialog({
+      actions: [
+        Buttons.refresh(this.refresh.bind(this)),
+        Buttons.enableRun(() => this._setEnabledState(true)),
+        Buttons.disableRun(() => this._setEnabledState(false)),
+        Buttons.delete(() => this.props.updateDialog({
           buttons: [
             { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
             { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
           ],
           onClose: () => this._deleteDialogClosed(false),
           title: 'Delete this recurring run?',
-        }),
-        id: 'deleteBtn',
-        title: 'Delete',
-        tooltip: 'Delete this recurring run',
-      }],
+        })),
+      ],
       breadcrumbs: [],
       pageTitle: '',
     };

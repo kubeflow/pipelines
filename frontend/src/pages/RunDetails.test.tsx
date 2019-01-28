@@ -139,7 +139,7 @@ describe('RunDetails', () => {
     await TestUtils.flushPromises();
     const instance = tree.instance() as RunDetails;
     const cloneBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Clone');
+      b => b.title === 'Clone run');
     expect(cloneBtn).toBeDefined();
     await cloneBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
