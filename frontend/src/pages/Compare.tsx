@@ -15,11 +15,10 @@
  */
 
 import * as React from 'react';
+import Buttons from '../lib/Buttons';
 import CollapseButton from '../components/CollapseButton';
-import CollapseIcon from '@material-ui/icons/UnfoldLess';
 import CompareTable, { CompareTableProps } from '../components/CompareTable';
 import CompareUtils from '../lib/CompareUtils';
-import ExpandIcon from '@material-ui/icons/UnfoldMore';
 import Hr from '../atoms/Hr';
 import PlotCard, { PlotCardProps } from '../components/PlotCard';
 import RunList from './RunList';
@@ -27,6 +26,7 @@ import Separator from '../atoms/Separator';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ApiRunDetail } from '../apis/run';
 import { Apis } from '../lib/Apis';
+import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { Page } from './Page';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
@@ -36,7 +36,6 @@ import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
-import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { logger } from '../lib/Utils';
 
 const css = stylesheet({
@@ -83,19 +82,10 @@ class Compare extends Page<{}, CompareState> {
 
   public getInitialToolbarState(): ToolbarProps {
     return {
-      actions: [{
-        action: () => this.setState({ collapseSections: {} }),
-        icon: ExpandIcon,
-        id: 'expandBtn',
-        title: 'Expand all',
-        tooltip: 'Expand all sections',
-      }, {
-        action: this._collapseAllSections.bind(this),
-        icon: CollapseIcon,
-        id: 'collapseBtn',
-        title: 'Collapse all',
-        tooltip: 'Collapse all sections',
-      }],
+      actions: [
+        Buttons.expandSections(() => this.setState({ collapseSections: {} })),
+        Buttons.collapseSections(this._collapseAllSections.bind(this)),
+      ],
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'Compare runs',
     };

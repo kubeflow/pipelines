@@ -63,7 +63,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('creates a new experiment out of this pipeline', () => {
-    $('#createNewExperimentBtn').click();
+    $('#newExperimentBtn').click();
     browser.waitUntil(() => {
       return new URL(browser.getUrl()).hash.startsWith('#/experiments/new');
     }, waitTimeout);
