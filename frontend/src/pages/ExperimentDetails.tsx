@@ -17,6 +17,7 @@
 import * as React from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import Button from '@material-ui/core/Button';
+import Buttons from '../lib/Buttons';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -163,12 +164,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   public getInitialToolbarState(): ToolbarProps {
     return {
-      actions: [{
-        action: this.refresh.bind(this),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh',
-      }],
+      actions: [Buttons.refresh(this.refresh.bind(this))],
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       // TODO: determine what to show if no props.
       pageTitle: this.props ? this.props.match.params[RouteParams.experimentId] : '',

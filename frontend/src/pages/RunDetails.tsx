@@ -16,6 +16,7 @@
 
 import * as React from 'react';
 import Banner, { Mode } from '../components/Banner';
+import Buttons from '../lib/Buttons';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
@@ -110,17 +111,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
   public getInitialToolbarState(): ToolbarProps {
     return {
-      actions: [{
-        action: this._cloneRun.bind(this),
-        id: 'cloneBtn',
-        title: 'Clone',
-        tooltip: 'Clone',
-      }, {
-        action: this.refresh.bind(this),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh',
-      }],
+      actions: [
+        Buttons.cloneRun(this._cloneRun.bind(this)),
+        Buttons.refresh(this.refresh.bind(this)),
+      ],
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: this.props.runId!,
     };

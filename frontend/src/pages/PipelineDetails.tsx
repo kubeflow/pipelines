@@ -19,8 +19,8 @@ import 'codemirror/mode/yaml/yaml.js';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
-import AddIcon from '@material-ui/icons/Add';
 import Button from '@material-ui/core/Button';
+import Buttons from '../lib/Buttons';
 import Graph from '../components/Graph';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import MD2Tabs from '../atoms/MD2Tabs';
@@ -114,15 +114,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   public getInitialToolbarState(): ToolbarProps {
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-    const actions: ToolbarActionConfig[] = [{
-      action: () => this._createNewRun(),
-      icon: AddIcon,
-      id: 'createNewRunBtn',
-      outlined: true,
-      primary: true,
-      title: 'Create run',
-      tooltip: 'Create a new run within this pipeline',
-    }];
+    let actions: ToolbarActionConfig[] = [Buttons.newRun(this._createNewRun.bind(this))];
 
     if (fromRunId) {
       return {
@@ -134,26 +126,17 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       };
     } else {
       // Add buttons for creating experiment and deleting pipeline
-      actions.push({
-        action: this._createNewExperiment.bind(this),
-        icon: AddIcon,
-        id: 'createNewExperimentBtn',
-        outlined: true,
-        title: 'Create an experiment',
-        tooltip: 'Create a new experiment beginning with this pipeline',
-      }, {
-        action: () => this.props.updateDialog({
+      actions = actions.concat([
+        Buttons.newExperiment(this._createNewExperiment.bind(this)),
+        Buttons.delete(() => this.props.updateDialog({
           buttons: [
             { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
             { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
           ],
           onClose: () => this._deleteDialogClosed(false),
           title: 'Delete this pipeline?',
-        }),
-        id: 'deleteBtn',
-        title: 'Delete',
-        tooltip: 'Delete this pipeline',
-      });
+        }))
+      ]);
       return {
         actions,
         breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
