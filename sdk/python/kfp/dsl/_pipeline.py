@@ -86,6 +86,7 @@ class Pipeline():
     # Add the root group.
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
     self.group_id = 0
+    self.imagepullsecret = None
 
   def __enter__(self):
     if Pipeline._default_pipeline:
@@ -139,3 +140,15 @@ class Pipeline():
 
     self.group_id += 1
     return self.group_id
+
+  # The following functions are used by the users to customize pipeline level configurations
+  # Note: call these function inside the pipeline python function.
+  @staticmethod
+  def set_imagepullsecret(secret_name):
+    """ configure the pipeline level imagepullsecret
+
+    Args:
+      secret_name (str): kubernetes secret name
+    """
+    Pipeline._default_pipeline.imagepullsecret = secret_name
+

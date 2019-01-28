@@ -450,6 +450,9 @@ class Compiler(object):
         param['value'] = str(arg.value)
       input_params.append(param)
 
+    # Image Pull Secrets
+    image_pull_secrets = pipeline.imagepullsecret
+
     # Templates
     templates = self._create_templates(pipeline)
     templates.sort(key=lambda x: x['name'])
@@ -476,6 +479,10 @@ class Compiler(object):
         'serviceAccountName': 'pipeline-runner'
       }
     }
+    if image_pull_secrets:
+      workflow['spec']['imagePullSecrets'] = [
+        {'name': image_pull_secrets}
+      ]
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
     if volumes:
