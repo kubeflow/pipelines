@@ -60,24 +60,24 @@ func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experime
 		tx.Rollback()
 		return errorF(err)
 	}
+	defer rows.Close()
 	exps, err := s.scanRows(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	defer sizeRow.Close()
 	total_size, err := ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
