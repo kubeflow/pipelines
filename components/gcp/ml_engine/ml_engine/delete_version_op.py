@@ -17,57 +17,52 @@ import logging
 
 from googleapiclient import errors
 
-from kfp_components import BaseOp
-from ml_engine import utils
+import gcp_common
+from kfp_component import BaseOp
+from ml_engine.client import MLEngineClient
+from ._common_ops import wait_existing_version, wait_for_operation_done
 
 class DeleteVersionOp(BaseOp):
+    """Operation for deleting a MLEngine version.
 
-    def __init__(self, project_id, model_name, version_name, staging_dir, wait_interval):
+    Args:
+        project_id: the ID of the parent project.
+        model_name: the name of the parent model.
+        version_name: the name of the version.
+        wait_interval: the interval to wait for a long running operation.
+    """
+    def __init__(self, project_id, model_name, version_name, wait_interval):
         super().__init__()
-        if staging_dir:
-            self.enable_staging(staging_dir, '{}/{}/{}'.format(project_id, model_name, version_name))
-        self._ml = utils.create_ml_client()
+        self._ml = MLEngineClient()
         self._project_id = project_id
-        self._model_name = model_name
-        self._version_name = version_name
+        self._model_name = gcp_common.normalize_name(model_name)
+        self._version_name = gcp_common.normalize_name(version_name)
         self._wait_interval = wait_interval
+        self._delete_operation_name = None
 
     def on_executing(self):
-        operation_name = self.staging_states.get('operation_name', None)
-        if operation_name:
-            self._wait_for_done(operation_name)
-            return
+        existing_version = wait_existing_version(self._ml, 
+            self._project_id, self._model_name, self._version_name, 
+            self._wait_interval)
+        if not existing_version:
+            logging.info('The version has already been deleted.')
+            return None
 
-        name = 'projects/{}/models/{}/versions/{}'.format(
-            self._project_id,
-            self._model_name,
-            self._version_name
-        )
-        request = self._ml.projects().models().versions().delete(
-            name = name
-        )
-        operation = None
+        logging.info('Deleting existing version...')
+        operation = self._ml.delete_version(
+                self._project_id, self._model_name, self._version_name)
+        # Cache operation name for cancellation.
+        self._delete_operation_name = operation.get('name')
         try:
-            operation = request.execute()
-        except errors.HttpError as e:
-            if e.resp.status == 404:
-                logging.warning('Version {} does not exist'.format(name))
-                pass
-            else:
-                raise
+            wait_for_operation_done(
+                self._ml,
+                self._delete_operation_name, 
+                'delete version',
+                self._wait_interval)
+        finally:
+            self._delete_operation_name = None
+        return None
 
-        if operation:
-            self._wait_for_done(operation.get('name'))
-
-    def _wait_for_done(self, operation_name):
-        self.staging_states['operation_name'] = operation_name
-        operation = utils.wait_for_operation_done(self._ml, operation_name, self._wait_interval)
-        if operation.error:
-            raise RuntimeError('Failed to delete version. Error: {}'.format(operation.error))
-        if operation.response:
-            self._dump_response(operation.response)
-        
-    def _dump_response(self, response):
-        logging.info('Dumping response: {}'.format(response))
-        with open('/tmp/response.json', 'w') as f:
-            json.dump(response, f)
+    def on_cancelling(self):
+        if self._delete_operation_name:
+            self._ml.cancel_operation(self._delete_operation_name)

@@ -48,3 +48,39 @@ def normalize_name(name,
             logging.info('Normalize name from "{}" to "{}".'.format(
                 name, normalized_name))
         return normalized_name
+
+def dump_file(path, content):
+    """Dumps string into local file.
+
+    Args:
+        path: the local path to the file.
+        content: the string content to dump.
+    """
+    with open(path, 'w') as f:
+            f.write(content)
+
+def check_resource_changed(requested_resource, 
+    existing_resource, property_names):
+    """Check if a resource has been changed.
+
+    The function checks requested resource with existing resource
+    by comparing specified property names. Check fails if any property
+    name in the list is in ``requested_resource`` but its value is
+    different with the value in ``existing_resource``.
+
+    Args:
+        requested_resource: the user requested resource paylod.
+        existing_resource: the existing resource payload from data storage.
+        property_names: a list of property names.
+
+    Return:
+        True if ``requested_resource`` has been changed.
+    """
+    for property_name in property_names:
+        if not property_name in requested_resource:
+            continue
+        existing_value = existing_resource.get(property_name, None)
+        if requested_resource[property_name] != existing_value:
+            return True
+    return False
+

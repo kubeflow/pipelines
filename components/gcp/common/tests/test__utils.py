@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from gcp_common import normalize_name
+from gcp_common import normalize_name, check_resource_changed
 import unittest
 
 class UtilsTest(unittest.TestCase):
@@ -37,3 +37,41 @@ class UtilsTest(unittest.TestCase):
         normalized_name = normalize_name(name)
 
         self.assertEqual('x_9invalid_name', normalized_name)  
+
+    def test_check_resource_changed_unchange(self):
+        requested_resource = {
+            'p1': 'v1',
+            'p2': 'v2'
+        }
+        existing_resource = {
+            'p1': 'v1',
+            'p2': 'v2',
+            'p3': 'v3'
+        }
+
+        returned = check_resource_changed(
+            requested_resource,
+            existing_resource,
+            ['p1', 'p2', 'p3']
+        )
+
+        self.assertFalse(returned)
+
+    def test_check_resource_changed_change(self):
+        requested_resource = {
+            'p1': 'v1',
+            'p2': 'v2'
+        }
+        existing_resource = {
+            'p1': 'v1',
+            'p2': 'v2_changed',
+            'p3': 'v3'
+        }
+
+        returned = check_resource_changed(
+            requested_resource,
+            existing_resource,
+            ['p1', 'p2', 'p3']
+        )
+
+        self.assertTrue(returned)
