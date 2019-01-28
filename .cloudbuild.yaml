@@ -63,7 +63,6 @@ steps:
          '--build-arg', 'SCHEDULED_WORKFLOW_IMAGE=gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA',
          '--build-arg', 'PERSISTENCE_AGENT_IMAGE=gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA',
          '--build-arg', 'UI_IMAGE=gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA',
-         '--build-arg', 'VIEWER_CRD_CONTROLLER_IMAGE=gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA',
          '-t', 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA', '/workspace/pipeline']
   id:   'buildBootstrapper'
 - name: 'debian'
