@@ -71,24 +71,24 @@ func (s *JobStore) ListJobs(
 	if err != nil {
 		return errorF(err)
 	}
-	defer rows.Close()
 	jobs, err := s.scanRows(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer sizeRow.Close()
-	total_size, err := ScanRowToTotalSize(sizeRow)
+	total_size, err := list.ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
@@ -106,7 +106,7 @@ func (s *JobStore) ListJobs(
 
 func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	filterContext *common.FilterContext) (string, []interface{}, error) {
-	filteredSelectBuilder, err := FilterOnResourceReference("jobs", common.Job, selectCount, filterContext)
+	filteredSelectBuilder, err := list.FilterOnResourceReference("jobs", common.Job, selectCount, filterContext)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}

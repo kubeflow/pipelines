@@ -91,24 +91,24 @@ func (s *RunStore) ListRuns(
 	if err != nil {
 		return errorF(err)
 	}
-	defer rows.Close()
 	runDetails, err := s.scanRowsToRunDetails(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer sizeRow.Close()
-	total_size, err := ScanRowToTotalSize(sizeRow)
+	total_size, err := list.ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
@@ -132,7 +132,7 @@ func (s *RunStore) ListRuns(
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	filterContext *common.FilterContext) (string, []interface{}, error) {
-	filteredSelectBuilder, err := FilterOnResourceReference("run_details", common.Run, selectCount, filterContext)
+	filteredSelectBuilder, err := list.FilterOnResourceReference("run_details", common.Run, selectCount, filterContext)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
