@@ -22,21 +22,30 @@ from googleapiclient import errors
 
 import gcp_common
 from kfp_component import BaseOp
-from ml_engine.mlengine_client import MLEngineClient
+from ml_engine.client import MLEngineClient
 
 class CreateJobOp(BaseOp):
-    
-    def __init__(self, project_id, job):
+    """Operation for creating a MLEngine job.
+
+    Args:
+        project_id: the ID of the parent project of the job.
+        job: the payload of the job. Must have ``jobId`` 
+            and ``trainingInput`` or ``predictionInput`.
+        wait_interval: optional wait interval between calls
+            to get job status. Defaults to 30.
+
+    """
+    def __init__(self, project_id, job, wait_interval=30):
         super().__init__()
         self._ml = MLEngineClient()
         self._project_id = project_id
         self._job_id = gcp_common.normalize_name(job['jobId'])
         job['jobId'] = self._job_id
         self._job = job
+        self._wait_interval = wait_interval
     
     def on_executing(self):
         self._dump_metadata()
-
         try:
             self._ml.create_job(
                 project_id = self._project_id,
@@ -61,16 +70,16 @@ class CreateJobOp(BaseOp):
 
     def on_cancelling(self):
         try:
-            logging.info('Cancelling job {}.'.format(job_name))
+            logging.info('Cancelling job {}.'.format(self._job_id))
             self._ml.cancel_job(self._project_id, self._job_id)
-            logging.info('Cancelled job {}.'.format(job_name))
+            logging.info('Cancelled job {}.'.format(self._job_id))
         except errors.HttpError as e:
             # Best effort to cancel the job
             logging.error('Failed to cancel the job: {}'.format(e))
             pass
 
     def _is_dup_job(self):
-        existing_job = self._get_job()
+        existing_job = self._ml.get_job(self._project_id, self._job_id)
         return existing_job.get('trainingInput', None) == self._job.get('trainingInput', None) \
             and existing_job.get('predictionInput', None) == self._job.get('predictionInput', None)
 
@@ -80,9 +89,9 @@ class CreateJobOp(BaseOp):
             if job.get('state', None) in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
                 return job
             # Move to config from flag
-            logging.info('job status is {}, wait for {}s'.format(job.get('state', None), 30))
-            time.sleep(30)
-        return job
+            logging.info('job status is {}, wait for {}s'.format(
+                job.get('state', None), self._wait_for_done))
+            time.sleep(self._wait_for_done)
 
     def _dump_metadata(self):
         metadata = {
@@ -105,10 +114,10 @@ class CreateJobOp(BaseOp):
                 'source': self._job['trainingInput']['jobDir'],
             })
         logging.info('Dumping UI metadata: {}'.format(metadata))
-        with open('/tmp/mlpipeline-ui-metadata.json', 'w') as f:
-            json.dump(metadata, f)
+        gcp_common.dump_file('/mlpipeline-ui-metadata.json', 
+            json.dumps(metadata))
 
     def _dump_job(self, job):
         logging.info('Dumping job: {}'.format(job))
-        with open('/tmp/job.json', 'w') as f:
-            json.dump(job, f)
+        gcp_common.dump_file('/output.txt', json.dumps(job))
+        gcp_common.dump_file('/job_id.txt', job['jobId'])

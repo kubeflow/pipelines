@@ -14,56 +14,128 @@
 
 import json
 import logging
+import time
 
 from googleapiclient import errors
 
-from kfp.gcp.core.base_op import BaseOp
-from kfp.gcp.core import name_utils
-from ml_engine import utils
+import gcp_common
+from kfp_component import BaseOp
+from ml_engine.client import MLEngineClient
+from ._common_ops import wait_existing_version, wait_for_operation_done
 
 class CreateVersionOp(BaseOp):
+    """Operation for creating a MLEngine version.
 
-    def __init__(self, project_id, model_name, version, staging_dir, wait_interval):
+    Args:
+        project_id: the ID of the parent project.
+        model_name: the name of the parent model.
+        version: the payload of the new version. It must have a ``name`` in it.
+        replace_existing: boolean flag indicates whether to replace existing 
+            version in case of conflict.
+        wait_interval: the interval to wait for a long running operation.
+    """
+    def __init__(self, project_id, model_name, version, replace_existing, wait_interval):
         super().__init__()
-        self._ml = utils.create_ml_client()
+        self._ml = MLEngineClient()
         self._project_id = project_id
-        self._model_name = model_name
-        self._version_name = name_utils.normalize(version['name'])
+        self._model_name = gcp_common.normalize_name(model_name)
+        self._version_name = gcp_common.normalize_name(version['name'])
         version['name'] = self._version_name
         self._version = version
+        self._replace_existing = replace_existing
         self._wait_interval = wait_interval
-        if staging_dir:
-            self.enable_staging(staging_dir, '{}/{}/{}'.format(project_id, model_name, self._version_name))
+        self._create_operation_name = None
+        self._delete_operation_name = None
 
     def on_executing(self):
-        operation_name = self.staging_states.get('operation_name', None)
-        if operation_name:
-            return self._wait_for_done(operation_name)
+        self._dump_metadata()
+        existing_version = wait_existing_version(self._ml, 
+            self._project_id, self._model_name, self._version_name, 
+            self._wait_interval)
+        if existing_version and self._is_dup_version(existing_version):
+            return self._handle_completed_version(existing_version)
 
-        parent = 'projects/{}/models/{}'.format(self._project_id, self._model_name)
-        request = self._ml.projects().models().versions().create(
-            parent = parent,
-            body = self._version
-        )
-        operation = request.execute()
-        if operation:
-            self._wait_for_done(operation.get('name'))
+        if existing_version and self._replace_existing:
+            logging.info('Deleting existing version...')
+            self._delete_version_and_wait()
+        elif existing_version:
+            raise RuntimeError(
+                'Existing version conflicts with the name of the new version.')
+        
+        created_version = self._create_version_and_wait()
+        return self._handle_completed_version(created_version)
 
     def on_cancelling(self):
-        operation_name = self.staging_states.get('operation_name', None)
-        if operation_name:
-            self._ml.projects().operations().cancel(name=operation_name).execute()
+        if self._delete_operation_name:
+            self._ml.cancel_operation(self._delete_operation_name)
 
-    def _wait_for_done(self, operation_name):
-        self.staging_states['operation_name'] = operation_name
-        operation = utils.wait_for_operation_done(self._ml, operation_name, self._wait_interval)
-        error = operation.get('error', None)
-        response = operation.get('response', None)
-        if error:
-            raise RuntimeError('Failed to create version. Error: {}'.format(error))
-        if response:
-            self._dump_response(response)
+        if self._create_operation_name:
+            self._ml.cancel_operation(self._create_operation_name)
+
+    def _create_version_and_wait(self):
+        operation = self._ml.create_version(self._project_id, 
+            self._model_name, self._version)
+        # Cache operation name for cancellation.
+        self._create_operation_name = operation.get('name')
+        try:
+            operation = wait_for_operation_done(
+                self._ml,
+                self._create_operation_name, 
+                'create version',
+                self._wait_interval)
+        finally:
+            self._create_operation_name = None
+        return operation.get('response', None)
+
+    def _delete_version_and_wait(self):
+        operation = self._ml.delete_version(
+                self._project_id, self._model_name, self._version_name)
+        # Cache operation name for cancellation.
+        self._delete_operation_name = operation.get('name')
+        try:
+            wait_for_operation_done(
+                self._ml,
+                self._delete_operation_name, 
+                'delete version',
+                self._wait_interval)
+        finally:
+            self._delete_operation_name = None
         
+    def _handle_completed_version(self, version):
+        state = version.get('state', None)
+        if state == 'FAILED':
+            error_message = version.get('errorMessage', 'Unknown failure')
+            raise RuntimeError('Version is in failed state: {}'.format(
+                error_message))
+        self._dump_version(version)
+        return version
+
+    def _dump_metadata(self):
+        metadata = {
+            'outputs' : [{
+                'type': 'link',
+                'name': 'version details',
+                'href': 'https://console.cloud.google.com/mlengine/models/{}/versions/{}?project={}'.format(
+                    self._model_name, self._version_name, self._project_id)
+            }]
+        }
+        logging.info('Dumping UI metadata: {}'.format(metadata))
+        gcp_common.dump_file('/mlpipeline-ui-metadata.json', json.dumps(metadata))
+
+    def _dump_version(self, version):
+        logging.info('Dumping version: {}'.format(version))
+        gcp_common.dump_file('/output.txt', json.dumps(version))
+        gcp_common.dump_file('/version_name.txt', version['name'])
+
+    def _is_dup_version(self, existing_version):
+        return not gcp_common.check_resource_changed(
+            self._version,
+            existing_version,
+            ['description', 'deploymentUri', 
+                'runtimeVersion', 'machineType', 'labels',
+                'framework', 'pythonVersion', 'autoScaling',
+                'manualScaling'])
+
     def _dump_response(self, response):
         logging.info('Dumping response: {}'.format(response))
         with open('/tmp/response.json', 'w') as f:
