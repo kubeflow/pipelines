@@ -61,18 +61,12 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
               </span>
             </div>
           </div>
@@ -176,18 +170,12 @@ exports[`RunDetails does not load logs if clicked node status is skipped 1`] = `
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
               </span>
             </div>
           </div>
@@ -291,18 +279,12 @@ exports[`RunDetails keeps side pane open and on same tab when logs change after 
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
               </span>
             </div>
           </div>
@@ -500,18 +482,12 @@ exports[`RunDetails loads and shows logs in side pane 1`] = `
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
               </span>
             </div>
           </div>
@@ -657,18 +633,12 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
               </span>
             </div>
           </div>
@@ -781,18 +751,12 @@ exports[`RunDetails shows a one-node graph 1`] = `
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
               </span>
             </div>
           </div>
@@ -891,18 +855,12 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
               </span>
             </div>
           </div>
@@ -1016,18 +974,12 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
               </span>
             </div>
           </div>
@@ -1129,18 +1081,12 @@ exports[`RunDetails shows error banner atop logs area if fetching logs failed 1`
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
               </span>
             </div>
           </div>
@@ -1590,18 +1536,12 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
               </span>
             </div>
           </div>
@@ -1709,18 +1649,12 @@ exports[`RunDetails switches to logs tab in side pane 1`] = `
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
               >
-                Runtime execution graph. Only steps that are currently running or have already completed are shown
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
               </span>
             </div>
           </div>

@@ -99,7 +99,7 @@ const css = stylesheet({
     margin: 10,
     position: 'absolute',
     // TODO: can this be calculated?
-    transform: 'translate(76px, 20px)'
+    transform: 'translate(73px, 16px)'
   },
   root: {
     backgroundColor: color.graphBg,

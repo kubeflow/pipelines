@@ -232,9 +232,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
                   <div className={css.footer}>
                   <div className={commonCss.flex}>
-                    <InfoIcon style={{ color: color.lowContrast, height: 16, width: 16 }} />
+                    <InfoIcon className={commonCss.infoIcon} />
                     <span className={css.infoSpan}>
-                      Runtime execution graph. Only steps that are currently running or have already completed are shown
+                      Runtime execution graph. Only steps that are currently running or have already completed are shown.
                     </span>
                   </div>
                 </div>

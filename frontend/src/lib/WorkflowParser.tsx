@@ -266,8 +266,8 @@ export default class WorkflowParser {
   private static _placeholderNodeIcon(): JSX.Element {
     return (
       <Tooltip title='More nodes may appear here'>
-        <span style={{ height: 18 }}>
-          <MoreIcon style={{ color: color.weak, height: 18, width: 18 }} />
+        <span style={{ height: 24 }}>
+          <MoreIcon style={{ color: color.weak, height: 24, width: 24 }} />
         </span>
       </Tooltip>
     );
