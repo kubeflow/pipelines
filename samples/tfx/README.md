@@ -1,4 +1,4 @@
-The `taxi-cab-classification-pipeline.py` sample runs a pipeline with TensorFlow's transform and model-analysis components.
+The sample runs a pipeline with TensorFlow's transform and model-analysis components. The `taxi-cab-classification-pipeline-gcp.py` is for GCP and `taxi-cab-classification-pipeline-on-prem.py` is for on-prem cluster.
 
 ## The dataset
 
@@ -19,30 +19,54 @@ dataset in [Google BigQuery](https://cloud.google.com/bigquery/). Explore the
 full dataset in the
 [BigQuery UI](https://bigquery.cloud.google.com/dataset/bigquery-public-data:chicago_taxi_trips).
 
+
 ## Requirements
 
-Preprocessing and model analysis use [Apache Beam](https://beam.apache.org/).
+- Using GCP
 
-When run with the `cloud` mode (instead of the `local` mode), those steps use [Google Cloud DataFlow](https://beam.apache.org/) for running the Beam pipelines.
+  Preprocessing and model analysis use [Apache Beam](https://beam.apache.org/).
 
-Therefore, you must enable the DataFlow API for the given GCP project if you want to use `cloud` as the mode for either preprocessing or analysis. See the [guide to enabling the DataFlow API](https://cloud.google.com/endpoints/docs/openapi/enable-api).
+  When run with the `cloud` mode (instead of the `local` mode), those steps use [Google Cloud DataFlow](https://beam.apache.org/) for running the Beam pipelines.
+
+  Therefore, you must enable the DataFlow API for the given GCP project if you want to use `cloud` as the mode for either preprocessing or analysis. See the [guide to enabling the DataFlow API](https://cloud.google.com/endpoints/docs/openapi/enable-api).
+
+- On-prem cluster
+
+  When run the on-prem clusters, follow the [document](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) to create the persistent volume and persistent volume claim to storage the intermediate data and result. Note that the `accessModes` should be `ReadWriteMany` so that the volume can be mounted as read-write by many nodes. For example, the `taxi-cab-classification-pipeline_on-prem.py` sample is associated with a persistent volume claim that's named `pipeline-pvc`.
+
 
 ## Compiling the pipeline template
 
 Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
 
-```bash
-dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
-```
+- GCP
+  ```bash
+  dsl-compile --py taxi-cab-classification-pipeline-gcp.py --output taxi-cab-classification-pipeline.tar.gz
+  ```
+- On-prem cluster
+  ```bash
+  dsl-compile --py taxi-cab-classification-pipeline-on-prem.py --output taxi-cab-classification-pipeline.tar.gz
+  ```
 
 ## Deploying the pipeline
 
 Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compiled specification (`.tar.gz` file) as a new pipeline template.
 
-The pipeline requires two arguments:
+### GCP
 
-1. The name of a GCP project.
-2. An output directory in a Google Cloud Storage bucket, of the form `gs://<BUCKET>/<PATH>`.
+  The pipeline requires two arguments:
+
+  1. The name of a GCP project.
+  2. An output directory in a Google Cloud Storage bucket, of the form `gs://<BUCKET>/<PATH>`.
+
+### On-prem cluster
+
+- Before deploying the pipeline, download the training and evaluation data [taxi-cab-classification](https://github.com/kubeflow/pipelines/tree/master/samples/tfx/taxi-cab-classification) from Github, and copy the directory to the persistent volume storage.
+  
+- Following the [guide](https://www.kubeflow.org/docs/pipelines/pipelines-ui/) to run an experiment and a run inside the experiment.
+
+  **Limitation**: The value of the pvc_name parameter must be consistent with the value as it is specified in the pipeline definition of the `taxi-cab-classification-pipeline-on-perm.py` file. See the [dsl PipelineParam does not work under Image or Command](https://github.com/kubeflow/pipelines/issues/521) issue for more information about this limitation.
+
 
 ## Components source
 
@@ -61,3 +85,4 @@ Analysis:
 Prediction:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict/src) 
   [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict)
+
