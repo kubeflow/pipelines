@@ -97,7 +97,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Create a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],
@@ -450,7 +450,7 @@ exports[`ExperimentDetails removes all description text after second newline and
             "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Create a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],
@@ -790,7 +790,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Create a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],
@@ -1128,7 +1128,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Create a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],

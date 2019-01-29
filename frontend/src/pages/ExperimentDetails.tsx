@@ -15,7 +15,6 @@
  */
 
 import * as React from 'react';
-import AddIcon from '@material-ui/icons/Add';
 import Button from '@material-ui/core/Button';
 import Buttons from '../lib/Buttons';
 import Dialog from '@material-ui/core/Dialog';

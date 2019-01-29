@@ -99,7 +99,7 @@ const Buttons: ButtonsMap = {
     id: 'createNewRecurringRunBtn',
     outlined: true,
     title: 'Create recurring run',
-    tooltip: 'Create a new recurring run in this experiment',
+    tooltip: 'Create a new recurring run',
   }),
   newRun: action => ({
     action,

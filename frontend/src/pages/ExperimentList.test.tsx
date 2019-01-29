@@ -133,14 +133,20 @@ describe('ExperimentList', () => {
   it('calls Apis to list experiments, sorted by creation time in descending order', async () => {
     const tree = await mountWithNExperiments(1, 1);
     expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
-    expect(listRunsSpy).toHaveBeenLastCalledWith(undefined, 5, 'created_at desc',
-      ApiResourceType.EXPERIMENT.toString(), 'test-experiment-id0', encodeURIComponent(JSON.stringify({
+    expect(listRunsSpy).toHaveBeenLastCalledWith(
+      undefined,
+      5,
+      'created_at desc',
+      ApiResourceType.EXPERIMENT.toString(),
+      'test-experiment-id0',
+      encodeURIComponent(JSON.stringify({
         predicates: [{
           key: 'storage_state',
           op: PredicateOp.NOTEQUALS,
           string_value: RunStorageState.ARCHIVED.toString(),
         }],
-      } as ApiFilter)));
+      } as ApiFilter)),
+    );
     expect(tree.state()).toHaveProperty('displayExperiments', [{
       expandState: ExpandState.COLLAPSED,
       id: 'test-experiment-id0',
