@@ -1,2 +1,1 @@
 kubernetes
-google-cloud-storage
