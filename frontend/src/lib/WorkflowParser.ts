@@ -15,9 +15,8 @@
  */
 
 import * as dagre from 'dagre';
-import * as React from 'react';
+import IconWithTooltip from '../atoms/IconWithTooltip';
 import MoreIcon from '@material-ui/icons/MoreHoriz';
-import Tooltip from '@material-ui/core/Tooltip';
 import { Workflow, NodeStatus, Parameter } from '../../third_party/argo-ui/argo_template';
 import { statusToIcon, NodePhase, hasFinished } from '../pages/Status';
 import { color } from '../Css';
@@ -84,7 +83,13 @@ export default class WorkflowParser {
         if (!hasFinished(node.phase as NodePhase) && !this.isVirtual(node)) {
           g.setNode(node.id + runningNodeSuffix, {
             height: PLACEHOLDER_NODE_DIMENSION,
-            icon: this._placeholderNodeIcon(),
+            icon: IconWithTooltip({
+              Icon: MoreIcon,
+              height: 24,
+              iconColor: color.weak,
+              tooltip: 'More nodes may appear here',
+              width: 24,
+            }),
             isPlaceholder: true,
             width: PLACEHOLDER_NODE_DIMENSION,
           });
@@ -261,15 +266,5 @@ export default class WorkflowParser {
     } else {
       return '';
     }
-  }
-
-  private static _placeholderNodeIcon(): JSX.Element {
-    return (
-      <Tooltip title='More nodes may appear here'>
-        <span style={{ height: 24 }}>
-          <MoreIcon style={{ color: color.weak, height: 24, width: 24 }} />
-        </span>
-      </Tooltip>
-    );
   }
 }

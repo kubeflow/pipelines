@@ -668,6 +668,50 @@ describe('RunDetails', () => {
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
   });
 
+  it('displays a spinner if graph is not defined and run has not finished', async () => {
+    const unfinishedRun = {
+      pipeline_runtime: {
+        // No graph
+        workflow_manifest: '{}',
+      },
+      run: {
+        id: 'test-run-id',
+        name: 'test run',
+        // Run has not finished
+        status: 'Running',
+      },
+    };
+    getRunSpy.mockImplementationOnce(() => Promise.resolve(unfinishedRun));
+
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('displays a message indicating there is no graph if graph is not defined and run has finished', async () => {
+    const unfinishedRun = {
+      pipeline_runtime: {
+        // No graph
+        workflow_manifest: '{}',
+      },
+      run: {
+        id: 'test-run-id',
+        name: 'test run',
+        // Run has finished
+        status: 'Succeeded',
+      },
+    };
+    getRunSpy.mockImplementationOnce(() => Promise.resolve(unfinishedRun));
+
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+
+    expect(tree).toMatchSnapshot();
+  });
+
   describe('auto refresh', () => {
     beforeEach(() => {
       testRun.run!.status = NodePhase.PENDING;

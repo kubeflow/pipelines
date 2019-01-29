@@ -77,6 +77,83 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
 </div>
 `;
 
+exports[`RunDetails displays a message indicating there is no graph if graph is not defined and run has finished 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div>
+          <span
+            style={
+              Object {
+                "margin": "40px auto",
+              }
+            }
+          >
+            No graph to show
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails displays a spinner if graph is not defined and run has not finished 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div>
+          <WithStyles(CircularProgress)
+            className="absoluteCenter"
+            size={30}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`RunDetails does not load logs if clicked node status is skipped 1`] = `
 <div
   className="page"
