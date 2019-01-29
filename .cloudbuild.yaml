@@ -50,6 +50,10 @@ steps:
          '/workspace/backend/Dockerfile.scheduledworkflow', '/workspace']
   id:   'buildScheduledWorkflow'
 - name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA', '-f',
+         '/workspace/backend/Dockerfile.viewercontroller', '/workspace']
+  id:   'buildViewerCrdController'
+- name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA', '-f',
          '/workspace/backend/Dockerfile.persistenceagent', '/workspace']
   id:   'buildPersistenceAgent'
@@ -118,11 +122,11 @@ steps:
          '/workspace/components/kubeflow/deployer']
   id: 'buildDeployer'
 - name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash' 
+  entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/kubeflow/launcher && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildLauncher'
 - name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash' 
+  entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/kubeflow/dnntrainer && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA -l ml-pipeline-kubeflow-tf-trainer-gpu -b 1.6.0-gpu']
   id: 'buildGpuTrainer'
 
@@ -192,6 +196,7 @@ images:
 - 'gcr.io/$PROJECT_ID/api-server:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA'
 
 # Images for the Dataflow-based pipeline components
