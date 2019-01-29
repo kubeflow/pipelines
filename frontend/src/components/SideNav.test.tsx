@@ -56,9 +56,11 @@ describe('SideNav', () => {
     localStorageIsCollapsedSpy.mockImplementation(() => false);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
     jest.resetAllMocks();
-    tree.unmount();
     (window as any).innerWidth = wideWidth;
   });
 

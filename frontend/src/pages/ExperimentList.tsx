@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import AddIcon from '@material-ui/icons/Add';
+import Buttons from '../lib/Buttons';
 import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
 import RunList from './RunList';
 import produce from 'immer';
@@ -59,33 +59,12 @@ class ExperimentList extends Page<{}, ExperimentListState> {
 
   public getInitialToolbarState(): ToolbarProps {
     return {
-      actions: [{
-        action: this._newExperimentClicked.bind(this),
-        icon: AddIcon,
-        id: 'newExperimentBtn',
-        outlined: true,
-        title: 'Create experiment',
-        tooltip: 'Create a new experiment',
-      }, {
-        action: this._compareRuns.bind(this),
-        disabled: true,
-        disabledTitle: 'Select multiple runs to compare',
-        id: 'compareBtn',
-        title: 'Compare runs',
-        tooltip: 'Compare up to 10 selected runs',
-      }, {
-        action: this._cloneRun.bind(this),
-        disabled: true,
-        disabledTitle: 'Select a run to clone',
-        id: 'cloneBtn',
-        title: 'Clone run',
-        tooltip: 'Create a copy from this run\s initial state',
-      }, {
-        action: this.refresh.bind(this),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh the list of experiments',
-      }],
+      actions: [
+        Buttons.newExperiment(this._newExperimentClicked.bind(this)),
+        Buttons.compareRuns(this._compareRuns.bind(this)),
+        Buttons.cloneRun(this._cloneRun.bind(this)),
+        Buttons.refresh(this.refresh.bind(this)),
+      ],
       breadcrumbs: [],
       pageTitle: 'Experiments',
     };

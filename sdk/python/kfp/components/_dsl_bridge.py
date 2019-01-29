@@ -21,6 +21,9 @@ def create_container_op_from_task(task_spec: TaskSpec):
     argument_values = task_spec.arguments
     component_spec = task_spec.component_ref._component_spec
 
+    if hasattr(component_spec.implementation, 'graph'):
+        raise TypeError('Cannot convert graph component to ContainerOp')
+
     inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
     container_spec = component_spec.implementation.container
 
@@ -134,7 +137,7 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
             _dummy_pipeline = dsl.Pipeline('dummy pipeline')
         _dummy_pipeline.__enter__()
 
-    from ._components import _sanitize_kubernetes_resource_name, _make_name_unique_by_adding_index
+    from ._naming import _sanitize_kubernetes_resource_name, _make_name_unique_by_adding_index
     output_name_to_kubernetes = {}
     kubernetes_name_to_output_name = {}
     for output_name in (output_paths or {}).keys():

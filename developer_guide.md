@@ -79,7 +79,7 @@ Minikube can pick your local Docker image so you don't need to upload to remote 
 
 For example, to build API server image
 ```bash
-$ docker build -t ml-pipeline-api-server backend/src
+$ docker build -t ml-pipeline-api-server -f backend/Dockerfile .
 ```
 
 ### Update deployment image

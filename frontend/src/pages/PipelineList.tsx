@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import AddIcon from '@material-ui/icons/Add';
+import Buttons from '../lib/Buttons';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
 import produce from 'immer';
@@ -27,7 +27,7 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { formatDateString, errorToMessage } from '../lib/Utils';
+import { formatDateString, errorToMessage, s } from '../lib/Utils';
 
 interface PipelineListState {
   pipelines: ApiPipeline[];
@@ -50,33 +50,18 @@ class PipelineList extends Page<{}, PipelineListState> {
 
   public getInitialToolbarState(): ToolbarProps {
     return {
-      actions: [{
-        action: () => this.setStateSafe({ uploadDialogOpen: true }),
-        icon: AddIcon,
-        id: 'uploadBtn',
-        outlined: true,
-        title: 'Upload pipeline',
-        tooltip: 'Upload pipeline',
-      }, {
-        action: () => this.refresh(),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh',
-      }, {
-        action: () => this.props.updateDialog({
+      actions: [
+        Buttons.upload(() => this.setStateSafe({ uploadDialogOpen: true })),
+        Buttons.refresh(this.refresh.bind(this)),
+        Buttons.delete(() => this.props.updateDialog({
           buttons: [
             { onClick: async () => await this._deleteDialogClosed(true), text: 'Delete' },
             { onClick: async () => await this._deleteDialogClosed(false), text: 'Cancel' },
           ],
           onClose: async () => await this._deleteDialogClosed(false),
-          title: `Delete ${this.state.selectedIds.length} pipeline${this.state.selectedIds.length === 1 ? '' : 's'}?`,
-        }),
-        disabled: true,
-        disabledTitle: 'Select at least one pipeline to delete',
-        id: 'deleteBtn',
-        title: 'Delete',
-        tooltip: 'Delete',
-      }],
+          title: `Delete ${this.state.selectedIds.length} pipeline${s(this.state.selectedIds)}?`,
+        })),
+      ],
       breadcrumbs: [],
       pageTitle: 'Pipelines',
     };
@@ -190,7 +175,7 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   private async _uploadDialogClosed(confirmed: boolean, name: string, file: File | null, url: string,
-      method: ImportMethod, description?: string): Promise<boolean> {
+    method: ImportMethod, description?: string): Promise<boolean> {
 
     if (!confirmed
       || (method === ImportMethod.LOCAL && !file)

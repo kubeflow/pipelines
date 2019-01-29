@@ -88,8 +88,10 @@ describe('ResourceSelector', () => {
     selectionChangedCbSpy.mockReset();
   });
 
-  afterEach(() => {
-    tree.unmount();
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
   });
 
   it('displays resource selector', async () => {

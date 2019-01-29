@@ -7,7 +7,7 @@ RUN apt-get update -y
 RUN apt-get install -y curl
 
 # Install ksonnet
-ARG KS_VERSION="0.11.0"
+ARG KS_VERSION="0.13.0"
 RUN curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
 RUN tar -xzf ks_${KS_VERSION}_linux_amd64.tar.gz
 RUN chmod +x ./ks_${KS_VERSION}_linux_amd64/ks

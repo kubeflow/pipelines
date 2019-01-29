@@ -35,7 +35,7 @@ describe('ExperimentList', () => {
   const historyPushSpy = jest.fn();
   const listExperimentsSpy = jest.spyOn(Apis.experimentServiceApi, 'listExperiment');
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
-    // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
+  // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
@@ -247,7 +247,7 @@ describe('ExperimentList', () => {
   it('navigates to new experiment page when Create experiment button is clicked', async () => {
     const tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
     const createBtn = (tree.instance() as ExperimentList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Create experiment');
+      .getInitialToolbarState().actions.find(b => b.title === 'Create an experiment');
     await createBtn!.action();
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_EXPERIMENT);
   });
@@ -255,7 +255,7 @@ describe('ExperimentList', () => {
   it('always has new experiment button enabled', async () => {
     const tree = await mountWithNExperiments(1, 1);
     const calls = updateToolbarSpy.mock.calls[0];
-    expect(calls[0].actions.find((b: any) => b.title === 'Create experiment')).not.toHaveProperty('disabled');
+    expect(calls[0].actions.find((b: any) => b.title === 'Create an experiment')).not.toHaveProperty('disabled');
     tree.unmount();
   });
 
