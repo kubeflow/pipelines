@@ -27,9 +27,18 @@ When run with the `cloud` mode (instead of the `local` mode), those steps use [G
 
 Therefore, you must enable the DataFlow API for the given GCP project if you want to use `cloud` as the mode for either preprocessing or analysis. See the [guide to enabling the DataFlow API](https://cloud.google.com/endpoints/docs/openapi/enable-api).
 
+For On-Premise cluster, you need to create a [Persistent Volume (PV)](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) if the [Dynamic Volume Provisioning](https://kubernetes.io/docs/concepts/storage/dynamic-provisioning/) is not enabled. The capacity of the PV needs at least 1Gi.
+
 ## Compiling the pipeline template
 
-Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
+Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK.
+
+For On-Premise cluster, update the `platform` to `onprem` in `taxi-cab-classification-pipeline.py`.
+
+```bash
+sed -i.sedbak s"/platform = 'GCP'/platform = 'onprem'/"  taxi-cab-classification-pipeline.py
+```
+Then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
 
 ```bash
 dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
@@ -39,10 +48,23 @@ dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classific
 
 Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compiled specification (`.tar.gz` file) as a new pipeline template.
 
-The pipeline requires two arguments:
+- GCP
+  The pipeline requires two arguments:
+  
+  1. The name of a GCP project.
+  2. An output directory in a Google Cloud Storage bucket, of     the form `gs://<BUCKET>/<PATH>`.
+- On-Premise
+  For On-Premise cluster, the pipeline will create a Persistent Volume Claim (PVC), and download automatically the [source date](https://github.com/kubeflow/pipelines/tree/master/samples/tfx/taxi-cab-classification) to the PVC.
+  1. The `output` is PVC mount point for the containers, can be set to `/mnt`.
+  2. The `project` can be set to `taxi-cab-classification-pipeline-onprem`.
+  3. If the PVC mounted to `/mnt`, the value of below parameters need to be set as following:
+  - `column-names`: `
+/mnt/pipelines/samples/tfx/taxi-cab-classification/column-names.json`
+  - `train`: `/mnt/pipelines/samples/tfx/taxi-cab-classification/train.csv`
+  -  `evaluation`: `/mnt/pipelines/samples/tfx/taxi-cab-classification/eval.csv`
+  -  `preprocess-module`: `/mnt/pipelines/samples/tfx/taxi-cab-classification/preprocessing.py` 
 
-1. The name of a GCP project.
-2. An output directory in a Google Cloud Storage bucket, of the form `gs://<BUCKET>/<PATH>`.
+
 
 ## Components source
 
