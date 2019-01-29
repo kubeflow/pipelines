@@ -18,6 +18,7 @@ import kfp
 from kfp import components
 from kfp import dsl
 from kfp import gcp
+from kfp import onprem
 
 
 dataflow_tf_data_validation_op  = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/dataflow/tfdv/component.yaml')
@@ -33,28 +34,38 @@ kubeflow_deploy_op              = components.load_component_from_url('https://ra
 
 
 @dsl.pipeline(
-  name='TFX Taxi Cab Classification Pipeline Example',
-  description='Example pipeline that does classification with model analysis based on a public BigQuery dataset.'
+  name='TFX Taxi Cab Classification Pipeline Example for on-prem cluster',
+  description='Example pipeline that does classification with model analysis based on a public BigQuery dataset for on-prem cluster.'
 )
 def taxi_cab_classification(
-    output,
-    project,
-    column_names='gs://ml-pipeline-playground/tfx/taxi-cab-classification/column-names.json',
+    project='taxi-cab-classification-pipeline-on-prem',
+    pvc_name='pipeline-pvc',
+    pvc_mount_path='/mnt',
+    relative_column_names='taxi-cab-classification/column-names.json',
     key_columns='trip_start_timestamp',
-    train='gs://ml-pipeline-playground/tfx/taxi-cab-classification/train.csv',
-    evaluation='gs://ml-pipeline-playground/tfx/taxi-cab-classification/eval.csv',
+    relative_train='taxi-cab-classification/train.csv',
+    relative_evaluation='taxi-cab-classification/eval.csv',
     mode='local',
-    preprocess_module='gs://ml-pipeline-playground/tfx/taxi-cab-classification/preprocessing.py',
+    relative_preprocess_module='taxi-cab-classification/preprocessing.py',
     learning_rate=0.1,
     hidden_layer_size='1500',
     steps=3000,
     analyze_slice_column='trip_start_hour'
 ):
-    output_template = str(output) + '/{{workflow.uid}}/{{pod.name}}/data'
+    output_template = str(pvc_mount_path) + '/{{workflow.uid}}/{{pod.name}}/data'
     target_lambda = """lambda x: (x['target'] > x['fare'] * 0.2)"""
     target_class_lambda = """lambda x: 1 if (x['target'] > x['fare'] * 0.2) else 0"""
 
     tf_server_name = 'taxi-cab-classification-model-{{workflow.uid}}'
+
+    column_names = str(pvc_mount_path) + '/' + str(relative_column_names)
+    train = str(pvc_mount_path) + '/' + str(relative_train)
+    evaluation = str(pvc_mount_path) + '/' + str(relative_evaluation)
+    preprocess_module = str(pvc_mount_path) + '/' + str(relative_preprocess_module)
+
+    # TODO (jinchihe) The hard code will be removed once the issue fixed
+    # kubeflow/pipelines/issues/1303
+    pvc_name='pipeline-pvc'
 
     validation = dataflow_tf_data_validation_op(
         inference_data=train,
@@ -63,8 +74,8 @@ def taxi_cab_classification(
         key_columns=key_columns,
         gcp_project=project,
         run_mode=mode,
-        validation_output=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        validation_output=output_template,
+    ).apply(onprem.mount_pvc(pvc_name, 'local-storage', pvc_mount_path))
 
     preprocess = dataflow_tf_transform_op(
         training_data_file_pattern=train,
@@ -74,7 +85,7 @@ def taxi_cab_classification(
         run_mode=mode,
         preprocessing_module=preprocess_module,
         transformed_data_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    ).apply(onprem.mount_pvc(pvc_name, 'local-storage', pvc_mount_path))
 
     training = tf_train_op(
         transformed_data_dir=preprocess.output,
@@ -85,7 +96,7 @@ def taxi_cab_classification(
         target='tips',
         preprocessing_module=preprocess_module,
         training_output_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    ).apply(onprem.mount_pvc(pvc_name, 'local-storage', pvc_mount_path))
 
     analysis = dataflow_tf_model_analyze_op(
         model=training.output,
@@ -95,7 +106,7 @@ def taxi_cab_classification(
         run_mode=mode,
         slice_columns=analyze_slice_column,
         analysis_results_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    ).apply(onprem.mount_pvc(pvc_name, 'local-storage', pvc_mount_path))
 
     prediction = dataflow_tf_predict_op(
         data_file_pattern=evaluation,
@@ -105,24 +116,26 @@ def taxi_cab_classification(
         run_mode=mode,
         gcp_project=project,
         predictions_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    ).apply(onprem.mount_pvc(pvc_name, 'local-storage', pvc_mount_path))
 
     cm = confusion_matrix_op(
         predictions=prediction.output,
         target_lambda=target_lambda,
         output_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    ).apply(onprem.mount_pvc(pvc_name, 'local-storage', pvc_mount_path))
 
     roc = roc_op(
         predictions_dir=prediction.output,
         target_lambda=target_class_lambda,
         output_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    ).apply(onprem.mount_pvc(pvc_name, 'local-storage', pvc_mount_path))
 
     deploy = kubeflow_deploy_op(
+        cluster_name=project,
         model_dir=str(training.output) + '/export/export',
+        pvc_name=pvc_name,
         server_name=tf_server_name
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    ).apply(onprem.mount_pvc(pvc_name, 'local-storage', pvc_mount_path))
 
 
 if __name__ == '__main__':
