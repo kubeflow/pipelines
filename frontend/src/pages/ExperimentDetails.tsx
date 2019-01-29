@@ -113,50 +113,20 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   private _runlistRef = React.createRef<RunList>();
 
-  private _runListToolbarActions: ToolbarActionConfig[] = [{
-    action: () => this._createNewRun(false),
-    icon: AddIcon,
-    id: 'createNewRunBtn',
-    outlined: true,
-    primary: true,
-    title: 'Create run',
-    tooltip: 'Create a new run within this experiment',
-  }, {
-    action: () => this._createNewRun(true),
-    icon: AddIcon,
-    id: 'createNewRecurringRunBtn',
-    outlined: true,
-    title: 'Create recurring run',
-    tooltip: 'Create a new recurring run in this experiment',
-  }, {
-    action: this._compareRuns.bind(this),
-    disabled: true,
-    disabledTitle: 'Select multiple runs to compare',
-    id: 'compareBtn',
-    title: 'Compare runs',
-    tooltip: 'Compare up to 10 selected runs',
-  }, {
-    action: this._cloneRun.bind(this),
-    disabled: true,
-    disabledTitle: 'Select a run to clone',
-    id: 'cloneBtn',
-    title: 'Clone',
-    tooltip: 'Create a copy from this run\s initial state',
-  }, {
-    action: () => this.props.updateDialog({
+  private _runListToolbarActions: ToolbarActionConfig[] = [
+    Buttons.newRun(() => this._createNewRun(false)),
+    Buttons.newRecurringRun(() => this._createNewRun(true)),
+    Buttons.compareRuns(this._compareRuns.bind(this)),
+    Buttons.cloneRun(this._cloneRun.bind(this)),
+    Buttons.archive(() => this.props.updateDialog({
       buttons: [
         { onClick: async () => await this._archiveDialogClosed(true), text: 'Archive' },
         { onClick: async () => await this._archiveDialogClosed(false), text: 'Cancel' },
       ],
       onClose: async () => await this._archiveDialogClosed(false),
       title: `Archive ${this.state.selectedRunIds.length} run${s(this.state.selectedRunIds.length)}?`,
-    }),
-    disabled: true,
-    disabledTitle: 'Select at least one run to archive',
-    id: 'archiveBtn',
-    title: 'Archive',
-    tooltip: 'Archive',
-  }];
+    })),
+  ];
 
   constructor(props: any) {
     super(props);

@@ -93,6 +93,14 @@ const Buttons: ButtonsMap = {
     title: 'Create an experiment',
     tooltip: 'Create a new experiment',
   }),
+  newRecurringRun: action => ({
+    action,
+    icon: AddIcon,
+    id: 'createNewRecurringRunBtn',
+    outlined: true,
+    title: 'Create recurring run',
+    tooltip: 'Create a new recurring run in this experiment',
+  }),
   newRun: action => ({
     action,
     icon: AddIcon,
@@ -100,7 +108,7 @@ const Buttons: ButtonsMap = {
     outlined: true,
     primary: true,
     title: 'Create run',
-    tooltip: 'Create a new run within this pipeline',
+    tooltip: 'Create a new run',
   }),
   refresh: action => ({
     action,
