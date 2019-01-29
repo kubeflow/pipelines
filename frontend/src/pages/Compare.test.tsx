@@ -37,6 +37,7 @@ describe('Compare', () => {
   let tree: ReactWrapper | ShallowWrapper;
 
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
+  const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
 
   const updateToolbarSpy = jest.fn();
   const updateBannerSpy = jest.fn();
@@ -116,6 +117,7 @@ describe('Compare', () => {
   beforeEach(async () => {
     // Reset mocks
     consoleErrorSpy.mockReset();
+    consoleLogSpy.mockReset();
     updateBannerSpy.mockReset();
     updateDialogSpy.mockReset();
     updateSnackbarSpy.mockReset();

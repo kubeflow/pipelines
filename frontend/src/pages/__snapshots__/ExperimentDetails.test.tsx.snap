@@ -118,7 +118,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select at least one run to archive",
+            "disabledTitle": "Select at least one resource to archive",
             "id": "archiveBtn",
             "title": "Archive",
             "tooltip": "Archive",
@@ -471,7 +471,7 @@ exports[`ExperimentDetails removes all description text after second newline and
           Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select at least one run to archive",
+            "disabledTitle": "Select at least one resource to archive",
             "id": "archiveBtn",
             "title": "Archive",
             "tooltip": "Archive",
@@ -811,7 +811,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select at least one run to archive",
+            "disabledTitle": "Select at least one resource to archive",
             "id": "archiveBtn",
             "title": "Archive",
             "tooltip": "Archive",
@@ -1149,7 +1149,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           Object {
             "action": [Function],
             "disabled": true,
-            "disabledTitle": "Select at least one run to archive",
+            "disabledTitle": "Select at least one resource to archive",
             "id": "archiveBtn",
             "title": "Archive",
             "tooltip": "Archive",
