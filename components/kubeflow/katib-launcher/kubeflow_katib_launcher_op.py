@@ -35,5 +35,5 @@ def kubeflow_studyjob_launcher_op(name, namespace, optimizationtype, objectiveva
             "--suggestionspec", suggestionspec,
             '--studyjobtimeoutminutes', studyjob_timeout_minutes,
         ],
-        file_outputs = {'hp': '/output.txt'}
+        file_outputs = {'hyperparameter': '/output.txt'}
     )
