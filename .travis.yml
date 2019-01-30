@@ -14,7 +14,8 @@
 
 language: python
 python:
-  - "3.5"
+  - "2.7"
+  - "3.6"
 addons:
   apt:
     packages:
@@ -36,9 +37,9 @@ script:
   - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
   - cd $TRAVIS_BUILD_DIR/sdk/python
   - ./build.sh /tmp/kfp.tar.gz
-  - pip install /tmp/kfp.tar.gz
-  - python tests/dsl/main.py
-  - python tests/compiler/main.py
+  - pip3 install /tmp/kfp.tar.gz
+  - python3 tests/dsl/main.py
+  - python3 tests/compiler/main.py
 
   # Component SDK tests
   - cd $TRAVIS_BUILD_DIR/component_sdk/python
