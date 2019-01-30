@@ -53,9 +53,9 @@ matrix:
         - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - ./build.sh /tmp/kfp.tar.gz
-        - pip3 install /tmp/kfp.tar.gz
-        - python3 tests/dsl/main.py
-        - python3 tests/compiler/main.py
+        - pip install /tmp/kfp.tar.gz
+        - python tests/dsl/main.py
+        - python tests/compiler/main.py
 
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/component_sdk/python
@@ -63,4 +63,4 @@ matrix:
 
         # SDK Components tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
-        - python3 -m unittest discover --verbose --start-dir tests --top-level-directory=..
+        - python -m unittest discover --verbose --start-dir tests --top-level-directory=..
