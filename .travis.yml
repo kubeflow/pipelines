@@ -56,11 +56,8 @@ matrix:
         - pip install /tmp/kfp.tar.gz
         - python tests/dsl/main.py
         - python tests/compiler/main.py
+        - python -m unittest discover --verbose --start-dir tests --top-level-directory=..
 
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/component_sdk/python
         - ./run_test.sh
-
-        # SDK Components tests
-        - cd $TRAVIS_BUILD_DIR/sdk/python
-        - python -m unittest discover --verbose --start-dir tests --top-level-directory=..
