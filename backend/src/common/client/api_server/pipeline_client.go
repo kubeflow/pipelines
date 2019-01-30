@@ -20,7 +20,7 @@ type PipelineInterface interface {
 	Get(params *params.GetPipelineParams) (*model.APIPipeline, error)
 	Delete(params *params.DeletePipelineParams) error
 	GetTemplate(params *params.GetTemplateParams) (*workflowapi.Workflow, error)
-	List(params *params.ListPipelinesParams) ([]*model.APIPipeline, string, error)
+	List(params *params.ListPipelinesParams) ([]*model.APIPipeline, int, string, error)
 	ListAll(params *params.ListPipelinesParams, maxResultSize int) (
 		[]*model.APIPipeline, error)
 }
@@ -150,7 +150,7 @@ func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (
 }
 
 func (c *PipelineClient) List(parameters *params.ListPipelinesParams) (
-	[]*model.APIPipeline, string, error) {
+	[]*model.APIPipeline, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -165,12 +165,12 @@ func (c *PipelineClient) List(parameters *params.ListPipelinesParams) (
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
-		return nil, "", util.NewUserError(err,
+		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list pipelines. Params: '%+v'", parameters),
 			fmt.Sprintf("Failed to list pipelines"))
 	}
 
-	return response.Payload.Pipelines, response.Payload.NextPageToken, nil
+	return response.Payload.Pipelines, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
 func (c *PipelineClient) ListAll(parameters *params.ListPipelinesParams, maxResultSize int) (
@@ -188,7 +188,7 @@ func listAllForPipeline(client PipelineInterface, parameters *params.ListPipelin
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {
-		results, pageToken, err := client.List(parameters)
+		results, _, pageToken, err := client.List(parameters)
 		if err != nil {
 			return nil, err
 		}
