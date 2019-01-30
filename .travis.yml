@@ -30,6 +30,7 @@ matrix:
       script:
         # Backend unit tests
         - cd $TRAVIS_BUILD_DIR/backend/src
+        - source ~/.gimme/envs/go1.11.4.env
         - go vet -all -shadow ./...
         - go test ./...
     - language: python
@@ -52,9 +53,9 @@ matrix:
         - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - ./build.sh /tmp/kfp.tar.gz
-        - pip install /tmp/kfp.tar.gz
-        - python tests/dsl/main.py
-        - python tests/compiler/main.py
+        - pip3 install /tmp/kfp.tar.gz
+        - python3 tests/dsl/main.py
+        - python3 tests/compiler/main.py
 
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/component_sdk/python
@@ -62,4 +63,4 @@ matrix:
 
         # SDK Components tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
-        - python -m unittest discover --verbose --start-dir tests --top-level-directory=..
+        - python3 -m unittest discover --verbose --start-dir tests --top-level-directory=..
