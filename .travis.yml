@@ -14,15 +14,8 @@
 
 matrix:
   include:
-    - language: python
-      python: "2.7"
-      env: TOXENV=py27
-      script:
-        # Component SDK tests
-        - cd $TRAVIS_BUILD_DIR/component_sdk/python
-        - ./run_test.sh
     - language: node_js
-      node_js: "7"
+      node_js: "latest"
       addons:
         chrome: stable
       before_install: npm i -g npm@latest
@@ -39,6 +32,13 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/backend/src
         - go vet -all -shadow ./...
         - go test ./...
+    - language: python
+      python: "2.7"
+      env: TOXENV=py27
+      script:
+        # Component SDK tests
+        - cd $TRAVIS_BUILD_DIR/component_sdk/python
+        - ./run_test.sh
     - language: pythons
       python: "3.6"
       env: TOXENV=py36
