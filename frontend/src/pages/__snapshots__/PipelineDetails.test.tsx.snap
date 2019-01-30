@@ -116,13 +116,7 @@ exports[`PipelineDetails closes side panel when close button is clicked 1`] = `
               className="flex footerInfoOffset"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
@@ -219,13 +213,7 @@ exports[`PipelineDetails collapses summary card when summary shown state is fals
               className="flex"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
@@ -357,13 +345,7 @@ exports[`PipelineDetails opens side panel on clicked node, shows message when no
               className="flex footerInfoOffset"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
@@ -577,13 +559,7 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
               className="flex footerInfoOffset"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"
@@ -715,13 +691,7 @@ exports[`PipelineDetails shows empty pipeline details with empty graph 1`] = `
               className="flex footerInfoOffset"
             >
               <pure(InfoOutlinedIcon)
-                style={
-                  Object {
-                    "color": "#80868b",
-                    "height": 16,
-                    "width": 16,
-                  }
-                }
+                className="infoIcon"
               />
               <span
                 className="infoSpan"

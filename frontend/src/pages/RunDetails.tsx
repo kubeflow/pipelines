@@ -21,6 +21,7 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
+import InfoIcon from '@material-ui/icons/InfoOutlined';
 import LogViewer from '../components/LogViewer';
 import MD2Tabs from '../atoms/MD2Tabs';
 import PlotCard from '../components/PlotCard';
@@ -39,8 +40,8 @@ import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
+import { classes, stylesheet } from 'typestyle';
+import { commonCss, padding, color, fonts, fontsize } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { flatten } from 'lodash';
 import { formatDateString, getRunTime, logger, errorToMessage } from '../lib/Utils';
@@ -83,6 +84,27 @@ interface RunDetailsState {
   workflow?: Workflow;
 }
 
+export const css = stylesheet({
+  footer: {
+    background: color.graphBg,
+    display: 'flex',
+    padding: '0 0 20px 20px',
+  },
+  graphPane: {
+    backgroundColor: color.graphBg,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  infoSpan: {
+    color: color.lowContrast,
+    fontFamily: fonts.secondary,
+    fontSize: fontsize.small,
+    letterSpacing: '0.21px',
+    lineHeight: '24px',
+    paddingLeft: 6,
+  },
+});
+
 class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   private _onBlur: EventListener;
   private _onFocus: EventListener;
@@ -121,7 +143,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public render(): JSX.Element {
-    const { allArtifactConfigs, graph, runMetadata, selectedTab, selectedNodeDetails,
+    const { allArtifactConfigs, graph, runFinished, runMetadata, selectedTab, selectedNodeDetails,
       sidepanelSelectedTab, workflow } = this.state;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
@@ -136,8 +158,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
               onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })} />
             <div className={commonCss.page}>
 
-              {selectedTab === 0 && <div className={commonCss.page}>
-                {graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+              {selectedTab === 0 && <div className={classes(commonCss.page, css.graphPane)}>
+                {graph && <div className={commonCss.page}>
                   <Graph graph={graph} selectedNodeId={selectedNodeId}
                     onClick={(id) => this._selectNode(id)} />
 
@@ -145,8 +167,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                     onClose={() => this.setStateSafe({ selectedNodeDetails: null })} title={selectedNodeId}>
                     {!!selectedNodeDetails && (<React.Fragment>
                       {!!selectedNodeDetails.phaseMessage && (
-                        <Banner mode='warning'
-                          message={selectedNodeDetails.phaseMessage} />
+                        <Banner mode='warning' message={selectedNodeDetails.phaseMessage} />
                       )}
                       <div className={commonCss.page}>
                         <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Logs']}
@@ -202,8 +223,28 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                       </div>
                     </React.Fragment>)}
                   </SidePanel>
+
+                  <div className={css.footer}>
+                  <div className={commonCss.flex}>
+                    <InfoIcon className={commonCss.infoIcon} />
+                    <span className={css.infoSpan}>
+                      Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                    </span>
+                  </div>
+                </div>
                 </div>}
-                {!graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
+                {!graph && (
+                  <div>
+                    {runFinished && (
+                      <span style={{ margin: '40px auto' }}>
+                        No graph to show
+                      </span>
+                    )}
+                    {!runFinished && (
+                      <CircularProgress size={30} className={commonCss.absoluteCenter} />
+                    )}
+                  </div>
+                )}
               </div>}
 
               {selectedTab === 1 && (
@@ -362,9 +403,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   private _stopAutoRefresh(): void {
     if (this._interval !== undefined) {
       clearInterval(this._interval);
+
+      // Reset interval to indicate that a new one can be set
+      this._interval = undefined;
     }
-    // Reset interval to indicate that a new one can be set
-    this._interval = undefined;
   }
 
   private async _loadAllOutputs(): Promise<void> {
