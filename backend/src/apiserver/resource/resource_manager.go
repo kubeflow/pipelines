@@ -479,6 +479,7 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 		return nil, util.NewResourceNotFoundError(
 			"arifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
+	glog.Infof("run: %s, artifact: %s, path: %s \n", runID, artifactName, artifactPath)
 	return r.objectStore.GetFile(artifactPath)
 }
 

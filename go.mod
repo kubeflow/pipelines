@@ -5,6 +5,7 @@ require (
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
 	github.com/argoproj/argo v2.2.0+incompatible
+	github.com/aws/aws-sdk-go v1.16.26
 	github.com/cenkalti/backoff v2.0.0+incompatible
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
 	github.com/docker/distribution v2.7.0+incompatible // indirect

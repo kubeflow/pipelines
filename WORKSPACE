@@ -730,7 +730,7 @@ go_repository(
 
 go_repository(
     name = "org_golang_google_genproto",
-    commit = "bd91e49a0898",
+    commit = "ae2f86662275",
     importpath = "google.golang.org/genproto",
 )
 
@@ -884,4 +884,46 @@ go_repository(
     name = "org_golang_x_arch",
     commit = "5a4828bb7045",
     importpath = "golang.org/x/arch",
+)
+
+go_repository(
+    name = "com_github_docker_distribution",
+    importpath = "github.com/docker/distribution",
+    tag = "v2.7.0",
+)
+
+go_repository(
+    name = "com_github_opencontainers_go_digest",
+    importpath = "github.com/opencontainers/go-digest",
+    tag = "v1.0.0-rc1",
+)
+
+go_repository(
+    name = "io_k8s_apiextensions_apiserver",
+    commit = "e7617803aceb",
+    importpath = "k8s.io/apiextensions-apiserver",
+)
+
+go_repository(
+    name = "io_k8s_apiserver",
+    commit = "d55c9aeff1eb",
+    importpath = "k8s.io/apiserver",
+)
+
+go_repository(
+    name = "io_k8s_klog",
+    importpath = "k8s.io/klog",
+    tag = "v0.1.0",
+)
+
+go_repository(
+    name = "com_github_aws_aws_sdk_go",
+    importpath = "github.com/aws/aws-sdk-go",
+    tag = "v1.16.26",
+)
+
+go_repository(
+    name = "com_github_jmespath_go_jmespath",
+    commit = "c2b33e8439af",
+    importpath = "github.com/jmespath/go-jmespath",
 )

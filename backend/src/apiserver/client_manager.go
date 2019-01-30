@@ -35,6 +35,9 @@ import (
 const (
 	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
+	storageType           = "OBJECT_STORE_TYPE"
+	storageRegion         = "OBJECT_STORE_S3_REGION"
+	storageBucketName     = "OBJECT_STORE_S3_BUCKETNAME"
 	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
 	mysqlServicePort      = "MYSQL_SERVICE_PORT"
 	podNamespace          = "POD_NAMESPACE"
@@ -120,7 +123,7 @@ func (c *ClientManager) init() {
 	c.runStore = storage.NewRunStore(db, c.time)
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
-	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
+	c.objectStore = initObjectStore()
 
 	c.wfClient = client.CreateWorkflowClientOrFatal(
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
@@ -211,6 +214,30 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	util.TerminateIfError(err)
 	mysqlConfig.DBName = dbName
 	return mysqlConfig.FormatDSN()
+}
+
+func initObjectStore() storage.ObjectStoreInterface {
+
+	objectStoreType := getStringConfig(storageType)
+	glog.Infof("Object store type: %s\n", objectStoreType)
+	switch objectStoreType {
+	case "s3":
+		return initS3Client()
+	case "minio":
+		return initMinioClient(getDurationConfig(initConnectionTimeout))
+	default:
+		glog.Warning("Unknown object store type: `%s`, using the default: (minio)", objectStoreType)
+		return initMinioClient(getDurationConfig(initConnectionTimeout))
+	}
+}
+
+func initS3Client() storage.ObjectStoreInterface {
+	region := getStringConfig(storageRegion)
+	bucketName := getStringConfig(storageBucketName)
+	glog.Infof("AWS S3 region: %s, bucket: %s\n", region, bucketName)
+	client := storage.S3Client{}
+	client.Init(region)
+	return storage.NewS3ObjectStore(client, bucketName)
 }
 
 func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {

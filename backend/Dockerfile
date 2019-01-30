@@ -56,5 +56,5 @@ RUN apk add ca-certificates
 # Expose apiserver port
 EXPOSE 8888
 
-# Start the apiserver
+# Start the apiserver (console logging: --logtostderr=true)
 CMD apiserver --config=/config --sampleconfig=/config/sample_config.json
