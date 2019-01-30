@@ -21,7 +21,25 @@ matrix:
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/component_sdk/python
         - ./run_test.sh
-    - language: python
+    - language: node_js
+      node_js: "7"
+      addons:
+        chrome: stable
+      before_install: npm i -g npm@latest
+      script:
+        # Frontend tests
+        - cd $TRAVIS_BUILD_DIR/frontend
+        - node -v
+        - npm i
+        - npm run test:coveralls
+    - language: go
+      go: "1.11.4"
+      script:
+        # Backend unit tests
+        - cd $TRAVIS_BUILD_DIR/backend/src
+        - go vet -all -shadow ./...
+        - go test ./...
+    - language: pythons
       python: "3.6"
       env: TOXENV=py36
       addons:
@@ -29,16 +47,7 @@ matrix:
           packages:
             - default-jdk
             - wget
-        chrome: stable
-      before_install: npm i -g npm@latest
       script:
-        # Frontend tests
-        - cd $TRAVIS_BUILD_DIR/frontend
-        - nvm install node
-        - node -v
-        - npm i
-        - npm run test:coveralls
-
         # DSL tests
         - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
         - cd $TRAVIS_BUILD_DIR/sdk/python
@@ -47,13 +56,10 @@ matrix:
         - python tests/dsl/main.py
         - python tests/compiler/main.py
 
+        # Component SDK tests
+        - cd $TRAVIS_BUILD_DIR/component_sdk/python
+        - ./run_test.sh
+
         # SDK Components tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python -m unittest discover --verbose --start-dir tests --top-level-directory=..
-
-        # Backend unit tests
-        - cd $TRAVIS_BUILD_DIR/backend/src
-        - gimme -f 1.11.4
-        - source ~/.gimme/envs/go1.11.4.env
-        - go vet -all -shadow ./...
-        - go test ./...
