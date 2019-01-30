@@ -206,7 +206,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                       </Button>
                   )}
                   <div className={classes(commonCss.flex, (summaryShown && !!pipeline) && css.footerInfoOffset)}>
-                    <InfoIcon style={{ color: color.lowContrast, height: 16, width: 16 }} />
+                    <InfoIcon className={commonCss.infoIcon} />
                     <span className={css.infoSpan}>Static pipeline graph</span>
                   </div>
                 </div>

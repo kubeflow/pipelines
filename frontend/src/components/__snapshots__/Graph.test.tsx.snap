@@ -15,6 +15,7 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -26,7 +27,13 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
@@ -39,6 +46,7 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -50,7 +58,13 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     key="0"
@@ -60,9 +74,12 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -72,9 +89,12 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -111,6 +131,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -122,7 +143,13 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
@@ -135,6 +162,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -146,7 +174,13 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
@@ -159,6 +193,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -170,7 +205,13 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
@@ -183,6 +224,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 125,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -194,7 +236,13 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
@@ -207,6 +255,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 185,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -218,7 +267,13 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
@@ -231,6 +286,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 185,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -242,7 +298,13 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     key="0"
@@ -252,9 +314,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 39.57233047033631,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-45deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 35.85533905932738,
         }
       }
@@ -264,9 +329,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 32.25,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -280,9 +348,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 74.57233047033631,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-135deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 35.85533905932738,
         }
       }
@@ -292,9 +363,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 92.25,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -308,9 +382,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 32.25,
           "top": 82.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -320,9 +397,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 32.25,
           "top": 107.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -336,9 +416,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 0.375,
           "top": 81.875,
           "transform": "translate(100px, 44px) rotate(-36.86989764584402deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 44.25,
         }
       }
@@ -348,9 +431,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -10.25,
           "top": 110,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 30.5,
         }
       }
@@ -360,9 +446,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="2"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -10.25,
           "top": 140,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 30.5,
         }
       }
@@ -372,9 +461,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="3"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 167.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -388,9 +480,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 45.375,
           "top": 81.875,
           "transform": "translate(100px, 44px) rotate(-143.13010235415598deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 44.25,
         }
       }
@@ -400,9 +495,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 69.75,
           "top": 110,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 30.5,
         }
       }
@@ -412,9 +510,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="2"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 69.75,
           "top": 140,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 30.5,
         }
       }
@@ -424,9 +525,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="3"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 72.25,
           "top": 167.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -440,9 +544,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 32.25,
           "top": 142.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -452,9 +559,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 5.375,
           "top": 168.125,
           "transform": "translate(100px, 44px) rotate(-36.86989764584402deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 44.25,
         }
       }
@@ -468,9 +578,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 46.50406530937789,
           "top": 141.25,
           "transform": "translate(100px, 44px) rotate(-153.43494882292202deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 61.991869381244214,
         }
       }
@@ -480,9 +593,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": 81.39353635223337,
           "top": 167.5,
           "transform": "translate(100px, 44px) rotate(-56.30993247402021deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 30.54626062886658,
         }
       }
@@ -568,12 +684,12 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
 </div>
 `;
 
-exports[`Graph renders a graph with a selected node 1`] = `
+exports[`Graph renders a graph with a placeholder node and edge 1`] = `
 <div
   className="root"
 >
   <div
-    className="node graphNode nodeSelected"
+    className="node graphNode"
     key="0"
     onClick={[Function]}
     style={
@@ -583,6 +699,7 @@ exports[`Graph renders a graph with a selected node 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -594,10 +711,16 @@ exports[`Graph renders a graph with a selected node 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
-    className="node graphNode"
+    className="placeholderNode graphNode"
     key="1"
     onClick={[Function]}
     style={
@@ -607,6 +730,7 @@ exports[`Graph renders a graph with a selected node 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -618,7 +742,13 @@ exports[`Graph renders a graph with a selected node 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     key="0"
@@ -628,21 +758,27 @@ exports[`Graph renders a graph with a selected node 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "dotted",
           "left": -7.75,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
     />
     <div
-      className="line lastEdgeLine"
+      className="line"
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "dotted",
           "left": -7.75,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -662,6 +798,303 @@ exports[`Graph renders a graph with a selected node 1`] = `
 </div>
 `;
 
+exports[`Graph renders a graph with a selected node 1`] = `
+<div
+  className="root"
+>
+  <div
+    className="node graphNode nodeSelected"
+    key="0"
+    onClick={[Function]}
+    style={
+      Object {
+        "backgroundColor": undefined,
+        "left": 5,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 5,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
+      }
+    }
+  >
+    <div
+      className="label"
+    >
+      node1
+    </div>
+    <div
+      className="icon"
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    className="node graphNode"
+    key="1"
+    onClick={[Function]}
+    style={
+      Object {
+        "backgroundColor": undefined,
+        "left": 5,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 65,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
+      }
+    }
+  >
+    <div
+      className="label"
+    >
+      node2
+    </div>
+    <div
+      className="icon"
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    key="0"
+  >
+    <div
+      className="line"
+      key="0"
+      style={
+        Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
+          "left": -7.75,
+          "top": 22.5,
+          "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 25.5,
+        }
+      }
+    />
+    <div
+      className="line lastEdgeLine"
+      key="1"
+      style={
+        Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
+          "left": -7.75,
+          "top": 47.5,
+          "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 25.5,
+        }
+      }
+    />
+  </div>
+  <div
+    className="startCircle"
+    key="0"
+    style={
+      Object {
+        "left": "calc(5px - 5px)",
+        "top": "calc(10px - 3px)",
+        "transform": "translate(100px, 44px)",
+      }
+    }
+  />
+</div>
+`;
+
+exports[`Graph renders a graph with colored edges 1`] = `
+<div
+  className="root"
+>
+  <div
+    className="node graphNode"
+    key="0"
+    onClick={[Function]}
+    style={
+      Object {
+        "backgroundColor": undefined,
+        "left": 5,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 5,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
+      }
+    }
+  >
+    <div
+      className="label"
+    >
+      node1
+    </div>
+    <div
+      className="icon"
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    className="node graphNode"
+    key="1"
+    onClick={[Function]}
+    style={
+      Object {
+        "backgroundColor": undefined,
+        "left": 5,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 65,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
+      }
+    }
+  >
+    <div
+      className="label"
+    >
+      node2
+    </div>
+    <div
+      className="icon"
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    key="0"
+  >
+    <div
+      className="line"
+      key="0"
+      style={
+        Object {
+          "borderTopColor": "red",
+          "borderTopStyle": "solid",
+          "left": -7.75,
+          "top": 22.5,
+          "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 25.5,
+        }
+      }
+    />
+    <div
+      className="line lastEdgeLine"
+      key="1"
+      style={
+        Object {
+          "borderTopColor": "red",
+          "borderTopStyle": "solid",
+          "left": -7.75,
+          "top": 47.5,
+          "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
+          "width": 25.5,
+        }
+      }
+    />
+  </div>
+  <div
+    className="startCircle"
+    key="0"
+    style={
+      Object {
+        "left": "calc(5px - 5px)",
+        "top": "calc(10px - 3px)",
+        "transform": "translate(100px, 44px)",
+      }
+    }
+  />
+</div>
+`;
+
+exports[`Graph renders a graph with colored nodes 1`] = `
+<div
+  className="root"
+>
+  <div
+    className="node graphNode"
+    key="0"
+    onClick={[Function]}
+    style={
+      Object {
+        "backgroundColor": "red",
+        "left": 5,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 5,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
+      }
+    }
+  >
+    <div
+      className="label"
+    >
+      node1
+    </div>
+    <div
+      className="icon"
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    className="node graphNode"
+    key="1"
+    onClick={[Function]}
+    style={
+      Object {
+        "backgroundColor": "green",
+        "left": 65,
+        "maxHeight": 10,
+        "minHeight": 10,
+        "top": 5,
+        "transition": "left 0.5s, top 0.5s",
+        "width": 10,
+      }
+    }
+  >
+    <div
+      className="label"
+    >
+      node2
+    </div>
+    <div
+      className="icon"
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`Graph renders a graph with one node 1`] = `
 <div
   className="root"
@@ -677,6 +1110,7 @@ exports[`Graph renders a graph with one node 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -688,7 +1122,13 @@ exports[`Graph renders a graph with one node 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
 </div>
 `;
@@ -708,6 +1148,7 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -719,7 +1160,13 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
@@ -732,6 +1179,7 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -743,7 +1191,13 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     key="0"
@@ -753,9 +1207,12 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -765,9 +1222,12 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -802,6 +1262,7 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 65,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -813,7 +1274,13 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
@@ -826,6 +1293,7 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -837,7 +1305,13 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     key="0"
@@ -847,9 +1321,12 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
       key="0"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 22.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -859,9 +1336,12 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
       key="1"
       style={
         Object {
+          "borderTopColor": undefined,
+          "borderTopStyle": "solid",
           "left": -7.75,
           "top": 47.5,
           "transform": "translate(100px, 44px) rotate(-90deg)",
+          "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
       }
@@ -896,6 +1376,7 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -907,7 +1388,13 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
   <div
     className="node graphNode"
@@ -920,6 +1407,7 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
         "maxHeight": 10,
         "minHeight": 10,
         "top": 5,
+        "transition": "left 0.5s, top 0.5s",
         "width": 10,
       }
     }
@@ -931,7 +1419,13 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
     </div>
     <div
       className="icon"
-    />
+    >
+      <WithStyles(Tooltip)
+        title="Test icon tooltip"
+      >
+        <pure(CheckCircleIcon) />
+      </WithStyles(Tooltip)>
+    </div>
   </div>
 </div>
 `;
