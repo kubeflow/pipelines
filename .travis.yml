@@ -40,7 +40,7 @@ matrix:
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/component_sdk/python
         - ./run_test.sh
-    - language: pythons
+    - language: python
       python: "3.6"
       env: TOXENV=py36
       addons:
