@@ -15,7 +15,7 @@
 matrix:
   include:
     - language: node_js
-      node_js: "latest"
+      node_js: "11.8.0"
       addons:
         chrome: stable
       before_install: npm i -g npm@latest
