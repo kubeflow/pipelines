@@ -27,6 +27,10 @@ matrix:
         - npm run test:coveralls
     - language: go
       go: "1.11.4"
+      install:
+        # Add Godeps dependencies to GOPATH and PATH
+        - export GOPATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace:$GOPATH"
+        - export PATH="${TRAVIS_BUILD_DIR}/Godeps/_workspace/bin:$PATH"
       script:
         # Backend unit tests
         - cd $TRAVIS_BUILD_DIR/backend/src
