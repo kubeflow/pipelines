@@ -17,13 +17,11 @@
 import * as React from 'react';
 import Buttons from '../lib/Buttons';
 import RunList from './RunList';
-import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { errorToMessage, s } from '../lib/Utils';
 
 interface ArchiveState {
   selectedIds: string[];
@@ -41,17 +39,14 @@ export default class Archive extends Page<{}, ArchiveState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: [
-        Buttons.archive(() => this.props.updateDialog({
-          buttons: [
-            { onClick: async () => await this._unarchiveDialogClosed(true), text: 'Restore' },
-            { onClick: async () => await this._unarchiveDialogClosed(false), text: 'Cancel' },
-          ],
-          onClose: async () => await this._unarchiveDialogClosed(false),
-          title: `Restore ${this.state.selectedIds.length} resource${s(this.state.selectedIds.length)}?`,
-        })),
-        Buttons.refresh(this.refresh.bind(this)),
+        buttons.restore(
+          () => this.state.selectedIds,
+          selectedIds => this._selectionChanged(selectedIds),
+        ),
+        buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [],
       pageTitle: 'Archive',
@@ -76,43 +71,9 @@ export default class Archive extends Page<{}, ArchiveState> {
 
   private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = [...this.props.toolbarProps.actions];
-    // Unarchive button
+    // Restore button
     toolbarActions[0].disabled = !selectedIds.length;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
   }
-
-  private async _unarchiveDialogClosed(confirmed: boolean): Promise<void> {
-    if (confirmed) {
-      const unsuccessfulIds: string[] = [];
-      const errorMessages: string[] = [];
-      await Promise.all(this.state.selectedIds.map(async (id) => {
-        try {
-          await Apis.runServiceApi.unarchiveRun(id);
-        } catch (err) {
-          unsuccessfulIds.push(id);
-          const errorMessage = await errorToMessage(err);
-          errorMessages.push(`Deleting run failed with error: "${errorMessage}"`);
-        }
-      }));
-
-      const successfulObjects = this.state.selectedIds.length - unsuccessfulIds.length;
-      if (successfulObjects > 0) {
-        this.props.updateSnackbar({
-          message: `Successfully restored ${successfulObjects} resource${s(successfulObjects)}!`,
-          open: true,
-        });
-        this.refresh();
-      }
-
-      if (unsuccessfulIds.length > 0) {
-        this.showErrorDialog(
-          `Failed to restore ${unsuccessfulIds.length} resource${s(unsuccessfulIds)}`,
-          errorMessages.join('\n\n'));
-      }
-
-      this._selectionChanged(unsuccessfulIds);
-    }
-  }
-
 }

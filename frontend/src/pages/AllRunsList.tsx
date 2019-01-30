@@ -46,6 +46,10 @@ class AllRunsList extends Page<{}, AllRunsListState> {
         buttons.newExperiment(),
         buttons.compareRuns(() => this.state.selectedIds),
         buttons.cloneRun(() => this.state.selectedIds, false),
+        buttons.archive(
+          () => this.state.selectedIds,
+          selectedIds => this._selectionChanged(selectedIds),
+        ),
         buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [],

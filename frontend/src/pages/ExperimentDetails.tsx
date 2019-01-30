@@ -125,6 +125,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           buttons.newRecurringRun(this.props.match.params[RouteParams.experimentId]),
           buttons.compareRuns(() => this.state.selectedIds),
           buttons.cloneRun(() => this.state.selectedIds, false),
+          buttons.archive(() => this.state.selectedIds, ids => this._selectionChanged(ids)),
         ],
         breadcrumbs: [],
         pageTitle: 'Runs',
@@ -288,7 +289,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         pageTitle: this.state.runListToolbarProps.pageTitle,
         topLevelToolbar: this.state.runListToolbarProps.topLevelToolbar,
       },
-      selectedIds
+      selectedIds,
     });
   }
 
@@ -297,7 +298,6 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     // Reload the details to get any updated recurring runs
     this.refresh();
   }
-
 }
 
 export default ExperimentDetails;

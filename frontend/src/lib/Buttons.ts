@@ -35,6 +35,17 @@ export default class Buttons {
     this._urlParser = new URLParser(pageProps);
   }
 
+  public archive(getSelectedIds: () => string[], callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
+    return {
+      action: () => this._archive(getSelectedIds(), false, callback),
+      disabled: true,
+      disabledTitle: 'Select at least one resource to archive',
+      id: 'archiveBtn',
+      title: 'Archive',
+      tooltip: 'Archive',
+    };
+  }
+
   public cloneRun(getSelectedIds: () => string[], useCurrentResource: boolean): ToolbarActionConfig {
     return {
       action: () => this._cloneRun(getSelectedIds()),
@@ -168,6 +179,17 @@ export default class Buttons {
     };
   }
 
+  public restore(getSelectedIds: () => string[], callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
+    return {
+      action: () => this._restore(getSelectedIds(), false, callback),
+      disabled: true,
+      disabledTitle: 'Select at least one resource to restore',
+      id: 'restoreBtn',
+      title: 'Restore',
+      tooltip: 'Restore',
+    };
+  }
+
   public upload(action: () => void): ToolbarActionConfig {
     return {
       action,
@@ -185,6 +207,18 @@ export default class Buttons {
       const searchString = this._urlParser.build({ [QUERY_PARAMS.cloneFromRun]: runId || '' });
       this._props.history.push(RoutePage.NEW_RUN + searchString);
     }
+  }
+
+  private _archive(selectedIds: string[], useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void): void {
+    this._dialogActionHandler(selectedIds, useCurrent,
+      id => Apis.runServiceApi.archiveRun(id), callback, 'Archive', 'resource');
+  }
+
+  private _restore(selectedIds: string[], useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void): void {
+    this._dialogActionHandler(selectedIds, useCurrent,
+      id => Apis.runServiceApi.unarchiveRun(id), callback, 'Restore', 'resource');
   }
 
   private _deletePipeline(selectedIds: string[], callback: (selectedIds: string[], success: boolean) => void,

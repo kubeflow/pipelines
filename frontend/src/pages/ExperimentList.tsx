@@ -64,6 +64,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         buttons.newExperiment(),
         buttons.compareRuns(() => this.state.selectedIds),
         buttons.cloneRun(() => this.state.selectedIds, false),
+        buttons.archive(() => this.state.selectedIds, ids => this._selectionChanged(ids)),
         buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [],
