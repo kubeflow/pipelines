@@ -19,13 +19,14 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type PipelineStoreInterface interface {
-	ListPipelines(opts *list.Options) ([]*model.Pipeline, string, error)
+	ListPipelines(opts *list.Options) ([]*model.Pipeline, int, string, error)
 	GetPipeline(pipelineId string) (*model.Pipeline, error)
 	GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error)
 	DeletePipeline(pipelineId string) error
@@ -39,34 +40,75 @@ type PipelineStore struct {
 	uuid util.UUIDGeneratorInterface
 }
 
-func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, string, error) {
-	errorF := func(err error) ([]*model.Pipeline, string, error) {
-		return nil, "", util.NewInternalServerError(err, "Failed to list pipelines: %v", err)
+// Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
+// total_size. The total_size does not reflect the page size.
+func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, int, string, error) {
+	errorF := func(err error) ([]*model.Pipeline, int, string, error) {
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipelines: %v", err)
 	}
 
-	sqlBuilder := sq.Select("*").From("pipelines").Where(sq.Eq{"Status": model.PipelineReady})
-	sql, args, err := opts.AddToSelect(sqlBuilder).ToSql()
+	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+		return sqlBuilder.From("pipelines").Where(sq.Eq{"Status": model.PipelineReady})
+	}
+
+	sqlBuilder := buildQuery(sq.Select("*"))
+
+	// SQL for row list
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
-	rows, err := s.db.Query(sql, args...)
+	// SQL for getting total size. This matches the query to get all the rows above, in order
+	// to do the same filter, but counts instead of scanning the rows.
+	sizeSql, sizeArgs, err := buildQuery(sq.Select("count(*)")).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
-	defer rows.Close()
 
+	// Use a transaction to make sure we're returning the total_size of the same rows queried
+	tx, err := s.db.Begin()
+	if err != nil {
+		glog.Errorf("Failed to start transaction to list pipelines")
+		return errorF(err)
+	}
+
+	rows, err := tx.Query(rowsSql, rowsArgs...)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
 	pipelines, err := s.scanRows(rows)
 	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	rows.Close()
+
+	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	sizeRow.Close()
+
+	err = tx.Commit()
+	if err != nil {
+		glog.Errorf("Failed to commit transaction to list pipelines")
 		return errorF(err)
 	}
 
 	if len(pipelines) <= opts.PageSize {
-		return pipelines, "", nil
+		return pipelines, total_size, "", nil
 	}
 
 	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
-	return pipelines[:opts.PageSize], npt, err
+	return pipelines[:opts.PageSize], total_size, npt, err
 }
 
 func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {

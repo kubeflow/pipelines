@@ -134,44 +134,50 @@ func (s *JobApiTestSuite) TestJobApis() {
 	s.checkArgParamsJob(t, argParamsJob, argParamsExperiment.ID)
 
 	/* ---------- List all the jobs. Both jobs should be returned ---------- */
-	jobs, _, err := s.jobClient.List(&jobparams.ListJobsParams{})
+	jobs, totalSize, _, err := s.jobClient.List(&jobparams.ListJobsParams{})
 	assert.Nil(t, err)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, 2, len(jobs))
 
 	/* ---------- List the jobs, paginated, default sort ---------- */
-	jobs, nextPageToken, err := s.jobClient.List(&jobparams.ListJobsParams{PageSize: util.Int32Pointer(1)})
+	jobs, totalSize, nextPageToken, err := s.jobClient.List(&jobparams.ListJobsParams{PageSize: util.Int32Pointer(1)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, "hello world", jobs[0].Name)
-	jobs, _, err = s.jobClient.List(&jobparams.ListJobsParams{
+	jobs, totalSize, _, err = s.jobClient.List(&jobparams.ListJobsParams{
 		PageSize: util.Int32Pointer(1), PageToken: util.StringPointer(nextPageToken)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, "argument parameter", jobs[0].Name)
 
 	/* ---------- List the jobs, paginated, sort by name ---------- */
-	jobs, nextPageToken, err = s.jobClient.List(&jobparams.ListJobsParams{
+	jobs, totalSize, nextPageToken, err = s.jobClient.List(&jobparams.ListJobsParams{
 		PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "argument parameter", jobs[0].Name)
-	jobs, _, err = s.jobClient.List(&jobparams.ListJobsParams{
+	jobs, totalSize, _, err = s.jobClient.List(&jobparams.ListJobsParams{
 		PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("name"), PageToken: util.StringPointer(nextPageToken)})
 	assert.Nil(t, err)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "hello world", jobs[0].Name)
 
 	/* ---------- List the jobs, sort by unsupported field ---------- */
-	jobs, _, err = s.jobClient.List(&jobparams.ListJobsParams{
+	jobs, _, _, err = s.jobClient.List(&jobparams.ListJobsParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknown")})
 	assert.NotNil(t, err)
 
 	/* ---------- List jobs for hello world experiment. One job should be returned ---------- */
-	jobs, _, err = s.jobClient.List(&jobparams.ListJobsParams{
+	jobs, totalSize, _, err = s.jobClient.List(&jobparams.ListJobsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
+	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", jobs[0].Name)
 
 	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
@@ -180,20 +186,22 @@ func (s *JobApiTestSuite) TestJobApis() {
 	time.Sleep(40 * time.Second)
 
 	/* ---------- Check run for hello world job ---------- */
-	runs, _, err := s.runClient.List(&runParams.ListRunsParams{
+	runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 1, totalSize)
 	helloWorldRun := runs[0]
 	s.checkHelloWorldRun(t, helloWorldRun, helloWorldExperiment.ID, helloWorldJob.ID)
 
 	/* ---------- Check run for argument parameter job ---------- */
-	runs, _, err = s.runClient.List(&runParams.ListRunsParams{
+	runs, totalSize, _, err = s.runClient.List(&runParams.ListRunsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(argParamsExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 1, totalSize)
 	argParamsRun := runs[0]
 	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsJob.ID)
 

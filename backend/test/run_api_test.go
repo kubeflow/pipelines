@@ -121,44 +121,50 @@ func (s *RunApiTestSuite) TestRunApis() {
 	s.checkArgParamsRunDetail(t, argParamsRunDetail, argParamsExperiment.ID)
 
 	/* ---------- List all the runs. Both runs should be returned ---------- */
-	runs, _, err := s.runClient.List(&runparams.ListRunsParams{})
+	runs, totalSize, _, err := s.runClient.List(&runparams.ListRunsParams{})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs))
+	assert.Equal(t, 2, totalSize)
 
 	/* ---------- List the runs, paginated, default sort ---------- */
-	runs, nextPageToken, err := s.runClient.List(&runparams.ListRunsParams{PageSize: util.Int32Pointer(1)})
+	runs, totalSize, nextPageToken, err := s.runClient.List(&runparams.ListRunsParams{PageSize: util.Int32Pointer(1)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, "hello world", runs[0].Name)
-	runs, _, err = s.runClient.List(&runparams.ListRunsParams{
+	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsParams{
 		PageSize: util.Int32Pointer(1), PageToken: util.StringPointer(nextPageToken)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, "argument parameter", runs[0].Name)
 
 	/* ---------- List the runs, paginated, sort by name ---------- */
-	runs, nextPageToken, err = s.runClient.List(&runparams.ListRunsParams{
+	runs, totalSize, nextPageToken, err = s.runClient.List(&runparams.ListRunsParams{
 		PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, "argument parameter", runs[0].Name)
-	runs, _, err = s.runClient.List(&runparams.ListRunsParams{
+	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsParams{
 		PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("name"), PageToken: util.StringPointer(nextPageToken)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, "hello world", runs[0].Name)
 
 	/* ---------- List the runs, sort by unsupported field ---------- */
-	_, _, err = s.runClient.List(&runparams.ListRunsParams{
+	_, _, _, err = s.runClient.List(&runparams.ListRunsParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")})
 	assert.NotNil(t, err)
 
 	/* ---------- List runs for hello world experiment. One run should be returned ---------- */
-	runs, _, err = s.runClient.List(&runparams.ListRunsParams{
+	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", runs[0].Name)
 
 	/* ---------- Archive a run ------------*/
@@ -167,11 +173,12 @@ func (s *RunApiTestSuite) TestRunApis() {
 	})
 
 	/* ---------- List runs for hello world experiment. The same run should still be returned, but should be archived ---------- */
-	runs, _, err = s.runClient.List(&runparams.ListRunsParams{
+	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsParams{
 		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", runs[0].Name)
 	assert.Equal(t, string(runs[0].StorageState), api.Run_STORAGESTATE_ARCHIVED.String())
 

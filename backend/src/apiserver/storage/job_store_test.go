@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -135,10 +136,11 @@ func TestListJobs_Pagination(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Job{}, 1, "name", nil)
 	assert.Nil(t, err)
-	jobs, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected, jobs)
 	jobsExpected2 := []*model.Job{
 		{
@@ -171,10 +173,48 @@ func TestListJobs_Pagination(t *testing.T) {
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	jobs, newToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, newToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected2, jobs)
+}
+
+func TestListJobs_TotalSizeWithNoFilter(t *testing.T) {
+	db, jobStore := initializeDbAndStore()
+	defer db.Close()
+
+	opts, _ := list.NewOptions(&model.Job{}, 1, "name", nil)
+
+	// No filter
+	jobs, total_size, _, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(jobs))
+	assert.Equal(t, 2, total_size)
+}
+
+func TestListJobs_TotalSizeWithFilter(t *testing.T) {
+	db, jobStore := initializeDbAndStore()
+	defer db.Close()
+
+	// Add a filter
+	opts, _ := list.NewOptions(&model.Job{}, 1, "name", &api.Filter{
+		Predicates: []*api.Predicate{
+			&api.Predicate{
+				Key: "name",
+				Op:  api.Predicate_IN,
+				Value: &api.Predicate_StringValues{
+					StringValues: &api.StringValues{
+						Values: []string{"pp 1"},
+					},
+				},
+			},
+		},
+	})
+	jobs, total_size, _, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(jobs))
+	assert.Equal(t, 1, total_size)
 }
 
 func TestListJobs_Pagination_Descent(t *testing.T) {
@@ -211,9 +251,10 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 		}}
 	opts, err := list.NewOptions(&model.Job{}, 1, "name desc", nil)
 	assert.Nil(t, err)
-	jobs, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected, jobs)
 
 	jobsExpected2 := []*model.Job{
@@ -247,9 +288,10 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
-	jobs, newToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, newToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected2, jobs)
 }
 
@@ -315,9 +357,10 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
 	assert.Nil(t, err)
-	jobs, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, jobsExpected, jobs)
 }
 
@@ -356,10 +399,11 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
 	assert.Nil(t, err)
-	jobs, nextPageToken, err := jobStore.ListJobs(
+	jobs, total_size, nextPageToken, err := jobStore.ListJobs(
 		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 1, total_size)
 	assert.Equal(t, jobsExpected, jobs)
 }
 
@@ -370,7 +414,7 @@ func TestListJobsError(t *testing.T) {
 	db.Close()
 	opts, err := list.NewOptions(&model.Job{}, 2, "", nil)
 	assert.Nil(t, err)
-	_, _, err = jobStore.ListJobs(
+	_, _, _, err = jobStore.ListJobs(
 		&common.FilterContext{}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to list job to return error")
