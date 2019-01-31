@@ -37,6 +37,9 @@ type APIListPipelinesResponse struct {
 
 	// pipelines
 	Pipelines []*APIPipeline `json:"pipelines"`
+
+	// total size
+	TotalSize int32 `json:"total_size,omitempty"`
 }
 
 // Validate validates this api list pipelines response

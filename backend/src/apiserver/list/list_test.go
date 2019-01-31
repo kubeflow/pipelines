@@ -4,8 +4,10 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+  "github.com/stretchr/testify/assert"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/go-cmp/cmp"
@@ -365,7 +367,7 @@ func TestNewOptions_InvalidFilter(t *testing.T) {
 	}
 }
 
-func TestAddToSelect(t *testing.T) {
+func TestAddPaginationAndFilterToSelect(t *testing.T) {
 	protoFilter := &api.Filter{
 		Predicates: []*api.Predicate{
 			&api.Predicate{
@@ -472,7 +474,7 @@ func TestAddToSelect(t *testing.T) {
 
 	for _, test := range tests {
 		sql := sq.Select("*").From("MyTable")
-		gotSQL, gotArgs, err := test.in.AddToSelect(sql).ToSql()
+		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql)).ToSql()
 
 		if gotSQL != test.wantSQL || !reflect.DeepEqual(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("BuildListSQLQuery(%+v) =\nGot: %q, %v, %v\nWant: %q, %v, nil",
@@ -602,6 +604,73 @@ func TestMatches(t *testing.T) {
 		if got != test.want {
 			t.Errorf("Matches(%+v, %+v) = %v, Want nil %v", test.o1, test.o2, got, test.want)
 			continue
+		}
+	}
+}
+
+func TestFilterOnResourceReference(t *testing.T) {
+
+	type testIn struct {
+		table        string
+		resourceType common.ResourceType
+		count        bool
+		filter       *common.FilterContext
+	}
+	tests := []struct {
+		in      *testIn
+		wantSql string
+		wantErr error
+	}{
+		{
+			in: &testIn{
+				table:        "testTable",
+				resourceType: common.Run,
+				count:        false,
+				filter:       &common.FilterContext{},
+			},
+			wantSql: "SELECT * FROM testTable",
+			wantErr: nil,
+		},
+		{
+			in: &testIn{
+				table:        "testTable",
+				resourceType: common.Run,
+				count:        true,
+				filter:       &common.FilterContext{},
+			},
+			wantSql: "SELECT count(*) FROM testTable",
+			wantErr: nil,
+		},
+		{
+			in: &testIn{
+				table:        "testTable",
+				resourceType: common.Run,
+				count:        false,
+				filter:       &common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Run}},
+			},
+			wantSql: "SELECT * FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
+			wantErr: nil,
+		},
+		{
+			in: &testIn{
+				table:        "testTable",
+				resourceType: common.Run,
+				count:        true,
+				filter:       &common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Run}},
+			},
+			wantSql: "SELECT count(*) FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
+			wantErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		sqlBuilder, gotErr := FilterOnResourceReference(test.in.table, test.in.resourceType, test.in.count, test.in.filter)
+		gotSql, _, err := sqlBuilder.ToSql()
+		assert.Nil(t, err)
+
+		if gotSql != test.wantSql || gotErr != test.wantErr {
+			t.Errorf("FilterOnResourceReference(%+v) =\nGot: %q, %v\nWant: %q, %v",
+				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
 		}
 	}
 }
