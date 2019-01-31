@@ -35,11 +35,11 @@ export default class Buttons {
     this._urlParser = new URLParser(pageProps);
   }
 
-  public cloneRun(getSelectedIds: () => string[], useCurrent: boolean): ToolbarActionConfig {
+  public cloneRun(getSelectedIds: () => string[], useCurrentResource: boolean): ToolbarActionConfig {
     return {
       action: () => this._cloneRun(getSelectedIds()),
-      disabled: !useCurrent,
-      disabledTitle: useCurrent ? undefined : 'Select a run to clone',
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select a run to clone',
       id: 'cloneBtn',
       title: 'Clone run',
       tooltip: 'Create a copy from this run\s initial state',
@@ -68,13 +68,13 @@ export default class Buttons {
   }
 
   public delete(getSelectedIds: () => string[], resourceName: 'pipeline' | 'recurring run config',
-    callback: (selectedIds: string[], success: boolean) => void, useCurrent: boolean): ToolbarActionConfig {
+    callback: (selectedIds: string[], success: boolean) => void, useCurrentResource: boolean): ToolbarActionConfig {
     return {
       action: () => resourceName === 'pipeline' ?
-        this._deletePipeline(getSelectedIds(), callback, useCurrent) :
-        this._deleteRecurringRun(getSelectedIds()[0], useCurrent, callback),
-      disabled: !useCurrent,
-      disabledTitle: useCurrent ? undefined : `Select at least one ${resourceName} to delete`,
+        this._deletePipeline(getSelectedIds(), callback, useCurrentResource) :
+        this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : `Select at least one ${resourceName} to delete`,
       id: 'deleteBtn',
       title: 'Delete',
       tooltip: 'Delete',
@@ -188,23 +188,23 @@ export default class Buttons {
   }
 
   private _deletePipeline(selectedIds: string[], callback: (selectedIds: string[], success: boolean) => void,
-    useCurrent: boolean): void {
-    this._dialogActionHandler(selectedIds, useCurrent,
+    useCurrentResource: boolean): void {
+    this._dialogActionHandler(selectedIds, useCurrentResource,
       id => Apis.pipelineServiceApi.deletePipeline(id), callback, 'Delete', 'pipeline');
   }
 
-  private _deleteRecurringRun(id: string, useCurrent: boolean,
+  private _deleteRecurringRun(id: string, useCurrentResource: boolean,
     callback: (_: string[], success: boolean) => void): void {
-    this._dialogActionHandler([id], useCurrent, Apis.jobServiceApi.deleteJob, callback, 'Delete',
+    this._dialogActionHandler([id], useCurrentResource, Apis.jobServiceApi.deleteJob, callback, 'Delete',
       'recurring run config');
   }
 
-  private _dialogActionHandler(selectedIds: string[], useCurrent: boolean,
+  private _dialogActionHandler(selectedIds: string[], useCurrentResource: boolean,
     api: (id: string) => Promise<void>, callback: (selectedIds: string[], success: boolean) => void,
     actionName: string, resourceName: string): void {
 
     const dialogClosedHandler = (confirmed: boolean) =>
-      this._dialogClosed(confirmed, selectedIds, actionName, resourceName, useCurrent, api, callback);
+      this._dialogClosed(confirmed, selectedIds, actionName, resourceName, useCurrentResource, api, callback);
 
     this._props.updateDialog({
       buttons: [{
@@ -215,12 +215,12 @@ export default class Buttons {
         text: 'Cancel',
       }],
       onClose: async () => await dialogClosedHandler(false),
-      title: `${actionName} ${useCurrent ? 'this' : selectedIds.length} ${resourceName}${useCurrent ? '' : s(selectedIds.length)}?`,
+      title: `${actionName} ${useCurrentResource ? 'this' : selectedIds.length} ${resourceName}${useCurrentResource ? '' : s(selectedIds.length)}?`,
     });
   }
 
   private async _dialogClosed(confirmed: boolean, selectedIds: string[], actionName: string,
-    resourceName: string, useCurrent: boolean, api: (id: string) => Promise<void>,
+    resourceName: string, useCurrentResource: boolean, api: (id: string) => Promise<void>,
     callback: (selectedIds: string[], success: boolean) => void): Promise<void> {
     if (confirmed) {
       const unsuccessfulIds: string[] = [];
@@ -236,9 +236,9 @@ export default class Buttons {
       }));
 
       const successfulOps = selectedIds.length - unsuccessfulIds.length;
-      if (useCurrent || successfulOps > 0) {
+      if (useCurrentResource || successfulOps > 0) {
         this._props.updateSnackbar({
-          message: `${actionName} succeeded for ${useCurrent ? 'this' : successfulOps} ${resourceName}${useCurrent ? '' : s(successfulOps)}`,
+          message: `${actionName} succeeded for ${useCurrentResource ? 'this' : successfulOps} ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
           open: true,
         });
         this._refresh();
@@ -248,7 +248,7 @@ export default class Buttons {
         this._props.updateDialog({
           buttons: [{ text: 'Dismiss' }],
           content: errorMessages.join('\n\n'),
-          title: `Failed to ${actionName.toLowerCase()} ${useCurrent ? '' : unsuccessfulIds.length + ' '}${resourceName}${useCurrent ? '' : s(unsuccessfulIds)}`,
+          title: `Failed to ${actionName.toLowerCase()} ${useCurrentResource ? '' : unsuccessfulIds.length + ' '}${resourceName}${useCurrentResource ? '' : s(unsuccessfulIds)}`,
         });
       }
 
@@ -266,14 +266,14 @@ export default class Buttons {
 
   private _createNewExperiment(pipelineId: string): void {
     const searchString = pipelineId ? this._urlParser.build({
-      [QUERY_PARAMS.pipelineId]: pipelineId || ''
+      [QUERY_PARAMS.pipelineId]: pipelineId
     }) : '';
     this._props.history.push(RoutePage.NEW_EXPERIMENT + searchString);
   }
 
   private _createNewRun(isRecurring: boolean, experimentId?: string): void {
     const searchString = this._urlParser.build(Object.assign(
-      { [QUERY_PARAMS.experimentId]: experimentId || '', },
+      { [QUERY_PARAMS.experimentId]: experimentId || '' },
       isRecurring ? { [QUERY_PARAMS.isRecurring]: '1' } : {}));
     this._props.history.push(RoutePage.NEW_RUN + searchString);
   }
