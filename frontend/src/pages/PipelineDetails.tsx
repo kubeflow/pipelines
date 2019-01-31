@@ -39,7 +39,7 @@ import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding, fontsize, fonts } from '../Css';
-import { logger, errorToMessage, formatDateString } from '../lib/Utils';
+import { logger, formatDateString } from '../lib/Utils';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -113,8 +113,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-    let actions: ToolbarActionConfig[] = [Buttons.newRun(this._createNewRun.bind(this))];
+    let actions: ToolbarActionConfig[] = [
+      buttons.newRunFromPipeline(() => this.state.pipeline ? this.state.pipeline.id! : ''),
+    ];
 
     if (fromRunId) {
       return {
@@ -127,15 +130,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     } else {
       // Add buttons for creating experiment and deleting pipeline
       actions = actions.concat([
-        Buttons.newExperiment(this._createNewExperiment.bind(this)),
-        Buttons.delete(() => this.props.updateDialog({
-          buttons: [
-            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-          ],
-          onClose: () => this._deleteDialogClosed(false),
-          title: 'Delete this pipeline?',
-        }))
+        buttons.newExperiment(() => this.state.pipeline ? this.state.pipeline.id! : ''),
+        buttons.delete(() => this.state.pipeline ? [this.state.pipeline.id!] : [],
+          'pipeline', () => null, true),
       ]);
       return {
         actions,
@@ -347,52 +344,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       template,
       templateString,
     });
-  }
-
-  private _createNewRun(): void {
-    let searchString = '';
-    const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-
-    if (fromRunId) {
-      searchString = new URLParser(this.props).build(Object.assign(
-        { [QUERY_PARAMS.fromRunId]: fromRunId }
-      ));
-    } else {
-      searchString = new URLParser(this.props).build(Object.assign(
-        { [QUERY_PARAMS.pipelineId]: this.state.pipeline!.id || '' }
-      ));
-    }
-
-    this.props.history.push(RoutePage.NEW_RUN + searchString);
-  }
-
-  private _createNewExperiment(): void {
-    const searchString = new URLParser(this.props).build({
-      [QUERY_PARAMS.pipelineId]: this.state.pipeline!.id || ''
-    });
-    this.props.history.push(RoutePage.NEW_EXPERIMENT + searchString);
-  }
-
-  private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
-    if (deleteConfirmed) {
-      try {
-        await Apis.pipelineServiceApi.deletePipeline(this.state.pipeline!.id!);
-        this.props.updateSnackbar({
-          autoHideDuration: 10000,
-          message: `Successfully deleted pipeline: ${this.state.pipeline!.name}`,
-          open: true,
-        });
-        this.props.history.push(RoutePage.PIPELINES);
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        this.props.updateDialog({
-          buttons: [{ text: 'Dismiss' }],
-          content: errorMessage,
-          title: 'Failed to delete pipeline',
-        });
-        logger.error('Deleting pipeline failed with error:', err);
-      }
-    }
   }
 }
 

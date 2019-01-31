@@ -53,16 +53,9 @@ describe('ExperimentDetails', () => {
   }
 
   function generateProps(): PageProps {
-    return {
-      history: { push: historyPushSpy } as any,
-      location: '' as any,
-      match: { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any,
-      toolbarProps: ExperimentDetails.prototype.getInitialToolbarState(),
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
+    const match = { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any;
+    return TestUtils.generatePageProps(ExperimentDetails, {} as any, match, historyPushSpy,
+      updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
   }
 
   async function mockNJobs(n: number): Promise<void> {
@@ -392,7 +385,7 @@ describe('ExperimentDetails', () => {
     tree.find('.tableRow').simulate('click');
 
     const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Clone');
+      .actions.find(b => b.title === 'Clone run');
     await cloneBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
@@ -427,7 +420,7 @@ describe('ExperimentDetails', () => {
     tree.update();
 
     const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Clone');
+      .actions.find(b => b.title === 'Clone run');
 
     for (let i = 0; i < 4; i++) {
       if (i === 1) {

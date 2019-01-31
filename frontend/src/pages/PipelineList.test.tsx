@@ -39,16 +39,8 @@ describe('PipelineList', () => {
   const uploadPipelineSpy = jest.spyOn(Apis, 'uploadPipeline');
 
   function generateProps(): PageProps {
-    return {
-      history: {} as any,
-      location: '' as any,
-      match: '' as any,
-      toolbarProps: PipelineList.prototype.getInitialToolbarState(),
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
+    return TestUtils.generatePageProps(PipelineList, '' as any, '' as any, null, updateBannerSpy,
+      updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
   }
 
   async function mountWithNPipelines(n: number): Promise<ReactWrapper> {
@@ -328,7 +320,7 @@ describe('PipelineList', () => {
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
     await confirmBtn.onClick();
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      message: 'Successfully deleted 1 pipeline!',
+      message: 'Delete succeeded for 1 pipeline',
       open: true,
     });
   });
@@ -345,7 +337,7 @@ describe('PipelineList', () => {
     await confirmBtn.onClick();
     const lastCall = updateDialogSpy.mock.calls[1][0];
     expect(lastCall).toMatchObject({
-      content: 'Deleting pipeline: test pipeline name0 failed with error: "woops, failed"',
+      content: 'Failed to delete pipeline: test-pipeline-id0 with error: "woops, failed"',
       title: 'Failed to delete 1 pipeline',
     });
   });
@@ -373,14 +365,14 @@ describe('PipelineList', () => {
     expect(updateDialogSpy).toHaveBeenCalledTimes(2);
     const lastCall = updateDialogSpy.mock.calls[1][0];
     expect(lastCall).toMatchObject({
-      content: 'Deleting pipeline: test pipeline name0 failed with error: "woops, failed!"\n\n' +
-        'Deleting pipeline: test pipeline name1 failed with error: "woops, failed!"',
+      content: 'Failed to delete pipeline: test-pipeline-id0 with error: "woops, failed!"\n\n' +
+        'Failed to delete pipeline: test-pipeline-id1 with error: "woops, failed!"',
       title: 'Failed to delete 2 pipelines',
     });
 
     // Should show snackbar for the one successful deletion
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      message: 'Successfully deleted 2 pipelines!',
+      message: 'Delete succeeded for 2 pipelines',
       open: true,
     });
   });
