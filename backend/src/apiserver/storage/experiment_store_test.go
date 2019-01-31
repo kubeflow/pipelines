@@ -52,11 +52,12 @@ func TestListExperiments_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name", nil)
 	assert.Nil(t, err)
 
-	experiments, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, experimentsExpected, experiments)
+	assert.Equal(t, 4, total_size)
 
 	expectedExperiment2 := &model.Experiment{
 		UUID:           fakeIDTwo,
@@ -75,9 +76,10 @@ func TestListExperiments_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, nextPageToken, err = experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
+	assert.Equal(t, 4, total_size)
 	assert.Equal(t, experimentsExpected2, experiments)
 }
 
@@ -109,10 +111,11 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name desc", nil)
 	assert.Nil(t, err)
-	experiments, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
+	assert.Equal(t, 4, total_size)
 	assert.Equal(t, experimentsExpected, experiments)
 
 	expectedExperiment1 := &model.Experiment{
@@ -132,9 +135,10 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, nextPageToken, err = experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
+	assert.Equal(t, 4, total_size)
 	assert.Equal(t, experimentsExpected2, experiments)
 }
 
@@ -154,9 +158,10 @@ func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
 	assert.Nil(t, err)
 
-	experiments, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 1, total_size)
 	assert.Equal(t, experimentsExpected, experiments)
 }
 
@@ -168,7 +173,7 @@ func TestListExperimentsError(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
 	assert.Nil(t, err)
-	_, _, err = experimentStore.ListExperiments(opts)
+	_, _, _, err = experimentStore.ListExperiments(opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -323,7 +328,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "id", filterProto)
 	assert.Nil(t, err)
-	experiments, nextPageToken, err := experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(opts)
 
 	expected := []*model.Experiment{
 		&model.Experiment{
@@ -343,12 +348,13 @@ func TestListExperiments_Filtering(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotEqual(t, "", nextPageToken)
 	assert.Equal(t, expected, experiments)
+	assert.Equal(t, 3, total_size)
 
 	// Next page should give experiment4.
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, nextPageToken, err = experimentStore.ListExperiments(opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(opts)
 
 	expected = []*model.Experiment{
 		&model.Experiment{
@@ -363,4 +369,5 @@ func TestListExperiments_Filtering(t *testing.T) {
 	// No more pages.
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, expected, experiments)
+	assert.Equal(t, 4, total_size)
 }

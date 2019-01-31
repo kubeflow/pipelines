@@ -187,6 +187,10 @@
             "$ref": "#/definitions/apiExperiment"
           }
         },
+        "total_size": {
+          "type": "integer",
+          "format": "int32"
+        },
         "next_page_token": {
           "type": "string"
         }

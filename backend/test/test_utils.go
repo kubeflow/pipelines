@@ -72,7 +72,7 @@ func getClientConfig(namespace string) clientcmd.ClientConfig {
 }
 
 func deleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
-	pipelines, _, err := client.List(&pipelineparams.ListPipelinesParams{})
+	pipelines, _, _, err := client.List(&pipelineparams.ListPipelinesParams{})
 	assert.Nil(t, err)
 	for _, p := range pipelines {
 		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineParams{ID: p.ID}))
@@ -80,7 +80,7 @@ func deleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 }
 
 func deleteAllExperiments(client *api_server.ExperimentClient, t *testing.T) {
-	experiments, _, err := client.List(&experimentparams.ListExperimentParams{})
+	experiments, _, _, err := client.List(&experimentparams.ListExperimentParams{})
 	assert.Nil(t, err)
 	for _, e := range experiments {
 		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentParams{ID: e.ID}))
@@ -88,7 +88,7 @@ func deleteAllExperiments(client *api_server.ExperimentClient, t *testing.T) {
 }
 
 func deleteAllRuns(client *api_server.RunClient, t *testing.T) {
-	runs, _, err := client.List(&runparams.ListRunsParams{})
+	runs, _, _, err := client.List(&runparams.ListRunsParams{})
 	assert.Nil(t, err)
 	for _, r := range runs {
 		assert.Nil(t, client.Delete(&runparams.DeleteRunParams{ID: r.ID}))
@@ -96,7 +96,7 @@ func deleteAllRuns(client *api_server.RunClient, t *testing.T) {
 }
 
 func deleteAllJobs(client *api_server.JobClient, t *testing.T) {
-	jobs, _, err := client.List(&jobparams.ListJobsParams{})
+	jobs, _, _, err := client.List(&jobparams.ListJobsParams{})
 	assert.Nil(t, err)
 	for _, j := range jobs {
 		assert.Nil(t, client.Delete(&jobparams.DeleteJobParams{ID: j.ID}))

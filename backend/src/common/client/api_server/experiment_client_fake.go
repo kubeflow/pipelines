@@ -49,7 +49,7 @@ func (c *ExperimentClientFake) Get(params *experimentparams.GetExperimentParams)
 }
 
 func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentParams) (
-	[]*experimentmodel.APIExperiment, string, error) {
+	[]*experimentmodel.APIExperiment, int, string, error) {
 	const (
 		FirstToken  = ""
 		SecondToken = "SECOND_TOKEN"
@@ -66,13 +66,13 @@ func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentParam
 		return []*experimentmodel.APIExperiment{
 			getDefaultExperiment("100", "MY_FIRST_EXPERIMENT"),
 			getDefaultExperiment("101", "MY_SECOND_EXPERIMENT"),
-		}, SecondToken, nil
+		}, 2, SecondToken, nil
 	case SecondToken:
 		return []*experimentmodel.APIExperiment{
 			getDefaultExperiment("102", "MY_THIRD_EXPERIMENT"),
-		}, FinalToken, nil
+		}, 1, FinalToken, nil
 	default:
-		return nil, "", fmt.Errorf(InvalidFakeRequest, token)
+		return nil, 0, "", fmt.Errorf(InvalidFakeRequest, token)
 	}
 }
 

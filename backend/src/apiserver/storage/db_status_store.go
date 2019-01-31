@@ -16,6 +16,7 @@ package storage
 
 import (
 	sq "github.com/Masterminds/squirrel"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -70,7 +71,7 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 	}
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
+		glog.Error("Failed to commit transaction to initialize database status table")
 		return util.NewInternalServerError(err, "Failed to initializing the database status table.")
 	}
 	return nil
