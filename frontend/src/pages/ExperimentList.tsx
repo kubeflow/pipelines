@@ -24,9 +24,8 @@ import { ApiResourceType, ApiRun } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
-import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
-import { URLParser } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
@@ -40,7 +39,7 @@ interface DisplayExperiment extends ApiExperiment {
 
 interface ExperimentListState {
   displayExperiments: DisplayExperiment[];
-  selectedRunIds: string[];
+  selectedIds: string[];
   selectedTab: number;
 }
 
@@ -52,18 +51,19 @@ class ExperimentList extends Page<{}, ExperimentListState> {
 
     this.state = {
       displayExperiments: [],
-      selectedRunIds: [],
+      selectedIds: [],
       selectedTab: 0,
     };
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: [
-        Buttons.newExperiment(this._newExperimentClicked.bind(this)),
-        Buttons.compareRuns(this._compareRuns.bind(this)),
-        Buttons.cloneRun(this._cloneRun.bind(this)),
-        Buttons.refresh(this.refresh.bind(this)),
+        buttons.newExperiment(),
+        buttons.compareRuns(() => this.state.selectedIds),
+        buttons.cloneRun(() => this.state.selectedIds, false),
+        buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [],
       pageTitle: 'Experiments',
@@ -156,15 +156,6 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     return response.next_page_token || '';
   }
 
-  private _cloneRun(): void {
-    if (this.state.selectedRunIds.length === 1) {
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.cloneFromRun]: this.state.selectedRunIds[0] || ''
-      });
-      this.props.history.push(RoutePage.NEW_RUN + searchString);
-    }
-  }
-
   private _nameCustomRenderer(value: string, id: string): JSX.Element {
     return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
       to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, id)}>{value}</Link>;
@@ -180,30 +171,15 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     </div>;
   }
 
-  private _runSelectionChanged(selectedRunIds: string[]): void {
+  private _selectionChanged(selectedIds: string[]): void {
     const actions = produce(this.props.toolbarProps.actions, draft => {
       // Enable/Disable Run compare button
-      draft[1].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
+      draft[1].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
       // Enable/Disable Clone button
-      draft[2].disabled = selectedRunIds.length !== 1;
+      draft[2].disabled = selectedIds.length !== 1;
     });
     this.props.updateToolbar({ actions });
-    this.setState({ selectedRunIds });
-  }
-
-  private _compareRuns(): void {
-    const indices = this.state.selectedRunIds;
-    if (indices.length > 1 && indices.length <= 10) {
-      const runIds = this.state.selectedRunIds.join(',');
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.runlist]: runIds,
-      });
-      this.props.history.push(RoutePage.COMPARE + searchString);
-    }
-  }
-
-  private _newExperimentClicked(): void {
-    this.props.history.push(RoutePage.NEW_EXPERIMENT);
+    this.setState({ selectedIds });
   }
 
   private _toggleRowExpand(rowIndex: number): void {
@@ -221,8 +197,8 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     const experiment = this.state.displayExperiments[experimentIndex];
     const runIds = (experiment.last5Runs || []).map((r) => r.id!);
     return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
-      disablePaging={true} selectedIds={this.state.selectedRunIds} noFilterBox={true}
-      onSelectionChange={this._runSelectionChanged.bind(this)} disableSorting={true} />;
+      disablePaging={true} selectedIds={this.state.selectedIds} noFilterBox={true}
+      onSelectionChange={this._selectionChanged.bind(this)} disableSorting={true} />;
   }
 }
 

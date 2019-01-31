@@ -89,7 +89,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "outlined": true,
             "primary": true,
             "title": "Create run",
-            "tooltip": "Create a new run within this experiment",
+            "tooltip": "Create a new run",
           },
           Object {
             "action": [Function],
@@ -97,7 +97,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Create a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],
@@ -112,7 +112,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
-            "title": "Clone",
+            "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
         ]
@@ -128,7 +128,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           "push": [MockFunction],
         }
       }
-      location=""
+      location={Object {}}
       match={
         Object {
           "params": Object {
@@ -155,7 +155,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
               "href": "/experiments",
             },
           ],
-          "pageTitle": "",
+          "pageTitle": "some-mock-experiment-id",
         }
       }
       updateBanner={
@@ -232,7 +232,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
               "push": [MockFunction],
             }
           }
-          location=""
+          location={Object {}}
           match={
             Object {
               "params": Object {
@@ -256,7 +256,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
                   "href": "/experiments",
                 },
               ],
-              "pageTitle": "",
+              "pageTitle": "some-mock-experiment-id",
             }
           }
           updateBanner={
@@ -433,7 +433,7 @@ exports[`ExperimentDetails removes all description text after second newline and
             "outlined": true,
             "primary": true,
             "title": "Create run",
-            "tooltip": "Create a new run within this experiment",
+            "tooltip": "Create a new run",
           },
           Object {
             "action": [Function],
@@ -441,7 +441,7 @@ exports[`ExperimentDetails removes all description text after second newline and
             "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Create a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],
@@ -456,7 +456,7 @@ exports[`ExperimentDetails removes all description text after second newline and
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
-            "title": "Clone",
+            "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
         ]
@@ -472,7 +472,7 @@ exports[`ExperimentDetails removes all description text after second newline and
           "push": [MockFunction],
         }
       }
-      location=""
+      location={Object {}}
       match={
         Object {
           "params": Object {
@@ -499,7 +499,7 @@ exports[`ExperimentDetails removes all description text after second newline and
               "href": "/experiments",
             },
           ],
-          "pageTitle": "",
+          "pageTitle": "some-mock-experiment-id",
         }
       }
       updateBanner={
@@ -576,7 +576,7 @@ exports[`ExperimentDetails removes all description text after second newline and
               "push": [MockFunction],
             }
           }
-          location=""
+          location={Object {}}
           match={
             Object {
               "params": Object {
@@ -600,7 +600,7 @@ exports[`ExperimentDetails removes all description text after second newline and
                   "href": "/experiments",
                 },
               ],
-              "pageTitle": "",
+              "pageTitle": "some-mock-experiment-id",
             }
           }
           updateBanner={
@@ -764,7 +764,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "outlined": true,
             "primary": true,
             "title": "Create run",
-            "tooltip": "Create a new run within this experiment",
+            "tooltip": "Create a new run",
           },
           Object {
             "action": [Function],
@@ -772,7 +772,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Create a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],
@@ -787,7 +787,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
-            "title": "Clone",
+            "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
         ]
@@ -803,7 +803,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           "push": [MockFunction],
         }
       }
-      location=""
+      location={Object {}}
       match={
         Object {
           "params": Object {
@@ -830,7 +830,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
               "href": "/experiments",
             },
           ],
-          "pageTitle": "",
+          "pageTitle": "some-mock-experiment-id",
         }
       }
       updateBanner={
@@ -907,7 +907,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
               "push": [MockFunction],
             }
           }
-          location=""
+          location={Object {}}
           match={
             Object {
               "params": Object {
@@ -931,7 +931,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
                   "href": "/experiments",
                 },
               ],
-              "pageTitle": "",
+              "pageTitle": "some-mock-experiment-id",
             }
           }
           updateBanner={
@@ -1093,7 +1093,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "outlined": true,
             "primary": true,
             "title": "Create run",
-            "tooltip": "Create a new run within this experiment",
+            "tooltip": "Create a new run",
           },
           Object {
             "action": [Function],
@@ -1101,7 +1101,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Create a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],
@@ -1116,7 +1116,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
-            "title": "Clone",
+            "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
         ]
@@ -1132,7 +1132,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           "push": [MockFunction],
         }
       }
-      location=""
+      location={Object {}}
       match={
         Object {
           "params": Object {
@@ -1159,7 +1159,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
               "href": "/experiments",
             },
           ],
-          "pageTitle": "",
+          "pageTitle": "some-mock-experiment-id",
         }
       }
       updateBanner={
@@ -1236,7 +1236,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
               "push": [MockFunction],
             }
           }
-          location=""
+          location={Object {}}
           match={
             Object {
               "params": Object {
@@ -1260,7 +1260,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
                   "href": "/experiments",
                 },
               ],
-              "pageTitle": "",
+              "pageTitle": "some-mock-experiment-id",
             }
           }
           updateBanner={
