@@ -13,6 +13,7 @@
  */
 
 
+import * as url from "url";
 import * as portableFetch from "portable-fetch";
 import { Configuration } from "./configuration";
 
@@ -201,15 +202,15 @@ export interface ApiStringValues {
  * @enum {string}
  */
 export enum PredicateOp {
-    UNKNOWN = <any>'UNKNOWN',
-    EQUALS = <any>'EQUALS',
-    NOTEQUALS = <any>'NOT_EQUALS',
-    GREATERTHAN = <any>'GREATER_THAN',
-    GREATERTHANEQUALS = <any>'GREATER_THAN_EQUALS',
-    LESSTHAN = <any>'LESS_THAN',
-    LESSTHANEQUALS = <any>'LESS_THAN_EQUALS',
-    IN = <any>'IN',
-    ISSUBSTRING = <any>'IS_SUBSTRING'
+    UNKNOWN = <any> 'UNKNOWN',
+    EQUALS = <any> 'EQUALS',
+    NOTEQUALS = <any> 'NOT_EQUALS',
+    GREATERTHAN = <any> 'GREATER_THAN',
+    GREATERTHANEQUALS = <any> 'GREATER_THAN_EQUALS',
+    LESSTHAN = <any> 'LESS_THAN',
+    LESSTHANEQUALS = <any> 'LESS_THAN_EQUALS',
+    IN = <any> 'IN',
+    ISSUBSTRING = <any> 'IS_SUBSTRING'
 }
 
 
