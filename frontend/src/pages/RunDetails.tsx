@@ -35,9 +35,8 @@ import { Apis } from '../lib/Apis';
 import { NodePhase, statusToIcon, hasFinished } from './Status';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { Page } from './Page';
-import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
-import { URLParser } from '../lib/URLParser';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
@@ -132,10 +131,11 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: [
-        Buttons.cloneRun(this._cloneRun.bind(this)),
-        Buttons.refresh(this.refresh.bind(this)),
+        buttons.cloneRun(() => this.state.runMetadata ? [this.state.runMetadata!.id!] : [], true),
+        buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: this.props.runId!,
@@ -225,13 +225,13 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                   </SidePanel>
 
                   <div className={css.footer}>
-                  <div className={commonCss.flex}>
-                    <InfoIcon className={commonCss.infoIcon} />
-                    <span className={css.infoSpan}>
-                      Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                    <div className={commonCss.flex}>
+                      <InfoIcon className={commonCss.infoIcon} />
+                      <span className={css.infoSpan}>
+                        Runtime execution graph. Only steps that are currently running or have already completed are shown.
                     </span>
+                    </div>
                   </div>
-                </div>
                 </div>}
                 {!graph && (
                   <div>
@@ -513,15 +513,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       logger.error('Error loading logs for node:', selectedNodeDetails.id);
     } finally {
       this.setStateSafe({ sidepanelBusy: false });
-    }
-  }
-
-  private _cloneRun(): void {
-    if (this.state.runMetadata) {
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.cloneFromRun]: this.state.runMetadata.id || ''
-      });
-      this.props.history.push(RoutePage.NEW_RUN + searchString);
     }
   }
 }

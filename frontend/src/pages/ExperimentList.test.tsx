@@ -40,16 +40,8 @@ describe('ExperimentList', () => {
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
   function generateProps(): PageProps {
-    return {
-      history: { push: historyPushSpy } as any,
-      location: '' as any,
-      match: '' as any,
-      toolbarProps: ExperimentList.prototype.getInitialToolbarState(),
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
+    return TestUtils.generatePageProps(ExperimentList, { pathname: RoutePage.EXPERIMENTS } as any,
+      '' as any, historyPushSpy, updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
   }
 
   async function mountWithNExperiments(n: number, nRuns: number): Promise<ReactWrapper> {
@@ -261,7 +253,7 @@ describe('ExperimentList', () => {
 
   it('enables clone button when one run is selected', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    (tree.instance() as any)._runSelectionChanged(['run1']);
+    (tree.instance() as any)._selectionChanged(['run1']);
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
     expect(updateToolbarSpy.mock.calls[0][0].actions.find((b: any) => b.title === 'Clone run'))
       .toHaveProperty('disabled', true);
@@ -272,7 +264,7 @@ describe('ExperimentList', () => {
 
   it('disables clone button when more than one run is selected', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    (tree.instance() as any)._runSelectionChanged(['run1', 'run2']);
+    (tree.instance() as any)._selectionChanged(['run1', 'run2']);
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
     expect(updateToolbarSpy.mock.calls[0][0].actions.find((b: any) => b.title === 'Clone run'))
       .toHaveProperty('disabled', true);
@@ -283,9 +275,9 @@ describe('ExperimentList', () => {
 
   it('enables compare runs button only when more than one is selected', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    (tree.instance() as any)._runSelectionChanged(['run1']);
-    (tree.instance() as any)._runSelectionChanged(['run1', 'run2']);
-    (tree.instance() as any)._runSelectionChanged(['run1', 'run2', 'run3']);
+    (tree.instance() as any)._selectionChanged(['run1']);
+    (tree.instance() as any)._selectionChanged(['run1', 'run2']);
+    (tree.instance() as any)._selectionChanged(['run1', 'run2', 'run3']);
     expect(updateToolbarSpy).toHaveBeenCalledTimes(4);
     expect(updateToolbarSpy.mock.calls[0][0].actions.find((b: any) => b.title === 'Compare runs'))
       .toHaveProperty('disabled', true);
@@ -300,7 +292,7 @@ describe('ExperimentList', () => {
 
   it('navigates to compare page with the selected run ids', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    (tree.instance() as any)._runSelectionChanged(['run1', 'run2', 'run3']);
+    (tree.instance() as any)._selectionChanged(['run1', 'run2', 'run3']);
     const compareBtn = (tree.instance() as ExperimentList)
       .getInitialToolbarState().actions.find(b => b.title === 'Compare runs');
     await compareBtn!.action();
@@ -310,7 +302,7 @@ describe('ExperimentList', () => {
 
   it('navigates to new run page with the selected run id for cloning', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    (tree.instance() as any)._runSelectionChanged(['run1']);
+    (tree.instance() as any)._selectionChanged(['run1']);
     const cloneBtn = (tree.instance() as ExperimentList)
       .getInitialToolbarState().actions.find(b => b.title === 'Clone run');
     await cloneBtn!.action();
