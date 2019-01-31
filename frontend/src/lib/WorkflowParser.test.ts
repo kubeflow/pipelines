@@ -16,6 +16,7 @@
 
 import WorkflowParser, { StorageService } from './WorkflowParser';
 import { NodePhase } from '../pages/Status';
+import { color } from '../Css';
 
 describe('WorkflowParser', () => {
   describe('createRuntimeGraph', () => {
@@ -79,37 +80,165 @@ describe('WorkflowParser', () => {
 
     it('creates graph with exit handler attached', () => {
       const workflow = {
-        metadata: { name: 'node1' },
+        metadata: { name: 'virtualRoot' },
         status: {
           nodes: {
             node1: {
               displayName: 'node1',
               id: 'node1',
               name: 'node1',
-              outboundNodes: ['node2'],
               phase: 'Succeeded',
-              type: 'Steps',
+              type: 'Pod',
             },
             node2: {
               displayName: 'node2',
               id: 'node2',
-              name: 'node2',
+              name: 'virtualRoot.onExit',
               phase: 'Succeeded',
               type: 'Pod',
             },
-            node3: {
-              displayName: 'node3',
-              id: 'node3',
-              name: 'node1.onExit',
+            virtualRoot: {
+              displayName: 'virtualRoot',
+              id: 'virtualRoot',
+              name: 'virtualRoot',
+              outboundNodes: ['node1'],
               phase: 'Succeeded',
-              type: 'Pod',
-            }
+              type: 'Steps',
+            },
           },
         }
       };
       const g = WorkflowParser.createRuntimeGraph(workflow as any);
-      expect(g.nodes()).toEqual(['node2', 'node3']);
-      expect(g.edges()).toEqual([{ v: 'node2', w: 'node3' }]);
+      expect(g.nodes()).toEqual(['node1', 'node2']);
+      expect(g.edges()).toEqual([{ v: 'node1', w: 'node2' }]);
+    });
+
+    it('creates a graph with placeholder nodes for steps that are not finished', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            finishedNode: {
+              displayName: 'finishedNode',
+              id: 'finishedNode',
+              name: 'finishedNode',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            pendingNode: {
+              displayName: 'pendingNode',
+              id: 'pendingNode',
+              name: 'pendingNode',
+              phase: 'Pending',
+              type: 'Pod',
+            },
+            root: {
+              children: ['pendingNode', 'runningNode', 'finishedNode'],
+              displayName: 'root',
+              id: 'root',
+              name: 'root',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            runningNode: {
+              displayName: 'runningNode',
+              id: 'runningNode',
+              name: 'runningNode',
+              phase: 'Running',
+              type: 'Pod',
+            },
+          },
+        }
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+      expect(g.nodes()).toEqual([
+        'finishedNode',
+        'pendingNode',
+        'pendingNode-running-placeholder',
+        'root',
+        'runningNode',
+        'runningNode-running-placeholder'
+      ]);
+      expect(g.edges()).toEqual(expect.arrayContaining([
+        { v: 'root', w: 'pendingNode' },
+        { v: 'root', w: 'runningNode' },
+        { v: 'root', w: 'finishedNode' },
+        { v: 'pendingNode', w: 'pendingNode-running-placeholder' },
+        { v: 'runningNode', w: 'runningNode-running-placeholder' },
+      ]));
+    });
+
+    it('sets specific properties for placeholder nodes', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            root: {
+              children: ['runningNode'],
+              displayName: 'root',
+              id: 'root',
+              name: 'root',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            runningNode: {
+              displayName: 'runningNode',
+              id: 'runningNode',
+              name: 'runningNode',
+              phase: 'Running',
+              type: 'Pod',
+            },
+          },
+        }
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+
+      const runningNode = g.node('runningNode');
+      expect(runningNode.height).toEqual(70);
+      expect(runningNode.width).toEqual(180);
+      expect(runningNode.label).toEqual('runningNode');
+      expect(runningNode.isPlaceholder).toBeUndefined();
+
+      const placeholderNode = g.node('runningNode-running-placeholder');
+      expect(placeholderNode.height).toEqual(28);
+      expect(placeholderNode.width).toEqual(28);
+      expect(placeholderNode.label).toBeUndefined();
+      expect(placeholderNode.isPlaceholder).toBe(true);
+    });
+
+    it('sets extra properties for placeholder node edges', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            root: {
+              children: ['runningNode'],
+              displayName: 'root',
+              id: 'root',
+              name: 'root',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            runningNode: {
+              displayName: 'runningNode',
+              id: 'runningNode',
+              name: 'runningNode',
+              phase: 'Running',
+              type: 'Pod',
+            },
+          },
+        }
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+
+      g.edges().map(edgeInfo => g.edge(edgeInfo)).forEach(edge => {
+        if (edge.isPlaceholder) {
+          expect(edge.color).toEqual(color.weak);
+        } else {
+          expect(edge.color).toBeUndefined();
+        }
+      });
+
     });
 
     it('deletes virtual nodes', () => {

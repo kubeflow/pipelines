@@ -90,9 +90,10 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "arguments.tar.gz", argumentUrlPipeline.Name)
 
 	/* ---------- Verify list pipeline works ---------- */
-	pipelines, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
+	pipelines, totalSize, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(pipelines))
+	assert.Equal(t, 4, totalSize)
 	for _, p := range pipelines {
 		// Sampling one of the pipelines and verify the result is expected.
 		if p.Name == "arguments-parameters.yaml" {
@@ -101,57 +102,63 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	}
 
 	/* ---------- Verify list pipeline sorted by names ---------- */
-	listFirstPagePipelines, nextPageToken, err := s.pipelineClient.List(
+	listFirstPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
 		&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelines))
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
 	assert.Equal(t, "arguments.tar.gz", listFirstPagePipelines[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
-	listSecondPagePipelines, nextPageToken, err := s.pipelineClient.List(
+	listSecondPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
 		&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, "sequential", listSecondPagePipelines[0].Name)
 	assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify list pipeline sorted by creation time ---------- */
-	listFirstPagePipelines, nextPageToken, err = s.pipelineClient.List(
+	listFirstPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
 		&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelines))
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
 	assert.Equal(t, "sequential", listFirstPagePipelines[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
-	listSecondPagePipelines, nextPageToken, err = s.pipelineClient.List(
+	listSecondPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
 		&params.ListPipelinesParams{PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[0].Name)
 	assert.Equal(t, "arguments.tar.gz", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
-	_, _, err = s.pipelineClient.List(&params.ListPipelinesParams{
+	_, _, _, err = s.pipelineClient.List(&params.ListPipelinesParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")})
 	assert.NotNil(t, err)
 
 	/* ---------- List pipelines sorted by names descend order ---------- */
-	listFirstPagePipelines, nextPageToken, err = s.pipelineClient.List(
+	listFirstPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(
 		&params.ListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listFirstPagePipelines))
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, "zip-arguments-parameters", listFirstPagePipelines[0].Name)
 	assert.Equal(t, "sequential", listFirstPagePipelines[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
-	listSecondPagePipelines, nextPageToken, err = s.pipelineClient.List(&params.ListPipelinesParams{
+	listSecondPagePipelines, totalSize, nextPageToken, err = s.pipelineClient.List(&params.ListPipelinesParams{
 		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
+	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, "arguments.tar.gz", listSecondPagePipelines[0].Name)
 	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -13,7 +14,7 @@ import (
 )
 
 type ExperimentStoreInterface interface {
-	ListExperiments(opts *list.Options) ([]*model.Experiment, string, error)
+	ListExperiments(opts *list.Options) ([]*model.Experiment, int, string, error)
 	GetExperiment(uuid string) (*model.Experiment, error)
 	CreateExperiment(*model.Experiment) (*model.Experiment, error)
 	DeleteExperiment(uuid string) error
@@ -26,33 +27,70 @@ type ExperimentStore struct {
 	resourceReferenceStore *ResourceReferenceStore
 }
 
-func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experiment, string, error) {
-	errorF := func(err error) ([]*model.Experiment, string, error) {
-		return nil, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
+// Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
+// total_size. The total_size does not reflect the page size.
+func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experiment, int, string, error) {
+	errorF := func(err error) ([]*model.Experiment, int, string, error) {
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
 
-	sql, args, err := opts.AddToSelect(sq.Select("*").From("experiments")).ToSql()
+	// SQL for getting the filtered and paginated rows
+	sqlBuilder := opts.AddFilterToSelect(sq.Select("*").From("experiments"))
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
 
-	rows, err := s.db.Query(sql, args...)
+	// SQL for getting total size. This matches the query to get all the rows above, in order
+	// to do the same filter, but counts instead of scanning the rows.
+	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sq.Select("count(*)").From("experiments")).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
-	defer rows.Close()
 
+	// Use a transaction to make sure we're returning the total_size of the same rows queried
+	tx, err := s.db.Begin()
+	if err != nil {
+		glog.Errorf("Failed to start transaction to list jobs")
+		return errorF(err)
+	}
+
+	rows, err := tx.Query(rowsSql, rowsArgs...)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
 	exps, err := s.scanRows(rows)
 	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	rows.Close()
+
+	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	sizeRow.Close()
+
+	err = tx.Commit()
+	if err != nil {
+		glog.Errorf("Failed to commit transaction to list experiments")
 		return errorF(err)
 	}
 
 	if len(exps) <= opts.PageSize {
-		return exps, "", nil
+		return exps, total_size, "", nil
 	}
 
 	npt, err := opts.NextPageToken(exps[opts.PageSize])
-	return exps[:opts.PageSize], npt, err
+	return exps[:opts.PageSize], total_size, npt, err
 }
 
 func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) {
@@ -157,7 +195,6 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 	}
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete experiment %v and its resource references from table", id)
 	}
 	return nil

@@ -38,7 +38,7 @@ export const color = {
   theme: '#1a73e8',
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
-  weak: '#999',
+  weak: '#9AA0A6',
 };
 
 export const dimension = {
@@ -222,6 +222,11 @@ export const commonCss = stylesheet({
     fontWeight: 'bold',
     paddingBottom: 16,
     paddingTop: 20,
+  },
+  infoIcon: {
+    color: color.lowContrast,
+    height: 16,
+    width: 16
   },
   link: {
     $nest: {
