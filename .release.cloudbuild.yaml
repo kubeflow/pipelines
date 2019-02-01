@@ -62,47 +62,6 @@ steps:
   id:   'tagPersistenceagentCommitSHA'
   waitFor: ['pullPersistenceagent']
 
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA']
-  id:   'pullBootstrapper'
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'printf "FROM gcr.io/$PROJECT_ID/bootstrapper:$COMMIT_SHA\nENV API_SERVER_IMAGE gcr.io/ml-pipeline/api-server:$COMMIT_SHA\nENV SCHEDULED_WORKFLOW_IMAGE gcr.io/ml-pipeline/scheduledworkflow:$COMMIT_SHA\nENV PERSISTENCE_AGENT_IMAGE gcr.io/ml-pipeline/persistenceagent:$COMMIT_SHA\nENV UI_IMAGE gcr.io/ml-pipeline/frontend:$COMMIT_SHA" > Dockerfile; docker build -t gcr.io/ml-pipeline/bootstrapper:$COMMIT_SHA .']
-  id: 'buildBootstrapper'
-  waitFor: ['pullBootstrapper']
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/ml-pipeline/bootstrapper:$COMMIT_SHA', 'gcr.io/ml-pipeline/bootstrapper:$TAG_NAME']
-  id:   'tagBootstrapperVersionNumber'
-  waitFor: ['buildBootstrapper']
-
-# Copy the bootstrapper config
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/bootstrapper:\([a-zA-Z0-9_.-]\)\+/gcr.io\/ml-pipeline\/bootstrapper:$TAG_NAME/g" /workspace/bootstrapper.yaml']
-  id:   'prepareBootstrapperYAML'
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/bootstrapper.yaml', 'gs://ml-pipeline/release/$TAG_NAME/bootstrapper.yaml']
-  id:   'copyBootstrapperYAML'
-  waitFor: ['prepareBootstrapperYAML']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/bootstrapper.yaml', 'gs://ml-pipeline/release/latest/bootstrapper.yaml']
-  id:   'copyBootstrapperYAMLToLatest'
-  waitFor: ['prepareBootstrapperYAML']
-
-# Copy the uninstaller config
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/bootstrapper:\([a-zA-Z0-9_.-]\)\+/gcr.io\/ml-pipeline\/bootstrapper:$TAG_NAME/g" /workspace/uninstaller.yaml']
-  id:   'prepareUninstallerYAML'
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/uninstaller.yaml', 'gs://ml-pipeline/release/$TAG_NAME/uninstaller.yaml']
-  id:   'copyUninstallerYAML'
-  waitFor: ['prepareUninstallerYAML']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '/workspace/uninstaller.yaml', 'gs://ml-pipeline/release/latest/uninstaller.yaml']
-  id:   'copyUninstallerYAMLToLatest'
-  waitFor: ['prepareUninstallerYAML']
-
 # Copy the Python SDK
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz', '/workspace/']
@@ -140,7 +99,5 @@ images:
 - 'gcr.io/ml-pipeline/scheduledworkflow:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/persistenceagent:$TAG_NAME'
 - 'gcr.io/ml-pipeline/persistenceagent:$COMMIT_SHA'
-- 'gcr.io/ml-pipeline/bootstrapper:$TAG_NAME'
-- 'gcr.io/ml-pipeline/bootstrapper:$COMMIT_SHA'
 
 timeout: '1200s'
