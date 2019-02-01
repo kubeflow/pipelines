@@ -164,13 +164,7 @@ exports[`ExperimentList renders experiment names as links to their details pages
   replace={false}
   to="/experiments/details/experiment-id"
 >
-  <a
-    className="link"
-    href="/experiments/details/experiment-id"
-    onClick={[Function]}
-  >
-    experiment name
-  </a>
+  experiment name
 </Link>
 `;
 
@@ -179,7 +173,6 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
   className="flex"
 >
   <span
-    key="0"
     style={
       Object {
         "margin": "0 1px",
@@ -215,7 +208,6 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     </WithStyles(Tooltip)>
   </span>
   <span
-    key="1"
     style={
       Object {
         "margin": "0 1px",
@@ -251,7 +243,6 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     </WithStyles(Tooltip)>
   </span>
   <span
-    key="2"
     style={
       Object {
         "margin": "0 1px",
@@ -287,7 +278,6 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     </WithStyles(Tooltip)>
   </span>
   <span
-    key="3"
     style={
       Object {
         "margin": "0 1px",
@@ -323,7 +313,6 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
     </WithStyles(Tooltip)>
   </span>
   <span
-    key="4"
     style={
       Object {
         "margin": "0 1px",

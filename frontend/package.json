@@ -76,7 +76,7 @@
     "swagger-ts-client": "^0.9.6",
     "ts-node": "^7.0.1",
     "ts-node-dev": "^1.0.0-pre.30",
-    "typescript": "^3.0.3",
+    "typescript": "^3.3.1",
     "webpack-bundle-analyzer": "^3.0.2"
   },
   "homepage": "./",

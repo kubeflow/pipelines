@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import Buttons from '../lib/Buttons';
-import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
+import CustomTable, { Column, Row, ExpandState, CustomRendererProps } from '../components/CustomTable';
 import RunList from './RunList';
 import produce from 'immer';
 import { ApiFilter, PredicateOp } from '../apis/filter';
@@ -78,7 +78,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
 
   public render(): JSX.Element {
     const columns: Column[] = [{
-      customRenderer: this._nameCustomRenderer.bind(this),
+      customRenderer: this._nameCustomRenderer,
       flex: 1,
       label: 'Experiment name',
       sortKey: ExperimentSortKeys.NAME,
@@ -86,7 +86,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       flex: 2,
       label: 'Description',
     }, {
-      customRenderer: this._last5RunsCustomRenderer.bind(this),
+      customRenderer: this._last5RunsCustomRenderer,
       flex: 1,
       label: 'Last 5 runs',
     }];
@@ -121,6 +121,21 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       this.clearBanner();
       await this._tableRef.current.reload();
     }
+  }
+
+  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (props: CustomRendererProps<string>) => {
+    return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
+      to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}>{props.value}</Link>;
+  }
+
+  public _last5RunsCustomRenderer: React.FC<CustomRendererProps<ApiRun[]>> = (props: CustomRendererProps<ApiRun[]>) => {
+    return <div className={commonCss.flex}>
+      {(props.value || []).map((run, i) => (
+        <span key={i} style={{ margin: '0 1px' }}>
+          {statusToIcon(run.status as NodePhase || NodePhase.UNKNOWN, run.created_at)}
+        </span>
+      ))}
+    </div>;
   }
 
   private async _reload(request: ListRequest): Promise<string> {
@@ -167,21 +182,6 @@ class ExperimentList extends Page<{}, ExperimentListState> {
 
     this.setState({ displayExperiments });
     return response.next_page_token || '';
-  }
-
-  private _nameCustomRenderer(value: string, id: string): JSX.Element {
-    return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-      to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, id)}>{value}</Link>;
-  }
-
-  private _last5RunsCustomRenderer(runs: ApiRun[]): JSX.Element {
-    return <div className={commonCss.flex}>
-      {(runs || []).map((run, i) => (
-        <span key={i} style={{ margin: '0 1px' }}>
-          {statusToIcon(run.status as NodePhase || NodePhase.UNKNOWN, run.created_at)}
-        </span>
-      ))}
-    </div>;
   }
 
   private _selectionChanged(selectedIds: string[]): void {

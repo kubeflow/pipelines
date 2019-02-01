@@ -16,7 +16,7 @@
     "@types/google-cloud__storage": "^1.1.7",
     "@types/minio": "^6.0.2",
     "@types/node-fetch": "^2.1.2",
-    "typescript": "3.0.1"
+    "typescript": "3.3.1"
   },
   "scripts": {
     "build": "tsc --lib es2015 --outDir ./dist --typeRoots ./node_modules/@types *.ts"

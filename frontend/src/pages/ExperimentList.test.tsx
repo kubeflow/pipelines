@@ -24,9 +24,9 @@ import { Apis } from '../lib/Apis';
 import { ExpandState } from '../components/CustomTable';
 import { NodePhase } from './Status';
 import { PageProps } from './Page';
+import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { range } from 'lodash';
-import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 
 describe('ExperimentList', () => {
   let tree: ShallowWrapper | ReactWrapper;
@@ -65,6 +65,15 @@ describe('ExperimentList', () => {
     jest.resetAllMocks();
     jest.clearAllMocks();
     tree.unmount();
+  });
+
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    if (tree) {
+      await tree.unmount();
+    }
+    jest.resetAllMocks();
   });
 
   it('renders an empty list with empty state message', () => {
@@ -316,20 +325,24 @@ describe('ExperimentList', () => {
   });
 
   it('renders experiment names as links to their details pages', async () => {
-    tree = TestUtils.mountWithRouter((ExperimentList.prototype as any)
-      ._nameCustomRenderer('experiment name', 'experiment-id'));
-    expect(tree).toMatchSnapshot();
+    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
+    expect((tree.instance() as ExperimentList)._nameCustomRenderer({
+      id: 'experiment-id',
+      value: 'experiment name',
+    })).toMatchSnapshot();
   });
 
   it('renders last 5 runs statuses', async () => {
-    tree = shallow((ExperimentList.prototype as any)
-      ._last5RunsCustomRenderer([
+    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
+    expect((tree.instance() as ExperimentList)._last5RunsCustomRenderer({
+      id: 'experiment-id',
+      value: [
         { status: NodePhase.SUCCEEDED },
         { status: NodePhase.PENDING },
         { status: NodePhase.FAILED },
         { status: NodePhase.UNKNOWN },
         { status: NodePhase.SUCCEEDED },
-      ]));
-    expect(tree).toMatchSnapshot();
+      ],
+    })).toMatchSnapshot();
   });
 });
