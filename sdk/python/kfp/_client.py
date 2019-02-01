@@ -28,11 +28,8 @@ from .compiler import _k8s_helper
 class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
-
-  # in-cluster DNS name of the pipeline service
-  IN_CLUSTER_DNS_NAME = 'ml-pipeline.kubeflow.svc.cluster.local:8888'
-
-  def __init__(self, host=None):
+  
+  def __init__(self, namespace='kubeflow', cluster_name='svc.cluster.local', pipeline_svc_port=8888):
     """Create a new instance of kfp client.
 
     Args:
@@ -53,15 +50,17 @@ class Client(object):
     except ImportError:
       raise Exception('This module requires installation of kfp_run')
 
+    host='ml-pipeline.{}.{}:{}'.format(namespace, cluster_name, pipeline_svc_port)
+    logging.info('pipeline svc: {}'.format(host))
     self._host = host
-
+      
     config = kfp_run.configuration.Configuration()
-    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
+    config.host = host
     api_client = kfp_run.api_client.ApiClient(config)
     self._run_api = kfp_run.api.run_service_api.RunServiceApi(api_client)
 
     config = kfp_experiment.configuration.Configuration()
-    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
+    config.host = host
     api_client = kfp_experiment.api_client.ApiClient(config)
     self._experiment_api = \
         kfp_experiment.api.experiment_service_api.ExperimentServiceApi(api_client)

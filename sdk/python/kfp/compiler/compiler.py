@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import inspect
 import re
 import tarfile
@@ -35,8 +35,32 @@ class Compiler(object):
     pass
 
   Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
+
+  # config artifact repo to use S3
+  .configArtifactRepository(
+      endpoint='s3.amazonaws.com',
+      bucket='<your-bucket-name>', 
+      keyPrefix='runs/dev',
+      accessKey='', secretKey=''
+  ) 
   ```
   """
+  
+  ArtifactRepositoryConfig = namedtuple("ArtifactRepositoryConfig",
+                                        ["endpoint", "bucket", "keyPrefix", "accessKey", "secretKey", "insecure"])
+
+  def __init__(self):    
+    """__init__
+    """
+    # Default artifactory
+    self.artifactRepositoryConfig = Compiler.ArtifactRepositoryConfig(
+        endpoint='minio-service.kubeflow:9000',
+        bucket='mlpipeline',
+        keyPrefix='runs',
+        accessKey='accesskey',
+        secretKey='secretkey',
+        insecure=True
+    )
 
   def _pipelineparam_full_name(self, param):
     """_pipelineparam_full_name converts the names of pipeline parameters
@@ -235,27 +259,30 @@ class Compiler(object):
 
   def _op_to_template(self, op):
     """Generate template given an operator inherited from dsl.ContainerOp."""
-
+    
     def _build_conventional_artifact(name):
-      return {
-        'name': name,
-        'path': '/' + name + '.json',
-        's3': {
-          # TODO: parameterize namespace for minio service
-          'endpoint': 'minio-service.kubeflow:9000',
-          'bucket': 'mlpipeline',
-          'key': 'runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz',
-          'insecure': True,
-          'accessKeySecret': {
-            'name': 'mlpipeline-minio-artifact',
-            'key': 'accesskey',
+      _cfg = {
+          'name': name,
+          'path': '/' + name + '.json',
+          's3': {
+              'endpoint': self.artifactRepositoryConfig.endpoint,
+              'bucket': self.artifactRepositoryConfig.bucket,
+              'key': self.artifactRepositoryConfig.keyPrefix + '/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz',
+              'insecure': self.artifactRepositoryConfig.insecure
           },
-          'secretKeySecret': {
-            'name': 'mlpipeline-minio-artifact',
-            'key': 'secretkey'
-          }
-        },
       }
+      _cfg_s3 = _cfg['s3']
+      if self.artifactRepositoryConfig.accessKey:
+          _cfg_s3['accessKey'] = {
+              'name': 'mlpipeline-minio-artifact',
+              'key': self.artifactRepositoryConfig.accessKey,
+          }
+      if self.artifactRepositoryConfig.secretKey:
+          _cfg_s3['secretKey'] = {
+              'name': 'mlpipeline-minio-artifact',
+              'key': self.artifactRepositoryConfig.secretKey,
+          }
+      return _cfg
 
     processed_arguments = self._process_args(op.arguments, op.argument_inputs)
     processed_command = self._process_args(op.command, op.argument_inputs)
@@ -556,6 +583,19 @@ class Compiler(object):
 
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
+
+  def configArtifactRepository(self, endpoint='minio-service.kubeflow:9000', bucket='mlpipeline', keyPrefix='runs', accessKey='accesskey', secretKey='secretkey', insecure=True):
+    """Config artifact repository
+    """
+    self.artifactRepositoryConfig = Compiler.ArtifactRepositoryConfig(
+        endpoint=endpoint,
+        bucket=bucket,
+        keyPrefix=keyPrefix,
+        accessKey=accessKey,
+        secretKey=secretKey,
+        insecure=insecure
+    )
+    return self
 
   def compile(self, pipeline_func, package_path):
     """Compile the given pipeline function into workflow yaml.
