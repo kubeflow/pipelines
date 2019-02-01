@@ -92,6 +92,12 @@ export interface ApiListRunsResponse {
     runs?: Array<ApiRun>;
     /**
      * 
+     * @type {number}
+     * @memberof ApiListRunsResponse
+     */
+    total_size?: number;
+    /**
+     * 
      * @type {string}
      * @memberof ApiListRunsResponse
      */

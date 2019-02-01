@@ -37,6 +37,9 @@ type APIListRunsResponse struct {
 
 	// runs
 	Runs []*APIRun `json:"runs"`
+
+	// total size
+	TotalSize int32 `json:"total_size,omitempty"`
 }
 
 // Validate validates this api list runs response
