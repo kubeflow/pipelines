@@ -55,7 +55,7 @@ export function hasFinished(status?: NodePhase): boolean {
   }
 }
 
-export function statusToIcon(status: NodePhase, startDate?: Date | string, endDate?: Date | string): JSX.Element {
+export function statusToIcon(status?: NodePhase, startDate?: Date | string, endDate?: Date | string): JSX.Element {
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
