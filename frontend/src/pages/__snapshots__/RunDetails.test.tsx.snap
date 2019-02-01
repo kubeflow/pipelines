@@ -22,16 +22,10 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
         <div
           className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
         >
           <Graph
             graph={
@@ -59,6 +53,294 @@ exports[`RunDetails closes side panel when close button is clicked 1`] = `
             isOpen={false}
             onClose={[Function]}
             title=""
+          />
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails displays a message indicating there is no graph if graph is not defined and run has status: Error 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div>
+          <span
+            style={
+              Object {
+                "margin": "40px auto",
+              }
+            }
+          >
+            No graph to show
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails displays a message indicating there is no graph if graph is not defined and run has status: Failed 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div>
+          <span
+            style={
+              Object {
+                "margin": "40px auto",
+              }
+            }
+          >
+            No graph to show
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails displays a message indicating there is no graph if graph is not defined and run has status: Skipped 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div>
+          <span
+            style={
+              Object {
+                "margin": "40px auto",
+              }
+            }
+          >
+            No graph to show
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails displays a message indicating there is no graph if graph is not defined and run has status: Succeeded 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div>
+          <span
+            style={
+              Object {
+                "margin": "40px auto",
+              }
+            }
+          >
+            No graph to show
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails displays a spinner if graph is not defined and run has status: Pending 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div>
+          <WithStyles(CircularProgress)
+            className="absoluteCenter"
+            size={30}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails displays a spinner if graph is not defined and run has status: Running 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div>
+          <WithStyles(CircularProgress)
+            className="absoluteCenter"
+            size={30}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails displays a spinner if graph is not defined and run has status: Unknown 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div>
+          <WithStyles(CircularProgress)
+            className="absoluteCenter"
+            size={30}
           />
         </div>
       </div>
@@ -89,16 +371,10 @@ exports[`RunDetails does not load logs if clicked node status is skipped 1`] = `
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
         <div
           className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
         >
           <Graph
             graph={
@@ -159,6 +435,22 @@ exports[`RunDetails does not load logs if clicked node status is skipped 1`] = `
               </div>
             </div>
           </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -188,16 +480,10 @@ exports[`RunDetails keeps side pane open and on same tab when logs change after 
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
         <div
           className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
         >
           <Graph
             graph={
@@ -258,6 +544,22 @@ exports[`RunDetails keeps side pane open and on same tab when logs change after 
               </div>
             </div>
           </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -381,16 +683,10 @@ exports[`RunDetails loads and shows logs in side pane 1`] = `
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
         <div
           className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
         >
           <Graph
             graph={
@@ -451,6 +747,22 @@ exports[`RunDetails loads and shows logs in side pane 1`] = `
               </div>
             </div>
           </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -531,16 +843,10 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
         <div
           className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
         >
           <Graph
             graph={
@@ -592,6 +898,22 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
               </div>
             </div>
           </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -621,17 +943,19 @@ exports[`RunDetails renders an empty run 1`] = `
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
-        <span
-          style={
-            Object {
-              "margin": "40px auto",
+        <div>
+          <span
+            style={
+              Object {
+                "margin": "40px auto",
+              }
             }
-          }
-        >
-          No graph to show
-        </span>
+          >
+            No graph to show
+          </span>
+        </div>
       </div>
     </div>
   </div>
@@ -660,16 +984,10 @@ exports[`RunDetails shows a one-node graph 1`] = `
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
         <div
           className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
         >
           <Graph
             graph={
@@ -698,6 +1016,22 @@ exports[`RunDetails shows a one-node graph 1`] = `
             onClose={[Function]}
             title=""
           />
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -727,16 +1061,10 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
         <div
           className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
         >
           <Graph
             graph={
@@ -792,6 +1120,22 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
               </div>
             </div>
           </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -821,16 +1165,10 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
         <div
           className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
         >
           <Graph
             graph={
@@ -901,6 +1239,22 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
               </div>
             </div>
           </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -930,16 +1284,10 @@ exports[`RunDetails shows error banner atop logs area if fetching logs failed 1`
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
         <div
           className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
         >
           <Graph
             graph={
@@ -998,6 +1346,22 @@ exports[`RunDetails shows error banner atop logs area if fetching logs failed 1`
               </div>
             </div>
           </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1355,16 +1719,10 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
         <div
           className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
         >
           <Graph
             graph={
@@ -1443,6 +1801,22 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
               </div>
             </div>
           </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1472,16 +1846,10 @@ exports[`RunDetails switches to logs tab in side pane 1`] = `
       className="page"
     >
       <div
-        className="page"
+        className="page graphPane"
       >
         <div
           className="page"
-          style={
-            Object {
-              "overflow": "hidden",
-              "position": "relative",
-            }
-          }
         >
           <Graph
             graph={
@@ -1546,6 +1914,22 @@ exports[`RunDetails switches to logs tab in side pane 1`] = `
               </div>
             </div>
           </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

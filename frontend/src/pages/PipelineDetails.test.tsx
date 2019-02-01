@@ -45,25 +45,16 @@ describe('PipelineDetails', () => {
   let testRun: ApiRunDetail = {};
 
   function generateProps(fromRunSpec = false): PageProps {
-    // getInitialToolbarState relies on page props having been populated, so fill those first
-    const pageProps: PageProps = {
-      history: { push: historyPushSpy } as any,
-      location: { search: fromRunSpec ? `?${QUERY_PARAMS.fromRunId}=test-run-id` : '' } as any,
-      match: {
-        isExact: true,
-        params: fromRunSpec ? {} : { [RouteParams.pipelineId]: testPipeline.id },
-        path: '',
-        url: '',
-      },
-      toolbarProps: { actions: [], breadcrumbs: [], pageTitle: '' },
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
+    const match = {
+      isExact: true,
+      params: fromRunSpec ? {} : { [RouteParams.pipelineId]: testPipeline.id },
+      path: '',
+      url: '',
     };
-    return Object.assign(pageProps, {
-      toolbarProps: new PipelineDetails(pageProps).getInitialToolbarState(),
-    });
+    const location = { search: fromRunSpec ? `?${QUERY_PARAMS.fromRunId}=test-run-id` : '' } as any;
+    const pageProps = TestUtils.generatePageProps(PipelineDetails, location, match, historyPushSpy,
+      updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
+    return pageProps;
   }
 
   beforeAll(() => jest.spyOn(console, 'error').mockImplementation());
@@ -454,7 +445,7 @@ describe('PipelineDetails', () => {
     await confirmBtn.onClick();
     expect(updateDialogSpy).toHaveBeenCalledTimes(2); // Delete dialog + error dialog
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      content: 'woops',
+      content: 'Failed to delete pipeline: test-pipeline-id with error: "woops"',
       title: 'Failed to delete pipeline',
     }));
   });
@@ -471,7 +462,7 @@ describe('PipelineDetails', () => {
     await confirmBtn.onClick();
     expect(updateSnackbarSpy).toHaveBeenCalledTimes(1);
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      message: 'Successfully deleted pipeline: ' + testPipeline.name,
+      message: 'Delete succeeded for this pipeline',
       open: true,
     }));
   });

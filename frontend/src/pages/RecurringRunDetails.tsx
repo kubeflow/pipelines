@@ -23,7 +23,7 @@ import { ApiJob } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarActionConfig, Breadcrumb, ToolbarProps } from '../components/Toolbar';
+import { Breadcrumb, ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { formatDateString, enabledDisplayString, errorToMessage } from '../lib/Utils';
@@ -44,19 +44,18 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: [
-        Buttons.refresh(this.refresh.bind(this)),
-        Buttons.enableRun(() => this._setEnabledState(true)),
-        Buttons.disableRun(() => this._setEnabledState(false)),
-        Buttons.delete(() => this.props.updateDialog({
-          buttons: [
-            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-          ],
-          onClose: () => this._deleteDialogClosed(false),
-          title: 'Delete this recurring run?',
-        })),
+        buttons.refresh(this.refresh.bind(this)),
+        buttons.enableRecurringRun(() => this.state.run ? this.state.run.id! : ''),
+        buttons.disableRecurringRun(() => this.state.run ? this.state.run.id! : ''),
+        buttons.delete(
+          () => this.state.run ? [this.state.run!.id!] : [],
+          'recurring run config',
+          this._deleteCallback.bind(this),
+          true,
+        ),
       ],
       breadcrumbs: [],
       pageTitle: '',
@@ -179,50 +178,12 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     this.setState({ run });
   }
 
-  protected async _setEnabledState(enabled: boolean): Promise<void> {
-    if (this.state.run) {
-      const toolbarActions = [...this.props.toolbarProps.actions];
-
-      const buttonIndex = enabled ? 1 : 2;
-      const id = this.state.run.id!;
-
-      toolbarActions[buttonIndex].busy = true;
-      this._updateToolbar(toolbarActions);
-      try {
-        await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
-        this.refresh();
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        this.showErrorDialog(
-          `Failed to ${enabled ? 'enable' : 'disable'} recurring run`, errorMessage);
-      } finally {
-        toolbarActions[buttonIndex].busy = false;
-        this._updateToolbar(toolbarActions);
-      }
-    }
-  }
-
-  protected _updateToolbar(actions: ToolbarActionConfig[]): void {
-    this.props.updateToolbar({ actions });
-  }
-
-  protected async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
-    if (deleteConfirmed) {
-      // TODO: Show spinner during wait.
-      try {
-        await Apis.jobServiceApi.deleteJob(this.state.run!.id!);
-        const breadcrumbs = this.props.toolbarProps.breadcrumbs;
-        const previousPage = breadcrumbs.length ?
-          breadcrumbs[breadcrumbs.length - 1].href : RoutePage.EXPERIMENTS;
-        this.props.history.push(previousPage);
-        this.props.updateSnackbar({
-          message: `Successfully deleted recurring run: ${this.state.run!.name}`,
-          open: true,
-        });
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        this.showErrorDialog('Failed to delete recurring run', errorMessage);
-      }
+  private _deleteCallback(_: string[], success: boolean): void {
+    if (success) {
+      const breadcrumbs = this.props.toolbarProps.breadcrumbs;
+      const previousPage = breadcrumbs.length ?
+        breadcrumbs[breadcrumbs.length - 1].href : RoutePage.EXPERIMENTS;
+      this.props.history.push(previousPage);
     }
   }
 }

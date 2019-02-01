@@ -106,6 +106,12 @@ export interface ApiListPipelinesResponse {
     pipelines?: Array<ApiPipeline>;
     /**
      * 
+     * @type {number}
+     * @memberof ApiListPipelinesResponse
+     */
+    total_size?: number;
+    /**
+     * 
      * @type {string}
      * @memberof ApiListPipelinesResponse
      */

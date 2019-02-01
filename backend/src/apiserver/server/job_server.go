@@ -60,11 +60,11 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
-	jobs, nextPageToken, err := s.resourceManager.ListJobs(filterContext, opts)
+	jobs, total_size, nextPageToken, err := s.resourceManager.ListJobs(filterContext, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list jobs.")
 	}
-	return &api.ListJobsResponse{Jobs: ToApiJobs(jobs), NextPageToken: nextPageToken}, nil
+	return &api.ListJobsResponse{Jobs: ToApiJobs(jobs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
 func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest) (*empty.Empty, error) {

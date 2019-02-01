@@ -105,6 +105,7 @@ message ListExperimentsRequest {
 
 message ListExperimentsResponse {
   repeated Experiment experiments = 1;
+  int32 total_size = 3;
   string next_page_token = 2;
 }
 
