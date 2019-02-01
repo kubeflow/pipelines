@@ -12,9 +12,9 @@ secret_name = 'kfp-creds'
 )
 def ffdlPipeline(
     GITHUB_TOKEN=dsl.PipelineParam(name='github-token',
-                                   value='9030e2bf92131cd094896e05c4c96f167b6ca42f'),
+                                   value=''),
     CONFIG_FILE_URL=dsl.PipelineParam(name='config-file-url',
-                                      value='https://raw.githubusercontent.com/Tomcli/kfp-secrets/master/creds.ini'),
+                                      value='https://raw.githubusercontent.com/user/repository/branch/creds.ini'),
     model_def_file_path=dsl.PipelineParam(name='model-def-file-path',
                                           value='gender-classification.zip'),
     manifest_file_path=dsl.PipelineParam(name='manifest-file-path',

@@ -3,6 +3,5 @@
 This dictretory contains the source code for the PyTorch Gender Classification demo using FfDL and Seldon on KubeFlow Pipeline.
 
 - [manifest.yml](manifest.yml): Manifest file for FfDL training.
-- [gender-classification.zip](gender-classification.zip): Packaged model definition file.
 - [model-source-code](model-source-code): Model training source code for the demo
 - [seldon-pytorch-serving-image](seldon-pytorch-serving-image): Seldon Serving image for the demo.

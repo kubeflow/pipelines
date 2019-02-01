@@ -6,8 +6,14 @@ This simple IBM OSS demo will demonstrate how to train a model using [Fabric for
 1. Install [Fabric for Deep Learning](https://github.com/IBM/FfDL) and [Seldon](https://github.com/SeldonIO/seldon-core) on the same Kubernetes cluster as KubeFlow Pipeline.
 2. Create two S3 Object Storage buckets, then store the training data, model definition file, and FfDL manifest file in the training bucket.
   * The training data for this demo is from the [UTKface's aligned & cropped faces dataset](https://susanqq.github.io/UTKFace/). We will be using the data binary `UTKFace.tar.gz`.
-  
-  * The model definition file and FfDL manifest file are in the source directory. They are named `gender-classification.zip` and `manifest.yml`.
+
+  * The model definition file needs to be packaged as `gender-classification.zip`.
+    with the following commands
+    ```shell
+    zip -j source/gender-classification source/model-source-code/gender_classification.py
+    ```
+    Then upload the model definition file and FfDL manifest file in the source directory. They are named `gender-classification.zip` and `manifest.yml`.
+
 3. Fill in the necessary credentials at [credentials/creds.ini](credentials/creds.ini) and upload it to one of your GitHub private repositories. The details of each parameter are defined below.
 
 ## Instructions
