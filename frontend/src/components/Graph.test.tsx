@@ -18,6 +18,8 @@ import * as dagre from 'dagre';
 import * as React from 'react';
 import { shallow } from 'enzyme';
 import Graph from './Graph';
+import SuccessIcon from '@material-ui/icons/CheckCircle';
+import Tooltip from '@material-ui/core/Tooltip';
 
 function newGraph(): dagre.graphlib.Graph {
   const graph = new dagre.graphlib.Graph();
@@ -26,8 +28,17 @@ function newGraph(): dagre.graphlib.Graph {
   return graph;
 }
 
-const newNode = (label: string) => ({
+const testIcon = (
+  <Tooltip title='Test icon tooltip'>
+    <SuccessIcon />
+  </Tooltip>
+);
+
+const newNode = (label: string, isPlaceHolder?: boolean, color?: string, icon?: JSX.Element) => ({
+  bgColor: color,
   height: 10,
+  icon: icon || testIcon,
+  isPlaceholder: isPlaceHolder || false,
   label,
   width: 10,
 });
@@ -83,6 +94,29 @@ describe('Graph', () => {
     graph.setEdge('flipcoin2', 'heads2');
     graph.setEdge('flipcoin2', 'tails2');
 
+    expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
+  });
+
+  it('renders a graph with colored nodes', () => {
+    const graph = newGraph();
+    graph.setNode('node1', newNode('node1', false, 'red'));
+    graph.setNode('node2', newNode('node2', false, 'green'));
+    expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
+  });
+
+  it('renders a graph with colored edges', () => {
+    const graph = newGraph();
+    graph.setNode('node1', newNode('node1'));
+    graph.setNode('node2', newNode('node2'));
+    graph.setEdge('node1', 'node2', { color: 'red' });
+    expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
+  });
+
+  it('renders a graph with a placeholder node and edge', () => {
+    const graph = newGraph();
+    graph.setNode('node1', newNode('node1', false));
+    graph.setNode('node2', newNode('node2', true));
+    graph.setEdge('node1', 'node2', { isPlaceholder: true });
     expect(shallow(<Graph graph={graph} />)).toMatchSnapshot();
   });
 

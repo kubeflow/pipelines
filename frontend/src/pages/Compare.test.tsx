@@ -46,20 +46,14 @@ describe('Compare', () => {
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const outputArtifactLoaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
 
+
   function generateProps(): PageProps {
-    return {
-      history: { push: historyPushSpy } as any,
-      location: {
-        pathname: RoutePage.COMPARE,
-        search: `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`
-      } as any,
-      match: { params: {} } as any,
-      toolbarProps: Compare.prototype.getInitialToolbarState(),
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
+    const location = {
+      pathname: RoutePage.COMPARE,
+      search: `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`
+    } as any;
+    return TestUtils.generatePageProps(Compare, location, {} as any, historyPushSpy,
+      updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
   }
 
   const MOCK_RUN_1_ID = 'mock-run-1-id';

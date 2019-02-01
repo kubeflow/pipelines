@@ -43,8 +43,9 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	t := s.T()
 
 	/* ---------- Verify no experiment exist ---------- */
-	experiments, _, err := s.experimentClient.List(&params.ListExperimentParams{})
+	experiments, totalSize, _, err := s.experimentClient.List(&params.ListExperimentParams{})
 	assert.Nil(t, err)
+	assert.Equal(t, 0, totalSize)
 	assert.True(t, len(experiments) == 0)
 
 	/* ---------- Create a new experiment ---------- */
@@ -78,8 +79,9 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Nil(t, err)
 
 	/* ---------- Verify list experiments works ---------- */
-	experiments, nextPageToken, err := s.experimentClient.List(&params.ListExperimentParams{})
+	experiments, totalSize, nextPageToken, err := s.experimentClient.List(&params.ListExperimentParams{})
 	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 3, len(experiments))
 	for _, e := range experiments {
 		// Sampling one of the experiments and verify the result is expected.
@@ -89,54 +91,60 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	}
 
 	/* ---------- Verify list experiments sorted by names ---------- */
-	experiments, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
+	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 2, len(experiments))
 	assert.Equal(t, "moonshot", experiments[0].Name)
 	assert.Equal(t, "prediction", experiments[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
-	experiments, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
+	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
 		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 1, len(experiments))
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify list experiments sorted by creation time ---------- */
-	experiments, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
+	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
 	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 2, len(experiments))
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Equal(t, "prediction", experiments[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
-	experiments, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
+	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
 		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("created_at")})
 	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 1, len(experiments))
 	assert.Equal(t, "moonshot", experiments[0].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- List experiments sort by unsupported field. Should fail. ---------- */
-	_, _, err = s.experimentClient.List(&params.ListExperimentParams{
+	_, _, _, err = s.experimentClient.List(&params.ListExperimentParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")})
 	assert.NotNil(t, err)
 
 	/* ---------- List experiments sorted by names descend order ---------- */
-	experiments, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
+	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
 		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
 	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 2, len(experiments))
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Equal(t, "prediction", experiments[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
-	experiments, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
+	experiments, totalSize, nextPageToken, err = s.experimentClient.List(&params.ListExperimentParams{
 		PageToken: util.StringPointer(nextPageToken), PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name desc")})
 	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
 	assert.Equal(t, 1, len(experiments))
 	assert.Equal(t, "moonshot", experiments[0].Name)
 	assert.Empty(t, nextPageToken)

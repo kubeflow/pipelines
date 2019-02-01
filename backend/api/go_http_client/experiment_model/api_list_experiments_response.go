@@ -37,6 +37,9 @@ type APIListExperimentsResponse struct {
 
 	// next page token
 	NextPageToken string `json:"next_page_token,omitempty"`
+
+	// total size
+	TotalSize int32 `json:"total_size,omitempty"`
 }
 
 // Validate validates this api list experiments response

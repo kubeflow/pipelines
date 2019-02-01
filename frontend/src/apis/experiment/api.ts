@@ -124,6 +124,12 @@ export interface ApiListExperimentsResponse {
     experiments?: Array<ApiExperiment>;
     /**
      * 
+     * @type {number}
+     * @memberof ApiListExperimentsResponse
+     */
+    total_size?: number;
+    /**
+     * 
      * @type {string}
      * @memberof ApiListExperimentsResponse
      */
