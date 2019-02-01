@@ -450,9 +450,6 @@ class Compiler(object):
         param['value'] = str(arg.value)
       input_params.append(param)
 
-    # Image Pull Secrets
-    image_pull_secrets = pipeline.imagepullsecret
-
     # Templates
     templates = self._create_templates(pipeline)
     templates.sort(key=lambda x: x['name'])
@@ -479,10 +476,11 @@ class Compiler(object):
         'serviceAccountName': 'pipeline-runner'
       }
     }
-    if image_pull_secrets:
-      workflow['spec']['imagePullSecrets'] = [
-        {'name': image_pull_secrets}
-      ]
+    if len(pipeline.image_pull_secrets) > 0:
+      image_pull_secrets = []
+      for image_pull_secret in pipeline.image_pull_secrets:
+        image_pull_secrets.append(K8sHelper.convert_k8s_obj_to_json(image_pull_secret))
+      workflow['spec']['imagePullSecrets'] = image_pull_secrets
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
     if volumes:

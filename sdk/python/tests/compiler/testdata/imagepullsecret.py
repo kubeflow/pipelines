@@ -14,7 +14,7 @@
 
 
 import kfp.dsl as dsl
-
+from kubernetes import client as k8s_client
 
 
 class GetFrequentWordOp(dsl.ContainerOp):
@@ -47,4 +47,4 @@ def save_most_frequent_word(message: str):
   counter = GetFrequentWordOp(
           name='get-Frequent',
           message=message)
-  dsl.Pipeline.set_imagepullsecret('secretA')
+  dsl.Pipeline.set_image_pull_secrets([k8s_client.V1ObjectReference(name="secretA")])
