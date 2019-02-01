@@ -26,8 +26,14 @@ echo "SCRIPT_ROOT is $SCRIPT_ROOT"
 CODEGEN_PKG=${SCRIPT_ROOT}/../../../../vendor/k8s.io/code-generator
 echo "CODEGEN_PKG is $CODEGEN_PKG"
 
-${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
+${CODEGEN_PKG}/generate-groups.sh "deepcopy" \
   github.com/kubeflow/pipelines/backend/src/crd/pkg/client \
   github.com/kubeflow/pipelines/backend/src/crd/pkg/apis \
-  scheduledworkflow:v1alpha1 \
+  "scheduledworkflow:v1beta1 viewer:v1beta1" \
+  --go-header-file ${SCRIPT_ROOT}/custom-boilerplate.go.txt
+
+${CODEGEN_PKG}/generate-groups.sh "client,informer,lister" \
+  github.com/kubeflow/pipelines/backend/src/crd/pkg/client \
+  github.com/kubeflow/pipelines/backend/src/crd/pkg/apis \
+  scheduledworkflow:v1beta1 \
   --go-header-file ${SCRIPT_ROOT}/custom-boilerplate.go.txt

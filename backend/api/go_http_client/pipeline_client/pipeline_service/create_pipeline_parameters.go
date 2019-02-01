@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ package pipeline_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"net/http"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
@@ -79,7 +78,7 @@ for the create pipeline operation typically these are written to a http.Request
 type CreatePipelineParams struct {
 
 	/*Body*/
-	Body *pipeline_model.APIURL
+	Body *pipeline_model.APIPipeline
 
 	timeout    time.Duration
 	Context    context.Context
@@ -120,13 +119,13 @@ func (o *CreatePipelineParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create pipeline params
-func (o *CreatePipelineParams) WithBody(body *pipeline_model.APIURL) *CreatePipelineParams {
+func (o *CreatePipelineParams) WithBody(body *pipeline_model.APIPipeline) *CreatePipelineParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create pipeline params
-func (o *CreatePipelineParams) SetBody(body *pipeline_model.APIURL) {
+func (o *CreatePipelineParams) SetBody(body *pipeline_model.APIPipeline) {
 	o.Body = body
 }
 

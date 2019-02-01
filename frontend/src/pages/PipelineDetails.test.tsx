@@ -45,31 +45,23 @@ describe('PipelineDetails', () => {
   let testRun: ApiRunDetail = {};
 
   function generateProps(fromRunSpec = false): PageProps {
-    // getInitialToolbarState relies on page props having been populated, so fill those first
-    const pageProps: PageProps = {
-      history: { push: historyPushSpy } as any,
-      location: { search: fromRunSpec ? `?${QUERY_PARAMS.fromRunId}=test-run-id` : '' } as any,
-      match: {
-        isExact: true,
-        params: fromRunSpec ? {} : { [RouteParams.pipelineId]: testPipeline.id },
-        path: '',
-        url: '',
-      },
-      toolbarProps: { actions: [], breadcrumbs: [], pageTitle: '' },
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
+    const match = {
+      isExact: true,
+      params: fromRunSpec ? {} : { [RouteParams.pipelineId]: testPipeline.id },
+      path: '',
+      url: '',
     };
-    return Object.assign(pageProps, {
-      toolbarProps: new PipelineDetails(pageProps).getInitialToolbarState(),
-    });
+    const location = { search: fromRunSpec ? `?${QUERY_PARAMS.fromRunId}=test-run-id` : '' } as any;
+    const pageProps = TestUtils.generatePageProps(PipelineDetails, location, match, historyPushSpy,
+      updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
+    return pageProps;
   }
 
   beforeAll(() => jest.spyOn(console, 'error').mockImplementation());
-  afterAll(() => jest.resetAllMocks());
 
   beforeEach(() => {
+    jest.clearAllMocks();
+
     testPipeline = {
       created_at: new Date(2018, 8, 5, 4, 3, 2),
       description: 'test pipeline description',
@@ -82,29 +74,26 @@ describe('PipelineDetails', () => {
       run: {
         id: 'test-run-id',
         name: 'test run',
+        pipeline_spec: {
+          pipeline_id: 'run-pipeline-id'
+        },
       },
     };
 
-    historyPushSpy.mockClear();
-    updateBannerSpy.mockClear();
-    updateDialogSpy.mockClear();
-    updateSnackbarSpy.mockClear();
-    updateToolbarSpy.mockClear();
-    deletePipelineSpy.mockReset();
     getPipelineSpy.mockImplementation(() => Promise.resolve(testPipeline));
-    getPipelineSpy.mockClear();
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
-    getRunSpy.mockClear();
     getExperimentSpy.mockImplementation(() =>
       Promise.resolve({ id: 'test-experiment-id', name: 'test experiment' } as ApiExperiment));
-    getExperimentSpy.mockClear();
     getTemplateSpy.mockImplementation(() => Promise.resolve({ template: 'test template' }));
-    getTemplateSpy.mockClear();
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
-    createGraphSpy.mockClear();
   });
 
-  afterEach(() => tree.unmount());
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
+    jest.resetAllMocks();
+  });
 
   it('shows empty pipeline details with no graph', async () => {
     TestUtils.makeErrorResponseOnce(createGraphSpy, 'bad graph');
@@ -168,6 +157,36 @@ describe('PipelineDetails', () => {
       }));
     });
 
+  it('parses the workflow source in embedded pipeline spec as JSON and then converts it to YAML', async () => {
+    testRun.run!.pipeline_spec = {
+      pipeline_id: 'run-pipeline-id',
+      workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
+    };
+
+    tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.state('templateString')).toBe(
+      'spec:\n  arguments:\n    parameters:\n      - name: output\n');
+  });
+
+  it('shows load error banner when failing to parse the workflow source in embedded pipeline spec', async () => {
+    testRun.run!.pipeline_spec = {
+      pipeline_id: 'run-pipeline-id',
+      workflow_manifest: 'not valid JSON',
+    };
+
+    tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    await TestUtils.flushPromises();
+
+    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      additionalInfo: 'Unexpected token o in JSON at position 1',
+      message: `Failed to parse pipeline spec from run with ID: ${testRun.run!.id}. Click Details for more information.`,
+      mode: 'error',
+    }));
+  });
+
   it('shows load error banner when failing to get run details, when loading from run spec', async () => {
     TestUtils.makeErrorResponseOnce(getRunSpy, 'woops');
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
@@ -195,6 +214,20 @@ describe('PipelineDetails', () => {
       message: 'Cannot retrieve run details. Click Details for more information.',
       mode: 'error',
     }));
+  });
+
+  it('uses an empty string and does not show error when getTemplate response is empty', async () => {
+    getTemplateSpy.mockImplementationOnce(() => Promise.resolve({}));
+
+    tree = shallow(<PipelineDetails {...generateProps()} />);
+    await getPipelineSpy;
+    await TestUtils.flushPromises();
+
+    // No errors
+    expect(updateBannerSpy).toHaveBeenCalledTimes(1); // Once to clear banner
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
+
+    expect(tree.state('templateString')).toBe('');
   });
 
   it('shows load error banner when failing to get pipeline', async () => {
@@ -234,6 +267,22 @@ describe('PipelineDetails', () => {
       message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
       mode: 'error',
     }));
+  });
+
+  it('clears the error banner when refreshing the page', async () => {
+    TestUtils.makeErrorResponseOnce(getTemplateSpy, 'woops');
+    tree = shallow(<PipelineDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      additionalInfo: 'woops',
+      message: 'Cannot retrieve pipeline template. Click Details for more information.',
+      mode: 'error',
+    }));
+
+    (tree.instance() as PipelineDetails).refresh();
+
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
   it('shows empty pipeline details with empty graph', async () => {
@@ -276,16 +325,52 @@ describe('PipelineDetails', () => {
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     const newExperimentBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Start an experiment');
+      b => b.title === 'Create an experiment');
     expect(newExperimentBtn).toBeDefined();
   });
 
-  it('does not have any toolbar buttons if it has an embedded pipeline', async () => {
+  it('has \'create run\' toolbar button if viewing an embedded pipeline', async () => {
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    expect(instance.getInitialToolbarState().actions).toEqual([]);
+    expect(instance.getInitialToolbarState().actions).toHaveLength(1);
+    const createRunBtn =
+      instance.getInitialToolbarState().actions.find(b => b.title === 'Create run');
+    expect(createRunBtn).toBeDefined();
+  });
+
+  it('clicking new run button when viewing embedded pipeline navigates to the new run page with run ID', async () => {
+    tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as PipelineDetails;
+    const newRunBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Create run');
+    newRunBtn!.action();
+    expect(historyPushSpy).toHaveBeenCalledTimes(1);
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.NEW_RUN + `?${QUERY_PARAMS.fromRunId}=${testRun.run!.id}`);
+  });
+
+  it('has \'create run\' toolbar button if not viewing an embedded pipeline', async () => {
+    tree = shallow(<PipelineDetails {...generateProps(false)} />);
+    await getTemplateSpy;
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as PipelineDetails;
+    expect(instance.getInitialToolbarState().actions).toHaveLength(3);
+    const createRunBtn =
+      instance.getInitialToolbarState().actions.find(b => b.title === 'Create run');
+    expect(createRunBtn).toBeDefined();
+  });
+
+  it('clicking new run button navigates to the new run page', async () => {
+    tree = shallow(<PipelineDetails {...generateProps(false)} />);
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as PipelineDetails;
+    const newRunBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Create run');
+    newRunBtn!.action();
+    expect(historyPushSpy).toHaveBeenCalledTimes(1);
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.NEW_RUN + `?${QUERY_PARAMS.pipelineId}=${testPipeline.id}`);
   });
 
   it('clicking new experiment button navigates to new experiment page', async () => {
@@ -294,7 +379,7 @@ describe('PipelineDetails', () => {
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     const newExperimentBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Start an experiment');
+      b => b.title === 'Create an experiment');
     await newExperimentBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
@@ -360,7 +445,7 @@ describe('PipelineDetails', () => {
     await confirmBtn.onClick();
     expect(updateDialogSpy).toHaveBeenCalledTimes(2); // Delete dialog + error dialog
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      content: 'woops',
+      content: 'Failed to delete pipeline: test-pipeline-id with error: "woops"',
       title: 'Failed to delete pipeline',
     }));
   });
@@ -377,7 +462,7 @@ describe('PipelineDetails', () => {
     await confirmBtn.onClick();
     expect(updateSnackbarSpy).toHaveBeenCalledTimes(1);
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      message: 'Successfully deleted pipeline: ' + testPipeline.name,
+      message: 'Delete succeeded for this pipeline',
       open: true,
     }));
   });

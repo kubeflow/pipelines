@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import * as Utils from '../lib/Utils';
 import ExperimentList from './ExperimentList';
 import TestUtils from '../TestUtils';
 import { ApiResourceType } from '../apis/run';
@@ -34,18 +35,13 @@ describe('ExperimentList', () => {
   const historyPushSpy = jest.fn();
   const listExperimentsSpy = jest.spyOn(Apis.experimentServiceApi, 'listExperiment');
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
+  // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
+  // test enviroments
+  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
   function generateProps(): PageProps {
-    return {
-      history: { push: historyPushSpy } as any,
-      location: '' as any,
-      match: '' as any,
-      toolbarProps: ExperimentList.prototype.getInitialToolbarState(),
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
+    return TestUtils.generatePageProps(ExperimentList, { pathname: RoutePage.EXPERIMENTS } as any,
+      '' as any, historyPushSpy, updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
   }
 
   async function mountWithNExperiments(n: number, nRuns: number): Promise<ReactWrapper> {
@@ -71,6 +67,7 @@ describe('ExperimentList', () => {
     updateToolbarSpy.mockReset();
     listExperimentsSpy.mockReset();
     listRunsSpy.mockReset();
+    formatDateStringSpy.mockImplementation(() => '1/2/2019, 12:34:56 PM');
   });
 
   it('renders an empty list with empty state message', () => {
@@ -126,7 +123,7 @@ describe('ExperimentList', () => {
 
   it('calls Apis to list experiments, sorted by creation time in descending order', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(listRunsSpy).toHaveBeenLastCalledWith(undefined, 5, 'created_at desc',
       ApiResourceType.EXPERIMENT.toString(), 'test-experiment-id0');
     expect(tree.state()).toHaveProperty('displayExperiments', [{
@@ -146,7 +143,7 @@ describe('ExperimentList', () => {
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
     tree.unmount();
   });
@@ -189,7 +186,7 @@ describe('ExperimentList', () => {
     TestUtils.makeErrorResponseOnce(listExperimentsSpy, 'bad stuff happened');
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
-    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc');
+    expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       additionalInfo: 'bad stuff happened',
       message: 'Error: failed to retrieve list of experiments. Click Details for more information.',
@@ -242,7 +239,7 @@ describe('ExperimentList', () => {
   it('navigates to new experiment page when Create experiment button is clicked', async () => {
     const tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
     const createBtn = (tree.instance() as ExperimentList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Create experiment');
+      .getInitialToolbarState().actions.find(b => b.title === 'Create an experiment');
     await createBtn!.action();
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_EXPERIMENT);
   });
@@ -250,13 +247,13 @@ describe('ExperimentList', () => {
   it('always has new experiment button enabled', async () => {
     const tree = await mountWithNExperiments(1, 1);
     const calls = updateToolbarSpy.mock.calls[0];
-    expect(calls[0].actions.find((b: any) => b.title === 'Create experiment')).not.toHaveProperty('disabled');
+    expect(calls[0].actions.find((b: any) => b.title === 'Create an experiment')).not.toHaveProperty('disabled');
     tree.unmount();
   });
 
   it('enables clone button when one run is selected', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    (tree.instance() as any)._runSelectionChanged(['run1']);
+    (tree.instance() as any)._selectionChanged(['run1']);
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
     expect(updateToolbarSpy.mock.calls[0][0].actions.find((b: any) => b.title === 'Clone run'))
       .toHaveProperty('disabled', true);
@@ -267,7 +264,7 @@ describe('ExperimentList', () => {
 
   it('disables clone button when more than one run is selected', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    (tree.instance() as any)._runSelectionChanged(['run1', 'run2']);
+    (tree.instance() as any)._selectionChanged(['run1', 'run2']);
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
     expect(updateToolbarSpy.mock.calls[0][0].actions.find((b: any) => b.title === 'Clone run'))
       .toHaveProperty('disabled', true);
@@ -278,9 +275,9 @@ describe('ExperimentList', () => {
 
   it('enables compare runs button only when more than one is selected', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    (tree.instance() as any)._runSelectionChanged(['run1']);
-    (tree.instance() as any)._runSelectionChanged(['run1', 'run2']);
-    (tree.instance() as any)._runSelectionChanged(['run1', 'run2', 'run3']);
+    (tree.instance() as any)._selectionChanged(['run1']);
+    (tree.instance() as any)._selectionChanged(['run1', 'run2']);
+    (tree.instance() as any)._selectionChanged(['run1', 'run2', 'run3']);
     expect(updateToolbarSpy).toHaveBeenCalledTimes(4);
     expect(updateToolbarSpy.mock.calls[0][0].actions.find((b: any) => b.title === 'Compare runs'))
       .toHaveProperty('disabled', true);
@@ -295,7 +292,7 @@ describe('ExperimentList', () => {
 
   it('navigates to compare page with the selected run ids', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    (tree.instance() as any)._runSelectionChanged(['run1', 'run2', 'run3']);
+    (tree.instance() as any)._selectionChanged(['run1', 'run2', 'run3']);
     const compareBtn = (tree.instance() as ExperimentList)
       .getInitialToolbarState().actions.find(b => b.title === 'Compare runs');
     await compareBtn!.action();
@@ -305,7 +302,7 @@ describe('ExperimentList', () => {
 
   it('navigates to new run page with the selected run id for cloning', async () => {
     const tree = await mountWithNExperiments(1, 1);
-    (tree.instance() as any)._runSelectionChanged(['run1']);
+    (tree.instance() as any)._selectionChanged(['run1']);
     const cloneBtn = (tree.instance() as ExperimentList)
       .getInitialToolbarState().actions.find(b => b.title === 'Clone run');
     await cloneBtn!.action();

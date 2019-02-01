@@ -26,11 +26,22 @@ spec:
         spec:
           containers:
           - name: tensorflow
-            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.3-rc.2 #TODO-release: update the release tag for the next release
+            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:be19cbc2591a48d2ef5ca715c34ecae8223cf454
             command:
               - python
               - -m
               - trainer.task
+            env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/etc/secrets/user-gcp-sa.json"
+            volumeMounts:
+            - name: sa
+              mountPath: "/etc/secrets"
+              readOnly: true
+          volumes:
+          - name: sa
+            secret:
+              secretName: user-gcp-sa
     Worker:
       replicas: 1
       restartPolicy: OnFailure
@@ -38,11 +49,22 @@ spec:
         spec:
           containers:
           - name: tensorflow
-            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.3-rc.2 #TODO-release: update the release tag for the next release
+            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:be19cbc2591a48d2ef5ca715c34ecae8223cf454
             command:
               - python
               - -m
               - trainer.task
+            env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/etc/secrets/user-gcp-sa.json"
+            volumeMounts:
+            - name: sa
+              mountPath: "/etc/secrets"
+              readOnly: true
+          volumes:
+          - name: sa
+            secret:
+              secretName: user-gcp-sa
     MASTER:
           replicas: 1
           restartPolicy: OnFailure
@@ -50,8 +72,19 @@ spec:
             spec:
               containers:
               - name: tensorflow
-                image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.1.3-rc.2 #TODO-release: update the release tag for the next release
+                image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:be19cbc2591a48d2ef5ca715c34ecae8223cf454
                 command:
                   - python
                   - -m
                   - trainer.task
+                env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: "/etc/secrets/user-gcp-sa.json"
+                volumeMounts:
+                - name: sa
+                  mountPath: "/etc/secrets"
+                  readOnly: true
+              volumes:
+              - name: sa
+                secret:
+                  secretName: user-gcp-sa

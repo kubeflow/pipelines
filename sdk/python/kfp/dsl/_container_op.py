@@ -23,21 +23,18 @@ class ContainerOp(object):
   """Represents an op implemented by a docker container image."""
 
   def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
-               file_inputs : Dict[_pipeline_param.PipelineParam, str]=None,
                file_outputs : Dict[str, str]=None, is_exit_handler=False):
     """Create a new instance of ContainerOp.
 
     Args:
-      name: the name of the op. Has to be unique within a pipeline.
+      name: the name of the op. It does not have to be unique within a pipeline
+          because the pipeline will generates a unique new name in case of conflicts.
       image: the container image name, such as 'python:3.5-jessie'
       command: the command to run in the container.
           If None, uses default CMD in defined in container.
       arguments: the arguments of the command. The command can include "%s" and supply
           a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
           At container run time the argument will be 'echo param_value'.
-      file_inputs: Maps PipelineParams to local file paths. At pipeline run time,
-          the value of a PipelineParam is saved to its corresponding local file. It is
-          not implemented yet.
       file_outputs: Maps output labels to local file paths. At pipeline run time,
           the value of a PipelineParam is saved to its corresponding local file. It's
           one way for outside world to receive outputs of the container.
@@ -46,6 +43,10 @@ class ContainerOp(object):
 
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
+
+    valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
+    if not re.match(valid_name_regex, name):
+      raise ValueError('Only letters, numbers, spaces, "_", and "-"  are allowed in name. Must begin with letter: %s' % (name))
 
     self.human_name = name
     self.name = _pipeline.Pipeline.get_default_pipeline().add_op(self, is_exit_handler)
@@ -59,25 +60,23 @@ class ContainerOp(object):
     self.volumes = []
     self.volume_mounts = []
     self.env_variables = []
+    self.pod_annotations = {}
+    self.pod_labels = {}
+    self.num_retries = 0
 
     matches = []
-    if arguments:
-      for arg in arguments:
-        match = re.findall(r'{{pipelineparam:op=([\w-]*);name=([\w-]+);value=(.*?)}}', str(arg))
-        matches += match
+    for arg in (command or []) + (arguments or []):
+      match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', str(arg))
+      matches += match
 
     self.argument_inputs = [_pipeline_param.PipelineParam(x[1], x[0], x[2])
                             for x in list(set(matches))]
-    self.file_inputs = file_inputs
     self.file_outputs = file_outputs
     self.dependent_op_names = []
 
     self.inputs = []
     if self.argument_inputs:
       self.inputs += self.argument_inputs
-
-    if file_inputs:
-      self.inputs += list(file_inputs.keys())
 
     self.outputs = {}
     if file_outputs:
@@ -127,16 +126,16 @@ class ContainerOp(object):
       raise ValueError('Invalid cpu string. Should be float or integer, or integer followed '
                        'by "m".')
 
-  def _validate_gpu_string(self, gpu_string):
-    "Validate a given string is valid for gpu limit."
+  def _validate_positive_number(self, str_value, param_name):
+    "Validate a given string is in positive integer format."
 
     try:
-      gpu_value = int(gpu_string)
+      int_value = int(str_value)
     except ValueError:
-      raise ValueError('Invalid gpu string. Should be integer.')
+      raise ValueError('Invalid {}. Should be integer.'.format(param_name))
 
-    if gpu_value <= 0:
-      raise ValueError('gpu must be positive integer.')
+    if int_value <= 0:
+      raise ValueError('{} must be positive integer.'.format(param_name))
 
   def add_resource_limit(self, resource_name, value):
     """Add the resource limit of the container.
@@ -212,12 +211,11 @@ class ContainerOp(object):
         are: 'nvidia' (default), and 'amd'. 
     """
 
-    self._validate_gpu_string(gpu)
+    self._validate_positive_number(gpu, 'gpu')
     if vendor != 'nvidia' and vendor != 'amd':
       raise ValueError('vendor can only be nvidia or amd.')
 
     return self.add_resource_limit("%s.com/gpu" % vendor, gpu)
-
 
   def add_volume(self, volume):
     """Add K8s volume to the container
@@ -266,6 +264,38 @@ class ContainerOp(object):
     """
 
     self.node_selector[label_name] = value
+    return self
+
+  def add_pod_annotation(self, name: str, value: str):
+    """Adds a pod's metadata annotation.
+
+    Args:
+      name: The name of the annotation.
+      value: The value of the annotation.
+    """
+
+    self.pod_annotations[name] = value
+    return self
+
+  def add_pod_label(self, name: str, value: str):
+    """Adds a pod's metadata label.
+
+    Args:
+      name: The name of the label.
+      value: The value of the label.
+    """
+
+    self.pod_labels[name] = value
+    return self
+
+  def set_retry(self, num_retries: int):
+    """Sets the number of times the task is retried until it's declared failed.
+
+    Args:
+      num_retries: Number of times to retry on failures.
+    """
+
+    self.num_retries = num_retries
     return self
 
   def __repr__(self):

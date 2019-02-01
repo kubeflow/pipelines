@@ -19,6 +19,7 @@ set -x
 usage()
 {
     echo "usage: deploy.sh
+    [--platform             the deployment platform. Valid values are: [gcp, minikube]. Default is gcp.]
     [--workflow_file        the file name of the argo workflow to run]
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
@@ -26,6 +27,7 @@ usage()
     [-h help]"
 }
 
+PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
@@ -34,6 +36,9 @@ NAMESPACE=kubeflow
 
 while [ "$1" != "" ]; do
     case $1 in
+             --platform )             shift
+                                      PLATFORM=$1
+                                      ;;
              --workflow_file )        shift
                                       WORKFLOW_FILE=$1
                                       ;;
@@ -79,7 +84,7 @@ tar -czf "$local_code_archive_file" .
 gsutil cp "$local_code_archive_file" "$remote_code_archive_uri"
 
 # Install ksonnet
-KS_VERSION="0.11.0"
+KS_VERSION="0.13.0"
 curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
 tar -xzf ks_${KS_VERSION}_linux_amd64.tar.gz
 chmod +x ./ks_${KS_VERSION}_linux_amd64/ks
@@ -117,10 +122,16 @@ function clean_up {
 }
 trap clean_up EXIT
 
-${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform gcp --project ${PROJECT} --skipInitProject
+${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform ${PLATFORM} --project ${PROJECT} --skipInitProject
 
 cd ${KFAPP}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
+
+## Add one gpu node for covering gpu sample
+sed -i -e 's|gpu-pool-initialNodeCount:\s*0|gpu-pool-initialNodeCount: 1|g' ./gcp_config/cluster-kubeflow.yaml
+sed -i -e 's|gpu-pool-max-nodes:\s*0|gpu-pool-max-nodes: 1|g' ./gcp_config/cluster-kubeflow.yaml
+sed -i -e 's|gpu-pool-min-nodes:\s*0|gpu-pool-min-nodes: 1|g' ./gcp_config/cluster-kubeflow.yaml
+
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 

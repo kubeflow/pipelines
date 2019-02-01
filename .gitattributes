@@ -1,0 +1,15 @@
+# Ignore backend generated client libraries
+backend/api/go_client/* linguist-generated
+backend/api/go_http_client/* linguist-generated
+backend/api/swagger/* linguist-generated
+
+# Ignore go.sum
+go.sum linguist-generated
+
+# Ignore npm lock
+frontend/package-lock.json linguist-generated
+frontend/server/package-lock.json linguist-generated
+frontend/test/package-lock.json linguist-generated
+
+# Ignore generated TS client library
+frontend/src/apis/* linguist-generated

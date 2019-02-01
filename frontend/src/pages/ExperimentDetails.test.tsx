@@ -53,17 +53,9 @@ describe('ExperimentDetails', () => {
   }
 
   function generateProps(): PageProps {
-    return {
-      history: { push: historyPushSpy } as any,
-      location: '' as any,
-      // 'eid' here corresponds to RouteParams.experimentId 
-      match: { params: { eid: MOCK_EXPERIMENT.id } } as any,
-      toolbarProps: ExperimentDetails.prototype.getInitialToolbarState(),
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
+    const match = { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any;
+    return TestUtils.generatePageProps(ExperimentDetails, {} as any, match, historyPushSpy,
+      updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
   }
 
   async function mockNJobs(n: number): Promise<void> {
@@ -101,8 +93,10 @@ describe('ExperimentDetails', () => {
     await mockNRuns(0);
   });
 
-  afterEach(() => {
-    tree.unmount();
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
   });
 
   it('renders a page with no runs or recurring runs', async () => {
@@ -182,7 +176,7 @@ describe('ExperimentDetails', () => {
 
   it('calls getExperiment with the experiment ID in props', async () => {
     const props = generateProps();
-    props.match = { params: { eid: 'test exp ID' } } as any;
+    props.match = { params: { [RouteParams.experimentId]: 'test exp ID' } } as any;
     tree = shallow(<ExperimentDetails {...props} />);
     await TestUtils.flushPromises();
     expect(getExperimentSpy).toHaveBeenCalledTimes(1);
@@ -391,7 +385,7 @@ describe('ExperimentDetails', () => {
     tree.find('.tableRow').simulate('click');
 
     const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Clone');
+      .actions.find(b => b.title === 'Clone run');
     await cloneBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
@@ -426,7 +420,7 @@ describe('ExperimentDetails', () => {
     tree.update();
 
     const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Clone');
+      .actions.find(b => b.title === 'Clone run');
 
     for (let i = 0; i < 4; i++) {
       if (i === 1) {

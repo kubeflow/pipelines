@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -53,6 +53,9 @@ type APIPipeline struct {
 
 	// parameters
 	Parameters []*APIParameter `json:"parameters"`
+
+	// url
+	URL *APIURL `json:"url,omitempty"`
 }
 
 // Validate validates this api pipeline
@@ -64,6 +67,10 @@ func (m *APIPipeline) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateParameters(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateURL(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -106,6 +113,24 @@ func (m *APIPipeline) validateParameters(formats strfmt.Registry) error {
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *APIPipeline) validateURL(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.URL) { // not required
+		return nil
+	}
+
+	if m.URL != nil {
+		if err := m.URL.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("url")
+			}
+			return err
+		}
 	}
 
 	return nil

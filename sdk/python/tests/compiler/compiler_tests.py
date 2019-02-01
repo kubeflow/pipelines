@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import kfp.compiler as compiler
 import kfp.dsl as dsl
 import os
@@ -23,7 +22,6 @@ import tarfile
 import tempfile
 import unittest
 import yaml
-import datetime
 
 class TestCompiler(unittest.TestCase):
 
@@ -142,21 +140,6 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
       # print(tmpdir)
 
-  def test_convert_k8s_obj_to_dic_accepts_dict(self):
-    now = datetime.datetime.now()
-    converted = compiler.Compiler()._convert_k8s_obj_to_dic({
-      "ENV": "test",
-      "number": 3,
-      "list": [1,2,3],
-      "time": now
-    })
-    self.assertEqual(converted, {
-      "ENV": "test",
-      "number": 3,
-      "list": [1,2,3],
-      "time": now.isoformat()
-    })
-
   def test_composing_workflow(self):
     """Test compiling a simple workflow, and a bigger one composed from the simple one."""
 
@@ -245,3 +228,7 @@ class TestCompiler(unittest.TestCase):
   def test_py_volume(self):
     """Test a pipeline with a volume and volume mount."""
     self._test_py_compile('volume')
+
+  def test_py_retry(self):
+    """Test retry functionality."""
+    self._test_py_compile('retry')

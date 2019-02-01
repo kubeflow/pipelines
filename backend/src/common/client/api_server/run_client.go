@@ -16,9 +16,11 @@ import (
 )
 
 type RunInterface interface {
+	Archive(params *params.ArchiveRunParams) error
 	Get(params *params.GetRunParams) (*model.APIRunDetail, *workflowapi.Workflow, error)
-	List(params *params.ListRunsParams) ([]*model.APIRun, string, error)
+	List(params *params.ListRunsParams) ([]*model.APIRun, int, string, error)
 	ListAll(params *params.ListRunsParams, maxResultSize int) ([]*model.APIRun, error)
+	Unarchive(params *params.UnarchiveRunParams) error
 }
 
 type RunClient struct {
@@ -109,6 +111,54 @@ func (c *RunClient) Get(parameters *params.GetRunParams) (*model.APIRunDetail,
 	return response.Payload, &workflow, nil
 }
 
+func (c *RunClient) Archive(parameters *params.ArchiveRunParams) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.RunService.ArchiveRun(parameters, PassThroughAuth)
+
+	if err != nil {
+		if defaultError, ok := err.(*params.ListRunsDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to archive runs. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to archive runs"))
+	}
+
+	return nil
+}
+
+func (c *RunClient) Unarchive(parameters *params.UnarchiveRunParams) error {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.RunService.UnarchiveRun(parameters, PassThroughAuth)
+
+	if err != nil {
+		if defaultError, ok := err.(*params.ListRunsDefault); ok {
+			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+		} else {
+			err = CreateErrorCouldNotRecoverAPIStatus(err)
+		}
+
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to unarchive runs. Params: '%+v'", parameters),
+			fmt.Sprintf("Failed to unarchive runs"))
+	}
+
+	return nil
+}
+
 func (c *RunClient) Delete(parameters *params.DeleteRunParams) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -134,7 +184,7 @@ func (c *RunClient) Delete(parameters *params.DeleteRunParams) error {
 }
 
 func (c *RunClient) List(parameters *params.ListRunsParams) (
-	[]*model.APIRun, string, error) {
+	[]*model.APIRun, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -150,12 +200,12 @@ func (c *RunClient) List(parameters *params.ListRunsParams) (
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
-		return nil, "", util.NewUserError(err,
+		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list runs. Params: '%+v'", parameters),
 			fmt.Sprintf("Failed to list runs"))
 	}
 
-	return response.Payload.Runs, response.Payload.NextPageToken, nil
+	return response.Payload.Runs, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
 func (c *RunClient) ListAll(parameters *params.ListRunsParams, maxResultSize int) (
@@ -173,7 +223,7 @@ func listAllForRun(client RunInterface, parameters *params.ListRunsParams, maxRe
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {
-		results, pageToken, err := client.List(parameters)
+		results, _, pageToken, err := client.List(parameters)
 		if err != nil {
 			return nil, err
 		}

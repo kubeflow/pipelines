@@ -74,10 +74,11 @@ export interface RunListProps extends RouteComponentProps {
   disableSelection?: boolean;
   disableSorting?: boolean;
   experimentIdMask?: string;
-  runIdListMask?: string[];
+  noFilterBox?: boolean;
   onError: (message: string, error: Error) => void;
-  selectedIds?: string[];
   onSelectionChange?: (selectedRunIds: string[]) => void;
+  runIdListMask?: string[];
+  selectedIds?: string[];
 }
 
 interface RunListState {
@@ -85,7 +86,7 @@ interface RunListState {
   runs: DisplayRun[];
 }
 
-class RunList extends React.Component<RunListProps, RunListState> {
+class RunList extends React.PureComponent<RunListProps, RunListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -164,10 +165,10 @@ class RunList extends React.Component<RunListProps, RunListState> {
 
     return (<div>
       <CustomTable columns={columns} rows={rows} selectedIds={this.props.selectedIds}
-        initialSortColumn={RunSortKeys.CREATED_AT} ref={this._tableRef}
+        initialSortColumn={RunSortKeys.CREATED_AT} ref={this._tableRef} filterLabel='Filter runs'
         updateSelection={this.props.onSelectionChange} reload={this._loadRuns.bind(this)}
         disablePaging={this.props.disablePaging} disableSorting={this.props.disableSorting}
-        disableSelection={this.props.disableSelection}
+        disableSelection={this.props.disableSelection} noFilterBox={this.props.noFilterBox}
         emptyMessage={`No runs found${this.props.experimentIdMask ? ' for this experiment' : ''}.`}
       />
     </div>);
@@ -196,7 +197,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
     return (
       <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
         to={url}>
-        {pipelineInfo.showLink ? 'View pipeline' : pipelineInfo.displayName}
+        {pipelineInfo.showLink ? '[View pipeline]' : pipelineInfo.displayName}
       </Link>
     );
   }
@@ -288,6 +289,7 @@ class RunList extends React.Component<RunListProps, RunListState> {
           request.sortBy,
           this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
           this.props.experimentIdMask,
+          request.filter,
         );
 
         displayRuns = (response.runs || []).map(r => ({ metadata: r }));

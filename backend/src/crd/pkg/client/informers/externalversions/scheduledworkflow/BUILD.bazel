@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["interface.go"],
+    importpath = "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/src/crd/pkg/client/informers/externalversions/internalinterfaces:go_default_library",
+        "//backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1beta1:go_default_library",
+    ],
+)

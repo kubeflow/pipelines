@@ -14,6 +14,9 @@ RUN pip3 install junit-xml
 RUN pip3 install kubernetes
 RUN pip3 install minio
 RUN pip3 install setuptools==40.5.0
+RUN pip3 install papermill==0.16.1
+RUN pip3 install ipykernel==5.1.0
+RUN pip3 install google-api-python-client==1.7.0
 
 #Needs test/sample-test and the files needed to run sdk/python/build.sh
 COPY . /python/src/github.com/kubeflow/pipelines 

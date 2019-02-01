@@ -55,7 +55,8 @@ def main():
   test_name = 'XGBoost Sample Test'
 
   ###### Initialization ######
-  client = Client(namespace=args.namespace)
+  host = 'ml-pipeline.%s.svc.cluster.local:8888' % args.namespace
+  client = Client(host=host)
 
   ###### Check Input File ######
   utils.add_junit_test(test_cases, 'input generated yaml file', os.path.exists(args.input), 'yaml file is not generated')
@@ -84,19 +85,20 @@ def main():
   utils.add_junit_test(test_cases, 'create pipeline run', True)
 
   ###### Monitor Job ######
-  start_time = datetime.now()
-  response = client.wait_for_run_completion(run_id, 1800)
-  succ = (response.run.status.lower()=='succeeded')
-  end_time = datetime.now()
-  elapsed_time = (end_time - start_time).seconds
-  utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure', elapsed_time)
-
-  ###### Output Argo Log for Debugging ######
-  workflow_json = client._get_workflow_json(run_id)
-  workflow_id = workflow_json['metadata']['name']
-  argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(args.namespace, workflow_id))
-  print("=========Argo Workflow Log=========")
-  print(argo_log)
+  try:
+    start_time = datetime.now()
+    response = client.wait_for_run_completion(run_id, 1800)
+    succ = (response.run.status.lower()=='succeeded')
+    end_time = datetime.now()
+    elapsed_time = (end_time - start_time).seconds
+    utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure', elapsed_time)
+  finally:
+    ###### Output Argo Log for Debugging ######
+    workflow_json = client._get_workflow_json(run_id)
+    workflow_id = workflow_json['metadata']['name']
+    argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(args.namespace, workflow_id))
+    print("=========Argo Workflow Log=========")
+    print(argo_log)
 
   ###### If the job fails, skip the result validation ######
   if not succ:

@@ -6,13 +6,15 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type ExperimentStoreInterface interface {
-	ListExperiments(*common.PaginationContext) ([]model.Experiment, string, error)
+	ListExperiments(opts *list.Options) ([]*model.Experiment, int, string, error)
 	GetExperiment(uuid string) (*model.Experiment, error)
 	CreateExperiment(*model.Experiment) (*model.Experiment, error)
 	DeleteExperiment(uuid string) error
@@ -25,33 +27,70 @@ type ExperimentStore struct {
 	resourceReferenceStore *ResourceReferenceStore
 }
 
-func (s *ExperimentStore) ListExperiments(context *common.PaginationContext) ([]model.Experiment, string, error) {
-	models, pageToken, err := listModel(context, s.queryExperimentTable)
-	if err != nil {
-		return nil, "", util.Wrap(err, "List experiments failed.")
+// Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
+// total_size. The total_size does not reflect the page size.
+func (s *ExperimentStore) ListExperiments(opts *list.Options) ([]*model.Experiment, int, string, error) {
+	errorF := func(err error) ([]*model.Experiment, int, string, error) {
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
-	return s.toExperiments(models), pageToken, err
-}
 
-func (s *ExperimentStore) queryExperimentTable(context *common.PaginationContext) ([]model.ListableDataModel, error) {
-	sqlBuilder := sq.Select("*").From("experiments")
-	sql, args, err := toPaginationQuery(sqlBuilder, context).Limit(uint64(context.PageSize)).ToSql()
+	// SQL for getting the filtered and paginated rows
+	sqlBuilder := opts.AddFilterToSelect(sq.Select("*").From("experiments"))
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to list experiments: %v",
-			err.Error())
+		return errorF(err)
 	}
-	rows, err := s.db.Query(sql, args...)
+
+	// SQL for getting total size. This matches the query to get all the rows above, in order
+	// to do the same filter, but counts instead of scanning the rows.
+	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sq.Select("count(*)").From("experiments")).ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list experiments: %v",
-			err.Error())
+		return errorF(err)
 	}
-	defer rows.Close()
-	experiments, err := s.scanRows(rows)
+
+	// Use a transaction to make sure we're returning the total_size of the same rows queried
+	tx, err := s.db.Begin()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to list experiments: %v",
-			err.Error())
+		glog.Errorf("Failed to start transaction to list jobs")
+		return errorF(err)
 	}
-	return s.toListableModels(experiments), nil
+
+	rows, err := tx.Query(rowsSql, rowsArgs...)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	exps, err := s.scanRows(rows)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	rows.Close()
+
+	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	sizeRow.Close()
+
+	err = tx.Commit()
+	if err != nil {
+		glog.Errorf("Failed to commit transaction to list experiments")
+		return errorF(err)
+	}
+
+	if len(exps) <= opts.PageSize {
+		return exps, total_size, "", nil
+	}
+
+	npt, err := opts.NextPageToken(exps[opts.PageSize])
+	return exps[:opts.PageSize], total_size, npt, err
 }
 
 func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) {
@@ -77,11 +116,11 @@ func (s *ExperimentStore) GetExperiment(uuid string) (*model.Experiment, error) 
 	if len(experiments) == 0 {
 		return nil, util.NewResourceNotFoundError("Experiment", fmt.Sprint(uuid))
 	}
-	return &experiments[0], nil
+	return experiments[0], nil
 }
 
-func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]model.Experiment, error) {
-	var experiments []model.Experiment
+func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) {
+	var experiments []*model.Experiment
 	for rows.Next() {
 		var uuid, name, description string
 		var createdAtInSec int64
@@ -89,7 +128,7 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]model.Experiment, error) {
 		if err != nil {
 			return experiments, nil
 		}
-		experiments = append(experiments, model.Experiment{
+		experiments = append(experiments, &model.Experiment{
 			UUID:           uuid,
 			Name:           name,
 			Description:    description,
@@ -156,26 +195,9 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 	}
 	err = tx.Commit()
 	if err != nil {
-		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete experiment %v and its resource references from table", id)
 	}
 	return nil
-}
-
-func (s *ExperimentStore) toListableModels(experiments []model.Experiment) []model.ListableDataModel {
-	models := make([]model.ListableDataModel, len(experiments))
-	for i := range models {
-		models[i] = experiments[i]
-	}
-	return models
-}
-
-func (s *ExperimentStore) toExperiments(models []model.ListableDataModel) []model.Experiment {
-	experiments := make([]model.Experiment, len(models))
-	for i := range models {
-		experiments[i] = models[i].(model.Experiment)
-	}
-	return experiments
 }
 
 // factory function for experiment store

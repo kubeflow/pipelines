@@ -17,8 +17,10 @@
 import * as React from 'react';
 // @ts-ignore
 import createRouterContext from 'react-router-test-context';
+import { PageProps, Page } from './pages/Page';
 import { mount, ReactWrapper } from 'enzyme';
 import { object } from 'prop-types';
+import { match } from 'react-router';
 
 export default class TestUtils {
   /**
@@ -47,11 +49,34 @@ export default class TestUtils {
    * Adds a one-time mock implementation to the provided spy that mimics an error
    * network response
    */
-  public static makeErrorResponseOnce(spy: jest.SpyInstance, message: string): void {
+  public static makeErrorResponseOnce(spy: jest.MockInstance<{}>, message: string): void {
     spy.mockImplementationOnce(() => {
       throw {
         text: () => Promise.resolve(message),
       };
     });
+  }
+
+  // tslint:disable-next-line:variable-name
+  public static generatePageProps(PageElement: new (x: PageProps) => Page<any, any>,
+    location: Location, matchValue: match,
+    historyPushSpy: jest.SpyInstance | null, updateBannerSpy: jest.SpyInstance,
+    updateDialogSpy: jest.SpyInstance, updateToolbarSpy: jest.SpyInstance,
+    updateSnackbarSpy: jest.SpyInstance): PageProps {
+    const pageProps = {
+      history: { push: historyPushSpy } as any,
+      location: location as any,
+      match: matchValue,
+      toolbarProps: { actions: [], breadcrumbs: [], pageTitle: '' },
+      updateBanner: updateBannerSpy as any,
+      updateDialog: updateDialogSpy as any,
+      updateSnackbar: updateSnackbarSpy as any,
+      updateToolbar: updateToolbarSpy as any,
+    } as PageProps;
+    pageProps.toolbarProps = new PageElement(pageProps).getInitialToolbarState();
+    // The toolbar spy gets called in the getInitialToolbarState method, reset it
+    // in order to simplify tests
+    updateToolbarSpy.mockReset();
+    return pageProps;
   }
 }

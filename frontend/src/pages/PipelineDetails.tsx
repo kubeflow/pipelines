@@ -19,8 +19,8 @@ import 'codemirror/mode/yaml/yaml.js';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
-import AddIcon from '@material-ui/icons/Add';
 import Button from '@material-ui/core/Button';
+import Buttons from '../lib/Buttons';
 import Graph from '../components/Graph';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import MD2Tabs from '../atoms/MD2Tabs';
@@ -33,13 +33,13 @@ import { ApiPipeline, ApiGetTemplateResponse } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
+import { ToolbarProps, ToolbarActionConfig } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding, fontsize, fonts } from '../Css';
-import { logger, errorToMessage, formatDateString } from '../lib/Utils';
+import { logger, formatDateString } from '../lib/Utils';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -49,7 +49,7 @@ interface PipelineDetailsState {
   selectedTab: number;
   summaryShown: boolean;
   template?: Workflow;
-  templateYaml?: string;
+  templateString?: string;
 }
 
 const summaryCardWidth = 500;
@@ -113,37 +113,29 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
+    let actions: ToolbarActionConfig[] = [
+      buttons.newRunFromPipeline(() => this.state.pipeline ? this.state.pipeline.id! : ''),
+    ];
+
     if (fromRunId) {
       return {
-        actions: [],
+        actions,
         breadcrumbs: [
           { displayName: fromRunId, href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId) }
         ],
         pageTitle: 'Pipeline details',
       };
     } else {
+      // Add buttons for creating experiment and deleting pipeline
+      actions = actions.concat([
+        buttons.newExperiment(() => this.state.pipeline ? this.state.pipeline.id! : ''),
+        buttons.delete(() => this.state.pipeline ? [this.state.pipeline.id!] : [],
+          'pipeline', () => null, true),
+      ]);
       return {
-        actions: [{
-          action: this._createNewExperiment.bind(this),
-          icon: AddIcon,
-          id: 'startNewExperimentBtn',
-          primary: true,
-          title: 'Start an experiment',
-          tooltip: 'Create a new experiment beginning with this pipeline',
-        }, {
-          action: () => this.props.updateDialog({
-            buttons: [
-              { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-              { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-            ],
-            onClose: () => this._deleteDialogClosed(false),
-            title: 'Delete this pipeline?',
-          }),
-          id: 'deleteBtn',
-          title: 'Delete',
-          tooltip: 'Delete this pipeline',
-        }],
+        actions,
         breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
         pageTitle: this.props.match.params[RouteParams.pipelineId],
       };
@@ -151,7 +143,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public render(): JSX.Element {
-    const { pipeline, selectedNodeId, selectedTab, summaryShown, templateYaml } = this.state;
+    const { pipeline, selectedNodeId, selectedTab, summaryShown, templateString } = this.state;
 
     let selectedNodeInfo: StaticGraphParser.SelectedNodeInfo | null = null;
     if (this.state.graph && this.state.graph.node(selectedNodeId)) {
@@ -210,18 +202,18 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                       Show summary
                       </Button>
                   )}
-                  <div className={classes(commonCss.flex, summaryShown && !!pipeline && css.footerInfoOffset)}>
-                    <InfoIcon style={{ color: color.lowContrast, height: 16, width: 16 }} />
+                  <div className={classes(commonCss.flex, (summaryShown && !!pipeline) && css.footerInfoOffset)}>
+                    <InfoIcon className={commonCss.infoIcon} />
                     <span className={css.infoSpan}>Static pipeline graph</span>
                   </div>
                 </div>
               </div>}
               {!this.state.graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
             </div>}
-            {selectedTab === 1 && !!templateYaml &&
+            {selectedTab === 1 && !!templateString &&
               <div className={css.containerCss}>
                 <CodeMirror
-                  value={templateYaml || ''}
+                  value={templateString || ''}
                   editorDidMount={(editor) => editor.refresh()}
                   options={{
                     lineNumbers: true,
@@ -252,7 +244,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
 
     let pipeline: ApiPipeline | null = null;
-    let templateYaml = '';
+    let templateString = '';
     let template: Workflow | undefined;
     let breadcrumbs: Array<{ displayName: string, href: string }> = [];
     const toolbarActions = [...this.props.toolbarProps.actions];
@@ -262,7 +254,24 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     if (fromRunId) {
       try {
         const runDetails = await Apis.runServiceApi.getRun(fromRunId);
-        templateYaml = RunUtils.getPipelineSpec(runDetails.run) || '';
+
+        // Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
+        try {
+          const pipelineSpec = JSON.parse(RunUtils.getPipelineSpec(runDetails.run) || '{}');
+          try {
+            templateString = JsYaml.safeDump(pipelineSpec);
+          } catch (err) {
+            await this.showPageError(
+              `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`, err);
+            logger.error(
+              `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`, err);
+          }
+        } catch (err) {
+          await this.showPageError(
+            `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`, err);
+          logger.error(
+            `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`, err);
+        }
 
         const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);
         let experiment: ApiExperiment | undefined;
@@ -308,7 +317,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
       try {
         templateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);
-        templateYaml = templateResponse.template || '';
+        templateString = templateResponse.template || '';
       } catch (err) {
         await this.showPageError('Cannot retrieve pipeline template.', err);
         logger.error('Cannot retrieve pipeline details.', err);
@@ -323,7 +332,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     let g: dagre.graphlib.Graph | undefined;
     try {
-      template = JsYaml.safeLoad(templateYaml);
+      template = JsYaml.safeLoad(templateString);
       g = StaticGraphParser.createGraph(template!);
     } catch (err) {
       await this.showPageError('Error: failed to generate Pipeline graph.', err);
@@ -333,37 +342,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       graph: g,
       pipeline,
       template,
-      templateYaml,
+      templateString,
     });
-  }
-
-  private _createNewExperiment(): void {
-    const searchString = new URLParser(this.props).build({
-      [QUERY_PARAMS.pipelineId]: this.state.pipeline!.id || ''
-    });
-    this.props.history.push(RoutePage.NEW_EXPERIMENT + searchString);
-  }
-
-  private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
-    if (deleteConfirmed) {
-      try {
-        await Apis.pipelineServiceApi.deletePipeline(this.state.pipeline!.id!);
-        this.props.updateSnackbar({
-          autoHideDuration: 10000,
-          message: `Successfully deleted pipeline: ${this.state.pipeline!.name}`,
-          open: true,
-        });
-        this.props.history.push(RoutePage.PIPELINES);
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        this.props.updateDialog({
-          buttons: [{ text: 'Dismiss' }],
-          content: errorMessage,
-          title: 'Failed to delete pipeline',
-        });
-        logger.error('Deleting pipeline failed with error:', err);
-      }
-    }
   }
 }
 

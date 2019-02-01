@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -73,6 +73,9 @@ type APIRun struct {
 	// Output. The status of the run.
 	// One of [Pending, Running, Succeeded, Skipped, Failed, Error]
 	Status string `json:"status,omitempty"`
+
+	// storage state
+	StorageState RunStorageState `json:"storage_state,omitempty"`
 }
 
 // Validate validates this api run
@@ -96,6 +99,10 @@ func (m *APIRun) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateScheduledAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateStorageState(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -193,6 +200,22 @@ func (m *APIRun) validateScheduledAt(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("scheduled_at", "body", "date-time", m.ScheduledAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *APIRun) validateStorageState(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.StorageState) { // not required
+		return nil
+	}
+
+	if err := m.StorageState.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("storage_state")
+		}
 		return err
 	}
 

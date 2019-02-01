@@ -64,10 +64,12 @@ func NewPipelineUploadCmd(root *RootCommand) *cobra.Command {
 
 func NewPipelineCreateCmd(root *RootCommand) *cobra.Command {
 	var (
-		pipelineURL string
+		pipelineName string
+		pipelineURL  string
 	)
 	const (
-		flagNameURL = "url"
+		flagNameName = "name"
+		flagNameURL  = "url"
 	)
 	var command = &cobra.Command{
 		Use:   "create",
@@ -91,7 +93,7 @@ func NewPipelineCreateCmd(root *RootCommand) *cobra.Command {
 			// We can't specify the pipeline name for now due to issue
 			// https://github.com/grpc-ecosystem/grpc-gateway/issues/559
 			params := params.NewCreatePipelineParams()
-			params.Body = &model.APIURL{PipelineURL: pipelineURL}
+			params.Body = &model.APIPipeline{URL: &model.APIURL{PipelineURL: pipelineURL}, Name: pipelineName}
 
 			pkg, err := root.PipelineClient().Create(params)
 			if err != nil {
@@ -102,6 +104,7 @@ func NewPipelineCreateCmd(root *RootCommand) *cobra.Command {
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVar(&pipelineName, flagNameName, "", "The pipeline name")
 	command.PersistentFlags().StringVar(&pipelineURL, flagNameURL,
 		"", "The URL from which to create the pipeline")
 	command.MarkPersistentFlagRequired(flagNameURL)

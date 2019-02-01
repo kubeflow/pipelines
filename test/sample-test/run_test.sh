@@ -18,8 +18,9 @@ set -xe
 
 usage()
 {
-    echo "usage: run_kubeflow_test.sh
+    echo "usage: run_test.sh
     [--results-gcs-dir              GCS directory for the test results]
+    [--target-image-prefix          image prefix]
     [--dataflow-tft-image           image path to the dataflow tft]
     [--dataflow-predict-image       image path to the dataflow predict]
     [--dataflow-tfma-image          image path to the dataflow tfma]
@@ -43,6 +44,9 @@ while [ "$1" != "" ]; do
     case $1 in
              --results-gcs-dir )                shift
                                                 RESULTS_GCS_DIR=$1
+                                                ;;
+             --target-image-prefix )            shift
+                                                TARGET_IMAGE_PREFIX=$1
                                                 ;;
              --dataflow-tft-image )             shift
                                                 DATAFLOW_TFT_IMAGE=$1
@@ -142,10 +146,13 @@ if [ "$TEST_NAME" == 'tf-training' ]; then
   # Compile samples
   cd ${BASE_DIR}/samples/kubeflow-tf
 
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" kubeflow-training-classification.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" kubeflow-training-classification.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" kubeflow-training-classification.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" kubeflow-training-classification.py
+  if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" kubeflow-training-classification.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" kubeflow-training-classification.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" kubeflow-training-classification.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" kubeflow-training-classification.py
+  fi
+  sed -i -e "s|use_gpu\s*=\s*False|use_gpu = True|g" kubeflow-training-classification.py
 
   dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.tar.gz
 
@@ -161,12 +168,16 @@ elif [ "$TEST_NAME" == "tfx" ]; then
   # Compile samples
   cd ${BASE_DIR}/samples/tfx
 
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" taxi-cab-classification-pipeline.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" taxi-cab-classification-pipeline.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFDV_IMAGE}|g" taxi-cab-classification-pipeline.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFMA_IMAGE}|g" taxi-cab-classification-pipeline.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" taxi-cab-classification-pipeline.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DEPLOYER_IMAGE}|g" taxi-cab-classification-pipeline.py
+  if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" taxi-cab-classification-pipeline.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" taxi-cab-classification-pipeline.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFDV_IMAGE}|g" taxi-cab-classification-pipeline.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFMA_IMAGE}|g" taxi-cab-classification-pipeline.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" taxi-cab-classification-pipeline.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DEPLOYER_IMAGE}|g" taxi-cab-classification-pipeline.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" taxi-cab-classification-pipeline.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" taxi-cab-classification-pipeline.py
+  fi
 
   dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
   cd "${TEST_DIR}"
@@ -245,15 +256,16 @@ elif [ "$TEST_NAME" == "xgboost" ]; then
   # Compile samples
   cd ${BASE_DIR}/samples/xgboost-spark
 
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_DELETE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_ANALYZE_IMAGE}|g" xgboost-training-cm.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRANSFORM_IMAGE}|g" xgboost-training-cm.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-train:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRAIN_IMAGE}|g" xgboost-training-cm.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_PREDICT_IMAGE}|g" xgboost-training-cm.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" xgboost-training-cm.py
-  sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" xgboost-training-cm.py
-
+  if [ -n "${DATAPROC_CREATE_CLUSTER_IMAGE}" ];then
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_DELETE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_ANALYZE_IMAGE}|g" xgboost-training-cm.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRANSFORM_IMAGE}|g" xgboost-training-cm.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-train:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRAIN_IMAGE}|g" xgboost-training-cm.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_PREDICT_IMAGE}|g" xgboost-training-cm.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" xgboost-training-cm.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" xgboost-training-cm.py
+  fi
   dsl-compile --py xgboost-training-cm.py --output xgboost-training-cm.tar.gz
 
   cd "${TEST_DIR}"
@@ -261,4 +273,58 @@ elif [ "$TEST_NAME" == "xgboost" ]; then
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_XGBOOST_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_XGBOOST_TEST_RESULT}
+elif [ "$TEST_NAME" == "notebook-tfx" ]; then
+  SAMPLE_NOTEBOOK_TFX_TEST_RESULT=junit_SampleNotebookTFXOutput.xml
+  SAMPLE_NOTEBOOK_TFX_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  # CMLE model name format: A name should start with a letter and contain only letters, numbers and underscores.
+  DEPLOYER_MODEL=`cat /proc/sys/kernel/random/uuid`
+  DEPLOYER_MODEL=Notebook_tfx_taxi_`echo ${DEPLOYER_MODEL//-/_}`
+
+  cd ${BASE_DIR}/samples/notebooks
+  export LC_ALL=C.UTF-8
+  export LANG=C.UTF-8
+  if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
+    papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
+      -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE ${TARGET_IMAGE_PREFIX}pusher:dev \
+      -p KFP_PACKAGE /tmp/kfp.tar.gz -p DEPLOYER_MODEL ${DEPLOYER_MODEL}  \
+      -p DATAFLOW_TFDV_IMAGE ${DATAFLOW_TFDV_IMAGE} -p DATAFLOW_TFT_IMAGE ${DATAFLOW_TFT_IMAGE} -p DATAFLOW_TFMA_IMAGE ${DATAFLOW_TFMA_IMAGE} -p DATAFLOW_TF_PREDICT_IMAGE ${DATAFLOW_PREDICT_IMAGE} \
+      -p KUBEFLOW_TF_TRAINER_IMAGE ${KUBEFLOW_DNNTRAINER_IMAGE} -p KUBEFLOW_DEPLOYER_IMAGE ${KUBEFLOW_DEPLOYER_IMAGE} \
+      -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
+      -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 KubeFlow\ Pipeline\ Using\ TFX\ OSS\ Components.ipynb notebook-tfx.ipynb
+  else
+    papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
+      -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE ${TARGET_IMAGE_PREFIX}pusher:dev \
+      -p KFP_PACKAGE /tmp/kfp.tar.gz -p DEPLOYER_MODEL ${DEPLOYER_MODEL} \
+      -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
+      -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 KubeFlow\ Pipeline\ Using\ TFX\ OSS\ Components.ipynb notebook-tfx.ipynb
+  fi
+  jupyter nbconvert --to python notebook-tfx.ipynb
+  pip3 install tensorflow==1.8.0
+  ipython notebook-tfx.py
+  cd "${TEST_DIR}"
+  python3 check_notebook_results.py --experiment notebook-tfx-test --testname notebooktfx --result $SAMPLE_NOTEBOOK_TFX_TEST_RESULT --namespace ${NAMESPACE}
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp $SAMPLE_NOTEBOOK_TFX_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_TFX_TEST_RESULT
+
+  #Clean CMLE models. Not needed because we cleaned them up inside notebook.
+  # python3 clean_cmle_models.py --project ml-pipeline-test --model ${DEV_DEPLOYER_MODEL} --version ${MODEL_VERSION}
+  # python3 clean_cmle_models.py --project ml-pipeline-test --model ${PROD_DEPLOYER_MODEL} --version ${MODEL_VERSION}
+elif [ "$TEST_NAME" == "notebook-lightweight" ]; then
+  SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT=junit_SampleNotebookLightweightOutput.xml
+  SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  cd ${BASE_DIR}/samples/notebooks
+  export LC_ALL=C.UTF-8
+  export LANG=C.UTF-8
+  papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  Lightweight\ Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
+  jupyter nbconvert --to python notebook-lightweight.ipynb
+  pip3 install tensorflow==1.8.0
+  ipython notebook-lightweight.py
+  cd "${TEST_DIR}"
+  python3 check_notebook_results.py --experiment notebook-lightweight --testname notebooklightweight --result $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT --namespace ${NAMESPACE}
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT
 fi

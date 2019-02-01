@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
-	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,7 +30,7 @@ func TestWorkflow_ScheduledWorkflowUUIDAsStringOrEmpty(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID("MY_UID"),
@@ -45,7 +45,7 @@ func TestWorkflow_ScheduledWorkflowUUIDAsStringOrEmpty(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				UID:        types.UID("MY_UID"),
 			}},
 		},
@@ -58,7 +58,7 @@ func TestWorkflow_ScheduledWorkflowUUIDAsStringOrEmpty(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "WRONG_KIND",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID("MY_UID"),
@@ -87,7 +87,7 @@ func TestWorkflow_ScheduledWorkflowUUIDAsStringOrEmpty(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 			}},
@@ -240,7 +240,7 @@ func TestWorkflow_SetOwnerReferences(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "WORKFLOW_NAME",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion:         "kubeflow.org/v1alpha1",
+				APIVersion:         "kubeflow.org/v1beta1",
 				Kind:               "ScheduledWorkflow",
 				Name:               "SCHEDULE_NAME",
 				Controller:         BoolPointer(true),

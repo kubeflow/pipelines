@@ -15,6 +15,7 @@
 
 
 import kfp.dsl as dsl
+import kfp.gcp as gcp
 
 
 # ================================================================
@@ -25,7 +26,7 @@ class CreateClusterOp(dsl.ContainerOp):
   def __init__(self, name, project, region, staging):
     super(CreateClusterOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:be19cbc2591a48d2ef5ca715c34ecae8223cf454',
       arguments=[
           '--project', project,
           '--region', region,
@@ -40,7 +41,7 @@ class DeleteClusterOp(dsl.ContainerOp):
   def __init__(self, name, project, region):
     super(DeleteClusterOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:be19cbc2591a48d2ef5ca715c34ecae8223cf454',
       arguments=[
           '--project', project,
           '--region', region,
@@ -54,7 +55,7 @@ class AnalyzeOp(dsl.ContainerOp):
   def __init__(self, name, project, region, cluster_name, schema, train_data, output):
     super(AnalyzeOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:be19cbc2591a48d2ef5ca715c34ecae8223cf454',
       arguments=[
           '--project', project,
           '--region', region,
@@ -72,7 +73,7 @@ class TransformOp(dsl.ContainerOp):
                target, analysis, output):
     super(TransformOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:be19cbc2591a48d2ef5ca715c34ecae8223cf454',
       arguments=[
           '--project', project,
           '--region', region,
@@ -97,7 +98,7 @@ class TrainerOp(dsl.ContainerOp):
 
     super(TrainerOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:be19cbc2591a48d2ef5ca715c34ecae8223cf454',
       arguments=[
           '--project', project,
           '--region', region,
@@ -120,7 +121,7 @@ class PredictOp(dsl.ContainerOp):
   def __init__(self, name, project, region, cluster_name, data, model, target, analysis, output):
     super(PredictOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:be19cbc2591a48d2ef5ca715c34ecae8223cf454',
       arguments=[
           '--project', project,
           '--region', region,
@@ -140,7 +141,7 @@ class ConfusionMatrixOp(dsl.ContainerOp):
   def __init__(self, name, predictions, output):
     super(ConfusionMatrixOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:be19cbc2591a48d2ef5ca715c34ecae8223cf454',
       arguments=[
         '--output', output,
         '--predictions', predictions
@@ -152,11 +153,12 @@ class RocOp(dsl.ContainerOp):
   def __init__(self, name, predictions, trueclass, output):
     super(RocOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:0.1.3-rc.2', #TODO-release: update the release tag for the next release
+      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:be19cbc2591a48d2ef5ca715c34ecae8223cf454',
       arguments=[
         '--output', output,
         '--predictions', predictions,
-        '--trueclass', trueclass
+        '--trueclass', trueclass,
+        '--true_score_column', trueclass,
      ])
 
 # =======================================================================
@@ -168,37 +170,37 @@ class RocOp(dsl.ContainerOp):
 def xgb_train_pipeline(
     output,
     project,
-    region=dsl.PipelineParam('region', value='us-central1'),
-    train_data=dsl.PipelineParam('train-data', value='gs://ml-pipeline-playground/sfpd/train.csv'),
-    eval_data=dsl.PipelineParam('eval-data', value='gs://ml-pipeline-playground/sfpd/eval.csv'),
-    schema=dsl.PipelineParam('schema', value='gs://ml-pipeline-playground/sfpd/schema.json'),
-    target=dsl.PipelineParam('target', value='resolution'),
-    rounds=dsl.PipelineParam('rounds', value=200),
-    workers=dsl.PipelineParam('workers', value=2),
-    true_label=dsl.PipelineParam('true-label', value='ACTION'),
+    region='us-central1',
+    train_data='gs://ml-pipeline-playground/sfpd/train.csv',
+    eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
+    schema='gs://ml-pipeline-playground/sfpd/schema.json',
+    target='resolution',
+    rounds=200,
+    workers=2,
+    true_label='ACTION',
 ):
-  delete_cluster_op = DeleteClusterOp('delete-cluster', project, region)
+  delete_cluster_op = DeleteClusterOp('delete-cluster', project, region).apply(gcp.use_gcp_secret('user-gcp-sa'))
   with dsl.ExitHandler(exit_op=delete_cluster_op):
-    create_cluster_op = CreateClusterOp('create-cluster', project, region, output)
+    create_cluster_op = CreateClusterOp('create-cluster', project, region, output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
     analyze_op = AnalyzeOp('analyze', project, region, create_cluster_op.output, schema,
-                           train_data, '%s/{{workflow.name}}/analysis' % output)
+                           train_data, '%s/{{workflow.name}}/analysis' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
     transform_op = TransformOp('transform', project, region, create_cluster_op.output,
                                train_data, eval_data, target, analyze_op.output,
-                               '%s/{{workflow.name}}/transform' % output)
+                               '%s/{{workflow.name}}/transform' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
     train_op = TrainerOp('train', project, region, create_cluster_op.output, transform_op.outputs['train'],
                          transform_op.outputs['eval'], target, analyze_op.output, workers,
-                         rounds, '%s/{{workflow.name}}/model' % output)
+                         rounds, '%s/{{workflow.name}}/model' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
     predict_op = PredictOp('predict', project, region, create_cluster_op.output, transform_op.outputs['eval'],
-                           train_op.output, target, analyze_op.output, '%s/{{workflow.name}}/predict' % output)
+                           train_op.output, target, analyze_op.output, '%s/{{workflow.name}}/predict' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
     confusion_matrix_op = ConfusionMatrixOp('confusion-matrix', predict_op.output,
-                                            '%s/{{workflow.name}}/confusionmatrix' % output)
+                                            '%s/{{workflow.name}}/confusionmatrix' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
-    roc_op = RocOp('roc', predict_op.output, true_label, '%s/{{workflow.name}}/roc' % output)
+    roc_op = RocOp('roc', predict_op.output, true_label, '%s/{{workflow.name}}/roc' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
   import kfp.compiler as compiler

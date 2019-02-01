@@ -1,0 +1,122 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "backend/api/filter.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "PredicateOp": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN",
+        "EQUALS",
+        "NOT_EQUALS",
+        "GREATER_THAN",
+        "GREATER_THAN_EQUALS",
+        "LESS_THAN",
+        "LESS_THAN_EQUALS",
+        "IN",
+        "IS_SUBSTRING"
+      ],
+      "default": "UNKNOWN",
+      "description": "Op is the operation to apply.\n\n - EQUALS: Operators on scalar values. Only applies to one of |int_value|,\n|long_value|, |string_value| or |timestamp_value|.\n - IN: Checks if the value is a member of a given array, which should be one of\n|int_values|, |long_values| or |string_values|.\n - IS_SUBSTRING: Checks if the value contains |string_value| as a substring match. Only\napplies to |string_value|."
+    },
+    "apiFilter": {
+      "type": "object",
+      "properties": {
+        "predicates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiPredicate"
+          },
+          "description": "All predicates are AND-ed when this filter is applied."
+        }
+      },
+      "description": "Filter is used to filter resources returned from a ListXXX request.\n\nExample filters:\n1) Filter runs with status = 'Running'\nfilter {\n  predicate {\n    key: \"status\"\n    op: EQUALS\n    string_value: \"Running\"\n  }\n}\n\n2) Filter runs that succeeded since Dec 1, 2018\nfilter {\n  predicate {\n    key: \"status\"\n    op: EQUALS\n    string_value: \"Succeeded\"\n  }\n  predicate {\n    key: \"created_at\"\n    op: GREATER_THAN\n    timestamp_value {\n      seconds: 1543651200\n    }\n  }\n}\n\n3) Filter runs with one of labels 'label_1' or 'label_2'\n\nfilter {\n  predicate {\n    key: \"label\"\n    op: IN\n    string_values {\n      value: 'label_1'\n      value: 'label_2'\n    }\n  }\n}"
+    },
+    "apiIntValues": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    },
+    "apiLongValues": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "int64"
+          }
+        }
+      }
+    },
+    "apiPredicate": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "$ref": "#/definitions/PredicateOp"
+        },
+        "key": {
+          "type": "string"
+        },
+        "int_value": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "long_value": {
+          "type": "string",
+          "format": "int64"
+        },
+        "string_value": {
+          "type": "string"
+        },
+        "timestamp_value": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp values will be converted to Unix time (seconds since the epoch)\nprior to being used in a filtering operation."
+        },
+        "int_values": {
+          "$ref": "#/definitions/apiIntValues",
+          "description": "Array values below are only meant to be used by the IN operator."
+        },
+        "long_values": {
+          "$ref": "#/definitions/apiLongValues"
+        },
+        "string_values": {
+          "$ref": "#/definitions/apiStringValues"
+        }
+      },
+      "description": "Predicate captures individual conditions that must be true for a resource\nbeing filtered."
+    },
+    "apiStringValues": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

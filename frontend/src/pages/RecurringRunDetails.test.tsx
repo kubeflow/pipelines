@@ -24,12 +24,6 @@ import { RouteParams, RoutePage } from '../components/Router';
 import { ToolbarActionConfig } from '../components/Toolbar';
 import { shallow } from 'enzyme';
 
-class TestRecurringRunDetails extends RecurringRunDetails {
-  public async _deleteDialogClosed(confirmed: boolean): Promise<void> {
-    super._deleteDialogClosed(confirmed);
-  }
-}
-
 describe('RecurringRunDetails', () => {
   const updateBannerSpy = jest.fn();
   const updateDialogSpy = jest.fn();
@@ -45,16 +39,9 @@ describe('RecurringRunDetails', () => {
   let fullTestJob: ApiJob = {};
 
   function generateProps(): PageProps {
-    return {
-      history: { push: historyPushSpy } as any,
-      location: '' as any,
-      match: { params: { [RouteParams.runId]: fullTestJob.id }, isExact: true, path: '', url: '' },
-      toolbarProps: RecurringRunDetails.prototype.getInitialToolbarState(),
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
+    const match = { params: { [RouteParams.runId]: fullTestJob.id }, isExact: true, path: '', url: '' };
+    return TestUtils.generatePageProps(RecurringRunDetails, '' as any, match, historyPushSpy,
+      updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
   }
 
   beforeEach(() => {
@@ -321,7 +308,7 @@ describe('RecurringRunDetails', () => {
     const deleteBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Delete');
     await deleteBtn!.action();
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      title: 'Delete this recurring run?',
+      title: 'Delete this recurring run config?',
     }));
     tree.unmount();
   });
@@ -359,23 +346,32 @@ describe('RecurringRunDetails', () => {
   // or clicking outside it, it should be treated the same way as clicking Cancel.
 
   it('redirects back to parent experiment after delete', async () => {
-    const tree = shallow(<TestRecurringRunDetails {...generateProps()} />);
+    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
-    const instance = tree.instance() as TestRecurringRunDetails;
-    await instance._deleteDialogClosed(true);
+    const deleteBtn = (tree.instance() as RecurringRunDetails)
+      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    await confirmBtn.onClick();
+    expect(deleteJobSpy).toHaveBeenLastCalledWith('test-job-id');
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.EXPERIMENTS);
     tree.unmount();
   });
 
   it('shows snackbar after successful deletion', async () => {
-    const tree = shallow(<TestRecurringRunDetails {...generateProps()} />);
+    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
-    const instance = tree.instance() as TestRecurringRunDetails;
-    await instance._deleteDialogClosed(true);
+    const deleteBtn = (tree.instance() as RecurringRunDetails)
+      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    await confirmBtn.onClick();
     expect(updateSnackbarSpy).toHaveBeenCalledTimes(1);
     expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      message: 'Successfully deleted recurring run: ' + fullTestJob.name,
+      message: 'Delete succeeded for this recurring run config',
       open: true,
     });
     tree.unmount();
@@ -383,15 +379,19 @@ describe('RecurringRunDetails', () => {
 
   it('shows error dialog after failing deletion', async () => {
     TestUtils.makeErrorResponseOnce(deleteJobSpy, 'could not delete');
-    const tree = shallow(<TestRecurringRunDetails {...generateProps()} />);
+    const tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
-    const instance = tree.instance() as TestRecurringRunDetails;
-    await instance._deleteDialogClosed(true);
+    const deleteBtn = (tree.instance() as RecurringRunDetails)
+      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+    await deleteBtn!.action();
+    const call = updateDialogSpy.mock.calls[0][0];
+    const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
+    await confirmBtn.onClick();
     await TestUtils.flushPromises();
-    expect(updateDialogSpy).toHaveBeenCalledTimes(1);
+    expect(updateDialogSpy).toHaveBeenCalledTimes(2);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      content: 'could not delete',
-      title: 'Failed to delete recurring run',
+      content: 'Failed to delete recurring run config: test-job-id with error: "could not delete"',
+      title: 'Failed to delete recurring run config',
     }));
     // Should not reroute
     expect(historyPushSpy).not.toHaveBeenCalled();

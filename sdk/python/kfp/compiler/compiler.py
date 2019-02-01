@@ -14,19 +14,16 @@
 
 
 from collections import defaultdict
-import copy
 import inspect
 import re
-import string
 import tarfile
-import tempfile
 import yaml
 
 from .. import dsl
-
+from ._k8s_helper import K8sHelper
 
 class Compiler(object):
-  """DSL Compiler. 
+  """DSL Compiler.
 
   It compiles DSL pipeline functions into workflow yaml. Example usage:
   ```python
@@ -41,109 +38,16 @@ class Compiler(object):
   ```
   """
 
-  def _sanitize_name(self, name):
-    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-') #from _make_kubernetes_name
+  def _pipelineparam_full_name(self, param):
+    """_pipelineparam_full_name converts the names of pipeline parameters
+      to unique names in the argo yaml
 
-  def _param_full_name(self, param):
+    Args:
+      param(PipelineParam): pipeline parameter
+      """
     if param.op_name:
       return param.op_name + '-' + param.name
-    return self._sanitize_name(param.name)
-
-  def _build_conventional_artifact(self, name):
-    return {
-      'name': name,
-      'path': '/' + name + '.json',
-      's3': {
-        # TODO: parameterize namespace for minio service
-        'endpoint': 'minio-service.kubeflow:9000',
-        'bucket': 'mlpipeline',
-        'key': 'runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz',
-        'insecure': True,
-        'accessKeySecret': {
-          'name': 'mlpipeline-minio-artifact',
-          'key': 'accesskey',
-        },
-        'secretKeySecret': {
-          'name': 'mlpipeline-minio-artifact',
-          'key': 'secretkey'
-        }
-      },
-    }
-
-  def _op_to_template(self, op):
-    """Generate template given an operator inherited from dsl.ContainerOp."""
-
-    processed_args = None
-    if op.arguments:
-      processed_args = list(map(str, op.arguments))
-      for i, _ in enumerate(processed_args):
-        if op.argument_inputs:
-          for param in op.argument_inputs:
-            full_name = self._param_full_name(param)
-            processed_args[i] = re.sub(str(param), '{{inputs.parameters.%s}}' % full_name,
-                                       processed_args[i])
-    input_parameters = []
-    for param in op.inputs:
-      one_parameter = {'name': self._param_full_name(param)}
-      if param.value:
-        one_parameter['value'] = str(param.value)
-      input_parameters.append(one_parameter)
-    # Sort to make the results deterministic.
-    input_parameters.sort(key=lambda x: x['name'])
-
-    output_parameters = []
-    for param in op.outputs.values():
-      output_parameters.append({
-          'name': self._param_full_name(param),
-          'valueFrom': {'path': op.file_outputs[param.name]}
-      })
-    output_parameters.sort(key=lambda x: x['name'])
-
-    template = {
-      'name': op.name,
-      'container': {
-        'image': op.image,
-      }
-    }
-    if processed_args:
-      template['container']['args'] = processed_args
-    if input_parameters:
-      template['inputs'] = {'parameters': input_parameters}
-
-    template['outputs'] = {}
-    if output_parameters:
-      template['outputs'] = {'parameters': output_parameters}
-
-    # Generate artifact for metadata output
-    # The motivation of appending the minio info in the yaml
-    # is to specify a unique path for the metadata.
-    # TODO: after argo addresses the issue that configures a unique path
-    # for the artifact output when default artifact repository is configured,
-    # this part needs to be updated to use the default artifact repository.
-    output_artifacts = []
-    output_artifacts.append(self._build_conventional_artifact('mlpipeline-ui-metadata'))
-    output_artifacts.append(self._build_conventional_artifact('mlpipeline-metrics'))
-    template['outputs']['artifacts'] = output_artifacts
-    if op.command:
-      template['container']['command'] = op.command
-
-    # Set resources.
-    if op.resource_limits or op.resource_requests:
-      template['container']['resources'] = {}
-    if op.resource_limits:
-      template['container']['resources']['limits'] = op.resource_limits
-    if op.resource_requests:
-      template['container']['resources']['requests'] = op.resource_requests
-
-    # Set nodeSelector.
-    if op.node_selector:
-      template['nodeSelector'] = op.node_selector
-
-    if op.env_variables:
-      template['container']['env'] = list(map(self._convert_k8s_obj_to_dic, op.env_variables))
-    if op.volume_mounts:
-      template['container']['volumeMounts'] = list(map(self._convert_k8s_obj_to_dic, op.volume_mounts))
-    return template
+    return param.name
 
   def _get_groups_for_ops(self, root_group):
     """Helper function to get belonging groups for each op.
@@ -180,7 +84,7 @@ class Compiler(object):
       return groups
 
     return _get_groups_helper(root_group)
-        
+
   def _get_uncommon_ancestors(self, op_groups, op1, op2):
     """Helper function to get unique ancestors between two ops.
 
@@ -210,11 +114,11 @@ class Compiler(object):
       # op's inputs and all params used in conditions for that op are both considered.
       for param in op.inputs + list(condition_params[op.name]):
         # if the value is already provided (immediate value), then no need to expose
-        # it as input for its parent groups. 
+        # it as input for its parent groups.
         if param.value:
           continue
 
-        full_name = self._param_full_name(param)
+        full_name = self._pipelineparam_full_name(param)
         if param.op_name:
           upstream_op = pipeline.ops[param.op_name]
           upstream_groups, downstream_groups = self._get_uncommon_ancestors(
@@ -240,7 +144,7 @@ class Compiler(object):
             for g in op_groups[op.name]:
               inputs[g].add((full_name, None))
     return inputs, outputs
-    
+
   def _get_condition_params_for_ops(self, root_group):
     """Get parameters referenced in conditions of ops."""
 
@@ -262,7 +166,7 @@ class Compiler(object):
 
     _get_condition_params_for_ops_helper(root_group, [])
     return conditions
-      
+
   def _get_dependencies(self, pipeline, root_group, op_groups):
     """Get dependent groups and ops for all ops and groups.
 
@@ -289,10 +193,16 @@ class Compiler(object):
         dependencies[downstream_groups[0]].add(upstream_groups[0])
     return dependencies
 
-  def _resolve_value_or_reference(self, value_or_reference, inputs):
+  def _resolve_value_or_reference(self, value_or_reference, potential_references):
+    """_resolve_value_or_reference resolves values and PipelineParams, which could be task parameters or input parameters.
+
+    Args:
+      value_or_reference: value or reference to be resolved. It could be basic python types or PipelineParam
+      potential_references(dict{str->str}): a dictionary of parameter names to task names
+      """
     if isinstance(value_or_reference, dsl.PipelineParam):
-      parameter_name = self._param_full_name(value_or_reference)
-      task_names = [task_name for param_name, task_name in inputs if param_name == parameter_name]
+      parameter_name = self._pipelineparam_full_name(value_or_reference)
+      task_names = [task_name for param_name, task_name in potential_references if param_name == parameter_name]
       if task_names:
         task_name = task_names[0]
         return '{{tasks.%s.outputs.parameters.%s}}' % (task_name, parameter_name)
@@ -301,9 +211,132 @@ class Compiler(object):
     else:
       return str(value_or_reference)
 
+  def _process_args(self, raw_args, argument_inputs):
+    if not raw_args:
+      return []
+    processed_args = list(map(str, raw_args))
+    for i, _ in enumerate(processed_args):
+      # unsanitized_argument_inputs stores a dict: string of sanitized param -> string of unsanitized param
+      matches = []
+      match = re.findall(r'{{pipelineparam:op=([\w\s\_-]*);name=([\w\s\_-]+);value=(.*?)}}', str(processed_args[i]))
+      matches += match
+      unsanitized_argument_inputs = {}
+      for x in list(set(matches)):
+        sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(x[1]), K8sHelper.sanitize_k8s_name(x[0]), x[2]))
+        unsanitized_argument_inputs[sanitized_str] = str(dsl.PipelineParam(x[1], x[0], x[2]))
+
+      if argument_inputs:
+        for param in argument_inputs:
+          if str(param) in unsanitized_argument_inputs:
+            full_name = self._pipelineparam_full_name(param)
+            processed_args[i] = re.sub(unsanitized_argument_inputs[str(param)], '{{inputs.parameters.%s}}' % full_name,
+                                       processed_args[i])
+    return processed_args
+
+  def _op_to_template(self, op):
+    """Generate template given an operator inherited from dsl.ContainerOp."""
+
+    def _build_conventional_artifact(name):
+      return {
+        'name': name,
+        'path': '/' + name + '.json',
+        's3': {
+          # TODO: parameterize namespace for minio service
+          'endpoint': 'minio-service.kubeflow:9000',
+          'bucket': 'mlpipeline',
+          'key': 'runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz',
+          'insecure': True,
+          'accessKeySecret': {
+            'name': 'mlpipeline-minio-artifact',
+            'key': 'accesskey',
+          },
+          'secretKeySecret': {
+            'name': 'mlpipeline-minio-artifact',
+            'key': 'secretkey'
+          }
+        },
+      }
+
+    processed_arguments = self._process_args(op.arguments, op.argument_inputs)
+    processed_command = self._process_args(op.command, op.argument_inputs)
+
+    input_parameters = []
+    for param in op.inputs:
+      one_parameter = {'name': self._pipelineparam_full_name(param)}
+      if param.value:
+        one_parameter['value'] = str(param.value)
+      input_parameters.append(one_parameter)
+    # Sort to make the results deterministic.
+    input_parameters.sort(key=lambda x: x['name'])
+
+    output_parameters = []
+    for param in op.outputs.values():
+      output_parameters.append({
+        'name': self._pipelineparam_full_name(param),
+        'valueFrom': {'path': op.file_outputs[param.name]}
+      })
+    output_parameters.sort(key=lambda x: x['name'])
+
+    template = {
+      'name': op.name,
+      'container': {
+        'image': op.image,
+      }
+    }
+    if processed_arguments:
+      template['container']['args'] = processed_arguments
+    if processed_command:
+      template['container']['command'] = processed_command
+    if input_parameters:
+      template['inputs'] = {'parameters': input_parameters}
+
+    template['outputs'] = {}
+    if output_parameters:
+      template['outputs'] = {'parameters': output_parameters}
+
+    # Generate artifact for metadata output
+    # The motivation of appending the minio info in the yaml
+    # is to specify a unique path for the metadata.
+    # TODO: after argo addresses the issue that configures a unique path
+    # for the artifact output when default artifact repository is configured,
+    # this part needs to be updated to use the default artifact repository.
+    output_artifacts = []
+    output_artifacts.append(_build_conventional_artifact('mlpipeline-ui-metadata'))
+    output_artifacts.append(_build_conventional_artifact('mlpipeline-metrics'))
+    template['outputs']['artifacts'] = output_artifacts
+
+    # Set resources.
+    if op.resource_limits or op.resource_requests:
+      template['container']['resources'] = {}
+    if op.resource_limits:
+      template['container']['resources']['limits'] = op.resource_limits
+    if op.resource_requests:
+      template['container']['resources']['requests'] = op.resource_requests
+
+    # Set nodeSelector.
+    if op.node_selector:
+      template['nodeSelector'] = op.node_selector
+
+    if op.env_variables:
+      template['container']['env'] = list(map(K8sHelper.convert_k8s_obj_to_json, op.env_variables))
+    if op.volume_mounts:
+      template['container']['volumeMounts'] = list(map(K8sHelper.convert_k8s_obj_to_json, op.volume_mounts))
+
+    if op.pod_annotations or op.pod_labels:
+      template['metadata'] = {}
+      if op.pod_annotations:
+        template['metadata']['annotations'] = op.pod_annotations
+      if op.pod_labels:
+        template['metadata']['labels'] = op.pod_labels
+
+    if op.num_retries:
+      template['retryStrategy'] = {'limit': op.num_retries}
+
+    return template
+
   def _group_to_template(self, group, inputs, outputs, dependencies):
     """Generate template given an OpsGroup.
-    
+
     inputs, outputs, dependencies are all helper dicts.
     """
     template = {'name': group.name}
@@ -371,9 +404,8 @@ class Compiler(object):
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
     template['dag'] = {'tasks': tasks}
-    return template     
+    return template
 
-    
   def _create_templates(self, pipeline):
     """Create all groups and ops templates in the pipeline."""
 
@@ -395,16 +427,22 @@ class Compiler(object):
   def _create_volumes(self, pipeline):
     """Create volumes required for the templates"""
     volumes = []
+    volume_name_set = set()
     for op in pipeline.ops.values():
       if op.volumes:
         for v in op.volumes:
-          volumes.append(self._convert_k8s_obj_to_dic(v))
+          # Remove volume duplicates which have the same name
+          #TODO: check for duplicity based on the serialized volumes instead of just name.
+          if v.name not in volume_name_set:
+            volume_name_set.add(v.name)
+            volumes.append(K8sHelper.convert_k8s_obj_to_json(v))
     volumes.sort(key=lambda x: x['name'])
     return volumes
 
   def _create_pipeline_workflow(self, args, pipeline):
     """Create workflow for the pipeline."""
 
+    # Input Parameters
     input_params = []
     for arg in args:
       param = {'name': arg.name}
@@ -412,16 +450,21 @@ class Compiler(object):
         param['value'] = str(arg.value)
       input_params.append(param)
 
+    # Templates
     templates = self._create_templates(pipeline)
     templates.sort(key=lambda x: x['name'])
 
+    # Exit Handler
     exit_handler = None
     if pipeline.groups[0].groups:
       first_group = pipeline.groups[0].groups[0]
       if first_group.type == 'exit_handler':
         exit_handler = first_group.exit_op
 
+    # Volumes
     volumes = self._create_volumes(pipeline)
+
+    # The whole pipeline workflow
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
@@ -469,74 +512,50 @@ class Compiler(object):
       raise ValueError('Please use a function with @dsl.pipeline decorator.')
 
     pipeline_name, _ = dsl.Pipeline.get_pipeline_functions()[pipeline_func]
-    pipeline_name = self._sanitize_name(pipeline_name)
+    pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_name)
 
     # Create the arg list with no default values and call pipeline function.
-    args_list = [dsl.PipelineParam(self._sanitize_name(arg_name))
+    args_list = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
                  for arg_name in argspec.args]
     with dsl.Pipeline(pipeline_name) as p:
       pipeline_func(*args_list)
 
-    # Remove when argo supports local exit handler.    
+    # Remove when argo supports local exit handler.
     self._validate_exit_handler(p)
 
     # Fill in the default values.
-    args_list_with_defaults = [dsl.PipelineParam(self._sanitize_name(arg_name))
+    args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
                                for arg_name in argspec.args]
     if argspec.defaults:
       for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
         arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
 
+    # Sanitize operator names and param names
+    sanitized_ops = {}
+    for op in p.ops.values():
+      sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
+      op.name = sanitized_name
+      for param in op.inputs + op.argument_inputs:
+        param.name = K8sHelper.sanitize_k8s_name(param.name)
+        if param.op_name:
+          param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
+      for param in op.outputs.values():
+        param.name = K8sHelper.sanitize_k8s_name(param.name)
+        if param.op_name:
+          param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
+      if op.output is not None:
+        op.output.name = K8sHelper.sanitize_k8s_name(op.output.name)
+        op.output.op_name = K8sHelper.sanitize_k8s_name(op.output.op_name)
+      if op.file_outputs is not None:
+        sanitized_file_outputs = {}
+        for key in op.file_outputs.keys():
+          sanitized_file_outputs[K8sHelper.sanitize_k8s_name(key)] = op.file_outputs[key]
+        op.file_outputs = sanitized_file_outputs
+      sanitized_ops[sanitized_name] = op
+    p.ops = sanitized_ops
+
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
-
-  def _convert_k8s_obj_to_dic(self, obj):
-    """
-    Builds a JSON K8s object.
-
-    If obj is None, return None.
-    If obj is str, int, long, float, bool, return directly.
-    If obj is datetime.datetime, datetime.date
-        convert to string in iso8601 format.
-    If obj is list, sanitize each element in the list.
-    If obj is dict, return the dict.
-    If obj is swagger model, return the properties dict.
-
-    Args:
-      obj: The data to serialize.
-    Returns: The serialized form of data.
-    """
-
-    from six import text_type, integer_types, iteritems
-    PRIMITIVE_TYPES = (float, bool, bytes, text_type) + integer_types
-    from datetime import date, datetime
-    if obj is None:
-      return None
-    elif isinstance(obj, PRIMITIVE_TYPES):
-      return obj
-    elif isinstance(obj, list):
-      return [self._convert_k8s_obj_to_dic(sub_obj)
-              for sub_obj in obj]
-    elif isinstance(obj, tuple):
-      return tuple(self._convert_k8s_obj_to_dic(sub_obj)
-                   for sub_obj in obj)
-    elif isinstance(obj, (datetime, date)):
-      return obj.isoformat()
-
-    if isinstance(obj, dict):
-      obj_dict = obj
-    else:
-      # Convert model obj to dict except
-      # attributes `swagger_types`, `attribute_map`
-      # and attributes which value is not None.
-      # Convert attribute name to json key in
-      # model definition for request.
-      obj_dict = {obj.attribute_map[attr]: getattr(obj, attr)
-                  for attr, _ in iteritems(obj.swagger_types)
-                  if getattr(obj, attr) is not None}
-
-    return {key: self._convert_k8s_obj_to_dic(val)
-            for key, val in iteritems(obj_dict)}
 
   def compile(self, pipeline_func, package_path):
     """Compile the given pipeline function into workflow yaml.

@@ -22,17 +22,24 @@ import yaml
 from datetime import datetime
 
 from .compiler import compiler
+from .compiler import _k8s_helper
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
 
-  def __init__(self, namespace='kubeflow'):
+  # in-cluster DNS name of the pipeline service
+  IN_CLUSTER_DNS_NAME = 'ml-pipeline.kubeflow.svc.cluster.local:8888'
+
+  def __init__(self, host=None):
     """Create a new instance of kfp client.
 
     Args:
-      namespace: the namespace where pipelines are deployed. Default is kubeflow
-        TODO: check if it works outside of the cluster.
+      host: the host name to use to talk to Kubeflow Pipelines. If not set, the in-cluster
+          service DNS name will be used, which only works if the current environment is a pod
+          in the same cluster (such as a Jupyter instance spawned by Kubeflow's
+          JupyterHub). If you have a different connection to cluster, such as a kubectl
+          proxy connection, then set it to something like "127.0.0.1:8080/pipeline".
     """
 
     try:
@@ -45,14 +52,15 @@ class Client(object):
     except ImportError:
       raise Exception('This module requires installation of kfp_run')
 
-    host='ml-pipeline.' + namespace + '.svc.cluster.local:8888'
+    self._host = host
+
     config = kfp_run.configuration.Configuration()
-    config.host = host
+    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
     api_client = kfp_run.api_client.ApiClient(config)
     self._run_api = kfp_run.api.run_service_api.RunServiceApi(api_client)
 
     config = kfp_experiment.configuration.Configuration()
-    config.host = host
+    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
     api_client = kfp_experiment.api_client.ApiClient(config)
     self._experiment_api = \
         kfp_experiment.api.experiment_service_api.ExperimentServiceApi(api_client)
@@ -65,6 +73,17 @@ class Client(object):
       return False
 
     return True
+
+  def _get_url_prefix(self):
+    if self._host:
+      # User's own connection.
+      if self._host.startswith('http://'):
+        return self._host
+      else:
+        return 'http://' + self._host
+
+    # In-cluster pod. We could use relative URL.
+    return '/pipeline'
 
   def create_experiment(self, name):
     """Create a new experiment.
@@ -81,8 +100,8 @@ class Client(object):
     if self._is_ipython():
       import IPython
       html = \
-          ('Experiment link <a href="/pipeline/#/experiments/details/%s" target="_blank" >here</a>'
-          % response.id)
+          ('Experiment link <a href="%s/#/experiments/details/%s" target="_blank" >here</a>'
+          % (self._get_url_prefix(), response.id))
       IPython.display.display(IPython.display.HTML(html))
     return response
 
@@ -99,16 +118,29 @@ class Client(object):
         page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
-  def get_experiment(self, experiment_id):
+  def get_experiment(self, experiment_id=None, experiment_name=None):
     """Get details of an experiment
+    Either experiment_id or experiment_name is required
     Args:
-      id of the experiment.
+      experiment_id: id of the experiment. (Optional)
+      experiment_name: name of the experiment. (Optional)
     Returns:
       A response object including details of a experiment.
     Throws:
-      Exception if experiment is not found.        
+      Exception if experiment is not found or None of the arguments is provided
     """
-    return self._experiment_api.get_experiment(id=experiment_id)
+    if experiment_id is None and experiment_name is None:
+      raise ValueError('Either experiment_id or experiment_name is required')
+    if experiment_id is not None:
+      return self._experiment_api.get_experiment(id=experiment_id)
+    next_page_token = ''
+    while next_page_token is not None:
+      list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token)
+      next_page_token = list_experiments_response.next_page_token
+      for experiment in list_experiments_response.experiments:
+        if experiment.name == experiment_name:
+          return self._experiment_api.get_experiment(id=experiment.id)
+    raise ValueError('No experiment is found with name {}.'.format(experiment_name))
 
   def _extract_pipeline_yaml(self, tar_file):
     with tarfile.open(tar_file, "r:gz") as tar:
@@ -139,7 +171,7 @@ class Client(object):
 
     pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
     pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_run.ApiParameter(name=compiler.Compiler()._sanitize_name(k), value=str(v))
+    api_params = [kfp_run.ApiParameter(name=_k8s_helper.K8sHelper.sanitize_k8s_name(k), value=str(v))
                   for k,v in params.items()]
     key = kfp_run.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_run.models.ApiResourceType.EXPERIMENT)
@@ -153,21 +185,26 @@ class Client(object):
     
     if self._is_ipython():
       import IPython
-      html = ('Run link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>'
-              % response.run.id)
+      html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
+              % (self._get_url_prefix(), response.run.id))
       IPython.display.display(IPython.display.HTML(html))
     return response.run
 
-  def list_runs(self, page_token='', page_size=10, sort_by=''):
+  def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List runs.
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
       sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      experiment_id: experiment id to filter upon
     Returns:
       A response object including a list of experiments and next page token.
     """
-    response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
+    if experiment_id is not None:
+      import kfp_run
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_run.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
+    else:
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
   def get_run(self, run_id):

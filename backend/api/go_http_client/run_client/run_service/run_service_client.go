@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,6 +36,35 @@ Client for run service API
 type Client struct {
 	transport runtime.ClientTransport
 	formats   strfmt.Registry
+}
+
+/*
+ArchiveRun archive run API
+*/
+func (a *Client) ArchiveRun(params *ArchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*ArchiveRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewArchiveRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ArchiveRun",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/runs/{id}:archive",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ArchiveRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ArchiveRunOK), nil
+
 }
 
 /*
@@ -209,6 +238,35 @@ func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runti
 		return nil, err
 	}
 	return result.(*ReportRunMetricsOK), nil
+
+}
+
+/*
+UnarchiveRun unarchive run API
+*/
+func (a *Client) UnarchiveRun(params *UnarchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*UnarchiveRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewUnarchiveRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UnarchiveRun",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/runs/{id}:unarchive",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UnarchiveRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UnarchiveRunOK), nil
 
 }
 

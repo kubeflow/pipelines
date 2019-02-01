@@ -85,19 +85,19 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           Object {
             "action": [Function],
             "icon": [Function],
-            "id": "startNewRunBtn",
+            "id": "createNewRunBtn",
             "outlined": true,
             "primary": true,
             "title": "Create run",
-            "tooltip": "Start a new run within this experiment",
+            "tooltip": "Create a new run",
           },
           Object {
             "action": [Function],
             "icon": [Function],
-            "id": "startNewRecurringRunBtn",
+            "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Start a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],
@@ -112,7 +112,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
-            "title": "Clone",
+            "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
         ]
@@ -128,7 +128,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           "push": [MockFunction],
         }
       }
-      location=""
+      location={Object {}}
       match={
         Object {
           "params": Object {
@@ -146,7 +146,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
               "action": [Function],
               "id": "refreshBtn",
               "title": "Refresh",
-              "tooltip": "Refresh",
+              "tooltip": "Refresh the list",
             },
           ],
           "breadcrumbs": Array [
@@ -155,7 +155,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
               "href": "/experiments",
             },
           ],
-          "pageTitle": "",
+          "pageTitle": "some-mock-experiment-id",
         }
       }
       updateBanner={
@@ -179,7 +179,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
-                    "tooltip": "Refresh",
+                    "tooltip": "Refresh the list",
                   },
                 ],
                 "breadcrumbs": Array [
@@ -198,7 +198,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
-                    "tooltip": "Refresh",
+                    "tooltip": "Refresh the list",
                   },
                 ],
                 "breadcrumbs": Array [
@@ -232,7 +232,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
               "push": [MockFunction],
             }
           }
-          location=""
+          location={Object {}}
           match={
             Object {
               "params": Object {
@@ -247,7 +247,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
                   "action": [Function],
                   "id": "refreshBtn",
                   "title": "Refresh",
-                  "tooltip": "Refresh",
+                  "tooltip": "Refresh the list",
                 },
               ],
               "breadcrumbs": Array [
@@ -256,7 +256,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
                   "href": "/experiments",
                 },
               ],
-              "pageTitle": "",
+              "pageTitle": "some-mock-experiment-id",
             }
           }
           updateBanner={
@@ -280,7 +280,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
-                        "tooltip": "Refresh",
+                        "tooltip": "Refresh the list",
                       },
                     ],
                     "breadcrumbs": Array [
@@ -299,7 +299,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
-                        "tooltip": "Refresh",
+                        "tooltip": "Refresh the list",
                       },
                     ],
                     "breadcrumbs": Array [
@@ -429,19 +429,19 @@ exports[`ExperimentDetails removes all description text after second newline and
           Object {
             "action": [Function],
             "icon": [Function],
-            "id": "startNewRunBtn",
+            "id": "createNewRunBtn",
             "outlined": true,
             "primary": true,
             "title": "Create run",
-            "tooltip": "Start a new run within this experiment",
+            "tooltip": "Create a new run",
           },
           Object {
             "action": [Function],
             "icon": [Function],
-            "id": "startNewRecurringRunBtn",
+            "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Start a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],
@@ -456,7 +456,7 @@ exports[`ExperimentDetails removes all description text after second newline and
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
-            "title": "Clone",
+            "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
         ]
@@ -472,7 +472,7 @@ exports[`ExperimentDetails removes all description text after second newline and
           "push": [MockFunction],
         }
       }
-      location=""
+      location={Object {}}
       match={
         Object {
           "params": Object {
@@ -490,7 +490,7 @@ exports[`ExperimentDetails removes all description text after second newline and
               "action": [Function],
               "id": "refreshBtn",
               "title": "Refresh",
-              "tooltip": "Refresh",
+              "tooltip": "Refresh the list",
             },
           ],
           "breadcrumbs": Array [
@@ -499,7 +499,7 @@ exports[`ExperimentDetails removes all description text after second newline and
               "href": "/experiments",
             },
           ],
-          "pageTitle": "",
+          "pageTitle": "some-mock-experiment-id",
         }
       }
       updateBanner={
@@ -523,7 +523,7 @@ exports[`ExperimentDetails removes all description text after second newline and
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
-                    "tooltip": "Refresh",
+                    "tooltip": "Refresh the list",
                   },
                 ],
                 "breadcrumbs": Array [
@@ -542,7 +542,7 @@ exports[`ExperimentDetails removes all description text after second newline and
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
-                    "tooltip": "Refresh",
+                    "tooltip": "Refresh the list",
                   },
                 ],
                 "breadcrumbs": Array [
@@ -576,7 +576,7 @@ exports[`ExperimentDetails removes all description text after second newline and
               "push": [MockFunction],
             }
           }
-          location=""
+          location={Object {}}
           match={
             Object {
               "params": Object {
@@ -591,7 +591,7 @@ exports[`ExperimentDetails removes all description text after second newline and
                   "action": [Function],
                   "id": "refreshBtn",
                   "title": "Refresh",
-                  "tooltip": "Refresh",
+                  "tooltip": "Refresh the list",
                 },
               ],
               "breadcrumbs": Array [
@@ -600,7 +600,7 @@ exports[`ExperimentDetails removes all description text after second newline and
                   "href": "/experiments",
                 },
               ],
-              "pageTitle": "",
+              "pageTitle": "some-mock-experiment-id",
             }
           }
           updateBanner={
@@ -624,7 +624,7 @@ exports[`ExperimentDetails removes all description text after second newline and
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
-                        "tooltip": "Refresh",
+                        "tooltip": "Refresh the list",
                       },
                     ],
                     "breadcrumbs": Array [
@@ -643,7 +643,7 @@ exports[`ExperimentDetails removes all description text after second newline and
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
-                        "tooltip": "Refresh",
+                        "tooltip": "Refresh the list",
                       },
                     ],
                     "breadcrumbs": Array [
@@ -760,19 +760,19 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           Object {
             "action": [Function],
             "icon": [Function],
-            "id": "startNewRunBtn",
+            "id": "createNewRunBtn",
             "outlined": true,
             "primary": true,
             "title": "Create run",
-            "tooltip": "Start a new run within this experiment",
+            "tooltip": "Create a new run",
           },
           Object {
             "action": [Function],
             "icon": [Function],
-            "id": "startNewRecurringRunBtn",
+            "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Start a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],
@@ -787,7 +787,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
-            "title": "Clone",
+            "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
         ]
@@ -803,7 +803,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           "push": [MockFunction],
         }
       }
-      location=""
+      location={Object {}}
       match={
         Object {
           "params": Object {
@@ -821,7 +821,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
               "action": [Function],
               "id": "refreshBtn",
               "title": "Refresh",
-              "tooltip": "Refresh",
+              "tooltip": "Refresh the list",
             },
           ],
           "breadcrumbs": Array [
@@ -830,7 +830,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
               "href": "/experiments",
             },
           ],
-          "pageTitle": "",
+          "pageTitle": "some-mock-experiment-id",
         }
       }
       updateBanner={
@@ -854,7 +854,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
-                    "tooltip": "Refresh",
+                    "tooltip": "Refresh the list",
                   },
                 ],
                 "breadcrumbs": Array [
@@ -873,7 +873,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
-                    "tooltip": "Refresh",
+                    "tooltip": "Refresh the list",
                   },
                 ],
                 "breadcrumbs": Array [
@@ -907,7 +907,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
               "push": [MockFunction],
             }
           }
-          location=""
+          location={Object {}}
           match={
             Object {
               "params": Object {
@@ -922,7 +922,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
                   "action": [Function],
                   "id": "refreshBtn",
                   "title": "Refresh",
-                  "tooltip": "Refresh",
+                  "tooltip": "Refresh the list",
                 },
               ],
               "breadcrumbs": Array [
@@ -931,7 +931,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
                   "href": "/experiments",
                 },
               ],
-              "pageTitle": "",
+              "pageTitle": "some-mock-experiment-id",
             }
           }
           updateBanner={
@@ -955,7 +955,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
-                        "tooltip": "Refresh",
+                        "tooltip": "Refresh the list",
                       },
                     ],
                     "breadcrumbs": Array [
@@ -974,7 +974,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
-                        "tooltip": "Refresh",
+                        "tooltip": "Refresh the list",
                       },
                     ],
                     "breadcrumbs": Array [
@@ -1089,19 +1089,19 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           Object {
             "action": [Function],
             "icon": [Function],
-            "id": "startNewRunBtn",
+            "id": "createNewRunBtn",
             "outlined": true,
             "primary": true,
             "title": "Create run",
-            "tooltip": "Start a new run within this experiment",
+            "tooltip": "Create a new run",
           },
           Object {
             "action": [Function],
             "icon": [Function],
-            "id": "startNewRecurringRunBtn",
+            "id": "createNewRecurringRunBtn",
             "outlined": true,
             "title": "Create recurring run",
-            "tooltip": "Start a new recurring run in this experiment",
+            "tooltip": "Create a new recurring run",
           },
           Object {
             "action": [Function],
@@ -1116,7 +1116,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
-            "title": "Clone",
+            "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
         ]
@@ -1132,7 +1132,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           "push": [MockFunction],
         }
       }
-      location=""
+      location={Object {}}
       match={
         Object {
           "params": Object {
@@ -1150,7 +1150,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
               "action": [Function],
               "id": "refreshBtn",
               "title": "Refresh",
-              "tooltip": "Refresh",
+              "tooltip": "Refresh the list",
             },
           ],
           "breadcrumbs": Array [
@@ -1159,7 +1159,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
               "href": "/experiments",
             },
           ],
-          "pageTitle": "",
+          "pageTitle": "some-mock-experiment-id",
         }
       }
       updateBanner={
@@ -1183,7 +1183,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
-                    "tooltip": "Refresh",
+                    "tooltip": "Refresh the list",
                   },
                 ],
                 "breadcrumbs": Array [
@@ -1202,7 +1202,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
-                    "tooltip": "Refresh",
+                    "tooltip": "Refresh the list",
                   },
                 ],
                 "breadcrumbs": Array [
@@ -1236,7 +1236,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
               "push": [MockFunction],
             }
           }
-          location=""
+          location={Object {}}
           match={
             Object {
               "params": Object {
@@ -1251,7 +1251,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
                   "action": [Function],
                   "id": "refreshBtn",
                   "title": "Refresh",
-                  "tooltip": "Refresh",
+                  "tooltip": "Refresh the list",
                 },
               ],
               "breadcrumbs": Array [
@@ -1260,7 +1260,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
                   "href": "/experiments",
                 },
               ],
-              "pageTitle": "",
+              "pageTitle": "some-mock-experiment-id",
             }
           }
           updateBanner={
@@ -1284,7 +1284,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
-                        "tooltip": "Refresh",
+                        "tooltip": "Refresh the list",
                       },
                     ],
                     "breadcrumbs": Array [
@@ -1303,7 +1303,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
-                        "tooltip": "Refresh",
+                        "tooltip": "Refresh the list",
                       },
                     ],
                     "breadcrumbs": Array [

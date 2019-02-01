@@ -27,7 +27,7 @@ import (
 
 	"os"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
@@ -59,22 +59,21 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
+	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
+	assert.Nil(t, err)
+
 	// Verify metadata in db
-	pkgsExpect := []model.Pipeline{
+	pkgsExpect := []*model.Pipeline{
 		{
 			UUID:           resource.DefaultFakeUUID,
 			CreatedAtInSec: 1,
 			Name:           "hello-world.yaml",
 			Parameters:     "[]",
 			Status:         model.PipelineReady}}
-	pkg, str, err := clientManager.PipelineStore().ListPipelines(&common.PaginationContext{
-		PageSize:        2,
-		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
-		SortByFieldName: model.GetPipelineTablePrimaryKeyColumn(),
-		IsDesc:          false,
-	})
+	pkg, total_size, str, err := clientManager.PipelineStore().ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
+	assert.Equal(t, 1, total_size)
 	assert.Equal(t, pkgsExpect, pkg)
 }
 
@@ -103,22 +102,20 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
+	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
+	assert.Nil(t, err)
 	// Verify metadata in db
-	pkgsExpect := []model.Pipeline{
+	pkgsExpect := []*model.Pipeline{
 		{
 			UUID:           resource.DefaultFakeUUID,
 			CreatedAtInSec: 1,
 			Name:           "arguments.tar.gz",
 			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
 			Status:         model.PipelineReady}}
-	pkg, str, err := clientManager.PipelineStore().ListPipelines(&common.PaginationContext{
-		PageSize:        2,
-		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
-		SortByFieldName: model.GetPipelineTablePrimaryKeyColumn(),
-		IsDesc:          false,
-	})
+	pkg, total_size, str, err := clientManager.PipelineStore().ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
+	assert.Equal(t, 1, total_size)
 	assert.Equal(t, pkgsExpect, pkg)
 }
 
@@ -164,21 +161,19 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
+	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
+	assert.Nil(t, err)
 	// Verify metadata in db
-	pkgsExpect := []model.Pipeline{
+	pkgsExpect := []*model.Pipeline{
 		{
 			UUID:           resource.DefaultFakeUUID,
 			CreatedAtInSec: 1,
 			Name:           "foo bar",
 			Parameters:     "[]",
 			Status:         model.PipelineReady}}
-	pkg, str, err := clientManager.PipelineStore().ListPipelines(&common.PaginationContext{
-		PageSize:        2,
-		KeyFieldName:    model.GetPipelineTablePrimaryKeyColumn(),
-		SortByFieldName: model.GetPipelineTablePrimaryKeyColumn(),
-		IsDesc:          false,
-	})
+	pkg, total_size, str, err := clientManager.PipelineStore().ListPipelines(opts)
 	assert.Nil(t, err)
+	assert.Equal(t, 1, total_size)
 	assert.Equal(t, str, "")
 	assert.Equal(t, pkgsExpect, pkg)
 }

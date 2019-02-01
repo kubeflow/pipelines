@@ -1,23 +1,18 @@
-FROM golang:alpine as builder
-
-RUN apk add --no-cache curl git
-RUN curl -fsSL -o /bin/dep https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 && chmod +x /bin/dep
-
-# Download and install the latest release of dep
-ADD https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 /usr/bin/dep
-RUN chmod +x /usr/bin/dep
+FROM golang:1.11-alpine3.7 as builder
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
 
-# Needed for github.com/mattn/go-sqlite3
-RUN apk add --update gcc musl-dev
-RUN go build -o /bin/apiserver backend/src/apiserver/*.go
+# Needed musl-dev for github.com/mattn/go-sqlite3
+RUN apk update && apk upgrade && \
+    apk add --no-cache bash git openssh gcc musl-dev
+
+RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 
 FROM python:3.5 as compiler
 
 RUN apt-get update -y && \
-    apt-get install --no-install-recommends -y -q default-jdk wget 
+    apt-get install --no-install-recommends -y -q default-jdk wget
 
 RUN pip3 install setuptools==40.5.0
 
@@ -42,7 +37,7 @@ COPY ./samples .
 RUN  find . -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 
 
-FROM alpine
+FROM alpine:3.8
 
 ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=${COMMIT_SHA}
