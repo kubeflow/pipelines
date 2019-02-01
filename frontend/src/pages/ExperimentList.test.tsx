@@ -40,7 +40,7 @@ describe('ExperimentList', () => {
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
-  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
+  jest.spyOn(Utils, 'formatDateString').mockImplementation(() => '1/2/2019, 12:34:56 PM');
 
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(ExperimentList, { pathname: RoutePage.EXPERIMENTS } as any,
@@ -61,21 +61,11 @@ describe('ExperimentList', () => {
     tree.update(); // Make sure the tree is updated before returning it
   }
 
-  beforeEach(() => {
-    // Reset mocks
-    updateBannerSpy.mockReset();
-    updateDialogSpy.mockReset();
-    updateSnackbarSpy.mockReset();
-    updateToolbarSpy.mockReset();
-    listExperimentsSpy.mockReset();
-    listRunsSpy.mockReset();
-    historyPushSpy.mockReset();
-    // jest.resetAllMocks();
-    // jest.clearAllMocks();
-    formatDateStringSpy.mockImplementation(() => '1/2/2019, 12:34:56 PM');
+  afterEach(() => {
+    jest.resetAllMocks();
+    jest.clearAllMocks();
+    tree.unmount();
   });
-
-  afterEach(() => tree.unmount());
 
   it('renders an empty list with empty state message', () => {
     tree = shallow(<ExperimentList {...generateProps()} />);
