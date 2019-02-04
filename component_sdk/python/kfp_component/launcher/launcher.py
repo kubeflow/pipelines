@@ -17,7 +17,7 @@ import importlib
 import sys
 import logging
 
-def launch(file_or_module, *args):
+def launch(file_or_module, args):
     """Launches a python file or module as a command entrypoint.
 
     Args:
@@ -42,4 +42,4 @@ def launch(file_or_module, *args):
         except Exception:
             logging.error('Failed to find the module or file: {}'.format(file_or_module))
             sys.exit(1)
-    return fire.Fire(module, command=args)
+    return fire.Fire(module, command=args, name=module.__name__)
