@@ -22,23 +22,26 @@ export const color = {
   activeBg: '#eaf1fd',
   alert: '#f9ab00', // Google yellow 600
   background: '#fff',
+  blue: '#4285f4', // Google blue 500
   disabledBg: '#ddd',
   divider: '#e0e0e0',
-  errorBg: '#FBE9E7',
-  errorText: '#D50000',
+  errorBg: '#fbe9e7',
+  errorText: '#d50000',
   foreground: '#000',
-  graphBg: '#f5f5f5',
+  graphBg: '#f2f2f2',
+  grey: '#5f6368', // Google grey 500
   hoverBg: '#eee',
-  inactive: '#5F6368',
+  inactive: '#5f6368',
   lowContrast: '#80868b', // Google grey 600
   secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
-  strong: '#212121',
+  strong: '#202124', // Google grey 900
   success: '#34a853',
+  successWeak: '#e6f4ea', // Google green 50
   theme: '#1a73e8',
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
-  weak: '#9AA0A6',
+  weak: '#9aa0a6',
 };
 
 export const dimension = {

@@ -41,7 +41,8 @@ interface Edge {
 
 const css = stylesheet({
   icon: {
-    margin: 5,
+    borderRadius: '0px 2px 2px 0px',
+    padding: '5px 7px 0px 7px',
   },
   label: {
     flexGrow: 1,
@@ -57,7 +58,7 @@ const css = stylesheet({
     $nest: {
       // Arrowhead
       '&::after': {
-        borderColor: `${color.theme} transparent transparent transparent`,
+        borderColor: `${color.grey} transparent transparent transparent`,
         borderStyle: 'solid',
         borderWidth: '7px 6px 0 6px',
         clear: 'both',
@@ -68,9 +69,10 @@ const css = stylesheet({
         transform: 'rotate(90deg)',
       },
     },
+    zIndex: 2,
   },
   line: {
-    borderTop: `2px solid ${color.theme}`,
+    borderTop: `2px solid ${color.grey}`,
     position: 'absolute',
   },
   node: {
@@ -80,9 +82,9 @@ const css = stylesheet({
       },
     },
     backgroundColor: color.background,
-    border: `solid 1px ${color.theme}`,
-    borderRadius: 5,
-    boxShadow: '1px 1px 5px #aaa',
+    border: 'solid 1px #d6d6d6',
+    borderRadius: 3,
+    // boxShadow: '1px 1px 5px #aaa',
     boxSizing: 'content-box',
     color: '#124aa4',
     cursor: 'pointer',
@@ -90,10 +92,11 @@ const css = stylesheet({
     fontSize: fontsize.medium,
     margin: 10,
     position: 'absolute',
+    zIndex: 1,
   },
   nodeSelected: {
-    backgroundColor: '#e4ebff !important',
-    borderColor: color.theme,
+    // backgroundColor: '#e4ebff !important',
+    border: `solid 2px ${color.theme}`,
   },
   placeholderNode: {
     margin: 10,
@@ -109,14 +112,14 @@ const css = stylesheet({
     position: 'relative',
   },
   startCircle: {
-    backgroundColor: color.background,
-    border: `1px solid ${color.theme}`,
+    backgroundColor: color.grey,
     borderRadius: 7,
     content: '',
     display: 'inline-block',
     height: 8,
     position: 'absolute',
     width: 8,
+    zIndex: 0,
   },
 });
 
@@ -185,7 +188,7 @@ export default class Graph extends React.Component<GraphProps> {
               width: node.width,
             }}>
             <div className={css.label}>{node.label}</div>
-            <div className={css.icon}>{node.icon}</div>
+            <div className={css.icon} style ={{ background: node.statusColoring }}>{node.icon}</div>
           </div>
         ))}
 
