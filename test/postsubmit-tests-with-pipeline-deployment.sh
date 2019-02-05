@@ -85,7 +85,7 @@ TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_BASE_SHA:0:7}-$
 
 ## Wait for the cloudbuild job to be started
 CLOUDBUILD_TIMEOUT_SECONDS=3600
-PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT=$(expr CLOUDBUILD_TIMEOUT_SECONDS / 20 )
+PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT=$(expr ${CLOUDBUILD_TIMEOUT_SECONDS} / 20 )
 CLOUDBUILD_STARTED=TIMEOUT
 
 for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
@@ -127,7 +127,7 @@ elif [[ ${CLOUDBUILD_FINISHED} == TIMEOUT ]];then
 fi
 
 #Deploy the pipeline
-${DIR}/deploy-pipeline.sh --platform ${PLATFORM} --project ml-pipeline-test --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}
+source ${DIR}/deploy-pipeline.sh --platform ${PLATFORM} --project ml-pipeline-test --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}
 
 #Submit the argo job and check the results
 gcloud container clusters get-credentials ${TEST_CLUSTER}
