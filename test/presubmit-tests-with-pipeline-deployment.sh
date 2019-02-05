@@ -126,12 +126,6 @@ ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform ${PLATFORM} --project 
 
 cd ${KFAPP}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
-
-## Add one gpu node for covering gpu sample
-sed -i -e 's|gpu-pool-initialNodeCount:\s*0|gpu-pool-initialNodeCount: 1|g' ./gcp_config/cluster-kubeflow.yaml
-sed -i -e 's|gpu-pool-max-nodes:\s*0|gpu-pool-max-nodes: 1|g' ./gcp_config/cluster-kubeflow.yaml
-sed -i -e 's|gpu-pool-min-nodes:\s*0|gpu-pool-min-nodes: 1|g' ./gcp_config/cluster-kubeflow.yaml
-
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 
