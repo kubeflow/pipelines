@@ -20,7 +20,8 @@ NAME = 'kfp'
 VERSION = '0.1'
 
 REQUIRES = ['urllib3 >= 1.15', 'six >= 1.10', 'certifi', 'python-dateutil', 'PyYAML',
-            'google-cloud-storage == 1.13.0', 'kubernetes == 8.0.0']
+            'google-cloud-storage == 1.13.0', 'kubernetes == 8.0.0', 'PyJWT==1.6.4',
+            'cryptography==2.4.2', 'google-auth==1.6.1', 'requests_toolbelt==0.8.0']
 
 setup(
     name=NAME,
