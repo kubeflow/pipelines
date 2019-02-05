@@ -17,8 +17,6 @@ import logging
 import re
 import time
 
-from googleapiclient import errors
-
 from kfp_component.core import KfpExecutionContext
 from ._client import DataflowClient
 from .. import common as gcp_common
@@ -32,7 +30,24 @@ def launch_template(project_id, gcs_path, launch_parameters,
     """Launchs a dataflow job from template.
 
     Args:
-        
+        project_id (str): Required. The ID of the Cloud Platform project 
+            that the job belongs to.
+        gcs_path (str): Required. A Cloud Storage path to the template 
+            from which to create the job. Must be valid Cloud 
+            Storage URL, beginning with 'gs://'.
+        launch_parameters (dict): Parameters to provide to the template 
+            being launched. Schema defined in 
+            https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters
+        location (str): The regional endpoint to which to direct the 
+            request.
+        validate_only (boolean): If true, the request is validated but 
+            not actually executed. Defaults to false.
+        wait_interval (int): The wait seconds between polling.
+        output_metadata_path (str): The output path of UI metadata file.
+        output_job_path (str): The output path of completed job payload.
+    
+    Returns:
+        The completed job.
     """
     df_client = DataflowClient()
     job_id = None
