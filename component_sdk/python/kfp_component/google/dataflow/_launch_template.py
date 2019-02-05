@@ -20,83 +20,43 @@ import time
 from googleapiclient import errors
 
 from kfp_component.core import KfpExecutionContext
-from ._client import MLEngineClient
+from ._client import DataflowClient
 from .. import common as gcp_common
+from ._common_ops import (generate_job_name, get_job_by_name, 
+    wait_for_job_done, dump_metadata, dump_job)
 
-class LaunchTemplateOp(BaseOp):
+def launch_template(project_id, gcs_path, launch_parameters, 
+    location=None, validate_only=None, wait_interval=30, 
+    output_metadata_path='/tmp/mlpipeline-ui-metadata.json',
+    output_job_path='/tmp/output.txt'):
+    """Launchs a dataflow job from template.
 
-    def __init__(self, project_id, gcs_path, launch_parameters, location=None, validate_only=None, staging_dir=None, wait_interval=30):
-        super().__init__()
-        self._df = utils.create_df_client()
-        self._project_id = project_id
-        self._gcs_path = gcs_path
-        launch_parameters['jobName'] = name_utils.normalize(launch_parameters['jobName'])
-        self._launch_parameters = launch_parameters
-        self._location = location
-        self._validate_only = validate_only
-        self._wait_interval = wait_interval
-        if staging_dir:
-            self.enable_staging(staging_dir, '{}/{}'.format(project_id, launch_parameters['jobName']))
-        self._job_id = self.staging_states.get('job_id', None)
-
-    def on_executing(self):
-        if self._job_id:
-            return self._wait_for_done(self._job_id)
-
-        self._dump_metadata()
-        request = self._df.projects().templates().launch(
-            projectId = self._project_id,
-            gcsPath = self._gcs_path,
-            location = self._location,
-            validateOnly = self._validate_only,
-            body = self._launch_parameters
-        )
-        response = request.execute()
-        return self._wait_for_done(response.get('job').get('id'))
-
-    def on_cancelling(self):
-        if self._job_id:
-            self._df.projects().jobs().update(
-                projectId = self._project_id,
-                jobId = self._job_id,
-                location = self._location,
-                body = {
-                    'requestedState': 'JOB_STATE_CANCELLED'
-                }
-            ).execute()
-
-    def _wait_for_done(self, job_id):
-        self.staging_states['job_id'] = job_id
-        while True:
-            job = self._get_job(job_id, full = False)
-            current_state = job.get('currentState', None)
-            if current_state in ['JOB_STATE_DONE']:
-                return self._get_job(job_id, full = True)
-
-            if current_state in [
-                'JOB_STATE_STOPPED',
-                'JOB_STATE_FAILED',
-                'JOB_STATE_CANCELLED',
-                'JOB_STATE_DRAINED']:
-                raise RuntimeError(
-                    'Job {} failed with status {}. Check logs for details.'.format(
-                        job_id, current_state))
-
-            logging.info('job status is {}, wait for {}s'.format(
-                current_state, self._wait_interval))
-            time.sleep(self._wait_interval)
+    Args:
         
-    def _get_job(self, job_id, full):
-        job_view = 'JOB_VIEW_SUMMARY'
-        if full:
-            job_view = 'JOB_VIEW_ALL'
-        return self._df.projects().jobs().get(
-            projectId = self._project_id,
-            jobId = job_id,
-            location = self._location,
-            view = job_view
-        ).execute()
-
-    def _dump_metadata(self):
-        #TODO: implement
-        pass
+    """
+    df_client = DataflowClient()
+    job_id = None
+    def cancel():
+        if job_id:
+            df_client.cancel_job(
+                project_id,
+                job_id,
+                location
+            )
+    with KfpExecutionContext(on_cancel=cancel) as ctx:
+        job_name = generate_job_name(
+            launch_parameters.get('jobName', None),
+            ctx.context_id())
+        job = get_job_by_name(df_client, project_id, job_name, 
+            location)
+        if not job:
+            launch_parameters['jobName'] = job_name
+            response = df_client.launch_template(project_id, gcs_path, 
+                location, validate_only, launch_parameters)
+            job = response.get('job')
+        dump_metadata(output_metadata_path, project_id, job)
+        job_id = job.get('id')
+        job = wait_for_job_done(df_client, project_id, job_id, 
+            location, wait_interval)
+        dump_job(output_metadata_path, job)
+        return job

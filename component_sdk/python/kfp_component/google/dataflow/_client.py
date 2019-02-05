@@ -29,7 +29,7 @@ class DataflowClient:
             body = launch_parameters
         ).execute()
 
-    def get_job(self, project_id, job_id, location, view):
+    def get_job(self, project_id, job_id, location=None, view=None):
         return self._df.projects().jobs().get(
             projectId = project_id,
             jobId = job_id,
@@ -39,10 +39,20 @@ class DataflowClient:
 
     def cancel_job(self, project_id, job_id, location):
         return self._df.projects().jobs().update(
-                projectId = project_id,
-                jobId = job_id,
-                location = location,
-                body = {
-                    'requestedState': 'JOB_STATE_CANCELLED'
-                }
-            ).execute()
+            projectId = project_id,
+            jobId = job_id,
+            location = location,
+            body = {
+                'requestedState': 'JOB_STATE_CANCELLED'
+            }
+        ).execute()
+
+    def list_aggregated_jobs(self, project_id, filter=None, 
+        view=None, page_size=None, page_token=None, location=None):
+        return self._df.projects().jobs().aggregated(
+            projectId = project_id,
+            filter = filter,
+            view = view,
+            pageSize = page_size,
+            pageToken = page_token,
+            location = location).execute()
