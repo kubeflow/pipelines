@@ -57,21 +57,27 @@ class Client(object):
 
     self._host = host
 
+    token = None
+    if host and client_id:
+      token = get_auth_token(client_id)
+  
     config = kfp_run.configuration.Configuration()
     config.host = host if host else Client.IN_CLUSTER_DNS_NAME
+    self._configure_auth(config, token)
     api_client = kfp_run.api_client.ApiClient(config)
     self._run_api = kfp_run.api.run_service_api.RunServiceApi(api_client)
 
     config = kfp_experiment.configuration.Configuration()
     config.host = host if host else Client.IN_CLUSTER_DNS_NAME
-    if host and client_id:
-      token = get_auth_token(client_id)
-      if token:
-        config.api_key['authorization'] = token
-        config.api_key_prefix['authorization'] = 'Bearer'
+    self._configure_auth(config, token)
     api_client = kfp_experiment.api_client.ApiClient(config)
     self._experiment_api = \
         kfp_experiment.api.experiment_service_api.ExperimentServiceApi(api_client)
+
+  def _configure_auth(self, config, token):
+    if token:
+      config.api_key['authorization'] = token
+      config.api_key_prefix['authorization'] = 'Bearer'
 
   def _is_ipython(self):
     """Returns whether we are running in notebook."""
