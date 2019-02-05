@@ -61,7 +61,7 @@ func (p *WorkflowFormatter) Format(workflow *v1alpha1.Workflow) error {
 
 func getWorkflowName(workflow *v1alpha1.Workflow) string {
 
-	const(
+	const (
 		defaultWorkflowName = "workflow-"
 	)
 
@@ -159,4 +159,3 @@ func (p *WorkflowFormatter) createSubtitute(match string) (string, error) {
 		return match, nil
 	}
 }
-

@@ -23,7 +23,7 @@ import SuccessIcon from '@material-ui/icons/CheckCircle';
 import Tooltip from '@material-ui/core/Tooltip';
 import UnknownIcon from '@material-ui/icons/Help';
 import { color } from '../Css';
-import { logger } from '../lib/Utils';
+import { logger, formatDateString } from '../lib/Utils';
 
 export enum NodePhase {
   ERROR = 'Error',
@@ -35,7 +35,27 @@ export enum NodePhase {
   UNKNOWN = 'Unknown',
 }
 
-export function statusToIcon(status: NodePhase): JSX.Element {
+export function hasFinished(status?: NodePhase): boolean {
+  if (!status) {
+    return false;
+  }
+
+  switch (status) {
+    case NodePhase.SUCCEEDED: // Fall through
+    case NodePhase.FAILED: // Fall through
+    case NodePhase.ERROR: // Fall through
+    case NodePhase.SKIPPED:
+      return true;
+    case NodePhase.PENDING: // Fall through
+    case NodePhase.RUNNING: // Fall through
+    case NodePhase.UNKNOWN:
+      return false;
+    default:
+      return false;
+  }
+}
+
+export function statusToIcon(status: NodePhase, startDate?: Date | string, endDate?: Date | string): JSX.Element {
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
@@ -76,7 +96,18 @@ export function statusToIcon(status: NodePhase): JSX.Element {
       logger.verbose('Unknown node phase:', status);
   }
 
-  return <Tooltip title={title}><span style={{ height: 18 }}>
-    <IconComponent style={{ color: iconColor, height: 18, width: 18 }} />
-  </span></Tooltip>;
+  return (
+    <Tooltip title={
+      <div>
+        <div>{title}</div>
+        {/* These dates may actually be strings, not a Dates due to a bug in swagger's handling of dates */}
+        {startDate && (<div>Start: {formatDateString(startDate)}</div>)}
+        {endDate && (<div>End: {formatDateString(endDate)}</div>)}
+      </div>
+    }>
+      <span style={{ height: 18 }}>
+        <IconComponent style={{ color: iconColor, height: 18, width: 18 }} />
+      </span>
+    </Tooltip>
+  );
 }

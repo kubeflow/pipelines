@@ -41,6 +41,11 @@ while (($#)); do
        SERVER_NAME="$1"
        shift
        ;;
+     "--pvc-name")
+       shift
+       PVC_NAME="$1"
+       shift
+       ;;
      *)
        echo "Unknown argument: '$1'"
        exit 1
@@ -94,6 +99,14 @@ ks pkg install kubeflow/tf-serving@${KUBEFLOW_VERSION}
 echo "Generating the TF Serving config..."
 ks generate tf-serving server --name="${SERVER_NAME}"
 ks param set server modelPath "${MODEL_PATH}/export/export"
+
+# support local storage to deploy tf-serving.
+if [ -n "${PVC_NAME}" ];then
+  # TODO: Remove modelStorageType setting after the hard code nfs was removed at
+  # https://github.com/kubeflow/kubeflow/blob/v0.4-branch/kubeflow/tf-serving/tf-serving.libsonnet#L148-L151
+  ks param set server modelStorageType nfs
+  ks param set server nfsPVC "${PVC_NAME}"
+fi
 
 echo "Deploying the TF Serving service..."
 ks apply default -c server

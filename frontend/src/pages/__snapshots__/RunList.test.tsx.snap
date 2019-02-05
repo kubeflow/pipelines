@@ -7419,7 +7419,13 @@ exports[`RunList renders status as icon 1`] = `
       },
     }
   }
-  title="Executed successfully"
+  title={
+    <div>
+      <div>
+        Executed successfully
+      </div>
+    </div>
+  }
 >
   <span
     style={

@@ -28,7 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -724,7 +724,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			Namespace: "MY_NAMESPACE",
 			UID:       "WORKFLOW_1",
 			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID(job.UUID),
@@ -791,7 +791,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t
 			Namespace: "MY_NAMESPACE",
 			UID:       "WORKFLOW_1",
 			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID(newJob.UUID),
@@ -978,7 +978,7 @@ func TestReadArtifact_Succeed(t *testing.T) {
 			UID:               "run-1",
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID(job.UUID),
@@ -1022,7 +1022,7 @@ func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
 			UID:               "run-1",
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID(job.UUID),

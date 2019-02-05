@@ -19,8 +19,8 @@ import 'codemirror/mode/yaml/yaml.js';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
-import AddIcon from '@material-ui/icons/Add';
 import Button from '@material-ui/core/Button';
+import Buttons from '../lib/Buttons';
 import Graph from '../components/Graph';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import MD2Tabs from '../atoms/MD2Tabs';
@@ -39,7 +39,7 @@ import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding, fontsize, fonts } from '../Css';
-import { logger, errorToMessage, formatDateString } from '../lib/Utils';
+import { logger, formatDateString } from '../lib/Utils';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -113,16 +113,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-    const actions: ToolbarActionConfig[] = [{
-      action: () => this._createNewRun(),
-      icon: AddIcon,
-      id: 'createNewRunBtn',
-      outlined: true,
-      primary: true,
-      title: 'Create run',
-      tooltip: 'Create a new run within this pipeline',
-    }];
+    let actions: ToolbarActionConfig[] = [
+      buttons.newRunFromPipeline(() => this.state.pipeline ? this.state.pipeline.id! : ''),
+    ];
 
     if (fromRunId) {
       return {
@@ -134,26 +129,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       };
     } else {
       // Add buttons for creating experiment and deleting pipeline
-      actions.push({
-        action: this._createNewExperiment.bind(this),
-        icon: AddIcon,
-        id: 'createNewExperimentBtn',
-        outlined: true,
-        title: 'Create an experiment',
-        tooltip: 'Create a new experiment beginning with this pipeline',
-      }, {
-        action: () => this.props.updateDialog({
-          buttons: [
-            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-          ],
-          onClose: () => this._deleteDialogClosed(false),
-          title: 'Delete this pipeline?',
-        }),
-        id: 'deleteBtn',
-        title: 'Delete',
-        tooltip: 'Delete this pipeline',
-      });
+      actions = actions.concat([
+        buttons.newExperiment(() => this.state.pipeline ? this.state.pipeline.id! : ''),
+        buttons.delete(() => this.state.pipeline ? [this.state.pipeline.id!] : [],
+          'pipeline', () => null, true),
+      ]);
       return {
         actions,
         breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
@@ -223,7 +203,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                       </Button>
                   )}
                   <div className={classes(commonCss.flex, (summaryShown && !!pipeline) && css.footerInfoOffset)}>
-                    <InfoIcon style={{ color: color.lowContrast, height: 16, width: 16 }} />
+                    <InfoIcon className={commonCss.infoIcon} />
                     <span className={css.infoSpan}>Static pipeline graph</span>
                   </div>
                 </div>
@@ -364,52 +344,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       template,
       templateString,
     });
-  }
-
-  private _createNewRun(): void {
-    let searchString = '';
-    const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-
-    if (fromRunId) {
-      searchString = new URLParser(this.props).build(Object.assign(
-        { [QUERY_PARAMS.fromRunId]: fromRunId }
-      ));
-    } else {
-      searchString = new URLParser(this.props).build(Object.assign(
-        { [QUERY_PARAMS.pipelineId]: this.state.pipeline!.id || '' }
-      ));
-    }
-
-    this.props.history.push(RoutePage.NEW_RUN + searchString);
-  }
-
-  private _createNewExperiment(): void {
-    const searchString = new URLParser(this.props).build({
-      [QUERY_PARAMS.pipelineId]: this.state.pipeline!.id || ''
-    });
-    this.props.history.push(RoutePage.NEW_EXPERIMENT + searchString);
-  }
-
-  private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
-    if (deleteConfirmed) {
-      try {
-        await Apis.pipelineServiceApi.deletePipeline(this.state.pipeline!.id!);
-        this.props.updateSnackbar({
-          autoHideDuration: 10000,
-          message: `Successfully deleted pipeline: ${this.state.pipeline!.name}`,
-          open: true,
-        });
-        this.props.history.push(RoutePage.PIPELINES);
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        this.props.updateDialog({
-          buttons: [{ text: 'Dismiss' }],
-          content: errorMessage,
-          title: 'Failed to delete pipeline',
-        });
-        logger.error('Deleting pipeline failed with error:', err);
-      }
-    }
   }
 }
 

@@ -62,10 +62,11 @@ func TestListPipelines_FilterOutNotReady(t *testing.T) {
 	opts, err := list.NewOptions(&model.Pipeline{}, 10, "id", nil)
 	assert.Nil(t, err)
 
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 2, total_size)
 	assert.Equal(t, pipelinesExpected, pipelines)
 }
 
@@ -96,9 +97,10 @@ func TestListPipelines_Pagination(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name", nil)
 	assert.Nil(t, err)
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
+	assert.Equal(t, 4, total_size)
 	assert.Equal(t, pipelinesExpected, pipelines)
 
 	expectedPipeline2 := &model.Pipeline{
@@ -118,9 +120,10 @@ func TestListPipelines_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	pipelines, nextPageToken, err = pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err = pipelineStore.ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
+	assert.Equal(t, 4, total_size)
 	assert.Equal(t, pipelinesExpected2, pipelines)
 }
 
@@ -152,9 +155,10 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "name desc", nil)
 	assert.Nil(t, err)
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
+	assert.Equal(t, 4, total_size)
 	assert.Equal(t, pipelinesExpected, pipelines)
 
 	expectedPipeline1 := &model.Pipeline{
@@ -173,9 +177,10 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
-	pipelines, nextPageToken, err = pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err = pipelineStore.ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
+	assert.Equal(t, 4, total_size)
 	assert.Equal(t, pipelinesExpected2, pipelines)
 }
 
@@ -194,9 +199,10 @@ func TestListPipelines_Pagination_LessThanPageSize(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 	assert.Nil(t, err)
-	pipelines, nextPageToken, err := pipelineStore.ListPipelines(opts)
+	pipelines, total_size, nextPageToken, err := pipelineStore.ListPipelines(opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
+	assert.Equal(t, 1, total_size)
 	assert.Equal(t, pipelinesExpected, pipelines)
 }
 
@@ -207,7 +213,7 @@ func TestListPipelinesError(t *testing.T) {
 	db.Close()
 	opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
 	assert.Nil(t, err)
-	_, _, err = pipelineStore.ListPipelines(opts)
+	_, _, _, err = pipelineStore.ListPipelines(opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 

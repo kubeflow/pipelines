@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -26,7 +27,7 @@ import (
 )
 
 type JobStoreInterface interface {
-	ListJobs(filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, string, error)
+	ListJobs(filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error)
 	GetJob(id string) (*model.Job, error)
 	CreateJob(*model.Job) (*model.Job, error)
 	DeleteJob(id string) error
@@ -40,62 +41,97 @@ type JobStore struct {
 	time                   util.TimeInterface
 }
 
+// Runs two SQL queries in a transaction to return a list of matching jobs, as well as their
+// total_size. The total_size does not reflect the page size, but it does reflect the number of jobs
+// matching the supplied filters and resource references.
 func (s *JobStore) ListJobs(
-	filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, string, error) {
-	errorF := func(err error) ([]*model.Job, string, error) {
-		return nil, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
+	filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
+	errorF := func(err error) ([]*model.Job, int, string, error) {
+		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
 
-	sqlBuilder := s.selectJob()
-	// Add filter condition
-	sqlBuilder, err := s.toFilteredQuery(sqlBuilder, filterContext)
+	rowsSql, rowsArgs, err := s.buildSelectJobsQuery(false, opts, filterContext)
 	if err != nil {
 		return errorF(err)
 	}
 
-	sql, args, err := opts.AddToSelect(sqlBuilder).ToSql()
+	sizeSql, sizeArgs, err := s.buildSelectJobsQuery(true, opts, filterContext)
 	if err != nil {
 		return errorF(err)
 	}
 
-	rows, err := s.db.Query(sql, args...)
+	// Use a transaction to make sure we're returning the total_size of the same rows queried
+	tx, err := s.db.Begin()
+	if err != nil {
+		glog.Errorf("Failed to start transaction to list jobs")
+		return errorF(err)
+	}
+
+	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
 		return errorF(err)
 	}
-	defer rows.Close()
-
 	jobs, err := s.scanRows(rows)
 	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	rows.Close()
+
+	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	if err != nil {
+		tx.Rollback()
+		return errorF(err)
+	}
+	sizeRow.Close()
+
+	err = tx.Commit()
+	if err != nil {
+		glog.Errorf("Failed to commit transaction to list jobs")
 		return errorF(err)
 	}
 
 	if len(jobs) <= opts.PageSize {
-		return jobs, "", nil
+		return jobs, total_size, "", nil
 	}
 
 	npt, err := opts.NextPageToken(jobs[opts.PageSize])
-	return jobs[:opts.PageSize], npt, err
+	return jobs[:opts.PageSize], total_size, npt, err
 }
 
-func (s *JobStore) toFilteredQuery(selectBuilder sq.SelectBuilder, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
-	sql, args, err := selectBuilder.ToSql()
+func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
+	filterContext *common.FilterContext) (string, []interface{}, error) {
+	filteredSelectBuilder, err := list.FilterOnResourceReference("jobs", common.Job, selectCount, filterContext)
 	if err != nil {
-		return selectBuilder, util.NewInternalServerError(err, "Failed to append filter condition to list job: %v",
-			err.Error())
+		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
-	if filterContext.ReferenceKey != nil {
-		selectBuilder = sq.Select("list_job.*").
-			From("resource_references AS rf").
-			Join(fmt.Sprintf("(%s) as list_job on list_job.UUID=rf.ResourceUUID", sql), args...).
-			Where(sq.And{
-				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
-				sq.Eq{"rf.ReferenceType": filterContext.Type}})
+
+	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
+	if err != nil {
+		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
-	return selectBuilder, nil
+
+	// If we're not just counting, then also add select columns and perform a left join
+	// to get resource reference information. Also add pagination.
+	if !selectCount {
+		sqlBuilder = s.addResourceReferences(sqlBuilder)
+		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
+	}
+	sql, args, err := sqlBuilder.ToSql()
+	if err != nil {
+		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
+	}
+
+	return sql, args, err
 }
 
 func (s *JobStore) GetJob(id string) (*model.Job, error) {
-	sql, args, err := s.selectJob().
+	sql, args, err := s.addResourceReferences(sq.Select("*").From("jobs")).
 		Where(sq.Eq{"uuid": id}).
 		Limit(1).
 		ToSql()
@@ -119,11 +155,11 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	return jobs[0], nil
 }
 
-func (s *JobStore) selectJob() sq.SelectBuilder {
+func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
 	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("r.Payload", ","), `"]"`}, "")
 	return sq.
 		Select("jobs.*", resourceRefConcatQuery+" AS refs").
-		From("jobs").
+		FromSelect(filteredSelectBuilder, "jobs").
 		// Append all the resource references for the run as a json column
 		LeftJoin("(select * from resource_references where ResourceType='Job') AS r ON jobs.UUID=r.ResourceUUID").
 		GroupBy("jobs.UUID")

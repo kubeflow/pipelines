@@ -15,12 +15,10 @@
  */
 
 import * as React from 'react';
-import AddIcon from '@material-ui/icons/Add';
+import Buttons from '../lib/Buttons';
 import RunList from './RunList';
 import { Page } from './Page';
-import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
-import { URLParser } from '../lib/URLParser';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 
@@ -41,34 +39,14 @@ class AllRunsList extends Page<{}, AllRunsListState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [{
-        action: this._newExperimentClicked.bind(this),
-        icon: AddIcon,
-        id: 'newExperimentBtn',
-        outlined: true,
-        title: 'Create experiment',
-        tooltip: 'Create a new experiment',
-      }, {
-        action: this._compareRuns.bind(this),
-        disabled: true,
-        disabledTitle: 'Select multiple runs to compare',
-        id: 'compareBtn',
-        title: 'Compare runs',
-        tooltip: 'Compare up to 10 selected runs',
-      }, {
-        action: this._cloneRun.bind(this),
-        disabled: true,
-        disabledTitle: 'Select a run to clone',
-        id: 'cloneBtn',
-        title: 'Clone run',
-        tooltip: 'Create a copy from this run\s initial state',
-      }, {
-        action: this.refresh.bind(this),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh the list of runs',
-      }],
+      actions: [
+        buttons.newExperiment(),
+        buttons.compareRuns(() => this.state.selectedIds),
+        buttons.cloneRun(() => this.state.selectedIds, false),
+        buttons.refresh(this.refresh.bind(this)),
+      ],
       breadcrumbs: [],
       pageTitle: 'Experiments',
     };
@@ -90,21 +68,6 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     }
   }
 
-  private _newExperimentClicked(): void {
-    this.props.history.push(RoutePage.NEW_EXPERIMENT);
-  }
-
-  private _compareRuns(): void {
-    const indices = this.state.selectedIds;
-    if (indices.length > 1 && indices.length <= 10) {
-      const runIds = this.state.selectedIds.join(',');
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.runlist]: runIds,
-      });
-      this.props.history.push(RoutePage.COMPARE + searchString);
-    }
-  }
-
   private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = [...this.props.toolbarProps.actions];
     // Compare runs button
@@ -113,16 +76,6 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     toolbarActions[2].disabled = selectedIds.length !== 1;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
-  }
-
-  private _cloneRun(): void {
-    if (this.state.selectedIds.length === 1) {
-      const runId = this.state.selectedIds[0];
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.cloneFromRun]: runId || ''
-      });
-      this.props.history.push(RoutePage.NEW_RUN + searchString);
-    }
   }
 }
 

@@ -21,7 +21,6 @@ spec:
   arguments:
     parameters:
     - name: image-build-context-gcs-uri
-    - name: bootstrapper-image
     - name: api-image
     - name: frontend-image
     - name: scheduledworkflow-image
@@ -30,23 +29,12 @@ spec:
   - name: build-images
     inputs:
       parameters:
-      - name: bootstrapper-image
       - name: api-image
       - name: frontend-image
       - name: scheduledworkflow-image
       - name: persistenceagent-image
     steps:
-    - - name: build-bootstrapper-image
-        template: build-image
-        arguments:
-          parameters:
-          - name: image-build-context-gcs-uri
-            value: "{{workflow.parameters.image-build-context-gcs-uri}}"
-          - name: docker-path
-            value: pipeline
-          - name: image-name
-            value: "{{inputs.parameters.bootstrapper-image}}"
-      - name: build-api-server-image
+    - - name: build-api-server-image
         template: build-image
         arguments:
           parameters:

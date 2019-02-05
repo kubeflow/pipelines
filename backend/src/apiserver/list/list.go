@@ -18,6 +18,7 @@
 package list
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -26,6 +27,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
@@ -158,10 +160,10 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 	return &Options{PageSize: pageSize, token: token}, nil
 }
 
-// AddToSelect adds WHERE clauses with the sorting and filtering criteria in the
+// AddPaginationToSelect adds WHERE clauses with the sorting and pagination criteria in the
 // Options o to the supplied SelectBuilder, and returns the new SelectBuilder
 // containing these.
-func (o *Options) AddToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	// If next row's value is specified, set those values in the clause.
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
@@ -186,11 +188,54 @@ func (o *Options) AddToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	// Add one more item than what is requested.
 	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
 
+	return sqlBuilder
+}
+
+// AddFilterToSelect adds WHERE clauses with the filtering criteria in the
+// Options o to the supplied SelectBuilder, and returns the new SelectBuilder
+// containing these.
+func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	if o.Filter != nil {
 		sqlBuilder = o.Filter.AddToSelect(sqlBuilder)
 	}
 
 	return sqlBuilder
+}
+
+// FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
+// table that match an optional given filter, and returns the rebuilt SelectBuilder
+func FilterOnResourceReference(tableName string, resourceType common.ResourceType, selectCount bool,
+	filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+	selectBuilder := sq.Select("*")
+	if selectCount {
+		selectBuilder = sq.Select("count(*)")
+	}
+	selectBuilder = selectBuilder.From(tableName)
+	if filterContext.ReferenceKey != nil {
+		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
+			From("resource_references as rf").
+			Where(sq.And{
+				sq.Eq{"rf.ResourceType": resourceType},
+				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
+				sq.Eq{"rf.ReferenceType": filterContext.Type}}).ToSql()
+		if err != nil {
+			return selectBuilder, util.NewInternalServerError(
+				err, "Failed to create subquery to filter by resource reference: %v", err.Error())
+		}
+		return selectBuilder.Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), args...), nil
+	}
+	return selectBuilder, nil
+}
+
+// Scans the one given row into a number, and returns the number
+func ScanRowToTotalSize(rows *sql.Rows) (int, error) {
+	var total_size int
+	rows.Next()
+	err := rows.Scan(&total_size)
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to scan row total_size")
+	}
+	return total_size, nil
 }
 
 // Listable is an interface that should be implemented by any resource/model

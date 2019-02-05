@@ -127,7 +127,6 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \
--p bootstrapper-image="${GCR_IMAGE_BASE_DIR}/bootstrapper" \
 -p api-image="${GCR_IMAGE_BASE_DIR}/api" \
 -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
 -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
