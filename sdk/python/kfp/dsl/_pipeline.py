@@ -37,6 +37,28 @@ def pipeline(name, description):
 
   return _pipeline
 
+class PipelineConf():
+  """PipelineConf contains pipeline level settings
+  """
+  def __init__(self):
+    self.image_pull_secrets = []
+
+  def set_image_pull_secrets(self, image_pull_secrets):
+    """ configure the pipeline level imagepullsecret
+
+    Args:
+      image_pull_secrets: a list of Kubernetes V1LocalObjectReference
+      For detailed description, check Kubernetes V1LocalObjectReference definition
+      https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
+    """
+    self.image_pull_secrets = image_pull_secrets
+
+def get_pipeline_conf():
+  """Configure the pipeline level setting to the current pipeline
+    Note: call the function inside the user defined pipeline function.
+  """
+  return Pipeline.get_default_pipeline().conf
+
 class Pipeline():
   """A pipeline contains a list of operators.
 
@@ -86,7 +108,7 @@ class Pipeline():
     # Add the root group.
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
     self.group_id = 0
-    self.image_pull_secrets = []
+    self.conf = PipelineConf()
 
   def __enter__(self):
     if Pipeline._default_pipeline:
@@ -141,16 +163,4 @@ class Pipeline():
     self.group_id += 1
     return self.group_id
 
-  # The following functions are used by the users to customize pipeline level configurations
-  # Note: call these function inside the pipeline python function.
-  @staticmethod
-  def set_image_pull_secrets(image_pull_secrets):
-    """ configure the pipeline level imagepullsecret
-
-    Args:
-      image_pull_secrets: a list of Kubernetes V1LocalObjectReference
-      For detailed description, check Kubernetes V1LocalObjectReference definition
-      https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
-    """
-    Pipeline._default_pipeline.image_pull_secrets = image_pull_secrets
 

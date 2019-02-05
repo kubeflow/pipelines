@@ -47,4 +47,4 @@ def save_most_frequent_word(message: str):
   counter = GetFrequentWordOp(
           name='get-Frequent',
           message=message)
-  dsl.Pipeline.set_image_pull_secrets([k8s_client.V1ObjectReference(name="secretA")])
+  dsl.get_pipeline_conf().set_image_pull_secrets([k8s_client.V1ObjectReference(name="secretA")])
