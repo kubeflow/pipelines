@@ -278,18 +278,6 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
               </Button>
             </Link>
           </Tooltip>
-          <Tooltip title={'Archive'} enterDelay={300} placement={'right-start'}
-            disableFocusListener={!collapsed} disableHoverListener={!collapsed}
-            disableTouchListener={!collapsed}>
-            <Link id='archiveBtn' to={RoutePage.ARCHIVE} className={commonCss.unstyled}>
-              <Button className={classes(css.button,
-                page === RoutePage.ARCHIVE && css.active,
-                collapsed && css.collapsedButton)}>
-                <ArchiveIcon style={{ height: 20, width: 20 }} />
-                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Archive</span>
-              </Button>
-            </Link>
-          </Tooltip>
           {this.state.jupyterHubAvailable && (
             <Tooltip title={'Open Jupyter Notebook'} enterDelay={300} placement={'right-start'}
               disableFocusListener={!collapsed} disableHoverListener={!collapsed}
@@ -304,6 +292,19 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
               </a>
             </Tooltip>
           )}
+          <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
+          <Tooltip title={'Archive'} enterDelay={300} placement={'right-start'}
+            disableFocusListener={!collapsed} disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}>
+            <Link id='archiveBtn' to={RoutePage.ARCHIVE} className={commonCss.unstyled}>
+              <Button className={classes(css.button,
+                page === RoutePage.ARCHIVE && css.active,
+                collapsed && css.collapsedButton)}>
+                <ArchiveIcon style={{ height: 20, width: 20 }} />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Archive</span>
+              </Button>
+            </Link>
+          </Tooltip>
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <IconButton className={classes(css.chevron, collapsed && css.collapsedChevron)}
             onClick={this._toggleNavClicked.bind(this)}>

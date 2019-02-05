@@ -179,7 +179,8 @@ export default class Buttons {
     };
   }
 
-  public restore(getSelectedIds: () => string[], callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
+  public restore(getSelectedIds: () => string[], callback: (selectedIds: string[],
+    success: boolean) => void): ToolbarActionConfig {
     return {
       action: () => this._restore(getSelectedIds(), false, callback),
       disabled: true,
@@ -211,29 +212,59 @@ export default class Buttons {
 
   private _archive(selectedIds: string[], useCurrent: boolean,
     callback: (selectedIds: string[], success: boolean) => void): void {
-    this._dialogActionHandler(selectedIds, useCurrent,
-      id => Apis.runServiceApi.archiveRun(id), callback, 'Archive', 'resource');
+    this._dialogActionHandler(
+      selectedIds,
+      `Run${s(selectedIds)} will be moved to the Archive section, where you can still view ` +
+      `${selectedIds.length === 1 ? 'its' : 'their'} details. Use the Restore action to restore ` +
+      `the run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      useCurrent,
+      id => Apis.runServiceApi.archiveRun(id),
+      callback,
+      'Archive',
+      'run',
+    );
   }
 
   private _restore(selectedIds: string[], useCurrent: boolean,
     callback: (selectedIds: string[], success: boolean) => void): void {
-    this._dialogActionHandler(selectedIds, useCurrent,
-      id => Apis.runServiceApi.unarchiveRun(id), callback, 'Restore', 'resource');
+    this._dialogActionHandler(
+      selectedIds,
+      `Do you want to restore ${selectedIds.length === 1 ? 'this run to its' : 'these runs to their'} original location?`,
+      useCurrent,
+      id => Apis.runServiceApi.unarchiveRun(id),
+      callback,
+      'Restore',
+      'run',
+    );
   }
 
   private _deletePipeline(selectedIds: string[], callback: (selectedIds: string[], success: boolean) => void,
     useCurrentResource: boolean): void {
-    this._dialogActionHandler(selectedIds, useCurrentResource,
-      id => Apis.pipelineServiceApi.deletePipeline(id), callback, 'Delete', 'pipeline');
+    this._dialogActionHandler(
+      selectedIds,
+      'Do you want to delete this Pipeline? This action cannot be undone.',
+      useCurrentResource,
+      id => Apis.pipelineServiceApi.deletePipeline(id),
+      callback,
+      'Delete',
+      'pipeline',
+    );
   }
 
   private _deleteRecurringRun(id: string, useCurrentResource: boolean,
     callback: (_: string[], success: boolean) => void): void {
-    this._dialogActionHandler([id], useCurrentResource, Apis.jobServiceApi.deleteJob, callback, 'Delete',
-      'recurring run config');
+    this._dialogActionHandler(
+      [id],
+      'Do you want to delete this recurring run config? This action cannot be undone.',
+      useCurrentResource,
+      Apis.jobServiceApi.deleteJob,
+      callback,
+      'Delete',
+      'recurring run config',
+    );
   }
 
-  private _dialogActionHandler(selectedIds: string[], useCurrentResource: boolean,
+  private _dialogActionHandler(selectedIds: string[], content: string, useCurrentResource: boolean,
     api: (id: string) => Promise<void>, callback: (selectedIds: string[], success: boolean) => void,
     actionName: string, resourceName: string): void {
 
@@ -248,6 +279,7 @@ export default class Buttons {
         onClick: async () => await dialogClosedHandler(false),
         text: 'Cancel',
       }],
+      content,
       onClose: async () => await dialogClosedHandler(false),
       title: `${actionName} ${useCurrentResource ? 'this' : selectedIds.length} ${resourceName}${useCurrentResource ? '' : s(selectedIds.length)}?`,
     });
