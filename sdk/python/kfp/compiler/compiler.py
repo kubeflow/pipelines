@@ -476,6 +476,11 @@ class Compiler(object):
         'serviceAccountName': 'pipeline-runner'
       }
     }
+    if len(pipeline.conf.image_pull_secrets) > 0:
+      image_pull_secrets = []
+      for image_pull_secret in pipeline.conf.image_pull_secrets:
+        image_pull_secrets.append(K8sHelper.convert_k8s_obj_to_json(image_pull_secret))
+      workflow['spec']['imagePullSecrets'] = image_pull_secrets
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
     if volumes:
