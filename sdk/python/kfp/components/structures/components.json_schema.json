@@ -183,8 +183,7 @@
 
     "ImplementationType": {
       "oneOf": [
-        {"$ref": "#/definitions/ContainerImplementation"},
-        {"$ref": "#/definitions/GraphImplementation"}
+        {"$ref": "#/definitions/ContainerImplementation"}
       ]
     },
 
@@ -226,19 +225,6 @@
       "additionalProperties": false
     },
 
-    "GraphInputArgument": {
-      "description": "Represents the component argument value that comes from the graph component input.",
-      "type": "object",
-      "required": ["graphInput"],
-      "properties": {
-        "graphInput": {
-          "description": "Input name",
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
-
     "TaskOutputArgument": {
       "description": "Represents the component argument value that comes from the output of a sibling task.",
       "type": "object",
@@ -261,7 +247,6 @@
     "ArgumentType": {
       "oneOf": [
         {"type": "string"},
-        {"$ref": "#/definitions/GraphInputArgument"},
         {"$ref": "#/definitions/TaskOutputArgument"}
       ]
     },
@@ -347,27 +332,6 @@
         "isEnabled": {"$ref": "#/definitions/PredicateType"},
         "k8sContainerOptions": {"$ref": "https://raw.githubusercontent.com/garethr/kubernetes-json-schema/master/v1.11.2/_definitions.json#/definitions/io.k8s.api.core.v1.Container"},
         "k8sPodOptions": {"$ref": "#/definitions/PodArgoSubset"}
-      },
-      "additionalProperties": false
-    },
-
-    "GraphSpec": {
-      "description": "Describes the graph component implementation. It represents a graph of component tasks connected to the upstream sources of data using the argument specifications. It also describes the sources of graph output values.",
-      "type": "object",
-      "required": ["tasks"],
-      "properties": {
-        "tasks": {"type": "object", "additionalProperties": {"$ref": "#/definitions/TaskSpec"}},
-        "outputValues": {"type": "object", "additionalProperties": {"$ref": "#/definitions/TaskOutputArgument"}}
-      },
-      "additionalProperties": false
-    },
-
-    "GraphImplementation": {
-      "description": "Represents the graph component implementation.",
-      "type": "object",
-      "required": ["graph"],
-      "properties": {
-        "graph": {"$ref": "#/definitions/GraphSpec"}
       },
       "additionalProperties": false
     },
