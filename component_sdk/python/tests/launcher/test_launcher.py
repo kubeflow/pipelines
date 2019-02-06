@@ -28,4 +28,4 @@ class LauncherTest(unittest.TestCase):
 
     def test_launch_py_file_succeed(self):
         self.assertEqual('hello', 
-            launch(TEST_PY_FILE, 'echo', 'hello'))
+            launch(TEST_PY_FILE, ['echo', 'hello']))
