@@ -40,7 +40,7 @@ def ffdlPipeline(
 
     train = dsl.ContainerOp(
      name='train',
-     image='aipipeline/ffdl-train:0.5',
+     image='aipipeline/ffdl-train:0.6',
      command=['sh', '-c'],
      arguments=['echo %s > /tmp/logs.txt; python -u train.py --model_def_file_path %s --manifest_file_path %s;'
                 % (config_op.output, model_def_file_path, manifest_file_path)],

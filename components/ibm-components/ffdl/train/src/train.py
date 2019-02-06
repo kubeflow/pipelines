@@ -52,6 +52,11 @@ if __name__ == "__main__":
     model_def_file_path = args.model_def_file_path
     manifest_file_path = args.manifest_file_path
 
+    ''' Download FfDL CLI for log streaming '''
+    res = requests.get('https://github.com/IBM/FfDL/raw/master/cli/bin/ffdl-linux', allow_redirects=True)
+    open('ffdl', 'wb').write(res.content)
+    subprocess.call(['chmod', '755', 'ffdl'])
+
     ''' Download the training model definition and FfDL manifest '''
 
     client = boto3.resource(
