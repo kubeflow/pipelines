@@ -15,7 +15,7 @@
 
 from . import _container_op
 from . import _pipeline
-
+from ._pipeline_param import ConditionOperator
 
 class OpsGroup(object):
   """Represents a logical group of ops and group of OpsGroups.
@@ -92,10 +92,30 @@ class Condition(OpsGroup):
   def __init__(self, condition):
     """Create a new instance of ExitHandler.
     Args:
-      exit_op: an operator invoked at exiting a group of ops.
+      condition (ConditionOperator): the condition.
 
     Raises:
       ValueError is the exit_op is invalid.
     """
     super(Condition, self).__init__('condition')
     self.condition = condition
+
+class While(OpsGroup):
+  """While loop with conditions.
+  TODO: Example usage:
+  """
+  def __init__(self, condition):
+    """Create a while loop structure
+    Args:
+      condition (ConditionOperator): the condition.
+    """
+    super(While, self).__init__('while')
+    if not isinstance(condition, (ConditionOperator)):
+      raise ValueError
+    self.condition = condition
+
+  def __exit__(self, *args):
+    #TODO: while needs special handling of the condition because
+    # the pipelineparam during the exit contains the dynamic information
+    # that are needed to resolve the condition.
+    _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
