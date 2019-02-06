@@ -25,6 +25,7 @@
     "InputSpec": {
       "description": "Describes the component input specification",
       "type": "object",
+      "required": ["name"],
       "properties": {
         "name": {"type": "string"},
         "type": {"$ref": "#/definitions/TypeType"},
