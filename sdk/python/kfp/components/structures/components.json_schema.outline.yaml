@@ -10,7 +10,6 @@
             type: TypeType
             description: string
             default: string
-            optional: boolean
     outputs: #OutputSpec[]
         <OutputSpec[]>:
             name: string
@@ -32,11 +31,6 @@
                                 outputPath: string
                             <ConcatPlaceholder>:
                                 concat: StringOrPlaceholder[]
-                            <IfPlaceholder>:
-                                if:
-                                    cond: IfConditionArgumentType
-                                    then: StringOrPlaceholder[]
-                                    else: StringOrPlaceholder[]
                     args: StringOrPlaceholder[]
                     env: Map[str, StringOrPlaceholder]
                     unconfigurableOutputPaths: Map[str, str]

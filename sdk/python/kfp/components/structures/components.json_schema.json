@@ -20,8 +20,7 @@
         "name": {"type": "string"},
         "type": {"$ref": "#/definitions/TypeType"},
         "description": {"type": "string"},
-        "default": {"type": "string"},
-        "optional": {"type": "boolean", "default": false}
+        "default": {"type": "string"}
       },
       "additionalProperties": false
     },
@@ -83,8 +82,7 @@
         {"$ref": "#/definitions/InputValuePlaceholder"},
         {"$ref": "#/definitions/InputPathPlaceholder"},
         {"$ref": "#/definitions/OutputPathPlaceholder"},
-        {"$ref": "#/definitions/ConcatPlaceholder"},
-        {"$ref": "#/definitions/IfPlaceholder"}
+        {"$ref": "#/definitions/ConcatPlaceholder"}
       ]
     },
 
@@ -100,44 +98,6 @@
         }
       },
       "additionalProperties": false
-    },
-
-    "IsPresentPlaceholder": {
-      "description": "Represents the command-line argument placeholder that will be replaced at run-time by a boolean value specifying whether the caller has passed an argument for the specified optional input.",
-      "type": "object",
-      "properties": {
-        "isPresent": {
-          "description": "Name of the input.",
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
-
-    "IfConditionArgumentType": {
-      "oneOf": [
-        {"$ref": "#/definitions/IsPresentPlaceholder"},
-        {"type": "boolean"},
-        {"type": "string"},
-        {"$ref": "#/definitions/InputValuePlaceholder"}
-      ]
-    },
-
-    "IfPlaceholder": {
-      "description": "Represents the command-line argument placeholder that will be replaced at run-time by a boolean value specifying whether the caller has passed an argument for the specified optional input.",
-      "type": "object",
-      "required": ["if"],
-      "properties": {
-        "if" : {
-          "type": "object",
-          "required": ["cond", "then"],
-          "properties": {
-            "cond": {"$ref": "#/definitions/IfConditionArgumentType"},
-            "then": {"$ref": "#/definitions/CommandlineArgumentOrArrayType"},
-            "else": {"$ref": "#/definitions/CommandlineArgumentOrArrayType"}
-          }
-        }
-      }
     },
 
     "ContainerSpec": {
