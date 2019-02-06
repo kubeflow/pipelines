@@ -30,7 +30,7 @@ import Separator from '../atoms/Separator';
 import SidePanel from '../components/SidePanel';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
-import { ApiRun } from '../apis/run';
+import { ApiRun, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { NodePhase, statusToIcon, hasFinished } from './Status';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
@@ -360,7 +360,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         <span style={{ marginLeft: 10 }}>{runMetadata.name!}</span>
       </div>;
 
-      this.props.updateToolbar({ breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
+      const buttons = new Buttons(this.props, this.refresh.bind(this));
+      const actions = this.getInitialToolbarState().actions;
+      const idGetter = () => runMetadata ? [runMetadata!.id!] : [];
+      const newButton = runMetadata!.storage_state === RunStorageState.ARCHIVED ?
+        buttons.restore(idGetter, true, () => this.refresh()) :
+        buttons.archive(idGetter, true, () => this.refresh());
+      actions.splice(2, 1, newButton);
+      this.props.updateToolbar({ actions, breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
       this.setStateSafe({
         experiment,

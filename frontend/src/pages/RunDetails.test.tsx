@@ -19,7 +19,7 @@ import * as Utils from '../lib/Utils';
 import RunDetails from './RunDetails';
 import TestUtils from '../TestUtils';
 import WorkflowParser from '../lib/WorkflowParser';
-import { ApiRunDetail, ApiResourceType } from '../apis/run';
+import { ApiRunDetail, ApiResourceType, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { PageProps } from './Page';
@@ -145,6 +145,24 @@ describe('RunDetails', () => {
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN + `?${QUERY_PARAMS.cloneFromRun}=${testRun.run!.id}`);
+  });
+
+  it('has an Archive button if the run is not archived', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive')).toBeDefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore')).toBeUndefined();
+  });
+
+  it('has a Restore button if the run is archived', async () => {
+    testRun.run!.storage_state = RunStorageState.ARCHIVED;
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore')).toBeDefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive')).toBeUndefined();
+    delete testRun.run!.storage_state;
   });
 
   it('renders an empty run', async () => {

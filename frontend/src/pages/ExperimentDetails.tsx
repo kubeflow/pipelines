@@ -125,7 +125,11 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           buttons.newRecurringRun(this.props.match.params[RouteParams.experimentId]),
           buttons.compareRuns(() => this.state.selectedIds),
           buttons.cloneRun(() => this.state.selectedIds, false),
-          buttons.archive(() => this.state.selectedIds, ids => this._selectionChanged(ids)),
+          buttons.archive(
+            () => this.state.selectedIds,
+            false,
+            ids => this._selectionChanged(ids),
+          ),
         ],
         breadcrumbs: [],
         pageTitle: 'Runs',

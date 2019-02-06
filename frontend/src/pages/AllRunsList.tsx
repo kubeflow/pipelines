@@ -48,6 +48,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
         buttons.cloneRun(() => this.state.selectedIds, false),
         buttons.archive(
           () => this.state.selectedIds,
+          false,
           selectedIds => this._selectionChanged(selectedIds),
         ),
         buttons.refresh(this.refresh.bind(this)),

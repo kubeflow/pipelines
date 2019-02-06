@@ -35,11 +35,12 @@ export default class Buttons {
     this._urlParser = new URLParser(pageProps);
   }
 
-  public archive(getSelectedIds: () => string[], callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
+  public archive(getSelectedIds: () => string[], useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
     return {
-      action: () => this._archive(getSelectedIds(), false, callback),
-      disabled: true,
-      disabledTitle: 'Select at least one resource to archive',
+      action: () => this._archive(getSelectedIds(), useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
       id: 'archiveBtn',
       title: 'Archive',
       tooltip: 'Archive',
@@ -179,12 +180,12 @@ export default class Buttons {
     };
   }
 
-  public restore(getSelectedIds: () => string[], callback: (selectedIds: string[],
-    success: boolean) => void): ToolbarActionConfig {
+  public restore(getSelectedIds: () => string[], useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
     return {
-      action: () => this._restore(getSelectedIds(), false, callback),
-      disabled: true,
-      disabledTitle: 'Select at least one resource to restore',
+      action: () => this._restore(getSelectedIds(), useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
       id: 'restoreBtn',
       title: 'Restore',
       tooltip: 'Restore',

@@ -42,7 +42,11 @@ export default class Archive extends Page<{}, ArchiveState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: [
-        buttons.restore(() => this.state.selectedIds, this._selectionChanged.bind(this)),
+        buttons.restore(
+          () => this.state.selectedIds,
+          false,
+          this._selectionChanged.bind(this),
+        ),
         buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [],
