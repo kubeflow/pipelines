@@ -9,7 +9,7 @@
             name: string
             type: TypeType
             description: string
-            default: PrimitiveTypes
+            default: string
             optional: boolean
     outputs: #OutputSpec[]
         <OutputSpec[]>:
@@ -23,8 +23,7 @@
                     image: string
                     command: #CommandlineArgumentType
                         <oneOf>:
-                            <PrimitiveTypes>:
-                                <oneOf>: string, integer, number, boolean
+                            string:
                             <InputValuePlaceholder>:
                                 inputValue: string
                             <InputPathPlaceholder>:
@@ -55,8 +54,7 @@
                             arguments: #Map str -> ArgumentType
                                 <Map str -> ArgumentType>:
                                     <oneOf>:
-                                        <PrimitiveTypes>:
-                                            oneOf: string, integer, number, boolean
+                                        string:
                                         <GraphInputArgument>:
                                             graphInput: string
                                         <TaskOutputArgument>:

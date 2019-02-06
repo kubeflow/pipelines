@@ -5,15 +5,6 @@
   "$ref": "#/definitions/PipelineRunSpec",
 
   "definitions": {
-    "PrimitiveTypes": {
-      "oneOf": [
-        {"type": "string"},
-        {"type": "integer"},
-        {"type": "number"},
-        {"type": "boolean"}
-      ]
-    },
-
     "TypeType": {
       "oneOf": [
         {"type": "string"},
@@ -30,7 +21,7 @@
         "name": {"type": "string"},
         "type": {"$ref": "#/definitions/TypeType"},
         "description": {"type": "string"},
-        "default": {"$ref": "#/definitions/PrimitiveTypes"},
+        "default": {"type": "string"},
         "optional": {"type": "boolean", "default": false}
       },
       "additionalProperties": false
@@ -89,7 +80,7 @@
 
     "CommandlineArgumentType": {
       "oneOf": [
-        {"$ref": "#/definitions/PrimitiveTypes"},
+        {"type": "string"},
         {"$ref": "#/definitions/InputValuePlaceholder"},
         {"$ref": "#/definitions/InputPathPlaceholder"},
         {"$ref": "#/definitions/OutputPathPlaceholder"},
@@ -277,7 +268,7 @@
 
     "ArgumentType": {
       "oneOf": [
-        {"$ref": "#/definitions/PrimitiveTypes"},
+        {"type": "string"},
         {"$ref": "#/definitions/GraphInputArgument"},
         {"$ref": "#/definitions/TaskOutputArgument"}
       ]
