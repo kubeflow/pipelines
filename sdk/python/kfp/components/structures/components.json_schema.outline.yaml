@@ -20,8 +20,8 @@
         <oneOf>:
             <ContainerImplementation>:
                 container: #ContainerSpec
-                    image: string
-                    command: #CommandlineArgumentType
+                    image: StringOrPlaceholder
+                    command: #StringOrPlaceholder[]
                         <oneOf>:
                             string:
                             <InputValuePlaceholder>:
@@ -31,14 +31,14 @@
                             <OutputPathPlaceholder>:
                                 outputPath: string
                             <ConcatPlaceholder>:
-                                concat: CommandlineArgumentType[]
+                                concat: StringOrPlaceholder[]
                             <IfPlaceholder>:
                                 if:
                                     cond: IfConditionArgumentType
-                                    then: CommandlineArgumentType[]
-                                    else: CommandlineArgumentType[]
-                    args: CommandlineArgumentType
-                    env: Map[str, str]
+                                    then: StringOrPlaceholder[]
+                                    else: StringOrPlaceholder[]
+                    args: StringOrPlaceholder[]
+                    env: Map[str, StringOrPlaceholder]
                     unconfigurableOutputPaths: Map[str, str]
             <GraphImplementation>:
                 graph: #GraphSpec

@@ -78,7 +78,7 @@
       "additionalProperties": false
     },
 
-    "CommandlineArgumentType": {
+    "StringOrPlaceholder": {
       "oneOf": [
         {"type": "string"},
         {"$ref": "#/definitions/InputValuePlaceholder"},
@@ -86,13 +86,6 @@
         {"$ref": "#/definitions/OutputPathPlaceholder"},
         {"$ref": "#/definitions/ConcatPlaceholder"},
         {"$ref": "#/definitions/IfPlaceholder"}
-      ]
-    },
-
-    "CommandlineArgumentOrArrayType": {
-      "oneOf": [
-        {"$ref": "#/definitions/CommandlineArgumentType"},
-        {"type": "array", "items": {"$ref": "#/definitions/CommandlineArgumentType"}}
       ]
     },
 
@@ -104,7 +97,7 @@
         "concat" : {
           "description": "Items to concatenate",
           "type": "array",
-          "items": {"$ref": "#/definitions/CommandlineArgumentType"}
+          "items": {"$ref": "#/definitions/StringOrPlaceholder"}
         }
       },
       "additionalProperties": false
@@ -154,22 +147,22 @@
       "properties": {
         "image": {
           "description": "Docker image name.",
-          "type": "string"
+          "$ref": "#/definitions/StringOrPlaceholder"
         },
         "command": {
           "description": "Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided.",
           "type": "array",
-          "items": {"$ref": "#/definitions/CommandlineArgumentType"}
+          "items": {"$ref": "#/definitions/StringOrPlaceholder"}
         },
         "args": {
           "description": "Arguments to the entrypoint. The docker image's CMD is used if this is not provided.",
           "type": "array",
-          "items": {"$ref": "#/definitions/CommandlineArgumentType"}
+          "items": {"$ref": "#/definitions/StringOrPlaceholder"}
         },
         "env": {
           "description": "List of environment variables to set in the container.",
           "type": "object",
-          "additionalProperties": {"type": "string"}
+          "additionalProperties": {"$ref": "#/definitions/StringOrPlaceholder"}
         },
         "unconfigurableOutputPaths": {
           "description": "Legacy. Deprecated. Can be used to specify local output file paths for containers that do not allow setting the path of some output using command-line.",
