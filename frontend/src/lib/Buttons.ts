@@ -216,8 +216,9 @@ export default class Buttons {
     this._dialogActionHandler(
       selectedIds,
       `Run${s(selectedIds)} will be moved to the Archive section, where you can still view ` +
-      `${selectedIds.length === 1 ? 'its' : 'their'} details. Use the Restore action to restore ` +
-      `the run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      `${selectedIds.length === 1 ? 'its' : 'their'} details. Please note that the run will not ` +
+      `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
+      `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
       id => Apis.runServiceApi.archiveRun(id),
       callback,
