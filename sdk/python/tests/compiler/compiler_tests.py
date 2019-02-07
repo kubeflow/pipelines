@@ -460,3 +460,7 @@ class TestCompiler(unittest.TestCase):
       value='run'))
 
     self._test_op_to_template_yaml(op1, file_base_name='tolerations')
+
+  def test_py_input_artifact_raw_value(self):
+    """Test pipeline input_artifact_raw_value."""
+    self._test_py_compile_yaml('input_artifact_raw_value')
