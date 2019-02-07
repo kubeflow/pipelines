@@ -20,13 +20,8 @@ import { classes, stylesheet } from 'typestyle';
 import { fontsize, color } from '../Css';
 
 interface Line {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
   distance: number;
-  xMid: number;
-  yMid: number;
+  top: number;
   angle: number;
   left: number;
 }
@@ -144,19 +139,69 @@ export default class Graph extends React.Component<GraphProps> {
     graph.edges().forEach((edgeInfo) => {
       const edge = graph.edge(edgeInfo);
       const lines: Line[] = [];
+      // if (edge.points.length > 1) {
+      //   for (let i = 1; i < edge.points.length; i++) {
+      //     const x1 = edge.points[i - 1].x;
+      //     const y1 = edge.points[i - 1].y;
+      //     const x2 = edge.points[i].x;
+      //     let y2 = edge.points[i].y;
+
+      //     // Small adjustment of final edge to not intersect as much with destination node.
+      //     if (i === edge.points.length - 1) {
+      //       y2 = y2 - 3;
+      //     }
+
+      //     // The + 0.5 at the end of 'distance' helps fill out the elbows of the edges.
+      //     const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)) + 0.5;
+      //     const xMid = (x1 + x2) / 2;
+      //     const yMid = (y1 + y2) / 2;
+      //     const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
+      //     const left = xMid - (distance / 2);
+
+      //     lines.push({ distance, yMid, angle, left });
+
+      //     // Store the first point of the edge to draw the edge start circle
+      //     if (i === 1) {
+      //       displayEdgeStartPoints.push([x1, y1]);
+      //     }
+      //   }
+      // }
+      // const edgeStart
       if (edge.points.length > 1) {
         for (let i = 1; i < edge.points.length; i++) {
           const x1 = edge.points[i - 1].x;
           const y1 = edge.points[i - 1].y;
           const x2 = edge.points[i].x;
-          const y2 = edge.points[i].y;
+          let y2 = edge.points[i].y;
+
+          // Small adjustment of final edge to not intersect as much with destination node.
+          if (i === edge.points.length - 1) {
+            y2 = y2 - 3;
+          }
+
+          if (x1 === x2) {
+            const distance = y2-y1;
+            lines.push({ distance, top: (y1 + y2) / 2, angle: 270, left: x1 - (distance / 2) });
+          } else if (y1 === y2) {
+            const distance = x2-x1;
+            const xMid = (x1 + x2) / 2;
+            lines.push({ distance, top: y1, angle: 0, left: xMid - (distance / 2) });
+          } else {
+            const verticalSegmentLength = (y2-y1) / 2;
+            const top1 = (3*y1 + y2) / 4;
+            lines.push({ distance: verticalSegmentLength, top: top1, angle: 270, left: x1 - (verticalSegmentLength / 2)});
+            const distanceX = Math.abs(x2-x1);
+            // const xMid = (x1 + x2) / 2;
+            lines.push({ distance: distanceX, top: (y1+y2)/2, angle: 0, left: Math.min(x1, x2) });
+            const top2 = (y1 + 3*y2) / 4;
+            lines.push({ distance: verticalSegmentLength, top: top2, angle: 270, left: x2 - (verticalSegmentLength / 2)});
+          }
           // The + 0.5 at the end of 'distance' helps fill out the elbows of the edges.
-          const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)) + 0.5;
-          const xMid = (x1 + x2) / 2;
-          const yMid = (y1 + y2) / 2;
-          const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
-          const left = xMid - (distance / 2);
-          lines.push({ x1, y1, x2, y2, distance, xMid, yMid, angle, left });
+          // const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)) + 0.5;
+          // const xMid = (x1 + x2) / 2;
+          // const yMid = (y1 + y2) / 2;
+          // const left = xMid - (distance / 2);
+
 
           // Store the first point of the edge to draw the edge start circle
           if (i === 1) {
@@ -203,7 +248,7 @@ export default class Graph extends React.Component<GraphProps> {
                   borderTopColor: edge.color,
                   borderTopStyle: edge.isPlaceholder ? 'dotted' : 'solid',
                   left: line.left,
-                  top: line.yMid,
+                  top: line.top,
                   transform: `translate(100px, 44px) rotate(${line.angle}deg)`,
                   transition: 'left 0.5s, top 0.5s',
                   width: line.distance,
