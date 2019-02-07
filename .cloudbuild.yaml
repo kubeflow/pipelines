@@ -139,6 +139,10 @@ steps:
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/local/roc && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildROC'
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: '/bin/bash'
+  args: ['-c', 'cd /workspace/components/local/tensorboard && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
+  id: 'buildTensorboard'
 
 # Build the tagged samples
 - name: 'debian'
