@@ -406,6 +406,52 @@ exports[`RunList handles no pipeline name 1`] = `
 </div>
 `;
 
+exports[`RunList in archived state renders the empty experience 1`] = `
+<div>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 2,
+          "label": "Run name",
+          "sortKey": "name",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 0.5,
+          "label": "Status",
+        },
+        Object {
+          "flex": 0.5,
+          "label": "Duration",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline",
+        },
+        Object {
+          "flex": 1,
+          "label": "Start time",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No archived runs found."
+    filterLabel="Filter runs"
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={Array []}
+  />
+</div>
+`;
+
 exports[`RunList loads multiple runs 1`] = `
 <div>
   <CustomTable
@@ -7485,52 +7531,6 @@ exports[`RunList renders the empty experience 1`] = `
       ]
     }
     emptyMessage="No available runs found."
-    filterLabel="Filter runs"
-    initialSortColumn="created_at"
-    reload={[Function]}
-    rows={Array []}
-  />
-</div>
-`;
-
-exports[`RunList renders the empty experience for archived state 1`] = `
-<div>
-  <CustomTable
-    columns={
-      Array [
-        Object {
-          "customRenderer": [Function],
-          "flex": 2,
-          "label": "Run name",
-          "sortKey": "name",
-        },
-        Object {
-          "customRenderer": [Function],
-          "flex": 0.5,
-          "label": "Status",
-        },
-        Object {
-          "flex": 0.5,
-          "label": "Duration",
-        },
-        Object {
-          "customRenderer": [Function],
-          "flex": 1,
-          "label": "Experiment",
-        },
-        Object {
-          "customRenderer": [Function],
-          "flex": 1,
-          "label": "Pipeline",
-        },
-        Object {
-          "flex": 1,
-          "label": "Start time",
-          "sortKey": "created_at",
-        },
-      ]
-    }
-    emptyMessage="No archived runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}

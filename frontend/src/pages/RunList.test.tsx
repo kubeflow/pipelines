@@ -88,66 +88,68 @@ describe('RunList', () => {
     expect(shallow(<RunList {...generateProps()} />)).toMatchSnapshot();
   });
 
-  it('renders the empty experience for archived state', () => {
-    const props = generateProps();
-    props.storageState = RunStorageState.ARCHIVED;
-    expect(shallow(<RunList {...props} />)).toMatchSnapshot();
-  });
-
-  it('loads runs whose storage state is not ARCHIVED when storage state equals AVAILABLE', async () => {
-    mockNRuns(1, {});
-    const props = generateProps();
-    props.storageState = RunStorageState.AVAILABLE;
-    const tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunListTest)._loadRuns({});
-    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
-      undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
-        predicates: [{
-          key: 'storage_state',
-          op: PredicateOp.NOTEQUALS,
-          string_value: RunStorageState.ARCHIVED.toString(),
-        }]
-      } as ApiFilter)));
-  });
-
-  it('loads runs whose storage state is ARCHIVED when storage state equals ARCHIVED', async () => {
-    mockNRuns(1, {});
-    const props = generateProps();
-    props.storageState = RunStorageState.ARCHIVED;
-    const tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunListTest)._loadRuns({});
-    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
-      undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
-        predicates: [{
-          key: 'storage_state',
-          op: PredicateOp.EQUALS,
-          string_value: RunStorageState.ARCHIVED.toString(),
-        }]
-      } as ApiFilter)));
-  });
-
-  it('augments request filter with storage state predicates', async () => {
-    mockNRuns(1, {});
-    const props = generateProps();
-    props.storageState = RunStorageState.ARCHIVED;
-    const tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunListTest)._loadRuns({
-      filter: encodeURIComponent(JSON.stringify({
-        predicates: [{ key: 'k', op: 'op', string_value: 'val' }]
-      }))
+  describe('in archived state', () => {
+    it('renders the empty experience', () => {
+      const props = generateProps();
+      props.storageState = RunStorageState.ARCHIVED;
+      expect(shallow(<RunList {...props} />)).toMatchSnapshot();
     });
-    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
-      undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
-        predicates: [{
-          key: 'k',
-          op: 'op',
-          string_value: 'val',
-        }, {
-          key: 'storage_state',
-          op: PredicateOp.EQUALS,
-          string_value: RunStorageState.ARCHIVED.toString(),
-        }]
-      } as ApiFilter)));
+
+    it('loads runs whose storage state is not ARCHIVED when storage state equals AVAILABLE', async () => {
+      mockNRuns(1, {});
+      const props = generateProps();
+      props.storageState = RunStorageState.AVAILABLE;
+      const tree = shallow(<RunList {...props} />);
+      await (tree.instance() as RunListTest)._loadRuns({});
+      expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
+        undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
+          predicates: [{
+            key: 'storage_state',
+            op: PredicateOp.NOTEQUALS,
+            string_value: RunStorageState.ARCHIVED.toString(),
+          }]
+        } as ApiFilter)));
+    });
+
+    it('loads runs whose storage state is ARCHIVED when storage state equals ARCHIVED', async () => {
+      mockNRuns(1, {});
+      const props = generateProps();
+      props.storageState = RunStorageState.ARCHIVED;
+      const tree = shallow(<RunList {...props} />);
+      await (tree.instance() as RunListTest)._loadRuns({});
+      expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
+        undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
+          predicates: [{
+            key: 'storage_state',
+            op: PredicateOp.EQUALS,
+            string_value: RunStorageState.ARCHIVED.toString(),
+          }]
+        } as ApiFilter)));
+    });
+
+    it('augments request filter with storage state predicates', async () => {
+      mockNRuns(1, {});
+      const props = generateProps();
+      props.storageState = RunStorageState.ARCHIVED;
+      const tree = shallow(<RunList {...props} />);
+      await (tree.instance() as RunListTest)._loadRuns({
+        filter: encodeURIComponent(JSON.stringify({
+          predicates: [{ key: 'k', op: 'op', string_value: 'val' }]
+        }))
+      });
+      expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
+        undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
+          predicates: [{
+            key: 'k',
+            op: 'op',
+            string_value: 'val',
+          }, {
+            key: 'storage_state',
+            op: PredicateOp.EQUALS,
+            string_value: RunStorageState.ARCHIVED.toString(),
+          }]
+        } as ApiFilter)));
+    });
   });
 
   it('loads one run', async () => {

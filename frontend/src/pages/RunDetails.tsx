@@ -366,6 +366,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         <span style={{ marginLeft: 10 }}>{runMetadata.name!}</span>
       </div>;
 
+      // Update the Archive/Restore button based on the storage state of this run
       const buttons = new Buttons(this.props, this.refresh.bind(this));
       const actions = this.getInitialToolbarState().actions;
       const idGetter = () => runMetadata ? [runMetadata!.id!] : [];

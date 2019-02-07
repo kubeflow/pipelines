@@ -117,9 +117,9 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
 
                 <div className={padding(10, 'b')}>
                   Choose a pipeline package file from your computer, and give the pipeline a unique name.
-                <br />
+                  <br />
                   You can also drag and drop the file here.
-              </div>
+                </div>
                 <Input onChange={this.handleChange('fileName')} value={fileName} required={true}
                   label='File' variant='outlined'
                   InputProps={{
