@@ -20,10 +20,10 @@ import { classes, stylesheet } from 'typestyle';
 import { fontsize, color } from '../Css';
 
 interface Segment {
-  length: number;
-  top: number;
-  angle: number;
+  height: number;
   left: number;
+  top: number;
+  width: number;
 }
 
 interface Edge {
@@ -35,6 +35,15 @@ interface Edge {
 }
 
 const css = stylesheet({
+  arrowHead: {
+    borderColor: `${color.grey} transparent transparent transparent`,
+    borderStyle: 'solid',
+    borderWidth: '7px 6px 0 6px',
+    content: `''`,
+    position: 'absolute',
+    top: -5,
+    zIndex: 2,
+  },
   icon: {
     borderRadius: '0px 2px 2px 0px',
     padding: '5px 7px 0px 7px',
@@ -49,25 +58,7 @@ const css = stylesheet({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-  lastEdgeLine: {
-    $nest: {
-      // Arrowhead
-      '&::after': {
-        borderColor: `${color.grey} transparent transparent transparent`,
-        borderStyle: 'solid',
-        borderWidth: '7px 6px 0 6px',
-        clear: 'both',
-        content: `''`,
-        left: -5,
-        position: 'absolute',
-        top: -5,
-        transform: 'rotate(90deg)',
-      },
-    },
-    zIndex: 2,
-  },
   line: {
-    borderTop: `2px solid ${color.grey}`,
     position: 'absolute',
   },
   node: {
@@ -79,7 +70,6 @@ const css = stylesheet({
     backgroundColor: color.background,
     border: 'solid 1px #d6d6d6',
     borderRadius: 3,
-    // boxShadow: '1px 1px 5px #aaa',
     boxSizing: 'content-box',
     color: '#124aa4',
     cursor: 'pointer',
@@ -90,7 +80,6 @@ const css = stylesheet({
     zIndex: 1,
   },
   nodeSelected: {
-    // backgroundColor: '#e4ebff !important',
     border: `solid 2px ${color.theme}`,
   },
   placeholderNode: {
@@ -127,6 +116,8 @@ interface GraphProps {
 export default class Graph extends React.Component<GraphProps> {
   private LEFT_OFFSET = 100;
   private TOP_OFFSET = 44;
+  private EDGE_THICKNESS = 2;
+  private FINAL_EDGE_X_BUFFER = 30;
 
   public render(): JSX.Element | null {
     const { graph } = this.props;
@@ -138,133 +129,108 @@ export default class Graph extends React.Component<GraphProps> {
     }
     dagre.layout(graph);
 
-    // Creates the lines that constitute the edges connecting the graph.
+    // This set ensures we have only a single circle representing the start of exiting edges from a
+    // given node
+    const nodesWithEdgeStartCircles = new Set<string>();
+
+    // Creates the lines that constitute the edges connecting the graph
     graph.edges().forEach((edgeInfo) => {
       const edge = graph.edge(edgeInfo);
       const segments: Segment[] = [];
-      // if (edge.points.length > 1) {
-      //   for (let i = 1; i < edge.points.length; i++) {
-      //     const x1 = edge.points[i - 1].x;
-      //     const y1 = edge.points[i - 1].y;
-      //     const x2 = edge.points[i].x;
-      //     let y2 = edge.points[i].y;
 
-      //     // Small adjustment of final edge to not intersect as much with destination node.
-      //     if (i === edge.points.length - 1) {
-      //       y2 = y2 - 3;
-      //     }
-
-      //     // The + 0.5 at the end of 'distance' helps fill out the elbows of the edges.
-      //     const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)) + 0.5;
-      //     const xMid = (x1 + x2) / 2;
-      //     const yMid = (y1 + y2) / 2;
-      //     const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
-      //     const left = xMid - (distance / 2);
-
-      //     lines.push({ distance, yMid, angle, left });
-
-      //     // Store the first point of the edge to draw the edge start circle
-      //     if (i === 1) {
-      //       displayEdgeStartPoints.push([x1, y1]);
-      //     }
-      //   }
-      // }
       if (edge.points.length > 1) {
-        let lastX = 0;
         for (let i = 1; i < edge.points.length; i++) {
-          // tslint:disable-next-line:no-debugger
-          // debugger;
-          // tslint:disable-next-line:no-console
-          console.log(lastX);
+
+          let x1 = edge.points[i - 1].x;
+          let y1 = edge.points[i - 1].y;
 
           // Make all edges start at the bottom center of the node
-          // let x1 = edge.points[i - 1].x;
-          // let x1 = lastX + 6;
-          let x1 = lastX === 0 ? edge.points[i - 1].x : lastX + 6;
-          let y1 = edge.points[i - 1].y;
-          if (i === 1){
+          if (i === 1) {
             const sourceNode = graph.node(edgeInfo.v);
             x1 = sourceNode.x;
             y1 = sourceNode.y + (sourceNode.height / 2);
           }
-          // const x1 = edge.points[i - 1].x;
-          // const y1 = edge.points[i - 1].y;
 
-          const x2 = edge.points[i].x;
+          let x2 = edge.points[i].x;
           let y2 = edge.points[i].y;
 
-          // Small adjustment of final edge to not intersect as much with destination node.
+          // Adjustments made to final segment for each edge
           if (i === edge.points.length - 1) {
+            // Small adjustment to avoiding overlapping with destination node
             y2 = y2 - 3;
+            const destinationNode = graph.node(edgeInfo.w);
+            // If final segment x value is too far to the right, move it X_BUFFER pixels in from the
+            // right end of the destination node
+            const rightmostAcceptableXPos =
+              destinationNode.x + destinationNode.width - this.LEFT_OFFSET - this.FINAL_EDGE_X_BUFFER;
+            if (rightmostAcceptableXPos <= x2) {
+              x2 = rightmostAcceptableXPos;
+            }
+            // If final segment x value is too far to the left, move it X_BUFFER pixels in from the
+            // left end of the destination node
+            const leftmostAcceptableXPos =
+              destinationNode.x - this.LEFT_OFFSET + this.FINAL_EDGE_X_BUFFER;
+            if (leftmostAcceptableXPos >= x2) {
+              x2 = leftmostAcceptableXPos;
+            }
           }
 
           // How we render line segments depends on whether the layout dagre gave us calls for a
           // vertical, a horizontal, or a diagonal line.
-          if (Math.abs(x1 - x2) < 1) {
-            const length = Math.round((y2-y1) + 1);
+          if (x1 === x2) {
+            // Solely vertical segment
+            const length = (y2 - y1) + 1;
             segments.push({
-              angle: 270,
-              left: this.LEFT_OFFSET + Math.round(x1 - (length / 2)) + 1,
-              length: length % 2 === 0 ? length : length - 1,
-              top: this.TOP_OFFSET + ((y1 + y2) / 2),
+              height: length % 2 === 0 ? length : length - 1,
+              left: this.LEFT_OFFSET + x1,
+              top: this.TOP_OFFSET + y1,
+              width: this.EDGE_THICKNESS,
             });
-            // if (lastX === 0) {
-            //   lastX = Math.round(x1 - (length / 2));
-            // }
-          } else if (Math.abs(y1 - y2) < 1) {
-            const length = x2-x1;
+          } else if (y1 === y2) {
+            // Solely horizontal segment
+            const length = x2 - x1;
             const xMid = (x1 + x2) / 2;
             segments.push({
-              angle: 0,
-              left: this.LEFT_OFFSET + Math.round(xMid - (length / 2)),
-              length,
-              top: this.TOP_OFFSET + (y1),
+              height: this.EDGE_THICKNESS,
+              left: this.LEFT_OFFSET + xMid - (length / 2),
+              top: this.TOP_OFFSET + y1,
+              width: length,
             });
           } else {
             // If the points given form a diagonal line, then split that line into 3 segments, two
             // vertical, and one horizontal.
 
             // Vertical segment 1
-            const verticalSegmentLength = (y2-y1) / 2;
-            const top1 = (3*y1 + y2) / 4;
+            const verticalSegmentLength = (y2 - y1) / 2;
             segments.push({
-              // this could be 90, but we use 270 to match the arrowheads
-              angle: 270,
-              left: this.LEFT_OFFSET + Math.round(x1 - (verticalSegmentLength / 2)),
-              length: verticalSegmentLength + 1,
-              top: this.TOP_OFFSET + (top1),
+              height: verticalSegmentLength + 2,
+              left: this.LEFT_OFFSET + x1,
+              top: this.TOP_OFFSET + y1,
+              width: this.EDGE_THICKNESS,
             });
 
             // Horizontal segment
-            const horizontalSegmentLength = Math.round(Math.abs(x2-x1)) + 1;
+            const horizontalSegmentLength = Math.abs(x2 - x1) + 1;
             segments.push({
-              angle: 0,
-              left: this.LEFT_OFFSET + Math.round(Math.min(x1, x2)),
-              length: horizontalSegmentLength,
-              top: this.TOP_OFFSET + ((y1+y2)/2),
+              height: this.EDGE_THICKNESS,
+              left: this.LEFT_OFFSET + Math.min(x1, x2),
+              top: this.TOP_OFFSET + ((y1 + y2) / 2),
+              width: horizontalSegmentLength,
             });
 
             // Vertical segment 2
-            const top2 = (y1 + 3*y2) / 4;
             segments.push({
-              angle: 270,
-              left: this.LEFT_OFFSET + Math.round(x2 - (verticalSegmentLength / 2)),
-              length: Math.round(verticalSegmentLength) + 1,
-              top: this.TOP_OFFSET + (top2),
+              height: verticalSegmentLength + 1,
+              left: this.LEFT_OFFSET + x2,
+              top: this.TOP_OFFSET + ((y1 + y2) / 2),
+              width: this.EDGE_THICKNESS,
             });
-            lastX = Math.round(x2 - (verticalSegmentLength / 2));
           }
-          // The + 0.5 at the end of 'distance' helps fill out the elbows of the edges.
-          // const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)) + 0.5;
-          // const xMid = (x1 + x2) / 2;
-          // const yMid = (y1 + y2) / 2;
-          // const left = xMid - (distance / 2);
-
 
           // Store the first point of the edge to draw the edge start circle
-          // TODO: We only need to add one circle per node.
-          if (i === 1) {
+          if (i === 1 && !nodesWithEdgeStartCircles.has(edgeInfo.v)) {
             displayEdgeStartPoints.push([x1, y1]);
+            nodesWithEdgeStartCircles.add(edgeInfo.v);
           }
         }
       }
@@ -292,34 +258,33 @@ export default class Graph extends React.Component<GraphProps> {
               width: node.width,
             }}>
             <div className={css.label}>{node.label}</div>
-            <div className={css.icon} style ={{ background: node.statusColoring }}>{node.icon}</div>
+            <div className={css.icon} style={{ background: node.statusColoring }}>{node.icon}</div>
           </div>
         ))}
 
         {displayEdges.map((edge, i) => (
           <div key={i}>
             {edge.segments.map((segment, l) => (
-              <div className={classes(
-                  css.line,
-                  (l === edge.segments.length - 1 && !edge.isPlaceholder) ? css.lastEdgeLine : ''
-                )}
+              <div className={css.line}
                 key={l} style={{
-                  borderTopColor: edge.color,
-                  borderTopStyle: edge.isPlaceholder ? 'dotted' : 'solid',
+                  backgroundColor: color.grey,
+                  height: segment.height,
                   left: segment.left,
                   top: segment.top,
-                  // transform: `translate(${this.LEFT_OFFSET}px, ${this.TOP_OFFSET}px) rotate(${segment.angle}deg)`,
-                  transform: `rotate(${segment.angle}deg)`,
                   transition: 'left 0.5s, top 0.5s',
-                  width: segment.length,
+                  width: segment.width,
                 }} />
             ))}
+            <div className={css.arrowHead} style={{
+              left: edge.segments[edge.segments.length - 1].left - 5,
+              top: edge.segments[edge.segments.length - 1].top + edge.segments[edge.segments.length - 1].height - 5
+            }} />
           </div>
         ))}
 
         {displayEdgeStartPoints.map((point, i) => (
           <div className={css.startCircle} key={i} style={{
-            left: `calc(${point[0]}px - 4px + ${this.LEFT_OFFSET}px)`,
+            left: `calc(${point[0]}px - 3px + ${this.LEFT_OFFSET}px)`,
             top: `calc(${point[1]}px - 3px + ${this.TOP_OFFSET}px)`,
           }} />
         ))}

@@ -44,7 +44,6 @@ import { commonCss, padding, color, fonts, fontsize } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { flatten } from 'lodash';
 import { formatDateString, getRunTime, logger, errorToMessage } from '../lib/Utils';
-// import ElkGraph from '../components/ElkGraph';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -155,15 +154,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
         {!!workflow && (
           <div className={commonCss.page}>
-            <MD2Tabs selectedTab={selectedTab} tabs={['ElkGraph', 'Graph', 'Run output', 'Config']}
+            <MD2Tabs selectedTab={selectedTab} tabs={['Graph', 'Run output', 'Config']}
               onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })} />
             <div className={commonCss.page}>
-
-              {/* {selectedTab === 0 && (
-                <div className={padding()}>
-                  <ElkGraph />
-                </div>
-              )} */}
 
               {selectedTab === 0 && <div className={classes(commonCss.page, css.graphPane)}>
                 {graph && <div className={commonCss.page}>
