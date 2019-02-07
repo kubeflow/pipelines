@@ -1,12 +1,12 @@
-The Watson Train and Serve sample runs a pipeline training, storing and deploying a Tensorflow model with MNIST handwriting recognition using [IBM Watson Studio](https://www.ibm.com/cloud/watson-studio) and [IBM Watson Machine Learning](https://www.ibm.com/cloud/machine-learning) service.
+The `Watson Train and Serve` sample pipeline runs training, storing and deploying a Tensorflow model with MNIST handwriting recognition using [IBM Watson Studio](https://www.ibm.com/cloud/watson-studio) and [IBM Watson Machine Learning](https://www.ibm.com/cloud/machine-learning) service.
 
 # Requirements
 
-This sample requires a user has a machine learning service and S3 cloud storage set up and the service credentials have been configured in the [`creds.ini` file](https://github.ibm.com/AIOpsPipeline/kfp-samples/blob/master/wml-containers/creds.ini). Users should be able to run the sample out of box.
+This sample requires the user to have provisioned a machine learning service on Watson, a S3 cloud storage set up and the service credentials configured in the [`creds.ini` file](https://github.ibm.com/AIOpsPipeline/kfp-samples/blob/master/wml-containers/creds.ini)
 
 However, if users want to use their own machine learning services and S3 cloud storage, following are the required steps.
 
-* An IBM Watson Machine Learning service instance
+* IBM Watson Machine Learning service instance
 
 To create a machine learning service, go to [IBM Cloud](https://console.bluemix.net), login with IBM account id first. From the `Catalog` page, click on `AI` tab on the left side to go to this [page](https://console.bluemix.net/catalog/?category=ai). Then click on the [`Machine Learning`](https://console.bluemix.net/catalog/services/machine-learning) link and follow the instructions to create the service.
 
