@@ -961,6 +961,8 @@ class ContainerOp(BaseOp):
       init_containers: List[UserContainer] = None,
       sidecars: List[Sidecar] = None,
       container_kwargs: Dict = None,
+      input_artifact_paths: Dict[str, str] = None,
+      input_artifact_arguments: Dict[str, str] = None,
       file_outputs: Dict[str, str] = None,
       output_artifact_paths : Dict[str, str]=None,
       artifact_location: V1alpha1ArtifactLocation=None,
@@ -984,6 +986,10 @@ class ContainerOp(BaseOp):
                     together with the `main` container.
           container_kwargs: the dict of additional keyword arguments to pass to the
                             op's `Container` definition.
+          input_artifact_paths: Maps artifact input names to local file paths.
+              At pipeline run time, the value of the input artifact argument is saved to this local file.
+          input_artifact_arguments: Maps artifact input names to the artifact values.
+              At pipeline run time, the value of the input artifact argument is saved to a local file specified in the input_artifact_paths map.
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
@@ -1041,9 +1047,15 @@ class ContainerOp(BaseOp):
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
 
         # attributes specific to `ContainerOp`
+        self.input_artifact_paths = input_artifact_paths or {}
+        self.input_artifact_arguments = input_artifact_arguments or {}
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
         self.artifact_location = artifact_location
+
+        for artifact_name, artifact_argument in self.input_artifact_arguments.items():
+            if not isinstance(artifact_argument, str):
+                raise TypeError('Argument "{}" was passed to the artifact input "{}", but only constant strings are supported at this moment.'.format(str(artifact_argument), artifact_name))
 
         self._metadata = None
 
