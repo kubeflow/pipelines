@@ -36,6 +36,7 @@ This pipeline sample uses the [MNIST](http://yann.lecun.com/exdb/mnist) datasets
 
 Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample [`wml-pipeline.py`](https://github.ibm.com/AIOpsPipeline/kfp-samples/blob/master/wml-containers/wml-pipeline.py) file into a workflow specification.
 
+```
 dsl-compile --py watson_train_serve_pipeline.py --output wml-pipeline.tar.gz
 ```
 
