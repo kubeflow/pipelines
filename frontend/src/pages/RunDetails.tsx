@@ -343,17 +343,23 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         WorkflowParser.createRuntimeGraph(workflow) : undefined;
 
       const breadcrumbs: Array<{ displayName: string, href: string }> = [];
-      if (experiment) {
-        breadcrumbs.push(
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          {
-            displayName: experiment.name!,
-            href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
-          });
+      // If this is an archived run, only show Archive in breadcrumbs, otherwise show
+      // the full path, including the experiment if any.
+      if (runMetadata.storage_state === RunStorageState.ARCHIVED) {
+        breadcrumbs.push({ displayName: 'Archive', href: RoutePage.ARCHIVE });
       } else {
-        breadcrumbs.push(
-          { displayName: 'All runs', href: RoutePage.RUNS }
-        );
+        if (experiment) {
+          breadcrumbs.push(
+            { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+            {
+              displayName: experiment.name!,
+              href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
+            });
+        } else {
+          breadcrumbs.push(
+            { displayName: 'All runs', href: RoutePage.RUNS }
+          );
+        }
       }
       const pageTitle = <div className={commonCss.flex}>
         {statusToIcon(runMetadata.status as NodePhase, runDetail.run!.created_at)}

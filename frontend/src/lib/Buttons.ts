@@ -274,11 +274,11 @@ export default class Buttons {
 
     this._props.updateDialog({
       buttons: [{
-        onClick: async () => await dialogClosedHandler(true),
-        text: actionName,
-      }, {
         onClick: async () => await dialogClosedHandler(false),
         text: 'Cancel',
+      }, {
+        onClick: async () => await dialogClosedHandler(true),
+        text: actionName,
       }],
       content,
       onClose: async () => await dialogClosedHandler(false),

@@ -87,7 +87,7 @@ describe('RunDetails', () => {
       },
     };
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
-    getExperimentSpy.mockImplementation(() => Promise.resolve('{}'));
+    getExperimentSpy.mockImplementation(() => Promise.resolve({ id: 'some-experiment-id', name: 'some experiment' }));
     getPodLogsSpy.mockImplementation(() => 'test logs');
     pathsParser.mockImplementation(() => []);
     pathsWithStepsParser.mockImplementation(() => []);
@@ -155,6 +155,31 @@ describe('RunDetails', () => {
     expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore')).toBeUndefined();
   });
 
+  it('shows "All runs" in breadcrumbs if the run is not archived', async () => {
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      breadcrumbs: [{ displayName: 'All runs', href: RoutePage.RUNS }],
+    }));
+  });
+
+  it('shows experiment name in breadcrumbs if the run is not archived', async () => {
+    testRun.run!.resource_references = [{ key: { id: 'some-experiment-id', type: ApiResourceType.EXPERIMENT } }];
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      breadcrumbs: [
+        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+        {
+          displayName: 'some experiment',
+          href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, 'some-experiment-id'),
+        },
+      ],
+    }));
+  });
+
   it('has a Restore button if the run is archived', async () => {
     testRun.run!.storage_state = RunStorageState.ARCHIVED;
     tree = shallow(<RunDetails {...generateProps()} />);
@@ -162,7 +187,16 @@ describe('RunDetails', () => {
     await TestUtils.flushPromises();
     expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore')).toBeDefined();
     expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive')).toBeUndefined();
-    delete testRun.run!.storage_state;
+  });
+
+  it('shows Archive in breadcrumbs if the run is archived', async () => {
+    testRun.run!.storage_state = RunStorageState.ARCHIVED;
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    expect(updateToolbarSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      breadcrumbs: [{ 'displayName': 'Archive', 'href': RoutePage.ARCHIVE }],
+    }));
   });
 
   it('renders an empty run', async () => {
