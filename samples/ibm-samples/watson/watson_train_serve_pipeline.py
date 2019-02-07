@@ -11,8 +11,8 @@
 # limitations under the License.
 
 # place storing the configuration secrets
-GITHUB_TOKEN = '9db6d59731b5d32f794df2adeb9784bb402019b3'
-CONFIG_FILE_URL = 'https://raw.githubusercontent.com/adrian555/kfp-secrets/master/creds.ini'
+GITHUB_TOKEN = 'token'
+CONFIG_FILE_URL = 'https://raw.githubusercontent.com/../creds.ini'
 
 # generate default secret name
 import os
