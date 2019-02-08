@@ -143,7 +143,25 @@ gcloud container clusters get-credentials ${TEST_CLUSTER}
 
 source "${DIR}/install-argo.sh"
 
-echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
+echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
+ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
+-p image-build-context-gcs-uri="$remote_code_archive_uri" \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+-p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+-p cluster-type="${CLUSTER_TYPE}" \
+-p api-image="${GCR_IMAGE_BASE_DIR}/api" \
+-p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
+-p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
+-p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
+-o name
+`
+echo "build docker images workflow submitted successfully"
+
+source "${DIR}/check-argo-status.sh"
+
+echo "build docker images workflow completed"
+
+echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
@@ -153,8 +171,8 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 --serviceaccount test-runner \
 -o name
 `
-
-echo argo workflow submitted successfully
+echo "test workflow submitted successfully"
 
 source "${DIR}/check-argo-status.sh"
 
+echo "test workflow completed"
