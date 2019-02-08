@@ -11,8 +11,8 @@
 # limitations under the License.
 
 # place storing the configuration secrets
-GITHUB_TOKEN = 'token'
-CONFIG_FILE_URL = 'https://raw.githubusercontent.com/../creds.ini'
+GITHUB_TOKEN = ''
+CONFIG_FILE_URL = 'https://raw.githubusercontent.com/user-name/kfp-secrets/master/creds.ini'
 
 # generate default secret name
 import os
@@ -24,7 +24,7 @@ import ai_pipeline_params as params
 
 @dsl.pipeline(
     name='KFP on WML training',
-    description='Kubeflow pipelines leveraging WML to perform tensorflow image recognition.'
+    description='Kubeflow pipelines running on WML performing tensorflow image recognition.'
 )
 def kfp_wml_pipeline(
 ):
