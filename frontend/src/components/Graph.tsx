@@ -36,8 +36,11 @@ interface Edge {
 
 const css = stylesheet({
   arrowHead: {
-    borderColor: `${color.grey} transparent transparent transparent`,
+    borderBottomColor: 'transparent',
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
     borderStyle: 'solid',
+    borderTopColor: color.grey,
     borderWidth: '7px 6px 0 6px',
     content: `''`,
     position: 'absolute',
@@ -96,7 +99,6 @@ const css = stylesheet({
     position: 'relative',
   },
   startCircle: {
-    backgroundColor: color.grey,
     borderRadius: 7,
     content: '',
     display: 'inline-block',
@@ -113,11 +115,21 @@ interface GraphProps {
   selectedNodeId?: string;
 }
 
-export default class Graph extends React.Component<GraphProps> {
+interface GraphState {
+  hoveredNode?: string;
+}
+
+export default class Graph extends React.Component<GraphProps, GraphState> {
   private LEFT_OFFSET = 100;
-  private TOP_OFFSET = 44;
+  private TOP_OFFSET = 42;
   private EDGE_THICKNESS = 2;
-  private FINAL_EDGE_BUFFER = 30;
+  private EDGE_X_BUFFER = 30;
+
+  constructor(props: any) {
+    super(props);
+
+    this.state = {};
+  }
 
   public render(): JSX.Element | null {
     const { graph } = this.props;
@@ -128,10 +140,6 @@ export default class Graph extends React.Component<GraphProps> {
       return null;
     }
     dagre.layout(graph);
-
-    // This set ensures we have only a single circle representing the start of exiting edges from a
-    // given node
-    const nodesWithEdgeStartCircles = new Set<string>();
 
     // Creates the lines that constitute the edges connecting the graph
     graph.edges().forEach((edgeInfo) => {
@@ -147,7 +155,21 @@ export default class Graph extends React.Component<GraphProps> {
           // Make all edges start at the bottom center of the node
           if (i === 1) {
             const sourceNode = graph.node(edgeInfo.v);
-            x1 = sourceNode.x;
+            // If first segment's x value is too far to the right, move it EDGE_X_BUFFER pixels in
+            // from the right end of the destination node
+            const rightmostAcceptableXPos =
+              sourceNode.x + sourceNode.width - this.LEFT_OFFSET - this.EDGE_X_BUFFER;
+            if (rightmostAcceptableXPos <= x1) {
+              x1 = rightmostAcceptableXPos;
+            }
+
+            // If first segment's x value is too far to the left, move it EDGE_X_BUFFER pixels in
+            // from the left end of the destination node
+            const leftmostAcceptableXPos =
+              sourceNode.x - this.LEFT_OFFSET + this.EDGE_X_BUFFER;
+            if (leftmostAcceptableXPos >= x1) {
+              x1 = leftmostAcceptableXPos;
+            }
             y1 = sourceNode.y + (sourceNode.height / 2);
           }
 
@@ -158,23 +180,26 @@ export default class Graph extends React.Component<GraphProps> {
           if (i === edge.points.length - 1) {
             const destinationNode = graph.node(edgeInfo.w);
 
-            // Set the final segment's y value to point to the top of the destination node
-            y2 = destinationNode.y - this.TOP_OFFSET + 7;
+            // Placeholder nodes never need adjustment because they always have only a single incoming edge
+            if (!destinationNode.isPlaceholder) {
+              // Set the final segment's y value to point to the top of the destination node
+              y2 = destinationNode.y - this.TOP_OFFSET + 7;
 
-            // If final segment's x value is too far to the right, move it X_BUFFER pixels in from
-            // the right end of the destination node
-            const rightmostAcceptableXPos =
-              destinationNode.x + destinationNode.width - this.LEFT_OFFSET - this.FINAL_EDGE_BUFFER;
-            if (rightmostAcceptableXPos <= x2) {
-              x2 = rightmostAcceptableXPos;
-            }
+              // If final segment's x value is too far to the right, move it EDGE_X_BUFFER pixels in
+              // from the right end of the destination node
+              const rightmostAcceptableXPos =
+                destinationNode.x + destinationNode.width - this.LEFT_OFFSET - this.EDGE_X_BUFFER;
+              if (rightmostAcceptableXPos <= x2) {
+                x2 = rightmostAcceptableXPos;
+              }
 
-            // If final segment's x value is too far to the left, move it X_BUFFER pixels in from the
-            // left end of the destination node
-            const leftmostAcceptableXPos =
-              destinationNode.x - this.LEFT_OFFSET + this.FINAL_EDGE_BUFFER;
-            if (leftmostAcceptableXPos >= x2) {
-              x2 = leftmostAcceptableXPos;
+              // If final segment's x value is too far to the left, move it EDGE_X_BUFFER pixels in
+              // from the left end of the destination node
+              const leftmostAcceptableXPos =
+                destinationNode.x - this.LEFT_OFFSET + this.EDGE_X_BUFFER;
+              if (leftmostAcceptableXPos >= x2) {
+                x2 = leftmostAcceptableXPos;
+              }
             }
           }
 
@@ -231,9 +256,8 @@ export default class Graph extends React.Component<GraphProps> {
           }
 
           // Store the first point of the edge to draw the edge start circle
-          if (i === 1 && !nodesWithEdgeStartCircles.has(edgeInfo.v)) {
+          if (i === 1) {
             displayEdgeStartPoints.push([x1, y1]);
-            nodesWithEdgeStartCircles.add(edgeInfo.v);
           }
         }
       }
@@ -246,11 +270,24 @@ export default class Graph extends React.Component<GraphProps> {
       });
     });
 
+    const { hoveredNode } = this.state;
+    const highlightNode = this.props.selectedNodeId || hoveredNode;
+
     return (
       <div className={css.root}>
         {graph.nodes().map(id => Object.assign(graph.node(id), { id })).map((node, i) => (
           <div className={classes(node.isPlaceholder ? css.placeholderNode : css.node, 'graphNode',
             node.id === this.props.selectedNodeId ? css.nodeSelected : '')} key={i}
+            onMouseEnter={() => {
+              if (!this.props.selectedNodeId) {
+                this.setState({ hoveredNode: node.id });
+              } 
+            }}
+            onMouseLeave={() => {
+              if (this.state.hoveredNode === node.id) {
+                this.setState({ hoveredNode: undefined });
+              }
+            }}
             onClick={() => (!node.isPlaceholder && this.props.onClick) && this.props.onClick(node.id)}
             style={{
               backgroundColor: node.bgColor, left: node.x,
@@ -265,33 +302,54 @@ export default class Graph extends React.Component<GraphProps> {
           </div>
         ))}
 
-        {displayEdges.map((edge, i) => (
-          <div key={i}>
-            {edge.segments.map((segment, l) => (
-              <div className={css.line}
-                key={l} style={{
-                  backgroundColor: color.grey,
-                  height: segment.height,
-                  left: segment.left,
-                  top: segment.top,
-                  transition: 'left 0.5s, top 0.5s',
-                  width: segment.width,
+        {displayEdges.map((edge, i) => {
+          const edgeColor = this.getEdgeColor(edge, highlightNode);
+          return (
+            <div key={i}>
+              {edge.segments.map((segment, l) => (
+                <div className={css.line}
+                  key={l} style={{
+                    backgroundColor: edgeColor,
+                    height: segment.height,
+                    left: segment.left,
+                    top: segment.top,
+                    transition: 'left 0.5s, top 0.5s',
+                    width: segment.width,
+                  }} />
+              ))}
+              {!edge.isPlaceholder && (
+                <div className={css.arrowHead} style={{
+                  borderTopColor: edgeColor,
+                  left: edge.segments[edge.segments.length - 1].left - 5,
+                  top: edge.segments[edge.segments.length - 1].top + edge.segments[edge.segments.length - 1].height - 5
                 }} />
-            ))}
-            <div className={css.arrowHead} style={{
-              left: edge.segments[edge.segments.length - 1].left - 5,
-              top: edge.segments[edge.segments.length - 1].top + edge.segments[edge.segments.length - 1].height - 5
-            }} />
-          </div>
-        ))}
+              )}
+            </div>
+          );}
+        )}
 
-        {displayEdgeStartPoints.map((point, i) => (
+        {/* {displayEdgeStartPoints.map((point, i) => (
           <div className={css.startCircle} key={i} style={{
             left: `calc(${point[0]}px - 3px + ${this.LEFT_OFFSET}px)`,
             top: `calc(${point[1]}px - 3px + ${this.TOP_OFFSET}px)`,
           }} />
-        ))}
+        ))} */}
       </div>
     );
+  }
+  
+  private getEdgeColor(edge: Edge, highlightNode?: string): string {
+    if (highlightNode) {
+      if (edge.from === highlightNode) {
+        return color.theme;
+      }
+      if (edge.to === highlightNode) {
+        return color.themeDarker;
+      }
+    }
+    if (edge.isPlaceholder) {
+      return color.weak;
+    }
+    return color.grey;
   }
 }

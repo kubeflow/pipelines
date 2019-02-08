@@ -44,7 +44,7 @@ const css = stylesheet({
     position: 'absolute !important' as any,
     right: 0,
     top: 0,
-    zIndex: 2,
+    zIndex: 10,
   },
 });
 

@@ -169,6 +169,7 @@ export const css = stylesheet({
   },
   selectionToggle: {
     marginRight: 12,
+    minWidth: 32,
   },
   verticalAlignInitial: {
     verticalAlign: 'initial',
