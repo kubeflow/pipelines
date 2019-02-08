@@ -1,0 +1,27 @@
+name: Keras - Train classifier
+description: Trains classifier using Keras sequential model
+inputs:
+  - {name: Training set features path, type: {GcsUri: TSV}, description: 'Local or GCS path to the training set features table.'}
+  - {name: Training set labels path, type: {GcsUri: TSV}, description: 'Local or GCS path to the training set labels (each label is a class index from 0 to num-classes - 1).'}
+  - {name: Output model URI, type: {GcsUri: Keras model}, description: 'Local or GCS path specifying where to save the trained model. The model (topology + weights + optimizer state) is saved in HDF5 format and can be loaded back by calling keras.models.load_model'} #Remove GcsUri and move to outputs once artifact passing support is checked in.
+  - {name: Model config, type: {GcsUri: Keras model config json}, description: 'JSON string containing the serialized model structure. Can be obtained by calling model.to_json() on a Keras model.'}
+  - {name: Number of classes, type: Integer, description: 'Number of classifier classes.'}
+  - {name: Number of epochs, type: Integer, default: '100', description: 'Number of epochs to train the model. An epoch is an iteration over the entire `x` and `y` data provided.'}
+  - {name: Batch size, type: Integer, default: '32', description: 'Number of samples per gradient update.'}
+outputs:
+  - {name: Output model URI, type: {GcsUri: Keras model}, description: 'GCS path where the trained model has been saved. The model (topology + weights + optimizer state) is saved in HDF5 format and can be loaded back by calling keras.models.load_model'} #Remove GcsUri and make it a proper output once artifact passing support is checked in.
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/sample/keras/train_classifier
+    command: [python3, /pipelines/component/src/train.py]
+    args: [
+      --training-set-features-path, {inputValue: Training set features path},
+      --training-set-labels-path, {inputValue: Training set labels path},
+      --output-model-path, {inputValue: Output model URI},
+      --model-config-json, {inputValue: Model config},
+      --num-classes, {inputValue: Number of classes},
+      --num-epochs, {inputValue: Number of epochs},
+      --batch-size, {inputValue: Batch size},
+
+      --output-model-path-file, {outputPath: Output model URI},
+    ]
