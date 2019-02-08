@@ -39,7 +39,6 @@ class MetaGCSPath(MetaType):
 def GCSPath(attr={}):
 	return type('GCSPath', (MetaGCSPath, ), attr)
 
-
 class MetaGCPRegion(MetaType):
 	openapi_schema_validator = '''{
 		"type": "object",
