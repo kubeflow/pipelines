@@ -90,7 +90,7 @@ export const css = stylesheet({
     padding: 10,
     position: 'absolute',
     width: summaryCardWidth,
-    zIndex: 1,
+    zIndex: 3,
   },
   summaryKey: {
     color: color.strong,
@@ -200,7 +200,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                   {!summaryShown && (
                     <Button onClick={() => this.setStateSafe({ summaryShown: !summaryShown })} color='secondary'>
                       Show summary
-                      </Button>
+                    </Button>
                   )}
                   <div className={classes(commonCss.flex, (summaryShown && !!pipeline) && css.footerInfoOffset)}>
                     <InfoIcon className={commonCss.infoIcon} />

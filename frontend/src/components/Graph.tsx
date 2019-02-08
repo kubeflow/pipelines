@@ -117,7 +117,7 @@ export default class Graph extends React.Component<GraphProps> {
   private LEFT_OFFSET = 100;
   private TOP_OFFSET = 44;
   private EDGE_THICKNESS = 2;
-  private FINAL_EDGE_X_BUFFER = 30;
+  private FINAL_EDGE_BUFFER = 30;
 
   public render(): JSX.Element | null {
     const { graph } = this.props;
@@ -156,20 +156,23 @@ export default class Graph extends React.Component<GraphProps> {
 
           // Adjustments made to final segment for each edge
           if (i === edge.points.length - 1) {
-            // Small adjustment to avoiding overlapping with destination node
-            y2 = y2 - 3;
             const destinationNode = graph.node(edgeInfo.w);
-            // If final segment x value is too far to the right, move it X_BUFFER pixels in from the
-            // right end of the destination node
+
+            // Set the final segment's y value to point to the top of the destination node
+            y2 = destinationNode.y - this.TOP_OFFSET + 7;
+
+            // If final segment's x value is too far to the right, move it X_BUFFER pixels in from
+            // the right end of the destination node
             const rightmostAcceptableXPos =
-              destinationNode.x + destinationNode.width - this.LEFT_OFFSET - this.FINAL_EDGE_X_BUFFER;
+              destinationNode.x + destinationNode.width - this.LEFT_OFFSET - this.FINAL_EDGE_BUFFER;
             if (rightmostAcceptableXPos <= x2) {
               x2 = rightmostAcceptableXPos;
             }
-            // If final segment x value is too far to the left, move it X_BUFFER pixels in from the
+
+            // If final segment's x value is too far to the left, move it X_BUFFER pixels in from the
             // left end of the destination node
             const leftmostAcceptableXPos =
-              destinationNode.x - this.LEFT_OFFSET + this.FINAL_EDGE_X_BUFFER;
+              destinationNode.x - this.LEFT_OFFSET + this.FINAL_EDGE_BUFFER;
             if (leftmostAcceptableXPos >= x2) {
               x2 = leftmostAcceptableXPos;
             }

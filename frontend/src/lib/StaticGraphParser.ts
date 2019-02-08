@@ -41,8 +41,8 @@ export class SelectedNodeInfo {
 }
 
 
-const NODE_WIDTH = 180;
-const NODE_HEIGHT = 70;
+const NODE_WIDTH = 172;
+const NODE_HEIGHT = 64;
 
 export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Template): SelectedNodeInfo {
   if (!template || !template.container) {
