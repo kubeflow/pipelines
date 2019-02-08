@@ -397,3 +397,37 @@ if __name__ == "__main__":
   wrapper_sample_component_func_three(**args)
 '''
     self.assertEqual(golden, generated_codes)
+
+  def test_generate_entrypoint_python2(self):
+    """ Test entrypoint generation for python2"""
+
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+
+    # check
+    builder = ImageBuilder(gcs_base=GCS_BASE, target_image='')
+    generated_codes = builder._generate_entrypoint(component_func=sample_component_func_two, python_version='python2')
+    golden = '''\
+def sample_component_func_two(a, b):
+  result = 3.45
+  if a == 'succ':
+    result = float(b + 5)
+  return result
+
+def wrapper_sample_component_func_two(a,b,_output_file):
+  output = sample_component_func_two(str(a),int(b))
+  from pathlib import Path
+  Path(_output_file).parent.mkdir(parents=True, exist_ok=True)
+  Path(_output_file).write_text(str(output))
+
+import argparse
+parser = argparse.ArgumentParser(description="Parsing arguments")
+parser.add_argument("a", type=str)
+parser.add_argument("b", type=int)
+parser.add_argument("_output_file", type=str)
+args = vars(parser.parse_args())
+
+if __name__ == "__main__":
+  wrapper_sample_component_func_two(**args)
+'''
+    self.assertEqual(golden, generated_codes)

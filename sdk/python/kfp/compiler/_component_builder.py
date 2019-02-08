@@ -295,7 +295,14 @@ class ImageBuilder(object):
     return content
 
   #TODO: currently it supports single output, future support for multiple return values
-  def _generate_entrypoint(self, component_func):
+  def _generate_entrypoint(self, component_func, python_version='python3'):
+    '''
+    args:
+      python_version (str): choose python2 or python3, default is python3
+    '''
+    if python_version not in ['python2', 'python3']:
+      raise ValueError('python_version has to be either python2 or python3')
+
     fullargspec = inspect.getfullargspec(component_func)
     annotations = fullargspec[6]
     input_args = fullargspec[0]
@@ -360,6 +367,8 @@ class ImageBuilder(object):
       if line.startswith('def '):
         break
       start_line_num += 1
+    if python_version == 'python2':
+      src_lines[start_line_num] = 'def ' + component_func.__name__ + '(' + ', '.join((inspect.getfullargspec(component_func).args)) + '):'
     dedecorated_component_src = '\n'.join(src_lines[start_line_num:])
 
     complete_component_code = dedecorated_component_src + '\n' + wrapper_code + '\n' + codegen.end()
@@ -392,7 +401,7 @@ class ImageBuilder(object):
       # Generate entrypoint and serialization python codes
       local_python_filepath = os.path.join(local_build_dir, self._arc_python_filepath)
       logging.info('Generate entrypoint and serialization codes.')
-      complete_component_code = self._generate_entrypoint(component_func)
+      complete_component_code = self._generate_entrypoint(component_func, python_version)
       with open(local_python_filepath, 'w') as f:
         f.write(complete_component_code)
 
