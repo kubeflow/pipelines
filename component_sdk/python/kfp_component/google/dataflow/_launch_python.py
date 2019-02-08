@@ -19,18 +19,36 @@ from kfp_component.core import KfpExecutionContext
 from ._client import DataflowClient
 from .. import common as gcp_common
 from ._common_ops import (generate_job_name, get_job_by_name, 
-    wait_for_job_done, dump_metadata, dump_job)
+    wait_and_dump_job, stage_file)
+from ._process import Process
 
-def launch_python(python_file_path, project_id, location=None, 
-    job_name_prefix=None, args=[], wait_interval=30,
+def launch_python(python_file_path, project_id, requirements_file_path=None, 
+    location=None, job_name_prefix=None, args=[], wait_interval=30,
     output_metadata_path='/tmp/mlpipeline-ui-metadata.json',
     output_job_path='/tmp/output.txt'):
+    """Launch a self-executing beam python file.
+
+    Args:
+        python_file_path (str): The gcs or local path to the python file to run.
+        project_id (str): The ID of the parent project.
+        requirements_file_path (str): Optional, the gcs or local path to the pip 
+            requirements file.
+        location (str): The regional endpoint to which to direct the 
+            request.
+        job_name_prefix (str): Optional. The prefix of the genrated job
+            name. If not provided, the method will generated a random name.
+        args (list): The list of args to pass to the python file.
+        wait_interval (int): The wait seconds between polling.
+        output_metadata_path (str): The output path of UI metadata file.
+        output_job_path (str): The output path of completed job payload.
+
+    
+    Returns:
+        The completed job.
+    """
     df_client = DataflowClient()
     job_id = None
-    sub_process = None
     def cancel():
-        if sub_process:
-            sub_process.terminate()
         if job_id:
             df_client.cancel_job(
                 project_id,
@@ -41,42 +59,44 @@ def launch_python(python_file_path, project_id, location=None,
         job_name = generate_job_name(
             job_name_prefix,
             ctx.context_id())
+        # We will always generate unique name for the job. We expect
+        # job with same name was created in previous tries from the same 
+        # pipeline run.
         job = get_job_by_name(df_client, project_id, job_name, 
             location)
         if job:
-            dump_metadata(output_metadata_path, project_id, 
-                job)
-            job_id = job.get('id')
-            job = wait_for_job_done(df_client, project_id, 
-                job_id, location, wait_interval)
-        if not job:
-            dataflow_args = [
-                '--runner', 'dataflow', 
-                '--project', project_id,
-                '--job-name', job_name]
-            if location:
-                dataflow_args += ['--location', location]
-            cmd = (['python2', '-u', python_file_path] + 
-                dataflow_args + args)
-            for line in _run_cmd(cmd):
-                if job_id:
-                    continue
-                job_id = _extract_job_id(line)
-                if job_id:
-                    
-            p = subprocess.Popen(cmd,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT,
-                            close_fds=True,
-                            shell=False)
-            for line in iter(p.stdout.readline, b''):
-                if not job_id:
-                    job_id = _extract_job_id(line)
-                logging.info('Subprocess: {}'.format(line))
-            p.stdout.close()
-            return_code = p.wait()
-            logging.info('Subprocess exit with code {}.'.format(
-                return_code))
+            return wait_and_dump_job(df_client, project_id, location, job,
+                output_metadata_path, output_job_path, wait_interval)
+
+        _install_requirements(requirements_file_path)
+        python_file_path = stage_file(python_file_path)
+        cmd = _prepare_cmd(project_id, location, job_name, python_file_path, 
+            args)
+        sub_process = Process(cmd)
+        for line in sub_process.read_lines():
+            job_id = _extract_job_id(line)
+            if job_id:
+                logging.info('Found job id {}'.format(job_id))
+                break
+        sub_process.wait_and_check()
+        if not job_id:
+            logging.warning('No dataflow job was found when '
+                'running the python file.')
+            return None
+        job = df_client.get_job(project_id, job_id, 
+            location=location)
+        return wait_and_dump_job(df_client, project_id, location, job,
+            output_metadata_path, output_job_path, wait_interval)
+
+def _prepare_cmd(project_id, location, job_name, python_file_path, args):
+    dataflow_args = [
+        '--runner', 'dataflow', 
+        '--project', project_id,
+        '--job-name', job_name]
+    if location:
+        dataflow_args += ['--location', location]
+    return (['python2', '-u', python_file_path] + 
+        dataflow_args + args)
 
 def _extract_job_id(line):
     job_id_pattern = re.compile(
@@ -86,18 +106,8 @@ def _extract_job_id(line):
         return matched_job_id.group(1).decode()
     return None
 
-def _run_cmd(cmd):
-    p = subprocess.Popen(cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    close_fds=True,
-                    shell=False)
-    for line in iter(p.stdout.readline, b''):
-        # if not job_id:
-        #     job_id = _extract_job_id(line)
-        logging.info('Subprocess: {}'.format(line))
-        yield line
-    p.stdout.close()
-    return_code = p.wait()
-    logging.info('Subprocess exit with code {}.'.format(
-        return_code))
+def _install_requirements(requirements_file_path):
+    if not requirements_file_path:
+        return
+    requirements_file_path = stage_file(requirements_file_path)
+    subprocess.run(['pip2', 'install', '-r', requirements_file_path])

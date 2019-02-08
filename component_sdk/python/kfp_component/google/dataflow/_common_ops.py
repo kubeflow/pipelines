@@ -15,8 +15,11 @@
 import logging
 import time
 import json
+import os
+import tempfile
 
 from .. import common as gcp_common
+from ..storage import download_blob, parse_blob_path, is_gcs_path
 
 _JOB_SUCCESSFUL_STATES = ['JOB_STATE_DONE', 'JOB_STATE_UPDATED', 'JOB_STATE_DRAINED']
 _JOB_FAILED_STATES = ['JOB_STATE_STOPPED', 'JOB_STATE_FAILED', 'JOB_STATE_CANCELLED']
@@ -35,7 +38,7 @@ def generate_job_name(job_name, context_id):
             gcp_common.normalize_name(job_name),
             context_id[:8])
 
-    return 'job-{0}'.format(context_id)
+    return 'job-{}'.format(context_id)
 
 def get_job_by_name(df_client, project_id, job_name, location=None):
     """Gets a job by its name.
@@ -78,6 +81,14 @@ def wait_for_job_done(df_client, project_id, job_id, location=None, wait_interva
                 ))
             time.sleep(wait_interval)
 
+def wait_and_dump_job(df_client, project_id, location, job, 
+    output_metadata_path, output_job_path, wait_interval):
+    dump_metadata(output_metadata_path, project_id, job)
+    job_id = job.get('id')
+    job = wait_for_job_done(df_client, project_id, job_id, 
+        location, wait_interval)
+    dump_job(output_metadata_path, job)
+    return job
 
 def is_job_terminated(job_state):
     return job_state in _JOB_TERMINATED_STATES
@@ -102,3 +113,13 @@ def dump_metadata(output_metadata_path, project_id, job):
 
 def dump_job(output_job_path, job):
     gcp_common.dump_file(output_job_path, json.dumps(job))
+
+def stage_file(local_or_gcs_path):
+    if not is_gcs_path(local_or_gcs_path):
+        return local_or_gcs_path
+    _, blob_path = parse_blob_path(local_or_gcs_path)
+    file_name = os.path.basename(blob_path)
+    local_file_path = os.path.join(tempfile.mkdtemp(), file_name)
+    download_blob(local_or_gcs_path, local_file_path)
+    return local_file_path
+

@@ -21,10 +21,11 @@ from kfp_component.core import KfpExecutionContext
 from ._client import DataflowClient
 from .. import common as gcp_common
 from ._common_ops import (generate_job_name, get_job_by_name, 
-    wait_for_job_done, dump_metadata, dump_job)
+    wait_and_dump_job)
 
 def launch_template(project_id, gcs_path, launch_parameters, 
-    location=None, validate_only=None, wait_interval=30, 
+    location=None, job_name_prefix=None, validate_only=None, 
+    wait_interval=30, 
     output_metadata_path='/tmp/mlpipeline-ui-metadata.json',
     output_job_path='/tmp/output.txt'):
     """Launchs a dataflow job from template.
@@ -37,9 +38,12 @@ def launch_template(project_id, gcs_path, launch_parameters,
             Storage URL, beginning with 'gs://'.
         launch_parameters (dict): Parameters to provide to the template 
             being launched. Schema defined in 
-            https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters
+            https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters.
+            `jobName` will be replaced by generated name.
         location (str): The regional endpoint to which to direct the 
             request.
+        job_name_prefix (str): Optional. The prefix of the genrated job
+            name. If not provided, the method will generated a random name.
         validate_only (boolean): If true, the request is validated but 
             not actually executed. Defaults to false.
         wait_interval (int): The wait seconds between polling.
@@ -60,8 +64,9 @@ def launch_template(project_id, gcs_path, launch_parameters,
             )
     with KfpExecutionContext(on_cancel=cancel) as ctx:
         job_name = generate_job_name(
-            launch_parameters.get('jobName', None),
+            job_name_prefix,
             ctx.context_id())
+        print(job_name)
         job = get_job_by_name(df_client, project_id, job_name, 
             location)
         if not job:
@@ -69,9 +74,5 @@ def launch_template(project_id, gcs_path, launch_parameters,
             response = df_client.launch_template(project_id, gcs_path, 
                 location, validate_only, launch_parameters)
             job = response.get('job')
-        dump_metadata(output_metadata_path, project_id, job)
-        job_id = job.get('id')
-        job = wait_for_job_done(df_client, project_id, job_id, 
-            location, wait_interval)
-        dump_job(output_metadata_path, job)
-        return job
+        return wait_and_dump_job(df_client, project_id, location, job,
+            output_metadata_path, output_job_path, wait_interval)
