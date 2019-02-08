@@ -128,15 +128,6 @@ cd ${KFAPP}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
-
-## Update pipeline component image
-pushd ks_app
-ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api
-ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent
-ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow
-ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend
-popd
-
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
@@ -160,6 +151,16 @@ echo "build docker images workflow submitted successfully"
 source "${DIR}/check-argo-status.sh"
 
 echo "build docker images workflow completed"
+
+## Update pipeline component with the newly built image
+pushd ks_app
+ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api
+ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent
+ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow
+ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend
+popd
+
+${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
