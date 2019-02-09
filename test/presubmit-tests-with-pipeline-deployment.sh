@@ -162,9 +162,8 @@ ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api
 ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent
 ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow
 ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend
+ks apply default -c pipeline
 popd
-
-${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
