@@ -172,6 +172,7 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 --serviceaccount test-runner \
 -o name
 `
+
 echo "test workflow submitted successfully"
 
 source "${DIR}/check-argo-status.sh"
