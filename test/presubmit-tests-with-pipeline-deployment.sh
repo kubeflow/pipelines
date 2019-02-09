@@ -147,6 +147,7 @@ ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
 -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
 -p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
 -n ${NAMESPACE} \
+--serviceaccount test-runner \
 -o name
 `
 echo "build docker images workflow submitted successfully"
