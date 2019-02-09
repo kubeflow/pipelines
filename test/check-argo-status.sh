@@ -48,5 +48,4 @@ if [[ $WORKFLOW_STATUS = *"${WORKFLOW_FAILED_KEYWORD}"* ]]; then
   exit 1
 else
   argo get ${ARGO_WORKFLOW} -n ${NAMESPACE}
-  exit 0
 fi
