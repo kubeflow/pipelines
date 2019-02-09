@@ -122,7 +122,7 @@ function clean_up {
   # delete the storage
   gcloud deployment-manager --project=${PROJECT} deployments delete ${KFAPP}-storage --quiet
 }
-trap clean_up EXIT
+#trap clean_up EXIT
 
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform ${PLATFORM} --project ${PROJECT} --skipInitProject
 
@@ -134,7 +134,12 @@ ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
 
-source "${DIR}/install-argo.sh"
+# Some workflows are deployed to the non-default namespace where the GCP credential secret is stored
+# In this case, the default service account in that namespace doesn't have enough permission
+echo "add service account for running the test workflow"
+kubectl config set-context $(kubectl config current-context) --namespace=default
+kubectl create serviceaccount test-runner -n ${NAMESPACE}
+kubectl create clusterrolebinding test-admin-binding --clusterrole=cluster-admin --serviceaccount=${NAMESPACE}:test-runner
 
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
