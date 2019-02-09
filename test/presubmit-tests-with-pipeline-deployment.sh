@@ -119,6 +119,8 @@ function clean_up {
   echo "Clean up..."
   cd ${KFAPP}
   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
+  # delete the storage
+  gcloud deployment-manager --project=${PROJECT} deployments delete ${KFAPP}-storage --quiet
 }
 trap clean_up EXIT
 
@@ -144,6 +146,7 @@ ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
 -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
 -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
 -p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
+-n ${NAMESPACE} \
 -o name
 `
 echo "build docker images workflow submitted successfully"
