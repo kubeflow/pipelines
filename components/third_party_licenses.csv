@@ -179,4 +179,4 @@ tensorflow-gpu,https://raw.githubusercontent.com/tensorflow/tensorflow/master/LI
 webencodings,https://raw.githubusercontent.com/gsnedders/python-webencodings/master/LICENSE,BSD
 google-api-core,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
 google-resumable-media,https://raw.githubusercontent.com/googleapis/google-resumable-media-python/master/LICENSE,Apache 2.0
-
+trainer,https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE,Apache 2.0
