@@ -23,7 +23,7 @@
 # Setup:
 #   apt-get update -y
 #   apt-get install --no-install-recommends -y -q default-jdk
-#   wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
+#   wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar
 
 get_abs_filename() {
   # $1 : relative filename
