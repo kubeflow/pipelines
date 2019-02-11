@@ -131,7 +131,6 @@ ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
 sed -i -e 's|gpu-pool-initialNodeCount:\s*0|gpu-pool-initialNodeCount: 1|g' ./gcp_config/cluster-kubeflow.yaml
 sed -i -e 's|gpu-pool-max-nodes:\s*0|gpu-pool-max-nodes: 1|g' ./gcp_config/cluster-kubeflow.yaml
 sed -i -e 's|gpu-pool-min-nodes:\s*0|gpu-pool-min-nodes: 1|g' ./gcp_config/cluster-kubeflow.yaml
-sed -i -e 's|cluster-version:.\+$|cluster-version: "1.11.6-gke.2"|g' ./gcp_config/cluster-kubeflow.yaml
 
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
