@@ -12,4 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import launcher, core
+import mock
+import unittest
+import math
+import os
+
+from kfp_component.launcher import launch
+
+TEST_PY_FILE = os.path.join(os.path.dirname(__file__), 'echo.py')
+
+class LauncherTest(unittest.TestCase):
+
+    def test_launch_module_succeed(self):
+        self.assertEqual(math.pi, launch('math', 'pi'))
+
+    def test_launch_py_file_succeed(self):
+        self.assertEqual('hello', 
+            launch(TEST_PY_FILE, ['echo', 'hello']))

@@ -12,4 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import launcher, core
+def echo(message):
+    return message
