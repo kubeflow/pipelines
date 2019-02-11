@@ -1,1 +1,2 @@
-kubernetes
+kubernetes == 8.0.1
+fire == 0.1.3
