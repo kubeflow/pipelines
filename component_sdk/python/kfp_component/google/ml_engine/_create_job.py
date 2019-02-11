@@ -24,7 +24,7 @@ from kfp_component.core import KfpExecutionContext
 from ._client import MLEngineClient
 from .. import common as gcp_common
 
-def create_job(project_id, job, wait_interval=30):
+def create_job(project_id, job, job_id_prefix=None, wait_interval=30):
     """Creates a MLEngine job.
 
     Args:
@@ -35,13 +35,14 @@ def create_job(project_id, job, wait_interval=30):
             to get job status. Defaults to 30.
 
     """
-    return CreateJobOp(project_id, job, 
+    return CreateJobOp(project_id, job, job_id_prefix,
         wait_interval).execute_and_wait()
 
 class CreateJobOp:
-    def __init__(self, project_id, job, wait_interval=30):
+    def __init__(self, project_id, job, job_id_prefix=None, wait_interval=30):
         self._ml = MLEngineClient()
         self._project_id = project_id
+        self._job_id_prefix = job_id_prefix
         self._job_id = None
         self._job = job
         self._wait_interval = wait_interval
@@ -59,9 +60,10 @@ class CreateJobOp:
             return finished_job
 
     def _set_job_id(self, context_id):
-        job_id = self._job.get('jobId', None)
-        if not job_id:
-            job_id = context_id
+        if self._job_id_prefix:
+            job_id = self._job_id_prefix + context_id[:16]
+        else:
+            job_id = 'job_' + context_id
         job_id = gcp_common.normalize_name(job_id)
         self._job_id = job_id
         self._job['jobId'] = job_id

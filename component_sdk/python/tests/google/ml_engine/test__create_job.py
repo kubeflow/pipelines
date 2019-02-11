@@ -26,11 +26,10 @@ class TestCreateJob(unittest.TestCase):
 
     def test_create_job_succeed(self, mock_mlengine_client,
         mock_kfp_context, mock_dump_json):
-        job = {
-            'jobId': 'mock_job'
-        }
+        mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
+        job = {}
         returned_job = {
-            'jobId': 'mock_job',
+            'jobId': 'job_ctx1',
             'state': 'SUCCEEDED'
         }
         mock_mlengine_client().get_job.return_value = (
@@ -39,14 +38,40 @@ class TestCreateJob(unittest.TestCase):
         result = create_job('mock_project', job)
 
         self.assertEqual(returned_job, result)
+        mock_mlengine_client().create_job.assert_called_with(
+            project_id = 'mock_project',
+            job = {
+                'jobId': 'job_ctx1'
+            }
+        )
+
+    def test_create_job_with_job_id_prefix_succeed(self, mock_mlengine_client,
+        mock_kfp_context, mock_dump_json):
+        mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
+        job = {}
+        returned_job = {
+            'jobId': 'mock_job_ctx1',
+            'state': 'SUCCEEDED'
+        }
+        mock_mlengine_client().get_job.return_value = (
+            returned_job)
+
+        result = create_job('mock_project', job, job_id_prefix='mock_job_')
+
+        self.assertEqual(returned_job, result)
+        mock_mlengine_client().create_job.assert_called_with(
+            project_id = 'mock_project',
+            job = {
+                'jobId': 'mock_job_ctx1'
+            }
+        )
         
     def test_execute_retry_job_success(self, mock_mlengine_client,
         mock_kfp_context, mock_dump_json):
-        job = {
-            'jobId': 'mock_job'
-        }
+        mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
+        job = {}
         returned_job = {
-            'jobId': 'mock_job',
+            'jobId': 'job_ctx1',
             'state': 'SUCCEEDED'
         }
         mock_mlengine_client().create_job.side_effect = errors.HttpError(
@@ -61,10 +86,10 @@ class TestCreateJob(unittest.TestCase):
 
     def test_create_job_use_context_id_as_name(self, mock_mlengine_client,
         mock_kfp_context, mock_dump_json):
-        context_id = 'context1'
+        context_id = 'ctx1'
         job = {}
         returned_job = {
-            'jobId': context_id,
+            'jobId': 'job_ctx1',
             'state': 'SUCCEEDED'
         }
         mock_mlengine_client().get_job.return_value = (
@@ -76,17 +101,16 @@ class TestCreateJob(unittest.TestCase):
         mock_mlengine_client().create_job.assert_called_with(
             project_id = 'mock_project',
             job = {
-                'jobId': context_id
+                'jobId': 'job_ctx1'
             }
         )
 
     def test_execute_conflict_fail(self, mock_mlengine_client,
         mock_kfp_context, mock_dump_json):
-        job = {
-            'jobId': 'mock_job'
-        }
+        mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
+        job = {}
         returned_job = {
-            'jobId': 'mock_job',
+            'jobId': 'job_ctx1',
             'trainingInput': {
                 'modelDir': 'test'
             },
@@ -105,9 +129,8 @@ class TestCreateJob(unittest.TestCase):
 
     def test_execute_create_job_fail(self, mock_mlengine_client,
         mock_kfp_context, mock_dump_json):
-        job = {
-            'jobId': 'mock_job'
-        }
+        mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
+        job = {}
         mock_mlengine_client().create_job.side_effect = errors.HttpError(
             resp = mock.Mock(status=400),
             content = b'bad request'
@@ -120,9 +143,8 @@ class TestCreateJob(unittest.TestCase):
     
     def test_execute_job_status_fail(self, mock_mlengine_client,
         mock_kfp_context, mock_dump_json):
-        job = {
-            'jobId': 'mock_job'
-        }
+        mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
+        job = {}
         returned_job = {
             'jobId': 'mock_job',
             'trainingInput': {
@@ -137,11 +159,10 @@ class TestCreateJob(unittest.TestCase):
 
     def test_cancel_succeed(self, mock_mlengine_client,
         mock_kfp_context, mock_dump_json):
-        job = {
-            'jobId': 'mock_job'
-        }
+        mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
+        job = {}
         returned_job = {
-            'jobId': 'mock_job',
+            'jobId': 'job_ctx1',
             'state': 'SUCCEEDED'
         }
         mock_mlengine_client().get_job.return_value = (
@@ -152,5 +173,5 @@ class TestCreateJob(unittest.TestCase):
         cancel_func()
 
         mock_mlengine_client().cancel_job.assert_called_with(
-            'mock_project', 'mock_job'
+            'mock_project', 'job_ctx1'
         )
