@@ -62,3 +62,17 @@ def GCPRegion(attr={}):
 
 #TODO: add functions to convert python classes to YAML
 #TODO: add functions to convert YAML spec to python classes.
+
+def serialize_types(type_instance):
+	'''serialize_type serializes the type instance into string'''
+	#TODO: to be implemented.
+	pass
+
+def check_types(serialized_type_a, serialized_type_b):
+	'''type_check checks the type consistency.'''
+	#TODO: to be implemented.
+	pass
+
+class InconsistentTypeException(Exception):
+	#TODO: to be implemented
+	pass
