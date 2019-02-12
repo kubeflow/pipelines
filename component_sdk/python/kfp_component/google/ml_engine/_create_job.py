@@ -31,6 +31,7 @@ def create_job(project_id, job, job_id_prefix=None, wait_interval=30):
         project_id: the ID of the parent project of the job.
         job: the payload of the job. Must have ``jobId`` 
             and ``trainingInput`` or ``predictionInput`.
+        job_id_prefix: the prefix of the generated job id.
         wait_interval: optional wait interval between calls
             to get job status. Defaults to 30.
 

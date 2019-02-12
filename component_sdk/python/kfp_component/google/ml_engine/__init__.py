@@ -16,3 +16,4 @@ from ._create_job import create_job
 from ._create_model import create_model
 from ._create_version import create_version
 from ._delete_version import delete_version
+from ._create_training_job import create_training_job
