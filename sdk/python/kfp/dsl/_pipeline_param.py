@@ -15,12 +15,12 @@
 
 import re
 from collections import namedtuple
+from . import _types
 
 
 # TODO: Move this to a separate class
 # For now, this identifies a condition with only "==" operator supported.
 ConditionOperator = namedtuple('ConditionOperator', 'operator operand1 operand2')
-
 
 class PipelineParam(object):
   """Representing a future value that is passed between pipeline components.
@@ -54,6 +54,8 @@ class PipelineParam(object):
     self.op_name = op_name
     self.name = name
     self.value = value
+    # parameter type: all core types are defined in _types.py
+    self.type = _types.MetaType
 
   def __str__(self):
     """String representation.

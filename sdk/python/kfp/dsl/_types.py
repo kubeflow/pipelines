@@ -39,7 +39,6 @@ class MetaGCSPath(MetaType):
 def GCSPath(attr={}):
 	return type('GCSPath', (MetaGCSPath, ), attr)
 
-
 class MetaGCPRegion(MetaType):
 	openapi_schema_validator = '''{
 		"type": "object",
@@ -59,4 +58,7 @@ class MetaGCPRegion(MetaType):
 		self.region = region
 
 def GCPRegion(attr={}):
-	return type('GCPRegion', (GCPRegion, ), attr)
+	return type('GCPRegion', (MetaGCPRegion, ), attr)
+
+#TODO: add functions to convert python classes to YAML
+#TODO: add functions to convert YAML spec to python classes.
