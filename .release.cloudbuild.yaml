@@ -51,6 +51,18 @@ steps:
   waitFor: ['pullScheduledworkflow']
 
 - name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA']
+  id:   'pullViewerCrdController'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA', 'gcr.io/ml-pipeline/viewer-crd-controller:$TAG_NAME']
+  id:   'tagViewerCrdControllerVersionNumber'
+  waitFor: ['pullViewerCrdController']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA', 'gcr.io/ml-pipeline/viewer-crd-controller:$COMMIT_SHA']
+  id:   'tagViewerCrdControllerCommitSHA'
+  waitFor: ['pullViewerCrdController']
+
+- name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA']
   id:   'pullPersistenceagent'
 - name: 'gcr.io/cloud-builders/docker'
@@ -99,5 +111,7 @@ images:
 - 'gcr.io/ml-pipeline/scheduledworkflow:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/persistenceagent:$TAG_NAME'
 - 'gcr.io/ml-pipeline/persistenceagent:$COMMIT_SHA'
+- 'gcr.io/ml-pipeline/viewer-crd-controller:$TAG_NAME'
+- 'gcr.io/ml-pipeline/viewer-crd-controller:$COMMIT_SHA'
 
 timeout: '1200s'
