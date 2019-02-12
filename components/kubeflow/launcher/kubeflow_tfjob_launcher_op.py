@@ -17,7 +17,7 @@ from kfp import dsl
 def kubeflow_tfjob_launcher_op(container_image, command, number_of_workers: int, number_of_parameter_servers: int, tfjob_timeout_minutes: int, output_dir=None, step_name='TFJob-launcher'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:6ad2601ec7d04e842c212c50d5c78e548e12ddea',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:5df2cdc1ed145320204e8bc73b59cdbd7b3da28f',
         arguments = [
             '--workers', number_of_workers,
             '--pss', number_of_parameter_servers,
