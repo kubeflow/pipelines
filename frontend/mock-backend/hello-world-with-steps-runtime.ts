@@ -105,32 +105,6 @@ export default {
         phase: 'Succeeded',
         boundaryID: 'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c',
         startedAt: '2018-06-12T21:09:46Z',
-        finishedAt: '2018-06-12T21:09:47Z',
-        children: [
-          'hello-world-step2',
-          'hello-world-step3'
-        ]
-      },
-      'hello-world-step2': {
-        id: 'hello-world-step2',
-        name: 'hello-world-step2',
-        displayName: 'say',
-        type: 'Pod',
-        templateName: 'say',
-        phase: 'Succeeded',
-        boundaryID: 'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c',
-        startedAt: '2018-06-12T21:09:46Z',
-        finishedAt: '2018-06-12T21:09:47Z',
-      },
-      'hello-world-step3': {
-        id: 'hello-world-step3',
-        name: 'hello-world-step3',
-        displayName: 'say',
-        type: 'Pod',
-        templateName: 'say',
-        phase: 'Succeeded',
-        boundaryID: 'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c',
-        startedAt: '2018-06-12T21:09:46Z',
         finishedAt: '2018-06-12T21:09:47Z'
       }
     }
