@@ -18,16 +18,19 @@ import * as React from 'react';
 import * as Utils from '../lib/Utils';
 import ExperimentList from './ExperimentList';
 import TestUtils from '../TestUtils';
-import { ApiResourceType } from '../apis/run';
+import { ApiFilter, PredicateOp } from '../apis/filter';
+import { ApiResourceType, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { ExpandState } from '../components/CustomTable';
 import { NodePhase } from './Status';
 import { PageProps } from './Page';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { range } from 'lodash';
-import { shallow, ReactWrapper } from 'enzyme';
+import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 
 describe('ExperimentList', () => {
+  let tree: ShallowWrapper | ReactWrapper;
+
   const updateBannerSpy = jest.fn();
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
@@ -37,47 +40,40 @@ describe('ExperimentList', () => {
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
-  const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
+  jest.spyOn(Utils, 'formatDateString').mockImplementation(() => '1/2/2019, 12:34:56 PM');
 
   function generateProps(): PageProps {
     return TestUtils.generatePageProps(ExperimentList, { pathname: RoutePage.EXPERIMENTS } as any,
       '' as any, historyPushSpy, updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
   }
 
-  async function mountWithNExperiments(n: number, nRuns: number): Promise<ReactWrapper> {
+  async function mountWithNExperiments(n: number, nRuns: number): Promise<void> {
     listExperimentsSpy.mockImplementation(() => ({
       experiments: range(n).map(i => ({ id: 'test-experiment-id' + i, name: 'test experiment name' + i })),
     }));
     listRunsSpy.mockImplementation(() => ({
       runs: range(nRuns).map(i => ({ id: 'test-run-id' + i, name: 'test run name' + i })),
     }));
-    const tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
     await listExperimentsSpy;
     await listRunsSpy;
     await TestUtils.flushPromises();
     tree.update(); // Make sure the tree is updated before returning it
-    return tree;
   }
 
-  beforeEach(() => {
-    // Reset mocks
-    updateBannerSpy.mockReset();
-    updateDialogSpy.mockReset();
-    updateSnackbarSpy.mockReset();
-    updateToolbarSpy.mockReset();
-    listExperimentsSpy.mockReset();
-    listRunsSpy.mockReset();
-    formatDateStringSpy.mockImplementation(() => '1/2/2019, 12:34:56 PM');
-  });
-
-  it('renders an empty list with empty state message', () => {
-    const tree = shallow(<ExperimentList {...generateProps()} />);
-    expect(tree).toMatchSnapshot();
+  afterEach(() => {
+    jest.resetAllMocks();
+    jest.clearAllMocks();
     tree.unmount();
   });
 
+  it('renders an empty list with empty state message', () => {
+    tree = shallow(<ExperimentList {...generateProps()} />);
+    expect(tree).toMatchSnapshot();
+  });
+
   it('renders a list of one experiment', async () => {
-    const tree = shallow(<ExperimentList {...generateProps()} />);
+    tree = shallow(<ExperimentList {...generateProps()} />);
     tree.setState({
       displayExperiments: [{
         description: 'test experiment description',
@@ -88,11 +84,10 @@ describe('ExperimentList', () => {
     await listExperimentsSpy;
     await listRunsSpy;
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('renders a list of one experiment with no description', async () => {
-    const tree = shallow(<ExperimentList {...generateProps()} />);
+    tree = shallow(<ExperimentList {...generateProps()} />);
     tree.setState({
       experiments: [{
         expandState: ExpandState.COLLAPSED,
@@ -102,11 +97,10 @@ describe('ExperimentList', () => {
     await listExperimentsSpy;
     await listRunsSpy;
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('renders a list of one experiment with error', async () => {
-    const tree = shallow(<ExperimentList {...generateProps()} />);
+    tree = shallow(<ExperimentList {...generateProps()} />);
     tree.setState({
       experiments: [{
         description: 'test experiment description',
@@ -118,25 +112,35 @@ describe('ExperimentList', () => {
     await listExperimentsSpy;
     await listRunsSpy;
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('calls Apis to list experiments, sorted by creation time in descending order', async () => {
-    const tree = await mountWithNExperiments(1, 1);
+    await mountWithNExperiments(1, 1);
     expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
-    expect(listRunsSpy).toHaveBeenLastCalledWith(undefined, 5, 'created_at desc',
-      ApiResourceType.EXPERIMENT.toString(), 'test-experiment-id0');
+    expect(listRunsSpy).toHaveBeenLastCalledWith(
+      undefined,
+      5,
+      'created_at desc',
+      ApiResourceType.EXPERIMENT.toString(),
+      'test-experiment-id0',
+      encodeURIComponent(JSON.stringify({
+        predicates: [{
+          key: 'storage_state',
+          op: PredicateOp.NOTEQUALS,
+          string_value: RunStorageState.ARCHIVED.toString(),
+        }],
+      } as ApiFilter)),
+    );
     expect(tree.state()).toHaveProperty('displayExperiments', [{
       expandState: ExpandState.COLLAPSED,
       id: 'test-experiment-id0',
       last5Runs: [{ id: 'test-run-id0', name: 'test run name0' }],
       name: 'test experiment name0',
     }]);
-    tree.unmount();
   });
 
   it('has a Refresh button, clicking it refreshes the experiment list', async () => {
-    const tree = await mountWithNExperiments(1, 1);
+    await mountWithNExperiments(1, 1);
     const instance = tree.instance() as ExperimentList;
     expect(listExperimentsSpy.mock.calls.length).toBe(1);
     const refreshBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Refresh');
@@ -145,12 +149,11 @@ describe('ExperimentList', () => {
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
     expect(listExperimentsSpy).toHaveBeenLastCalledWith('', 10, 'created_at desc', '');
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
-    tree.unmount();
   });
 
   it('shows error banner when listing experiments fails', async () => {
     TestUtils.makeErrorResponseOnce(listExperimentsSpy, 'bad stuff happened');
-    const tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
     await listExperimentsSpy;
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -158,7 +161,6 @@ describe('ExperimentList', () => {
       message: 'Error: failed to retrieve list of experiments. Click Details for more information.',
       mode: 'error',
     }));
-    tree.unmount();
   });
 
   it('shows error next to experiment when listing its last 5 runs fails', async () => {
@@ -167,7 +169,7 @@ describe('ExperimentList', () => {
 
     listExperimentsSpy.mockImplementationOnce(() => ({ experiments: [{ name: 'exp1' }] }));
     TestUtils.makeErrorResponseOnce(listRunsSpy, 'bad stuff happened');
-    const tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
     await listExperimentsSpy;
     await TestUtils.flushPromises();
     expect(tree.state()).toHaveProperty('displayExperiments', [{
@@ -175,11 +177,10 @@ describe('ExperimentList', () => {
       expandState: 0,
       name: 'exp1',
     }]);
-    tree.unmount();
   });
 
   it('shows error banner when listing experiments fails after refresh', async () => {
-    const tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
     const instance = tree.instance() as ExperimentList;
     const refreshBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Refresh');
     expect(refreshBtn).toBeDefined();
@@ -192,12 +193,11 @@ describe('ExperimentList', () => {
       message: 'Error: failed to retrieve list of experiments. Click Details for more information.',
       mode: 'error',
     }));
-    tree.unmount();
   });
 
   it('hides error banner when listing experiments fails then succeeds', async () => {
     TestUtils.makeErrorResponseOnce(listExperimentsSpy, 'bad stuff happened');
-    const tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
     const instance = tree.instance() as ExperimentList;
     await listExperimentsSpy;
     await TestUtils.flushPromises();
@@ -214,11 +214,10 @@ describe('ExperimentList', () => {
     await refreshBtn!.action();
     expect(listExperimentsSpy.mock.calls.length).toBe(2);
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
-    tree.unmount();
   });
 
   it('can expand an experiment to see its runs', async () => {
-    const tree = await mountWithNExperiments(1, 1);
+    await mountWithNExperiments(1, 1);
     tree.find('.tableRow button').at(0).simulate('click');
     expect(tree.state()).toHaveProperty('displayExperiments', [{
       expandState: ExpandState.EXPANDED,
@@ -226,18 +225,17 @@ describe('ExperimentList', () => {
       last5Runs: [{ id: 'test-run-id0', name: 'test run name0' }],
       name: 'test experiment name0',
     }]);
-    tree.unmount();
   });
 
   it('renders a list of runs for given experiment', async () => {
-    const tree = shallow(<ExperimentList {...generateProps()} />);
+    tree = shallow(<ExperimentList {...generateProps()} />);
     tree.setState({ displayExperiments: [{ last5Runs: [{ id: 'run1id' }, { id: 'run2id' }] }] });
     const runListTree = (tree.instance() as any)._getExpandedExperimentComponent(0);
     expect(runListTree.props.runIdListMask).toEqual(['run1id', 'run2id']);
   });
 
   it('navigates to new experiment page when Create experiment button is clicked', async () => {
-    const tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
     const createBtn = (tree.instance() as ExperimentList)
       .getInitialToolbarState().actions.find(b => b.title === 'Create an experiment');
     await createBtn!.action();
@@ -245,36 +243,33 @@ describe('ExperimentList', () => {
   });
 
   it('always has new experiment button enabled', async () => {
-    const tree = await mountWithNExperiments(1, 1);
+    await mountWithNExperiments(1, 1);
     const calls = updateToolbarSpy.mock.calls[0];
     expect(calls[0].actions.find((b: any) => b.title === 'Create an experiment')).not.toHaveProperty('disabled');
-    tree.unmount();
   });
 
   it('enables clone button when one run is selected', async () => {
-    const tree = await mountWithNExperiments(1, 1);
+    await mountWithNExperiments(1, 1);
     (tree.instance() as any)._selectionChanged(['run1']);
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
     expect(updateToolbarSpy.mock.calls[0][0].actions.find((b: any) => b.title === 'Clone run'))
       .toHaveProperty('disabled', true);
     expect(updateToolbarSpy.mock.calls[1][0].actions.find((b: any) => b.title === 'Clone run'))
       .toHaveProperty('disabled', false);
-    tree.unmount();
   });
 
   it('disables clone button when more than one run is selected', async () => {
-    const tree = await mountWithNExperiments(1, 1);
+    await mountWithNExperiments(1, 1);
     (tree.instance() as any)._selectionChanged(['run1', 'run2']);
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
     expect(updateToolbarSpy.mock.calls[0][0].actions.find((b: any) => b.title === 'Clone run'))
       .toHaveProperty('disabled', true);
     expect(updateToolbarSpy.mock.calls[1][0].actions.find((b: any) => b.title === 'Clone run'))
       .toHaveProperty('disabled', true);
-    tree.unmount();
   });
 
   it('enables compare runs button only when more than one is selected', async () => {
-    const tree = await mountWithNExperiments(1, 1);
+    await mountWithNExperiments(1, 1);
     (tree.instance() as any)._selectionChanged(['run1']);
     (tree.instance() as any)._selectionChanged(['run1', 'run2']);
     (tree.instance() as any)._selectionChanged(['run1', 'run2', 'run3']);
@@ -287,11 +282,10 @@ describe('ExperimentList', () => {
       .toHaveProperty('disabled', false);
     expect(updateToolbarSpy.mock.calls[3][0].actions.find((b: any) => b.title === 'Compare runs'))
       .toHaveProperty('disabled', false);
-    tree.unmount();
   });
 
   it('navigates to compare page with the selected run ids', async () => {
-    const tree = await mountWithNExperiments(1, 1);
+    await mountWithNExperiments(1, 1);
     (tree.instance() as any)._selectionChanged(['run1', 'run2', 'run3']);
     const compareBtn = (tree.instance() as ExperimentList)
       .getInitialToolbarState().actions.find(b => b.title === 'Compare runs');
@@ -301,7 +295,7 @@ describe('ExperimentList', () => {
   });
 
   it('navigates to new run page with the selected run id for cloning', async () => {
-    const tree = await mountWithNExperiments(1, 1);
+    await mountWithNExperiments(1, 1);
     (tree.instance() as any)._selectionChanged(['run1']);
     const cloneBtn = (tree.instance() as ExperimentList)
       .getInitialToolbarState().actions.find(b => b.title === 'Clone run');
@@ -310,14 +304,25 @@ describe('ExperimentList', () => {
       `${RoutePage.NEW_RUN}?${QUERY_PARAMS.cloneFromRun}=run1`);
   });
 
+  it('enables archive button when at least one run is selected', async () => {
+    await mountWithNExperiments(1, 1);
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive').disabled).toBeTruthy();
+    (tree.instance() as any)._selectionChanged(['run1']);
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive').disabled).toBeFalsy();
+    (tree.instance() as any)._selectionChanged(['run1', 'run2']);
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive').disabled).toBeFalsy();
+    (tree.instance() as any)._selectionChanged([]);
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive').disabled).toBeTruthy();
+  });
+
   it('renders experiment names as links to their details pages', async () => {
-    const tree = TestUtils.mountWithRouter((ExperimentList.prototype as any)
+    tree = TestUtils.mountWithRouter((ExperimentList.prototype as any)
       ._nameCustomRenderer('experiment name', 'experiment-id'));
     expect(tree).toMatchSnapshot();
   });
 
   it('renders last 5 runs statuses', async () => {
-    const tree = shallow((ExperimentList.prototype as any)
+    tree = shallow((ExperimentList.prototype as any)
       ._last5RunsCustomRenderer([
         { status: NodePhase.SUCCEEDED },
         { status: NodePhase.PENDING },

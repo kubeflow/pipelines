@@ -65,6 +65,12 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
     />
   </div>
   <WithStyles(DialogActions)>
+    <WithStyles(Button)
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
     <BusyButton
       busy={false}
       disabled={true}
@@ -72,12 +78,6 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
       onClick={[Function]}
       title="Upload"
     />
-    <WithStyles(Button)
-      id="cancelUploadBtn"
-      onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
 `;
@@ -200,6 +200,12 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
     />
   </div>
   <WithStyles(DialogActions)>
+    <WithStyles(Button)
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
     <BusyButton
       busy={false}
       disabled={true}
@@ -207,12 +213,6 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
       onClick={[Function]}
       title="Upload"
     />
-    <WithStyles(Button)
-      id="cancelUploadBtn"
-      onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
 `;
@@ -330,6 +330,12 @@ exports[`UploadPipelineDialog renders closed 1`] = `
     />
   </div>
   <WithStyles(DialogActions)>
+    <WithStyles(Button)
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
     <BusyButton
       busy={false}
       disabled={true}
@@ -337,12 +343,6 @@ exports[`UploadPipelineDialog renders closed 1`] = `
       onClick={[Function]}
       title="Upload"
     />
-    <WithStyles(Button)
-      id="cancelUploadBtn"
-      onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
 `;
@@ -460,6 +460,12 @@ exports[`UploadPipelineDialog renders open 1`] = `
     />
   </div>
   <WithStyles(DialogActions)>
+    <WithStyles(Button)
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
     <BusyButton
       busy={false}
       disabled={true}
@@ -467,12 +473,6 @@ exports[`UploadPipelineDialog renders open 1`] = `
       onClick={[Function]}
       title="Upload"
     />
-    <WithStyles(Button)
-      id="cancelUploadBtn"
-      onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
 `;
@@ -590,6 +590,12 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
     />
   </div>
   <WithStyles(DialogActions)>
+    <WithStyles(Button)
+      id="cancelUploadBtn"
+      onClick={[Function]}
+    >
+      Cancel
+    </WithStyles(Button)>
     <BusyButton
       busy={false}
       disabled={true}
@@ -597,12 +603,6 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
       onClick={[Function]}
       title="Upload"
     />
-    <WithStyles(Button)
-      id="cancelUploadBtn"
-      onClick={[Function]}
-    >
-      Cancel
-    </WithStyles(Button)>
   </WithStyles(DialogActions)>
 </WithStyles(Dialog)>
 `;

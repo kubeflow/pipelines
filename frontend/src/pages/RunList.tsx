@@ -17,10 +17,11 @@
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
-import { ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric } from '../../src/apis/run';
+import { ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric, RunStorageState } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase, statusToIcon } from './Status';
+import { PredicateOp, ApiFilter } from '../apis/filter';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { URLParser } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
@@ -79,6 +80,7 @@ export interface RunListProps extends RouteComponentProps {
   onSelectionChange?: (selectedRunIds: string[]) => void;
   runIdListMask?: string[];
   selectedIds?: string[];
+  storageState?: RunStorageState;
 }
 
 interface RunListState {
@@ -169,7 +171,12 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         updateSelection={this.props.onSelectionChange} reload={this._loadRuns.bind(this)}
         disablePaging={this.props.disablePaging} disableSorting={this.props.disableSorting}
         disableSelection={this.props.disableSelection} noFilterBox={this.props.noFilterBox}
-        emptyMessage={`No runs found${this.props.experimentIdMask ? ' for this experiment' : ''}.`}
+        emptyMessage={
+          `No` +
+          `${this.props.storageState === RunStorageState.ARCHIVED ? ' archived' : ' available'}` +
+          ` runs found` +
+          `${this.props.experimentIdMask ? ' for this experiment' : ''}.`
+        }
       />
     </div>);
   }
@@ -282,6 +289,23 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       displayRuns = this.props.runIdListMask.map(id => ({ metadata: { id } }));
     } else {
       // Load all runs
+      if (this.props.storageState) {
+        try {
+          // Augment the request filter with the storage state predicate
+          const filter = JSON.parse(decodeURIComponent(request.filter || '{"predicates": []}')) as ApiFilter;
+          filter.predicates = (filter.predicates || []).concat([{
+            key: 'storage_state',
+            // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
+            // is missing, in which case it should be counted as available.
+            op: this.props.storageState === RunStorageState.ARCHIVED ? PredicateOp.EQUALS : PredicateOp.NOTEQUALS,
+            string_value: RunStorageState.ARCHIVED.toString(),
+          }]);
+          request.filter = encodeURIComponent(JSON.stringify(filter));
+        } catch (err) {
+          logger.error('Could not parse request filter: ', request.filter);
+        }
+      }
+
       try {
         const response = await Apis.runServiceApi.listRuns(
           request.pageToken,

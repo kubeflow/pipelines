@@ -23,12 +23,11 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 
-interface AllRunsListState {
+interface ArchiveState {
   selectedIds: string[];
 }
 
-class AllRunsList extends Page<{}, AllRunsListState> {
-
+export default class Archive extends Page<{}, ArchiveState> {
   private _runlistRef = React.createRef<RunList>();
 
   constructor(props: any) {
@@ -43,18 +42,15 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: [
-        buttons.newExperiment(),
-        buttons.compareRuns(() => this.state.selectedIds),
-        buttons.cloneRun(() => this.state.selectedIds, false),
-        buttons.archive(
+        buttons.restore(
           () => this.state.selectedIds,
           false,
-          selectedIds => this._selectionChanged(selectedIds),
+          this._selectionChanged.bind(this),
         ),
         buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [],
-      pageTitle: 'Experiments',
+      pageTitle: 'Archive',
     };
   }
 
@@ -62,7 +58,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     return <div className={classes(commonCss.page, padding(20, 'lr'))}>
       <RunList onError={this.showPageError.bind(this)} selectedIds={this.state.selectedIds}
         onSelectionChange={this._selectionChanged.bind(this)} ref={this._runlistRef}
-        storageState={RunStorageState.AVAILABLE} {...this.props} />
+        storageState={RunStorageState.ARCHIVED} {...this.props} />
     </div>;
   }
 
@@ -76,15 +72,9 @@ class AllRunsList extends Page<{}, AllRunsListState> {
 
   private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = [...this.props.toolbarProps.actions];
-    // Compare runs button
-    toolbarActions[1].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
-    // Clone run button
-    toolbarActions[2].disabled = selectedIds.length !== 1;
-    // Archive run button
-    toolbarActions[3].disabled = !selectedIds.length;
+    // Restore button
+    toolbarActions[0].disabled = !selectedIds.length;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
   }
 }
-
-export default AllRunsList;
