@@ -17,14 +17,15 @@
 import * as React from 'react';
 import ExperimentDetails from './ExperimentDetails';
 import TestUtils from '../TestUtils';
-import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
-import { Apis } from '../lib/Apis';
-import { PageProps } from './Page';
-import { range } from 'lodash';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiResourceType } from '../apis/job';
+import { Apis } from '../lib/Apis';
+import { PageProps } from './Page';
+import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
+import { range } from 'lodash';
 
 describe('ExperimentDetails', () => {
 
@@ -198,6 +199,14 @@ describe('ExperimentDetails', () => {
     expect(consoleErrorSpy.mock.calls[0][0]).toBe(
       'Error loading experiment: ' + MOCK_EXPERIMENT.id
     );
+  });
+
+  it('shows a list of available runs', async () => {
+    await mockNJobs(1);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.AVAILABLE.toString());
   });
 
   it('fetches this experiment\'s recurring runs', async () => {
