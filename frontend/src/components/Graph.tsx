@@ -20,7 +20,10 @@ import { classes, stylesheet } from 'typestyle';
 import { fontsize, color } from '../Css';
 
 interface Segment {
-  height: number;
+  angle: number;
+  finalY: number;
+  finalX: number;
+  height?: number;
   left: number;
   top: number;
   width: number;
@@ -44,7 +47,6 @@ const css = stylesheet({
     borderWidth: '7px 6px 0 6px',
     content: `''`,
     position: 'absolute',
-    top: -5,
     zIndex: 2,
   },
   icon: {
@@ -169,7 +171,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             if (leftmostAcceptableXPos >= x1) {
               x1 = leftmostAcceptableXPos;
             }
-            y1 = sourceNode.y + (sourceNode.height / 2);
+            y1 = sourceNode.y + (sourceNode.height / 2) - 3;
           }
 
           let x2 = edge.points[i].x;
@@ -202,57 +204,13 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             }
           }
 
-          // How we render line segments depends on whether the layout dagre gave us calls for a
-          // vertical, a horizontal, or a diagonal line.
-          if (x1 === x2) {
-            // Solely vertical segment
-            const length = (y2 - y1) + 1;
-            segments.push({
-              height: length % 2 === 0 ? length : length - 1,
-              left: this.LEFT_OFFSET + x1,
-              top: this.TOP_OFFSET + y1,
-              width: this.EDGE_THICKNESS,
-            });
-          } else if (y1 === y2) {
-            // Solely horizontal segment
-            const length = x2 - x1;
-            const xMid = (x1 + x2) / 2;
-            segments.push({
-              height: this.EDGE_THICKNESS,
-              left: this.LEFT_OFFSET + xMid - (length / 2),
-              top: this.TOP_OFFSET + y1,
-              width: length,
-            });
-          } else {
-            // If the points given form a diagonal line, then split that line into 3 segments, two
-            // vertical, and one horizontal.
-
-            // Vertical segment 1
-            const verticalSegmentLength = (y2 - y1) / 2;
-            segments.push({
-              height: verticalSegmentLength + 2,
-              left: this.LEFT_OFFSET + x1,
-              top: this.TOP_OFFSET + y1,
-              width: this.EDGE_THICKNESS,
-            });
-
-            // Horizontal segment
-            const horizontalSegmentLength = Math.abs(x2 - x1) + 1;
-            segments.push({
-              height: this.EDGE_THICKNESS,
-              left: this.LEFT_OFFSET + Math.min(x1, x2),
-              top: this.TOP_OFFSET + ((y1 + y2) / 2),
-              width: horizontalSegmentLength,
-            });
-
-            // Vertical segment 2
-            segments.push({
-              height: verticalSegmentLength + 1,
-              left: this.LEFT_OFFSET + x2,
-              top: this.TOP_OFFSET + ((y1 + y2) / 2),
-              width: this.EDGE_THICKNESS,
-            });
-          }
+          // The + 0.5 at the end of 'distance' helps fill out the elbows of the edges.
+          const width = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)) + 0.5;
+          const xMid = (x1 + x2) / 2;
+          const top = (y1 + y2) / 2;
+          const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
+          const left = xMid - (width / 2);
+          segments.push({ angle, finalY: y2, finalX: x2, left, top, width });
         }
       }
       displayEdges.push({
@@ -304,9 +262,11 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                 <div className={css.line}
                   key={l} style={{
                     backgroundColor: edgeColor,
-                    height: segment.height,
+                    // height: segment.height,
+                    height: this.EDGE_THICKNESS,
                     left: segment.left,
                     top: segment.top,
+                    transform: `translate(100px, 44px) rotate(${segment.angle}deg)`,
                     transition: 'left 0.5s, top 0.5s',
                     width: segment.width,
                   }} />
@@ -314,8 +274,9 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
               {!edge.isPlaceholder && (
                 <div className={css.arrowHead} style={{
                   borderTopColor: edgeColor,
-                  left: edge.segments[edge.segments.length - 1].left - 5,
-                  top: edge.segments[edge.segments.length - 1].top + edge.segments[edge.segments.length - 1].height - 5
+                  left: edge.segments[edge.segments.length - 1].finalX,
+                  top: edge.segments[edge.segments.length - 1].finalY,
+                  transform: `translate(94px, 41px) rotate(${edge.segments[edge.segments.length - 1].angle + 90}deg)`,
                 }} />
               )}
             </div>
