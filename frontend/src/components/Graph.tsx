@@ -134,7 +134,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   public render(): JSX.Element | null {
     const { graph } = this.props;
     const displayEdges: Edge[] = [];
-    const displayEdgeStartPoints: number[][] = [];
 
     if (!graph.nodes().length) {
       return null;
@@ -254,11 +253,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
               width: this.EDGE_THICKNESS,
             });
           }
-
-          // Store the first point of the edge to draw the edge start circle
-          if (i === 1) {
-            displayEdgeStartPoints.push([x1, y1]);
-          }
         }
       }
       displayEdges.push({
@@ -281,7 +275,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             onMouseEnter={() => {
               if (!this.props.selectedNodeId) {
                 this.setState({ hoveredNode: node.id });
-              } 
+              }
             }}
             onMouseLeave={() => {
               if (this.state.hoveredNode === node.id) {
@@ -327,17 +321,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             </div>
           );}
         )}
-
-        {/* {displayEdgeStartPoints.map((point, i) => (
-          <div className={css.startCircle} key={i} style={{
-            left: `calc(${point[0]}px - 3px + ${this.LEFT_OFFSET}px)`,
-            top: `calc(${point[1]}px - 3px + ${this.TOP_OFFSET}px)`,
-          }} />
-        ))} */}
       </div>
     );
   }
-  
+
   private getEdgeColor(edge: Edge, highlightNode?: string): string {
     if (highlightNode) {
       if (edge.from === highlightNode) {
