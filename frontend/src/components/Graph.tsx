@@ -21,12 +21,12 @@ import { fontsize, color } from '../Css';
 
 interface Segment {
   angle: number;
+  distance: number;
   finalY: number;
   finalX: number;
   height?: number;
   left: number;
   top: number;
-  width: number;
 }
 
 interface Edge {
@@ -204,13 +204,28 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             }
           }
 
-          // The + 0.5 at the end of 'distance' helps fill out the elbows of the edges.
-          const width = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)) + 0.5;
-          const xMid = (x1 + x2) / 2;
-          const top = (y1 + y2) / 2;
-          const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
-          const left = xMid - (width / 2);
-          segments.push({ angle, finalY: y2, finalX: x2, left, top, width });
+          if (i === edge.points.length - 1 && x1 !== x2) {
+            // Diagonal
+            const yHalf = (y1 + y2) / 2;
+            // The + 0.5 at the end of 'distance' helps fill out the elbows of the edges.
+            const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - yHalf, 2)) + 0.5;
+            const xMid = (x1 + x2) / 2;
+            const top = (y1 + yHalf) / 2;
+            const angle = Math.atan2(y1 - yHalf, x1 - x2) * 180 / Math.PI;
+            const left = xMid - (distance / 2);
+            segments.push({ angle, finalY: yHalf, finalX: x2, left, top, distance });
+
+            // Vertical
+            segments.push({ angle: 270, finalY: y2, finalX: x2, left: x2 - 5, top: y2 - 5, distance: y2 - yHalf });
+          } else {
+            // The + 0.5 at the end of 'distance' helps fill out the elbows of the edges.
+            const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)) + 0.5;
+            const xMid = (x1 + x2) / 2;
+            const top = (y1 + y2) / 2;
+            const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
+            const left = xMid - (distance / 2);
+            segments.push({ angle, finalY: y2, finalX: x2, left, top, distance });
+          }
         }
       }
       displayEdges.push({
@@ -268,7 +283,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                     top: segment.top,
                     transform: `translate(100px, 44px) rotate(${segment.angle}deg)`,
                     transition: 'left 0.5s, top 0.5s',
-                    width: segment.width,
+                    width: segment.distance,
                   }} />
               ))}
               {!edge.isPlaceholder && (
