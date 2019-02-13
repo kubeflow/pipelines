@@ -67,15 +67,6 @@ describe('ExperimentList', () => {
     tree.unmount();
   });
 
-  afterEach(async () => {
-    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
-    // depends on mocks/spies
-    if (tree) {
-      await tree.unmount();
-    }
-    jest.resetAllMocks();
-  });
-
   it('renders an empty list with empty state message', () => {
     tree = shallow(<ExperimentList {...generateProps()} />);
     expect(tree).toMatchSnapshot();
