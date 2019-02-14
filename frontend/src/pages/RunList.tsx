@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import CustomTable, { Column, Row } from '../components/CustomTable';
+import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
 import { ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric, RunStorageState } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
@@ -46,7 +46,7 @@ const css = stylesheet({
 });
 
 interface ExperimentInfo {
-  displayName: string;
+  displayName?: string;
   id: string;
 }
 
@@ -66,7 +66,7 @@ interface DisplayRun {
 }
 
 interface DisplayMetric {
-  metadata: MetricMetadata;
+  metadata?: MetricMetadata;
   metric?: ApiRunMetric;
 }
 
@@ -105,15 +105,15 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     const metricMetadata: MetricMetadata[] = this.state.metrics.slice(0, 2);
     const columns: Column[] = [
       {
-        customRenderer: this._nameCustomRenderer.bind(this),
+        customRenderer: this._nameCustomRenderer,
         flex: 2,
         label: 'Run name',
         sortKey: RunSortKeys.NAME,
       },
-      { customRenderer: this._statusCustomRenderer.bind(this), flex: 0.5, label: 'Status' },
+      { customRenderer: this._statusCustomRenderer, flex: 0.5, label: 'Status' },
       { label: 'Duration', flex: 0.5 },
-      { customRenderer: this._experimentCustomRenderer.bind(this), label: 'Experiment', flex: 1 },
-      { customRenderer: this._pipelineCustomRenderer.bind(this), label: 'Pipeline', flex: 1 },
+      { customRenderer: this._experimentCustomRenderer, label: 'Experiment', flex: 1 },
+      { customRenderer: this._pipelineCustomRenderer, label: 'Pipeline', flex: 1 },
       { label: 'Start time', flex: 1, sortKey: RunSortKeys.CREATED_AT },
     ];
 
@@ -121,14 +121,14 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       // This is a column of empty cells with a left border to separate the metrics from the other
       // columns.
       columns.push({
-        customRenderer: this._metricBufferCustomRenderer.bind(this),
+        customRenderer: this._metricBufferCustomRenderer,
         flex: 0.1,
         label: '',
       });
 
       columns.push(...metricMetadata.map((metadata) => {
         return {
-          customRenderer: this._metricCustomRenderer.bind(this),
+          customRenderer: this._metricCustomRenderer,
           flex: 1,
           label: metadata.name!
         };
@@ -187,53 +187,53 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     }
   }
 
-  public _nameCustomRenderer(value: string, id: string): JSX.Element {
+  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (props: CustomRendererProps<string>) => {
     return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-      to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, id)}>{value}</Link>;
+      to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}>{props.value}</Link>;
   }
 
-  public _pipelineCustomRenderer(pipelineInfo: PipelineInfo, id: string): JSX.Element {
+  public _pipelineCustomRenderer: React.FC<CustomRendererProps<PipelineInfo>> = (props: CustomRendererProps<PipelineInfo>) => {
     // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
-    if (!pipelineInfo || (!pipelineInfo.showLink && !pipelineInfo.id)) {
+    if (!props.value || (!props.value.showLink && !props.value.id)) {
       return <div>-</div>;
     }
-    const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: id });
-    const url = pipelineInfo.showLink ?
+    const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: props.id });
+    const url = props.value.showLink ?
       RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') + search :
-      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, pipelineInfo.id || '');
+      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, props.value.id || '');
     return (
       <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
         to={url}>
-        {pipelineInfo.showLink ? '[View pipeline]' : pipelineInfo.displayName}
+        {props.value.showLink ? '[View pipeline]' : props.value.displayName}
       </Link>
     );
   }
 
-  public _experimentCustomRenderer(experimentInfo?: ExperimentInfo): JSX.Element {
+  public _experimentCustomRenderer: React.FC<CustomRendererProps<ExperimentInfo>> = (props: CustomRendererProps<ExperimentInfo>) => {
     // If the getExperiment call failed or a run has no experiment, we display a placeholder.
-    if (!experimentInfo || !experimentInfo.id) {
+    if (!props.value || !props.value.id) {
       return <div>-</div>;
     }
     return (
       <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentInfo.id)}>
-        {experimentInfo.displayName}
+        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.value.id)}>
+        {props.value.displayName}
       </Link>
     );
   }
 
-  public _statusCustomRenderer(status: NodePhase): JSX.Element {
-    return statusToIcon(status);
+  public _statusCustomRenderer: React.FC<CustomRendererProps<NodePhase>> = (props: CustomRendererProps<NodePhase>) => {
+    return statusToIcon(props.value);
   }
 
-  public _metricBufferCustomRenderer(): JSX.Element {
+  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = (props: CustomRendererProps<{}>) => {
     return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
   }
 
-  public _metricCustomRenderer(displayMetric: DisplayMetric): JSX.Element {
+  public _metricCustomRenderer: React.FC<CustomRendererProps<DisplayMetric>> = (props: CustomRendererProps<DisplayMetric>) => {
+    const displayMetric = props.value;
     if (!displayMetric || !displayMetric.metric ||
-      displayMetric.metric.number_value === undefined ||
-      (displayMetric.metric.format !== RunMetricFormat.PERCENTAGE && !displayMetric.metadata)) {
+      displayMetric.metric.number_value === undefined) {
       return <div />;
     }
 
@@ -245,6 +245,12 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       displayString = (displayMetric.metric.number_value * 100).toFixed(3) + '%';
       width = `calc(${displayString})`;
     } else {
+
+      // Non-percentage metrics must contain metadata
+      if (!displayMetric.metadata) {
+        return <div />;
+      }
+
       displayString = displayMetric.metric.number_value.toFixed(3);
 
       if (displayMetric.metadata.maxValue === 0 && displayMetric.metadata.minValue === 0) {
@@ -252,14 +258,14 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       }
 
       if (displayMetric.metric.number_value - displayMetric.metadata.minValue < 0) {
-        logger.error(`Run ${arguments[1]}'s metric ${displayMetric.metadata.name}'s value:`
+        logger.error(`Run ${props.id}'s metric ${displayMetric.metadata.name}'s value:`
           + ` (${displayMetric.metric.number_value}) was lower than the supposed minimum of`
           + ` (${displayMetric.metadata.minValue})`);
         return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
       }
 
       if (displayMetric.metadata.maxValue - displayMetric.metric.number_value < 0) {
-        logger.error(`Run ${arguments[1]}'s metric ${displayMetric.metadata.name}'s value:`
+        logger.error(`Run ${props.id}'s metric ${displayMetric.metadata.name}'s value:`
           + ` (${displayMetric.metric.number_value}) was greater than the supposed maximum of`
           + ` (${displayMetric.metadata.maxValue})`);
         return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
