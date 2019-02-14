@@ -19,8 +19,9 @@ import Buttons from '../lib/Buttons';
 import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
 import RunList from './RunList';
 import produce from 'immer';
+import { ApiFilter, PredicateOp } from '../apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
-import { ApiResourceType, ApiRun } from '../apis/run';
+import { ApiResourceType, ApiRun, RunStorageState } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
@@ -63,6 +64,11 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         buttons.newExperiment(),
         buttons.compareRuns(() => this.state.selectedIds),
         buttons.cloneRun(() => this.state.selectedIds, false),
+        buttons.archive(
+          () => this.state.selectedIds,
+          false,
+          ids => this._selectionChanged(ids),
+        ),
         buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [],
@@ -141,7 +147,14 @@ class ExperimentList extends Page<{}, ExperimentListState> {
           5 /* pageSize */,
           RunSortKeys.CREATED_AT + ' desc',
           ApiResourceType.EXPERIMENT.toString(),
-          experiment.id
+          experiment.id,
+          encodeURIComponent(JSON.stringify({
+            predicates: [{
+              key: 'storage_state',
+              op: PredicateOp.NOTEQUALS,
+              string_value: RunStorageState.ARCHIVED.toString(),
+            }]
+          } as ApiFilter)),
         );
         experiment.last5Runs = listRunsResponse.runs || [];
       } catch (err) {
@@ -177,6 +190,8 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       draft[1].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
       // Enable/Disable Clone button
       draft[2].disabled = selectedIds.length !== 1;
+      // Archive run button
+      draft[3].disabled = !selectedIds.length;
     });
     this.props.updateToolbar({ actions });
     this.setState({ selectedIds });
@@ -198,8 +213,10 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     const runIds = (experiment.last5Runs || []).map((r) => r.id!);
     return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
       disablePaging={true} selectedIds={this.state.selectedIds} noFilterBox={true}
+      storageState={RunStorageState.AVAILABLE}
       onSelectionChange={this._selectionChanged.bind(this)} disableSorting={true} />;
   }
+
 }
 
 export default ExperimentList;

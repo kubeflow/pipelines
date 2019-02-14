@@ -18,6 +18,7 @@ import * as React from 'react';
 import Buttons from '../lib/Buttons';
 import RunList from './RunList';
 import { Page } from './Page';
+import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
@@ -45,6 +46,11 @@ class AllRunsList extends Page<{}, AllRunsListState> {
         buttons.newExperiment(),
         buttons.compareRuns(() => this.state.selectedIds),
         buttons.cloneRun(() => this.state.selectedIds, false),
+        buttons.archive(
+          () => this.state.selectedIds,
+          false,
+          selectedIds => this._selectionChanged(selectedIds),
+        ),
         buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [],
@@ -55,8 +61,8 @@ class AllRunsList extends Page<{}, AllRunsListState> {
   public render(): JSX.Element {
     return <div className={classes(commonCss.page, padding(20, 'lr'))}>
       <RunList onError={this.showPageError.bind(this)} selectedIds={this.state.selectedIds}
-        onSelectionChange={this._selectionChanged.bind(this)}
-        {...this.props} ref={this._runlistRef} />
+        onSelectionChange={this._selectionChanged.bind(this)} ref={this._runlistRef}
+        storageState={RunStorageState.AVAILABLE} {...this.props} />
     </div>;
   }
 
@@ -74,6 +80,8 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     toolbarActions[1].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
     // Clone run button
     toolbarActions[2].disabled = selectedIds.length !== 1;
+    // Archive run button
+    toolbarActions[3].disabled = !selectedIds.length;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
   }

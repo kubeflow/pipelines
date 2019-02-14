@@ -112,12 +112,10 @@ elif [[ ${CLOUDBUILD_FINISHED} == TIMEOUT ]];then
   exit 1
 fi
 
-#Deploy the pipeline
+# Deploy the pipeline
 source ${DIR}/deploy-pipeline.sh --platform ${PLATFORM} --project ml-pipeline-test --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}
 
-#Submit the argo job and check the results
-gcloud container clusters get-credentials ${TEST_CLUSTER}
-source "${DIR}/install-argo.sh"
+# Submit the argo job and check the results
 echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
@@ -130,6 +128,6 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 --serviceaccount test-runner \
 -o name
 `
-echo argo workflow submitted successfully
+echo "argo workflow submitted successfully"
 source "${DIR}/check-argo-status.sh"
 

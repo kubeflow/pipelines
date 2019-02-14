@@ -52,7 +52,7 @@ exports[`RunList adds metrics columns 1`] = `
         },
       ]
     }
-    emptyMessage="No runs found."
+    emptyMessage="No available runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
@@ -175,7 +175,7 @@ exports[`RunList displays error in run row if experiment could not be fetched 1`
         },
       ]
     }
-    emptyMessage="No runs found."
+    emptyMessage="No available runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
@@ -236,7 +236,7 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
         },
       ]
     }
-    emptyMessage="No runs found."
+    emptyMessage="No available runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
@@ -309,7 +309,7 @@ exports[`RunList displays error in run row if it failed to parse 1`] = `
         },
       ]
     }
-    emptyMessage="No runs found."
+    emptyMessage="No available runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
@@ -370,7 +370,7 @@ exports[`RunList displays error in run row if pipeline could not be fetched 1`] 
         },
       ]
     }
-    emptyMessage="No runs found."
+    emptyMessage="No available runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
@@ -403,6 +403,52 @@ exports[`RunList handles no pipeline id given 1`] = `
 exports[`RunList handles no pipeline name 1`] = `
 <div>
   -
+</div>
+`;
+
+exports[`RunList in archived state renders the empty experience 1`] = `
+<div>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 2,
+          "label": "Run name",
+          "sortKey": "name",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 0.5,
+          "label": "Status",
+        },
+        Object {
+          "flex": 0.5,
+          "label": "Duration",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline",
+        },
+        Object {
+          "flex": 1,
+          "label": "Start time",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No archived runs found."
+    filterLabel="Filter runs"
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={Array []}
+  />
 </div>
 `;
 
@@ -443,7 +489,7 @@ exports[`RunList loads multiple runs 1`] = `
         },
       ]
     }
-    emptyMessage="No runs found."
+    emptyMessage="No available runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
@@ -552,7 +598,7 @@ exports[`RunList loads one run 1`] = `
         },
       ]
     }
-    emptyMessage="No runs found."
+    emptyMessage="No available runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
@@ -623,7 +669,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
           },
         ]
       }
-      emptyMessage="No runs found."
+      emptyMessage="No available runs found."
       filterLabel="Filter runs"
       initialSortColumn="created_at"
       reload={[Function]}
@@ -5403,7 +5449,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
           <div
             className="emptyMessage"
           >
-            No runs found.
+            No available runs found.
           </div>
         </div>
         <div
@@ -7484,7 +7530,7 @@ exports[`RunList renders the empty experience 1`] = `
         },
       ]
     }
-    emptyMessage="No runs found."
+    emptyMessage="No available runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
@@ -7547,7 +7593,7 @@ exports[`RunList shows experiment name 1`] = `
         },
       ]
     }
-    emptyMessage="No runs found."
+    emptyMessage="No available runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
@@ -7611,7 +7657,7 @@ exports[`RunList shows pipeline name 1`] = `
         },
       ]
     }
-    emptyMessage="No runs found."
+    emptyMessage="No available runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}
@@ -7676,7 +7722,7 @@ exports[`RunList shows run time for each run 1`] = `
         },
       ]
     }
-    emptyMessage="No runs found."
+    emptyMessage="No available runs found."
     filterLabel="Filter runs"
     initialSortColumn="created_at"
     reload={[Function]}

@@ -57,7 +57,7 @@ describe('Status', () => {
     });
 
     it('does not display any dates if neither was provided', () => {
-      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, /* No dates */));
+      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED /* No dates */));
       expect(tree).toMatchSnapshot();
     });
 

@@ -232,3 +232,7 @@ class TestCompiler(unittest.TestCase):
   def test_py_retry(self):
     """Test retry functionality."""
     self._test_py_compile('retry')
+
+  def test_py_image_pull_secret(self):
+    """Test pipeline imagepullsecret."""
+    self._test_py_compile('imagepullsecret')

@@ -90,6 +90,8 @@ function clean_up {
   echo "Clean up..."
   cd ${KFAPP}
   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
+  # delete the storage
+  gcloud deployment-manager --project=${PROJECT} deployments delete ${KFAPP}-storage --quiet
 }
 trap clean_up EXIT
 
@@ -99,6 +101,7 @@ cd ${KFAPP}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
+${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
 ## Update pipeline component image
 pushd ks_app
@@ -106,6 +109,5 @@ ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api:${GCR_IMAGE_TAG}
 ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent:${GCR_IMAGE_TAG}
 ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${GCR_IMAGE_TAG}
 ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend:${GCR_IMAGE_TAG}
+ks apply default -c pipeline
 popd
-
-${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s

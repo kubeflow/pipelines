@@ -30,7 +30,7 @@ import Separator from '../atoms/Separator';
 import SidePanel from '../components/SidePanel';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
-import { ApiRun } from '../apis/run';
+import { ApiRun, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { NodePhase, statusToIcon, hasFinished } from './Status';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
@@ -343,24 +343,38 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         WorkflowParser.createRuntimeGraph(workflow) : undefined;
 
       const breadcrumbs: Array<{ displayName: string, href: string }> = [];
-      if (experiment) {
-        breadcrumbs.push(
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          {
-            displayName: experiment.name!,
-            href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
-          });
+      // If this is an archived run, only show Archive in breadcrumbs, otherwise show
+      // the full path, including the experiment if any.
+      if (runMetadata.storage_state === RunStorageState.ARCHIVED) {
+        breadcrumbs.push({ displayName: 'Archive', href: RoutePage.ARCHIVE });
       } else {
-        breadcrumbs.push(
-          { displayName: 'All runs', href: RoutePage.RUNS }
-        );
+        if (experiment) {
+          breadcrumbs.push(
+            { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+            {
+              displayName: experiment.name!,
+              href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
+            });
+        } else {
+          breadcrumbs.push(
+            { displayName: 'All runs', href: RoutePage.RUNS }
+          );
+        }
       }
       const pageTitle = <div className={commonCss.flex}>
         {statusToIcon(runMetadata.status as NodePhase, runDetail.run!.created_at)}
         <span style={{ marginLeft: 10 }}>{runMetadata.name!}</span>
       </div>;
 
-      this.props.updateToolbar({ breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
+      // Update the Archive/Restore button based on the storage state of this run
+      const buttons = new Buttons(this.props, this.refresh.bind(this));
+      const actions = this.getInitialToolbarState().actions;
+      const idGetter = () => runMetadata ? [runMetadata!.id!] : [];
+      const newButton = runMetadata!.storage_state === RunStorageState.ARCHIVED ?
+        buttons.restore(idGetter, true, () => this.refresh()) :
+        buttons.archive(idGetter, true, () => this.refresh());
+      actions.splice(2, 1, newButton);
+      this.props.updateToolbar({ actions, breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
       this.setStateSafe({
         experiment,

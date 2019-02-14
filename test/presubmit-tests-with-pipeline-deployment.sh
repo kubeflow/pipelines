@@ -59,20 +59,36 @@ while [ "$1" != "" ]; do
     shift
 done
 
-#Variables
+# Variables
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "presubmit test starts"
 source "${DIR}/test_prep.sh"
 
-#Deploy the pipeline
+# Build Images
+echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
+ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
+-p image-build-context-gcs-uri="$remote_code_archive_uri" \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+-p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+-p cluster-type="${CLUSTER_TYPE}" \
+-p api-image="${GCR_IMAGE_BASE_DIR}/api" \
+-p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
+-p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
+-p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
+-n ${NAMESPACE} \
+--serviceaccount test-runner \
+-o name
+`
+echo "build docker images workflow submitted successfully"
+source "${DIR}/check-argo-status.sh"
+echo "build docker images workflow completed"
+
+# Deploy the pipeline
 source ${DIR}/deploy-pipeline.sh --platform ${PLATFORM} --project ml-pipeline-test --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
 
-#Submit the argo job and check the results
-gcloud container clusters get-credentials ${TEST_CLUSTER}
-source "${DIR}/install-argo.sh"
-echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
+echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
@@ -82,6 +98,7 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 --serviceaccount test-runner \
 -o name
 `
-echo argo workflow submitted successfully
-source "${DIR}/check-argo-status.sh"
 
+echo "test workflow submitted successfully"
+source "${DIR}/check-argo-status.sh"
+echo "test workflow completed"

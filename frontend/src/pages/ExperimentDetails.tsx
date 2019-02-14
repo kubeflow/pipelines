@@ -31,6 +31,7 @@ import { ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
+import { RunStorageState } from '../apis/run';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
@@ -124,6 +125,11 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           buttons.newRecurringRun(this.props.match.params[RouteParams.experimentId]),
           buttons.compareRuns(() => this.state.selectedIds),
           buttons.cloneRun(() => this.state.selectedIds, false),
+          buttons.archive(
+            () => this.state.selectedIds,
+            false,
+            ids => this._selectionChanged(ids),
+          ),
         ],
         breadcrumbs: [],
         pageTitle: 'Runs',
@@ -192,7 +198,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
             <Toolbar {...this.state.runListToolbarProps} />
             <RunList onError={this.showPageError.bind(this)}
               experimentIdMask={experiment.id} ref={this._runlistRef}
-              selectedIds={this.state.selectedIds}
+              selectedIds={this.state.selectedIds} storageState={RunStorageState.AVAILABLE}
               onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />
 
             <Dialog open={this.state.recurringRunsManagerOpen} classes={{ paper: css.recurringRunsDialog }}
@@ -278,6 +284,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     toolbarActions[2].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
     // Clone run button
     toolbarActions[3].disabled = selectedIds.length !== 1;
+    // Archive run button
+    toolbarActions[4].disabled = !selectedIds.length;
     this.setState({
       runListToolbarProps: {
         actions: toolbarActions,
@@ -285,7 +293,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
         pageTitle: this.state.runListToolbarProps.pageTitle,
         topLevelToolbar: this.state.runListToolbarProps.topLevelToolbar,
       },
-      selectedIds
+      selectedIds,
     });
   }
 
