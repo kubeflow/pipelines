@@ -28,6 +28,7 @@ usage()
 }
 
 PLATFORM=gcp
+PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 TIMEOUT_SECONDS=1800
@@ -86,7 +87,7 @@ source "${DIR}/check-argo-status.sh"
 echo "build docker images workflow completed"
 
 # Deploy the pipeline
-source ${DIR}/deploy-pipeline.sh --platform ${PLATFORM} --project ml-pipeline-test --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+source ${DIR}/deploy-pipeline.sh --platform ${PLATFORM} --project ${PROJECT} --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
