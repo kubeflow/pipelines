@@ -41,6 +41,13 @@ describe('Status', () => {
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
     });
 
+    it('handles an undefined phase', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
+      const tree = shallow(statusToIcon(/* no phase */));
+      expect(tree).toMatchSnapshot();
+      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
+    });
+
     it('displays start and end dates if both are provided', () => {
       const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate, endDate));
       expect(tree).toMatchSnapshot();

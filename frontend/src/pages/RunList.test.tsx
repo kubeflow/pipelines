@@ -24,8 +24,8 @@ import { ApiRun, ApiRunDetail, ApiResourceType, ApiRunMetric, RunMetricFormat, R
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { MetricMetadata } from '../lib/RunUtils';
 import { NodePhase } from './Status';
+import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
-import { shallow } from 'enzyme';
 
 class RunListTest extends RunList {
   public _loadRuns(request: ListRequest): Promise<string> {
@@ -34,6 +34,8 @@ class RunListTest extends RunList {
 }
 
 describe('RunList', () => {
+  let tree: ShallowWrapper | ReactWrapper;
+
   const onErrorSpy = jest.fn();
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
@@ -73,6 +75,16 @@ describe('RunList', () => {
     getExperimentSpy.mockImplementation(() => ({ name: 'some experiment' }));
   }
 
+  function getMountedInstance(): RunList {
+    tree = TestUtils.mountWithRouter(<RunList {...generateProps()} />);
+    return tree.instance() as RunList;
+  }
+
+  function getShallowInstance(): RunList {
+    tree = shallow(<RunList {...generateProps()} />);
+    return tree.instance() as RunList;
+  }
+
   beforeEach(() => {
     formatDateStringSpy.mockImplementation((date?: Date) => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
@@ -82,6 +94,15 @@ describe('RunList', () => {
     getRunSpy.mockClear();
     getPipelineSpy.mockClear();
     getExperimentSpy.mockClear();
+  });
+
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    if (tree) {
+      await tree.unmount();
+    }
+    jest.resetAllMocks();
   });
 
   it('renders the empty experience', () => {
@@ -99,7 +120,7 @@ describe('RunList', () => {
       mockNRuns(1, {});
       const props = generateProps();
       props.storageState = RunStorageState.AVAILABLE;
-      const tree = shallow(<RunList {...props} />);
+      tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({});
       expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
         undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
@@ -115,7 +136,7 @@ describe('RunList', () => {
       mockNRuns(1, {});
       const props = generateProps();
       props.storageState = RunStorageState.ARCHIVED;
-      const tree = shallow(<RunList {...props} />);
+      tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({});
       expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
         undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
@@ -131,7 +152,7 @@ describe('RunList', () => {
       mockNRuns(1, {});
       const props = generateProps();
       props.storageState = RunStorageState.ARCHIVED;
-      const tree = shallow(<RunList {...props} />);
+      tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({
         filter: encodeURIComponent(JSON.stringify({
           predicates: [{ key: 'k', op: 'op', string_value: 'val' }]
@@ -155,7 +176,7 @@ describe('RunList', () => {
   it('loads one run', async () => {
     mockNRuns(1, {});
     const props = generateProps();
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(undefined, undefined, undefined, undefined, undefined, undefined);
     expect(props.onError).not.toHaveBeenCalled();
@@ -165,7 +186,7 @@ describe('RunList', () => {
   it('reloads the run when refresh is called', async () => {
     mockNRuns(0, {});
     const props = generateProps();
-    const tree = TestUtils.mountWithRouter(<RunList {...props} />);
+    tree = TestUtils.mountWithRouter(<RunList {...props} />);
     await (tree.instance() as RunList).refresh();
     tree.update();
     expect(Apis.runServiceApi.listRuns).toHaveBeenCalledTimes(2);
@@ -177,7 +198,7 @@ describe('RunList', () => {
   it('loads multiple runs', async () => {
     mockNRuns(5, {});
     const props = generateProps();
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
@@ -186,7 +207,7 @@ describe('RunList', () => {
   it('calls error callback when loading runs fails', async () => {
     TestUtils.makeErrorResponseOnce(jest.spyOn(Apis.runServiceApi, 'listRuns'), 'bad stuff happened');
     const props = generateProps();
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).toHaveBeenLastCalledWith('Error: failed to fetch runs.', new Error('bad stuff happened'));
   });
@@ -194,7 +215,7 @@ describe('RunList', () => {
   it('displays error in run row if it failed to parse', async () => {
     mockNRuns(1, { pipeline_runtime: { workflow_manifest: 'bad json' } });
     const props = generateProps();
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(tree).toMatchSnapshot();
   });
@@ -203,7 +224,7 @@ describe('RunList', () => {
     mockNRuns(1, { run: { pipeline_spec: { pipeline_id: 'test-pipeline-id' } } });
     TestUtils.makeErrorResponseOnce(getPipelineSpy, 'bad stuff happened');
     const props = generateProps();
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(tree).toMatchSnapshot();
   });
@@ -218,7 +239,7 @@ describe('RunList', () => {
     });
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'bad stuff happened');
     const props = generateProps();
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(tree).toMatchSnapshot();
   });
@@ -227,7 +248,7 @@ describe('RunList', () => {
     mockNRuns(2, { pipeline_runtime: { workflow_manifest: 'bad json' } });
     const props = generateProps();
     props.runIdListMask = ['testrun1', 'testrun2'];
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(tree).toMatchSnapshot();
   });
@@ -245,7 +266,7 @@ describe('RunList', () => {
       },
     });
     const props = generateProps();
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
@@ -255,7 +276,7 @@ describe('RunList', () => {
     mockNRuns(1, {});
     const props = generateProps();
     props.experimentIdMask = 'experiment1';
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
@@ -266,7 +287,7 @@ describe('RunList', () => {
     mockNRuns(5, {});
     const props = generateProps();
     props.runIdListMask = ['run1', 'run2'];
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(Apis.runServiceApi.listRuns).not.toHaveBeenCalled();
@@ -292,7 +313,7 @@ describe('RunList', () => {
       }
     });
     const props = generateProps();
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
@@ -302,7 +323,7 @@ describe('RunList', () => {
     mockNRuns(1, { run: { pipeline_spec: { pipeline_id: 'test-pipeline-id' } } });
     getPipelineSpy.mockImplementationOnce(() => ({ name: 'test pipeline' }));
     const props = generateProps();
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
@@ -318,138 +339,129 @@ describe('RunList', () => {
     });
     getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
     const props = generateProps();
-    const tree = shallow(<RunList {...props} />);
+    tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });
 
   it('renders run name as link to its details page', () => {
-    const tree = TestUtils.mountWithRouter((RunList.prototype as RunListTest)
-      ._nameCustomRenderer('test run', 'run-id'));
-    expect(tree).toMatchSnapshot();
+    expect(getMountedInstance()._nameCustomRenderer({ value: 'test run', id: 'run-id' })).toMatchSnapshot();
   });
 
   it('renders pipeline name as link to its details page', () => {
-    const tree = TestUtils.mountWithRouter(new RunList(generateProps())
-      ._pipelineCustomRenderer({ displayName: 'test pipeline', id: 'pipeline-id', showLink: false }, 'run-id'));
-    expect(tree).toMatchSnapshot();
+    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', id: 'pipeline-id', showLink: false }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('handles no pipeline id given', () => {
-    const tree = TestUtils.mountWithRouter(new RunListTest(generateProps())
-      ._pipelineCustomRenderer({ displayName: 'test pipeline' } as any, 'run-id'));
-    expect(tree).toMatchSnapshot();
+    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', showLink: false }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('shows "View pipeline" button if pipeline is embedded in run', () => {
-    const tree = TestUtils.mountWithRouter(new RunListTest(generateProps())._pipelineCustomRenderer(
-      { displayName: 'test pipeline', id: 'pipeline-id', showLink: true }, 'test-run-id'));
-    expect(tree).toMatchSnapshot();
+    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', id: 'pipeline-id', showLink: true }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('handles no pipeline name', () => {
-    const tree = TestUtils.mountWithRouter(new RunListTest(generateProps())
-      ._pipelineCustomRenderer(undefined as any, 'run-id'));
-    expect(tree).toMatchSnapshot();
+    expect(getMountedInstance()._pipelineCustomRenderer({ value: { /* no displayName */ showLink: true }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('renders experiment name as link to its details page', () => {
-    const tree = TestUtils.mountWithRouter(RunListTest.prototype._experimentCustomRenderer(
-      { displayName: 'test experiment', id: 'experiment-id' }));
-    expect(tree).toMatchSnapshot();
+    expect(getMountedInstance()._experimentCustomRenderer({ value: { displayName: 'test experiment', id: 'experiment-id' }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('renders no experiment name', () => {
-    const tree = TestUtils.mountWithRouter(RunListTest.prototype._experimentCustomRenderer());
-    expect(tree).toMatchSnapshot();
+    expect(getMountedInstance()._experimentCustomRenderer({ value: { /* no displayName */ id: 'experiment-id' }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('renders status as icon', () => {
-    const tree = shallow(RunListTest.prototype._statusCustomRenderer(NodePhase.SUCCEEDED));
-    expect(tree).toMatchSnapshot();
+    expect(getShallowInstance()._statusCustomRenderer({ value: NodePhase.SUCCEEDED, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('renders metric buffer', () => {
-    const tree = shallow(RunListTest.prototype._metricBufferCustomRenderer());
-    expect(tree).toMatchSnapshot();
+    expect(getShallowInstance()._metricBufferCustomRenderer({ value: {}, id: 'run-id' })).toMatchSnapshot();
   });
 
-  it('renders an empty metric when there is no data', () => {
-    const noMetricTree = shallow(RunListTest.prototype._metricCustomRenderer(undefined as any));
-    expect(noMetricTree).toMatchSnapshot();
+  it('renders an empty metric when there is no metric', () => {
+    expect(getShallowInstance()._metricCustomRenderer({ value: undefined, id: 'run-id' })).toMatchSnapshot();
+  });
 
-    const emptyMetricTree = shallow(RunListTest.prototype._metricCustomRenderer({} as any));
-    expect(emptyMetricTree).toMatchSnapshot();
+  it('renders an empty metric when metric is empty', () => {
+    expect(getShallowInstance()._metricCustomRenderer({ value: {}, id: 'run-id' })).toMatchSnapshot();
+  });
 
-    const noMetricValueTree = shallow(RunListTest.prototype._metricCustomRenderer({ metric: {} } as any));
-    expect(noMetricValueTree).toMatchSnapshot();
+  it('renders an empty metric when metric value is empty', () => {
+    expect(getShallowInstance()._metricCustomRenderer({ value: { metric: {} }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('renders a empty metric container when a metric has value of zero', () => {
-    const noMetricTree = shallow(RunListTest.prototype._metricCustomRenderer(
-      { metric: { number_value: 0 } } as any));
-    expect(noMetricTree).toMatchSnapshot();
+    expect(getShallowInstance()._metricCustomRenderer({ value: { metric: { number_value: 0 } }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('renders a metric container when a percentage metric has value of zero', () => {
-    const noMetricTree = shallow(RunListTest.prototype._metricCustomRenderer(
-      { metric: { number_value: 0, format: RunMetricFormat.PERCENTAGE } } as any));
-    expect(noMetricTree).toMatchSnapshot();
+    expect(getShallowInstance()._metricCustomRenderer({
+      id: 'run-id',
+      value: { metric: { number_value: 0, format: RunMetricFormat.PERCENTAGE } },
+    })).toMatchSnapshot();
   });
 
   it('renders a metric container when a raw metric has value of zero', () => {
-    const noMetricTree = shallow(RunListTest.prototype._metricCustomRenderer(
-      {
+    expect(getShallowInstance()._metricCustomRenderer({
+      id: 'run-id',
+      value: {
         metadata: { maxValue: 10, minValue: 0 } as any,
         metric: { number_value: 0, format: RunMetricFormat.RAW },
-      }));
-    expect(noMetricTree).toMatchSnapshot();
+      },
+    })).toMatchSnapshot();
   });
 
   it('renders percentage metric', () => {
-    const tree = shallow(RunListTest.prototype._metricCustomRenderer(
-      { metric: { number_value: 0.3, format: RunMetricFormat.PERCENTAGE } as ApiRunMetric } as any));
-    expect(tree).toMatchSnapshot();
+    expect(getShallowInstance()._metricCustomRenderer({
+      id: 'run-id',
+      value: { metric: { number_value: 0.3, format: RunMetricFormat.PERCENTAGE } },
+    })).toMatchSnapshot();
   });
 
   it('renders raw metric', () => {
-    const tree = shallow(RunListTest.prototype._metricCustomRenderer(
-      {
+    expect(getShallowInstance()._metricCustomRenderer({
+      id: 'run-id',
+      value: {
         metadata: { count: 1, maxValue: 100, minValue: 10 } as MetricMetadata,
         metric: { number_value: 55 } as ApiRunMetric,
-      }));
-    expect(tree).toMatchSnapshot();
+      },
+    })).toMatchSnapshot();
   });
 
   it('renders raw metric with zero max/min values', () => {
-    const tree = shallow(RunListTest.prototype._metricCustomRenderer(
-      {
+    expect(getShallowInstance()._metricCustomRenderer({
+      id: 'run-id',
+      value: {
         metadata: { count: 1, maxValue: 0, minValue: 0 } as MetricMetadata,
         metric: { number_value: 15 } as ApiRunMetric,
-      }));
-    expect(tree).toMatchSnapshot();
+      },
+    })).toMatchSnapshot();
   });
 
   it('renders raw metric that is less than its min value, logs error to console', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    const tree = shallow(RunListTest.prototype._metricCustomRenderer(
-      {
+    expect(getShallowInstance()._metricCustomRenderer({
+      id: 'run-id',
+      value: {
         metadata: { count: 1, maxValue: 100, minValue: 10 } as MetricMetadata,
         metric: { number_value: 5 } as ApiRunMetric,
-      }));
-    expect(tree).toMatchSnapshot();
+      },
+    })).toMatchSnapshot();
     expect(consoleSpy).toHaveBeenCalled();
   });
 
   it('renders raw metric that is greater than its max value, logs error to console', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    const tree = shallow(RunListTest.prototype._metricCustomRenderer(
-      {
+    expect(getShallowInstance()._metricCustomRenderer({
+      id: 'run-id',
+      value: {
         metadata: { count: 1, maxValue: 100, minValue: 10 } as MetricMetadata,
         metric: { number_value: 105 } as ApiRunMetric,
-      }));
-    expect(tree).toMatchSnapshot();
+      },
+    })).toMatchSnapshot();
     expect(consoleSpy).toHaveBeenCalled();
   });
 
