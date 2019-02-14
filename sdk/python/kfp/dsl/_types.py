@@ -68,11 +68,30 @@ def serialize_types(type_instance):
 	#TODO: to be implemented.
 	pass
 
-def check_types(serialized_type_a, serialized_type_b):
-	'''type_check checks the type consistency.'''
-	#TODO: to be implemented.
+class InconsistentTypeException(Exception):
+	'''InconsistencyTypeException is raised when two types are not consistent'''
 	pass
 
-class InconsistentTypeException(Exception):
-	#TODO: to be implemented
-	pass
+#TODO: add unit test
+def check_types(typeA, typeB):
+	'''check_types checks the type consistency.
+	For each of the attribute in typeA, there is the same attribute in typeB with the same value.
+	However, typeB could contain more attributes that typeA does not contain.
+	Args:
+		typeA (type): A class that describes a type from the upstream component output
+		typeB (type): A class that describes a type from the downstream component input
+		'''
+	# If there are other ways to list class attributes other than filtering out strings starting with __,
+	#		the following two lines will be updated.
+	typeA_attrs = set([i for i in dir(typeA) if not i.startswith('__')])
+	typeB_attrs = set([i for i in dir(typeB) if not i.startswith('__')])
+	for typeA_attr in typeA_attrs:
+		if typeA_attr not in typeB_attrs:
+			print(typeA.__name__ + ' has an attribute ' + typeA_attr + ' that ' + typeB.__name__ + 'does not.')
+			return False
+		if getattr(typeA, typeA_attr) != getattr(typeB, typeA_attr):
+			print(typeA.__name__ + ' has an attribute ' + typeA_attr + ' with value: ' +
+																			getattr(typeA, typeA_attr) + ', ' + typeB.__name__ + ' has an attribute ' +
+																			typeA_attr + ' with value: ' + getattr(typeB, typeA_attr))
+			return False
+	return True
