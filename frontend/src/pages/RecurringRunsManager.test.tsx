@@ -26,12 +26,6 @@ describe('RecurringRunsManager', () => {
     public async _loadRuns(request: ListRequest): Promise<string> {
       return super._loadRuns(request);
     }
-    public _nameCustomRenderer(value: string, id: string): JSX.Element {
-      return super._nameCustomRenderer(value, id);
-    }
-    public _enabledCustomRenderer(value: boolean | undefined, id: string): JSX.Element {
-      return super._enabledCustomRenderer(value, id);
-    }
     public _setEnabledState(id: string, enabled: boolean): Promise<void> {
       return super._setEnabledState(id, enabled);
     }
@@ -147,9 +141,8 @@ describe('RecurringRunsManager', () => {
   });
 
   it('renders run name as link to its details page', () => {
-    const tree = TestUtils.mountWithRouter(
-      TestRecurringRunsManager.prototype._nameCustomRenderer('test-run', 'run-id'));
-    expect(tree).toMatchSnapshot();
+    const tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    expect((tree.instance() as RecurringRunsManager)._nameCustomRenderer({ value: 'test-run', id: 'run-id' })).toMatchSnapshot();
   });
 
   it('renders a disable button if the run is enabled, clicking the button calls disable API', async () => {
