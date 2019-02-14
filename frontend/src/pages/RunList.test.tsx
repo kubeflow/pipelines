@@ -120,7 +120,7 @@ describe('RunList', () => {
       mockNRuns(1, {});
       const props = generateProps();
       props.storageState = RunStorageState.AVAILABLE;
-      const tree = shallow(<RunList {...props} />);
+      tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({});
       expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
         undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
@@ -136,7 +136,7 @@ describe('RunList', () => {
       mockNRuns(1, {});
       const props = generateProps();
       props.storageState = RunStorageState.ARCHIVED;
-      const tree = shallow(<RunList {...props} />);
+      tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({});
       expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
         undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
@@ -152,7 +152,7 @@ describe('RunList', () => {
       mockNRuns(1, {});
       const props = generateProps();
       props.storageState = RunStorageState.ARCHIVED;
-      const tree = shallow(<RunList {...props} />);
+      tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({
         filter: encodeURIComponent(JSON.stringify({
           predicates: [{ key: 'k', op: 'op', string_value: 'val' }]
