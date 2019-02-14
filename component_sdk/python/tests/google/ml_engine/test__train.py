@@ -1,0 +1,44 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+import mock
+import unittest
+
+from kfp_component.google.ml_engine import train
+
+CREATE_JOB_MODULE = 'kfp_component.google.ml_engine._train'
+
+@mock.patch(CREATE_JOB_MODULE + '.create_job')
+class TestCreateTraingingJob(unittest.TestCase):
+
+    def test_train_succeed(self, mock_create_job):
+        train('proj-1', 'mock.module', ['gs://test/package'],
+            'region-1', args=['arg-1', 'arg-2'], job_dir='gs://test/job/dir', 
+            training_input={
+                'runtimeVersion': '1.10',
+                'pythonVersion': '2.7'
+            }, job_id_prefix='job-')
+        
+        mock_create_job.assert_called_with('proj-1', {
+            'trainingInput': {
+                'pythonModule': 'mock.module',
+                'packageUris': ['gs://test/package'],
+                'region': 'region-1',
+                'args': ['arg-1', 'arg-2'],
+                'jobDir': 'gs://test/job/dir',
+                'runtimeVersion': '1.10',
+                'pythonVersion': '2.7'
+            }
+        }, 'job-', 30)

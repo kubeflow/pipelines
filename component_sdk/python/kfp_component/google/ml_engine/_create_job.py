@@ -107,8 +107,8 @@ class CreateJobOp:
                 return job
             # Move to config from flag
             logging.info('job status is {}, wait for {}s'.format(
-                job.get('state', None), self._wait_for_done))
-            time.sleep(self._wait_for_done)
+                job.get('state', None), self._wait_interval))
+            time.sleep(self._wait_interval)
 
     def _dump_metadata(self):
         metadata = {
@@ -131,10 +131,10 @@ class CreateJobOp:
                 'source': self._job['trainingInput']['jobDir'],
             })
         logging.info('Dumping UI metadata: {}'.format(metadata))
-        gcp_common.dump_file('/mlpipeline-ui-metadata.json', 
+        gcp_common.dump_file('/tmp/mlpipeline-ui-metadata.json', 
             json.dumps(metadata))
 
     def _dump_job(self, job):
         logging.info('Dumping job: {}'.format(job))
-        gcp_common.dump_file('/output.txt', json.dumps(job))
-        gcp_common.dump_file('/job_id.txt', job['jobId'])
+        gcp_common.dump_file('/tmp/output.txt', json.dumps(job))
+        gcp_common.dump_file('/tmp/job_id.txt', job['jobId'])

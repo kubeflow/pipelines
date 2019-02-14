@@ -22,21 +22,26 @@ from kfp_component.core import KfpExecutionContext
 from ._client import MLEngineClient
 from .. import common as gcp_common
 
-def create_model(project_id, model):
+def create_model(project_id, name=None, model=None):
     """Creates a MLEngine model.
 
     Args:
-        project_id: the ID of the parent project of the model.
-        model: the payload of the model. Must have ``name`` in it.
+        project_id (str): the ID of the parent project of the model.
+        name (str): optional, the name of the model. If absent, a new name will 
+            be generated.
+        model (dict): the payload of the model.
     """
-    return CreateModelOp(project_id, model).execute()
+    return CreateModelOp(project_id, name, model).execute()
 
 class CreateModelOp:
-    def __init__(self, project_id, model):
+    def __init__(self, project_id, name, model):
         self._ml = MLEngineClient()
         self._project_id = project_id
-        self._model_name = None
-        self._model = model
+        self._model_name = name
+        if model:
+            self._model = model
+        else:
+            self._model = {}
 
     def execute(self):
         with KfpExecutionContext() as ctx:
@@ -62,10 +67,8 @@ class CreateModelOp:
             return created_model
 
     def _set_model_name(self, context_id):
-        model_name = self._model.get('name', None)
         if not model_name:
-            model_name = context_id
-        model_name = gcp_common.normalize_name(model_name)
+            model_name = 'model_' + context_id
         self._model_name = model_name
         self._model['name'] = model_name
 
