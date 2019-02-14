@@ -17,13 +17,21 @@ from . import _pipeline
 from . import _pipeline_param
 import re
 from typing import Dict
+from . import _types
 
 
 class ContainerOp(object):
-  """Represents an op implemented by a docker container image."""
+  """Represents an op implemented by a docker container image.
+
+    inputs: a list of PipelineParam
+      either in the command or arguments
+    outputs: a dict of str to PipelineParam
+      file_outputs
+  """
 
   def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
-               file_outputs : Dict[str, str]=None, is_exit_handler=False):
+               file_outputs : Dict[str, str]=None, is_exit_handler=False,
+               input_types : Dict[str, _types.MetaType]=None, output_types : Dict[str, _types.MetaType]=None):
     """Create a new instance of ContainerOp.
 
     Args:
@@ -63,14 +71,19 @@ class ContainerOp(object):
     self.pod_annotations = {}
     self.pod_labels = {}
     self.num_retries = 0
+    #TODO: maybe there is no need for input_types and output_types fields.
+    self.input_types = input_types
+    self.output_types = output_types
 
-    matches = []
+    # match the input placeholders from command and arguments
+    input_matches = []
     for arg in (command or []) + (arguments or []):
-      match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', str(arg))
-      matches += match
-
-    self.argument_inputs = [_pipeline_param.PipelineParam(x[1], x[0], x[2])
-                            for x in list(set(matches))]
+      #TODO: backward compatibility
+      match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?)}}', str(arg))
+      input_matches += match
+    #TODO: backward compatibility
+    self.argument_inputs = [_pipeline_param.PipelineParam(x[1], x[0], x[2], x[3])
+                            for x in list(set(input_matches))]
     self.file_outputs = file_outputs
     self.dependent_op_names = []
 
@@ -78,9 +91,17 @@ class ContainerOp(object):
     if self.argument_inputs:
       self.inputs += self.argument_inputs
 
+    for input in self.input_types:
+      match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?)}}', str(input))
+      #TODO: fail if not matched
+      #TODO: backward compatibility
+      input_param = _pipeline_param.PipelineParam(match[1], match[0], match[2], match[3])
+      if not _types.check_types(input_param.type, self.input_types[input]):
+        raise _types.InconsistentTypeException()
+
     self.outputs = {}
     if file_outputs:
-      self.outputs = {name: _pipeline_param.PipelineParam(name, op_name=self.name)
+      self.outputs = {name: _pipeline_param.PipelineParam(name, op_name=self.name, type=self.output_types[name])
           for name in file_outputs.keys()}
 
     self.output=None
