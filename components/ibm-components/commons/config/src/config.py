@@ -30,10 +30,13 @@ if __name__ == "__main__":
     command = ['curl', '-H', 'Authorization: token %s' % access_token, '-L', '-o', config_local_path, config_file_path]
     subprocess.run(command)
 
-    # gather all secrets
     secret_name = args.name
     if (not secret_name):
         secret_name = 'ai-pipeline-' + os.path.splitext(config_file)[0]
+    command = ['kubectl', 'delete', 'secret', secret_name]
+    subprocess.run(command)
+
+    # gather all secrets
     command = ['kubectl', 'create', 'secret', 'generic', secret_name]
 
     import configparser

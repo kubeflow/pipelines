@@ -2,7 +2,7 @@ The `Watson Train and Serve` sample pipeline runs training, storing and deployin
 
 # Requirements
 
-This sample requires the user to have provisioned a machine learning service on Watson, a S3 cloud storage set up and the service credentials configured in the creds.ini file
+This sample requires the user to have provisioned a machine learning service on Watson, a S3 cloud storage set up and the service credentials configured in the creds.ini file.
 
 To provision your own Watson Machine Learning services and S3 cloud storage, following are the required steps.
 
@@ -14,12 +14,11 @@ Once the service is created, from service's `Dashboard`, follow the instruction 
 
 * An S3 cloud storage
 
-Watson Machine Learning service loads datasets from S3 cloud storage and stores models and other artifacts to S3 cloud storage. Users can use any S3 cloud storage they already preserve. Users can also create a S3 cloud storage with `IBM Cloud Object Storage` service by following this [link](https://console.bluemix.net/catalog/services/cloud-object-storage).
+Watson Machine Learning service loads datasets from S3 cloud storage and stores model outputs and other artifacts to S3 cloud storage. Users can use any S3 cloud storage they already preserve. Users can also create a S3 cloud storage with `IBM Cloud Object Storage` service by following this [link](https://console.bluemix.net/catalog/services/cloud-object-storage).
 
-Collect the `endpoint`, `access_key_id` and `secret_access_key` fields from the service credentials for the S3 cloud storage. Create the service credentials first if not existed. To ensure generating HMAC credentials, specify the following in the Add Inline Configuration Parameters field: {"HMAC":true}
+Collect the `endpoint`, `access_key_id` and `secret_access_key` fields from the service credentials for the S3 cloud storage. Create the service credentials first if not existed. To ensure generating HMAC credentials, specify the following in the `Add Inline Configuration Parameters` field: `{"HMAC":true}`.
 
-
-Create two buckets, one for storing the train datasets and one for storing the model outputs.
+Create two buckets, one for storing the train datasets and model source codes, and one for storing the model outputs.
 
 * Set up access credentials
 
@@ -29,11 +28,39 @@ To access the credentials file, the user should provide a github access token an
 
 # The datasets
 
-This pipeline sample uses the [MNIST](http://yann.lecun.com/exdb/mnist) datasets.
+This pipeline sample uses the [MNIST](http://yann.lecun.com/exdb/mnist) datasets, including [train-images-idx3-ubyte.gz](http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz), [train-labels-idx1-ubyte.gz](http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz), [t10k-images-idx3-ubyte.gz](http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz), and [t10k-labels-idx1-ubyte.gz](http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz).
+
+If users are using their own S3 cloud storage instances, download these datasets and upload to the input bucket created above on the S3 cloud storage.
+
+# Upload model code and datasets
+
+Once the user has the model train source code ready, compress all files into one `zip` format file.
+
+For example, run following command to compress the sample model train codes
+
+```command line
+pushd source/model-source-code
+zip -j tf-model tf-model/convolutional_network.py tf-model/input_data.py
+popd
+```
+
+This should create a `tf-model.zip` file.
+
+Upload the model train code, together with the train datasets, to the input bucket created above in the S3 cloud storage.
+
+# Upload model scoring payload
+
+At the end of the deploy stage of this sample, `tf-mnist-test-payload.json` is used as the scoring payload to test the deployment. Upload this file to the input bucket in the S3 cloud storage.
 
 # Compling the pipeline template
 
-Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample watson_train_serve_pipeline.py file into a workflow specification.
+First, install the necessary Python package for setting up the access to the Watson Machine Learning service and S3 cloud storage, with following command
+
+```command line
+pip3 install ai_pipeline_params
+```
+
+Then follow the guide to [building a pipeline](https://www.kubeflow.org/docs/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, and run the following command to compile the sample `watson_train_serve_pipeline.py` file into a workflow specification.
 
 ```
 dsl-compile --py watson_train_serve_pipeline.py --output wml-pipeline.tar.gz

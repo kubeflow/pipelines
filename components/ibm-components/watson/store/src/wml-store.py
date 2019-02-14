@@ -49,7 +49,7 @@ def store(wml_model_name, run_uid):
     f.close()
 
     import time
-    time.sleep(20)
+    time.sleep(120)
 
 if __name__ == "__main__":
     import argparse
