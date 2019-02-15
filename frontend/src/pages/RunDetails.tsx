@@ -16,10 +16,12 @@
 
 import * as React from 'react';
 import Banner, { Mode } from '../components/Banner';
+import Buttons from '../lib/Buttons';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
+import InfoIcon from '@material-ui/icons/InfoOutlined';
 import LogViewer from '../components/LogViewer';
 import MD2Tabs from '../atoms/MD2Tabs';
 import PlotCard from '../components/PlotCard';
@@ -28,18 +30,17 @@ import Separator from '../atoms/Separator';
 import SidePanel from '../components/SidePanel';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
-import { ApiRun } from '../apis/run';
+import { ApiRun, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
-import { NodePhase, statusToIcon } from './Status';
+import { NodePhase, statusToIcon, hasFinished } from './Status';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { Page } from './Page';
-import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
-import { URLParser } from '../lib/URLParser';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
-import { classes } from 'typestyle';
-import { commonCss, padding } from '../Css';
+import { classes, stylesheet } from 'typestyle';
+import { commonCss, padding, color, fonts, fontsize } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { flatten } from 'lodash';
 import { formatDateString, getRunTime, logger, errorToMessage } from '../lib/Utils';
@@ -73,6 +74,7 @@ interface RunDetailsState {
   logsBannerMessage: string;
   logsBannerMode: Mode;
   graph?: dagre.graphlib.Graph;
+  runFinished: boolean;
   runMetadata?: ApiRun;
   selectedTab: number;
   selectedNodeDetails: SelectedNodeDetails | null;
@@ -81,16 +83,46 @@ interface RunDetailsState {
   workflow?: Workflow;
 }
 
+export const css = stylesheet({
+  footer: {
+    background: color.graphBg,
+    display: 'flex',
+    padding: '0 0 20px 20px',
+  },
+  graphPane: {
+    backgroundColor: color.graphBg,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  infoSpan: {
+    color: color.lowContrast,
+    fontFamily: fonts.secondary,
+    fontSize: fontsize.small,
+    letterSpacing: '0.21px',
+    lineHeight: '24px',
+    paddingLeft: 6,
+  },
+});
+
 class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
+  private _onBlur: EventListener;
+  private _onFocus: EventListener;
+  private readonly AUTO_REFRESH_INTERVAL = 5000;
+
+  private _interval?: NodeJS.Timeout;
 
   constructor(props: any) {
     super(props);
+
+    this._onBlur = this.onBlurHandler.bind(this);
+    this._onFocus = this.onFocusHandler.bind(this);
 
     this.state = {
       allArtifactConfigs: [],
       logsBannerAdditionalInfo: '',
       logsBannerMessage: '',
       logsBannerMode: 'error',
+      runFinished: false,
       selectedNodeDetails: null,
       selectedTab: 0,
       sidepanelBusy: false,
@@ -99,25 +131,19 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [{
-        action: this._cloneRun.bind(this),
-        id: 'cloneBtn',
-        title: 'Clone',
-        tooltip: 'Clone',
-      }, {
-        action: this.refresh.bind(this),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh',
-      }],
+      actions: [
+        buttons.cloneRun(() => this.state.runMetadata ? [this.state.runMetadata!.id!] : [], true),
+        buttons.refresh(this.refresh.bind(this)),
+      ],
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: this.props.runId!,
     };
   }
 
   public render(): JSX.Element {
-    const { allArtifactConfigs, graph, runMetadata, selectedTab, selectedNodeDetails,
+    const { allArtifactConfigs, graph, runFinished, runMetadata, selectedTab, selectedNodeDetails,
       sidepanelSelectedTab, workflow } = this.state;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
@@ -132,8 +158,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
               onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })} />
             <div className={commonCss.page}>
 
-              {selectedTab === 0 && <div className={commonCss.page}>
-                {graph && <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
+              {selectedTab === 0 && <div className={classes(commonCss.page, css.graphPane)}>
+                {graph && <div className={commonCss.page}>
                   <Graph graph={graph} selectedNodeId={selectedNodeId}
                     onClick={(id) => this._selectNode(id)} />
 
@@ -141,8 +167,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                     onClose={() => this.setStateSafe({ selectedNodeDetails: null })} title={selectedNodeId}>
                     {!!selectedNodeDetails && (<React.Fragment>
                       {!!selectedNodeDetails.phaseMessage && (
-                        <Banner mode='warning'
-                          message={selectedNodeDetails.phaseMessage} />
+                        <Banner mode='warning' message={selectedNodeDetails.phaseMessage} />
                       )}
                       <div className={commonCss.page}>
                         <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Logs']}
@@ -198,8 +223,28 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                       </div>
                     </React.Fragment>)}
                   </SidePanel>
+
+                  <div className={css.footer}>
+                    <div className={commonCss.flex}>
+                      <InfoIcon className={commonCss.infoIcon} />
+                      <span className={css.infoSpan}>
+                        Runtime execution graph. Only steps that are currently running or have already completed are shown.
+                    </span>
+                    </div>
+                  </div>
                 </div>}
-                {!graph && <span style={{ margin: '40px auto' }}>No graph to show</span>}
+                {!graph && (
+                  <div>
+                    {runFinished && (
+                      <span style={{ margin: '40px auto' }}>
+                        No graph to show
+                      </span>
+                    )}
+                    {!runFinished && (
+                      <CircularProgress size={30} className={commonCss.absoluteCenter} />
+                    )}
+                  </div>
+                )}
               </div>}
 
               {selectedTab === 1 && (
@@ -238,7 +283,23 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public async componentDidMount(): Promise<void> {
-    await this.load();
+    window.addEventListener('focus', this._onFocus);
+    window.addEventListener('blur', this._onBlur);
+    await this._startAutoRefresh();
+  }
+
+  public onBlurHandler(): void {
+    this._stopAutoRefresh();
+  }
+
+  public async onFocusHandler(): Promise<void> {
+    await this._startAutoRefresh();
+  }
+
+  public componentWillUnmount(): void {
+    this._stopAutoRefresh();
+    window.removeEventListener('focus', this._onFocus);
+    window.removeEventListener('blur', this._onBlur);
   }
 
   public async refresh(): Promise<void> {
@@ -256,8 +317,17 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       if (relatedExperimentId) {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
       }
-      const workflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}') as Workflow;
       const runMetadata = runDetail.run!;
+
+      let runFinished = this.state.runFinished;
+      // If the run has finished, stop auto refreshing
+      if (hasFinished(runMetadata.status as NodePhase)) {
+        this._stopAutoRefresh();
+        // This prevents other events, such as onFocus, from resuming the autorefresh
+        runFinished = true;
+      }
+
+      const workflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}') as Workflow;
 
       // Show workflow errors
       const workflowError = WorkflowParser.getWorkflowError(workflow);
@@ -273,28 +343,43 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         WorkflowParser.createRuntimeGraph(workflow) : undefined;
 
       const breadcrumbs: Array<{ displayName: string, href: string }> = [];
-      if (experiment) {
-        breadcrumbs.push(
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          {
-            displayName: experiment.name!,
-            href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
-          });
+      // If this is an archived run, only show Archive in breadcrumbs, otherwise show
+      // the full path, including the experiment if any.
+      if (runMetadata.storage_state === RunStorageState.ARCHIVED) {
+        breadcrumbs.push({ displayName: 'Archive', href: RoutePage.ARCHIVE });
       } else {
-        breadcrumbs.push(
-          { displayName: 'All runs', href: RoutePage.RUNS }
-        );
+        if (experiment) {
+          breadcrumbs.push(
+            { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+            {
+              displayName: experiment.name!,
+              href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
+            });
+        } else {
+          breadcrumbs.push(
+            { displayName: 'All runs', href: RoutePage.RUNS }
+          );
+        }
       }
       const pageTitle = <div className={commonCss.flex}>
         {statusToIcon(runMetadata.status as NodePhase, runDetail.run!.created_at)}
         <span style={{ marginLeft: 10 }}>{runMetadata.name!}</span>
       </div>;
 
-      this.props.updateToolbar({ breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
+      // Update the Archive/Restore button based on the storage state of this run
+      const buttons = new Buttons(this.props, this.refresh.bind(this));
+      const actions = this.getInitialToolbarState().actions;
+      const idGetter = () => runMetadata ? [runMetadata!.id!] : [];
+      const newButton = runMetadata!.storage_state === RunStorageState.ARCHIVED ?
+        buttons.restore(idGetter, true, () => this.refresh()) :
+        buttons.archive(idGetter, true, () => this.refresh());
+      actions.splice(2, 1, newButton);
+      this.props.updateToolbar({ actions, breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
       this.setStateSafe({
         experiment,
         graph,
+        runFinished,
         runMetadata,
         workflow,
       });
@@ -311,6 +396,33 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     await this._loadAllOutputs();
   }
 
+  private async _startAutoRefresh(): Promise<void> {
+    // If the run was not finished last time we checked, check again in case anything changed
+    // before proceeding to set auto-refresh interval
+    if (!this.state.runFinished) {
+      // refresh() updates runFinished's value
+      await this.refresh();
+    }
+
+    // Only set interval if run has not finished, and verify that the interval is undefined to
+    // avoid setting multiple intervals
+    if (!this.state.runFinished && this._interval === undefined) {
+      this._interval = setInterval(
+        () => this.refresh(),
+        this.AUTO_REFRESH_INTERVAL
+      );
+    }
+  }
+
+  private _stopAutoRefresh(): void {
+    if (this._interval !== undefined) {
+      clearInterval(this._interval);
+
+      // Reset interval to indicate that a new one can be set
+      this._interval = undefined;
+    }
+  }
+
   private async _loadAllOutputs(): Promise<void> {
     const workflow = this.state.workflow;
 
@@ -320,8 +432,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     const outputPathsList = WorkflowParser.loadAllOutputPathsWithStepNames(workflow);
 
-    const configLists = await Promise.all(outputPathsList.map(
-      ({ stepName, path }) => OutputArtifactLoader.load(path)
+    const configLists =
+      await Promise.all(outputPathsList.map(({ stepName, path }) => OutputArtifactLoader.load(path)
         .then(configs => configs.map(config => ({ config, stepName })))));
     const allArtifactConfigs = flatten(configLists);
 
@@ -415,15 +527,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       logger.error('Error loading logs for node:', selectedNodeDetails.id);
     } finally {
       this.setStateSafe({ sidepanelBusy: false });
-    }
-  }
-
-  private _cloneRun(): void {
-    if (this.state.runMetadata) {
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.cloneFromRun]: this.state.runMetadata.id || ''
-      });
-      this.props.history.push(RoutePage.NEW_RUN + searchString);
     }
   }
 }

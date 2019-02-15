@@ -15,8 +15,8 @@
  */
 
 import * as React from 'react';
-import AddIcon from '@material-ui/icons/Add';
-import CustomTable, { Column, Row } from '../components/CustomTable';
+import Buttons from '../lib/Buttons';
+import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
 import produce from 'immer';
 import { ApiPipeline, ApiListPipelinesResponse } from '../apis/pipeline';
@@ -49,34 +49,18 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [{
-        action: () => this.setStateSafe({ uploadDialogOpen: true }),
-        icon: AddIcon,
-        id: 'uploadBtn',
-        outlined: true,
-        title: 'Upload pipeline',
-        tooltip: 'Upload pipeline',
-      }, {
-        action: () => this.refresh(),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh',
-      }, {
-        action: () => this.props.updateDialog({
-          buttons: [
-            { onClick: async () => await this._deleteDialogClosed(true), text: 'Delete' },
-            { onClick: async () => await this._deleteDialogClosed(false), text: 'Cancel' },
-          ],
-          onClose: async () => await this._deleteDialogClosed(false),
-          title: `Delete ${this.state.selectedIds.length} pipeline${this.state.selectedIds.length === 1 ? '' : 's'}?`,
-        }),
-        disabled: true,
-        disabledTitle: 'Select at least one pipeline to delete',
-        id: 'deleteBtn',
-        title: 'Delete',
-        tooltip: 'Delete',
-      }],
+      actions: [
+        buttons.upload(() => this.setStateSafe({ uploadDialogOpen: true })),
+        buttons.refresh(this.refresh.bind(this)),
+        buttons.delete(
+          () => this.state.selectedIds,
+          'pipeline',
+          ids => this._selectionChanged(ids),
+          false,
+        ),
+      ],
       breadcrumbs: [],
       pageTitle: 'Pipelines',
     };
@@ -85,7 +69,7 @@ class PipelineList extends Page<{}, PipelineListState> {
   public render(): JSX.Element {
     const columns: Column[] = [
       {
-        customRenderer: this._nameCustomRenderer.bind(this),
+        customRenderer: this._nameCustomRenderer,
         flex: 1,
         label: 'Pipeline name',
         sortKey: PipelineSortKeys.NAME,
@@ -135,11 +119,11 @@ class PipelineList extends Page<{}, PipelineListState> {
     return response ? response.next_page_token || '' : '';
   }
 
-  private _nameCustomRenderer(value: string, id: string): React.ReactElement<Link> {
+  private _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (props: CustomRendererProps<string>) => {
     return (
       <Link onClick={(e) => e.stopPropagation()}
         className={commonCss.link}
-        to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, id)}>{value}
+        to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, props.id)}>{props.value}
       </Link>
     );
   }
@@ -153,44 +137,8 @@ class PipelineList extends Page<{}, PipelineListState> {
     this.setStateSafe({ selectedIds });
   }
 
-  private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
-    if (deleteConfirmed) {
-      const unsuccessfulDeleteIds: string[] = [];
-      const errorMessages: string[] = [];
-      // TODO: Show spinner during wait.
-      await Promise.all(this.state.selectedIds.map(async (id) => {
-        try {
-          await Apis.pipelineServiceApi.deletePipeline(id);
-        } catch (err) {
-          unsuccessfulDeleteIds.push(id);
-          const pipeline = this.state.pipelines.find((p) => p.id === id);
-          const errorMessage = await errorToMessage(err);
-          errorMessages.push(
-            `Deleting pipeline${pipeline ? ': ' + pipeline.name : ''} failed with error: "${errorMessage}"`);
-        }
-      }));
-
-      const successfulDeletes = this.state.selectedIds.length - unsuccessfulDeleteIds.length;
-      if (successfulDeletes > 0) {
-        this.props.updateSnackbar({
-          message: `Successfully deleted ${successfulDeletes} pipeline${successfulDeletes === 1 ? '' : 's'}!`,
-          open: true,
-        });
-        this.refresh();
-      }
-
-      if (unsuccessfulDeleteIds.length > 0) {
-        this.showErrorDialog(
-          `Failed to delete ${unsuccessfulDeleteIds.length} pipeline${unsuccessfulDeleteIds.length === 1 ? '' : 's'}`,
-          errorMessages.join('\n\n'));
-      }
-
-      this._selectionChanged(unsuccessfulDeleteIds);
-    }
-  }
-
   private async _uploadDialogClosed(confirmed: boolean, name: string, file: File | null, url: string,
-      method: ImportMethod, description?: string): Promise<boolean> {
+    method: ImportMethod, description?: string): Promise<boolean> {
 
     if (!confirmed
       || (method === ImportMethod.LOCAL && !file)

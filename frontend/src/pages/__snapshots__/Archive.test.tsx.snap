@@ -1,0 +1,74 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Archive renders archived runs 1`] = `
+<div
+  className="page"
+>
+  <RunList
+    history={
+      Object {
+        "push": [MockFunction],
+      }
+    }
+    location={Object {}}
+    match={Object {}}
+    onError={[Function]}
+    onSelectionChange={[Function]}
+    selectedIds={Array []}
+    storageState="STORAGESTATE_ARCHIVED"
+    toolbarProps={
+      Object {
+        "actions": Array [
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one resource to restore",
+            "id": "restoreBtn",
+            "title": "Restore",
+            "tooltip": "Restore",
+          },
+          Object {
+            "action": [Function],
+            "id": "refreshBtn",
+            "title": "Refresh",
+            "tooltip": "Refresh the list",
+          },
+        ],
+        "breadcrumbs": Array [],
+        "pageTitle": "Archive",
+      }
+    }
+    updateBanner={[MockFunction]}
+    updateDialog={null}
+    updateSnackbar={null}
+    updateToolbar={
+      [MockFunction] {
+        "calls": Array [
+          Array [
+            Object {
+              "actions": Array [
+                Object {
+                  "action": [Function],
+                  "disabled": true,
+                  "disabledTitle": "Select at least one resource to restore",
+                  "id": "restoreBtn",
+                  "title": "Restore",
+                  "tooltip": "Restore",
+                },
+                Object {
+                  "action": [Function],
+                  "id": "refreshBtn",
+                  "title": "Refresh",
+                  "tooltip": "Refresh the list",
+                },
+              ],
+              "breadcrumbs": Array [],
+              "pageTitle": "Archive",
+            },
+          ],
+        ],
+      }
+    }
+  />
+</div>
+`;

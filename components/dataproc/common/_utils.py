@@ -34,6 +34,9 @@ def create_cluster(api, project, region, cluster_name, init_file_url):
     'config': {
         'gceClusterConfig': {
         },
+        'softwareConfig': {
+          'imageVersion': '1.2'
+        },
         'initializationActions': {
              'executableFile': init_file_url
         }

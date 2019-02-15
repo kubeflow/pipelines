@@ -126,6 +126,12 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
 
     func_name=func.__name__
 
+    #TODO: Add support for copying the NamedTuple subclass declaration code
+    #Adding NamedTuple import if needed
+    func_type_declarations_code = ""
+    if hasattr(return_ann, '_fields'): #NamedTuple
+        func_type_declarations_code = func_type_declarations_code + '\n' + 'from typing import NamedTuple'
+
     #Source code can include decorators line @python_op. Remove them
     (func_code_lines, _) = inspect.getsourcelines(func) 
     while func_code_lines[0].lstrip().startswith('@'): #decorator
@@ -157,9 +163,9 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
 
     full_source = \
 '''\
-from typing import NamedTuple
-
 {extra_code}
+
+{func_type_declarations_code}
 
 {func_code}
 
@@ -173,8 +179,7 @@ _output_files = [
 
 _outputs = {func_name}(**_args)
 
-from collections.abc import Sequence
-if not isinstance(_outputs, Sequence) or isinstance(_outputs, str):
+if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
     _outputs = [_outputs]
 
 from pathlib import Path
@@ -185,6 +190,7 @@ for idx, filename in enumerate(_output_files):
 '''.format(
         func_name=func_name,
         func_code=func_code,
+        func_type_declarations_code=func_type_declarations_code,
         extra_code=extra_code,
         input_args_parsing_code='\n'.join(input_args_parsing_code_lines),
         output_files_parsing_code='\n'.join(output_files_parsing_code_lines),

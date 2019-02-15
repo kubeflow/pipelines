@@ -17,6 +17,9 @@
 import * as React from 'react';
 // @ts-ignore
 import createRouterContext from 'react-router-test-context';
+import { PageProps, Page } from './pages/Page';
+import { ToolbarActionConfig } from './components/Toolbar';
+import { match } from 'react-router';
 import { mount, ReactWrapper } from 'enzyme';
 import { object } from 'prop-types';
 
@@ -53,5 +56,41 @@ export default class TestUtils {
         text: () => Promise.resolve(message),
       };
     });
+  }
+
+  /**
+   * Generates a customizable PageProps object that can be passed to initialize
+   * Page components, taking care of setting ToolbarProps properly, which have
+   * to be set after component initialization.
+   */
+  // tslint:disable-next-line:variable-name
+  public static generatePageProps(PageElement: new (_: PageProps) => Page<any, any>,
+    location: Location, matchValue: match,
+    historyPushSpy: jest.SpyInstance | null, updateBannerSpy: jest.SpyInstance | null,
+    updateDialogSpy: jest.SpyInstance | null, updateToolbarSpy: jest.SpyInstance | null,
+    updateSnackbarSpy: jest.SpyInstance | null): PageProps {
+    const pageProps = {
+      history: { push: historyPushSpy } as any,
+      location: location as any,
+      match: matchValue,
+      toolbarProps: { actions: [], breadcrumbs: [], pageTitle: '' },
+      updateBanner: updateBannerSpy as any,
+      updateDialog: updateDialogSpy as any,
+      updateSnackbar: updateSnackbarSpy as any,
+      updateToolbar: updateToolbarSpy as any,
+    } as PageProps;
+    pageProps.toolbarProps = new PageElement(pageProps).getInitialToolbarState();
+    // The toolbar spy gets called in the getInitialToolbarState method, reset it
+    // in order to simplify tests
+    if (updateToolbarSpy) {
+      updateToolbarSpy.mockReset();
+    }
+    return pageProps;
+  }
+
+  public static getToolbarButton(updateToolbarSpy: jest.SpyInstance, title: string): ToolbarActionConfig {
+    const lastCallIdx = updateToolbarSpy.mock.calls.length - 1;
+    const lastCall = updateToolbarSpy.mock.calls[lastCallIdx][0];
+    return lastCall.actions.find((b: any) => b.title === title);
   }
 }

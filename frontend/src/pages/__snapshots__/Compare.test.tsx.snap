@@ -100,11 +100,7 @@ exports[`Compare creates a map of viewers 1`] = `
           "search": "?runlist=run-with-workflow",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -315,11 +311,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
           "search": "?runlist=run1-id,run2-id",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -584,11 +576,7 @@ exports[`Compare displays parameters from multiple runs 1`] = `
           "search": "?runlist=run1,run2",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -754,11 +742,7 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
           "search": "?runlist=run-with-parameters",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -914,11 +898,7 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
           "search": "?runlist=run-with-workflow-1,run-with-workflow-2",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -1053,11 +1033,7 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
           "search": "?runlist=run-with-workflow-1,run-with-workflow-2",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -1316,11 +1292,7 @@ exports[`Compare renders a page with multiple runs 1`] = `
           "search": "?runlist=mock-run-1-id,mock-run-2-id,mock-run-3-id",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={
@@ -1468,11 +1440,7 @@ exports[`Compare renders a page with no runs 1`] = `
           "search": "",
         }
       }
-      match={
-        Object {
-          "params": Object {},
-        }
-      }
+      match={Object {}}
       onError={[Function]}
       onSelectionChange={[Function]}
       runIdListMask={Array []}

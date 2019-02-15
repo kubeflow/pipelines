@@ -17,14 +17,15 @@
 import * as React from 'react';
 import ExperimentDetails from './ExperimentDetails';
 import TestUtils from '../TestUtils';
-import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
-import { Apis } from '../lib/Apis';
-import { PageProps } from './Page';
-import { range } from 'lodash';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiResourceType } from '../apis/job';
+import { Apis } from '../lib/Apis';
+import { PageProps } from './Page';
+import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
+import { range } from 'lodash';
 
 describe('ExperimentDetails', () => {
 
@@ -53,16 +54,9 @@ describe('ExperimentDetails', () => {
   }
 
   function generateProps(): PageProps {
-    return {
-      history: { push: historyPushSpy } as any,
-      location: '' as any,
-      match: { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any,
-      toolbarProps: ExperimentDetails.prototype.getInitialToolbarState(),
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
+    const match = { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any;
+    return TestUtils.generatePageProps(ExperimentDetails, {} as any, match, historyPushSpy,
+      updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
   }
 
   async function mockNJobs(n: number): Promise<void> {
@@ -100,8 +94,10 @@ describe('ExperimentDetails', () => {
     await mockNRuns(0);
   });
 
-  afterEach(() => {
-    tree.unmount();
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
   });
 
   it('renders a page with no runs or recurring runs', async () => {
@@ -203,6 +199,14 @@ describe('ExperimentDetails', () => {
     expect(consoleErrorSpy.mock.calls[0][0]).toBe(
       'Error loading experiment: ' + MOCK_EXPERIMENT.id
     );
+  });
+
+  it('shows a list of available runs', async () => {
+    await mockNJobs(1);
+    tree = shallow(<ExperimentDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.AVAILABLE.toString());
   });
 
   it('fetches this experiment\'s recurring runs', async () => {
@@ -390,7 +394,7 @@ describe('ExperimentDetails', () => {
     tree.find('.tableRow').simulate('click');
 
     const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Clone');
+      .actions.find(b => b.title === 'Clone run');
     await cloneBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
@@ -425,7 +429,7 @@ describe('ExperimentDetails', () => {
     tree.update();
 
     const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Clone');
+      .actions.find(b => b.title === 'Clone run');
 
     for (let i = 0; i < 4; i++) {
       if (i === 1) {

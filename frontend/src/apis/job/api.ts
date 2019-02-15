@@ -204,6 +204,12 @@ export interface ApiListJobsResponse {
     jobs?: Array<ApiJob>;
     /**
      * 
+     * @type {number}
+     * @memberof ApiListJobsResponse
+     */
+    total_size?: number;
+    /**
+     * 
      * @type {string}
      * @memberof ApiListJobsResponse
      */

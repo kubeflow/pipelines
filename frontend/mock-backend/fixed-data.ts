@@ -346,7 +346,7 @@ const runs: ApiRunDetail[] = [
         relationship: ApiRelationship.OWNER,
       }],
       scheduled_at: new Date('2018-04-17T21:00:00.000Z'),
-      status: 'Succeeded',
+      status: 'Error',
     },
   },
   {

@@ -37,6 +37,7 @@ describe('Compare', () => {
   let tree: ReactWrapper | ShallowWrapper;
 
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
+  const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
 
   const updateToolbarSpy = jest.fn();
   const updateBannerSpy = jest.fn();
@@ -46,20 +47,14 @@ describe('Compare', () => {
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const outputArtifactLoaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
 
+
   function generateProps(): PageProps {
-    return {
-      history: { push: historyPushSpy } as any,
-      location: {
-        pathname: RoutePage.COMPARE,
-        search: `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`
-      } as any,
-      match: { params: {} } as any,
-      toolbarProps: Compare.prototype.getInitialToolbarState(),
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
-    };
+    const location = {
+      pathname: RoutePage.COMPARE,
+      search: `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`
+    } as any;
+    return TestUtils.generatePageProps(Compare, location, {} as any, historyPushSpy,
+      updateBannerSpy, updateDialogSpy, updateToolbarSpy, updateSnackbarSpy);
   }
 
   const MOCK_RUN_1_ID = 'mock-run-1-id';
@@ -122,6 +117,7 @@ describe('Compare', () => {
   beforeEach(async () => {
     // Reset mocks
     consoleErrorSpy.mockReset();
+    consoleLogSpy.mockReset();
     updateBannerSpy.mockReset();
     updateDialogSpy.mockReset();
     updateSnackbarSpy.mockReset();
@@ -136,8 +132,10 @@ describe('Compare', () => {
     getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
   });
 
-  afterEach(() => {
-    tree.unmount();
+  afterEach(async () => {
+    // unmount() should be called before resetAllMocks() in case any part of the unmount life cycle
+    // depends on mocks/spies
+    await tree.unmount();
   });
 
   it('clears banner upon initial load', () => {

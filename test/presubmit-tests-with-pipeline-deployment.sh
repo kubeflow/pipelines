@@ -71,7 +71,7 @@ echo "presubmit test starts"
 
 # activating the service account
 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
-gcloud config set compute/zone us-central1-a
+gcloud config set compute/zone us-west1-a
 gcloud config set core/project ${PROJECT}
 
 #Uploading the source code to GCS:
@@ -84,7 +84,7 @@ tar -czf "$local_code_archive_file" .
 gsutil cp "$local_code_archive_file" "$remote_code_archive_uri"
 
 # Install ksonnet
-KS_VERSION="0.11.0"
+KS_VERSION="0.13.0"
 curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
 tar -xzf ks_${KS_VERSION}_linux_amd64.tar.gz
 chmod +x ./ks_${KS_VERSION}_linux_amd64/ks
@@ -119,6 +119,8 @@ function clean_up {
   echo "Clean up..."
   cd ${KFAPP}
   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
+  # delete the storage
+  gcloud deployment-manager --project=${PROJECT} deployments delete ${KFAPP}-storage --quiet
 }
 trap clean_up EXIT
 
@@ -128,22 +130,42 @@ cd ${KFAPP}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
-
-## Update pipeline component image
-pushd ks_app
-ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api
-ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent
-ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow
-ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend
-popd
-
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
 
 source "${DIR}/install-argo.sh"
 
-echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
+echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
+ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
+-p image-build-context-gcs-uri="$remote_code_archive_uri" \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+-p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+-p cluster-type="${CLUSTER_TYPE}" \
+-p api-image="${GCR_IMAGE_BASE_DIR}/api" \
+-p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
+-p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
+-p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
+-n ${NAMESPACE} \
+--serviceaccount test-runner \
+-o name
+`
+echo "build docker images workflow submitted successfully"
+
+source "${DIR}/check-argo-status.sh"
+
+echo "build docker images workflow completed"
+
+## Update pipeline component with the newly built image
+pushd ks_app
+ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api
+ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent
+ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow
+ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend
+ks apply default -c pipeline
+popd
+
+echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
@@ -154,7 +176,8 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -o name
 `
 
-echo argo workflow submitted successfully
+echo "test workflow submitted successfully"
 
 source "${DIR}/check-argo-status.sh"
 
+echo "test workflow completed"

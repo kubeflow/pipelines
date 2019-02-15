@@ -26,60 +26,66 @@ exports[`Router initial render 1`] = `
           <Route
             exact={true}
             key="0"
-            path="/experiments"
+            path="/archive"
             render={[Function]}
           />
           <Route
             exact={true}
             key="1"
-            path="/experiments/details/:eid"
+            path="/experiments"
             render={[Function]}
           />
           <Route
             exact={true}
             key="2"
-            path="/experiments/new"
+            path="/experiments/details/:eid"
             render={[Function]}
           />
           <Route
             exact={true}
             key="3"
-            path="/runs/new"
+            path="/experiments/new"
             render={[Function]}
           />
           <Route
             exact={true}
             key="4"
-            path="/pipelines"
+            path="/runs/new"
             render={[Function]}
           />
           <Route
             exact={true}
             key="5"
-            path="/pipelines/details/:pid?"
+            path="/pipelines"
             render={[Function]}
           />
           <Route
             exact={true}
             key="6"
-            path="/runs"
+            path="/pipelines/details/:pid?"
             render={[Function]}
           />
           <Route
             exact={true}
             key="7"
-            path="/recurringrun/details/:rid"
+            path="/runs"
             render={[Function]}
           />
           <Route
             exact={true}
             key="8"
-            path="/runs/details/:rid"
+            path="/recurringrun/details/:rid"
             render={[Function]}
           />
           <Route
             exact={true}
             key="9"
+            path="/runs/details/:rid"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            key="10"
             path="/compare"
             render={[Function]}
           />
