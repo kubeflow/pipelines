@@ -21,7 +21,7 @@ import datetime
 def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'GcsUri', column_names: 'GcsUri[text/json]', key_columns, project: 'GcpProject', mode, validation_output: 'GcsUri[Directory]', step_name='validation'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:5df2cdc1ed145320204e8bc73b59cdbd7b3da28f',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:6ad2601ec7d04e842c212c50d5c78e548e12ddea',
         arguments = [
             '--csv-data-for-inference', inference_data,
             '--csv-data-to-validate', validation_data,
@@ -40,7 +40,7 @@ def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'G
 def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:5df2cdc1ed145320204e8bc73b59cdbd7b3da28f',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:6ad2601ec7d04e842c212c50d5c78e548e12ddea',
         arguments = [
             '--train', train_data,
             '--eval', evaluation_data,
@@ -74,7 +74,7 @@ def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate
 def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', analyze_mode, analyze_slice_column, analysis_output: 'GcsUri', step_name='analysis'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:5df2cdc1ed145320204e8bc73b59cdbd7b3da28f',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:6ad2601ec7d04e842c212c50d5c78e548e12ddea',
         arguments = [
             '--model', model,
             '--eval', evaluation_data,
@@ -91,7 +91,7 @@ def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'Gc
 def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:5df2cdc1ed145320204e8bc73b59cdbd7b3da28f',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:6ad2601ec7d04e842c212c50d5c78e548e12ddea',
         arguments = [
             '--data', evaluation_data,
             '--schema', schema,
