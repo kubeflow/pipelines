@@ -162,7 +162,7 @@ class DockerfileHelper(object):
         f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
       else:
         f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
-        f.write('RUN pip install pathlib==1.0.1')
+        f.write('RUN pip install pathlib==1.0.1\n')
       if has_requirement_file:
         f.write('ADD ' + self._ARC_REQUIREMENT_FILE + ' /ml/\n')
         if python_version is 'python3':
