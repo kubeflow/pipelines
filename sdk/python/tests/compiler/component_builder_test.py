@@ -164,6 +164,7 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     golden_dockerfile_payload_three = '''\
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools
+RUN pip install pathlib==1.0.1
 ADD requirements.txt /ml/
 RUN pip install -r /ml/requirements.txt
 ADD main.py /ml/
