@@ -62,6 +62,7 @@ while [ "$1" != "" ]; do
 done
 
 #Variables
+# Refer to https://github.com/kubernetes/test-infra/blob/e357ffaaeceafe737bd6ab89d2feff132d92ea50/prow/jobs.md for the Prow job environment variables
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_BASE_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
@@ -134,4 +135,4 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 `
 echo "argo workflow submitted successfully"
 source "${DIR}/check-argo-status.sh"
-
+echo "test workflow completed"
