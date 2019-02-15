@@ -30,7 +30,7 @@ class PipelineParam(object):
   value passed between components.
   """
   
-  def __init__(self, name: str, op_name: str=None, value: str=None, type: _types.MetaType=None):
+  def __init__(self, name: str, op_name: str=None, value: str=None, type: type=None):
     """Create a new instance of PipelineParam.
     Args:
       name: name of the pipeline parameter.
@@ -73,8 +73,7 @@ class PipelineParam(object):
 
     op_name = self.op_name if self.op_name else ''
     value = self.value if self.value else ''
-    #TODO: adjust all the pipelineparam in the project.
-    return '{{pipelineparam:op=%s;name=%s;value=%s;type=%s}}' % (op_name, self.name, value, _types.serialize_types(self.type))
+    return '{{pipelineparam:op=%s;name=%s;value=%s}}' % (op_name, self.name, value)
   
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})
