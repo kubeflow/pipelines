@@ -30,7 +30,7 @@ class PipelineParam(object):
   value passed between components.
   """
   
-  def __init__(self, name: str, op_name: str=None, value: str=None, type: type=None):
+  def __init__(self, name: str, op_name: str=None, value: str=None, param_type: type=None):
     """Create a new instance of PipelineParam.
     Args:
       name: name of the pipeline parameter.
@@ -55,7 +55,7 @@ class PipelineParam(object):
     self.name = name
     self.value = value
     # parameter type: all core types are defined in _types.py
-    self.type = type
+    self.param_type = param_type
 
   def __str__(self):
     """String representation.
