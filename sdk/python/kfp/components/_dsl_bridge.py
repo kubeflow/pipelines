@@ -114,6 +114,7 @@ def create_container_op_from_task(task_spec: TaskSpec):
                         expanded_list.append(str(expanded_part))
         return expanded_list
 
+    #TODO: add type checking here
     expanded_command = expand_argument_list(container_spec.command)
     expanded_args = expand_argument_list(container_spec.args)
 
@@ -148,6 +149,7 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
     
     output_paths_for_container_op = {output_name_to_kubernetes[name]: path for name, path in output_paths.items()}
 
+    #TODO: pass component metadata to the containerop.
     task = dsl.ContainerOp(
         name=name,
         image=container_image,
