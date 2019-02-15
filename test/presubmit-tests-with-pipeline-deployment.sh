@@ -68,6 +68,9 @@ echo "presubmit test starts"
 source "${DIR}/test_prep.sh"
 source "${DIR}/deploy_kubeflow.sh"
 
+# Install Argo
+source "${DIR}/install-argo.sh"
+
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \

@@ -32,6 +32,3 @@ gsutil cp "$local_code_archive_file" "$remote_code_archive_uri"
 
 TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_BASE_SHA:0:7}-${RANDOM}
-
-# Install Argo
-source "${DIR}/install-argo.sh"

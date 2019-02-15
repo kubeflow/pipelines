@@ -70,6 +70,9 @@ echo "postsubmit test starts"
 source "${DIR}/test_prep.sh"
 source "${DIR}/deploy_kubeflow.sh"
 
+# Install Argo
+source "${DIR}/install-argo.sh"
+
 ## Wait for the cloudbuild job to be started
 CLOUDBUILD_TIMEOUT_SECONDS=3600
 PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT=$(expr ${CLOUDBUILD_TIMEOUT_SECONDS} / 20 )
