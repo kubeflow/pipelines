@@ -22,6 +22,18 @@ _OUTPUT_FILE_LOCK = threading.Lock()
 
 def display(obj):
     """Display an object to KFP UI.
+
+    Args:
+        obj (object): the object to output the display metadata. It follows same 
+            convention defined by IPython display API. The currently supported representation
+            functions:
+            
+            * `_repr_html_`: it returns a html content which will be converted into a 
+                web-app metadata to KFP UI.
+            * `_repr_kfpmetadata_`: it returns a KFP metadata json object, which follows
+                the convention from https://www.kubeflow.org/docs/pipelines/output-viewer/.
+
+            The supported builtin objects are HTML, Tensorboard, Link.
     """
     obj_dir = dir(obj)
     if '_repr_html_' in obj_dir:
