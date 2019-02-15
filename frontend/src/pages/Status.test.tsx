@@ -93,6 +93,10 @@ describe('Status', () => {
     it('returns \'false\' if status is undefined', () => {
       expect(hasFinished(undefined)).toBe(false);
     });
+
+    it('returns \'false\' if status is invalid', () => {
+      expect(hasFinished('bad phase' as any)).toBe(false);
+    });
   });
 
   describe('statusToFadedColor', () => {
