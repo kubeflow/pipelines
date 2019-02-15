@@ -66,6 +66,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "presubmit test starts"
 source "${DIR}/test_prep.sh"
+source "${DIR}/deploy_kubeflow.sh"
 
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
@@ -87,7 +88,7 @@ source "${DIR}/check-argo-status.sh"
 echo "build docker images workflow completed"
 
 # Deploy the pipeline
-source ${DIR}/deploy-pipeline.sh --platform ${PLATFORM} --project ${PROJECT} --test_cluster ${TEST_CLUSTER} --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \

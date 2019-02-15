@@ -34,5 +34,4 @@ TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_BASE_SHA:0:7}-${RANDOM}
 
 # Install Argo
-gcloud container clusters get-credentials ${TEST_CLUSTER}
 source "${DIR}/install-argo.sh"
