@@ -18,7 +18,7 @@ import logging
 
 from googleapiclient import errors
 
-from kfp_component.core import KfpExecutionContext
+from kfp_component.core import KfpExecutionContext, display
 from ._client import MLEngineClient
 from .. import common as gcp_common
 
@@ -67,10 +67,9 @@ class CreateModelOp:
             return created_model
 
     def _set_model_name(self, context_id):
-        if not model_name:
-            model_name = 'model_' + context_id
-        self._model_name = model_name
-        self._model['name'] = model_name
+        if not self._model_name:
+            self._model_name = 'model_' + context_id
+        self._model['name'] = gcp_common.normalize_name(self._model_name)
 
 
     def _is_dup_model(self, existing_model):
@@ -81,18 +80,13 @@ class CreateModelOp:
                 'onlinePredictionLogging', 'labels'])
 
     def _dump_metadata(self):
-        metadata = {
-            'outputs' : [{
-                'type': 'link',
-                'name': 'model details',
-                'href': 'https://console.cloud.google.com/mlengine/models/{}?project={}'.format(
-                    self._model_name, self._project_id)
-            }]
-        }
-        logging.info('Dumping UI metadata: {}'.format(metadata))
-        gcp_common.dump_file('/mlpipeline-ui-metadata.json', json.dumps(metadata))
+        display.display(display.Link(
+            'https://console.cloud.google.com/mlengine/models/{}?project={}'.format(
+                self._model_name, self._project_id),
+            'Model Details'
+        ))
 
     def _dump_model(self, model):
         logging.info('Dumping model: {}'.format(model))
-        gcp_common.dump_file('/output.txt', json.dumps(model))
-        gcp_common.dump_file('/model_name.txt', model['name'])
+        gcp_common.dump_file('/tmp/outputs/output.txt', json.dumps(model))
+        gcp_common.dump_file('/tmp/outputs/model_name.txt', self._model_name)

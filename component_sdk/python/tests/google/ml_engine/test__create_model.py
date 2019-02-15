@@ -17,25 +17,26 @@ from kfp_component.google.ml_engine import create_model
 
 CREATE_MODEL_MODULE = 'kfp_component.google.ml_engine._create_model'
 
+@mock.patch(CREATE_MODEL_MODULE + '.display.display')
 @mock.patch(CREATE_MODEL_MODULE + '.gcp_common.dump_file')
 @mock.patch(CREATE_MODEL_MODULE + '.KfpExecutionContext')
 @mock.patch(CREATE_MODEL_MODULE + '.MLEngineClient')
 class TestCreateModel(unittest.TestCase):
 
     def test_create_model_succeed(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         model = {
             'name': 'mock_model',
             'description': 'the mock model'
         }
         mock_mlengine_client().create_model.return_value = model
 
-        result = create_model('mock_project', model)
+        result = create_model('mock_project', 'mock_model', model)
 
         self.assertEqual(model, result)
 
     def test_create_model_conflict_succeed(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         model = {
             'name': 'mock_model',
             'description': 'the mock model'
@@ -46,12 +47,12 @@ class TestCreateModel(unittest.TestCase):
         )
         mock_mlengine_client().get_model.return_value = model
 
-        result = create_model('mock_project', model)
+        result = create_model('mock_project', 'mock_model', model)
 
         self.assertEqual(model, result)
 
     def test_create_model_conflict_fail(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         model = {
             'name': 'mock_model',
             'description': 'the mock model'
@@ -67,21 +68,21 @@ class TestCreateModel(unittest.TestCase):
         mock_mlengine_client().get_model.return_value = changed_model
 
         with self.assertRaises(errors.HttpError) as context:
-            create_model('mock_project', model)
+            create_model('mock_project', 'mock_model', model)
 
         self.assertEqual(409, context.exception.resp.status)
 
     def test_create_model_use_context_id_as_name(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         context_id = 'context1'
         model = {}
         returned_model = {
-            'name': context_id
+            'name': 'model_' + context_id
         }
         mock_mlengine_client().create_model.return_value = returned_model
         mock_kfp_context().__enter__().context_id.return_value = context_id
 
-        create_model('mock_project', model)
+        create_model('mock_project', model=model)
 
         mock_mlengine_client().create_model.assert_called_with(
             project_id = 'mock_project',

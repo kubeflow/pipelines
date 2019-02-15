@@ -124,7 +124,7 @@ class MLEngineClient:
         """
         try:
             return self._ml_client.projects().models().versions().get(
-                name = 'projects/{}/models/{}/version/{}'.format(
+                name = 'projects/{}/models/{}/versions/{}'.format(
                     project_id, model_name, version_name)
             ).execute()
         except errors.HttpError as e:
@@ -145,7 +145,7 @@ class MLEngineClient:
         """
         try:
             return self._ml_client.projects().models().versions().delete(
-                name = 'projects/{}/models/{}/version/{}'.format(
+                name = 'projects/{}/models/{}/versions/{}'.format(
                     project_id, model_name, version_name)
             ).execute()
         except errors.HttpError as e:

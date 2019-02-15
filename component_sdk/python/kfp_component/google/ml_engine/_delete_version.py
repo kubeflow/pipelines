@@ -22,14 +22,14 @@ from ._client import MLEngineClient
 from .. import common as gcp_common
 from ._common_ops import wait_existing_version, wait_for_operation_done
 
-def delete_version(project_id, model_name, version_name, wait_interval):
+def delete_version(project_id, model_name, version_name, wait_interval=30):
     """Deletes a MLEngine version and wait.
 
     Args:
-        project_id: the ID of the parent project.
-        model_name: the name of the parent model.
-        version_name: the name of the version.
-        wait_interval: the interval to wait for a long running operation.
+        project_id (str): required, the ID of the parent project.
+        model_name (str): required, the name of the parent model.
+        version_name (str): required, the name of the version.
+        wait_interval (int): the interval to wait for a long running operation.
     """
     DeleteVersionOp(project_id, model_name, version_name, 
         wait_interval).execute_and_wait()

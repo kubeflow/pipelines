@@ -14,6 +14,7 @@
 
 import logging
 import re
+import os
 
 def normalize_name(name,
               valid_first_char_pattern='a-zA-Z',
@@ -56,6 +57,9 @@ def dump_file(path, content):
         path: the local path to the file.
         content: the string content to dump.
     """
+    directory = os.path.dirname(path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     with open(path, 'w') as f:
             f.write(content)
 

@@ -19,13 +19,14 @@ from kfp_component.google.ml_engine import create_job
 
 CREATE_JOB_MODULE = 'kfp_component.google.ml_engine._create_job'
 
+@mock.patch(CREATE_JOB_MODULE + '.display.display')
 @mock.patch(CREATE_JOB_MODULE + '.gcp_common.dump_file')
 @mock.patch(CREATE_JOB_MODULE + '.KfpExecutionContext')
 @mock.patch(CREATE_JOB_MODULE + '.MLEngineClient')
 class TestCreateJob(unittest.TestCase):
 
     def test_create_job_succeed(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
         job = {}
         returned_job = {
@@ -46,7 +47,7 @@ class TestCreateJob(unittest.TestCase):
         )
 
     def test_create_job_with_job_id_prefix_succeed(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
         job = {}
         returned_job = {
@@ -67,7 +68,7 @@ class TestCreateJob(unittest.TestCase):
         )
         
     def test_execute_retry_job_success(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
         job = {}
         returned_job = {
@@ -85,7 +86,7 @@ class TestCreateJob(unittest.TestCase):
         self.assertEqual(returned_job, result)
 
     def test_create_job_use_context_id_as_name(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         context_id = 'ctx1'
         job = {}
         returned_job = {
@@ -106,7 +107,7 @@ class TestCreateJob(unittest.TestCase):
         )
 
     def test_execute_conflict_fail(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
         job = {}
         returned_job = {
@@ -128,7 +129,7 @@ class TestCreateJob(unittest.TestCase):
         self.assertEqual(409, context.exception.resp.status)
 
     def test_execute_create_job_fail(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
         job = {}
         mock_mlengine_client().create_job.side_effect = errors.HttpError(
@@ -142,7 +143,7 @@ class TestCreateJob(unittest.TestCase):
         self.assertEqual(400, context.exception.resp.status)
     
     def test_execute_job_status_fail(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
         job = {}
         returned_job = {
@@ -158,7 +159,7 @@ class TestCreateJob(unittest.TestCase):
             create_job('mock_project', job)
 
     def test_cancel_succeed(self, mock_mlengine_client,
-        mock_kfp_context, mock_dump_json):
+        mock_kfp_context, mock_dump_json, mock_display):
         mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
         job = {}
         returned_job = {

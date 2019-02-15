@@ -20,7 +20,7 @@ import time
 
 from googleapiclient import errors
 
-from kfp_component.core import KfpExecutionContext
+from kfp_component.core import KfpExecutionContext, display
 from ._client import MLEngineClient
 from .. import common as gcp_common
 
@@ -111,30 +111,21 @@ class CreateJobOp:
             time.sleep(self._wait_interval)
 
     def _dump_metadata(self):
-        metadata = {
-            'outputs' : [{
-                'type': 'sd-log',
-                'resourceType': 'ml_job',
-                'labels': {
-                    'project_id': self._project_id,
-                    'job_id': self._job_id
-                }
-            }, {
-                'type': 'link',
-                'name': 'job details',
-                'href': 'https://console.cloud.google.com/mlengine/jobs/{}?project={}'.format(self._job_id, self._project_id)
-            }]
-        }
+        display.display(display.Link(
+            'https://console.cloud.google.com/mlengine/jobs/{}?project={}'.format(
+                self._job_id, self._project_id),
+            'Job Details'
+        ))
+        display.display(display.Link(
+            'https://console.cloud.google.com/logs/viewer?project={}&resource=ml_job/job_id/{}&interval=NO_LIMIT'.format(
+                self._project_id, self._job_id),
+            'Logs'
+        ))
         if 'trainingInput' in self._job and 'jobDir' in self._job['trainingInput']:
-            metadata['outputs'].append({
-                'type': 'tensorboard',
-                'source': self._job['trainingInput']['jobDir'],
-            })
-        logging.info('Dumping UI metadata: {}'.format(metadata))
-        gcp_common.dump_file('/tmp/mlpipeline-ui-metadata.json', 
-            json.dumps(metadata))
+            display.display(display.Tensorboard(
+                self._job['trainingInput']['jobDir']))
 
     def _dump_job(self, job):
         logging.info('Dumping job: {}'.format(job))
-        gcp_common.dump_file('/tmp/output.txt', json.dumps(job))
-        gcp_common.dump_file('/tmp/job_id.txt', job['jobId'])
+        gcp_common.dump_file('/tmp/outputs/output.txt', json.dumps(job))
+        gcp_common.dump_file('/tmp/outputs/job_id.txt', job['jobId'])

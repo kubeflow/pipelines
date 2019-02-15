@@ -17,24 +17,49 @@ import logging
 import time
 
 from googleapiclient import errors
+from fire import decorators
 
-from kfp_component.core import KfpExecutionContext
+from kfp_component.core import KfpExecutionContext, display
 from ._client import MLEngineClient
 from .. import common as gcp_common
 from ._common_ops import wait_existing_version, wait_for_operation_done
 
-def create_version(project_id, model_name, version, 
+@decorators.SetParseFns(python_version=str, runtime_version=str)
+def create_version(project_id, model_name, deployemnt_uri=None, version_name=None, 
+    runtime_version=None, python_version=None, version=None, 
     replace_existing=False, wait_interval=30):
     """Creates a MLEngine version and wait for the operation to be done.
 
     Args:
-        project_id: the ID of the parent project.
-        model_name: the name of the parent model.
-        version: the payload of the new version. It must have a ``name`` in it.
-        replace_existing: boolean flag indicates whether to replace existing 
-            version in case of conflict.
-        wait_interval: the interval to wait for a long running operation.
+        project_id (str): required, the ID of the parent project.
+        model_name (str): required, the name of the parent model.
+        deployment_uri (str): optional, the Google Cloud Storage location of 
+            the trained model used to create the version.
+        version_name (str): optional, the name of the version. If it is not
+            provided, the operation uses a random name.
+        runtime_version (str): optinal, the Cloud ML Engine runtime version 
+            to use for this deployment. If not set, Cloud ML Engine uses 
+            the default stable version, 1.0. 
+        python_version (str): optinal, the version of Python used in prediction. 
+            If not set, the default version is '2.7'. Python '3.5' is available
+            when runtimeVersion is set to '1.4' and above. Python '2.7' works 
+            with all supported runtime versions.
+        version (str): optional, the payload of the new version.
+        replace_existing (boolean): boolean flag indicates whether to replace 
+            existing version in case of conflict.
+        wait_interval (int): the interval to wait for a long running operation.
     """
+    if not version:
+        version = {}
+    if deployemnt_uri:
+        version['deploymentUri'] = deployemnt_uri
+    if version_name:
+        version['name'] = version_name
+    if runtime_version:
+        version['runtimeVersion'] = runtime_version
+    if python_version:
+        version['pythonVersion'] = python_version
+
     return CreateVersionOp(project_id, model_name, version, 
         replace_existing, wait_interval).execute_and_wait()
 
@@ -74,10 +99,10 @@ class CreateVersionOp:
     def _set_version_name(self, context_id):
         version_name = self._version.get('name', None)
         if not version_name:
-            version_name = context_id
+            version_name = 'ver_' + context_id
         version_name = gcp_common.normalize_name(version_name)
         self._version_name = version_name
-        self._version['jobId'] = version_name
+        self._version['name'] = version_name
 
 
     def _cancel(self):
@@ -126,21 +151,16 @@ class CreateVersionOp:
         return version
 
     def _dump_metadata(self):
-        metadata = {
-            'outputs' : [{
-                'type': 'link',
-                'name': 'version details',
-                'href': 'https://console.cloud.google.com/mlengine/models/{}/versions/{}?project={}'.format(
-                    self._model_name, self._version_name, self._project_id)
-            }]
-        }
-        logging.info('Dumping UI metadata: {}'.format(metadata))
-        gcp_common.dump_file('/mlpipeline-ui-metadata.json', json.dumps(metadata))
+        display.display(display.Link(
+            'https://console.cloud.google.com/mlengine/models/{}/versions/{}?project={}'.format(
+                self._model_name, self._version_name, self._project_id),
+            'Version Details'
+        ))
 
     def _dump_version(self, version):
         logging.info('Dumping version: {}'.format(version))
-        gcp_common.dump_file('/output.txt', json.dumps(version))
-        gcp_common.dump_file('/version_name.txt', version['name'])
+        gcp_common.dump_file('/tmp/outputs/output.txt', json.dumps(version))
+        gcp_common.dump_file('/tmp/outputs/version_name.txt', version['name'])
 
     def _is_dup_version(self, existing_version):
         return not gcp_common.check_resource_changed(
