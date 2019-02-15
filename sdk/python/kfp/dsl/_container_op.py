@@ -71,7 +71,27 @@ class ContainerOp(object):
     self.pod_labels = {}
     self.num_retries = 0
     #TODO: define the sepc for the metadata
-    self.metadata = {}
+    '''
+    {
+      name: str
+      description: str
+      inputs:[
+        {
+          name: str
+          description: str
+          type: object
+        }
+      ]
+      outputs:[
+        {
+          name: str
+          description: str
+          type: object
+        }
+      ]
+    }
+    '''
+    self._metadata = {}
 
     # match the input placeholders from command and arguments
     input_matches = []

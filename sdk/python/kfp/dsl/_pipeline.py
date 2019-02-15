@@ -109,6 +109,29 @@ class Pipeline():
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
     self.group_id = 0
     self.conf = PipelineConf()
+    # Pipeline level metadata
+    #TODO: define the sepc for the metadata
+    '''
+    {
+      name: str
+      description: str
+      inputs:[
+        {
+          name: str
+          description: str
+          type: object
+        }
+      ]
+      outputs:[
+        {
+          name: str
+          description: str
+          type: object
+        }
+      ]
+    }
+    '''
+    self._metadata = {}
 
   def __enter__(self):
     if Pipeline._default_pipeline:
