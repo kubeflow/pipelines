@@ -55,38 +55,29 @@ export function hasFinished(status?: NodePhase): boolean {
   }
 }
 
-const fadedStatusColors = {
-  error: '#fce8e6',
-  notStarted: '#f7f7f7',
-  running: '#e8f0fe',
-  stopOrSkip: '#f1f3f4',
-  succeeded: '#e6f4ea',
-  warning: '#fef7f0',
-};
-
 export function statusToFadedColor(status?: NodePhase): string {
   if (!status) {
-    return fadedStatusColors.notStarted;
+    return color.fadedStatusColors.notStarted;
   }
 
   switch (status) {
     case NodePhase.ERROR:
-      return fadedStatusColors.error;
+      return color.fadedStatusColors.error;
     case NodePhase.FAILED:
-      return fadedStatusColors.error;
+      return color.fadedStatusColors.error;
     case NodePhase.PENDING:
-      return fadedStatusColors.notStarted;
+      return color.fadedStatusColors.notStarted;
     case NodePhase.RUNNING:
-      return fadedStatusColors.running;
+      return color.fadedStatusColors.running;
     case NodePhase.SKIPPED:
-      return fadedStatusColors.stopOrSkip;
+      return color.fadedStatusColors.stopOrSkip;
     case NodePhase.SUCCEEDED:
-      return fadedStatusColors.succeeded;
+      return color.fadedStatusColors.succeeded;
     case NodePhase.UNKNOWN:
       // fall through
     default:
       logger.verbose('Unknown node phase:', status);
-      return fadedStatusColors.notStarted;
+      return color.fadedStatusColors.notStarted;
   }
 }
 

@@ -27,6 +27,14 @@ export const color = {
   divider: '#e0e0e0',
   errorBg: '#fbe9e7',
   errorText: '#d50000',
+  fadedStatusColors: {
+    error: '#fce8e6',
+    notStarted: '#f7f7f7',
+    running: '#e8f0fe',
+    stopOrSkip: '#f1f3f4',
+    succeeded: '#e6f4ea',
+    warning: '#fef7f0',
+  },
   foreground: '#000',
   graphBg: '#f2f2f2',
   grey: '#5f6368', // Google grey 500

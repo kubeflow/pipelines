@@ -100,15 +100,6 @@ const css = stylesheet({
     overflow: 'auto',
     position: 'relative',
   },
-  startCircle: {
-    borderRadius: 7,
-    content: '',
-    display: 'inline-block',
-    height: 8,
-    position: 'absolute',
-    width: 8,
-    zIndex: 0,
-  },
 });
 
 interface GraphProps {
