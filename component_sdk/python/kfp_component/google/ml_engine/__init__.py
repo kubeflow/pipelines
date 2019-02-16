@@ -12,5 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._kfp_execution_context import KfpExecutionContext
-from . import _display as display
+"""Module that contains a set of commands to call ML Engine APIs
+
+The commands are aware of KFP execution context and can work under 
+retry and cancellation context. The currently supported commands
+are: train, batch_prediction, create_model, create_version and 
+delete_version.
+
+TODO(hongyes): Provides full ML Engine API support.
+"""
+
+from ._create_job import create_job
+from ._create_model import create_model
+from ._create_version import create_version
+from ._delete_version import delete_version
+from ._train import train
+from ._batch_predict import batch_predict
