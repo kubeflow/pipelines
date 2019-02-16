@@ -60,6 +60,8 @@ def dump_file(path, content):
     directory = os.path.dirname(path)
     if not os.path.exists(directory):
         os.makedirs(directory)
+    elif os.path.exists(path):
+        logging.warning('The file {} will be overwritten.'.format(path))
     with open(path, 'w') as f:
             f.write(content)
 
