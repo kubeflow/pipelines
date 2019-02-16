@@ -344,7 +344,7 @@ class ImageBuilder(object):
 
     # Serialize output
     codegen.writeline('from pathlib import Path')
-    codegen.writeline('Path(_output_file).parent.mkdir(parents=True, exist_ok=True)')
+    codegen.writeline('Path(_output_file).parent.mkdir(parents=True)')
     codegen.writeline('Path(_output_file).write_text(str(output))')
     wrapper_code = codegen.end()
 
