@@ -1,2 +1,3 @@
 kubernetes == 8.0.1
 fire == 0.1.3
+google-api-python-client == 1.7.8
