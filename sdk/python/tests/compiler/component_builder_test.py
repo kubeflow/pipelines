@@ -337,7 +337,7 @@ def sample_component_func(a: str, b: int) -> float:
 def wrapper_sample_component_func(a,b,_output_file):
   output = sample_component_func(str(a),int(b))
   from pathlib import Path
-  Path(_output_file).parent.mkdir(parents=True, exist_ok=True)
+  Path(_output_file).parent.mkdir(parents=True)
   Path(_output_file).write_text(str(output))
 
 import argparse
@@ -363,7 +363,7 @@ def sample_component_func_two(a: str, b: int) -> float:
 def wrapper_sample_component_func_two(a,b,_output_file):
   output = sample_component_func_two(str(a),int(b))
   from pathlib import Path
-  Path(_output_file).parent.mkdir(parents=True, exist_ok=True)
+  Path(_output_file).parent.mkdir(parents=True)
   Path(_output_file).write_text(str(output))
 
 import argparse
@@ -386,7 +386,7 @@ def sample_component_func_three() -> float:
 def wrapper_sample_component_func_three(_output_file):
   output = sample_component_func_three()
   from pathlib import Path
-  Path(_output_file).parent.mkdir(parents=True, exist_ok=True)
+  Path(_output_file).parent.mkdir(parents=True)
   Path(_output_file).write_text(str(output))
 
 import argparse
@@ -418,7 +418,7 @@ def sample_component_func_two(a, b):
 def wrapper_sample_component_func_two(a,b,_output_file):
   output = sample_component_func_two(str(a),int(b))
   from pathlib import Path
-  Path(_output_file).parent.mkdir(parents=True, exist_ok=True)
+  Path(_output_file).parent.mkdir(parents=True)
   Path(_output_file).write_text(str(output))
 
 import argparse
