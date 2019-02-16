@@ -57,6 +57,7 @@ const css = stylesheet({
     flexGrow: 1,
     fontFamily: fonts.secondary,
     fontSize: 13,
+    fontWeight: 500,
     lineHeight: '16px',
     margin: 10,
     overflow: 'hidden',
