@@ -20,6 +20,7 @@ from kfp_component.google.dataflow import launch_python
 
 MODULE = 'kfp_component.google.dataflow._launch_python'
 
+@mock.patch('kfp_component.google.dataflow._common_ops.display')
 @mock.patch(MODULE + '.stage_file')
 @mock.patch(MODULE + '.KfpExecutionContext')
 @mock.patch(MODULE + '.DataflowClient')
@@ -28,7 +29,7 @@ MODULE = 'kfp_component.google.dataflow._launch_python'
 class LaunchPythonTest(unittest.TestCase):
 
     def test_launch_python_succeed(self, mock_subprocess, mock_process, 
-        mock_client, mock_context, mock_stage_file):
+        mock_client, mock_context, mock_stage_file, mock_display):
         mock_context().__enter__().context_id.return_value = 'ctx-1'
         mock_client().list_aggregated_jobs.return_value = {
             'jobs': []
@@ -46,7 +47,7 @@ class LaunchPythonTest(unittest.TestCase):
         self.assertEqual(expected_job, result)
 
     def test_launch_python_retry_succeed(self, mock_subprocess, mock_process, 
-        mock_client, mock_context, mock_stage_file):
+        mock_client, mock_context, mock_stage_file, mock_display):
         mock_context().__enter__().context_id.return_value = 'ctx-1'
         mock_client().list_aggregated_jobs.return_value = {
             'jobs': [{
@@ -65,7 +66,7 @@ class LaunchPythonTest(unittest.TestCase):
         mock_process.assert_not_called()
 
     def test_launch_python_no_job_created(self, mock_subprocess, mock_process, 
-        mock_client, mock_context, mock_stage_file):
+        mock_client, mock_context, mock_stage_file, mock_display):
         mock_context().__enter__().context_id.return_value = 'ctx-1'
         mock_client().list_aggregated_jobs.return_value = {
             'jobs': []

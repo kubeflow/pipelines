@@ -18,6 +18,7 @@ import json
 import os
 import tempfile
 
+from kfp_component.core import display
 from .. import common as gcp_common
 from ..storage import download_blob, parse_blob_path, is_gcs_path
 
@@ -82,12 +83,12 @@ def wait_for_job_done(df_client, project_id, job_id, location=None, wait_interva
             time.sleep(wait_interval)
 
 def wait_and_dump_job(df_client, project_id, location, job, 
-    output_metadata_path, output_job_path, wait_interval):
-    dump_metadata(output_metadata_path, project_id, job)
+    wait_interval):
+    display_job_link(project_id, job)
     job_id = job.get('id')
     job = wait_for_job_done(df_client, project_id, job_id, 
         location, wait_interval)
-    dump_job(output_metadata_path, job)
+    dump_job(job)
     return job
 
 def is_job_terminated(job_state):
@@ -96,23 +97,18 @@ def is_job_terminated(job_state):
 def is_job_done(job_state):
     return job_state in _JOB_SUCCESSFUL_STATES
 
-def dump_metadata(output_metadata_path, project_id, job):
+def display_job_link(project_id, job):
     location = job.get('location')
     job_id = job.get('id')
-    metadata = {
-        'outputs' : [{
-            'type': 'link',
-            'name': 'job details',
-            'href': 'https://console.cloud.google.com/dataflow/'
-                'jobsDetail/locations/{}/jobs/{}?project={}'.format(
-                location, job_id, project_id)
-        }]
-    }
-    logging.info('Dumping UI metadata: {}'.format(metadata))
-    gcp_common.dump_file(output_metadata_path, json.dumps(metadata))
+    display.display(display.Link(
+        href = 'https://console.cloud.google.com/dataflow/'
+            'jobsDetail/locations/{}/jobs/{}?project={}'.format(
+            location, job_id, project_id),
+        text = 'Job Details'
+    ))
 
-def dump_job(output_job_path, job):
-    gcp_common.dump_file(output_job_path, json.dumps(job))
+def dump_job(job):
+    gcp_common.dump_file('/tmp/output/job.json', json.dumps(job))
 
 def stage_file(local_or_gcs_path):
     if not is_gcs_path(local_or_gcs_path):

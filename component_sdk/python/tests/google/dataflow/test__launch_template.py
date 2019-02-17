@@ -20,11 +20,12 @@ from kfp_component.google.dataflow import launch_template
 
 MODULE = 'kfp_component.google.dataflow._launch_template'
 
+@mock.patch('kfp_component.google.dataflow._common_ops.display')
 @mock.patch(MODULE + '.KfpExecutionContext')
 @mock.patch(MODULE + '.DataflowClient')
 class LaunchTemplateTest(unittest.TestCase):
 
-    def test_launch_template_succeed(self, mock_client, mock_context):
+    def test_launch_template_succeed(self, mock_client, mock_context, mock_display):
         mock_context().__enter__().context_id.return_value = 'context-1'
         mock_client().list_aggregated_jobs.return_value = {
             'jobs': []
@@ -50,7 +51,7 @@ class LaunchTemplateTest(unittest.TestCase):
         mock_client().launch_template.assert_called_once()
 
     def test_launch_template_retry_succeed(self, 
-        mock_client, mock_context):
+        mock_client, mock_context, mock_display):
         mock_context().__enter__().context_id.return_value = 'ctx-1'
         # The job with same name already exists.
         mock_client().list_aggregated_jobs.return_value = {
@@ -79,7 +80,7 @@ class LaunchTemplateTest(unittest.TestCase):
         self.assertEqual(expected_job, result)
         mock_client().launch_template.assert_not_called()
     
-    def test_launch_template_fail(self, mock_client, mock_context):
+    def test_launch_template_fail(self, mock_client, mock_context, mock_display):
         mock_context().__enter__().context_id.return_value = 'context-1'
         mock_client().list_aggregated_jobs.return_value = {
             'jobs': []

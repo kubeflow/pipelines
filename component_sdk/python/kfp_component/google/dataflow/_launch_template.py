@@ -25,9 +25,7 @@ from ._common_ops import (generate_job_name, get_job_by_name,
 
 def launch_template(project_id, gcs_path, launch_parameters, 
     location=None, job_name_prefix=None, validate_only=None, 
-    wait_interval=30, 
-    output_metadata_path='/tmp/mlpipeline-ui-metadata.json',
-    output_job_path='/tmp/output.txt'):
+    wait_interval=30):
     """Launchs a dataflow job from template.
 
     Args:
@@ -47,8 +45,6 @@ def launch_template(project_id, gcs_path, launch_parameters,
         validate_only (boolean): If true, the request is validated but 
             not actually executed. Defaults to false.
         wait_interval (int): The wait seconds between polling.
-        output_metadata_path (str): The output path of UI metadata file.
-        output_job_path (str): The output path of completed job payload.
     
     Returns:
         The completed job.
@@ -75,4 +71,4 @@ def launch_template(project_id, gcs_path, launch_parameters,
                 location, validate_only, launch_parameters)
             job = response.get('job')
         return wait_and_dump_job(df_client, project_id, location, job,
-            output_metadata_path, output_job_path, wait_interval)
+            wait_interval)

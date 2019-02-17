@@ -23,9 +23,7 @@ from ._common_ops import (generate_job_name, get_job_by_name,
 from ._process import Process
 
 def launch_python(python_file_path, project_id, requirements_file_path=None, 
-    location=None, job_name_prefix=None, args=[], wait_interval=30,
-    output_metadata_path='/tmp/mlpipeline-ui-metadata.json',
-    output_job_path='/tmp/output.txt'):
+    location=None, job_name_prefix=None, args=[], wait_interval=30):
     """Launch a self-executing beam python file.
 
     Args:
@@ -39,10 +37,6 @@ def launch_python(python_file_path, project_id, requirements_file_path=None,
             name. If not provided, the method will generated a random name.
         args (list): The list of args to pass to the python file.
         wait_interval (int): The wait seconds between polling.
-        output_metadata_path (str): The output path of UI metadata file.
-        output_job_path (str): The output path of completed job payload.
-
-    
     Returns:
         The completed job.
     """
@@ -66,7 +60,7 @@ def launch_python(python_file_path, project_id, requirements_file_path=None,
             location)
         if job:
             return wait_and_dump_job(df_client, project_id, location, job,
-                output_metadata_path, output_job_path, wait_interval)
+                wait_interval)
 
         _install_requirements(requirements_file_path)
         python_file_path = stage_file(python_file_path)
@@ -86,7 +80,7 @@ def launch_python(python_file_path, project_id, requirements_file_path=None,
         job = df_client.get_job(project_id, job_id, 
             location=location)
         return wait_and_dump_job(df_client, project_id, location, job,
-            output_metadata_path, output_job_path, wait_interval)
+            wait_interval)
 
 def _prepare_cmd(project_id, location, job_name, python_file_path, args):
     dataflow_args = [
