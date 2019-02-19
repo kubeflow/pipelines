@@ -22,24 +22,16 @@ export const color = {
   activeBg: '#eaf1fd',
   alert: '#f9ab00', // Google yellow 600
   background: '#fff',
-  blue: '#4285f4', // Google blue 500
+  blue: '#4285f4', // Google blue 500F
   disabledBg: '#ddd',
   divider: '#e0e0e0',
   errorBg: '#fbe9e7',
   errorText: '#d50000',
-  fadedStatusColors: {
-    error: '#fce8e6',
-    notStarted: '#f7f7f7',
-    running: '#e8f0fe',
-    stopOrSkip: '#f1f3f4',
-    succeeded: '#e6f4ea',
-    warning: '#fef7f0',
-  },
   foreground: '#000',
   graphBg: '#f2f2f2',
   grey: '#5f6368', // Google grey 500
-  hoverBg: '#eee',
   inactive: '#5f6368',
+  lightGrey: '#eee', // Google grey 200
   lowContrast: '#80868b', // Google grey 600
   secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
@@ -63,6 +55,24 @@ export const dimension = {
   xsmall: 32,
 };
 
+// tslint:disable:object-literal-sort-keys
+export const zIndex = {
+  DROP_ZONE_OVERLAY: 1,
+  GRAPH_NODE: 1,
+  BUSY_OVERLAY: 2,
+  PIPELINE_SUMMARY_CARD: 2,
+  SIDE_PANEL: 2,
+};
+
+export const fontsize = {
+  small: 12,
+  base: 14,
+  medium: 16,
+  large: 18,
+  title: 18,
+};
+// tslint:enable:object-literal-sort-keys
+
 const baseSpacing = 24;
 export const spacing = {
   base: baseSpacing,
@@ -73,14 +83,6 @@ export const fonts = {
   code: '"Source Code Pro", monospace',
   main: '"Google Sans", "Helvetica Neue", sans-serif',
   secondary: '"Roboto", "Helvetica Neue", sans-serif',
-};
-
-export const fontsize = {
-  base: 14,
-  large: 18,
-  medium: 16,
-  small: 12,
-  title: 18,
 };
 
 const palette = {
@@ -195,7 +197,7 @@ export const commonCss = stylesheet({
     position: 'absolute',
     right: 0,
     top: 0,
-    zIndex: 1,
+    zIndex: zIndex.BUSY_OVERLAY,
   },
   buttonAction: {
     $nest: {

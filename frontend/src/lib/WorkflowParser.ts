@@ -18,8 +18,9 @@ import * as dagre from 'dagre';
 import IconWithTooltip from '../atoms/IconWithTooltip';
 import MoreIcon from '@material-ui/icons/MoreHoriz';
 import { Workflow, NodeStatus, Parameter } from '../../third_party/argo-ui/argo_template';
-import { statusToIcon, NodePhase, hasFinished, statusToFadedColor } from '../pages/Status';
+import { statusToIcon, NodePhase, hasFinished, statusToBgColor } from '../pages/Status';
 import { color } from '../Css';
+import { Constants } from './Constants';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -38,8 +39,6 @@ export default class WorkflowParser {
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
 
-    const NODE_WIDTH = 172;
-    const NODE_HEIGHT = 64;
     const PLACEHOLDER_NODE_DIMENSION = 28;
 
     if (!workflow || !workflow.status || !workflow.status.nodes ||
@@ -73,11 +72,11 @@ export default class WorkflowParser {
     (Object as any).values(workflowNodes)
       .forEach((node: NodeStatus) => {
         g.setNode(node.id, {
-          height: NODE_HEIGHT,
+          height: Constants.NODE_HEIGHT,
           icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt),
           label: node.displayName || node.id,
-          statusColoring: statusToFadedColor(node.phase as NodePhase),
-          width: NODE_WIDTH,
+          statusColoring: statusToBgColor(node.phase as NodePhase),
+          width: Constants.NODE_WIDTH,
           ...node,
         });
 

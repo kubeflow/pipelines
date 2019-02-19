@@ -17,13 +17,14 @@
 import * as dagre from 'dagre';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
-import { fontsize, color, fonts } from '../Css';
+import { fontsize, color, fonts, zIndex } from '../Css';
+import { Constants } from '../lib/Constants';
 
 interface Segment {
   angle: number;
   // finalX and finalY are used for placing the arrowheads
-  finalX: number;
-  finalY: number;
+  finalX?: number;
+  finalY?: number;
   left: number;
   length: number;
   top: number;
@@ -39,15 +40,11 @@ interface Edge {
 
 const css = stylesheet({
   arrowHead: {
-    borderBottomColor: 'transparent',
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
+    borderColor: color.grey + ' transparent transparent transparent',
     borderStyle: 'solid',
-    borderTopColor: color.grey,
     borderWidth: '7px 6px 0 6px',
     content: `''`,
     position: 'absolute',
-    zIndex: 2,
   },
   icon: {
     padding: '5px 7px 0px 7px',
@@ -83,7 +80,7 @@ const css = stylesheet({
     fontSize: fontsize.medium,
     margin: 10,
     position: 'absolute',
-    zIndex: 1,
+    zIndex: zIndex.GRAPH_NODE,
   },
   nodeSelected: {
     border: `solid 2px ${color.theme}`,
@@ -117,7 +114,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
   private LEFT_OFFSET = 100;
   private TOP_OFFSET = 44;
   private EDGE_THICKNESS = 2;
-  private EDGE_X_BUFFER = 30;
+  private EDGE_X_BUFFER = Math.round(Constants.NODE_WIDTH / 6);
 
   constructor(props: any) {
     super(props);
@@ -134,7 +131,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
     dagre.layout(graph);
     const displayEdges: Edge[] = [];
-    
+
     // Creates the lines that constitute the edges connecting the graph.
     graph.edges().forEach((edgeInfo) => {
       const edge = graph.edge(edgeInfo);
@@ -146,21 +143,35 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           let xStart = edge.points[i - 1].x;
           let yStart = edge.points[i - 1].y;
 
-          // Adjustments made to first segment for each edge.
+          // Adjustments made to the start of the first segment for each edge to ensure that it
+          // begins at the bottom of the source node and that there are at least EDGE_X_BUFFER
+          // pixels between it and the right and left side of the node.
+          // Note that these adjustments may cause edges to overlap with nodes since we are
+          // deviating from the explicit layout provided by dagre.
           if (i === 1) {
             const sourceNode = graph.node(edgeInfo.v);
-            
+
             // Set the edge's first segment to start at the bottom of the source node.
             yStart = sourceNode.y + (sourceNode.height / 2) - 3;
-            
-            xStart = this._adjustXVal(sourceNode, xStart);
+
+            xStart = this._ensureXIsWithinNode(sourceNode, xStart);
           }
 
           let xEnd = edge.points[i].x;
           let yEnd = edge.points[i].y;
 
-          // Adjustments made to final segment for each edge.
-          if (i === edge.points.length - 1) {
+          const finalSegment = i === edge.points.length - 1;
+
+          // Adjustments made to the end of the final segment for each edge to ensure that it ends
+          // at the top of the destination node and that there are at least EDGE_X_BUFFER pixels
+          // between it and the right and left side of the node. The adjustments are only needed
+          // when there are multiple inbound edges as dagre seems to always layout a single inbound
+          // edge so that it terminates at the center-top of the destination node. For this reason,
+          // placeholder nodes do not need adjustments since they always have only a single inbound
+          // edge.
+          // Note that these adjustments may cause edges to overlap with nodes since we are
+          // deviating from the explicit layout provided by dagre.
+          if (finalSegment) {
             const destinationNode = graph.node(edgeInfo.w);
 
             // Placeholder nodes never need adjustment because they always have only a single
@@ -169,15 +180,15 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
               // Set the edge's final segment to terminate at the top of the destination node.
               yEnd = destinationNode.y - this.TOP_OFFSET + 5;
 
-              xEnd = this._adjustXVal(destinationNode, xEnd);
+              xEnd = this._ensureXIsWithinNode(destinationNode, xEnd);
             }
           }
-          
+
           // For the final segment of the edge, if the segment is diagonal, split it into a diagonal
           // and a vertical piece so that all edges terminate with a vertical segment.
-          if (i === edge.points.length - 1 && xStart !== xEnd) {
+          if (finalSegment && xStart !== xEnd) {
             const yHalf = (yStart + yEnd) / 2;
-            this._addDiagonalSegment(segments, xStart, yStart, xEnd, yHalf);
+            this._addDiagonalSegment(segments, xStart, yStart, xEnd, yHalf, false);
 
             // Vertical segment
             segments.push({
@@ -189,7 +200,7 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
               top: yEnd - 5,
             });
           } else {
-            this._addDiagonalSegment(segments, xStart, yStart, xEnd, yEnd);
+            this._addDiagonalSegment(segments, xStart, yStart, xEnd, yEnd, finalSegment);
           }
         }
       }
@@ -267,24 +278,35 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
     );
   }
 
-  private _addDiagonalSegment(segments: Segment[], xStart: number, yStart: number, xEnd: number, yEnd: number): void {
+  private _addDiagonalSegment(
+      segments: Segment[],
+      xStart: number,
+      yStart: number,
+      xEnd: number,
+      yEnd: number,
+      finalSegment: boolean): void {
     const xMid = (xStart + xEnd) / 2;
     // The + 0.5 at the end of 'length' helps fill out the elbows of the edges.
     const length = Math.sqrt(Math.pow(xStart - xEnd, 2) + Math.pow(yStart - yEnd, 2)) + 0.5;
     const left = xMid - (length / 2);
     const top = (yStart + yEnd) / 2;
     const angle = Math.atan2(yStart - yEnd, xStart - xEnd) * 180 / Math.PI;
-    segments.push({
-      angle,
-      finalX: xEnd,
-      finalY: yEnd,
-      left,
-      length,
-      top,
-    });
+    const segment: Segment = { angle, left, length, top };
+
+    if (finalSegment) {
+      segment.finalX = xEnd;
+      segment.finalY = yEnd;
+    }
+    segments.push(segment);
   }
 
-  private _adjustXVal(node: dagre.Node, originalX: number): number {
+  /**
+   * Adjusts the x positioning of the start or end of an edge so that it is at least EDGE_X_BUFFER
+   * pixels in from the left and right.
+   * @param node the node where the edge is originating from or terminating at
+   * @param originalX the initial x position provided by dagre
+   */
+  private _ensureXIsWithinNode(node: dagre.Node, originalX: number): number {
     // If the original X value was too far to the right, move it EDGE_X_BUFFER pixels
     // in from the left end of the node.
     const rightmostAcceptableLoc = node.x + node.width - this.LEFT_OFFSET - this.EDGE_X_BUFFER;

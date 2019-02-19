@@ -25,6 +25,15 @@ import UnknownIcon from '@material-ui/icons/Help';
 import { color } from '../Css';
 import { logger, formatDateString } from '../lib/Utils';
 
+export const statusBgColors = {
+  error: '#fce8e6',
+  notStarted: '#f7f7f7',
+  running: '#e8f0fe',
+  stopOrSkip: '#f1f3f4',
+  succeeded: '#e6f4ea',
+  warning: '#fef7f0',
+};
+
 export enum NodePhase {
   ERROR = 'Error',
   FAILED = 'Failed',
@@ -36,10 +45,6 @@ export enum NodePhase {
 }
 
 export function hasFinished(status?: NodePhase): boolean {
-  if (!status) {
-    return false;
-  }
-
   switch (status) {
     case NodePhase.SUCCEEDED: // Fall through
     case NodePhase.FAILED: // Fall through
@@ -55,29 +60,25 @@ export function hasFinished(status?: NodePhase): boolean {
   }
 }
 
-export function statusToFadedColor(status?: NodePhase): string {
-  if (!status) {
-    return color.fadedStatusColors.notStarted;
-  }
-
+export function statusToBgColor(status?: NodePhase): string {
   switch (status) {
     case NodePhase.ERROR:
-      return color.fadedStatusColors.error;
+      // fall through
     case NodePhase.FAILED:
-      return color.fadedStatusColors.error;
+      return statusBgColors.error;
     case NodePhase.PENDING:
-      return color.fadedStatusColors.notStarted;
+      return statusBgColors.notStarted;
     case NodePhase.RUNNING:
-      return color.fadedStatusColors.running;
+      return statusBgColors.running;
     case NodePhase.SKIPPED:
-      return color.fadedStatusColors.stopOrSkip;
+      return statusBgColors.stopOrSkip;
     case NodePhase.SUCCEEDED:
-      return color.fadedStatusColors.succeeded;
+      return statusBgColors.succeeded;
     case NodePhase.UNKNOWN:
       // fall through
     default:
       logger.verbose('Unknown node phase:', status);
-      return color.fadedStatusColors.notStarted;
+      return statusBgColors.notStarted;
   }
 }
 

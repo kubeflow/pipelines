@@ -15,8 +15,7 @@
  */
 
 import * as Utils from '../lib/Utils';
-import { NodePhase, hasFinished, statusToFadedColor, statusToIcon } from './Status';
-import { color } from '../Css';
+import { NodePhase, hasFinished, statusBgColors, statusToBgColor, statusToIcon } from './Status';
 import { shallow } from 'enzyme';
 
 
@@ -99,43 +98,45 @@ describe('Status', () => {
     });
   });
 
-  describe('statusToFadedColor', () => {
+  describe('statusToBgColor', () => {
     it('handles an invalid phase', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
-      expect(statusToFadedColor('bad phase' as any)).toEqual(color.fadedStatusColors.notStarted);
+      expect(statusToBgColor('bad phase' as any)).toEqual(statusBgColors.notStarted);
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
     });
 
     it('handles an \'Unknown\' phase', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
-      expect(statusToFadedColor(NodePhase.UNKNOWN)).toEqual(color.fadedStatusColors.notStarted);
+      expect(statusToBgColor(NodePhase.UNKNOWN)).toEqual(statusBgColors.notStarted);
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'Unknown');
     });
 
     it('returns color \'not started\' if status is undefined', () => {
-      expect(statusToFadedColor(undefined)).toEqual(color.fadedStatusColors.notStarted);
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      expect(statusToBgColor(undefined)).toEqual(statusBgColors.notStarted);
+      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
     });
 
     it('returns color \'not started\' if status is \'Pending\'', () => {
-      expect(statusToFadedColor(NodePhase.PENDING)).toEqual(color.fadedStatusColors.notStarted);
+      expect(statusToBgColor(NodePhase.PENDING)).toEqual(statusBgColors.notStarted);
     });
 
     [NodePhase.ERROR, NodePhase.FAILED].forEach(status => {
       it(`returns color \'error\' if status is: ${status}`, () => {
-        expect(statusToFadedColor(status)).toEqual(color.fadedStatusColors.error);
+        expect(statusToBgColor(status)).toEqual(statusBgColors.error);
       });
     });
 
     it('returns color \'running\' if status is \'Running\'', () => {
-      expect(statusToFadedColor(NodePhase.RUNNING)).toEqual(color.fadedStatusColors.running);
+      expect(statusToBgColor(NodePhase.RUNNING)).toEqual(statusBgColors.running);
     });
 
     it('returns color \'stop or skip\' if status is \'Skipped\'', () => {
-      expect(statusToFadedColor(NodePhase.SKIPPED)).toEqual(color.fadedStatusColors.stopOrSkip);
+      expect(statusToBgColor(NodePhase.SKIPPED)).toEqual(statusBgColors.stopOrSkip);
     });
 
     it('returns color \'succeeded\' if status is \'Succeeded\'', () => {
-      expect(statusToFadedColor(NodePhase.SUCCEEDED)).toEqual(color.fadedStatusColors.succeeded);
+      expect(statusToBgColor(NodePhase.SUCCEEDED)).toEqual(statusBgColors.succeeded);
     });
   });
 });
