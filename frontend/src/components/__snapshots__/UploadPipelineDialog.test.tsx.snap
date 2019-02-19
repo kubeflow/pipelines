@@ -173,8 +173,8 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
                 style={
                   Object {
                     "margin": 0,
-                    "minWidth": 90,
                     "padding": "3px 5px",
+                    "whiteSpace": "nowrap",
                   }
                 }
               >
@@ -304,8 +304,8 @@ exports[`UploadPipelineDialog renders closed 1`] = `
                 style={
                   Object {
                     "margin": 0,
-                    "minWidth": 90,
                     "padding": "3px 5px",
+                    "whiteSpace": "nowrap",
                   }
                 }
               >
@@ -435,8 +435,8 @@ exports[`UploadPipelineDialog renders open 1`] = `
                 style={
                   Object {
                     "margin": 0,
-                    "minWidth": 90,
                     "padding": "3px 5px",
+                    "whiteSpace": "nowrap",
                   }
                 }
               >
@@ -566,8 +566,8 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
                 style={
                   Object {
                     "margin": 0,
-                    "minWidth": 90,
                     "padding": "3px 5px",
+                    "whiteSpace": "nowrap",
                   }
                 }
               >
