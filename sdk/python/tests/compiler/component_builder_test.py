@@ -164,7 +164,6 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     golden_dockerfile_payload_three = '''\
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools
-RUN pip install pathlib==1.0.1
 ADD requirements.txt /ml/
 RUN pip install -r /ml/requirements.txt
 ADD main.py /ml/
@@ -417,9 +416,10 @@ def sample_component_func_two(a, b):
 
 def wrapper_sample_component_func_two(a,b,_output_file):
   output = sample_component_func_two(str(a),int(b))
-  from pathlib import Path
-  Path(_output_file).parent.mkdir(parents=True)
-  Path(_output_file).write_text(str(output))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
 
 import argparse
 parser = argparse.ArgumentParser(description="Parsing arguments")
