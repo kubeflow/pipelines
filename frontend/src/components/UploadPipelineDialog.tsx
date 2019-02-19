@@ -126,7 +126,7 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
                     endAdornment: (
                       <InputAdornment position='end'>
                         <Button color='secondary' onClick={() => this._dropzoneRef.current!.open()}
-                          style={{ padding: '3px 5px', margin: 0 }}>
+                          style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}>
                           Choose file
                       </Button>
                       </InputAdornment>
