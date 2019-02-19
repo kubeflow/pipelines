@@ -12,9 +12,15 @@
 # 
 # define the function to deploy the model
 
+def getSecret(secret):
+    with open(secret, 'r') as f:
+        res = f.readline().strip('\'')
+    f.close()
+    return res
+
 def deploy(args):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
-    import boto3
+    from minio import Minio
     import os
     
     wml_model_name = args.model_name
@@ -22,32 +28,16 @@ def deploy(args):
     model_uid = args.model_uid
 
     # retrieve credentials
-    with open("/app/secrets/wml_url", 'r') as f:
-        wml_url = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/wml_username", 'r') as f:
-        wml_username = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/wml_password", 'r') as f:
-        wml_password = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/wml_instance_id", 'r') as f:
-        wml_instance_id = f.readline().strip('\'')
-    f.close()
+    wml_url = getSecret("/app/secrets/wml_url")
+    wml_username = getSecret("/app/secrets/wml_username")
+    wml_password = getSecret("/app/secrets/wml_password")
+    wml_instance_id = getSecret("/app/secrets/wml_instance_id")
 
-    with open("/app/secrets/s3_endpoint", 'r') as f:
-        s3_endpoint = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/s3_access_key", 'r') as f:
-        s3_access_key = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/s3_secret_key", 'r') as f:
-        s3_secret_key = f.readline().strip('\'')
-    f.close()
+    s3_endpoint = getSecret("/app/secrets/s3_endpoint")
+    s3_access_key = getSecret("/app/secrets/s3_access_key")
+    s3_secret_key = getSecret("/app/secrets/s3_secret_key")
 
-    with open("/app/secrets/s3_input_bucket", 'r') as f:
-        s3_input_bucket = f.readline().strip('\'')
-    f.close()
+    s3_input_bucket = getSecret("/app/secrets/s3_input_bucket")
 
     # set up the WML client
     wml_credentials = {
@@ -68,11 +58,10 @@ def deploy(args):
     # download scoring payload
     payload_file = os.path.join('/app', wml_scoring_payload)
     
-    s3 = boto3.resource('s3',
-                        endpoint_url=s3_endpoint,
-                        aws_access_key_id=s3_access_key,
-                        aws_secret_access_key=s3_secret_key)
-    s3.Bucket(s3_input_bucket).download_file(wml_scoring_payload, payload_file)
+    s3 = Minio(s3_endpoint,
+               access_key = s3_access_key,
+               secret_key = s3_secret_key)
+    s3.fget_object(s3_input_bucket, wml_scoring_payload, payload_file)
 
     # scoring the deployment
     import json

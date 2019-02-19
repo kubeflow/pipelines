@@ -5,7 +5,7 @@ RUN mkdir /app
 RUN mkdir /app/secrets
 
 # Watson studio and machine learning python client
-RUN pip install watson_machine_learning_client boto3
+RUN pip install watson_machine_learning_client minio
 
 # Python functions with endpoints to Watson Machine Learning
 COPY src/wml-train.py /app

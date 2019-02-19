@@ -12,22 +12,20 @@
 # 
 # define the function to store the model
 
+def getSecret(secret):
+    with open(secret, 'r') as f:
+        res = f.readline().strip('\'')
+    f.close()
+    return res
+
 def store(wml_model_name, run_uid):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
 
     # retrieve credentials
-    with open("/app/secrets/wml_url", 'r') as f:
-        wml_url = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/wml_username", 'r') as f:
-        wml_username = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/wml_password", 'r') as f:
-        wml_password = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/wml_instance_id", 'r') as f:
-        wml_instance_id = f.readline().strip('\'')
-    f.close()
+    wml_url = getSecret("/app/secrets/wml_url")
+    wml_username = getSecret("/app/secrets/wml_username")
+    wml_password = getSecret("/app/secrets/wml_password")
+    wml_instance_id = getSecret("/app/secrets/wml_instance_id")
     
     # set up the WML client
     wml_credentials = {

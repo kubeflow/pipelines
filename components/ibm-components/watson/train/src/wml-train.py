@@ -12,9 +12,15 @@
 
 # define the function to train a model on wml
 
+def getSecret(secret):
+    with open(secret, 'r') as f:
+        res = f.readline().strip('\'')
+    f.close()
+    return res
+
 def train(args):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
-    import boto3
+    from minio import Minio
     import os,time
 
     wml_train_code = args.train_code
@@ -27,48 +33,28 @@ def train(args):
     wml_run_name = args.run_name if args.run_name else 'python-tensorflow-run'
 
     # retrieve credentials
-    with open("/app/secrets/wml_url", 'r') as f:
-        wml_url = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/wml_username", 'r') as f:
-        wml_username = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/wml_password", 'r') as f:
-        wml_password = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/wml_instance_id", 'r') as f:
-        wml_instance_id = f.readline().strip('\'')
-    f.close()
+    wml_url = getSecret("/app/secrets/wml_url")
+    wml_username = getSecret("/app/secrets/wml_username")
+    wml_password = getSecret("/app/secrets/wml_password")
+    wml_instance_id = getSecret("/app/secrets/wml_instance_id")
 
-    with open("/app/secrets/wml_data_source_type", 'r') as f:
-        wml_data_source_type = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/s3_endpoint", 'r') as f:
-        s3_endpoint = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/s3_access_key", 'r') as f:
-        s3_access_key = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/s3_secret_key", 'r') as f:
-        s3_secret_key = f.readline().strip('\'')
-    f.close()
+    wml_data_source_type = getSecret("/app/secrets/wml_data_source_type")
+
+    s3_endpoint = getSecret("/app/secrets/s3_endpoint")
+    s3_access_key = getSecret("/app/secrets/s3_access_key")
+    s3_secret_key = getSecret("/app/secrets/s3_secret_key")
     
-    with open("/app/secrets/s3_input_bucket", 'r') as f:
-        s3_input_bucket = f.readline().strip('\'')
-    f.close()
+    s3_input_bucket = getSecret("/app/secrets/s3_input_bucket")
 
-    with open("/app/secrets/s3_output_bucket", 'r') as f:
-        s3_output_bucket = f.readline().strip('\'')
-    f.close()
+    s3_output_bucket = getSecret("/app/secrets/s3_output_bucket")
 
     # download model code
     model_code = os.path.join('/app', wml_train_code)
-    
-    s3 = boto3.resource('s3',
-                        endpoint_url=s3_endpoint,
-                        aws_access_key_id=s3_access_key,
-                        aws_secret_access_key=s3_secret_key)
-    s3.Bucket(s3_input_bucket).download_file(wml_train_code, model_code)
+
+    s3 = Minio(s3_endpoint,
+               access_key = s3_access_key,
+               secret_key = s3_secret_key)
+    s3.fget_object(s3_input_bucket, wml_train_code, model_code)
 
     # set up the WML client
     wml_credentials = {

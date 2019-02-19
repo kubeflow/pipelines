@@ -24,6 +24,8 @@ Create two buckets, one for storing the train datasets and model source codes, a
 
 This pipeline sample reads the credentials from a file hosted in a github repo. Refer to `creds.ini` file and input user's specific credentials. Then upload the file to a github repo the user has access.
 
+Note: make sure the `s3_endpoint` value in the `creds.ini` file only contains valid endpoint without the `http://` or `https://` prefix.
+
 To access the credentials file, the user should provide a github access token and the link to the raw content of the file. Modify the `GITHUB_TOKEN` and `CONFIG_FILE_URL` variables in the `watson_train_serve_pipeline.py` file with the user's access token and link.
 
 # The datasets
