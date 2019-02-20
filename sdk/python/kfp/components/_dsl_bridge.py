@@ -124,12 +124,13 @@ def create_container_op_from_task(task_spec: TaskSpec):
         command=expanded_command,
         arguments=expanded_args,
         output_paths=output_paths,
+        component_spec=component_spec
     )
 
 
 _dummy_pipeline=None
 
-def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, output_paths=None):
+def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, output_paths=None, component_spec=None):
     from .. import dsl
     global _dummy_pipeline
     need_dummy = dsl.Pipeline._default_pipeline is None
@@ -149,7 +150,24 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
     
     output_paths_for_container_op = {output_name_to_kubernetes[name]: path for name, path in output_paths.items()}
 
-    #TODO: pass component metadata to the containerop.
+    component_meta = {}
+    component_meta["name"] = component_spec.name
+    component_meta["description"] = component_spec.description
+    component_meta["inputs"] = {"parameters": []}
+    if component_spec.inputs is not None:
+        for input in component_spec.inputs:
+            component_meta["inputs"]["parameters"].append({
+                "name": input.name,
+                "description": input.description,
+                "type": input.type
+            })
+    if component_spec.outputs is not None:
+        for output in component_spec.outputs:
+            component_meta["outputs"]["parameters"].append({
+                "name": output.name,
+                "description": output.description,
+                "type": output.type
+            })
     task = dsl.ContainerOp(
         name=name,
         image=container_image,
@@ -157,6 +175,7 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         arguments=arguments,
         file_outputs=output_paths_for_container_op,
     )
+    task._set_metadata(component_meta)
 
     if need_dummy:
         _dummy_pipeline.__exit__()

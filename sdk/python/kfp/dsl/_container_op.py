@@ -20,6 +20,58 @@ from typing import Dict
 from . import _types
 
 
+ComponentJsonSchema = '''
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "inputs": {
+      "type": "object",
+      "properties": {
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/parameter"
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "properties": {
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/parameter"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "parameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "typetype": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}
+'''
+
 class ContainerOp(object):
   """Represents an op implemented by a docker container image.
 
@@ -70,27 +122,6 @@ class ContainerOp(object):
     self.pod_annotations = {}
     self.pod_labels = {}
     self.num_retries = 0
-    #TODO: define the sepc for the metadata
-    '''
-    {
-      name: str
-      description: str
-      inputs:[
-        {
-          name: str
-          description: str
-          type: object
-        }
-      ]
-      outputs:[
-        {
-          name: str
-          description: str
-          type: object
-        }
-      ]
-    }
-    '''
     self._metadata = {}
 
     # match the input placeholders from command and arguments
@@ -329,3 +360,9 @@ class ContainerOp(object):
 
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})
+
+  def _set_metadata(self, metadata):
+    '''_set_metadata passes the containerop metadata'''
+    #TODO: use ComponentJsonSchema to add input checking
+    #TODO: add documentations
+    self._metadata = metadata
