@@ -28,6 +28,20 @@ steps:
   id:   'copyPythonSDKToLatest'
   waitFor: ['preparePythonSDK']
 
+# Build the Python Component SDK
+- name: 'debian'
+  entrypoint: '/bin/bash'
+  args: ['-c', 'apt-get update -y; apt-get install --no-install-recommends -y -q default-jdk wget python python-setuptools;cd /workspace/component_sdk/python;python setup.py sdist --format=gztar;cp dist/*.tar.gz /workspace/kfp-component.tar.gz']
+  id:   'preparePythonComponentSDK'
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp-component.tar.gz']
+  id:   'copyPythonComponentSDK'
+  waitFor: ['preparePythonComponentSDK']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://$PROJECT_ID/builds/latest/kfp-component.tar.gz']
+  id:   'copyPythonComponentSDKToLatest'
+  waitFor: ['preparePythonComponentSDK']
+
 # Build the pipeline system images
 - name: 'debian'
   entrypoint: '/bin/bash'
