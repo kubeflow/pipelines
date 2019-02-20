@@ -29,7 +29,8 @@ class TestCreateTraingingJob(unittest.TestCase):
             training_input={
                 'runtimeVersion': '1.10',
                 'pythonVersion': '2.7'
-            }, job_id_prefix='job-')
+            }, job_id_prefix='job-', master_image_uri='tensorflow:latest',
+            worker_image_uri='debian:latest')
         
         mock_create_job.assert_called_with('proj-1', {
             'trainingInput': {
@@ -39,6 +40,12 @@ class TestCreateTraingingJob(unittest.TestCase):
                 'args': ['arg-1', 'arg-2'],
                 'jobDir': 'gs://test/job/dir',
                 'runtimeVersion': '1.10',
-                'pythonVersion': '2.7'
+                'pythonVersion': '2.7',
+                'masterConfig': {
+                    'imageUri': 'tensorflow:latest'
+                },
+                'workerConfig': {
+                    'imageUri': 'debian:latest'
+                }
             }
         }, 'job-', 30)
