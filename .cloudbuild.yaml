@@ -17,7 +17,7 @@ steps:
 # Build the Python SDK
 - name: 'debian'
   entrypoint: '/bin/bash'
-  args: ['-c', 'apt-get update -y; apt-get install --no-install-recommends -y -q default-jdk wget python python-setuptools; wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar;cd /workspace/sdk/python;./build.sh /workspace/kfp.tar.gz']
+  args: ['-c', 'apt-get update -y; apt-get install --no-install-recommends -y -q default-jdk wget python python-setuptools; wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar;cd /workspace/sdk/python;./build.sh /workspace/kfp.tar.gz']
   id:   'preparePythonSDK'
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz']
