@@ -25,6 +25,8 @@ from ._naming import _sanitize_file_name, _sanitize_python_function_name, _make_
 from ._yaml_utils import load_yaml
 from ._structures import ComponentSpec
 from ._structures import *
+from kfp.dsl._pipeline_param import PipelineParam
+from kfp.dsl._types import check_types
 
 
 _default_component_name = 'Component'
@@ -181,7 +183,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
 
     def create_task_from_component_and_arguments(pythonic_arguments):
         #Converting the argument names and not passing None arguments
-        valid_argument_types = (str, int, float, bool, GraphInputArgument, TaskOutputArgument) #Hack for passed PipelineParams. TODO: Remove the hack once they're no longer passed here.
+        valid_argument_types = (str, int, float, bool, GraphInputArgument, TaskOutputArgument, PipelineParam) #Hack for passed PipelineParams. TODO: Remove the hack once they're no longer passed here.
         arguments = {
             pythonic_name_to_input_name[k]: (v if isinstance(v, valid_argument_types) else str(v))
             for k, v in pythonic_arguments.items()
@@ -191,6 +193,11 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             component_ref=component_ref,
             arguments=arguments,
         )
+
+        for input in component_ref._component_spec.inputs:
+            if input.name in arguments:
+                check_types(input.type, arguments.param_type)
+
         if _created_task_transformation_handler:
             task = _created_task_transformation_handler[-1](task)
         return task

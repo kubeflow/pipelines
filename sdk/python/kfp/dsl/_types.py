@@ -83,6 +83,7 @@ def check_types(typeA, typeB):
 		'''
 	# If there are other ways to list class attributes other than filtering out strings starting with __,
 	#		the following two lines will be updated.
+	#TODO: add input support of json string or a mix of them
 	typeA_attrs = set([i for i in dir(typeA) if not i.startswith('__')])
 	typeB_attrs = set([i for i in dir(typeB) if not i.startswith('__')])
 	for typeA_attr in typeA_attrs:

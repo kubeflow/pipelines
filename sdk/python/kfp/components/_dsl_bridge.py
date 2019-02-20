@@ -114,7 +114,6 @@ def create_container_op_from_task(task_spec: TaskSpec):
                         expanded_list.append(str(expanded_part))
         return expanded_list
 
-    #TODO: add type checking here
     expanded_command = expand_argument_list(container_spec.command)
     expanded_args = expand_argument_list(container_spec.args)
 
