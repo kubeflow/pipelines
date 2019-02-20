@@ -22,12 +22,11 @@ import { Constants } from '../lib/Constants';
 
 interface Segment {
   angle: number;
-  // finalX and finalY are used for placing the arrowheads
-  finalX?: number;
-  finalY?: number;
-  left: number;
   length: number;
-  top: number;
+  x1: number;
+  x2: number;
+  y1: number;
+  y2: number;
 }
 
 interface Edge {
@@ -188,19 +187,19 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           // and a vertical piece so that all edges terminate with a vertical segment.
           if (finalSegment && xStart !== xEnd) {
             const yHalf = (yStart + yEnd) / 2;
-            this._addDiagonalSegment(segments, xStart, yStart, xEnd, yHalf, false);
+            this._addDiagonalSegment(segments, xStart, yStart, xEnd, yHalf);
 
             // Vertical segment
             segments.push({
               angle: 270,
-              finalX: xEnd,
-              finalY: yEnd,
-              left: xEnd - 5,
               length: yEnd - yHalf,
-              top: yEnd - 5,
+              x1: xEnd - 5,
+              x2: xEnd,
+              y1: yHalf + 4,
+              y2: yEnd,
             });
           } else {
-            this._addDiagonalSegment(segments, xStart, yStart, xEnd, yEnd, finalSegment);
+            this._addDiagonalSegment(segments, xStart, yStart, xEnd, yEnd);
           }
         }
       }
@@ -255,20 +254,20 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
                   key={l} style={{
                     backgroundColor: edgeColor,
                     height: this.EDGE_THICKNESS,
-                    left: segment.left,
-                    top: segment.top,
-                    transform: `translate(${this.LEFT_OFFSET}px, ${this.TOP_OFFSET}px) rotate(${segment.angle}deg)`,
+                    left: segment.x1 + this.LEFT_OFFSET,
+                    top: segment.y1 + this.TOP_OFFSET,
+                    transform: `rotate(${segment.angle}deg)`,
                     transition: 'left 0.5s, top 0.5s',
                     width: segment.length,
                   }} />
               ))}
               {/* Arrowhead */}
-              {!edge.isPlaceholder && (
+              {!edge.isPlaceholder && lastSegment.x2 !== undefined && lastSegment.y2 !== undefined && (
                 <div className={css.arrowHead} style={{
                   borderTopColor: edgeColor,
-                  left: lastSegment.finalX,
-                  top: lastSegment.finalY,
-                  transform: `translate(${this.LEFT_OFFSET - 6}px, ${this.TOP_OFFSET - 3}px) rotate(${lastSegment.angle + 90}deg)`,
+                  left: lastSegment.x2 + this.LEFT_OFFSET - 6,
+                  top: lastSegment.y2 + this.TOP_OFFSET - 3,
+                  transform: `rotate(${lastSegment.angle + 90}deg)`,
                 }} />
               )}
             </div>
@@ -283,21 +282,21 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
       xStart: number,
       yStart: number,
       xEnd: number,
-      yEnd: number,
-      finalSegment: boolean): void {
+      yEnd: number): void {
     const xMid = (xStart + xEnd) / 2;
     // The + 0.5 at the end of 'length' helps fill out the elbows of the edges.
     const length = Math.sqrt(Math.pow(xStart - xEnd, 2) + Math.pow(yStart - yEnd, 2)) + 0.5;
-    const left = xMid - (length / 2);
-    const top = (yStart + yEnd) / 2;
+    const x1 = xMid - (length / 2);
+    const y1 = (yStart + yEnd) / 2;
     const angle = Math.atan2(yStart - yEnd, xStart - xEnd) * 180 / Math.PI;
-    const segment: Segment = { angle, left, length, top };
-
-    if (finalSegment) {
-      segment.finalX = xEnd;
-      segment.finalY = yEnd;
-    }
-    segments.push(segment);
+    segments.push({
+      angle,
+      length,
+      x1,
+      x2: xEnd,
+      y1,
+      y2: yEnd,
+    });
   }
 
   /**

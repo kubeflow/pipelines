@@ -90,9 +90,9 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -115.87487218800544,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(-166.75948008481282deg)",
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 122.74974437601087,
         }
@@ -105,9 +105,9 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -114.29252681907278,
-          "top": 32.75,
-          "transform": "translate(100px, 44px) rotate(2.165615252902859deg)",
+          "left": -14.292526819072776,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 119.58505363814554,
         }
@@ -120,9 +120,9 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -119,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": -19,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -133,9 +133,9 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
       style={
         Object {
           "borderTopColor": "#5f6368",
-          "left": -114,
-          "top": 26,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": -20,
+          "top": 67,
+          "transform": "rotate(360deg)",
         }
       }
     />
@@ -387,9 +387,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -46.400294747193186,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(-162.53607310815718deg)",
+          "left": 53.599705252806814,
+          "top": 65,
+          "transform": "rotate(-162.53607310815718deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 93.80058949438637,
         }
@@ -402,9 +402,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -74.29252681907278,
-          "top": 32.75,
-          "transform": "translate(100px, 44px) rotate(2.165615252902859deg)",
+          "left": 25.707473180927224,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 119.58505363814554,
         }
@@ -417,9 +417,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -79,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": 21,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -430,9 +430,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       style={
         Object {
           "borderTopColor": "#5f6368",
-          "left": -74,
-          "top": 26,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": 20,
+          "top": 67,
+          "transform": "rotate(360deg)",
         }
       }
     />
@@ -447,9 +447,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -45.55402363990977,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(-169.35712925529643deg)",
+          "left": 54.44597636009023,
+          "top": 65,
+          "transform": "rotate(-169.35712925529643deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 152.10804727981954,
         }
@@ -462,9 +462,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -14.29252681907277,
-          "top": 32.75,
-          "transform": "translate(100px, 44px) rotate(2.165615252902859deg)",
+          "left": 85.70747318092722,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 119.58505363814554,
         }
@@ -477,9 +477,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -19,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": 81,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -490,9 +490,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       style={
         Object {
           "borderTopColor": "#5f6368",
-          "left": -14,
-          "top": 26,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": 80,
+          "top": 67,
+          "transform": "rotate(360deg)",
         }
       }
     />
@@ -507,9 +507,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -75.87487218800544,
-          "top": 81,
-          "transform": "translate(100px, 44px) rotate(-166.75948008481282deg)",
+          "left": 24.12512781199456,
+          "top": 125,
+          "transform": "rotate(-166.75948008481282deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 122.74974437601087,
         }
@@ -522,9 +522,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -74.29252681907278,
-          "top": 92.75,
-          "transform": "translate(100px, 44px) rotate(2.165615252902859deg)",
+          "left": 25.707473180927224,
+          "top": 136.75,
+          "transform": "rotate(2.165615252902859deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 119.58505363814554,
         }
@@ -537,9 +537,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -79,
-          "top": 81,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": 21,
+          "top": 138.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -550,9 +550,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       style={
         Object {
           "borderTopColor": "#5f6368",
-          "left": -74,
-          "top": 86,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": 20,
+          "top": 127,
+          "transform": "rotate(360deg)",
         }
       }
     />
@@ -567,9 +567,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -76.65763653560052,
-          "top": 81,
-          "transform": "translate(100px, 44px) rotate(-160.48412699041728deg)",
+          "left": 23.342363464399483,
+          "top": 125,
+          "transform": "rotate(-160.48412699041728deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 84.31527307120105,
         }
@@ -582,9 +582,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -10.25,
-          "top": 110,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
+          "left": 89.75,
+          "top": 154,
+          "transform": "rotate(-90deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 30.5,
         }
@@ -597,9 +597,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -10.25,
-          "top": 140,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
+          "left": 89.75,
+          "top": 184,
+          "transform": "rotate(-90deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 30.5,
         }
@@ -612,9 +612,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -114.29252681907278,
-          "top": 152.75,
-          "transform": "translate(100px, 44px) rotate(2.165615252902859deg)",
+          "left": -14.292526819072776,
+          "top": 196.75,
+          "transform": "rotate(2.165615252902859deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 119.58505363814554,
         }
@@ -627,9 +627,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -119,
-          "top": 141,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": -19,
+          "top": 198.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -640,9 +640,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       style={
         Object {
           "borderTopColor": "#5f6368",
-          "left": -114,
-          "top": 146,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": -20,
+          "top": 187,
+          "transform": "rotate(360deg)",
         }
       }
     />
@@ -657,9 +657,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -75.47329279706075,
-          "top": 81,
-          "transform": "translate(100px, 44px) rotate(-170.01257842498643deg)",
+          "left": 24.52670720293925,
+          "top": 125,
+          "transform": "rotate(-170.01257842498643deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 161.9465855941215,
         }
@@ -672,9 +672,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": 69.75,
-          "top": 110,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
+          "left": 169.75,
+          "top": 154,
+          "transform": "rotate(-90deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 30.5,
         }
@@ -687,9 +687,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": 69.75,
-          "top": 140,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
+          "left": 169.75,
+          "top": 184,
+          "transform": "rotate(-90deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 30.5,
         }
@@ -702,9 +702,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -34.29252681907277,
-          "top": 152.75,
-          "transform": "translate(100px, 44px) rotate(2.165615252902859deg)",
+          "left": 65.70747318092722,
+          "top": 196.75,
+          "transform": "rotate(2.165615252902859deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 119.58505363814554,
         }
@@ -717,9 +717,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -39,
-          "top": 141,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": 61,
+          "top": 198.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -730,9 +730,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       style={
         Object {
           "borderTopColor": "#5f6368",
-          "left": -34,
-          "top": 146,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": 60,
+          "top": 187,
+          "transform": "rotate(360deg)",
         }
       }
     />
@@ -747,9 +747,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -75.87487218800544,
-          "top": 141,
-          "transform": "translate(100px, 44px) rotate(-166.75948008481282deg)",
+          "left": 24.12512781199456,
+          "top": 185,
+          "transform": "rotate(-166.75948008481282deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 122.74974437601087,
         }
@@ -762,9 +762,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -114.28183324933482,
-          "top": 152.75,
-          "transform": "translate(100px, 44px) rotate(1.6211459136534117deg)",
+          "left": -14.281833249334824,
+          "top": 196.75,
+          "transform": "rotate(1.6211459136534117deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 159.56366649866965,
         }
@@ -777,9 +777,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -119,
-          "top": 141,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": -19,
+          "top": 198.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -790,9 +790,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       style={
         Object {
           "borderTopColor": "#5f6368",
-          "left": -114,
-          "top": 146,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": -20,
+          "top": 187,
+          "transform": "rotate(360deg)",
         }
       }
     />
@@ -807,9 +807,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -75.3383546599672,
-          "top": 141,
-          "transform": "translate(100px, 44px) rotate(-171.10957674263614deg)",
+          "left": 24.661645340032806,
+          "top": 185,
+          "transform": "rotate(-171.10957674263614deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 181.6767093199344,
         }
@@ -822,9 +822,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -34.28641132529059,
-          "top": 152.75,
-          "transform": "translate(100px, 44px) rotate(1.8542517148477853deg)",
+          "left": 65.71358867470941,
+          "top": 196.75,
+          "transform": "rotate(1.8542517148477853deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 139.57282265058117,
         }
@@ -837,9 +837,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -39,
-          "top": 141,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": 61,
+          "top": 198.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -850,9 +850,9 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       style={
         Object {
           "borderTopColor": "#5f6368",
-          "left": -34,
-          "top": 146,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": 60,
+          "top": 187,
+          "transform": "rotate(360deg)",
         }
       }
     />
@@ -945,9 +945,9 @@ exports[`Graph renders a graph with a placeholder node and edge 1`] = `
         Object {
           "backgroundColor": "#9aa0a6",
           "height": 2,
-          "left": -115.87487218800544,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(-166.75948008481282deg)",
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 122.74974437601087,
         }
@@ -960,9 +960,9 @@ exports[`Graph renders a graph with a placeholder node and edge 1`] = `
         Object {
           "backgroundColor": "#9aa0a6",
           "height": 2,
-          "left": -7.75,
-          "top": 47.5,
-          "transform": "translate(100px, 44px) rotate(-90deg)",
+          "left": 92.25,
+          "top": 91.5,
+          "transform": "rotate(-90deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 25.5,
         }
@@ -1062,9 +1062,9 @@ exports[`Graph renders a graph with a selected node 1`] = `
         Object {
           "backgroundColor": "#1a73e8",
           "height": 2,
-          "left": -115.87487218800544,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(-166.75948008481282deg)",
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 122.74974437601087,
         }
@@ -1077,9 +1077,9 @@ exports[`Graph renders a graph with a selected node 1`] = `
         Object {
           "backgroundColor": "#1a73e8",
           "height": 2,
-          "left": -114.29252681907278,
-          "top": 32.75,
-          "transform": "translate(100px, 44px) rotate(2.165615252902859deg)",
+          "left": -14.292526819072776,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 119.58505363814554,
         }
@@ -1092,9 +1092,9 @@ exports[`Graph renders a graph with a selected node 1`] = `
         Object {
           "backgroundColor": "#1a73e8",
           "height": 2,
-          "left": -119,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": -19,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -1105,9 +1105,9 @@ exports[`Graph renders a graph with a selected node 1`] = `
       style={
         Object {
           "borderTopColor": "#1a73e8",
-          "left": -114,
-          "top": 26,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": -20,
+          "top": 67,
+          "transform": "rotate(360deg)",
         }
       }
     />
@@ -1205,9 +1205,9 @@ exports[`Graph renders a graph with colored edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -115.87487218800544,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(-166.75948008481282deg)",
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 122.74974437601087,
         }
@@ -1220,9 +1220,9 @@ exports[`Graph renders a graph with colored edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -114.29252681907278,
-          "top": 32.75,
-          "transform": "translate(100px, 44px) rotate(2.165615252902859deg)",
+          "left": -14.292526819072776,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 119.58505363814554,
         }
@@ -1235,9 +1235,9 @@ exports[`Graph renders a graph with colored edges 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -119,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": -19,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -1248,9 +1248,9 @@ exports[`Graph renders a graph with colored edges 1`] = `
       style={
         Object {
           "borderTopColor": "#5f6368",
-          "left": -114,
-          "top": 26,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": -20,
+          "top": 67,
+          "transform": "rotate(360deg)",
         }
       }
     />
@@ -1476,9 +1476,9 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -115.87487218800544,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(-166.75948008481282deg)",
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 122.74974437601087,
         }
@@ -1491,9 +1491,9 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -114.29252681907278,
-          "top": 32.75,
-          "transform": "translate(100px, 44px) rotate(2.165615252902859deg)",
+          "left": -14.292526819072776,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 119.58505363814554,
         }
@@ -1506,9 +1506,9 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -119,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": -19,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -1519,9 +1519,9 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
       style={
         Object {
           "borderTopColor": "#5f6368",
-          "left": -114,
-          "top": 26,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": -20,
+          "top": 67,
+          "transform": "rotate(360deg)",
         }
       }
     />
@@ -1619,9 +1619,9 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -115.87487218800544,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(-166.75948008481282deg)",
+          "left": -15.87487218800544,
+          "top": 65,
+          "transform": "rotate(-166.75948008481282deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 122.74974437601087,
         }
@@ -1634,9 +1634,9 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -114.29252681907278,
-          "top": 32.75,
-          "transform": "translate(100px, 44px) rotate(2.165615252902859deg)",
+          "left": -14.292526819072776,
+          "top": 76.75,
+          "transform": "rotate(2.165615252902859deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": 119.58505363814554,
         }
@@ -1649,9 +1649,9 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
         Object {
           "backgroundColor": "#5f6368",
           "height": 2,
-          "left": -119,
-          "top": 21,
-          "transform": "translate(100px, 44px) rotate(270deg)",
+          "left": -19,
+          "top": 78.5,
+          "transform": "rotate(270deg)",
           "transition": "left 0.5s, top 0.5s",
           "width": -4.5,
         }
@@ -1662,9 +1662,9 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
       style={
         Object {
           "borderTopColor": "#5f6368",
-          "left": -114,
-          "top": 26,
-          "transform": "translate(94px, 41px) rotate(360deg)",
+          "left": -20,
+          "top": 67,
+          "transform": "rotate(360deg)",
         }
       }
     />
