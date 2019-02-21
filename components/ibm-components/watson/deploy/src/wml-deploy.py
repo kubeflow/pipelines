@@ -33,11 +33,11 @@ def deploy(args):
     wml_password = getSecret("/app/secrets/wml_password")
     wml_instance_id = getSecret("/app/secrets/wml_instance_id")
 
-    s3_endpoint = getSecret("/app/secrets/s3_endpoint")
-    s3_access_key = getSecret("/app/secrets/s3_access_key")
-    s3_secret_key = getSecret("/app/secrets/s3_secret_key")
+    cos_endpoint = getSecret("/app/secrets/cos_endpoint")
+    cos_access_key = getSecret("/app/secrets/cos_access_key")
+    cos_secret_key = getSecret("/app/secrets/cos_secret_key")
 
-    s3_input_bucket = getSecret("/app/secrets/s3_input_bucket")
+    cos_input_bucket = getSecret("/app/secrets/cos_input_bucket")
 
     # set up the WML client
     wml_credentials = {
@@ -58,10 +58,10 @@ def deploy(args):
     # download scoring payload
     payload_file = os.path.join('/app', wml_scoring_payload)
     
-    s3 = Minio(s3_endpoint,
-               access_key = s3_access_key,
-               secret_key = s3_secret_key)
-    s3.fget_object(s3_input_bucket, wml_scoring_payload, payload_file)
+    cos = Minio(cos_endpoint,
+               access_key = cos_access_key,
+               secret_key = cos_secret_key)
+    cos.fget_object(cos_input_bucket, wml_scoring_payload, payload_file)
 
     # scoring the deployment
     import json

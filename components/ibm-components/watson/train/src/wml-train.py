@@ -40,21 +40,21 @@ def train(args):
 
     wml_data_source_type = getSecret("/app/secrets/wml_data_source_type")
 
-    s3_endpoint = getSecret("/app/secrets/s3_endpoint")
-    s3_access_key = getSecret("/app/secrets/s3_access_key")
-    s3_secret_key = getSecret("/app/secrets/s3_secret_key")
+    cos_endpoint = getSecret("/app/secrets/cos_endpoint")
+    cos_access_key = getSecret("/app/secrets/cos_access_key")
+    cos_secret_key = getSecret("/app/secrets/cos_secret_key")
     
-    s3_input_bucket = getSecret("/app/secrets/s3_input_bucket")
+    cos_input_bucket = getSecret("/app/secrets/cos_input_bucket")
 
-    s3_output_bucket = getSecret("/app/secrets/s3_output_bucket")
+    cos_output_bucket = getSecret("/app/secrets/cos_output_bucket")
 
     # download model code
     model_code = os.path.join('/app', wml_train_code)
 
-    s3 = Minio(s3_endpoint,
-               access_key = s3_access_key,
-               secret_key = s3_secret_key)
-    s3.fget_object(s3_input_bucket, wml_train_code, model_code)
+    cos = Minio(cos_endpoint,
+               access_key = cos_access_key,
+               secret_key = cos_secret_key)
+    cos.fget_object(cos_input_bucket, wml_train_code, model_code)
 
     # set up the WML client
     wml_credentials = {
@@ -86,23 +86,23 @@ def train(args):
         client.training.ConfigurationMetaNames.AUTHOR_EMAIL : "wzhuang@us.ibm.com",
         client.training.ConfigurationMetaNames.TRAINING_DATA_REFERENCE : {
             "connection" : {
-                "endpoint_url"      : s3_endpoint,
-                "access_key_id"     : s3_access_key,
-                "secret_access_key" : s3_secret_key
+                "endpoint_url"      : cos_endpoint,
+                "access_key_id"     : cos_access_key,
+                "secret_access_key" : cos_secret_key
             },
             "source" : {
-                "bucket" : s3_input_bucket,
+                "bucket" : cos_input_bucket,
             },
             "type" : wml_data_source_type
         },
         client.training.ConfigurationMetaNames.TRAINING_RESULTS_REFERENCE: {
             "connection" : {
-                "endpoint_url"      : s3_endpoint,
-                "access_key_id"     : s3_access_key,
-                "secret_access_key" : s3_secret_key
+                "endpoint_url"      : cos_endpoint,
+                "access_key_id"     : cos_access_key,
+                "secret_access_key" : cos_secret_key
             },
             "target" : {
-                "bucket" : s3_output_bucket,
+                "bucket" : cos_output_bucket,
             },
             "type" : wml_data_source_type
         }

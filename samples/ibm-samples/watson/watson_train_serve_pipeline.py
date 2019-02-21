@@ -39,7 +39,7 @@ def kfp_wml_pipeline(
         file_outputs={'secret-name' : '/tmp/'+secret_name}
     )
     
-    # op2 - this operation trains the model with the model codes and data saved in the S3 buckets
+    # op2 - this operation trains the model with the model codes and data saved in the cloud object store
     train_op = dsl.ContainerOp(
         name="train",
         image="aipipeline/wml-train",
@@ -60,7 +60,7 @@ def kfp_wml_pipeline(
                    '--model-name', 'python-tensorflow-mnist'],
         file_outputs={'model-uid' : '/tmp/model_uid'}).apply(params.use_ai_pipeline_params(secret_name))
     
-    # op4 - this operation deploys the model to a web service and run scoring with the payload in S3
+    # op4 - this operation deploys the model to a web service and run scoring with the payload in the cloud object store
     deploy_op = dsl.ContainerOp(
         name="deploy",
         image="aipipeline/wml-deploy",
