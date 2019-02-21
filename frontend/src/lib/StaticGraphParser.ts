@@ -70,14 +70,6 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
   return info;
 }
 
-// function printMap(m: Map<string, string>): string {
-//   let s = '\n - ';
-//   m.forEach((v, k) => {
-//     s = s + k + ': ' + v + ',\n - ';
-//   });
-//   return s;
-// }
-
 /**
  * Recursively construct the static graph of the Pipeline.
  *
@@ -104,7 +96,7 @@ function buildDag(
 
   if (root && root.nodeType === 'dag') {
     // Mark that we have visited this DAG, and save the original qualified path to it.
-    alreadyVisited.set(rootTemplateId, parentFullPath || '/' + rootTemplateId);
+    alreadyVisited.set(rootTemplateId, parentFullPath || ('/' + rootTemplateId));
     const template = root.template;
 
     (template.dag.tasks || []).forEach((task) => {
