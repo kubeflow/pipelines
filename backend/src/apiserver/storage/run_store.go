@@ -16,16 +16,29 @@ package storage
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"strings"
+
+	"github.com/golang/protobuf/jsonpb"
+
+	argoWorkflow "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+
+	"ml_metadata/metadata_store/mlmetadata"
+	mspb "ml_metadata/proto/metadata_store_go_proto"
+	_ "ml_metadata/proto/metadata_store_service_go_proto"
+
+	"github.com/golang/protobuf/proto"
+
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"k8s.io/apimachinery/pkg/util/json"
+	k8sjson "k8s.io/apimachinery/pkg/util/json"
 )
 
 type RunStoreInterface interface {
@@ -59,6 +72,7 @@ type RunStore struct {
 	db                     *DB
 	resourceReferenceStore *ResourceReferenceStore
 	time                   util.TimeInterface
+	MetadataStore          *mlmetadata.Store
 }
 
 // Runs two SQL queries in a transaction to return a list of matching runs, as well as their
@@ -349,7 +363,93 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 	return r, nil
 }
 
+type ArtifactStruct struct {
+	ArtifactType *mspb.ArtifactType `json:"artifact_type"`
+	Artifact     *mspb.Artifact     `json:"artifact"`
+}
+
+func (a *ArtifactStruct) UnmarshalJSON(b []byte) error {
+	jsonMap := make(map[string]*json.RawMessage)
+	if err := json.Unmarshal(b, &jsonMap); err != nil {
+		return err
+	}
+
+	a.ArtifactType = &mspb.ArtifactType{}
+	a.Artifact = &mspb.Artifact{}
+
+	if err := jsonpb.UnmarshalString(string(*jsonMap["artifact_type"]), a.ArtifactType); err != nil {
+		return err
+	}
+
+	if err := jsonpb.UnmarshalString(string(*jsonMap["artifact"]), a.Artifact); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *RunStore) UpdateRun(runID string, condition string, workflowRuntimeManifest string) (err error) {
+	// mutex lock
+
+	rd, err := s.GetRun(runID)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to get run %q: %v", runID, err)
+	}
+
+	storedWorkflow := &argoWorkflow.Workflow{}
+	if err := json.Unmarshal([]byte(rd.WorkflowRuntimeManifest), storedWorkflow); err != nil {
+		return util.NewInternalServerError(
+			err, "failed to unmarshal workflow '%s'", rd.WorkflowRuntimeManifest)
+	}
+
+	currentWorkflow := &argoWorkflow.Workflow{}
+	if err := k8sjson.Unmarshal([]byte(workflowRuntimeManifest), currentWorkflow); err != nil {
+		return util.NewInternalServerError(
+			err, "failed to unmarshal workflow '%s'", workflowRuntimeManifest)
+	}
+
+	completed := make(map[string]bool)
+	for _, n := range storedWorkflow.Status.Nodes {
+		if n.Completed() {
+			completed[n.ID] = true
+		}
+	}
+
+	for _, n := range currentWorkflow.Status.Nodes {
+		if n.Completed() && !completed[n.ID] {
+			b, err := json.MarshalIndent(n, "", "    ")
+			if err != nil {
+				return err
+			}
+			fmt.Printf("NEWLY COMPLETED NODE:\n%s\n", b)
+
+			if n.Outputs != nil {
+				for _, output := range n.Outputs.Parameters {
+					if strings.HasPrefix(output.ValueFrom.Path, "/output/ml_metadata/") {
+						a := &ArtifactStruct{}
+						if err := json.Unmarshal([]byte(*output.Value), a); err != nil {
+							return err
+						}
+						fmt.Printf("Unmarshaled JSON:\n%+v\n", a)
+						id, err := s.MetadataStore.PutArtifactType(
+							a.ArtifactType, &mlmetadata.PutTypeOptions{AllFieldsMustMatch: true})
+						if err != nil {
+							return err
+						}
+
+						fmt.Printf("Using artifact id %d\n", id)
+						a.Artifact.TypeId = proto.Int64(int64(id))
+						ids, err := s.MetadataStore.PutArtifacts([]*mspb.Artifact{a.Artifact})
+						if err != nil {
+							return err
+						}
+						fmt.Printf("Put artifact and got back ids %+v", ids)
+					}
+				}
+			}
+		}
+	}
+
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
@@ -465,7 +565,7 @@ func (s *RunStore) DeleteRun(id string) error {
 // ReportMetric inserts a new metric to run_metrics table. Conflicting metrics
 // are ignored.
 func (s *RunStore) ReportMetric(metric *model.RunMetric) (err error) {
-	payloadBytes, err := json.Marshal(metric)
+	payloadBytes, err := k8sjson.Marshal(metric)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"failed to marshal metric to json: %+v", metric)
