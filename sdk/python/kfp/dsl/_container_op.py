@@ -15,7 +15,7 @@
 
 from . import _pipeline
 from . import _pipeline_param
-from ._pipeline_param import _extract_pipeleineparam
+from ._pipeline_param import _extract_pipelineparam
 import re
 from typing import Dict
 
@@ -67,7 +67,7 @@ class ContainerOp(object):
 
     self.argument_inputs = []
     for arg in (command or []) + (arguments or []):
-      self.argument_inputs += _extract_pipeleineparam(str(arg))
+      self.argument_inputs += _extract_pipelineparam(str(arg))
 
     self.file_outputs = file_outputs
     self.dependent_op_names = []

@@ -21,7 +21,7 @@ from collections import namedtuple
 # For now, this identifies a condition with only "==" operator supported.
 ConditionOperator = namedtuple('ConditionOperator', 'operator operand1 operand2')
 
-def _extract_pipeleineparam(payload: str):
+def _extract_pipelineparam(payload: str):
   """_extract_pipelineparam extract a list of PipelineParam instances from the payload string.
 
   Args:
