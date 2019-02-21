@@ -2076,7 +2076,7 @@ exports[`Status statusToIcon handles an undefined phase 1`] = `
     <pure(HelpIcon)
       style={
         Object {
-          "color": "#5F6368",
+          "color": "#5f6368",
           "height": 18,
           "width": 18,
         }
@@ -2490,7 +2490,7 @@ exports[`Status statusToIcon handles an unknown phase 1`] = `
     <pure(HelpIcon)
       style={
         Object {
-          "color": "#5F6368",
+          "color": "#5f6368",
           "height": 18,
           "width": 18,
         }
@@ -2904,7 +2904,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: ERROR 1`] =
     <pure(ErrorIcon)
       style={
         Object {
-          "color": "#D50000",
+          "color": "#d50000",
           "height": 18,
           "width": 18,
         }
@@ -3318,7 +3318,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: FAILED 1`] 
     <pure(ErrorIcon)
       style={
         Object {
-          "color": "#D50000",
+          "color": "#d50000",
           "height": 18,
           "width": 18,
         }
@@ -3732,7 +3732,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: PENDING 1`]
     <pure(ScheduleIcon)
       style={
         Object {
-          "color": "#9AA0A6",
+          "color": "#9aa0a6",
           "height": 18,
           "width": 18,
         }
@@ -4146,7 +4146,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: RUNNING 1`]
     <StatusRunning
       style={
         Object {
-          "color": "#34a853",
+          "color": "#4285f4",
           "height": 18,
           "width": 18,
         }
@@ -4560,7 +4560,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: SKIPPED 1`]
     <pure(SkipNextIcon)
       style={
         Object {
-          "color": "#5F6368",
+          "color": "#5f6368",
           "height": 18,
           "width": 18,
         }
@@ -5388,7 +5388,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: UNKNOWN 1`]
     <pure(HelpIcon)
       style={
         Object {
-          "color": "#5F6368",
+          "color": "#5f6368",
           "height": 18,
           "width": 18,
         }

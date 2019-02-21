@@ -26,12 +26,12 @@ import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Radio from '@material-ui/core/Radio';
 import { TextFieldProps } from '@material-ui/core/TextField';
-import { padding, commonCss } from '../Css';
+import { padding, commonCss, zIndex, color } from '../Css';
 import { stylesheet, classes } from 'typestyle';
 
 const css = stylesheet({
   dropOverlay: {
-    backgroundColor: '#eee',
+    backgroundColor: color.lightGrey,
     border: '2px dashed #aaa',
     bottom: 0,
     left: 0,
@@ -40,7 +40,7 @@ const css = stylesheet({
     right: 0,
     textAlign: 'center',
     top: 0,
-    zIndex: 1,
+    zIndex: zIndex.DROP_ZONE_OVERLAY,
   },
   root: {
     width: 500,

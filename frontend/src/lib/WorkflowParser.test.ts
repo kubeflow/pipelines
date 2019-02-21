@@ -17,6 +17,7 @@
 import WorkflowParser, { StorageService } from './WorkflowParser';
 import { NodePhase } from '../pages/Status';
 import { color } from '../Css';
+import { Constants } from './Constants';
 
 describe('WorkflowParser', () => {
   describe('createRuntimeGraph', () => {
@@ -194,8 +195,8 @@ describe('WorkflowParser', () => {
       const g = WorkflowParser.createRuntimeGraph(workflow as any);
 
       const runningNode = g.node('runningNode');
-      expect(runningNode.height).toEqual(70);
-      expect(runningNode.width).toEqual(180);
+      expect(runningNode.height).toEqual(Constants.NODE_HEIGHT);
+      expect(runningNode.width).toEqual(Constants.NODE_WIDTH);
       expect(runningNode.label).toEqual('runningNode');
       expect(runningNode.isPlaceholder).toBeUndefined();
 
