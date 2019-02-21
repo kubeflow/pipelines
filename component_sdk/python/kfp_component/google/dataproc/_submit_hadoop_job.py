@@ -12,4 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import launcher, core, google
+from ._submit_job import submit_job
+
+def submit_hadoop_job(project_id, region, cluster_name, 
+    main_jar_file_uri=None, main_class=None, args=[], hadoop_job={}, job={}, 
+    wait_interval=30):
+    if main_jar_file_uri:
+        hadoop_job['mainJarFileUri'] = main_jar_file_uri
+    if main_class:
+        hadoop_job['mainClass'] = main_class
+    if args:
+        hadoop_job['args'] = args
+    job['hadoopJob'] = hadoop_job
+    return submit_job(project_id, region, cluster_name, job, wait_interval)

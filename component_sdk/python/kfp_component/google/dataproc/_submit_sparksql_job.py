@@ -12,4 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import launcher, core, google
+from ._submit_job import submit_job
+
+def submit_sparksql_job(project_id, region, cluster_name, 
+    queries=[], query_file_uri=None, script_variables={}, sparksql_job={}, 
+    job={}, wait_interval=30):
+    if queries:
+        sparksql_job['queryList'] = { 'queries': queries }
+    if query_file_uri:
+        sparksql_job['queryFileUri'] = query_file_uri
+    if script_variables:
+        sparksql_job['scriptVariables'] = script_variables
+    job['sparkSqlJob'] = sparksql_job
+    return submit_job(project_id, region, cluster_name, job, wait_interval)

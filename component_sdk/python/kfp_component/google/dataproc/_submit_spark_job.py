@@ -12,4 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import launcher, core, google
+from ._submit_job import submit_job
+
+def submit_spark_job(project_id, region, cluster_name, 
+    main_jar_file_uri=None, main_class=None, args=[], spark_job={}, job={}, 
+    wait_interval=30):
+    if main_jar_file_uri:
+        spark_job['mainJarFileUri'] = main_jar_file_uri
+    if main_class:
+        spark_job['mainClass'] = main_class
+    if args:
+        spark_job['args'] = args
+    job['sparkJob'] = spark_job
+    return submit_job(project_id, region, cluster_name, job, wait_interval)

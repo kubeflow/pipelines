@@ -12,4 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import launcher, core, google
+from ._submit_job import submit_job
+
+def submit_pyspark_job(project_id, region, cluster_name, 
+    main_python_file_uri=None, args=[], pyspark_job={}, job={}, 
+    wait_interval=30):
+    if main_python_file_uri:
+        pyspark_job['mainPythonFileUri'] = main_python_file_uri
+    if args:
+        pyspark_job['args'] = args
+    job['pysparkJob'] = pyspark_job
+    return submit_job(project_id, region, cluster_name, job, wait_interval)

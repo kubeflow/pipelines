@@ -12,4 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import launcher, core, google
+from ._client import DataprocClient
+from kfp_component.core import KfpExecutionContext
+
+def delete_cluster(project_id, region, name, wait_interval=30):
+    client = DataprocClient()
+    operation_name = None
+    with KfpExecutionContext(
+        on_cancel=lambda: client.cancel_operation(operation_name)) as ctx:
+        operation = client.delete_cluster(project_id, region, name, 
+            request_id=ctx.context_id())
+        operation_name = operation.get('name')
+        return client.wait_for_operation_done(operation_name, 
+            wait_interval)
