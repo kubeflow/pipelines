@@ -188,3 +188,6 @@ images:
 - 'gcr.io/$PROJECT_ID/ml-pipeline-local-roc:$COMMIT_SHA'
 
 timeout: '3600s'
+options:
+ diskSizeGb: 300
+ machineType: 'N1_HIGHCPU_8'

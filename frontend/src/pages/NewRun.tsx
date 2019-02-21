@@ -413,10 +413,7 @@ class NewRun extends Page<{}, NewRunState> {
       pipeline,
       pipelineName: (pipeline && pipeline.name) || '',
       pipelineSelectorOpen: false
-    });
-
-    // Now that we may have a pipeline, update the validation.
-    this._validate();
+    }, () => this._validate());
   }
 
   private async _prepareFormFromEmbeddedPipeline(embeddedPipelineRunId: string): Promise<void> {

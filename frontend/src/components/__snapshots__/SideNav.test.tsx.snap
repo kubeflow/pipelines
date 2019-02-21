@@ -136,6 +136,42 @@ exports[`SideNav populates the display build information using the response from
     <hr
       className="separator"
     />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
     <WithStyles(IconButton)
       className="chevron"
       onClick={[Function]}
@@ -287,6 +323,42 @@ exports[`SideNav renders Pipelines as active page 1`] = `
     <hr
       className="separator"
     />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
     <WithStyles(IconButton)
       className="chevron"
       onClick={[Function]}
@@ -411,6 +483,42 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -549,6 +657,42 @@ exports[`SideNav renders collapsed state 1`] = `
     <hr
       className="separator collapsedSeparator"
     />
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button collapsedButton"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="collapsedLabel label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator collapsedSeparator"
+    />
     <WithStyles(IconButton)
       className="chevron collapsedChevron"
       onClick={[Function]}
@@ -673,6 +817,42 @@ exports[`SideNav renders expanded state 1`] = `
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -811,6 +991,42 @@ exports[`SideNav renders experiments as active page 1`] = `
     <hr
       className="separator"
     />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
     <WithStyles(IconButton)
       className="chevron"
       onClick={[Function]}
@@ -935,6 +1151,42 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1073,6 +1325,42 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
     <hr
       className="separator"
     />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
     <WithStyles(IconButton)
       className="chevron"
       onClick={[Function]}
@@ -1197,6 +1485,42 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1335,6 +1659,42 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
     <hr
       className="separator"
     />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
     <WithStyles(IconButton)
       className="chevron"
       onClick={[Function]}
@@ -1459,6 +1819,42 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1597,6 +1993,42 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
     <hr
       className="separator"
     />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
     <WithStyles(IconButton)
       className="chevron"
       onClick={[Function]}
@@ -1721,6 +2153,42 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1891,6 +2359,42 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           />
         </WithStyles(Button)>
       </a>
+    </WithStyles(Tooltip)>
+    <hr
+      className="separator"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Archive"
+    >
+      <Link
+        className="unstyled"
+        id="archiveBtn"
+        replace={false}
+        to="/archive"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(ArchiveIcon)
+            style={
+              Object {
+                "height": 20,
+                "width": 20,
+              }
+            }
+          />
+          <span
+            className="label"
+          >
+            Archive
+          </span>
+        </WithStyles(Button)>
+      </Link>
     </WithStyles(Tooltip)>
     <hr
       className="separator"

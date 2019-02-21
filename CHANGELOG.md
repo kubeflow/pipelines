@@ -1,5 +1,78 @@
 # Change Log
 
+## [Unreleased](https://github.com/kubeflow/pipelines/tree/HEAD)
+
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.9...HEAD)
+
+**Closed issues:**
+
+- Persistent Agent doesn't like v1beta1 scheduledworkflow in on-prem scenario [\#790](https://github.com/kubeflow/pipelines/issues/790)
+- Metric bars do not always show up correctly [\#775](https://github.com/kubeflow/pipelines/issues/775)
+
+**Merged pull requests:**
+
+- Update Basic Pipeline example notebook [\#782](https://github.com/kubeflow/pipelines/pull/782) ([swiftdiaries](https://github.com/swiftdiaries))
+- placeholder for ibm sample pipelines and corresponding components [\#731](https://github.com/kubeflow/pipelines/pull/731) ([animeshsingh](https://github.com/animeshsingh))
+
+## [0.1.9](https://github.com/kubeflow/pipelines/tree/0.1.9) (2019-02-06)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.8...0.1.9)
+
+**Closed issues:**
+
+- XGBoost sample failure [\#736](https://github.com/kubeflow/pipelines/issues/736)
+- TFX taxi client utility run abnormally after serving started [\#728](https://github.com/kubeflow/pipelines/issues/728)
+- Pipeline deploy component does not support local model  [\#726](https://github.com/kubeflow/pipelines/issues/726)
+- Failed to execute the component roc and confusion\_matrix in TFX sample for local mode [\#719](https://github.com/kubeflow/pipelines/issues/719)
+- An error occurs when run TFX example in local kubeflow cluster [\#703](https://github.com/kubeflow/pipelines/issues/703)
+- Not using secret when pulling from private Registry [\#695](https://github.com/kubeflow/pipelines/issues/695)
+- Release 1.7 - TFX taxi cab example failing the deploy step [\#692](https://github.com/kubeflow/pipelines/issues/692)
+- Run details page should autorefresh [\#683](https://github.com/kubeflow/pipelines/issues/683)
+- problem when deploying kubeflow 0.4.0 [\#676](https://github.com/kubeflow/pipelines/issues/676)
+- Do I need to be running kubeflow on GCP to use pipelines? [\#661](https://github.com/kubeflow/pipelines/issues/661)
+- Design doc for pipelines  [\#569](https://github.com/kubeflow/pipelines/issues/569)
+- Some error logs in sample for ML - TFX - Taxi Tip Prediction Model Trainer [\#547](https://github.com/kubeflow/pipelines/issues/547)
+- Return the total number of resources in list APIs [\#103](https://github.com/kubeflow/pipelines/issues/103)
+
+**Merged pull requests:**
+
+- Creating ROADMAP.md [\#786](https://github.com/kubeflow/pipelines/pull/786) ([paveldournov](https://github.com/paveldournov))
+- Revert GPU tests to unblock release [\#778](https://github.com/kubeflow/pipelines/pull/778) ([hongye-sun](https://github.com/hongye-sun))
+- Modifications done by the execution of the release script. [\#777](https://github.com/kubeflow/pipelines/pull/777) ([vicaire](https://github.com/vicaire))
+- Refactor BaseOp to context manager pattern [\#762](https://github.com/kubeflow/pipelines/pull/762) ([hongye-sun](https://github.com/hongye-sun))
+-  Add component\_sdk tests to travis tests [\#761](https://github.com/kubeflow/pipelines/pull/761) ([hongye-sun](https://github.com/hongye-sun))
+- Fix Dockerfile for viewer CRD image. [\#760](https://github.com/kubeflow/pipelines/pull/760) ([neuromage](https://github.com/neuromage))
+- Add UI actions to Buttons module [\#758](https://github.com/kubeflow/pipelines/pull/758) ([yebrahim](https://github.com/yebrahim))
+- Regenerate frontend API files now that listCount APIs are merged [\#757](https://github.com/kubeflow/pipelines/pull/757) ([rileyjbauer](https://github.com/rileyjbauer))
+- Enhance deploy.sh to support local storage [\#755](https://github.com/kubeflow/pipelines/pull/755) ([jinchihe](https://github.com/jinchihe))
+- Releasing components fixing xgboost [\#747](https://github.com/kubeflow/pipelines/pull/747) ([gaoning777](https://github.com/gaoning777))
+- support pipeline level imagepullsecret in DSL [\#745](https://github.com/kubeflow/pipelines/pull/745) ([gaoning777](https://github.com/gaoning777))
+- Updated dev guide for apiserver build with minikube. [\#743](https://github.com/kubeflow/pipelines/pull/743) ([gyliu513](https://github.com/gyliu513))
+- Add Dockerfile for building Viewer CRD controller. [\#740](https://github.com/kubeflow/pipelines/pull/740) ([neuromage](https://github.com/neuromage))
+- Remove pipeline bootstrapper [\#739](https://github.com/kubeflow/pipelines/pull/739) ([IronPan](https://github.com/IronPan))
+- Refactor UI buttons to lib file [\#737](https://github.com/kubeflow/pipelines/pull/737) ([yebrahim](https://github.com/yebrahim))
+- fix dataproc cluster version [\#735](https://github.com/kubeflow/pipelines/pull/735) ([gaoning777](https://github.com/gaoning777))
+- Improve runtime graph starting and running experience [\#734](https://github.com/kubeflow/pipelines/pull/734) ([rileyjbauer](https://github.com/rileyjbauer))
+- SDK/Components - convert\_object\_to\_struct now uses \_\_init\_\_ to get field list [\#733](https://github.com/kubeflow/pipelines/pull/733) ([Ark-kun](https://github.com/Ark-kun))
+- SDK/Components - Improved error when type checking fails in constructor [\#732](https://github.com/kubeflow/pipelines/pull/732) ([Ark-kun](https://github.com/Ark-kun))
+- Create kfp componet sdk [\#729](https://github.com/kubeflow/pipelines/pull/729) ([hongye-sun](https://github.com/hongye-sun))
+- Add CMLE sample test script. [\#724](https://github.com/kubeflow/pipelines/pull/724) ([qimingj](https://github.com/qimingj))
+- Add "set\_retry\(\)" on ContainerOp. [\#723](https://github.com/kubeflow/pipelines/pull/723) ([qimingj](https://github.com/qimingj))
+- Auto-refreshes the run details page [\#722](https://github.com/kubeflow/pipelines/pull/722) ([rileyjbauer](https://github.com/rileyjbauer))
+- create nonexistent directory for roc and confusion\_matrix component [\#720](https://github.com/kubeflow/pipelines/pull/720) ([jinchihe](https://github.com/jinchihe))
+- SDK/Components/Python - Improved Python2 compatibility [\#718](https://github.com/kubeflow/pipelines/pull/718) ([Ark-kun](https://github.com/Ark-kun))
+- SDK/Components/Python - Made the typing.NamedTuple import optional [\#717](https://github.com/kubeflow/pipelines/pull/717) ([Ark-kun](https://github.com/Ark-kun))
+- SDK/Components - Added \_naming.\_convert\_to\_human\_name function [\#715](https://github.com/kubeflow/pipelines/pull/715) ([Ark-kun](https://github.com/Ark-kun))
+- SDK/Components - Command line args can only be strings or placeholders [\#711](https://github.com/kubeflow/pipelines/pull/711) ([Ark-kun](https://github.com/Ark-kun))
+- SDK/Components - More meaningful error when trying to convert graph component to ContainerOp [\#710](https://github.com/kubeflow/pipelines/pull/710) ([Ark-kun](https://github.com/Ark-kun))
+- randomize the deployment name to avoid collision [\#704](https://github.com/kubeflow/pipelines/pull/704) ([gaoning777](https://github.com/gaoning777))
+- SDK - Removed stray debug print from tests [\#701](https://github.com/kubeflow/pipelines/pull/701) ([Ark-kun](https://github.com/Ark-kun))
+- Update changelog for release 0.1.8 [\#697](https://github.com/kubeflow/pipelines/pull/697) ([yebrahim](https://github.com/yebrahim))
+- Add gpu pool to test deployment and enable gpu in sample test [\#696](https://github.com/kubeflow/pipelines/pull/696) ([hongye-sun](https://github.com/hongye-sun))
+- bump ks version in presubmit test  [\#693](https://github.com/kubeflow/pipelines/pull/693) ([IronPan](https://github.com/IronPan))
+- SDK - Update minimum Python version to 3.5.3 [\#691](https://github.com/kubeflow/pipelines/pull/691) ([Ark-kun](https://github.com/Ark-kun))
+- Update all Pipelines CRD versions to v1beta1. [\#681](https://github.com/kubeflow/pipelines/pull/681) ([neuromage](https://github.com/neuromage))
+- Return resource count from ListXXX calls [\#595](https://github.com/kubeflow/pipelines/pull/595) ([yebrahim](https://github.com/yebrahim))
+
 ## [0.1.8](https://github.com/kubeflow/pipelines/tree/0.1.8) (2019-01-17)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.7...0.1.8)
 

@@ -12,8 +12,6 @@ bower_components/
 
 # Build output
 dist
-ml-pipeline/ml-pipeline-app
-ml-pipeline/kf-app
 
 # Web server
 frontend/server/*.js

@@ -173,7 +173,7 @@ customresourcedefinition.apiextensions.k8s.io/viewers.kubeflow.org created
 To run the controller locally, execute:
 
 ```
-go run ./controller/viewer/ -kubeconfig=$HOME/.kube/config -alsologtostderr=true
+go run ./controller/viewer/ -kubecfg=$HOME/.kube/config -alsologtostderr=true
 ```
 
 Now, let's create a simple Tensorboard viewer using the supplied sample:
@@ -181,7 +181,7 @@ Now, let's create a simple Tensorboard viewer using the supplied sample:
 $ kubectl create -f samples/viewer/mnist.yaml
 viewer.kubeflow.org/viewer-75tkf created
 
-$ kubectl getctl -n kubeflow vi
+$ kubectl get viewers -n kubeflow
 NAME           AGE
 viewer-75tkf   108s
 ```
