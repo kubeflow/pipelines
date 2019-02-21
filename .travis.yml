@@ -50,7 +50,7 @@ matrix:
             - wget
       script:
         # DSL tests
-        - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
+        - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - ./build.sh /tmp/kfp.tar.gz
         - pip install /tmp/kfp.tar.gz
