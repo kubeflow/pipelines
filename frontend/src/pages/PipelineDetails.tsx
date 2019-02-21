@@ -38,7 +38,7 @@ import { URLParser } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
-import { color, commonCss, padding, fontsize, fonts } from '../Css';
+import { color, commonCss, padding, fontsize, fonts, zIndex } from '../Css';
 import { logger, formatDateString } from '../lib/Utils';
 
 interface PipelineDetailsState {
@@ -90,7 +90,7 @@ export const css = stylesheet({
     padding: 10,
     position: 'absolute',
     width: summaryCardWidth,
-    zIndex: 1,
+    zIndex: zIndex.PIPELINE_SUMMARY_CARD,
   },
   summaryKey: {
     color: color.strong,
@@ -200,7 +200,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                   {!summaryShown && (
                     <Button onClick={() => this.setStateSafe({ summaryShown: !summaryShown })} color='secondary'>
                       Show summary
-                      </Button>
+                    </Button>
                   )}
                   <div className={classes(commonCss.flex, (summaryShown && !!pipeline) && css.footerInfoOffset)}>
                     <InfoIcon className={commonCss.infoIcon} />
