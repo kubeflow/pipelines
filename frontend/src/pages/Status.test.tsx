@@ -15,8 +15,8 @@
  */
 
 import * as Utils from '../lib/Utils';
+import { NodePhase, hasFinished, statusBgColors, statusToBgColor, statusToIcon } from './Status';
 import { shallow } from 'enzyme';
-import { statusToIcon, NodePhase, hasFinished } from './Status';
 
 
 describe('Status', () => {
@@ -35,14 +35,14 @@ describe('Status', () => {
 
   describe('statusToIcon', () => {
     it('handles an unknown phase', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
       const tree = shallow(statusToIcon('bad phase' as any));
       expect(tree).toMatchSnapshot();
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
     });
 
     it('handles an undefined phase', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => null);
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
       const tree = shallow(statusToIcon(/* no phase */));
       expect(tree).toMatchSnapshot();
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
@@ -91,6 +91,52 @@ describe('Status', () => {
 
     it('returns \'false\' if status is undefined', () => {
       expect(hasFinished(undefined)).toBe(false);
+    });
+
+    it('returns \'false\' if status is invalid', () => {
+      expect(hasFinished('bad phase' as any)).toBe(false);
+    });
+  });
+
+  describe('statusToBgColor', () => {
+    it('handles an invalid phase', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      expect(statusToBgColor('bad phase' as any)).toEqual(statusBgColors.notStarted);
+      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
+    });
+
+    it('handles an \'Unknown\' phase', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      expect(statusToBgColor(NodePhase.UNKNOWN)).toEqual(statusBgColors.notStarted);
+      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'Unknown');
+    });
+
+    it('returns color \'not started\' if status is undefined', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+      expect(statusToBgColor(undefined)).toEqual(statusBgColors.notStarted);
+      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
+    });
+
+    it('returns color \'not started\' if status is \'Pending\'', () => {
+      expect(statusToBgColor(NodePhase.PENDING)).toEqual(statusBgColors.notStarted);
+    });
+
+    [NodePhase.ERROR, NodePhase.FAILED].forEach(status => {
+      it(`returns color \'error\' if status is: ${status}`, () => {
+        expect(statusToBgColor(status)).toEqual(statusBgColors.error);
+      });
+    });
+
+    it('returns color \'running\' if status is \'Running\'', () => {
+      expect(statusToBgColor(NodePhase.RUNNING)).toEqual(statusBgColors.running);
+    });
+
+    it('returns color \'stop or skip\' if status is \'Skipped\'', () => {
+      expect(statusToBgColor(NodePhase.SKIPPED)).toEqual(statusBgColors.stopOrSkip);
+    });
+
+    it('returns color \'succeeded\' if status is \'Succeeded\'', () => {
+      expect(statusToBgColor(NodePhase.SUCCEEDED)).toEqual(statusBgColors.succeeded);
     });
   });
 });

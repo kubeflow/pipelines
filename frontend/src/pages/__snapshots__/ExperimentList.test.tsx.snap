@@ -233,7 +233,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         <pure(ScheduleIcon)
           style={
             Object {
-              "color": "#9AA0A6",
+              "color": "#9aa0a6",
               "height": 18,
               "width": 18,
             }
@@ -268,7 +268,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         <pure(ErrorIcon)
           style={
             Object {
-              "color": "#D50000",
+              "color": "#d50000",
               "height": 18,
               "width": 18,
             }
@@ -303,7 +303,7 @@ exports[`ExperimentList renders last 5 runs statuses 1`] = `
         <pure(HelpIcon)
           style={
             Object {
-              "color": "#5F6368",
+              "color": "#5f6368",
               "height": 18,
               "width": 18,
             }
