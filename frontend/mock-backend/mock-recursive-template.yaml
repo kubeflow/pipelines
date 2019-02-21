@@ -12,7 +12,7 @@ spec:
       - name: recurse-1
         template: recurse-1
       - name: leaf-1
-        template: leaf-2
+        template: leaf-1
     name: start
   - dag:
       tasks:
@@ -27,9 +27,18 @@ spec:
         template: start
       - name: leaf-2
         template: leaf-2
-      - name: leaf-3
-        template: leaf-2
+      - name: recurse-3
+        template: recurse-3
     name: recurse-2
+  - dag:
+      tasks:
+      - name: start
+        template: start
+      - name: recurse-1
+        template: recurse-1
+      - name: recurse-2
+        template: recurse-2
+    name: recurse-3
   - dag:
       tasks:
       - name: start
@@ -39,7 +48,5 @@ spec:
     name: leaf-1
   - container:
     name: leaf-2
-  - container:
-    name: leaf-3
   
   
