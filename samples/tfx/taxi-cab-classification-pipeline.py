@@ -132,7 +132,7 @@ def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='dep
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:5df2cdc1ed145320204e8bc73b59cdbd7b3da28f',
         arguments = [
-            '--model-path', model,
+            '--model-export-path', '%s/export/export' % model,
             '--server-name', tf_server_name
         ]
     )
