@@ -16,9 +16,64 @@
 from . import _pipeline
 from . import _pipeline_param
 import re
-from typing import Dict
+from typing import Dict, List
+from abc import ABCMeta, abstractmethod
 from . import _types
 
+class BaseMeta(object):
+  __metaclass__ = ABCMeta
+  def __init__(self):
+    pass
+
+  @abstractmethod
+  def to_dict(self):
+    pass
+
+  def serialize(self):
+    import yaml
+    return yaml.dump(self.to_dict())
+
+class TypeMeta(BaseMeta):
+  def __init__(self, name, properties):
+    self.name = name
+    self.properties = properties
+
+  def to_dict(self):
+    return {self.name: self.properties}
+
+class ParameterMeta(BaseMeta):
+  def __init__(self,
+              name: str = None,
+              description: str = None,
+              param_type: TypeMeta = None):
+    self.name = name
+    self.description = description
+    self.param_type = param_type
+
+  def to_dict(self):
+    return {'name': self.name,
+            'description': self.description,
+            'type': self.param_type.to_dict()}
+
+class ComponentMeta(BaseMeta):
+  def __init__(
+      self,
+      name: str = None,
+      description: str = None,
+      inputs: List[ParameterMeta] = None,
+      outputs: List[ParameterMeta] = None
+  ):
+    self.name = name
+    self.description = description
+    self.inputs = inputs
+    self.outputs = outputs
+
+  def to_dict(self):
+    return {'name': self.name,
+            'description': self.description,
+            'inputs': [ input.to_dict() for input in self.inputs ],
+            'outputs': [ output.to_dict() for output in self.outputs ]
+            }
 
 ComponentJsonSchema = '''
 {
@@ -122,7 +177,7 @@ class ContainerOp(object):
     self.pod_annotations = {}
     self.pod_labels = {}
     self.num_retries = 0
-    self._metadata = {}
+    self._metadata = None
 
     # match the input placeholders from command and arguments
     input_matches = []
@@ -362,7 +417,8 @@ class ContainerOp(object):
       return str({self.__class__.__name__: self.__dict__})
 
   def _set_metadata(self, metadata):
-    '''_set_metadata passes the containerop metadata'''
-    #TODO: use ComponentJsonSchema to add input checking
-    #TODO: add documentations
+    '''_set_metadata passes the containerop metadata.
+
+    Args:
+      metadata (ComponentMeta): component metadata'''
     self._metadata = metadata

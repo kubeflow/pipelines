@@ -14,8 +14,78 @@
 
 
 from kfp.dsl import Pipeline, PipelineParam, ContainerOp
+from kfp.dsl import ComponentMeta, ParameterMeta, TypeMeta
 import unittest
 
+class TestComponentMeta(unittest.TestCase):
+
+  def test_to_dict(self):
+    component_meta = ComponentMeta(name='foobar',
+                                   description='foobar example',
+                                   inputs=[ParameterMeta(name='input1',
+                                                         description='input1 desc',
+                                                         param_type=TypeMeta(name='GCSPath',
+                                                                       properties={'bucket_type': 'directory',
+                                                                                   'file_type': 'csv'
+                                                                                   }
+                                                                       )
+                                                         ),
+                                           ParameterMeta(name='input2',
+                                                         description='input2 desc',
+                                                         param_type=TypeMeta(name='TFModel',
+                                                                       properties={'input_data': 'tensor',
+                                                                                   'version': '1.8.0'
+                                                                                   }
+                                                                       )
+                                                         ),
+                                           ],
+                                   outputs=[ParameterMeta(name='output1',
+                                                          description='output1 desc',
+                                                          param_type=TypeMeta(name='Schema',
+                                                                        properties={'file_type': 'tsv'
+                                                                                    }
+                                                                        )
+                                                          )
+                                            ]
+                                   )
+    golden_meta = {
+        'name': 'foobar',
+        'description': 'foobar example',
+        'inputs': [
+            {
+                'name': 'input1',
+                'description': 'input1 desc',
+                'type': {
+                  'GCSPath': {
+                    'bucket_type': 'directory',
+                    'file_type': 'csv'
+                  }
+                }
+            },
+            {
+                'name': 'input2',
+                'description': 'input2 desc',
+                'type': {
+                  'TFModel': {
+                    'input_data': 'tensor',
+                    'version': '1.8.0'
+                  }
+                }
+            }
+        ],
+        'outputs': [
+            {
+                'name': 'output1',
+                'description': 'output1 desc',
+                'type': {
+                  'Schema': {
+                    'file_type': 'tsv'
+                  }
+                }
+            }
+        ]
+    }
+    self.assertEqual(component_meta.to_dict(), golden_meta)
 
 class TestContainerOp(unittest.TestCase):
 
