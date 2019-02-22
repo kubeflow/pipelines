@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-image_name=gcr.io/ml-pipeline/sample/keras/train_classifier:latest
+image_name=gcr.io/ml-pipeline/sample/keras/train_classifier
 image_tag=latest
 full_image_name=${image_name}:${image_tag}
 base_image_tag=1.12.0-py3
