@@ -31,8 +31,9 @@ import (
 )
 
 var (
-	masterURL  string
-	kubeconfig string
+	masterURL         string
+	kubeconfig        string
+	informerNamespace string
 )
 
 func main() {
@@ -61,8 +62,15 @@ func main() {
 		log.Fatalf("Error building workflow clientset: %s", err.Error())
 	}
 
-	scheduleInformerFactory := swfinformers.NewSharedInformerFactory(scheduleClient, time.Second*30)
-	workflowInformerFactory := workflowinformers.NewSharedInformerFactory(workflowClient, time.Second*30)
+	var scheduleInformerFactory swfinformers.SharedInformerFactory
+	var workflowInformerFactory workflowinformers.SharedInformerFactory
+	if informerNamespace == "" {
+		scheduleInformerFactory = swfinformers.NewSharedInformerFactory(scheduleClient, time.Second*30)
+		workflowInformerFactory = workflowinformers.NewSharedInformerFactory(workflowClient, time.Second*30)
+	} else {
+		scheduleInformerFactory = swfinformers.NewFilteredSharedInformerFactory(scheduleClient, time.Second*30, informerNamespace, nil)
+		workflowInformerFactory = workflowinformers.NewFilteredSharedInformerFactory(workflowClient, time.Second*30, informerNamespace, nil)
+	}
 
 	controller := NewController(
 		kubeClient,
@@ -83,4 +91,5 @@ func main() {
 func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+	flag.StringVar(&informerNamespace, "informer-namespace", "", "The namespace name used for Kubernetes informers to obtain the listers.")
 }
