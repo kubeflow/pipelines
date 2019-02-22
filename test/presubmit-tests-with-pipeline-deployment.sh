@@ -71,7 +71,7 @@ echo "presubmit test starts"
 
 # activating the service account
 gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
-gcloud config set compute/zone us-west1-a
+gcloud config set compute/zone us-east1-b
 gcloud config set core/project ${PROJECT}
 
 #Uploading the source code to GCS:
