@@ -14,7 +14,7 @@
 
 
 from kfp.dsl import PipelineParam
-from kfp.dsl._pipeline_param import _extract_pipelineparam
+from kfp.dsl._pipeline_param import _extract_pipelineparams
 import unittest
 
 
@@ -45,5 +45,5 @@ class TestPipelineParam(unittest.TestCase):
     p3 = PipelineParam(name='param3', value='value3')
     stuff_chars = ' between '
     payload = str(p1) + stuff_chars + str(p2) + stuff_chars + str(p3)
-    params = _extract_pipelineparam(payload)
+    params = _extract_pipelineparams(payload)
     self.assertListEqual([p1, p2, p3], params)
