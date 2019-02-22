@@ -65,7 +65,7 @@ class ContainerOp(object):
     self.pod_labels = {}
     self.num_retries = 0
 
-    self.argument_inputs = _extract_pipelineparams((command or []) + (arguments or []))
+    self.argument_inputs = _extract_pipelineparams([str(arg) for arg in (command or []) + (arguments or [])])
 
     self.file_outputs = file_outputs
     self.dependent_op_names = []
