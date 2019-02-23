@@ -47,3 +47,6 @@ class TestPipelineParam(unittest.TestCase):
     payload = str(p1) + stuff_chars + str(p2) + stuff_chars + str(p3)
     params = _extract_pipelineparams(payload)
     self.assertListEqual([p1, p2, p3], params)
+    payload = [str(p1) + stuff_chars + str(p2), str(p2) + stuff_chars + str(p3)]
+    params = _extract_pipelineparams(payload)
+    self.assertListEqual([p1, p2, p3], params)

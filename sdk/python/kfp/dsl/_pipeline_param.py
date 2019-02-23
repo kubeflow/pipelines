@@ -34,7 +34,7 @@ def _extract_pipelineparams(payloads: str or list[str]):
     payloads = [payloads]
   matches = []
   for payload in payloads:
-    matches = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
+    matches += re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
   return [PipelineParam(x[1], x[0], x[2]) for x in list(set(matches))]
 
 class PipelineParam(object):
