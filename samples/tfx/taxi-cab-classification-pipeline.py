@@ -21,7 +21,7 @@ import datetime
 def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'GcsUri', column_names: 'GcsUri[text/json]', key_columns, project: 'GcpProject', mode, validation_output: 'GcsUri[Directory]', step_name='validation'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:1045e023f32d2e99a0062c28980a9b847a40a679',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:6ad2601ec7d04e842c212c50d5c78e548e12ddea',
         arguments = [
             '--csv-data-for-inference', inference_data,
             '--csv-data-to-validate', validation_data,
