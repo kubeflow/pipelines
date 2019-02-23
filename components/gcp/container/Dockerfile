@@ -18,4 +18,7 @@ ADD build /ml
 WORKDIR /ml
 RUN pip install .
 
+RUN mkdir /usr/licenses && \
+    /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
+
 ENTRYPOINT ["python", "-u", "-m", "kfp_component.launcher"]
