@@ -145,16 +145,34 @@ class DockerfileHelper(object):
       dependency_helper.add_python_package(version)
     dependency_helper.generate_pip_requirements(requirement_filepath)
 
-  def _generate_dockerfile_with_py(self, target_file, base_image, python_filepath, has_requirement_file):
-    """ _generate_docker_file generates a simple dockerfile with the python path """
+  def _generate_dockerfile_with_py(self, target_file, base_image, python_filepath, has_requirement_file, python_version):
+    """ _generate_docker_file generates a simple dockerfile with the python path
+    args:
+      target_file (str): target file name for the dockerfile.
+      base_image (str): the base image name.
+      python_filepath (str): the path of the python file that is copied to the docker image.
+      has_requirement_file (bool): whether it has a requirement file or not.
+      python_version (str): choose python2 or python3
+    """
+    if python_version not in ['python2', 'python3']:
+      raise ValueError('python_version has to be either python2 or python3')
     with open(target_file, 'w') as f:
       f.write('FROM ' + base_image + '\n')
-      f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
+      if python_version is 'python3':
+        f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
+      else:
+        f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
       if has_requirement_file:
         f.write('ADD ' + self._ARC_REQUIREMENT_FILE + ' /ml/\n')
-        f.write('RUN pip3 install -r /ml/' + self._ARC_REQUIREMENT_FILE + '\n')
+        if python_version is 'python3':
+          f.write('RUN pip3 install -r /ml/' + self._ARC_REQUIREMENT_FILE + '\n')
+        else:
+          f.write('RUN pip install -r /ml/' + self._ARC_REQUIREMENT_FILE + '\n')
       f.write('ADD ' + python_filepath + " /ml/" + '\n')
-      f.write('ENTRYPOINT ["python3", "/ml/' + python_filepath + '"]')
+      if python_version is 'python3':
+        f.write('ENTRYPOINT ["python3", "/ml/' + python_filepath + '"]')
+      else:
+        f.write('ENTRYPOINT ["python", "/ml/' + python_filepath + '"]')
 
   def _wrap_files_in_tarball(self, tarball_path, files={}):
     """ _wrap_files_in_tarball creates a tarball for all the input files
@@ -165,8 +183,13 @@ class DockerfileHelper(object):
       for key, value in files.items():
         tarball.add(value, arcname=key)
 
-  def prepare_docker_tarball_with_py(self, arc_python_filename, python_filepath, base_image, local_tarball_path, dependency=None):
-    """ prepare_docker_tarball is the API to generate dockerfile and prepare the tarball with python scripts """
+  def prepare_docker_tarball_with_py(self, arc_python_filename, python_filepath, base_image, local_tarball_path, python_version, dependency=None):
+    """ prepare_docker_tarball is the API to generate dockerfile and prepare the tarball with python scripts
+    args:
+      python_version (str): choose python2 or python3
+    """
+    if python_version not in ['python2', 'python3']:
+      raise ValueError('python_version has to be either python2 or python3')
     with tempfile.TemporaryDirectory() as local_build_dir:
       has_requirement_file = False
       local_requirement_path = os.path.join(local_build_dir, self._ARC_REQUIREMENT_FILE)
@@ -174,7 +197,7 @@ class DockerfileHelper(object):
         self._generate_pip_requirement(dependency, local_requirement_path)
         has_requirement_file = True
       local_dockerfile_path = os.path.join(local_build_dir, self._arc_dockerfile_name)
-      self._generate_dockerfile_with_py(local_dockerfile_path, base_image, arc_python_filename, has_requirement_file)
+      self._generate_dockerfile_with_py(local_dockerfile_path, base_image, arc_python_filename, has_requirement_file, python_version)
       file_lists =  {self._arc_dockerfile_name:local_dockerfile_path,
                      arc_python_filename:python_filepath}
       if has_requirement_file:
@@ -272,7 +295,14 @@ class ImageBuilder(object):
     return content
 
   #TODO: currently it supports single output, future support for multiple return values
-  def _generate_entrypoint(self, component_func):
+  def _generate_entrypoint(self, component_func, python_version='python3'):
+    '''
+    args:
+      python_version (str): choose python2 or python3, default is python3
+    '''
+    if python_version not in ['python2', 'python3']:
+      raise ValueError('python_version has to be either python2 or python3')
+
     fullargspec = inspect.getfullargspec(component_func)
     annotations = fullargspec[6]
     input_args = fullargspec[0]
@@ -312,9 +342,11 @@ class ImageBuilder(object):
     codegen.writeline(call_component_func)
 
     # Serialize output
-    codegen.writeline('from pathlib import Path')
-    codegen.writeline('Path(_output_file).parent.mkdir(parents=True, exist_ok=True)')
-    codegen.writeline('Path(_output_file).write_text(str(output))')
+    codegen.writeline('import os')
+    codegen.writeline('os.makedirs(os.path.dirname(_output_file))')
+    codegen.writeline('with open(_output_file, "w") as data:')
+    codegen.indent()
+    codegen.writeline('data.write(str(output))')
     wrapper_code = codegen.end()
 
     # CLI codes
@@ -337,6 +369,8 @@ class ImageBuilder(object):
       if line.startswith('def '):
         break
       start_line_num += 1
+    if python_version == 'python2':
+      src_lines[start_line_num] = 'def ' + component_func.__name__ + '(' + ', '.join((inspect.getfullargspec(component_func).args)) + '):'
     dedecorated_component_src = '\n'.join(src_lines[start_line_num:])
 
     complete_component_code = dedecorated_component_src + '\n' + wrapper_code + '\n' + codegen.end()
@@ -358,13 +392,18 @@ class ImageBuilder(object):
     # Clean up
     GCSHelper.remove_gcs_blob(self._gcs_path)
 
-  def build_image_from_func(self, component_func, namespace, base_image, timeout, dependency):
-    """ build_image builds an image for the given python function"""
+  def build_image_from_func(self, component_func, namespace, base_image, timeout, dependency, python_version='python3'):
+    """ build_image builds an image for the given python function
+    args:
+      python_version (str): choose python2 or python3, default is python3
+    """
+    if python_version not in ['python2', 'python3']:
+      raise ValueError('python_version has to be either python2 or python3')
     with tempfile.TemporaryDirectory() as local_build_dir:
       # Generate entrypoint and serialization python codes
       local_python_filepath = os.path.join(local_build_dir, self._arc_python_filepath)
       logging.info('Generate entrypoint and serialization codes.')
-      complete_component_code = self._generate_entrypoint(component_func)
+      complete_component_code = self._generate_entrypoint(component_func, python_version)
       with open(local_python_filepath, 'w') as f:
         f.write(complete_component_code)
 
@@ -376,6 +415,7 @@ class ImageBuilder(object):
                                                    arc_python_filename=self._arc_python_filepath,
                                                    base_image=base_image,
                                                    local_tarball_path=local_tarball_path,
+                                                   python_version=python_version,
                                                    dependency=dependency)
       self._build_image_from_tarball(local_tarball_path, namespace, timeout)
 
@@ -445,7 +485,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
 
   return _create_task_factory_from_component_spec(component_spec)
 
-def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, build_image=True, timeout=600, namespace='kubeflow', target_component_file=None):
+def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, build_image=True, timeout=600, namespace='kubeflow', target_component_file=None, python_version='python3'):
   """ build_component automatically builds a container image for the component_func
   based on the base_image and pushes to the target_image.
 
@@ -459,9 +499,9 @@ def build_python_component(component_func, target_image, base_image=None, depend
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
     dependency (list): a list of VersionedDependency, which includes the package name and versions, default is empty
-
+    python_version (str): choose python2 or python3, default is python3
   Raises:
-    ValueError: The function is not decorated with python_component decorator
+    ValueError: The function is not decorated with python_component decorator or the python_version is neither python2 nor python3
   """
 
   _configure_logger(logging.getLogger())
@@ -470,6 +510,9 @@ def build_python_component(component_func, target_image, base_image=None, depend
     raise ValueError('component_func must not be None')
   if target_image is None:
     raise ValueError('target_image must not be None')
+
+  if python_version not in ['python2', 'python3']:
+    raise ValueError('python_version has to be either python2 or python3')
 
   if build_image:
     if staging_gcs_path is None:
@@ -486,7 +529,8 @@ def build_python_component(component_func, target_image, base_image=None, depend
                                    target_image)
     builder = ImageBuilder(gcs_base=staging_gcs_path, target_image=target_image)
     builder.build_image_from_func(component_func, namespace=namespace,
-                                  base_image=base_image, timeout=timeout, dependency=dependency)
+                                  base_image=base_image, timeout=timeout,
+                                  python_version=python_version, dependency=dependency)
     logging.info('Build component complete.')
   return _generate_pythonop(component_func, target_image, target_component_file)
 

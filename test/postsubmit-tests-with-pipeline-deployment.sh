@@ -30,7 +30,8 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
-GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
+GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-staging/
+TARGET_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_BASE_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
 
@@ -60,50 +61,78 @@ while [ "$1" != "" ]; do
     shift
 done
 
-# Variables
-TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
+#Variables
+# Refer to https://github.com/kubernetes/test-infra/blob/e357ffaaeceafe737bd6ab89d2feff132d92ea50/prow/jobs.md for the Prow job environment variables
+TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_BASE_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-echo "presubmit test starts"
+echo "postsubmit test starts"
+
 source "${DIR}/test-prep.sh"
 source "${DIR}/deploy-kubeflow.sh"
 
 # Install Argo
 source "${DIR}/install-argo.sh"
 
-# Build Images
-echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
--p image-build-context-gcs-uri="$remote_code_archive_uri" \
--p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
--p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
--p api-image="${GCR_IMAGE_BASE_DIR}/api" \
--p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
--p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
--p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
--n ${NAMESPACE} \
---serviceaccount test-runner \
--o name
-`
-echo "build docker images workflow submitted successfully"
-source "${DIR}/check-argo-status.sh"
-echo "build docker images workflow completed"
+## Wait for the cloudbuild job to be started
+CLOUDBUILD_TIMEOUT_SECONDS=3600
+PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT=$(expr ${CLOUDBUILD_TIMEOUT_SECONDS} / 20 )
+CLOUDBUILD_STARTED=TIMEOUT
+
+for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
+do
+  output=`gcloud builds list --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
+  if [[ ${output} != "" ]]; then
+    CLOUDBUILD_STARTED=True
+    break
+  fi
+  sleep 20
+done
+
+if [[ ${CLOUDBUILD_STARTED} == TIMEOUT ]];then
+  echo "Wait for cloudbuild job to start, timeout exiting..."
+  exit 1
+fi
+
+## Wait for the cloudbuild job to complete
+CLOUDBUILD_FINISHED=TIMEOUT
+for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
+do
+  output=`gcloud builds list --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
+  if [[ ${output} == *"SUCCESS"* ]]; then
+    CLOUDBUILD_FINISHED=SUCCESS
+    break
+  elif [[ ${output} == *"FAILURE"* ]]; then
+    CLOUDBUILD_FINISHED=FAILURE
+    break
+  fi
+  sleep 20
+done
+
+if [[ ${CLOUDBUILD_FINISHED} == FAILURE ]];then
+  echo "Cloud build failure, postsubmit tests cannot proceed. exiting..."
+  exit 1
+elif [[ ${CLOUDBUILD_FINISHED} == TIMEOUT ]];then
+  echo "Wait for cloudbuild job to finish, timeout exiting..."
+  exit 1
+fi
 
 # Deploy the pipeline
-source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}
 
-echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
+# Submit the argo job and check the results
+echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
--p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+-p commit-sha="${PULL_BASE_SHA}" \
+-p component-image-prefix="${GCR_IMAGE_BASE_DIR}" \
+-p target-image-prefix="${TARGET_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \
 -n ${NAMESPACE} \
 --serviceaccount test-runner \
 -o name
 `
-
-echo "test workflow submitted successfully"
+echo "argo workflow submitted successfully"
 source "${DIR}/check-argo-status.sh"
 echo "test workflow completed"
