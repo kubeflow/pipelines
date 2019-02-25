@@ -15,6 +15,7 @@
 
 from . import _pipeline
 from . import _pipeline_param
+from ._pipeline_param import _extract_pipelineparams
 import re
 from typing import Dict
 
@@ -64,13 +65,8 @@ class ContainerOp(object):
     self.pod_labels = {}
     self.num_retries = 0
 
-    matches = []
-    for arg in (command or []) + (arguments or []):
-      match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', str(arg))
-      matches += match
+    self.argument_inputs = _extract_pipelineparams([str(arg) for arg in (command or []) + (arguments or [])])
 
-    self.argument_inputs = [_pipeline_param.PipelineParam(x[1], x[0], x[2])
-                            for x in list(set(matches))]
     self.file_outputs = file_outputs
     self.dependent_op_names = []
 

@@ -14,6 +14,7 @@
 
 
 from kfp.dsl import PipelineParam
+from kfp.dsl._pipeline_param import _extract_pipelineparams
 import unittest
 
 
@@ -35,3 +36,17 @@ class TestPipelineParam(unittest.TestCase):
 
     p = PipelineParam(name='param3', value='value3')
     self.assertEqual('{{pipelineparam:op=;name=param3;value=value3}}', str(p))
+
+  def test_extract_pipelineparam(self):
+    """Test _extract_pipeleineparam."""
+
+    p1 = PipelineParam(name='param1', op_name='op1')
+    p2 = PipelineParam(name='param2')
+    p3 = PipelineParam(name='param3', value='value3')
+    stuff_chars = ' between '
+    payload = str(p1) + stuff_chars + str(p2) + stuff_chars + str(p3)
+    params = _extract_pipelineparams(payload)
+    self.assertListEqual([p1, p2, p3], params)
+    payload = [str(p1) + stuff_chars + str(p2), str(p2) + stuff_chars + str(p3)]
+    params = _extract_pipelineparams(payload)
+    self.assertListEqual([p1, p2, p3], params)
