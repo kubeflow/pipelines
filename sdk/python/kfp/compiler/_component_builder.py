@@ -342,16 +342,11 @@ class ImageBuilder(object):
     codegen.writeline(call_component_func)
 
     # Serialize output
-    if python_version == 'python3':
-      codegen.writeline('from pathlib import Path')
-      codegen.writeline('Path(_output_file).parent.mkdir(parents=True)')
-      codegen.writeline('Path(_output_file).write_text(str(output))')
-    else:
-      codegen.writeline('import os')
-      codegen.writeline('os.makedirs(os.path.dirname(_output_file))')
-      codegen.writeline('with open(_output_file, "w") as data:')
-      codegen.indent()
-      codegen.writeline('data.write(str(output))')
+    codegen.writeline('import os')
+    codegen.writeline('os.makedirs(os.path.dirname(_output_file))')
+    codegen.writeline('with open(_output_file, "w") as data:')
+    codegen.indent()
+    codegen.writeline('data.write(str(output))')
     wrapper_code = codegen.end()
 
     # CLI codes

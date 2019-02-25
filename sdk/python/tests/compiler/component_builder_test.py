@@ -335,9 +335,10 @@ def sample_component_func(a: str, b: int) -> float:
 
 def wrapper_sample_component_func(a,b,_output_file):
   output = sample_component_func(str(a),int(b))
-  from pathlib import Path
-  Path(_output_file).parent.mkdir(parents=True)
-  Path(_output_file).write_text(str(output))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
 
 import argparse
 parser = argparse.ArgumentParser(description="Parsing arguments")
@@ -361,9 +362,10 @@ def sample_component_func_two(a: str, b: int) -> float:
 
 def wrapper_sample_component_func_two(a,b,_output_file):
   output = sample_component_func_two(str(a),int(b))
-  from pathlib import Path
-  Path(_output_file).parent.mkdir(parents=True)
-  Path(_output_file).write_text(str(output))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
 
 import argparse
 parser = argparse.ArgumentParser(description="Parsing arguments")
@@ -384,9 +386,10 @@ def sample_component_func_three() -> float:
 
 def wrapper_sample_component_func_three(_output_file):
   output = sample_component_func_three()
-  from pathlib import Path
-  Path(_output_file).parent.mkdir(parents=True)
-  Path(_output_file).write_text(str(output))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
 
 import argparse
 parser = argparse.ArgumentParser(description="Parsing arguments")
