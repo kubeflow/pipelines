@@ -116,7 +116,8 @@ class TestCompiler(unittest.TestCase):
 
   def _get_yaml_from_zip(self, zip_file):
     with zipfile.ZipFile(zip_file, 'r') as zip:
-      return yaml.load(zip.extract(zip.namelist()[0]))
+      with open(zip.extract(zip.namelist()[0]), 'r') as yaml_file:
+        return yaml.load(yaml_file)
 
   def test_basic_workflow(self):
     """Test compiling a basic workflow."""
