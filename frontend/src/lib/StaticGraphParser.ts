@@ -127,8 +127,18 @@ function buildDag(
       }
 
       // Parent here will be the task that pointed to this DAG template.
-      // We do not set an edge if the task has dependencies because in that case it makes sense
-      // for incoming edges to only be drawn from its dependencies, not the DAG node itself
+      // Within a DAG template, tasks can have dependencies on one another, and long chains of
+      // dependencies can be present within a single DAG. In these cases, we choose not to draw an
+      // edge from the DAG node itself to these tasks with dependencies because such an edge would
+      // not be meaningful to the user. For example, consider a DAG A with two tasks, B and C, where
+      // task C depends on the output of task B. C is a task of A, but it's much more semantically
+      // important that C depends on B, so to avoid cluttering the graph, we simply omit the edge
+      // between A and C:
+      //      A                  A
+      //    /   \    becomes    /
+      //   B <-- C             B
+      //                      /
+      //                     C
       if (parentFullPath && !task.dependencies) {
         graph.setEdge(parentFullPath, nodeId);
       }
@@ -149,7 +159,7 @@ function buildDag(
         } else if (child.nodeType === 'container' ) {
           _populateInfoFromTemplate(info, child.template);
         } else {
-          logger.error(`Unknown nodetype: ${child.nodeType} on template: ${child.template}`);
+          throw new Error(`Unknown nodetype: ${child.nodeType} on workflow template: ${child.template}`);
         }
       }
 
