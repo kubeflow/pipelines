@@ -177,7 +177,7 @@ class TestCompiler(unittest.TestCase):
     try:
       os.chdir(test_package_dir)
       subprocess.check_call(['python3', 'setup.py', 'sdist', '--format=gztar', '-d', tmpdir])
-      package_path = os.path.join(tmpdir, 'testsample-0.1.zip')
+      package_path = os.path.join(tmpdir, 'testsample-0.1.tar.gz')
       target_zip = os.path.join(tmpdir, 'compose.zip')
       subprocess.check_call([
           'dsl-compile', '--package', package_path, '--namespace', 'mypipeline',
