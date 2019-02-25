@@ -18,7 +18,7 @@ import os
 import shutil
 import subprocess
 import sys
-import tarfile
+import zipfile
 import tempfile
 import unittest
 import yaml
@@ -114,9 +114,9 @@ class TestCompiler(unittest.TestCase):
     self.maxDiff = None
     self.assertEqual(golden_output, compiler.Compiler()._op_to_template(op))
 
-  def _get_yaml_from_tar(self, tar_file):
-    with tarfile.open(tar_file, 'r:gz') as tar:
-      return yaml.load(tar.extractfile(tar.getmembers()[0]))
+  def _get_yaml_from_zip(self, zip_file):
+    with zipfile.ZipFile(zip_file, 'r') as zip:
+      return yaml.load(zip.extract(zip.namelist()[0]))
 
   def test_basic_workflow(self):
     """Test compiling a basic workflow."""
@@ -125,12 +125,12 @@ class TestCompiler(unittest.TestCase):
     sys.path.append(test_data_dir)
     import basic
     tmpdir = tempfile.mkdtemp()
-    package_path = os.path.join(tmpdir, 'workflow.tar.gz')
+    package_path = os.path.join(tmpdir, 'workflow.zip')
     try:
       compiler.Compiler().compile(basic.save_most_frequent_word, package_path)
       with open(os.path.join(test_data_dir, 'basic.yaml'), 'r') as f:
         golden = yaml.load(f)
-      compiled = self._get_yaml_from_tar(package_path)
+      compiled = self._get_yaml_from_zip(package_path)
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -149,15 +149,15 @@ class TestCompiler(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     try:
       # First make sure the simple pipeline can be compiled.
-      simple_package_path = os.path.join(tmpdir, 'simple.tar.gz')
+      simple_package_path = os.path.join(tmpdir, 'simple.zip')
       compiler.Compiler().compile(compose.save_most_frequent_word, simple_package_path)
 
       # Then make sure the composed pipeline can be compiled and also compare with golden.
-      compose_package_path = os.path.join(tmpdir, 'compose.tar.gz')
+      compose_package_path = os.path.join(tmpdir, 'compose.zip')
       compiler.Compiler().compile(compose.download_save_most_frequent_word, compose_package_path)
       with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
         golden = yaml.load(f)
-      compiled = self._get_yaml_from_tar(compose_package_path)
+      compiled = self._get_yaml_from_zip(compose_package_path)
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -177,14 +177,14 @@ class TestCompiler(unittest.TestCase):
     try:
       os.chdir(test_package_dir)
       subprocess.check_call(['python3', 'setup.py', 'sdist', '--format=gztar', '-d', tmpdir])
-      package_path = os.path.join(tmpdir, 'testsample-0.1.tar.gz')
-      target_tar = os.path.join(tmpdir, 'compose.tar.gz')
+      package_path = os.path.join(tmpdir, 'testsample-0.1.zip')
+      target_zip = os.path.join(tmpdir, 'compose.zip')
       subprocess.check_call([
           'dsl-compile', '--package', package_path, '--namespace', 'mypipeline',
-          '--output', target_tar, '--function', 'download_save_most_frequent_word'])
+          '--output', target_zip, '--function', 'download_save_most_frequent_word'])
       with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
         golden = yaml.load(f)
-      compiled = self._get_yaml_from_tar(target_tar)
+      compiled = self._get_yaml_from_zip(target_zip)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -197,12 +197,12 @@ class TestCompiler(unittest.TestCase):
     py_file = os.path.join(test_data_dir, file_base_name + '.py')
     tmpdir = tempfile.mkdtemp()
     try:
-      target_tar = os.path.join(tmpdir, file_base_name + '.tar.gz')
+      target_zip = os.path.join(tmpdir, file_base_name + '.zip')
       subprocess.check_call([
-          'dsl-compile', '--py', py_file, '--output', target_tar])
+          'dsl-compile', '--py', py_file, '--output', target_zip])
       with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
         golden = yaml.load(f)
-      compiled = self._get_yaml_from_tar(target_tar)
+      compiled = self._get_yaml_from_zip(target_zip)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)

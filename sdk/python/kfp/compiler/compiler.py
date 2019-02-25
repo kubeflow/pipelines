@@ -17,6 +17,7 @@ from collections import defaultdict
 import inspect
 import re
 import tarfile
+import zipfile
 import yaml
 
 from .. import dsl
@@ -573,10 +574,9 @@ class Compiler(object):
     yaml.Dumper.ignore_aliases = lambda *args : True
     yaml_text = yaml.dump(workflow, default_flow_style=False)
 
-    from contextlib import closing
-    from io import BytesIO
-    with tarfile.open(package_path, "w:gz") as tar:
-      with closing(BytesIO(yaml_text.encode())) as yaml_file:
-        tarinfo = tarfile.TarInfo('pipeline.yaml')
-        tarinfo.size = len(yaml_file.getvalue())
-        tar.addfile(tarinfo, fileobj=yaml_file)
+    with zipfile.ZipFile(package_path, "w") as zip:
+        zipinfo = zipfile.ZipInfo('pipeline.yaml')
+        zipinfo.compress_type = zipfile.ZIP_DEFLATED
+        zip.writestr(zipinfo, yaml_text)
+
+

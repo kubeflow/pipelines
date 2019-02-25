@@ -105,4 +105,4 @@ def resnet_train(
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
-  compiler.Compiler().compile(resnet_train, __file__ + '.tar.gz')
+  compiler.Compiler().compile(resnet_train, __file__ + '.zip')
