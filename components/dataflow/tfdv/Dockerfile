@@ -67,7 +67,6 @@ RUN apt-get update -y && \
                 pbr==4.2.0 \
                 pexpect==4.6.0 \
                 pickleshare==0.7.5 \
-                pipdeptree==0.13.2 \
                 ply==3.8 \
                 prompt-toolkit==1.0.15 \
                 proto-google-cloud-datastore-v1==0.90.4 \
