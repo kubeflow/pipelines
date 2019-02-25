@@ -161,16 +161,34 @@ RUN pip3 install -r /ml/requirements.txt
 ADD main.py /ml/
 ENTRYPOINT ["python3", "/ml/main.py"]'''
 
+    golden_dockerfile_payload_three = '''\
+FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools
+ADD requirements.txt /ml/
+RUN pip install -r /ml/requirements.txt
+ADD main.py /ml/
+ENTRYPOINT ["python", "/ml/main.py"]'''
     # check
     docker_helper = DockerfileHelper(arc_dockerfile_name=target_dockerfile)
-    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', python_filepath='main.py', has_requirement_file=False)
+    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+                                               python_filepath='main.py', has_requirement_file=False, python_version='python3')
     with open(target_dockerfile, 'r') as f:
       target_dockerfile_payload = f.read()
     self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_one)
-    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', python_filepath='main.py', has_requirement_file=True)
+    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+                                               python_filepath='main.py', has_requirement_file=True, python_version='python3')
     with open(target_dockerfile, 'r') as f:
       target_dockerfile_payload = f.read()
     self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_two)
+    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+                                               python_filepath='main.py', has_requirement_file=True, python_version='python2')
+    with open(target_dockerfile, 'r') as f:
+      target_dockerfile_payload = f.read()
+    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_three)
+
+    self.assertRaises(ValueError, docker_helper._generate_dockerfile_with_py, target_file=target_dockerfile,
+                      base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', python_filepath='main.py',
+                      has_requirement_file=True, python_version='python4')
 
     # clean up
     os.remove(target_dockerfile)
@@ -187,7 +205,7 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
     docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
                                                  base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
-                                                 local_tarball_path=local_tarball_path)
+                                                 local_tarball_path=local_tarball_path, python_version='python3')
     temp_tarball_handle = tarfile.open(local_tarball_path)
     temp_files = temp_tarball_handle.getmembers()
     self.assertTrue(len(temp_files) == 2)
@@ -213,7 +231,8 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     }
     docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
                                                  base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
-                                                 local_tarball_path=local_tarball_path, dependency=dependencies)
+                                                 local_tarball_path=local_tarball_path, python_version='python3',
+                                                 dependency=dependencies)
     temp_tarball_handle = tarfile.open(local_tarball_path)
     temp_files = temp_tarball_handle.getmembers()
     self.assertTrue(len(temp_files) == 3)
@@ -316,9 +335,10 @@ def sample_component_func(a: str, b: int) -> float:
 
 def wrapper_sample_component_func(a,b,_output_file):
   output = sample_component_func(str(a),int(b))
-  from pathlib import Path
-  Path(_output_file).parent.mkdir(parents=True, exist_ok=True)
-  Path(_output_file).write_text(str(output))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
 
 import argparse
 parser = argparse.ArgumentParser(description="Parsing arguments")
@@ -342,9 +362,10 @@ def sample_component_func_two(a: str, b: int) -> float:
 
 def wrapper_sample_component_func_two(a,b,_output_file):
   output = sample_component_func_two(str(a),int(b))
-  from pathlib import Path
-  Path(_output_file).parent.mkdir(parents=True, exist_ok=True)
-  Path(_output_file).write_text(str(output))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
 
 import argparse
 parser = argparse.ArgumentParser(description="Parsing arguments")
@@ -365,9 +386,10 @@ def sample_component_func_three() -> float:
 
 def wrapper_sample_component_func_three(_output_file):
   output = sample_component_func_three()
-  from pathlib import Path
-  Path(_output_file).parent.mkdir(parents=True, exist_ok=True)
-  Path(_output_file).write_text(str(output))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
 
 import argparse
 parser = argparse.ArgumentParser(description="Parsing arguments")
@@ -376,5 +398,40 @@ args = vars(parser.parse_args())
 
 if __name__ == "__main__":
   wrapper_sample_component_func_three(**args)
+'''
+    self.assertEqual(golden, generated_codes)
+
+  def test_generate_entrypoint_python2(self):
+    """ Test entrypoint generation for python2"""
+
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+
+    # check
+    builder = ImageBuilder(gcs_base=GCS_BASE, target_image='')
+    generated_codes = builder._generate_entrypoint(component_func=sample_component_func_two, python_version='python2')
+    golden = '''\
+def sample_component_func_two(a, b):
+  result = 3.45
+  if a == 'succ':
+    result = float(b + 5)
+  return result
+
+def wrapper_sample_component_func_two(a,b,_output_file):
+  output = sample_component_func_two(str(a),int(b))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
+
+import argparse
+parser = argparse.ArgumentParser(description="Parsing arguments")
+parser.add_argument("a", type=str)
+parser.add_argument("b", type=int)
+parser.add_argument("_output_file", type=str)
+args = vars(parser.parse_args())
+
+if __name__ == "__main__":
+  wrapper_sample_component_func_two(**args)
 '''
     self.assertEqual(golden, generated_codes)
