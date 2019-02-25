@@ -181,5 +181,7 @@ google-api-core,https://raw.githubusercontent.com/googleapis/google-cloud-python
 google-resumable-media,https://raw.githubusercontent.com/googleapis/google-resumable-media-python/master/LICENSE,Apache 2.0
 trainer,https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE,Apache 2.0
 pyarrow,https://raw.githubusercontent.com/apache/arrow/master/LICENSE.txt,Apache 2.0
+attrs,https://raw.githubusercontent.com/python-attrs/attrs/master/LICENSE,MIT
+pyrsistent,https://raw.githubusercontent.com/tobgu/pyrsistent/master/LICENCE.mit,MIT
 fire,https://raw.githubusercontent.com/google/python-fire/master/LICENSE,Apache 2.0
 kfp-component,https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE,Apache 2.0
