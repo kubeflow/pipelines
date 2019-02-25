@@ -15,7 +15,9 @@
  */
 
 import * as dagre from 'dagre';
+import { Constants } from './Constants';
 import { Workflow, Template } from '../../third_party/argo-ui/argo_template';
+import { color } from '../Css';
 import { logger } from './Utils';
 
 export type nodeType = 'container' | 'dag' | 'unknown';
@@ -39,10 +41,6 @@ export class SelectedNodeInfo {
     this.outputs = [[]];
   }
 }
-
-
-const NODE_WIDTH = 180;
-const NODE_HEIGHT = 70;
 
 export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Template): SelectedNodeInfo {
   if (!template || !template.container) {
@@ -131,10 +129,10 @@ function buildDag(
 
         graph.setNode(nodeId, {
           bgColor: task.when ? 'cornsilk' : undefined,
-          height: NODE_HEIGHT,
+          height: Constants.NODE_HEIGHT,
           info,
           label: task.template,
-          width: NODE_WIDTH,
+          width: Constants.NODE_WIDTH,
         });
       }
 
@@ -169,11 +167,11 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
       const info = new SelectedNodeInfo();
       _populateInfoFromTemplate(info, template);
       graph.setNode(template.name, {
-        bgColor: '#eee',
-        height: NODE_HEIGHT,
+        bgColor: color.lightGrey,
+        height: Constants.NODE_HEIGHT,
         info,
         label: 'onExit - ' + template.name,
-        width: NODE_WIDTH,
+        width: Constants.NODE_WIDTH,
       });
     }
 
@@ -195,9 +193,9 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
     const entryPointTemplate = workflowTemplates.find((t) => t.name === workflow.spec.entrypoint);
     if (entryPointTemplate) {
       graph.setNode(entryPointTemplate.name, {
-        height: NODE_HEIGHT,
+        height: Constants.NODE_HEIGHT,
         label: entryPointTemplate.name,
-        width: NODE_WIDTH,
+        width: Constants.NODE_WIDTH,
       });
     }
   }

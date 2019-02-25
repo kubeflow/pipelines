@@ -641,7 +641,7 @@ exports[`RunDetails keeps side pane open and on same tab when run status changes
       <pure(ErrorIcon)
         style={
           Object {
-            "color": "#D50000",
+            "color": "#d50000",
             "height": 18,
             "width": 18,
           }
@@ -1396,7 +1396,7 @@ exports[`RunDetails shows failure run status in page title 1`] = `
       <pure(ErrorIcon)
         style={
           Object {
-            "color": "#D50000",
+            "color": "#d50000",
             "height": 18,
             "width": 18,
           }

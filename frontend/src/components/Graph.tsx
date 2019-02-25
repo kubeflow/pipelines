@@ -17,60 +17,50 @@
 import * as dagre from 'dagre';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
-import { fontsize, color } from '../Css';
+import { fontsize, color, fonts, zIndex } from '../Css';
+import { Constants } from '../lib/Constants';
 
-interface Line {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  distance: number;
-  xMid: number;
-  yMid: number;
+interface Segment {
   angle: number;
-  left: number;
+  length: number;
+  x1: number;
+  x2: number;
+  y1: number;
+  y2: number;
 }
 
 interface Edge {
   color?: string;
-  from: string;
-  to: string;
-  lines: Line[];
   isPlaceholder?: boolean;
+  from: string;
+  segments: Segment[];
+  to: string;
 }
 
 const css = stylesheet({
+  arrowHead: {
+    borderColor: color.grey + ' transparent transparent transparent',
+    borderStyle: 'solid',
+    borderWidth: '7px 6px 0 6px',
+    content: `''`,
+    position: 'absolute',
+  },
   icon: {
-    margin: 5,
+    padding: '5px 7px 0px 7px',
   },
   label: {
+    color: color.strong,
     flexGrow: 1,
-    fontSize: 15,
-    lineHeight: '2em',
-    margin: 'auto',
+    fontFamily: fonts.secondary,
+    fontSize: 13,
+    fontWeight: 500,
+    lineHeight: '16px',
+    margin: 10,
     overflow: 'hidden',
-    paddingLeft: 15,
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-  lastEdgeLine: {
-    $nest: {
-      // Arrowhead
-      '&::after': {
-        borderColor: `${color.theme} transparent transparent transparent`,
-        borderStyle: 'solid',
-        borderWidth: '7px 6px 0 6px',
-        clear: 'both',
-        content: `''`,
-        left: -5,
-        position: 'absolute',
-        top: -5,
-        transform: 'rotate(90deg)',
-      },
-    },
-  },
   line: {
-    borderTop: `2px solid ${color.theme}`,
     position: 'absolute',
   },
   node: {
@@ -80,9 +70,8 @@ const css = stylesheet({
       },
     },
     backgroundColor: color.background,
-    border: `solid 1px ${color.theme}`,
-    borderRadius: 5,
-    boxShadow: '1px 1px 5px #aaa',
+    border: 'solid 1px #d6d6d6',
+    borderRadius: 3,
     boxSizing: 'content-box',
     color: '#124aa4',
     cursor: 'pointer',
@@ -90,16 +79,16 @@ const css = stylesheet({
     fontSize: fontsize.medium,
     margin: 10,
     position: 'absolute',
+    zIndex: zIndex.GRAPH_NODE,
   },
   nodeSelected: {
-    backgroundColor: '#e4ebff !important',
-    borderColor: color.theme,
+    border: `solid 2px ${color.theme}`,
   },
   placeholderNode: {
     margin: 10,
     position: 'absolute',
     // TODO: can this be calculated?
-    transform: 'translate(73px, 16px)'
+    transform: 'translate(71px, 14px)'
   },
   root: {
     backgroundColor: color.graphBg,
@@ -107,16 +96,6 @@ const css = stylesheet({
     flexGrow: 1,
     overflow: 'auto',
     position: 'relative',
-  },
-  startCircle: {
-    backgroundColor: color.background,
-    border: `1px solid ${color.theme}`,
-    borderRadius: 7,
-    content: '',
-    display: 'inline-block',
-    height: 8,
-    position: 'absolute',
-    width: 8,
   },
 });
 
@@ -126,38 +105,101 @@ interface GraphProps {
   selectedNodeId?: string;
 }
 
-export default class Graph extends React.Component<GraphProps> {
+interface GraphState {
+  hoveredNode?: string;
+}
+
+export default class Graph extends React.Component<GraphProps, GraphState> {
+  private LEFT_OFFSET = 100;
+  private TOP_OFFSET = 44;
+  private EDGE_THICKNESS = 2;
+  private EDGE_X_BUFFER = Math.round(Constants.NODE_WIDTH / 6);
+
+  constructor(props: any) {
+    super(props);
+
+    this.state = {};
+  }
+
   public render(): JSX.Element | null {
     const { graph } = this.props;
-    const displayEdges: Edge[] = [];
-    const displayEdgeStartPoints: number[][] = [];
 
     if (!graph.nodes().length) {
       return null;
     }
+
     dagre.layout(graph);
+    const displayEdges: Edge[] = [];
 
     // Creates the lines that constitute the edges connecting the graph.
     graph.edges().forEach((edgeInfo) => {
       const edge = graph.edge(edgeInfo);
-      const lines: Line[] = [];
+      const segments: Segment[] = [];
+
       if (edge.points.length > 1) {
         for (let i = 1; i < edge.points.length; i++) {
-          const x1 = edge.points[i - 1].x;
-          const y1 = edge.points[i - 1].y;
-          const x2 = edge.points[i].x;
-          const y2 = edge.points[i].y;
-          // The + 0.5 at the end of 'distance' helps fill out the elbows of the edges.
-          const distance = Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2)) + 0.5;
-          const xMid = (x1 + x2) / 2;
-          const yMid = (y1 + y2) / 2;
-          const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
-          const left = xMid - (distance / 2);
-          lines.push({ x1, y1, x2, y2, distance, xMid, yMid, angle, left });
 
-          // Store the first point of the edge to draw the edge start circle
+          let xStart = edge.points[i - 1].x;
+          let yStart = edge.points[i - 1].y;
+
+          // Adjustments made to the start of the first segment for each edge to ensure that it
+          // begins at the bottom of the source node and that there are at least EDGE_X_BUFFER
+          // pixels between it and the right and left side of the node.
+          // Note that these adjustments may cause edges to overlap with nodes since we are
+          // deviating from the explicit layout provided by dagre.
           if (i === 1) {
-            displayEdgeStartPoints.push([x1, y1]);
+            const sourceNode = graph.node(edgeInfo.v);
+
+            // Set the edge's first segment to start at the bottom of the source node.
+            yStart = sourceNode.y + (sourceNode.height / 2) - 3;
+
+            xStart = this._ensureXIsWithinNode(sourceNode, xStart);
+          }
+
+          let xEnd = edge.points[i].x;
+          let yEnd = edge.points[i].y;
+
+          const finalSegment = i === edge.points.length - 1;
+
+          // Adjustments made to the end of the final segment for each edge to ensure that it ends
+          // at the top of the destination node and that there are at least EDGE_X_BUFFER pixels
+          // between it and the right and left side of the node. The adjustments are only needed
+          // when there are multiple inbound edges as dagre seems to always layout a single inbound
+          // edge so that it terminates at the center-top of the destination node. For this reason,
+          // placeholder nodes do not need adjustments since they always have only a single inbound
+          // edge.
+          // Note that these adjustments may cause edges to overlap with nodes since we are
+          // deviating from the explicit layout provided by dagre.
+          if (finalSegment) {
+            const destinationNode = graph.node(edgeInfo.w);
+
+            // Placeholder nodes never need adjustment because they always have only a single
+            // incoming edge.
+            if (!destinationNode.isPlaceholder) {
+              // Set the edge's final segment to terminate at the top of the destination node.
+              yEnd = destinationNode.y - this.TOP_OFFSET + 5;
+
+              xEnd = this._ensureXIsWithinNode(destinationNode, xEnd);
+            }
+          }
+
+          // For the final segment of the edge, if the segment is diagonal, split it into a diagonal
+          // and a vertical piece so that all edges terminate with a vertical segment.
+          if (finalSegment && xStart !== xEnd) {
+            const yHalf = (yStart + yEnd) / 2;
+            this._addDiagonalSegment(segments, xStart, yStart, xEnd, yHalf);
+
+            // Vertical segment
+            segments.push({
+              angle: 270,
+              length: yEnd - yHalf,
+              x1: xEnd - 5,
+              x2: xEnd,
+              y1: yHalf + 4,
+              y2: yEnd,
+            });
+          } else {
+            this._addDiagonalSegment(segments, xStart, yStart, xEnd, yEnd);
           }
         }
       }
@@ -165,16 +207,29 @@ export default class Graph extends React.Component<GraphProps> {
         color: edge.color,
         from: edgeInfo.v,
         isPlaceholder: edge.isPlaceholder,
-        lines,
+        segments,
         to: edgeInfo.w
       });
     });
+
+    const { hoveredNode } = this.state;
+    const highlightNode = this.props.selectedNodeId || hoveredNode;
 
     return (
       <div className={css.root}>
         {graph.nodes().map(id => Object.assign(graph.node(id), { id })).map((node, i) => (
           <div className={classes(node.isPlaceholder ? css.placeholderNode : css.node, 'graphNode',
             node.id === this.props.selectedNodeId ? css.nodeSelected : '')} key={i}
+            onMouseEnter={() => {
+              if (!this.props.selectedNodeId) {
+                this.setState({ hoveredNode: node.id });
+              }
+            }}
+            onMouseLeave={() => {
+              if (this.state.hoveredNode === node.id) {
+                this.setState({ hoveredNode: undefined });
+              }
+            }}
             onClick={() => (!node.isPlaceholder && this.props.onClick) && this.props.onClick(node.id)}
             style={{
               backgroundColor: node.bgColor, left: node.x,
@@ -184,39 +239,102 @@ export default class Graph extends React.Component<GraphProps> {
               transition: 'left 0.5s, top 0.5s',
               width: node.width,
             }}>
-            <div className={css.label}>{node.label}</div>
-            <div className={css.icon}>{node.icon}</div>
+            {!node.isPlaceholder && (<div className={css.label}>{node.label}</div>)}
+            <div className={css.icon} style={{ background: node.statusColoring }}>{node.icon}</div>
           </div>
         ))}
 
-        {displayEdges.map((edge, i) => (
-          <div key={i}>
-            {edge.lines.map((line, l) => (
-              <div className={classes(
-                  css.line,
-                  (l === edge.lines.length - 1 && !edge.isPlaceholder) ? css.lastEdgeLine : ''
-                )}
-                key={l} style={{
-                  borderTopColor: edge.color,
-                  borderTopStyle: edge.isPlaceholder ? 'dotted' : 'solid',
-                  left: line.left,
-                  top: line.yMid,
-                  transform: `translate(100px, 44px) rotate(${line.angle}deg)`,
-                  transition: 'left 0.5s, top 0.5s',
-                  width: line.distance,
+        {displayEdges.map((edge, i) => {
+          const edgeColor = this._getEdgeColor(edge, highlightNode);
+          const lastSegment = edge.segments[edge.segments.length - 1];
+          return (
+            <div key={i}>
+              {edge.segments.map((segment, l) => (
+                <div className={css.line}
+                  key={l} style={{
+                    backgroundColor: edgeColor,
+                    height: this.EDGE_THICKNESS,
+                    left: segment.x1 + this.LEFT_OFFSET,
+                    top: segment.y1 + this.TOP_OFFSET,
+                    transform: `rotate(${segment.angle}deg)`,
+                    transition: 'left 0.5s, top 0.5s',
+                    width: segment.length,
+                  }} />
+              ))}
+              {/* Arrowhead */}
+              {!edge.isPlaceholder && lastSegment.x2 !== undefined && lastSegment.y2 !== undefined && (
+                <div className={css.arrowHead} style={{
+                  borderTopColor: edgeColor,
+                  left: lastSegment.x2 + this.LEFT_OFFSET - 6,
+                  top: lastSegment.y2 + this.TOP_OFFSET - 3,
+                  transform: `rotate(${lastSegment.angle + 90}deg)`,
                 }} />
-            ))}
-          </div>
-        ))}
-
-        {displayEdgeStartPoints.map((point, i) => (
-          <div className={css.startCircle} key={i} style={{
-            left: `calc(${point[0]}px - 5px)`,
-            top: `calc(${point[1]}px - 3px)`,
-            transform: 'translate(100px, 44px)',
-          }} />
-        ))}
+              )}
+            </div>
+          );
+        })}
       </div>
     );
+  }
+
+  private _addDiagonalSegment(
+      segments: Segment[],
+      xStart: number,
+      yStart: number,
+      xEnd: number,
+      yEnd: number): void {
+    const xMid = (xStart + xEnd) / 2;
+    // The + 0.5 at the end of 'length' helps fill out the elbows of the edges.
+    const length = Math.sqrt(Math.pow(xStart - xEnd, 2) + Math.pow(yStart - yEnd, 2)) + 0.5;
+    const x1 = xMid - (length / 2);
+    const y1 = (yStart + yEnd) / 2;
+    const angle = Math.atan2(yStart - yEnd, xStart - xEnd) * 180 / Math.PI;
+    segments.push({
+      angle,
+      length,
+      x1,
+      x2: xEnd,
+      y1,
+      y2: yEnd,
+    });
+  }
+
+  /**
+   * Adjusts the x positioning of the start or end of an edge so that it is at least EDGE_X_BUFFER
+   * pixels in from the left and right.
+   * @param node the node where the edge is originating from or terminating at
+   * @param originalX the initial x position provided by dagre
+   */
+  private _ensureXIsWithinNode(node: dagre.Node, originalX: number): number {
+    // If the original X value was too far to the right, move it EDGE_X_BUFFER pixels
+    // in from the left end of the node.
+    const rightmostAcceptableLoc = node.x + node.width - this.LEFT_OFFSET - this.EDGE_X_BUFFER;
+    if (rightmostAcceptableLoc <= originalX) {
+      return rightmostAcceptableLoc;
+    }
+
+    // If the original X value was too far to the left, move it EDGE_X_BUFFER pixels
+    // in from the left end of the node.
+    const leftmostAcceptableLoc = node.x - this.LEFT_OFFSET + this.EDGE_X_BUFFER;
+    if (leftmostAcceptableLoc >= originalX) {
+      return leftmostAcceptableLoc;
+    }
+
+    return originalX;
+  }
+
+  private _getEdgeColor(edge: Edge, highlightNode?: string): string {
+    if (highlightNode) {
+      if (edge.from === highlightNode) {
+        return color.theme;
+      }
+      if (edge.to === highlightNode) {
+        return color.themeDarker;
+      }
+    }
+    if (edge.isPlaceholder) {
+      return color.weak;
+    }
+    return color.grey;
   }
 }

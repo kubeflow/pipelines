@@ -22,23 +22,26 @@ export const color = {
   activeBg: '#eaf1fd',
   alert: '#f9ab00', // Google yellow 600
   background: '#fff',
+  blue: '#4285f4', // Google blue 500F
   disabledBg: '#ddd',
   divider: '#e0e0e0',
-  errorBg: '#FBE9E7',
-  errorText: '#D50000',
+  errorBg: '#fbe9e7',
+  errorText: '#d50000',
   foreground: '#000',
-  graphBg: '#f5f5f5',
-  hoverBg: '#eee',
-  inactive: '#5F6368',
+  graphBg: '#f2f2f2',
+  grey: '#5f6368', // Google grey 500
+  inactive: '#5f6368',
+  lightGrey: '#eee', // Google grey 200
   lowContrast: '#80868b', // Google grey 600
   secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
-  strong: '#212121',
+  strong: '#202124', // Google grey 900
   success: '#34a853',
+  successWeak: '#e6f4ea', // Google green 50
   theme: '#1a73e8',
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
-  weak: '#9AA0A6',
+  weak: '#9aa0a6',
 };
 
 export const dimension = {
@@ -52,6 +55,24 @@ export const dimension = {
   xsmall: 32,
 };
 
+// tslint:disable:object-literal-sort-keys
+export const zIndex = {
+  DROP_ZONE_OVERLAY: 1,
+  GRAPH_NODE: 1,
+  BUSY_OVERLAY: 2,
+  PIPELINE_SUMMARY_CARD: 2,
+  SIDE_PANEL: 2,
+};
+
+export const fontsize = {
+  small: 12,
+  base: 14,
+  medium: 16,
+  large: 18,
+  title: 18,
+};
+// tslint:enable:object-literal-sort-keys
+
 const baseSpacing = 24;
 export const spacing = {
   base: baseSpacing,
@@ -62,14 +83,6 @@ export const fonts = {
   code: '"Source Code Pro", monospace',
   main: '"Google Sans", "Helvetica Neue", sans-serif',
   secondary: '"Roboto", "Helvetica Neue", sans-serif',
-};
-
-export const fontsize = {
-  base: 14,
-  large: 18,
-  medium: 16,
-  small: 12,
-  title: 18,
 };
 
 const palette = {
@@ -184,7 +197,7 @@ export const commonCss = stylesheet({
     position: 'absolute',
     right: 0,
     top: 0,
-    zIndex: 1,
+    zIndex: zIndex.BUSY_OVERLAY,
   },
   buttonAction: {
     $nest: {

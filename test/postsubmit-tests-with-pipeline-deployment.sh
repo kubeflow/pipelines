@@ -68,8 +68,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "postsubmit test starts"
 
-source "${DIR}/test_prep.sh"
-source "${DIR}/deploy_kubeflow.sh"
+source "${DIR}/test-prep.sh"
+source "${DIR}/deploy-kubeflow.sh"
 
 # Install Argo
 source "${DIR}/install-argo.sh"

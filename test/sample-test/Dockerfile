@@ -7,7 +7,7 @@ RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q libssl-dev libffi-dev wget ssh
 
 # Install swagger codegen
-RUN wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
+RUN wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar
 
 RUN pip3 install wheel
 RUN pip3 install junit-xml

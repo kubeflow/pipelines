@@ -32,7 +32,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import WarningIcon from '@material-ui/icons/WarningRounded';
 import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
-import { fonts, fontsize, dimension, commonCss, color, padding } from '../Css';
+import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
 import { logger } from '../lib/Utils';
 import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { debounce } from 'lodash';
@@ -48,7 +48,12 @@ export interface Column {
   flex?: number;
   label: string;
   sortKey?: string;
-  customRenderer?: (value: any, id: string) => React.StatelessComponent;
+  customRenderer?: React.FC<CustomRendererProps<{} | undefined>>;
+}
+
+export interface CustomRendererProps<T> {
+  value?: T;
+  id: string;
 }
 
 export interface Row {
@@ -164,6 +169,7 @@ export const css = stylesheet({
   },
   selectionToggle: {
     marginRight: 12,
+    minWidth: 32,
   },
   verticalAlignInitial: {
     verticalAlign: 'initial',
@@ -224,7 +230,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     };
   }
 
-  public handleSelectAllClick(event: React.MouseEvent): void {
+  public handleSelectAllClick(event: React.ChangeEvent): void {
     if (this.props.disableSelection === true) {
       // This should be impossible to reach
       return;
@@ -343,7 +349,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
           {/* Busy experience */}
           {this.state.isBusy && (<React.Fragment>
             <div className={commonCss.busyOverlay} />
-            <CircularProgress size={25} className={commonCss.absoluteCenter} style={{ zIndex: 2 }} />
+            <CircularProgress size={25} className={commonCss.absoluteCenter}
+              style={{ zIndex: zIndex.BUSY_OVERLAY }} />
           </React.Fragment>)}
 
           {/* Empty experience */}
@@ -389,7 +396,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                       <Tooltip title={row.error}><WarningIcon className={css.icon} /></Tooltip>
                     )}
                     {this.props.columns[c].customRenderer ?
-                      this.props.columns[c].customRenderer!(cell, row.id) : cell}
+                      this.props.columns[c].customRenderer!({ value: cell, id: row.id }) : cell}
                   </div>
                 ))}
               </div>

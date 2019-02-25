@@ -13,3 +13,4 @@
 # limitations under the License.
 
 from ._kfp_execution_context import KfpExecutionContext
+from . import _display as display

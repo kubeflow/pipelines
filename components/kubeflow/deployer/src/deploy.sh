@@ -21,9 +21,9 @@ SERVER_NAME="${SERVER_NAME:-model-server}"
 
 while (($#)); do
    case $1 in
-     "--model-path")
+     "--model-export-path")
        shift
-       MODEL_PATH="$1"
+       MODEL_EXPORT_PATH="$1"
        shift
        ;;
      "--cluster-name")
@@ -53,12 +53,12 @@ while (($#)); do
    esac
 done
 
-if [ -z "${MODEL_PATH}" ]; then
+if [ -z "${MODEL_EXPORT_PATH}" ]; then
   echo "You must specify a path to the saved model"
   exit 1
 fi
 
-echo "Deploying the model '${MODEL_PATH}'"
+echo "Deploying the model '${MODEL_EXPORT_PATH}'"
 
 if [ -z "${CLUSTER_NAME}" ]; then
   CLUSTER_NAME=$(wget -q -O- --header="Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/cluster-name)
@@ -98,7 +98,7 @@ ks pkg install kubeflow/tf-serving@${KUBEFLOW_VERSION}
 
 echo "Generating the TF Serving config..."
 ks generate tf-serving server --name="${SERVER_NAME}"
-ks param set server modelPath "${MODEL_PATH}/export/export"
+ks param set server modelPath "${MODEL_EXPORT_PATH}"
 
 # support local storage to deploy tf-serving.
 if [ -n "${PVC_NAME}" ];then

@@ -2,16 +2,53 @@
 
 ## [Unreleased](https://github.com/kubeflow/pipelines/tree/HEAD)
 
-[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.9...HEAD)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.10...HEAD)
 
 **Closed issues:**
 
-- Persistent Agent doesn't like v1beta1 scheduledworkflow in on-prem scenario [\#790](https://github.com/kubeflow/pipelines/issues/790)
-- Metric bars do not always show up correctly [\#775](https://github.com/kubeflow/pipelines/issues/775)
+- ROADMAP for pipelines [\#675](https://github.com/kubeflow/pipelines/issues/675)
 
 **Merged pull requests:**
 
+- fix apache-beam and pandas versions in tfdv image [\#828](https://github.com/kubeflow/pipelines/pull/828) ([gaoning777](https://github.com/gaoning777))
+- MLEngine Commands Implementation [\#773](https://github.com/kubeflow/pipelines/pull/773) ([hongye-sun](https://github.com/hongye-sun))
+- Cleanup pipeline bootstrapper [\#770](https://github.com/kubeflow/pipelines/pull/770) ([ohmystack](https://github.com/ohmystack))
+
+## [0.1.10](https://github.com/kubeflow/pipelines/tree/0.1.10) (2019-02-15)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.9...0.1.10)
+
+**Closed issues:**
+
+- Pipeline Release V0.1.10 [\#805](https://github.com/kubeflow/pipelines/issues/805)
+- Failed to create recurring run [\#802](https://github.com/kubeflow/pipelines/issues/802)
+- Persistent Agent doesn't like v1beta1 scheduledworkflow in on-prem scenario [\#790](https://github.com/kubeflow/pipelines/issues/790)
+- Metric bars do not always show up correctly [\#775](https://github.com/kubeflow/pipelines/issues/775)
+- ml-pipeline-persistenceagent restarts forever [\#741](https://github.com/kubeflow/pipelines/issues/741)
+- 403 Insufficient Permission error when writing to GCS [\#709](https://github.com/kubeflow/pipelines/issues/709)
+- Support archiving/unarchiving runs on the UI [\#621](https://github.com/kubeflow/pipelines/issues/621)
+- Incorrect validation in new run form when filling name then pipeline [\#612](https://github.com/kubeflow/pipelines/issues/612)
+
+**Merged pull requests:**
+
+- Fixed validation in new run form when filling name then pipeline [\#826](https://github.com/kubeflow/pipelines/pull/826) ([elviraux](https://github.com/elviraux))
+- Adds a local volume sample for the Viewer CRD [\#822](https://github.com/kubeflow/pipelines/pull/822) ([swiftdiaries](https://github.com/swiftdiaries))
+- Revert dataflow component version in samples to unblock release [\#817](https://github.com/kubeflow/pipelines/pull/817) ([hongye-sun](https://github.com/hongye-sun))
+- Sample updates for release v0.1.10 [\#816](https://github.com/kubeflow/pipelines/pull/816) ([hongye-sun](https://github.com/hongye-sun))
+- Improve docker image build perf by leveraging docker cache [\#815](https://github.com/kubeflow/pipelines/pull/815) ([hongye-sun](https://github.com/hongye-sun))
+- Increase disk size and use high CPU machine type in cloud build [\#813](https://github.com/kubeflow/pipelines/pull/813) ([hongye-sun](https://github.com/hongye-sun))
+- add ViewerCrdController to cloud builder release spec [\#811](https://github.com/kubeflow/pipelines/pull/811) ([IronPan](https://github.com/IronPan))
+- add pyarrow in license csv. [\#810](https://github.com/kubeflow/pipelines/pull/810) ([hongye-sun](https://github.com/hongye-sun))
+- switch test to us-west1 [\#808](https://github.com/kubeflow/pipelines/pull/808) ([IronPan](https://github.com/IronPan))
+- add trainer license to unblock release [\#806](https://github.com/kubeflow/pipelines/pull/806) ([hongye-sun](https://github.com/hongye-sun))
+- Updates lodash to version 4.17.11 [\#803](https://github.com/kubeflow/pipelines/pull/803) ([rileyjbauer](https://github.com/rileyjbauer))
+- merge build image to test suit [\#799](https://github.com/kubeflow/pipelines/pull/799) ([IronPan](https://github.com/IronPan))
+- Update changelog for release 0.19 [\#797](https://github.com/kubeflow/pipelines/pull/797) ([neuromage](https://github.com/neuromage))
 - Update Basic Pipeline example notebook [\#782](https://github.com/kubeflow/pipelines/pull/782) ([swiftdiaries](https://github.com/swiftdiaries))
+- Support to send default service account jwt token for pipeline client. [\#779](https://github.com/kubeflow/pipelines/pull/779) ([hongye-sun](https://github.com/hongye-sun))
+- Updates frontend to Typescript to 3.3.1 [\#772](https://github.com/kubeflow/pipelines/pull/772) ([rileyjbauer](https://github.com/rileyjbauer))
+- update developer guide to renew deployment section [\#771](https://github.com/kubeflow/pipelines/pull/771) ([jinchihe](https://github.com/jinchihe))
+- Add Launcher module in component SDK [\#769](https://github.com/kubeflow/pipelines/pull/769) ([hongye-sun](https://github.com/hongye-sun))
+- Archive runs UI [\#748](https://github.com/kubeflow/pipelines/pull/748) ([yebrahim](https://github.com/yebrahim))
 - placeholder for ibm sample pipelines and corresponding components [\#731](https://github.com/kubeflow/pipelines/pull/731) ([animeshsingh](https://github.com/animeshsingh))
 
 ## [0.1.9](https://github.com/kubeflow/pipelines/tree/0.1.9) (2019-02-06)
