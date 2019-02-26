@@ -70,14 +70,6 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
   return info;
 }
 
-// function printMap(m: Map<string, string>): string {
-//   let s = '\n - ';
-//   m.forEach((v, k) => {
-//     s = s + k + ': ' + v + ',\n - ';
-//   });
-//   return s;
-// }
-
 /**
  * Recursively construct the static graph of the Pipeline.
  *
