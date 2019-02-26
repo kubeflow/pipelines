@@ -147,7 +147,7 @@ steps:
 # Build the Generic GCP component image
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/gcp/container/ && ./build.sh $PROJECT_ID $COMMIT_SHA']
+  args: ['-c', 'cd /workspace/components/gcp/container/ && ./build_image.sh $PROJECT_ID $COMMIT_SHA']
   id: 'buildGcpGenericComponent'
 
 # Build the local pipeline component images
