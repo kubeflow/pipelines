@@ -25,6 +25,15 @@ import UnknownIcon from '@material-ui/icons/Help';
 import { color } from '../Css';
 import { logger, formatDateString } from '../lib/Utils';
 
+export const statusBgColors = {
+  error: '#fce8e6',
+  notStarted: '#f7f7f7',
+  running: '#e8f0fe',
+  stopOrSkip: '#f1f3f4',
+  succeeded: '#e6f4ea',
+  warning: '#fef7f0',
+};
+
 export enum NodePhase {
   ERROR = 'Error',
   FAILED = 'Failed',
@@ -36,10 +45,6 @@ export enum NodePhase {
 }
 
 export function hasFinished(status?: NodePhase): boolean {
-  if (!status) {
-    return false;
-  }
-
   switch (status) {
     case NodePhase.SUCCEEDED: // Fall through
     case NodePhase.FAILED: // Fall through
@@ -52,6 +57,28 @@ export function hasFinished(status?: NodePhase): boolean {
       return false;
     default:
       return false;
+  }
+}
+
+export function statusToBgColor(status?: NodePhase): string {
+  switch (status) {
+    case NodePhase.ERROR:
+      // fall through
+    case NodePhase.FAILED:
+      return statusBgColors.error;
+    case NodePhase.PENDING:
+      return statusBgColors.notStarted;
+    case NodePhase.RUNNING:
+      return statusBgColors.running;
+    case NodePhase.SKIPPED:
+      return statusBgColors.stopOrSkip;
+    case NodePhase.SUCCEEDED:
+      return statusBgColors.succeeded;
+    case NodePhase.UNKNOWN:
+      // fall through
+    default:
+      logger.verbose('Unknown node phase:', status);
+      return statusBgColors.notStarted;
   }
 }
 
@@ -78,7 +105,7 @@ export function statusToIcon(status?: NodePhase, startDate?: Date | string, endD
       break;
     case NodePhase.RUNNING:
       IconComponent = RunningIcon;
-      iconColor = color.success;
+      iconColor = color.blue;
       title = 'Running';
       break;
     case NodePhase.SKIPPED:

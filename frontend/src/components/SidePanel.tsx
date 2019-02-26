@@ -20,7 +20,7 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import CloseIcon from '@material-ui/icons/Close';
 import Resizable from 're-resizable';
 import Slide from '@material-ui/core/Slide';
-import { color, commonCss } from '../Css';
+import { color, commonCss, zIndex } from '../Css';
 import { stylesheet } from 'typestyle';
 
 const css = stylesheet({
@@ -44,7 +44,7 @@ const css = stylesheet({
     position: 'absolute !important' as any,
     right: 0,
     top: 0,
-    zIndex: 2,
+    zIndex: zIndex.SIDE_PANEL,
   },
 });
 

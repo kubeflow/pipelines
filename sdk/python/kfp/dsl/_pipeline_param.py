@@ -21,6 +21,21 @@ from collections import namedtuple
 # For now, this identifies a condition with only "==" operator supported.
 ConditionOperator = namedtuple('ConditionOperator', 'operator operand1 operand2')
 
+def _extract_pipelineparams(payloads: str or list[str]):
+  """_extract_pipelineparam extract a list of PipelineParam instances from the payload string.
+  Note: this function removes all duplicate matches.
+
+  Args:
+    payload (str or list[str]): a string/a list of strings that contains serialized pipelineparams
+  Return:
+    List[PipelineParam]
+  """
+  if isinstance(payloads, str):
+    payloads = [payloads]
+  matches = []
+  for payload in payloads:
+    matches += re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
+  return [PipelineParam(x[1], x[0], x[2]) for x in list(set(matches))]
 
 class PipelineParam(object):
   """Representing a future value that is passed between pipeline components.

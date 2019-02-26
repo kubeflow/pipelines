@@ -16,10 +16,10 @@ from fire import decorators
 from ._create_job import create_job
 
 @decorators.SetParseFns(python_version=str, runtime_version=str)
-def train(project_id, python_module, package_uris, 
-    region, args=None, job_dir=None, python_version=None, 
-    runtime_version=None, training_input=None, job_id_prefix=None,
-    wait_interval=30):
+def train(project_id, python_module=None, package_uris=None, 
+    region=None, args=None, job_dir=None, python_version=None, 
+    runtime_version=None, master_image_uri=None, worker_image_uri=None, 
+    training_input=None, job_id_prefix=None, wait_interval=30):
     """Creates a MLEngine training job.
 
     Args:
@@ -44,6 +44,10 @@ def train(project_id, python_module, package_uris,
         runtime_version (str): Optional. The Cloud ML Engine runtime version 
             to use for training. If not set, Cloud ML Engine uses the 
             default stable version, 1.0. 
+        master_image_uri (str): The Docker image to run on the master replica. 
+            This image must be in Container Registry.
+        worker_image_uri (str): The Docker image to run on the worker replica. 
+            This image must be in Container Registry.
         training_input (dict): Input parameters to create a training job.
         job_id_prefix (str): the prefix of the generated job id.
         wait_interval (int): optional wait interval between calls
@@ -65,6 +69,14 @@ def train(project_id, python_module, package_uris,
         training_input['pythonVersion'] = python_version
     if runtime_version:
         training_input['runtimeVersion'] = runtime_version
+    if master_image_uri:
+        if 'masterConfig' not in training_input:
+            training_input['masterConfig'] = {}
+        training_input['masterConfig']['imageUri'] = master_image_uri
+    if worker_image_uri:
+        if 'workerConfig' not in training_input:
+            training_input['workerConfig'] = {}
+        training_input['workerConfig']['imageUri'] = worker_image_uri
     job = {
         'trainingInput': training_input
     }
