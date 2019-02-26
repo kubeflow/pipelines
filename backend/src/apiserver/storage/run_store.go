@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -562,14 +561,46 @@ func NewRunStore(db *DB, time util.TimeInterface, metadataStore *metadata.Store)
 }
 
 func (s *RunStore) TerminateRun(runId string) error {
-	_, err := s.db.Exec(`
-		UPDATE run_details
-		SET Conditions = ?,
-		WHERE UUID = ? AND Conditions = ?`,
-		"Terminating:", runId, workflowapi.NodeRunning+":")
+	fmt.Printf("RUN_STORE --- TerminateRun\n")
+	// TODO: check with yang whether or not we're still using ':'s
+	out1, _ := s.GetRun(runId)
+	fmt.Printf("BEFORE ------\n%v\n", out1)
+
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{"Conditions": "Terminating"}).
+		// Where(sq.Eq{"UUID": runId, "Conditions": workflowapi.NodeRunning}).
+		Where(sq.Eq{"UUID": runId}).
+		ToSql()
+
+	// fmt.Printf("AAAAAAAAAAA\n\n")
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to start terminating the run: %s", err.Error())
+		return util.NewInternalServerError(err,
+			"Failed to create query to update run %s. error: '%v'", runId, err.Error())
 	}
+	// fmt.Printf("BBBBBBBBBBB\n\n")
+	result, err := s.db.Exec(sql, args...)
+	// fmt.Printf("CCCCCCCCCCC\n\n")
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to update run %s. error: '%v'", runId, err.Error())
+	}
+	// fmt.Printf("DDDDDDDDDDD\n\n")
+	if r, _ := result.RowsAffected(); r != 1 {
+		return util.NewInvalidInputError("Failed to update run %s. Row not found.", runId)
+	}
+	// fmt.Printf("EEEEEEEEEEE\n\n")
+	// _, err := s.db.Exec(`
+	// 	UPDATE run_details
+	// 	SET Conditions = ?,
+	// 	WHERE UUID = ? AND Conditions = ?`,
+	// 	"Terminating", runId, workflowapi.NodeRunning)
+	out2, _ := s.GetRun(runId)
+	// if err != nil {
+	// 	return util.NewInternalServerError(err, "Failed to start terminating the run: %s", err.Error())
+	// }
+	fmt.Printf("AFTER ------\n%v\n", out2)
+	fmt.Printf("XXXXXXXXXXXXXXXXX\n\n")
 
 	return nil
 }

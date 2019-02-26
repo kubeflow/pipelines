@@ -446,6 +446,21 @@ func TestDeleteRun_DbFailure(t *testing.T) {
 	assert.Contains(t, err.Error(), "database is closed")
 }
 
+func TestTerminateRun(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+	err := manager.TerminateRun(runDetail.UUID)
+	assert.Nil(t, err)
+
+	actualRunDetail, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, "Terminating", actualRunDetail.Conditions)
+
+	isTerminated, err := store.workflowClientFake.isTerminated(runDetail.Run.Name)
+	assert.Nil(t, err)
+	assert.True(t, isTerminated)
+}
+
 func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 	store, _, job := initWithJob(t)
 	defer store.Close()

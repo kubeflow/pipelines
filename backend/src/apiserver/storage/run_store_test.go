@@ -27,6 +27,8 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+// TODO: make sure that when TerminateRun is called, the Run state is set to "Terminating"
+
 func initializeRunStore() (*DB, *RunStore) {
 	db := NewFakeDbOrFatal()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))

@@ -267,8 +267,8 @@ func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 
 // TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
 func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) error {
-	patchObj := map[string]interface{}{
-		"spec": map[string]interface{}{
+	patchObj := map[string]interface{} {
+		"spec": map[string]interface{} {
 			"activeDeadlineSeconds": 0,
 		},
 	}

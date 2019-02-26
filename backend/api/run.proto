@@ -145,7 +145,7 @@ message ListRunsRequest {
   string filter = 5;
 }
 
-message TerminateRunRequest{
+message TerminateRunRequest {
   string run_id = 1;
 }
 
