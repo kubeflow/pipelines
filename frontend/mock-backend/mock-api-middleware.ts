@@ -478,9 +478,14 @@ export default (app: express.Application) => {
       res.status(404).send(`No pipeline was found with ID: ${req.params.pid}`);
       return;
     }
-    const filePath = req.params.pid === namedPipelines.noParamsPipeline.id
-      ? './mock-backend/mock-conditional-template.yaml'
-      : './mock-backend/mock-template.yaml';
+    let filePath = '';
+    if (req.params.pid === namedPipelines.noParamsPipeline.id) {
+      filePath = './mock-backend/mock-conditional-template.yaml';
+    } else if (req.params.pid === namedPipelines.unstructuredTextPipeline.id) {
+      filePath = './mock-backend/mock-recursive-template.yaml';
+    } else {
+      filePath = './mock-backend/mock-template.yaml';
+    }
     res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
   });
 

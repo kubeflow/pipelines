@@ -141,6 +141,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
 
           let xStart = edge.points[i - 1].x;
           let yStart = edge.points[i - 1].y;
+          let xEnd = edge.points[i].x;
+          let yEnd = edge.points[i].y;
+
+          const downwardPointingSegment = yStart <= yEnd;
 
           // Adjustments made to the start of the first segment for each edge to ensure that it
           // begins at the bottom of the source node and that there are at least EDGE_X_BUFFER
@@ -150,14 +154,13 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           if (i === 1) {
             const sourceNode = graph.node(edgeInfo.v);
 
-            // Set the edge's first segment to start at the bottom of the source node.
-            yStart = sourceNode.y + (sourceNode.height / 2) - 3;
+            // Set the edge's first segment to start at the bottom or top of the source node.
+            yStart = downwardPointingSegment
+              ? sourceNode.y + (sourceNode.height / 2) - 3
+              : sourceNode.y - (sourceNode.height / 2);
 
             xStart = this._ensureXIsWithinNode(sourceNode, xStart);
           }
-
-          let xEnd = edge.points[i].x;
-          let yEnd = edge.points[i].y;
 
           const finalSegment = i === edge.points.length - 1;
 
@@ -176,8 +179,11 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             // Placeholder nodes never need adjustment because they always have only a single
             // incoming edge.
             if (!destinationNode.isPlaceholder) {
-              // Set the edge's final segment to terminate at the top of the destination node.
-              yEnd = destinationNode.y - this.TOP_OFFSET + 5;
+              // Set the edge's final segment to terminate at the top or bottom of the destination
+              // node.
+              yEnd = downwardPointingSegment
+                ? destinationNode.y - this.TOP_OFFSET + 5
+                : destinationNode.y + (destinationNode.height / 2) + 3;
 
               xEnd = this._ensureXIsWithinNode(destinationNode, xEnd);
             }
@@ -190,14 +196,25 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
             this._addDiagonalSegment(segments, xStart, yStart, xEnd, yHalf);
 
             // Vertical segment
-            segments.push({
-              angle: 270,
-              length: yEnd - yHalf,
-              x1: xEnd - 5,
-              x2: xEnd,
-              y1: yHalf + 4,
-              y2: yEnd,
-            });
+            if (downwardPointingSegment) {
+              segments.push({
+                angle: 270,
+                length: yEnd - yHalf,
+                x1: xEnd - 5,
+                x2: xEnd,
+                y1: yHalf + 4,
+                y2: yEnd,
+              });
+            } else {
+              segments.push({
+                angle: 90,
+                length: yHalf - yEnd,
+                x1: xEnd - 5,
+                x2: xEnd,
+                y1: yHalf - 4,
+                y2: yEnd,
+              });
+            }
           } else {
             this._addDiagonalSegment(segments, xStart, yStart, xEnd, yEnd);
           }
