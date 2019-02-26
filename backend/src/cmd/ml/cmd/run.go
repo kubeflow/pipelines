@@ -107,10 +107,7 @@ func NewRunTerminateCmd(root *RootCommand) *cobra.Command {
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
 			runID, err = ValidateSingleString(args, "ID")
-			if err != nil {
-				return err
-			}
-			return nil
+			return err
 		},
 
 		// Execute

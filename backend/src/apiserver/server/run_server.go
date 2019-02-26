@@ -139,7 +139,7 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunR
 	if err != nil {
 		return nil, err
 	}
-	return nil, nil
+	return &empty.Empty{}, nil
 }
 
 func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {

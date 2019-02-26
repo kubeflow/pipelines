@@ -272,7 +272,7 @@ func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) e
 			"activeDeadlineSeconds": 0,
 		},
 	}
-	var err error
+
 	patch, err := json.Marshal(patchObj)
 	if err != nil {
 		return util.NewInternalServerError(err, "Unexpected error while marshalling a patch object.")
@@ -289,9 +289,9 @@ func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) e
 }
 
 func (r *ResourceManager) TerminateRun(runId string) error {
-	run, err := r.runStore.GetRun(runId)
+	runDetail, err := r.checkRunExist(runId)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to get run info: %s", err.Error())
+		return util.Wrap(err, "Delete run failed")
 	}
 
 	err = r.runStore.TerminateRun(runId)
@@ -299,7 +299,7 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 		return util.Wrap(err, "Terminate pipeline failed")
 	}
 
-	err = TerminateWorkflow(r.workflowClient, run.Name)
+	err = TerminateWorkflow(r.workflowClient, runDetail.Run.Name)
 	return util.Wrap(err, "Terminate pipeline failed")
 }
 

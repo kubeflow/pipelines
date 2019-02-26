@@ -98,33 +98,41 @@ func (c *FakeWorkflowClient) DeleteCollection(options *v1.DeleteOptions,
 
 func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
 	subresources ...string) (*v1alpha1.Workflow, error) {
-	// TODO: see: https://github.com/argoproj/argo/blob/master/pkg/client/clientset/versioned/typed/workflow/v1alpha1/workflow.go#L130
-	// for the real implementation
+	// See the real implementation:
+	// https://github.com/argoproj/argo/blob/master/pkg/client/clientset/versioned/typed/workflow/v1alpha1/workflow.go#L130
 
 	fmt.Printf("WORKFLOW_FAKE - PATCH()\n\n")
 	fmt.Printf("types.MergePatchType: %v\n", types.MergePatchType)
 	fmt.Printf("NAME: %v\nPT: %v\nDATA: %v\n", name, pt, data)
+
 	var dat map[string]interface{}
 	json.Unmarshal(data, &dat)
+
 	fmt.Printf("UNMARSHALLED: %v\n", dat)
+
 	// TODO: Should we actually verify the type here, or just panic?
 	// see: https://tour.golang.org/methods/15
+
 	spec := dat["spec"].(map[string]interface{})
 	activeDeadlineSeconds := spec["activeDeadlineSeconds"].(float64)
+
 	fmt.Printf("SPEC: %v\n", spec)
 	fmt.Printf("activeDeadlineSeconds: %v\n", activeDeadlineSeconds)
+
+	// Simulate terminating a workflow
 	if pt == types.MergePatchType && activeDeadlineSeconds == 0 {
 		workflow, ok := c.workflows[name]
 		if ok {
 			newActiveDeadlineSeconds := int64(0)
 			workflow.Spec.ActiveDeadlineSeconds = &newActiveDeadlineSeconds
 			fmt.Printf("LET'S TERMINATE! %v\n", workflow)
+			return workflow, nil
 		}
 	}
 
 	fmt.Printf("END - WORKFLOW_FAKE - PATCH()\n\n")
 
-	return nil, nil
+	return nil, errors.New("Failed to patch worfklow")
 }
 
 func (c *FakeWorkflowClient) isTerminated(name string) (bool, error) {
