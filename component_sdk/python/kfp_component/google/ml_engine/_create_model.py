@@ -37,7 +37,8 @@ class CreateModelOp:
     def __init__(self, project_id, name, model):
         self._ml = MLEngineClient()
         self._project_id = project_id
-        self._model_name = name
+        self._model_short_name = name
+        self._model_name = None
         if model:
             self._model = model
         else:
@@ -53,8 +54,7 @@ class CreateModelOp:
                     model = self._model)
             except errors.HttpError as e:
                 if e.resp.status == 409:
-                    existing_model = self._ml.get_model(
-                        self._project_id, self._model_name)
+                    existing_model = self._ml.get_model(self._model_name)
                     if not self._is_dup_model(existing_model):
                         raise
                     logging.info('The same model {} has been submitted'
@@ -67,9 +67,11 @@ class CreateModelOp:
             return created_model
 
     def _set_model_name(self, context_id):
-        if not self._model_name:
-            self._model_name = 'model_' + context_id
-        self._model['name'] = gcp_common.normalize_name(self._model_name)
+        if not self._model_short_name:
+            self._model_short_name = 'model_' + context_id
+        self._model['name'] = gcp_common.normalize_name(self._model_short_name)
+        self._model_name = 'projects/{}/models/{}'.format(
+            self._project_id, self._model_short_name)
 
 
     def _is_dup_model(self, existing_model):
@@ -82,11 +84,11 @@ class CreateModelOp:
     def _dump_metadata(self):
         display.display(display.Link(
             'https://console.cloud.google.com/mlengine/models/{}?project={}'.format(
-                self._model_name, self._project_id),
+                self._model_short_name, self._project_id),
             'Model Details'
         ))
 
     def _dump_model(self, model):
         logging.info('Dumping model: {}'.format(model))
-        gcp_common.dump_file('/tmp/outputs/output.txt', json.dumps(model))
-        gcp_common.dump_file('/tmp/outputs/model_name.txt', self._model_name)
+        gcp_common.dump_file('/tmp/kfp/output/ml_engine/model.json', json.dumps(model))
+        gcp_common.dump_file('/tmp/kfp/output/ml_engine/model_name.txt', self._model_name)
