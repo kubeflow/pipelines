@@ -44,6 +44,13 @@ The pipeline requires two arguments:
 1. The name of a GCP project.
 2. An output directory in a Google Cloud Storage bucket, of the form `gs://<BUCKET>/<PATH>`.
 
+## View a prediction from the service
+After the pipeline finished, the tensorFlow Serving is started, you can run the `taxi-cab-classification/pipeline_taxi_client.py` client script to send a request to the server for model inference.
+
+```
+python pipeline_taxi_client.py --num_examples 3 --examples_file eval.csv --server $TF_SERVER:$PORT --model_name taxi-cab-classification-model-tfx-taxi-cab-classification-pipel
+```
+
 ## Components source
 
 Preprocessing:
