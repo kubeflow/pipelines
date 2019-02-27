@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -x
+set -ex
 
 
 usage()
@@ -43,8 +43,7 @@ while [ "$1" != "" ]; do
     shift
 done
 
-cd ${KUBEFLOW_SRC}
-cd ${KFAPP}
+cd ${DIR}/${KFAPP}
 
 ## Update pipeline component image
 pushd ks_app
