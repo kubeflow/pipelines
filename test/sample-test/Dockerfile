@@ -1,6 +1,6 @@
 # This image has the script to kick off the ML pipeline sample e2e test,
 
-FROM google/cloud-sdk
+FROM google/cloud-sdk:236.0.0
 
 RUN apt-get update -y && \
     apt-get install --no-install-recommends -y -q python3-pip default-jdk python3-setuptools python3-dev && \
