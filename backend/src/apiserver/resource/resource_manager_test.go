@@ -62,6 +62,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1"},
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 })
 
 // Util function to create an initial state with pipeline uploaded
@@ -249,6 +250,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 3,
+			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           p.UUID,
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
@@ -287,7 +289,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
-			Conditions:     "",
+			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
@@ -449,6 +451,7 @@ func TestDeleteRun_DbFailure(t *testing.T) {
 func TestTerminateRun(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
+
 	err := manager.TerminateRun(runDetail.UUID)
 	assert.Nil(t, err)
 

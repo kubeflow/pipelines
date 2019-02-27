@@ -27,8 +27,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// TODO: make sure that when TerminateRun is called, the Run state is set to "Terminating"
-
 func initializeRunStore() (*DB, *RunStore) {
 	db := NewFakeDbOrFatal()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
@@ -46,7 +44,7 @@ func initializeRunStore() (*DB, *RunStore) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
@@ -122,7 +120,7 @@ func TestListRuns_Pagination(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
@@ -238,7 +236,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
@@ -281,7 +279,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
@@ -342,7 +340,7 @@ func TestGetRun(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
@@ -390,7 +388,7 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
@@ -534,7 +532,7 @@ func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Conditions:       "running",
+			Conditions:       "Running",
 		},
 		PipelineRuntime: model.PipelineRuntime{
 			WorkflowRuntimeManifest: "workflow1",
@@ -558,7 +556,7 @@ func TestCreateOrUpdateRun_BadStorageStateValue(t *testing.T) {
 			Namespace:        "n1",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
@@ -582,6 +580,57 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 	defer db.Close()
 
 	err := runStore.UpdateRun("not-exist", "done", "workflow_done")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Row not found")
+}
+
+func TestTerminateRun(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	err := runStore.TerminateRun("1")
+	assert.Nil(t, err)
+
+	expectedRun := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "1",
+			Name:             "run1",
+			DisplayName:      "run1",
+			Namespace:        "n1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			Conditions:       "Terminating",
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID: "1", ResourceType: common.Run,
+					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
+					Relationship: common.Creator,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1"},
+	}
+
+	runDetail, err := runStore.GetRun("1")
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRun, runDetail)
+}
+
+func TestTerminateRun_RunDoesNotExist(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	err := runStore.TerminateRun("does-not-exist")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Row not found")
+}
+
+func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	err := runStore.TerminateRun("2")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Row not found")
 }
@@ -685,7 +734,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
@@ -814,7 +863,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
 			StorageState:     api.Run_STORAGESTATE_ARCHIVED.String(),
-			Conditions:       "running",
+			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,

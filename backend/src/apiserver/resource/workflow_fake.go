@@ -16,8 +16,6 @@ package resource
 
 import (
 	"encoding/json"
-	// TODO: remove "fmt"
-	"fmt"
 	"strconv"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -98,26 +96,14 @@ func (c *FakeWorkflowClient) DeleteCollection(options *v1.DeleteOptions,
 
 func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
 	subresources ...string) (*v1alpha1.Workflow, error) {
-	// See the real implementation:
-	// https://github.com/argoproj/argo/blob/master/pkg/client/clientset/versioned/typed/workflow/v1alpha1/workflow.go#L130
-
-	fmt.Printf("WORKFLOW_FAKE - PATCH()\n\n")
-	fmt.Printf("types.MergePatchType: %v\n", types.MergePatchType)
-	fmt.Printf("NAME: %v\nPT: %v\nDATA: %v\n", name, pt, data)
 
 	var dat map[string]interface{}
 	json.Unmarshal(data, &dat)
 
-	fmt.Printf("UNMARSHALLED: %v\n", dat)
-
-	// TODO: Should we actually verify the type here, or just panic?
-	// see: https://tour.golang.org/methods/15
+	// TODO: Should we actually assert the type here, or just panic if it's wrong?
 
 	spec := dat["spec"].(map[string]interface{})
 	activeDeadlineSeconds := spec["activeDeadlineSeconds"].(float64)
-
-	fmt.Printf("SPEC: %v\n", spec)
-	fmt.Printf("activeDeadlineSeconds: %v\n", activeDeadlineSeconds)
 
 	// Simulate terminating a workflow
 	if pt == types.MergePatchType && activeDeadlineSeconds == 0 {
@@ -125,18 +111,14 @@ func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
 		if ok {
 			newActiveDeadlineSeconds := int64(0)
 			workflow.Spec.ActiveDeadlineSeconds = &newActiveDeadlineSeconds
-			fmt.Printf("LET'S TERMINATE! %v\n", workflow)
 			return workflow, nil
 		}
 	}
-
-	fmt.Printf("END - WORKFLOW_FAKE - PATCH()\n\n")
 
 	return nil, errors.New("Failed to patch worfklow")
 }
 
 func (c *FakeWorkflowClient) isTerminated(name string) (bool, error) {
-	fmt.Printf("WORKFLOW_FAKE - isTerminated()\n")
 	workflow, ok := c.workflows[name]
 	if !ok {
 		return false, errors.New("No workflow found with name: " + name)
@@ -146,7 +128,7 @@ func (c *FakeWorkflowClient) isTerminated(name string) (bool, error) {
 	if activeDeadlineSeconds == nil {
 		return false, errors.New("No ActiveDeadlineSeconds found in workflow with name: " + name)
 	}
-	
+
 	return *activeDeadlineSeconds == 0, nil
 }
 
