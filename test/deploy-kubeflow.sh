@@ -51,6 +51,7 @@ function clean_up {
   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
   # delete the storage
   gcloud deployment-manager --project=${PROJECT} deployments delete ${KFAPP}-storage --quiet
+  exit 0
 }
 trap clean_up EXIT SIGINT SIGTERM
 
