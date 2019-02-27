@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -ex
+
 kubectl config set-context $(kubectl config current-context) --namespace=default
 echo "Add necessary cluster role bindings"
 ACCOUNT=$(gcloud info --format='value(config.account)')

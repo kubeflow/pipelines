@@ -14,9 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -x
-
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
+set -ex
 
 # Install ksonnet
 KS_VERSION="0.13.0"
@@ -49,13 +47,14 @@ KFAPP=${TEST_CLUSTER}
 
 function clean_up {
   echo "Clean up..."
-  cd ${KFAPP}
+  cd ${DIR}/${KFAPP}
   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
   # delete the storage
   gcloud deployment-manager --project=${PROJECT} deployments delete ${KFAPP}-storage --quiet
 }
 trap clean_up EXIT SIGINT SIGTERM
 
+cd ${DIR}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform ${PLATFORM} --project ${PROJECT} --skipInitProject
 
 cd ${KFAPP}
