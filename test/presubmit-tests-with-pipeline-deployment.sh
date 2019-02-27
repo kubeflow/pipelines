@@ -61,8 +61,6 @@ while [ "$1" != "" ]; do
 done
 
 # Variables
-TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
-TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_BASE_SHA:0:7}-${RANDOM}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 

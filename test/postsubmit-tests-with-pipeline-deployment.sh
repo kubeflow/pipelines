@@ -62,8 +62,6 @@ while [ "$1" != "" ]; do
 done
 
 # Variables
-TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
-TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_BASE_SHA:0:7}-${RANDOM}
 # Refer to https://github.com/kubernetes/test-infra/blob/e357ffaaeceafe737bd6ab89d2feff132d92ea50/prow/jobs.md for the Prow job environment variables
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_BASE_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
