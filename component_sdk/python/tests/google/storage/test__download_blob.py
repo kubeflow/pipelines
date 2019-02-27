@@ -33,6 +33,6 @@ class DownloadBlobTest(unittest.TestCase):
         download_blob('gs://foo/bar.py', 
             '/foo/bar.py')
 
-        mock_blob = mock_storage_client().get_bucket().blob()
+        mock_blob = mock_storage_client().bucket().blob()
         mock_blob.download_to_file.assert_called_once()
         mock_os.makedirs.assert_called_once()
