@@ -104,4 +104,4 @@ def _install_requirements(requirements_file_path):
     if not requirements_file_path:
         return
     requirements_file_path = stage_file(requirements_file_path)
-    subprocess.run(['pip2', 'install', '-r', requirements_file_path])
+    subprocess.check_call(['pip2', 'install', '-r', requirements_file_path])
