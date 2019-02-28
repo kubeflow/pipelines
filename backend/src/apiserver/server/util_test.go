@@ -59,7 +59,7 @@ func TestDecompressPipelineTarball(t *testing.T) {
 	pipelineFile, err := DecompressPipelineTarball(tarballByte)
 	assert.Nil(t, err)
 
-	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments_tarball/arguments-parameters.yaml")
+	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
 	assert.Equal(t, expectedPipelineFile, pipelineFile)
 }
 
@@ -89,7 +89,7 @@ func TestDecompressPipelineZip(t *testing.T) {
 	pipelineFile, err := DecompressPipelineZip(zipByte)
 	assert.Nil(t, err)
 
-	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments_zip/arguments-parameters.yaml")
+	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
 	assert.Equal(t, expectedPipelineFile, pipelineFile)
 }
 
@@ -128,7 +128,7 @@ func TestReadPipelineFile_Zip(t *testing.T) {
 	pipelineFile, err := ReadPipelineFile("arguments-parameters.zip", file, MaxFileLength)
 	assert.Nil(t, err)
 
-	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments_zip/arguments-parameters.yaml")
+	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
 	assert.Equal(t, expectedPipelineFile, pipelineFile)
 }
 
@@ -137,7 +137,7 @@ func TestReadPipelineFile_Tarball(t *testing.T) {
 	pipelineFile, err := ReadPipelineFile("arguments.tar.gz", file, MaxFileLength)
 	assert.Nil(t, err)
 
-	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments_tarball/arguments-parameters.yaml")
+	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
 	assert.Equal(t, expectedPipelineFile, pipelineFile)
 }
 
