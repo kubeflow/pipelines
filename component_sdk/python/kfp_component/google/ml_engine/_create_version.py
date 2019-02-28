@@ -26,7 +26,7 @@ from .. import common as gcp_common
 from ._common_ops import wait_existing_version, wait_for_operation_done
 
 @decorators.SetParseFns(python_version=str, runtime_version=str)
-def create_version(model_name, deployemnt_uri=None, name=None, 
+def create_version(model_name, deployemnt_uri=None, version_id=None, 
     runtime_version=None, python_version=None, version=None, 
     replace_existing=False, wait_interval=30):
     """Creates a MLEngine version and wait for the operation to be done.
@@ -35,7 +35,7 @@ def create_version(model_name, deployemnt_uri=None, name=None,
         model_name (str): required, the name of the parent model.
         deployment_uri (str): optional, the Google Cloud Storage location of 
             the trained model used to create the version.
-        name (str): optional, the user provided short name of 
+        version_id (str): optional, the user provided short name of 
             the version. If it is not provided, the operation uses a random name.
         runtime_version (str): optinal, the Cloud ML Engine runtime version 
             to use for this deployment. If not set, Cloud ML Engine uses 
@@ -53,8 +53,8 @@ def create_version(model_name, deployemnt_uri=None, name=None,
         version = {}
     if deployemnt_uri:
         version['deploymentUri'] = deployemnt_uri
-    if name:
-        version['name'] = name
+    if version_id:
+        version['name'] = version_id
     if runtime_version:
         version['runtimeVersion'] = runtime_version
     if python_version:
@@ -73,7 +73,7 @@ class CreateVersionOp:
         # of projects/*/models/*/versions/*
         self._version_name = None
         # The user provide short name of the version.
-        self._version_short_name = None
+        self._version_id = None
         # The full payload of the version resource.
         self._version = version
         self._replace_existing = replace_existing
@@ -112,7 +112,7 @@ class CreateVersionOp:
         if not name:
             name = 'ver_' + context_id
         name = gcp_common.normalize_name(name)
-        self._version_short_name = name
+        self._version_id = name
         self._version['name'] = name
         self._version_name = '{}/versions/{}'.format(self._model_name, name)
 
@@ -164,7 +164,7 @@ class CreateVersionOp:
     def _dump_metadata(self):
         display.display(display.Link(
             'https://console.cloud.google.com/mlengine/models/{}/versions/{}?project={}'.format(
-                self._model_short_name, self._version_short_name, self._project_id),
+                self._model_short_name, self._version_id, self._project_id),
             'Version Details'
         ))
 

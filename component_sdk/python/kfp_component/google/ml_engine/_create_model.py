@@ -22,22 +22,22 @@ from kfp_component.core import KfpExecutionContext, display
 from ._client import MLEngineClient
 from .. import common as gcp_common
 
-def create_model(project_id, name=None, model=None):
+def create_model(project_id, model_id=None, model=None):
     """Creates a MLEngine model.
 
     Args:
         project_id (str): the ID of the parent project of the model.
-        name (str): optional, the name of the model. If absent, a new name will 
+        model_id (str): optional, the name of the model. If absent, a new name will 
             be generated.
         model (dict): the payload of the model.
     """
-    return CreateModelOp(project_id, name, model).execute()
+    return CreateModelOp(project_id, model_id, model).execute()
 
 class CreateModelOp:
-    def __init__(self, project_id, name, model):
+    def __init__(self, project_id, model_id, model):
         self._ml = MLEngineClient()
         self._project_id = project_id
-        self._model_short_name = name
+        self._model_id = model_id
         self._model_name = None
         if model:
             self._model = model
@@ -67,11 +67,11 @@ class CreateModelOp:
             return created_model
 
     def _set_model_name(self, context_id):
-        if not self._model_short_name:
-            self._model_short_name = 'model_' + context_id
-        self._model['name'] = gcp_common.normalize_name(self._model_short_name)
+        if not self._model_id:
+            self._model_id = 'model_' + context_id
+        self._model['name'] = gcp_common.normalize_name(self._model_id)
         self._model_name = 'projects/{}/models/{}'.format(
-            self._project_id, self._model_short_name)
+            self._project_id, self._model_id)
 
 
     def _is_dup_model(self, existing_model):
@@ -84,7 +84,7 @@ class CreateModelOp:
     def _dump_metadata(self):
         display.display(display.Link(
             'https://console.cloud.google.com/mlengine/models/{}?project={}'.format(
-                self._model_short_name, self._project_id),
+                self._model_id, self._project_id),
             'Model Details'
         ))
 

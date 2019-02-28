@@ -15,4 +15,6 @@
 from ._client import MLEngineClient
 
 def set_default_version(version_name):
+    """Set specified version as default version.
+    """
     return MLEngineClient().set_default_version(version_name)

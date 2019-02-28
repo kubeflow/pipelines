@@ -38,7 +38,7 @@ class TestCreateVersion(unittest.TestCase):
         }
 
         result = create_version('projects/mock_project/models/mock_model', 
-            deployemnt_uri = 'gs://test-location', name = 'mock_version',
+            deployemnt_uri = 'gs://test-location', version_id = 'mock_version',
             version = version, 
             replace_existing = True)
 
