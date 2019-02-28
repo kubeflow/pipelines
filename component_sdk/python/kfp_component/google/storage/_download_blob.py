@@ -27,7 +27,7 @@ def download_blob(source_blob_path, destination_file_path):
     """
     bucket_name, blob_name = parse_blob_path(source_blob_path)
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
+    bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(blob_name)
 
     dirname = os.path.dirname(destination_file_path)
