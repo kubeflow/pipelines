@@ -79,6 +79,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	time.Sleep(1 * time.Second)
 	argumentUploadPipeline, err := s.pipelineUploadClient.UploadFile(
 		"resources/zip-arguments.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
+	assert.Nil(t, err)
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */

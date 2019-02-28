@@ -55,7 +55,7 @@ func loadFile(fileReader io.Reader, maxFileLength int) ([]byte, error) {
 }
 
 func isSupportedPipelineFormat(fileName string) bool {
-	return isYamlFile(fileName) || isTarballFile(fileName) || isZipFile(fileName)
+	return isYamlFile(fileName) || isCompressedTarballFile(fileName) || isZipFile(fileName)
 }
 
 func isYamlFile(fileName string) bool {
@@ -66,7 +66,7 @@ func isZipFile(fileName string) bool {
 	return strings.HasSuffix(fileName, ".zip")
 }
 
-func isTarballFile(fileName string) bool {
+func isCompressedTarballFile(fileName string) bool {
 	return strings.HasSuffix(fileName, ".tar.gz")
 }
 
@@ -114,7 +114,7 @@ func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
 
 func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) ([]byte, error) {
 	if !isSupportedPipelineFormat(fileName) {
-		return nil, util.NewInvalidInputError("Unexpected pipeline file format. Support .zip, .tar.gz or YAML.")
+		return nil, util.NewInvalidInputError("Unexpected pipeline file format. Support formats are .zip, .tar.gz or YAML.")
 	}
 
 	// Read file into size limited byte array.
@@ -129,7 +129,7 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 		processedFile = pipelineFileBytes
 	case isZipFile(fileName):
 		processedFile, err = DecompressPipelineZip(pipelineFileBytes)
-	case isTarballFile(fileName):
+	case isCompressedTarballFile(fileName):
 		processedFile, err = DecompressPipelineTarball(pipelineFileBytes)
 	default:
 		return nil, util.NewInvalidInputError("Unexpected pipeline file format. Support .zip, .tar.gz or YAML.")
