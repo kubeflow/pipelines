@@ -20,89 +20,22 @@ from ._metadata import ComponentMeta
 import re
 from typing import Dict
 
-class ContainerOp(object):
-  """Represents an op implemented by a docker container image."""
 
-  def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
-               file_outputs : Dict[str, str]=None, is_exit_handler=False):
-    """Create a new instance of ContainerOp.
+class ContainerBase(object):
+  """Represents a container template in a pod"""
 
-    Args:
-      name: the name of the op. It does not have to be unique within a pipeline
-          because the pipeline will generates a unique new name in case of conflicts.
-      image: the container image name, such as 'python:3.5-jessie'
-      command: the command to run in the container.
-          If None, uses default CMD in defined in container.
-      arguments: the arguments of the command. The command can include "%s" and supply
-          a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
-          At container run time the argument will be 'echo param_value'.
-      file_outputs: Maps output labels to local file paths. At pipeline run time,
-          the value of a PipelineParam is saved to its corresponding local file. It's
-          one way for outside world to receive outputs of the container.
-      is_exit_handler: Whether it is used as an exit handler.
+  def __init__(self, name: str, image: str):
     """
-
-    if not _pipeline.Pipeline.get_default_pipeline():
-      raise ValueError('Default pipeline not defined.')
-
-    valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
-    if not re.match(valid_name_regex, name):
-      raise ValueError('Only letters, numbers, spaces, "_", and "-"  are allowed in name. Must begin with letter: %s' % (name))
-
-    self.human_name = name
-    self.name = _pipeline.Pipeline.get_default_pipeline().add_op(self, is_exit_handler)
+    Args:
+      name: the name of the container specified as a DNS_LABEL.
+      image: the sidecar container image name, such as 'rabbitmq:latest'.
+    """
+    self.name = name
     self.image = image
-    self.command = command
-    self.arguments = arguments
-    self.is_exit_handler = is_exit_handler
     self.resource_limits = {}
     self.resource_requests = {}
-    self.node_selector = {}
-    self.volumes = []
     self.volume_mounts = []
     self.env_variables = []
-    self.pod_annotations = {}
-    self.pod_labels = {}
-    self.num_retries = 0
-    self._metadata = None
-
-    self.argument_inputs = _extract_pipelineparams([str(arg) for arg in (command or []) + (arguments or [])])
-
-    self.file_outputs = file_outputs
-    self.dependent_op_names = []
-
-    self.inputs = []
-    if self.argument_inputs:
-      self.inputs += self.argument_inputs
-
-    self.outputs = {}
-    if file_outputs:
-      self.outputs = {name: _pipeline_param.PipelineParam(name, op_name=self.name)
-          for name in file_outputs.keys()}
-
-    self.output=None
-    if len(self.outputs) == 1:
-      self.output = list(self.outputs.values())[0]
-
-  def apply(self, mod_func):
-    """Applies a modifier function to self. The function should return the passed object.
-    This is needed to chain "extention methods" to this class.
-
-    Example:
-      from kfp.gcp import use_gcp_secret
-      task = (
-        train_op(...)
-          .set_memory_request('1GB')
-          .apply(use_gcp_secret('user-gcp-sa'))
-          .set_memory_limit('2GB')
-      )
-    """
-    return mod_func(self)
-
-  def after(self, op):
-    """Specify explicit dependency on another op."""
-    self.dependent_op_names.append(op.name)
-    return self
 
   def _validate_memory_string(self, memory_string):
     """Validate a given string is valid for memory request or limit."""
@@ -212,19 +145,7 @@ class ContainerOp(object):
     if vendor != 'nvidia' and vendor != 'amd':
       raise ValueError('vendor can only be nvidia or amd.')
 
-    return self.add_resource_limit("%s.com/gpu" % vendor, gpu)
-
-  def add_volume(self, volume):
-    """Add K8s volume to the container
-
-    Args:
-      volume: Kubernetes volumes
-      For detailed spec, check volume definition
-      https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume.py
-    """
-
-    self.volumes.append(volume)
-    return self
+    return self.add_resource_limit("%s.com/gpu" % vendor, gpu)  
 
   def add_volume_mount(self, volume_mount):
     """Add volume to the container
@@ -248,6 +169,132 @@ class ContainerOp(object):
     """
 
     self.env_variables.append(env_variable)
+    return self
+
+
+class SideCar(ContainerBase):
+  """Represents a sidecar container to be provisioned together with a docker container image for ContainerOp."""
+
+  def __init__(self, name: str, image: str, command: str=None, arguments: str=None):
+    """
+    Args:
+      name: the name of the sidecar.
+      image: the sidecar container image name, such as 'rabbitmq:latest'
+      command: the command to run in the container.
+          If None, uses default CMD in defined in container.
+      arguments: the arguments of the command. The command can include "%s" and supply
+          a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
+          At container run time the argument will be 'echo param_value'.
+    """
+    # name will be generated when attached to ContainerOps
+    super().__init__(name, image)
+    self.command = command
+    self.arguments = arguments
+
+    matches = []
+    for arg in (command or []) + (arguments or []):
+      match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', str(arg))
+      matches += match
+
+    self.argument_inputs = [_pipeline_param.PipelineParam(x[1], x[0], x[2])
+                            for x in list(set(matches))]
+
+
+class ContainerOp(ContainerBase):
+  """Represents an op implemented by a docker container image."""
+
+  def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
+               file_outputs : Dict[str, str]=None, is_exit_handler=False):
+    """Create a new instance of ContainerOp.
+
+    Args:
+      name: the name of the op. It does not have to be unique within a pipeline
+          because the pipeline will generates a unique new name in case of conflicts.
+      image: the container image name, such as 'python:3.5-jessie'
+      command: the command to run in the container.
+          If None, uses default CMD in defined in container.
+      arguments: the arguments of the command. The command can include "%s" and supply
+          a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
+          At container run time the argument will be 'echo param_value'.
+      file_outputs: Maps output labels to local file paths. At pipeline run time,
+          the value of a PipelineParam is saved to its corresponding local file. It's
+          one way for outside world to receive outputs of the container.
+      is_exit_handler: Whether it is used as an exit handler.
+    """
+    if not _pipeline.Pipeline.get_default_pipeline():
+      raise ValueError('Default pipeline not defined.')
+
+    valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
+    if not re.match(valid_name_regex, name):
+      raise ValueError('Only letters, numbers, spaces, "_", and "-"  are allowed in name. Must begin with letter: %s' % (name))
+
+    # human_name must exist to construct containerOps name
+    self.human_name = name
+    super().__init__(_pipeline.Pipeline.get_default_pipeline().add_op(self, is_exit_handler), image)
+
+    self.command = command
+    self.arguments = arguments
+    self.is_exit_handler = is_exit_handler
+    self.node_selector = {}
+    self.volumes = []
+    self.pod_annotations = {}
+    self.pod_labels = {}
+    self.num_retries = 0
+    self.sidecars = []
+
+    matches = []
+    for arg in (command or []) + (arguments or []):
+      match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', str(arg))
+      matches += match
+
+    self.argument_inputs = [_pipeline_param.PipelineParam(x[1], x[0], x[2])
+                            for x in list(set(matches))]
+    self.file_outputs = file_outputs
+    self.dependent_op_names = []
+
+    self.inputs = []
+    if self.argument_inputs:
+      self.inputs += self.argument_inputs
+
+    self.outputs = {}
+    if file_outputs:
+      self.outputs = {name: _pipeline_param.PipelineParam(name, op_name=self.name)
+          for name in file_outputs.keys()}
+
+    self.output=None
+    if len(self.outputs) == 1:
+      self.output = list(self.outputs.values())[0]
+
+  def apply(self, mod_func):
+    """Applies a modifier function to self. The function should return the passed object.
+    This is needed to chain "extention methods" to this class.
+
+    Example:
+      from kfp.gcp import use_gcp_secret
+      task = (
+        train_op(...)
+          .set_memory_request('1GB')
+          .apply(use_gcp_secret('user-gcp-sa'))
+          .set_memory_limit('2GB')
+      )
+    """
+    return mod_func(self)
+
+  def after(self, op):
+    """Specify explicit dependency on another op."""
+    self.dependent_op_names.append(op.name)
+    return self
+
+  def add_volume(self, volume):
+    """Add K8s volume to the container
+
+    Args:
+      volume: Kubernetes volumes
+      For detailed spec, check volume definition
+      https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume.py
+    """
+
+    self.volumes.append(volume)
     return self
 
   def add_node_selector_constraint(self, label_name, value):
@@ -294,6 +341,14 @@ class ContainerOp(object):
 
     self.num_retries = num_retries
     return self
+
+  def add_sidecar(self, sidecar: SideCar):
+    """Add a sidecar to the ContainerOps. 
+
+    Args:
+      sidecar: SideCar object.
+    """
+    self.sidecars.append(sidecar)
 
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})

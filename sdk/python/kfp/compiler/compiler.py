@@ -332,6 +332,36 @@ class Compiler(object):
     if op.num_retries:
       template['retryStrategy'] = {'limit': op.num_retries}
 
+    if op.sidecars:
+      def _sidecar_to_template(tsidecar):
+          index, sidecar = tsidecar
+          sidecar_template = {
+            'name': f'{op.name}-{sidecar.name}-{index}',
+            'image': sidecar.image
+          }
+          sidecar_processed_arguments = self._process_args(op.arguments, op.argument_inputs)
+          sidecar_processed_command = self._process_args(op.command, op.argument_inputs)
+          if sidecar_processed_arguments:
+            sidecar_template['args'] = sidecar_processed_arguments
+          if sidecar_processed_command:
+            sidecar_template['command'] = sidecar_processed_command
+          # Set resources.
+          if sidecar.resource_limits or sidecar.resource_requests:
+            sidecar_template['resources'] = {}
+          if sidecar.resource_limits:
+            sidecar_template['resources']['limits'] = sidecar.resource_limits
+          if sidecar.resource_requests:
+            sidecar_template['resources']['requests'] = sidecar.resource_requests
+          # env variables
+          if sidecar.env_variables:
+            sidecar_template['env'] = list(map(K8sHelper.convert_k8s_obj_to_json, sidecar.env_variables))
+          # volume mounts
+          if sidecar.volume_mounts:
+            sidecar_template['volumeMounts'] = list(map(K8sHelper.convert_k8s_obj_to_json, sidecar.volume_mounts))
+          return sidecar_template
+  
+      template['sidecars'] = list(map(_sidecar_to_template, enumerate(op.sidecars)))
+
     return template
 
   def _group_to_template(self, group, inputs, outputs, dependencies):
