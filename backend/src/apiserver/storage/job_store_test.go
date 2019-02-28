@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
 				CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-				Cron:                       util.StringPointer("1 * *"),
+				Cron: util.StringPointer("1 * *"),
 			},
 		},
 		Enabled:        true,
@@ -156,7 +156,7 @@ func TestListJobs_Pagination(t *testing.T) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron:                       util.StringPointer("1 * *"),
+					Cron: util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -236,7 +236,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron:                       util.StringPointer("1 * *"),
+					Cron: util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -341,7 +341,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron:                       util.StringPointer("1 * *"),
+					Cron: util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -747,7 +747,7 @@ func TestUpdateJob_Success(t *testing.T) {
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(10),
 				CronScheduleEndTimeInSec:   util.Int64Pointer(20),
-				Cron:                       util.StringPointer("MY_CRON"),
+				Cron: util.StringPointer("MY_CRON"),
 			},
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(30),
@@ -833,7 +833,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: nil,
 				CronScheduleEndTimeInSec:   nil,
-				Cron:                       util.StringPointer(""),
+				Cron: util.StringPointer(""),
 			},
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: nil,
