@@ -51,8 +51,8 @@ Preprocessing:
   [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft)
 
 Training:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/tf-launcher/src)
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/tf-launcher)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher)
 
 Analysis:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tfma/src) 

@@ -14,6 +14,7 @@
 
 
 import launcher
+from launcher import train
 import os
 import shutil
 import subprocess
@@ -35,7 +36,7 @@ class TestLauncher(unittest.TestCase):
     pss = 1
     args_list = []
     args_list.append('--learning-rate=0.1')
-    generated_yaml = _generate_train_yaml(train_template_file, tfjob_ns, worker, pss, args_list)
+    generated_yaml = train._generate_train_yaml(train_template_file, tfjob_ns, worker, pss, args_list)
     with open(os.path.join(test_data_dir, 'train_basic.yaml'), 'r') as f:
       golden = yaml.load(f)
     self.assertEqual(golden, generated_yaml)
@@ -50,7 +51,7 @@ class TestLauncher(unittest.TestCase):
     args_list = []
     tfjob_ns = 'kubeflow'
     args_list.append('--learning-rate=0.1')
-    generated_yaml = _generate_train_yaml(train_template_file, tfjob_ns, worker, pss, args_list)
+    generated_yaml = train._generate_train_yaml(train_template_file, tfjob_ns, worker, pss, args_list)
     with open(os.path.join(test_data_dir, 'train_zero_worker.yaml'), 'r') as f:
       golden = yaml.load(f)
     self.assertEqual(golden, generated_yaml)

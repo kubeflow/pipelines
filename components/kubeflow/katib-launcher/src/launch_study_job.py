@@ -118,6 +118,9 @@ def main(argv=None):
   parser.add_argument('--suggestionspec', type=yamlOrJsonStr,
                       default={},
                       help='StudyJob suggestion spec.')
+  parser.add_argument('--outputfile', type=str,
+                      default='/output.txt',
+                      help='The file which stores the best trial of the studyJob.')
   parser.add_argument('--studyjobtimeoutminutes', type=int,
                       default=10,
                       help='Time in minutes to wait for the StudyJob to complete')
@@ -147,7 +150,7 @@ def main(argv=None):
   if wait_response.get("status", {}).get("condition") == "Completed":
     succ = True
     trial = get_best_trial(wait_response["status"]["bestTrialId"])
-    with open('/output.txt', 'w') as f:
+    with open(args.outputfile, 'w') as f:
       ps_dict = {}
       for ps in trial.parameter_set:
           ps_dict[ps.name] = ps.value
