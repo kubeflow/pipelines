@@ -69,8 +69,12 @@ class CreateVersionOp:
         self._ml = MLEngineClient()
         self._model_name = model_name
         self._project_id, self._model_short_name = self._parse_model_name(model_name)
+        # The name of the version resource, which is in the format 
+        # of projects/*/models/*/versions/*
         self._version_name = None
+        # The user provide short name of the version.
         self._version_short_name = None
+        # The full payload of the version resource.
         self._version = version
         self._replace_existing = replace_existing
         self._wait_interval = wait_interval
