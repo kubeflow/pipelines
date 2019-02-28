@@ -12,7 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.6
+FROM python:2.7-slim-jessie
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+		wget \
+	&& rm -rf /var/lib/apt/lists/*
+
+RUN pip2 install apache-beam[gcp]==2.10.0
 
 ADD build /ml
 WORKDIR /ml
