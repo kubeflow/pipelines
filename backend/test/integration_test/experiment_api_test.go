@@ -1,4 +1,4 @@
-package test
+package integration_test
 
 import (
 	"testing"
@@ -156,6 +156,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	/* ---------- Clean up ---------- */
 	deleteAllExperiments(s.experimentClient, t)
+}
+
+func initialize() {
+
 }
 
 func TestExperimentAPI(t *testing.T) {
