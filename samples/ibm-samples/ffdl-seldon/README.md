@@ -44,7 +44,7 @@ Run `jupyter notebook` to start running your jupyter server and load the noteboo
 - **model-class-name**: PyTorch model class name
 - **model-class-file**: Model file that contains the PyTorch model class
 
-## Credentials needed to stored in GitHub
+## Credentials needed to be stored in GitHub
 - **s3_url**: S3 Object storage endpoint for your FfDL training job.
 - **s3_access_key_id**: S3 Object storage access key id
 - **s3_secret_access_key**: S3 Object storage secret access key
@@ -55,12 +55,7 @@ Run `jupyter notebook` to start running your jupyter server and load the noteboo
 
 ## Naming convention for Training Model Files
 
-Since libraries such as Spark and opencv are huge to put in the serving containers,
-users who use libraries that are not from the standard PyTorch container from FfDL should consider
-defining their PyTorch model class file in a separate Python file. This is because when python try to
-load the model class from users' training files, python interpreter will need to read and import all the
+Since libraries such as Spark and OpenCV are huge to put inside the serving containers, users who use libraries which are not from the standard PyTorch container from FfDL should consider defining their PyTorch model class file in a separate Python file. This is because when python tries to load the model class from users' training files, python interpreter will need to read and import all the
 modules in memory within the same file in order to properly construct the module dependencies.
 
-Therefore, by default users should consider naming their model class as `ModelClass` and only put the
-model class code in a file call `model_class.py`. However, users can choose not to follow the naming convention
-as long as they provide the model class and file name as part of the pipeline parameters.
+Therefore, by default users should consider naming their model class as `ModelClass` and put the model class code in a file call `model_class.py`. However, users can choose not to follow the naming convention as long as they provide the model class and file name as part of the pipeline parameters.
