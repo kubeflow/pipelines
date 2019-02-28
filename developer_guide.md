@@ -102,7 +102,7 @@ Secret Key:minio123
 
 **Q: I see an error of exceeding Github rate limit when deploying the system. What can I do?**
 
-See Ksonnet troubleshooting page [page](https://github.com/ksonnet/ksonnet/blob/master/docs/troubleshooting.md#github-rate-limiting-errors)
+See [Ksonnet troubleshooting page](https://github.com/ksonnet/ksonnet/blob/master/docs/troubleshooting.md#github-rate-limiting-errors)
 
 **Q: How do I check my API server log?**
 
