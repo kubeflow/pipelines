@@ -24,6 +24,7 @@ ResolvedContainerTask = NamedTuple(
         ('container_image', str),                       #Docker container image name
         ('command', List[str]),                         #Command-line
         ('arguments', str),                             #Command-line arguments
+        ('env', Mapping[str, str]),                        #Environment variables
         ('input_paths', Mapping[str, str]),             #Mapping between input names and local paths where the data will be put for use by the containerized program
         ('input_path_arguments', Mapping[str, Any]),    #Whatever was passed as argument to the artifact inputs of the component
         ('output_paths', Mapping[str, str]),            #Mapping between input names and local paths where the data will be put for use by the containerized program
@@ -146,6 +147,7 @@ def resolve_container_task(task_spec: TaskSpec):
         container_image=container_spec.image,
         command=expanded_command,
         arguments=expanded_args,
+        env=container_spec.env,
         input_paths=input_paths,
         input_path_arguments=input_path_arguments,
         output_paths=output_paths,
@@ -191,6 +193,10 @@ def _create_container_op_from_resolved_task(resolved_task: ResolvedContainerTask
         arguments=resolved_task.arguments,
         file_outputs=output_paths_for_container_op,
     )
+    if resolved_task.env:
+        from kubernetes import client as k8s_client
+        for name, value in resolved_task.env.items():
+            task.add_env_variable(k8s_client.V1EnvVar(name=name, value=value))
 
     if need_dummy:
         _dummy_pipeline.__exit__()
