@@ -23,7 +23,7 @@ from ._create_version import create_version
 from ._set_default_version import set_default_version
 
 @decorators.SetParseFns(python_version=str, runtime_version=str)
-def deploy(model_uri, project_id, model_name=None, version_name=None, 
+def deploy(model_uri, project_id, model_short_name=None, version_short_name=None, 
     runtime_version=None, python_version=None, version=None, 
     replace_existing_version=False, set_default=False, wait_interval=30):
     """Deploy a model to MLEngine from GCS URI
@@ -33,9 +33,9 @@ def deploy(model_uri, project_id, model_name=None, version_name=None,
             Common used TF model search path (export/exporter) will be used 
             if exist. 
         project_id (str): required, the ID of the parent project.
-        model_name (str): optional, the name of the parent model.
-        version_name (str): optional, the name of the version. If it is not
-            provided, the operation uses a random name.
+        model_short_name (str): optional, the user provided name of the model.
+        version_short_name (str): optional, the user provided name of the version. 
+            If it is not provided, the operation uses a random name.
         runtime_version (str): optinal, the Cloud ML Engine runtime version 
             to use for this deployment. If not set, Cloud ML Engine uses 
             the default stable version, 1.0. 
@@ -53,9 +53,9 @@ def deploy(model_uri, project_id, model_name=None, version_name=None,
     model_uri = _search_tf_model_common_exporter_dir(model_uri)
     gcp_common.dump_file('/tmp/kfp/output/ml_engine/model_uri.txt', 
         model_uri)
-    model = create_model(project_id, model_name)
+    model = create_model(project_id, model_short_name)
     model_name = model.get('name')
-    version = create_version(model_name, model_uri, version_name,
+    version = create_version(model_name, model_uri, version_short_name,
         runtime_version, python_version, version, replace_existing_version,
         wait_interval)
     if set_default:

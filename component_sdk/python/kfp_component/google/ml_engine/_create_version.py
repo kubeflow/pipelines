@@ -26,7 +26,7 @@ from .. import common as gcp_common
 from ._common_ops import wait_existing_version, wait_for_operation_done
 
 @decorators.SetParseFns(python_version=str, runtime_version=str)
-def create_version(model_name, deployemnt_uri=None, version_name=None, 
+def create_version(model_name, deployemnt_uri=None, name=None, 
     runtime_version=None, python_version=None, version=None, 
     replace_existing=False, wait_interval=30):
     """Creates a MLEngine version and wait for the operation to be done.
@@ -35,8 +35,8 @@ def create_version(model_name, deployemnt_uri=None, version_name=None,
         model_name (str): required, the name of the parent model.
         deployment_uri (str): optional, the Google Cloud Storage location of 
             the trained model used to create the version.
-        version_name (str): optional, the name of the version. If it is not
-            provided, the operation uses a random name.
+        name (str): optional, the user provided short name of 
+            the version. If it is not provided, the operation uses a random name.
         runtime_version (str): optinal, the Cloud ML Engine runtime version 
             to use for this deployment. If not set, Cloud ML Engine uses 
             the default stable version, 1.0. 
@@ -53,8 +53,8 @@ def create_version(model_name, deployemnt_uri=None, version_name=None,
         version = {}
     if deployemnt_uri:
         version['deploymentUri'] = deployemnt_uri
-    if version_name:
-        version['name'] = version_name
+    if name:
+        version['name'] = name
     if runtime_version:
         version['runtimeVersion'] = runtime_version
     if python_version:
