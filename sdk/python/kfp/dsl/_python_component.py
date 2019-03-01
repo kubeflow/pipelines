@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from kfp.dsl import ComponentMeta, ParameterMeta, TypeMeta
+
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
   """Decorator for Python component functions.
   This decorator adds the metadata to the function object itself.
@@ -47,3 +49,25 @@ def python_component(name, description=None, base_image=None, target_component_f
     return func
 
   return _python_component
+
+def component():
+  """Decorator for component functions that use ContainerOp.
+  This is useful to enable type checking in the DSL compiler
+
+  Usage:
+  ```python
+  @dsl.component
+  def foobar(model: TFModel(), step: MLStep()):
+    return dsl.ContainerOp()
+  """
+  def _component(func):
+    import inspect
+    fullargspec = inspect.getfullargspec(func)
+    args = fullargspec.args
+    annotations = fullargspec.annotations
+
+    # Construct the ComponentMeta
+    #TODO: convert and record
+    return func
+
+  return _component
