@@ -22,10 +22,10 @@ inputs:
   - {name: input_data_format, description: 'Required. The format of the input data files. See https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#DataFormat.' }
   - {name: output_path, description: 'Required. The output Google Cloud Storage location.' }
   - {name: region, description: 'Required. The Google Compute Engine region to run the prediction job in.' }
-  - {name: output_data_format, description: 'Optional. Format of the output data files, defaults to JSON.', optional: true}
-  - {name: prediction_input, description: 'Input parameters to create a prediction job.', optional: true}
-  - {name: job_id_prefix, description: 'The prefix of the generated job id.', optional: true}
-  - {name: wait_interval, description: 'Optional wait interval between calls to get job status. Defaults to 30.', optional: true, default: '30'}
+  - {name: output_data_format, description: 'Optional. Format of the output data files, defaults to JSON.', default: ''}
+  - {name: prediction_input, description: 'Input parameters to create a prediction job.', default: ''}
+  - {name: job_id_prefix, description: 'The prefix of the generated job id.', default: ''}
+  - {name: wait_interval, description: 'Optional wait interval between calls to get job status. Defaults to 30.', default: '30'}
 outputs:
   - {name: job_id, description: 'The ID of the created job.'}
 implementation:

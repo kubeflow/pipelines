@@ -18,14 +18,14 @@ description: |
 inputs:
   - {name: model_uri,                 description: 'Required, the GCS URI which contains a model file. Common used TF model search path (export/exporter) will be used if exist.'}
   - {name: project_id,                description: 'Required, the ID of the parent project.'}
-  - {name: model_short_name,          description: 'Optional, the user provided name of the model.', optional: true }
-  - {name: version_short_name,        description: 'Optional, the user provided name of the version. If it is not provided, the operation uses a random name.', optional: true }
-  - {name: runtime_version,           description: 'Optional, the Cloud ML Engine runtime version to use for this deployment. If not set, Cloud ML Engine uses the default stable version, 1.0.', optional: true }
-  - {name: python_version,            description: 'Optional, the version of Python used in prediction. If not set, the default version is '2.7'. Python '3.5' is available when runtimeVersion is set to '1.4' and above. Python '2.7' works with all supported runtime versions.', optional: true }
-  - {name: version,                   description: 'Optional, the payload of the new version.', optional: true }
-  - {name: replace_existing_version,  description: 'Boolean flag indicates whether to replace existing version in case of conflict.', optional: true, default: 'Fasle' }
-  - {name: set_default,               description: 'Boolean flag indicates whether to set the new version as default version in the model.', optional: true, default: 'False'}
-  - {name: wait_interval,             description: 'The interval to wait for a long running operation.', optional: true, default: '30'}
+  - {name: model_id,                  description: 'Optional, the user provided name of the model.', default: '' }
+  - {name: version_id,                description: 'Optional, the user provided name of the version. If it is not provided, the operation uses a random name.', default: '' }
+  - {name: runtime_version,           description: 'Optional, the Cloud ML Engine runtime version to use for this deployment. If not set, Cloud ML Engine uses the default stable version, 1.0.', default: '' }
+  - {name: python_version,            description: 'Optional, the version of Python used in prediction. If not set, the default version is `2.7`. Python `3.5` is available when runtimeVersion is set to `1.4` and above. Python `2.7` works with all supported runtime versions.', default: '' }
+  - {name: version,                   description: 'Optional, the payload of the new version.', default: '' }
+  - {name: replace_existing_version,  description: 'Boolean flag indicates whether to replace existing version in case of conflict.', default: 'Fasle' }
+  - {name: set_default,               description: 'Boolean flag indicates whether to set the new version as default version in the model.', default: 'False'}
+  - {name: wait_interval,             description: 'The interval to wait for a long running operation.', default: '30'}
 outputs:
   - {name: model_uri,     description: 'The URI of the model.'}
   - {name: model_name,    description: 'The name of the deployed model.'}
