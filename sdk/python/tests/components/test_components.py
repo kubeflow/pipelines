@@ -476,6 +476,24 @@ implementation:
         expected_env = {'key1': 'value 1', 'key2': 'value 2'}
         self.assertDictEqual(expected_env, actual_env)
 
+    def test_handle_default_values_in_task_factory(self):
+        component_text = '''\
+inputs:
+- {name: Data, default: '123'}
+implementation:
+  container:
+    image: busybox
+    args:
+      - {inputValue: Data}
+'''
+        task_factory1 = comp.load_component_from_text(text=component_text)
+
+        task1 = task_factory1()
+        self.assertEqual(task1.arguments, ['123'])
+
+        task2 = task_factory1('456')
+        self.assertEqual(task2.arguments, ['456'])
+
 
 if __name__ == '__main__':
     unittest.main()
