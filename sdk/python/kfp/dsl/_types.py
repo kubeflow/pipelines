@@ -159,8 +159,8 @@ def check_types(typeA, typeB):
 	For each of the attribute in typeA, there is the same attribute in typeB with the same value.
 	However, typeB could contain more attributes that typeA does not contain.
 	Args:
-		typeA (type/str/dict): it describes a type from the upstream component output
-		typeB (type/str/dict): it describes a type from the downstream component input
+		typeA (BaseType/str/dict): it describes a type from the upstream component output
+		typeB (BaseType/str/dict): it describes a type from the downstream component input
 		'''
 	if isinstance(typeA, BaseType):
 		typeA = _instance_to_dict(typeA)
