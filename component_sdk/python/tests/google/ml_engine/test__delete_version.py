@@ -34,7 +34,7 @@ class TestDeleteVersion(unittest.TestCase):
             'done': True
         }
 
-        delete_version('mock_project', 'mock_model', 'mock_version', 
+        delete_version('projects/mock_project/models/mock_model/versions/mock_version', 
             wait_interval = 30)
 
         mock_mlengine_client().delete_version.assert_called_once()
@@ -46,7 +46,7 @@ class TestDeleteVersion(unittest.TestCase):
         }
         mock_mlengine_client().get_version.side_effect = [pending_version, None]
 
-        delete_version('mock_project', 'mock_model', 'mock_version', 
+        delete_version('projects/mock_project/models/mock_model/versions/mock_version', 
             wait_interval = 0)
 
         self.assertEqual(2, mock_mlengine_client().get_version.call_count)
