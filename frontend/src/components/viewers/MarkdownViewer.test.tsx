@@ -15,13 +15,22 @@
  */
 
 import * as React from 'react';
-import { mount } from 'enzyme';
+import { mount, ReactWrapper } from 'enzyme';
 import MarkdownViewer, { MarkdownViewerConfig } from './MarkdownViewer';
 import { PlotType } from './Viewer';
 
 describe('MarkdownViewer', () => {
+  let tree: ReactWrapper<any> | null;
+
+  afterEach(() => {
+    if (tree) {
+      tree.unmount();
+      tree = null;
+    }
+  });
+
   it('does not break on empty data', () => {
-    const tree = mount(<MarkdownViewer configs={[]} />);
+    tree = mount(<MarkdownViewer configs={[]} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -29,10 +38,10 @@ describe('MarkdownViewer', () => {
     const markdown = '# Title\n[some link here](http://example.com)';
     const config: MarkdownViewerConfig = {
       markdownContent: markdown,
-      type: PlotType.WEB_APP,
+      type: PlotType.MARKDOWN,
     };
 
-    const tree = mount(<MarkdownViewer configs={[config]} />);
+    tree = mount(<MarkdownViewer configs={[config]} />);
     expect(tree).toMatchSnapshot();
   });
 
@@ -43,12 +52,11 @@ describe('MarkdownViewer', () => {
   `;
     const config: MarkdownViewerConfig = {
       markdownContent: markdown,
-      type: PlotType.WEB_APP,
+      type: PlotType.MARKDOWN,
     };
 
-    const tree = mount(<MarkdownViewer configs={[config]} />);
-    expect((tree.instance() as any)._iframeRef.current.srcdoc).toEqual(markdown);
-    expect((tree.instance() as any)._iframeRef.current.src).toEqual('javascript:void(0);');
+    tree = mount(<MarkdownViewer configs={[config]} />);
+    expect(tree).toMatchSnapshot();
   });
 
   it('returns a user friendly display name', () => {

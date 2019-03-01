@@ -16,8 +16,8 @@
 
 import * as React from 'react';
 import Viewer, { ViewerConfig } from './Viewer';
-// @ts-ignore
-import * as MarkdownIt from 'markdown-it';
+// tslint:disable-next-line:no-var-requires
+const markdownIt = require('markdown-it');
 
 export interface MarkdownViewerConfig extends ViewerConfig {
   markdownContent: string;
@@ -43,7 +43,7 @@ class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
     if (!this._config) {
       return null;
     }
-    const html = new MarkdownIt().render(this._config.markdownContent);
+    const html = markdownIt().render(this._config.markdownContent);
     return <div dangerouslySetInnerHTML={{ __html: html }} />;
   }
 }

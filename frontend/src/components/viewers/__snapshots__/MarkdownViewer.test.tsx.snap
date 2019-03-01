@@ -5,3 +5,53 @@ exports[`MarkdownViewer does not break on empty data 1`] = `
   configs={Array []}
 />
 `;
+
+exports[`MarkdownViewer renders some basic markdown 1`] = `
+<MarkdownViewer
+  configs={
+    Array [
+      Object {
+        "markdownContent": "# Title
+[some link here](http://example.com)",
+        "type": "markdown",
+      },
+    ]
+  }
+>
+  <div
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "<h1>Title</h1>
+<p><a href=\\"http://example.com\\">some link here</a></p>
+",
+      }
+    }
+  />
+</MarkdownViewer>
+`;
+
+exports[`MarkdownViewer sanitizes the markdown to remove XSS 1`] = `
+<MarkdownViewer
+  configs={
+    Array [
+      Object {
+        "markdownContent": "
+  lower[click me](javascript&#x3a;...)lower
+  upper[click me](javascript&#X3a;...)upper
+  ",
+        "type": "markdown",
+      },
+    ]
+  }
+>
+  <div
+    dangerouslySetInnerHTML={
+      Object {
+        "__html": "<p>lower[click me](javascript:...)lower
+upper[click me](javascript:...)upper</p>
+",
+      }
+    }
+  />
+</MarkdownViewer>
+`;
