@@ -13,8 +13,7 @@
 # limitations under the License.
 
 from kfp.dsl import ComponentMeta, ParameterMeta, TypeMeta
-from kfp.dsl import BaseType
-from ._types import _instance_to_dict,_str_to_dict, _check_valid_dict
+from ._types import _instance_to_dict,_str_to_dict, _check_valid_dict, BaseType
 
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
   """Decorator for Python component functions.
