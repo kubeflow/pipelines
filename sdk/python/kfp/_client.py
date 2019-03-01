@@ -108,7 +108,7 @@ class Client(object):
     """
     import kfp_experiment
 
-    experiment = self.get_experiment(experiment_name=name)
+    experiment = self.get_experiment(experiment_name=name, ignore_error=True)
 
     if not experiment:
       experiment = kfp_experiment.models.ApiExperiment(name=name)
@@ -135,20 +135,26 @@ class Client(object):
         page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
-  def get_experiment(self, experiment_id=None, experiment_name=None):
+  def get_experiment(self, experiment_id=None, experiment_name=None, ignore_error=False):
     """Get details of an experiment
     Either experiment_id or experiment_name is required
     Args:
       experiment_id: id of the experiment. (Optional)
       experiment_name: name of the experiment. (Optional)
+      ignore_error: if true, ignore error and return None. Defaults to False.
     Returns:
-      A response object including details of a experiment.
+      A response object including details of a experiment, or None for error cases if
+      `ignore_error` is enabled.
     Throws:
       Exception if experiment is not found or None of the arguments is provided
     """
     if experiment_id is None and experiment_name is None:
+      if ignore_error:
+        return None
       raise ValueError('Either experiment_id or experiment_name is required')
     if experiment_id is not None:
+      if ignore_error:
+        return None
       return self._experiment_api.get_experiment(id=experiment_id)
     next_page_token = ''
     while next_page_token is not None:
@@ -157,6 +163,8 @@ class Client(object):
       for experiment in list_experiments_response.experiments:
         if experiment.name == experiment_name:
           return self._experiment_api.get_experiment(id=experiment.id)
+    if ignore_error:
+      return None
     raise ValueError('No experiment is found with name {}.'.format(experiment_name))
 
   def _extract_pipeline_yaml(self, tar_file):
