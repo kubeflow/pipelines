@@ -19,6 +19,7 @@ from ._pipeline_param import _extract_pipelineparams
 import re
 from typing import Dict, List
 from abc import ABCMeta, abstractmethod
+from ._types import _check_valid_dict
 
 class BaseMeta(object):
   __metaclass__ = ABCMeta
@@ -42,6 +43,17 @@ class TypeMeta(BaseMeta):
 
   def to_dict(self):
     return {self.name: self.properties}
+
+  @staticmethod
+  def from_dict(json_dict):
+    if not _check_valid_dict(json_dict):
+      raise ValueError(json_dict + ' is not a valid type string')
+    type_meta = TypeMeta()
+    type_meta.name, type_meta.properties = list(json_dict.items())[0]
+    return type_meta
+
+  def __eq__(self, other):
+    return self.__dict__ == other.__dict__
 
 class ParameterMeta(BaseMeta):
   def __init__(self,
