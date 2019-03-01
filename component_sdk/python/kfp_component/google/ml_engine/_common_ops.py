@@ -17,11 +17,9 @@ import time
 
 from googleapiclient import errors
 
-def wait_existing_version(ml_client, project_id, model_name, 
-    version_name, wait_interval):
+def wait_existing_version(ml_client, version_name, wait_interval):
     while True:
-        existing_version = ml_client.get_version( 
-            project_id, model_name, version_name)
+        existing_version = ml_client.get_version(version_name)
         if not existing_version:
             return None
         state = existing_version.get('state', None)

@@ -22,39 +22,33 @@ from ._client import MLEngineClient
 from .. import common as gcp_common
 from ._common_ops import wait_existing_version, wait_for_operation_done
 
-def delete_version(project_id, model_name, version_name, wait_interval=30):
+def delete_version(version_name, wait_interval=30):
     """Deletes a MLEngine version and wait.
 
     Args:
-        project_id (str): required, the ID of the parent project.
-        model_name (str): required, the name of the parent model.
         version_name (str): required, the name of the version.
         wait_interval (int): the interval to wait for a long running operation.
     """
-    DeleteVersionOp(project_id, model_name, version_name, 
-        wait_interval).execute_and_wait()
+    DeleteVersionOp(version_name, wait_interval).execute_and_wait()
 
 class DeleteVersionOp:
-    def __init__(self, project_id, model_name, version_name, wait_interval):
+    def __init__(self, version_name, wait_interval):
         self._ml = MLEngineClient()
-        self._project_id = project_id
-        self._model_name = gcp_common.normalize_name(model_name)
-        self._version_name = gcp_common.normalize_name(version_name)
+        self._version_name = version_name
         self._wait_interval = wait_interval
         self._delete_operation_name = None
 
     def execute_and_wait(self):
         with KfpExecutionContext(on_cancel=self._cancel):
             existing_version = wait_existing_version(self._ml, 
-                self._project_id, self._model_name, self._version_name, 
+                self._version_name, 
                 self._wait_interval)
             if not existing_version:
                 logging.info('The version has already been deleted.')
                 return None
 
             logging.info('Deleting existing version...')
-            operation = self._ml.delete_version(
-                    self._project_id, self._model_name, self._version_name)
+            operation = self._ml.delete_version(self._version_name)
             # Cache operation name for cancellation.
             self._delete_operation_name = operation.get('name')
             try:
