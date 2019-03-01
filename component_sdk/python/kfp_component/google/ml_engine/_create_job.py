@@ -127,5 +127,5 @@ class CreateJobOp:
 
     def _dump_job(self, job):
         logging.info('Dumping job: {}'.format(job))
-        gcp_common.dump_file('/tmp/outputs/output.txt', json.dumps(job))
-        gcp_common.dump_file('/tmp/outputs/job_id.txt', job['jobId'])
+        gcp_common.dump_file('/tmp/kfp/output/ml_engine/job.json', json.dumps(job))
+        gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_id.txt', job['jobId'])
