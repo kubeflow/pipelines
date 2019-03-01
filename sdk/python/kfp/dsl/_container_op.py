@@ -421,4 +421,6 @@ class ContainerOp(object):
 
     Args:
       metadata (ComponentMeta): component metadata'''
+    if not isinstance(metadata, ComponentMeta):
+      raise ValueError('_set_metadata is expecting type ComponentMeta')
     self._metadata = metadata
