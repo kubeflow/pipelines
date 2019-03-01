@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from collections import OrderedDict
+from typing import Mapping
 from ._structures import ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
 from ._components import _generate_output_file_name, _default_component_name
 
@@ -123,12 +124,13 @@ def create_container_op_from_task(task_spec: TaskSpec):
         command=expanded_command,
         arguments=expanded_args,
         output_paths=output_paths,
+        env=container_spec.env,
     )
 
 
 _dummy_pipeline=None
 
-def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, output_paths=None):
+def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, output_paths=None, env : Mapping[str, str]=None):
     from .. import dsl
     global _dummy_pipeline
     need_dummy = dsl.Pipeline._default_pipeline is None
@@ -155,7 +157,11 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         arguments=arguments,
         file_outputs=output_paths_for_container_op,
     )
-
+    if env:
+        from kubernetes import client as k8s_client
+        for name, value in env.items():
+            task.add_env_variable(k8s_client.V1EnvVar(name=name, value=value))
+ 
     if need_dummy:
         _dummy_pipeline.__exit__()
 
