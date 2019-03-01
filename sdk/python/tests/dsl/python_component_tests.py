@@ -18,7 +18,7 @@ from kfp.dsl._types import GCSPath, Integer
 import unittest
 
 @component
-def componentA(a: {'Schema': {'file_type': 'csv'}}, b: '{"number": {"step": "large"}}' = 12, c: GCSPath(path_type='file', file_type='tsv') = 13) -> {'model': Integer()}:
+def componentA(a: {'Schema': {'file_type': 'csv'}}, b: '{"number": {"step": "large"}}' = 12, c: GCSPath(path_type='file', file_type='tsv') = 'gs://hello/world') -> {'model': Integer()}:
   return 7
 
 class TestPythonComponent(unittest.TestCase):

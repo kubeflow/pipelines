@@ -100,7 +100,7 @@ def component(func):
       arg_default = arg_defaults[arg] if arg in arg_defaults else ''
       if arg in annotations:
         arg_type = _annotation_to_typemeta(annotations[arg])
-      component_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type), default=arg_default)
+      component_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
     # Outputs
     for output in annotations['return']:
       arg_type = _annotation_to_typemeta(annotations['return'][output])
