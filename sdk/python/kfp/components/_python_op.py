@@ -96,6 +96,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
         input_spec = InputSpec(
             name=parameter.name,
             type=type_struct,
+            default=str(parameter.default) if parameter.default is not inspect.Parameter.empty else None,
         )
         inputs.append(input_spec)
 
