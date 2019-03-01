@@ -1,4 +1,4 @@
-package test
+package integration
 
 import (
 	"testing"
@@ -9,6 +9,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
 	"github.com/kubeflow/pipelines/backend/src/cmd/ml/cmd"
+	"github.com/kubeflow/pipelines/backend/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -40,7 +41,7 @@ func (c *CLIIntegrationTest) SetupTest() {
 	c.namespace = *namespace
 
 	// Wait for the system to be ready.
-	err := waitForReady(c.namespace, *initializeTimeout)
+	err := test.WaitForReady(c.namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exitf("Cluster namespace '%s' is still not ready after timeout. Error: %s", c.namespace,
 			err.Error())
@@ -94,7 +95,7 @@ func (c *CLIIntegrationTest) TestPipelineUploadSuccess() {
 	t := c.T()
 	rootCmd, _ := GetRealRootCommand()
 	args := []string{"pipeline", "upload", "--name", myUploadedPipeline, "--file",
-		"./resources/hello-world.yaml"}
+		"../resources/hello-world.yaml"}
 	args = addCommonArgs(args, c.namespace)
 	rootCmd.Command().SetArgs(args)
 	_, err := rootCmd.Command().ExecuteC()
