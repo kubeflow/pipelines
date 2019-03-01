@@ -181,6 +181,18 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(component_spec.description.strip(), expected_description.strip())
         self.assertEqual(component_spec.implementation.container.image, expected_image)
 
+    def test_saving_default_values(self):
+        from typing import NamedTuple
+        def add_multiply_two_numbers(a: float = 3, b: float = 5) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
+            '''Returns sum and product of two arguments'''
+            return (a + b, a * b)
+
+        func = add_multiply_two_numbers
+        component_spec = comp._python_op._func_to_component_spec(func)
+
+        self.assertEqual(component_spec.inputs[0].default, '3')
+        self.assertEqual(component_spec.inputs[1].default, '5')
+
     def test_end_to_end_python_component_pipeline_compilation(self):
         import kfp.components as comp
 
