@@ -27,6 +27,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/metadata"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -34,7 +35,7 @@ import (
 	minio "github.com/minio/minio-go"
 
 	"ml_metadata/metadata_store/mlmetadata"
-	mspb "ml_metadata/proto/metadata_store_go_proto"
+	mlpb "ml_metadata/proto/metadata_store_go_proto"
 )
 
 const (
@@ -139,9 +140,9 @@ func (c *ClientManager) init() {
 		glog.Fatalf("Failed to parse valid MySQL service port from %q: %v", getStringConfig(mysqlServicePort), err)
 	}
 
-	cfg := &mspb.ConnectionConfig{
-		Config: &mspb.ConnectionConfig_Mysql{
-			&mspb.MySQLDatabaseConfig{
+	cfg := &mlpb.ConnectionConfig{
+		Config: &mlpb.ConnectionConfig_Mysql{
+			&mlpb.MySQLDatabaseConfig{
 				Host:     proto.String(getStringConfig(mysqlServiceHost)),
 				Port:     proto.Uint32(uint32(port)),
 				Database: proto.String("mlmetadata"),
@@ -150,12 +151,12 @@ func (c *ClientManager) init() {
 		},
 	}
 
-	store, err := mlmetadata.NewStore(cfg)
+	mlmdStore, err := mlmetadata.NewStore(cfg)
 	if err != nil {
 		glog.Fatalf("Failed to create ML Metadata store: %v", err)
 	}
-	runStore := storage.NewRunStore(db, c.time)
-	runStore.MetadataStore = store
+	metadataStore := metadata.NewStore(mlmdStore)
+	runStore := storage.NewRunStore(db, c.time, metadataStore)
 	c.runStore = runStore
 
 	glog.Infof("Client manager initialized successfully")

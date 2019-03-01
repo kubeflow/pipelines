@@ -1,30 +1,11 @@
-# FROM golang:1.11-alpine3.7 as go_build_base
-# FROM l.gcr.io/google/bazel:0.21.0 as builder
-FROM gcr.io/cloud-ml-pipelines-test/apiserver-builder as builder
+FROM l.gcr.io/google/bazel:0.21.0 as builder
 
-# RUN apt-get update && \
-#   apt-get install -y cmake clang musl-dev openssl
-# Needed musl-dev for github.com/mattn/go-sqlite3
-# RUN apk update && apk upgrade && \
-#   apk add --no-cache bash git openssh gcc musl-dev
 WORKDIR /go/src/github.com/kubeflow/pipelines
-
-# ENV GO111MODULE=on
-# COPY go.mod .
-# COPY go.sum .
-
-# RUN go mod download
-
-# FROM go_build_base as builder
 
 COPY WORKSPACE WORKSPACE
 COPY backend/src backend/src
 COPY backend/api backend/api
-# COPY backend/src backend/src
 
-# RUN echo $'startup --output_user_root=/cache \nstartup --batch' > "${HOME}/.bazelrc"
-
-# RUN go build -o /bin/apiserver backend/src/apiserver/*.go
 RUN bazel build -c opt --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver:apiserver
 
 

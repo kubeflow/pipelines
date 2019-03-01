@@ -52,8 +52,6 @@ go_repository(
     name = "google_ml_metadata",
     commit = "e95231f88a8f7ed5224007ba554e080a73ac30a1",
     importpath = "github.com/google/ml-metadata",
-    # strip_prefix = "ml-metadata-master",
-    # urls = ["https://github.com/google/ml-metadata/archive/master.zip"],
 )
 
 new_git_repository(
@@ -63,16 +61,6 @@ new_git_repository(
     tag = "v3.0.8-release",
     workspace_file = "@google_ml_metadata//ml_metadata:libmysqlclient.WORKSPACE",
 )
-
-# load("@google_ml_metadata//ml_metadata:workspace.bzl", "ml_metadata_workspace")
-
-# ml_metadata_workspace()
-
-# go_repository(
-#     name = "google_ml_metadata",
-#     commit = "0fb82dc56ff7ae8380a284361933f61f1e809521",
-#     importpath = "github.com/google/ml-metadata",
-# )
 
 go_repository(
     name = "io_k8s_client_go",
@@ -937,19 +925,3 @@ go_repository(
     commit = "5a4828bb7045",
     importpath = "golang.org/x/arch",
 )
-
-# # Download the rules_docker repository at release v0.7.0
-# http_archive(
-#     name = "io_bazel_rules_docker",
-#     patch_cmds = [SED_CMD + " container/container.bzl"],
-#     sha256 = "aed1c249d4ec8f703edddf35cbe9dfaca0b5f5ea6e4cd9e83e99f3b0d1136c3d",
-#     strip_prefix = "rules_docker-0.7.0",
-#     urls = ["https://github.com/bazelbuild/rules_docker/archive/v0.7.0.tar.gz"],
-# )
-
-# load(
-#     "@io_bazel_rules_docker//go:image.bzl",
-#     _go_image_repos = "repositories",
-# )
-
-# _go_image_repos()
