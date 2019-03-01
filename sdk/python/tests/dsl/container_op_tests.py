@@ -87,6 +87,17 @@ class TestComponentMeta(unittest.TestCase):
     }
     self.assertEqual(component_meta.to_dict(), golden_meta)
 
+  def test_type_meta_from_dict(self):
+    component_dict = {
+        'GCSPath': {
+            'bucket_type': 'directory',
+            'file_type': 'csv'
+        }
+    }
+    golden_type_meta = TypeMeta(name='GCSPath', properties={'bucket_type': 'directory',
+                                                            'file_type': 'csv'})
+    self.assertEqual(TypeMeta.from_dict(component_dict), golden_type_meta)
+
 class TestContainerOp(unittest.TestCase):
 
   def test_basic(self):
