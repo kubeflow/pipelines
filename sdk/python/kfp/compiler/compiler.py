@@ -336,7 +336,7 @@ class Compiler(object):
       def _sidecar_to_template(tsidecar):
           index, sidecar = tsidecar
           sidecar_template = {
-            'name': f'{op.name}-{sidecar.name}-{index}',
+            'name': '{}-{}-{}'.format(op.name, sidecar.name, index),
             'image': sidecar.image
           }
           sidecar_processed_arguments = self._process_args(op.arguments, op.argument_inputs)
