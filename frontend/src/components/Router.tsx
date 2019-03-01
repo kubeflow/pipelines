@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import Archive from '../pages/Archive';
 import Banner, { BannerProps } from '../components/Banner';
 import Button from '@material-ui/core/Button';
 import Compare from '../pages/Compare';
@@ -63,6 +64,7 @@ export enum RouteParams {
 
 // tslint:disable-next-line:variable-name
 export const RoutePage = {
+  ARCHIVE: '/archive',
   COMPARE: `/compare`,
   EXPERIMENTS: '/experiments',
   EXPERIMENT_DETAILS: `/experiments/details/:${RouteParams.experimentId}`,
@@ -114,6 +116,7 @@ class Router extends React.Component<{}, RouteComponentState> {
     };
 
     const routes: Array<{ path: string, Component: React.ComponentClass, view?: any }> = [
+      { path: RoutePage.ARCHIVE, Component: Archive },
       { path: RoutePage.EXPERIMENTS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.EXPERIMENTS },
       { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
       { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },

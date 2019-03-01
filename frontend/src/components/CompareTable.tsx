@@ -28,7 +28,7 @@ const css = stylesheet({
     padding: 5,
   },
   labelCell: {
-    backgroundColor: '#eee',
+    backgroundColor: color.lightGrey,
     fontWeight: 'bold',
     maxWidth: 200,
     minWidth: 50,

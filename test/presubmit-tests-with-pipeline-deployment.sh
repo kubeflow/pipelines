@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -x
+set -ex
 
 usage()
 {
@@ -60,90 +60,40 @@ while [ "$1" != "" ]; do
     shift
 done
 
+# Variables
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
-ARTIFACT_DIR=$WORKSPACE/_artifacts
-WORKFLOW_COMPLETE_KEYWORD="completed=true"
-WORKFLOW_FAILED_KEYWORD="phase=Failed"
-PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "presubmit test starts"
+source "${DIR}/test-prep.sh"
+source "${DIR}/deploy-kubeflow.sh"
 
-# activating the service account
-gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
-gcloud config set compute/zone us-central1-a
-gcloud config set core/project ${PROJECT}
-
-#Uploading the source code to GCS:
-local_code_archive_file=$(mktemp)
-date_string=$(TZ=PST8PDT date +%Y-%m-%d_%H-%M-%S_%Z)
-code_archive_prefix="gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/source_code"
-remote_code_archive_uri="${code_archive_prefix}_${PULL_BASE_SHA}_${date_string}.tar.gz"
-
-tar -czf "$local_code_archive_file" .
-gsutil cp "$local_code_archive_file" "$remote_code_archive_uri"
-
-# Install ksonnet
-KS_VERSION="0.13.0"
-curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
-tar -xzf ks_${KS_VERSION}_linux_amd64.tar.gz
-chmod +x ./ks_${KS_VERSION}_linux_amd64/ks
-mv ./ks_${KS_VERSION}_linux_amd64/ks /usr/local/bin/
-
-# Download kubeflow master
-KUBEFLOW_MASTER=${DIR}/kubeflow_master
-git clone https://github.com/kubeflow/kubeflow.git ${KUBEFLOW_MASTER}
-
-## Download latest kubeflow release source code
-KUBEFLOW_SRC=${DIR}/kubeflow_latest_release
-mkdir ${KUBEFLOW_SRC}
-cd ${KUBEFLOW_SRC}
-export KUBEFLOW_TAG=v0.3.1
-curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash
-
-## Override the pipeline config with code from master
-cp -r ${KUBEFLOW_MASTER}/kubeflow/pipeline ${KUBEFLOW_SRC}/kubeflow/pipeline
-cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
-
-# TODO temporarily set KUBEFLOW_SRC as KUBEFLOW_MASTER. This should be deleted when latest release have the pipeline entry
-KUBEFLOW_SRC=${KUBEFLOW_MASTER}
-
-TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
-TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
-
-export CLIENT_ID=${RANDOM}
-export CLIENT_SECRET=${RANDOM}
-KFAPP=${TEST_CLUSTER}
-
-function clean_up {
-  echo "Clean up..."
-  cd ${KFAPP}
-  ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
-}
-trap clean_up EXIT
-
-${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform ${PLATFORM} --project ${PROJECT} --skipInitProject
-
-cd ${KFAPP}
-${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
-${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
-${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
-
-## Update pipeline component image
-pushd ks_app
-ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api
-ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent
-ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow
-ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend
-popd
-
-${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
-
-gcloud container clusters get-credentials ${TEST_CLUSTER}
-
+# Install Argo
 source "${DIR}/install-argo.sh"
 
-echo "submitting argo workflow for commit ${PULL_PULL_SHA}..."
+# Build Images
+echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
+ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
+-p image-build-context-gcs-uri="$remote_code_archive_uri" \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+-p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+-p cluster-type="${CLUSTER_TYPE}" \
+-p api-image="${GCR_IMAGE_BASE_DIR}/api" \
+-p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
+-p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
+-p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
+-n ${NAMESPACE} \
+--serviceaccount test-runner \
+-o name
+`
+echo "build docker images workflow submitted successfully"
+source "${DIR}/check-argo-status.sh"
+echo "build docker images workflow completed"
+
+# Deploy the pipeline
+source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+
+echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
@@ -154,7 +104,6 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -o name
 `
 
-echo argo workflow submitted successfully
-
+echo "test workflow submitted successfully"
 source "${DIR}/check-argo-status.sh"
-
+echo "test workflow completed"

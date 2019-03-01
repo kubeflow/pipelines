@@ -24,7 +24,7 @@ import unittest
 
 @mock.patch('kubernetes.config.load_incluster_config')
 @mock.patch('kubernetes.client.CoreV1Api')
-class BaseOpTest(unittest.TestCase):
+class KfpExecutionContextTest(unittest.TestCase):
 
     def test_init_succeed_without_pod_name(self, 
         mock_k8s_client, mock_load_config):

@@ -636,12 +636,6 @@ exports[`RecurringRunsManager renders run name as link to its details page 1`] =
   replace={false}
   to="/recurringrun/details/run-id"
 >
-  <a
-    className="link"
-    href="/recurringrun/details/run-id"
-    onClick={[Function]}
-  >
-    test-run
-  </a>
+  test-run
 </Link>
 `;

@@ -24,6 +24,7 @@ from datetime import datetime
 from .compiler import compiler
 from .compiler import _k8s_helper
 
+from ._auth import get_auth_token
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
@@ -32,7 +33,7 @@ class Client(object):
   # in-cluster DNS name of the pipeline service
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.kubeflow.svc.cluster.local:8888'
 
-  def __init__(self, host=None):
+  def __init__(self, host=None, client_id=None):
     """Create a new instance of kfp client.
 
     Args:
@@ -41,6 +42,7 @@ class Client(object):
           in the same cluster (such as a Jupyter instance spawned by Kubeflow's
           JupyterHub). If you have a different connection to cluster, such as a kubectl
           proxy connection, then set it to something like "127.0.0.1:8080/pipeline".
+      client_id: The client ID used by Identity-Aware Proxy.
     """
 
     try:
@@ -55,16 +57,27 @@ class Client(object):
 
     self._host = host
 
+    token = None
+    if host and client_id:
+      token = get_auth_token(client_id)
+  
     config = kfp_run.configuration.Configuration()
     config.host = host if host else Client.IN_CLUSTER_DNS_NAME
+    self._configure_auth(config, token)
     api_client = kfp_run.api_client.ApiClient(config)
     self._run_api = kfp_run.api.run_service_api.RunServiceApi(api_client)
 
     config = kfp_experiment.configuration.Configuration()
     config.host = host if host else Client.IN_CLUSTER_DNS_NAME
+    self._configure_auth(config, token)
     api_client = kfp_experiment.api_client.ApiClient(config)
     self._experiment_api = \
         kfp_experiment.api.experiment_service_api.ExperimentServiceApi(api_client)
+
+  def _configure_auth(self, config, token):
+    if token:
+      config.api_key['authorization'] = token
+      config.api_key_prefix['authorization'] = 'Bearer'
 
   def _is_ipython(self):
     """Returns whether we are running in notebook."""

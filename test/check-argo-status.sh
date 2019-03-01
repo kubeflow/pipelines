@@ -14,6 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -ex
+
+ARTIFACT_DIR=$WORKSPACE/_artifacts
+WORKFLOW_COMPLETE_KEYWORD="completed=true"
+WORKFLOW_FAILED_KEYWORD="phase=Failed"
+PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
 
 echo "check status of argo workflow $ARGO_WORKFLOW...."
 # probing the argo workflow status until it completed. Timeout after 30 minutes
@@ -48,5 +54,4 @@ if [[ $WORKFLOW_STATUS = *"${WORKFLOW_FAILED_KEYWORD}"* ]]; then
   exit 1
 else
   argo get ${ARGO_WORKFLOW} -n ${NAMESPACE}
-  exit 0
 fi

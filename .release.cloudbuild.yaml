@@ -51,6 +51,18 @@ steps:
   waitFor: ['pullScheduledworkflow']
 
 - name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA']
+  id:   'pullViewerCrdController'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA', 'gcr.io/ml-pipeline/viewer-crd-controller:$TAG_NAME']
+  id:   'tagViewerCrdControllerVersionNumber'
+  waitFor: ['pullViewerCrdController']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA', 'gcr.io/ml-pipeline/viewer-crd-controller:$COMMIT_SHA']
+  id:   'tagViewerCrdControllerCommitSHA'
+  waitFor: ['pullViewerCrdController']
+
+- name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA']
   id:   'pullPersistenceagent'
 - name: 'gcr.io/cloud-builders/docker'
@@ -74,6 +86,19 @@ steps:
   args: ['cp', '/workspace/kfp.tar.gz', 'gs://ml-pipeline/release/latest/kfp.tar.gz']
   id:   'copyPythonSDKToLatest'
   waitFor: ['copyPythonSDKLocal']
+
+# Copy the Python Component SDK
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp-component.tar.gz', '/workspace/']
+  id:   'copyPythonComponentSDKLocal'
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://ml-pipeline/release/$TAG_NAME/kfp-component.tar.gz']
+  id:   'copyPythonComponentSDK'
+  waitFor: ['copyPythonComponentSDKLocal']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://ml-pipeline/release/latest/kfp-component.tar.gz']
+  id:   'copyPythonComponentSDKToLatest'
+  waitFor: ['copyPythonComponentSDKLocal']
 
 # Build the tagged samples
 - name: 'debian'
@@ -99,5 +124,7 @@ images:
 - 'gcr.io/ml-pipeline/scheduledworkflow:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/persistenceagent:$TAG_NAME'
 - 'gcr.io/ml-pipeline/persistenceagent:$COMMIT_SHA'
+- 'gcr.io/ml-pipeline/viewer-crd-controller:$TAG_NAME'
+- 'gcr.io/ml-pipeline/viewer-crd-controller:$COMMIT_SHA'
 
 timeout: '1200s'

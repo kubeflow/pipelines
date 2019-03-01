@@ -16,7 +16,7 @@ RUN apt-get update -y && \
 
 RUN pip3 install setuptools==40.5.0
 
-RUN wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
+RUN wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar
 
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .

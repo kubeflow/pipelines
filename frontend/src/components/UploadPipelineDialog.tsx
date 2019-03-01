@@ -26,12 +26,12 @@ import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Radio from '@material-ui/core/Radio';
 import { TextFieldProps } from '@material-ui/core/TextField';
-import { padding, commonCss } from '../Css';
+import { padding, commonCss, zIndex, color } from '../Css';
 import { stylesheet, classes } from 'typestyle';
 
 const css = stylesheet({
   dropOverlay: {
-    backgroundColor: '#eee',
+    backgroundColor: color.lightGrey,
     border: '2px dashed #aaa',
     bottom: 0,
     left: 0,
@@ -40,7 +40,7 @@ const css = stylesheet({
     right: 0,
     textAlign: 'center',
     top: 0,
-    zIndex: 1,
+    zIndex: zIndex.DROP_ZONE_OVERLAY,
   },
   root: {
     width: 500,
@@ -115,24 +115,24 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
                   <div className={css.dropOverlay}>Drop files..</div>
                 )}
 
-              <div className={padding(10, 'b')}>
-                Choose a pipeline package file from your computer, and give the pipeline a unique name.
-                <br />
-                You can also drag and drop the file here.
-              </div>
-              <Input onChange={this.handleChange('fileName')} value={fileName} required={true}
-                label='File' variant='outlined'
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position='end'>
-                      <Button color='secondary' onClick={() => this._dropzoneRef.current!.open()}
-                        style={{ padding: '3px 5px', margin: 0 }}>
-                        Choose file
+                <div className={padding(10, 'b')}>
+                  Choose a pipeline package file from your computer, and give the pipeline a unique name.
+                  <br />
+                  You can also drag and drop the file here.
+                </div>
+                <Input onChange={this.handleChange('fileName')} value={fileName} required={true}
+                  label='File' variant='outlined'
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position='end'>
+                        <Button color='secondary' onClick={() => this._dropzoneRef.current!.open()}
+                          style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}>
+                          Choose file
                       </Button>
-                    </InputAdornment>
-                  ),
-                  readOnly: true,
-                }} />
+                      </InputAdornment>
+                    ),
+                    readOnly: true,
+                  }} />
               </Dropzone>
             </React.Fragment>
           )}
@@ -158,12 +158,12 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
           value={uploadPipelineDescription} multiline={true} variant='outlined' /> */}
 
         <DialogActions>
-          <BusyButton id='confirmUploadBtn' onClick={() => this._uploadDialogClosed.bind(this)(true)}
-            title='Upload' busy={busy} disabled={
-              !uploadPipelineName || (importMethod === ImportMethod.LOCAL ? !file : !fileUrl)} />
           <Button id='cancelUploadBtn' onClick={() => this._uploadDialogClosed.bind(this)(false)}>
             Cancel
           </Button>
+          <BusyButton id='confirmUploadBtn' onClick={() => this._uploadDialogClosed.bind(this)(true)}
+            title='Upload' busy={busy} disabled={
+              !uploadPipelineName || (importMethod === ImportMethod.LOCAL ? !file : !fileUrl)} />
         </DialogActions>
       </Dialog>
     );

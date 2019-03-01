@@ -115,6 +115,14 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one resource to archive",
+            "id": "archiveBtn",
+            "title": "Archive",
+            "tooltip": "Archive",
+          },
         ]
       }
       breadcrumbs={Array []}
@@ -139,6 +147,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
       onError={[Function]}
       onSelectionChange={[Function]}
       selectedIds={Array []}
+      storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
         Object {
           "actions": Array [
@@ -459,6 +468,14 @@ exports[`ExperimentDetails removes all description text after second newline and
             "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one resource to archive",
+            "id": "archiveBtn",
+            "title": "Archive",
+            "tooltip": "Archive",
+          },
         ]
       }
       breadcrumbs={Array []}
@@ -483,6 +500,7 @@ exports[`ExperimentDetails removes all description text after second newline and
       onError={[Function]}
       onSelectionChange={[Function]}
       selectedIds={Array []}
+      storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
         Object {
           "actions": Array [
@@ -790,6 +808,14 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one resource to archive",
+            "id": "archiveBtn",
+            "title": "Archive",
+            "tooltip": "Archive",
+          },
         ]
       }
       breadcrumbs={Array []}
@@ -814,6 +840,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
       onError={[Function]}
       onSelectionChange={[Function]}
       selectedIds={Array []}
+      storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
         Object {
           "actions": Array [
@@ -1119,6 +1146,14 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
+          Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one resource to archive",
+            "id": "archiveBtn",
+            "title": "Archive",
+            "tooltip": "Archive",
+          },
         ]
       }
       breadcrumbs={Array []}
@@ -1143,6 +1178,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
       onError={[Function]}
       onSelectionChange={[Function]}
       selectedIds={Array []}
+      storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
         Object {
           "actions": Array [
