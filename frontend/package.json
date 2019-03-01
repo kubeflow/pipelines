@@ -61,7 +61,6 @@
     "@types/jest": "^23.3.2",
     "@types/js-yaml": "^3.11.2",
     "@types/lodash": ">=4.14.117",
-    "@types/markdown-it": "0.0.7",
     "@types/node": "^10.10.1",
     "@types/react": "^16.7.18",
     "@types/react-dom": "^16.0.7",
