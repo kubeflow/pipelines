@@ -17,8 +17,63 @@ from . import _pipeline
 from . import _pipeline_param
 from ._pipeline_param import _extract_pipelineparams
 import re
-from typing import Dict
+from typing import Dict, List
+from abc import ABCMeta, abstractmethod
 
+class BaseMeta(object):
+  __metaclass__ = ABCMeta
+  def __init__(self):
+    pass
+
+  @abstractmethod
+  def to_dict(self):
+    pass
+
+  def serialize(self):
+    import yaml
+    return yaml.dump(self.to_dict())
+
+class TypeMeta(BaseMeta):
+  def __init__(self, name, properties):
+    self.name = name
+    self.properties = properties
+
+  def to_dict(self):
+    return {self.name: self.properties}
+
+class ParameterMeta(BaseMeta):
+  def __init__(self,
+      name: str = None,
+      description: str = None,
+      param_type: TypeMeta = None):
+    self.name = name
+    self.description = description
+    self.param_type = param_type
+
+  def to_dict(self):
+    return {'name': self.name,
+            'description': self.description,
+            'type': self.param_type.to_dict()}
+
+class ComponentMeta(BaseMeta):
+  def __init__(
+      self,
+      name: str = None,
+      description: str = None,
+      inputs: List[ParameterMeta] = None,
+      outputs: List[ParameterMeta] = None
+  ):
+    self.name = name
+    self.description = description
+    self.inputs = inputs
+    self.outputs = outputs
+
+  def to_dict(self):
+    return {'name': self.name,
+            'description': self.description,
+            'inputs': [ input.to_dict() for input in self.inputs ],
+            'outputs': [ output.to_dict() for output in self.outputs ]
+            }
 
 class ContainerOp(object):
   """Represents an op implemented by a docker container image."""
