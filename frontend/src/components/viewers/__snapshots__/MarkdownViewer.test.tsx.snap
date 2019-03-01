@@ -36,9 +36,9 @@ exports[`MarkdownViewer sanitizes the markdown to remove XSS 1`] = `
     Array [
       Object {
         "markdownContent": "
-  lower[click me](javascript&#x3a;...)lower
-  upper[click me](javascript&#X3a;...)upper
-  ",
+      lower[click me](javascript&#x3a;...)lower
+      upper[click me](javascript&#X3a;...)upper
+    ",
         "type": "markdown",
       },
     ]
@@ -47,8 +47,9 @@ exports[`MarkdownViewer sanitizes the markdown to remove XSS 1`] = `
   <div
     dangerouslySetInnerHTML={
       Object {
-        "__html": "<p>lower[click me](javascript:...)lower
-upper[click me](javascript:...)upper</p>
+        "__html": "<pre><code>  lower[click me](javascript&amp;#x3a;...)lower
+  upper[click me](javascript&amp;#X3a;...)upper
+</code></pre>
 ",
       }
     }

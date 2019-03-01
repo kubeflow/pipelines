@@ -23,10 +23,11 @@ describe('MarkdownViewer', () => {
   let tree: ReactWrapper<any> | null;
 
   afterEach(() => {
-    if (tree) {
-      tree.unmount();
-      tree = null;
+    if (!tree) {
+      return;
     }
+    tree.unmount();
+    tree = null;
   });
 
   it('does not break on empty data', () => {
@@ -47,9 +48,9 @@ describe('MarkdownViewer', () => {
 
   it('sanitizes the markdown to remove XSS', () => {
     const markdown = `
-  lower[click me](javascript&#x3a;...)lower
-  upper[click me](javascript&#X3a;...)upper
-  `;
+      lower[click me](javascript&#x3a;...)lower
+      upper[click me](javascript&#X3a;...)upper
+    `;
     const config: MarkdownViewerConfig = {
       markdownContent: markdown,
       type: PlotType.MARKDOWN,
