@@ -108,7 +108,11 @@ See [Ksonnet troubleshooting page](https://github.com/ksonnet/ksonnet/blob/maste
 
 API server logs are located at /tmp directory of the pod. To SSH into the pod, run:
 ```bash
-kubectl exec -it -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE}) -- /bin/bash
+kubectl exec -it -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE}) -- /bin/sh
+```
+or
+```bash
+kubectl logs -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE})
 ```
 
 **Q: How to check my cluster status if I am using Minikube?**
