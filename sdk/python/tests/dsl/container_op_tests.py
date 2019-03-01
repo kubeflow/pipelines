@@ -28,7 +28,8 @@ class TestComponentMeta(unittest.TestCase):
                                                                              properties={'bucket_type': 'directory',
                                                                                          'file_type': 'csv'
                                                                                          }
-                                                                             )
+                                                                             ),
+                                                         default='default1'
                                                          ),
                                            ParameterMeta(name='input2',
                                                          description='input2 desc',
@@ -36,7 +37,8 @@ class TestComponentMeta(unittest.TestCase):
                                                                              properties={'input_data': 'tensor',
                                                                                          'version': '1.8.0'
                                                                                          }
-                                                                             )
+                                                                             ),
+                                                         default='default2'
                                                          ),
                                            ],
                                    outputs=[ParameterMeta(name='output1',
@@ -44,7 +46,8 @@ class TestComponentMeta(unittest.TestCase):
                                                           param_type=TypeMeta(name='Schema',
                                                                               properties={'file_type': 'tsv'
                                                                                           }
-                                                                              )
+                                                                              ),
+                                                          default='default_output1'
                                                           )
                                             ]
                                    )
@@ -60,7 +63,8 @@ class TestComponentMeta(unittest.TestCase):
                         'bucket_type': 'directory',
                         'file_type': 'csv'
                     }
-                }
+                },
+                'default': 'default1'
             },
             {
                 'name': 'input2',
@@ -70,7 +74,8 @@ class TestComponentMeta(unittest.TestCase):
                         'input_data': 'tensor',
                         'version': '1.8.0'
                     }
-                }
+                },
+                'default': 'default2'
             }
         ],
         'outputs': [
@@ -81,7 +86,8 @@ class TestComponentMeta(unittest.TestCase):
                     'Schema': {
                         'file_type': 'tsv'
                     }
-                }
+                },
+                'default': 'default_output1'
             }
         ]
     }
