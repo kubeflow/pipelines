@@ -1,0 +1,42 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Bigquery - Query
+description: |
+  Submit a query to Bigquery service and write outputs to a GCS blob.
+inputs:
+  - {name: query, description: 'The query used by Bigquery service to fetch the results.'}
+  - {name: project_id, description: 'The project to execute the query job.' }
+  - {name: dataset_id, description: 'The ID of the persistent dataset to keep the results of the query.'}
+  - {name: table_id, description: 'The ID of the table to keep the results of the query. If absent, the operation will generate a random id for the table.', default: '' }
+  - {name: output_gcs_path, description: 'The GCS blob path to dump the query results to.', default: '' }
+  - {name: job_config, description: 'The full config spec for the query job.', default: '' }
+outputs:
+  - {name: output_gcs_path, description: 'The GCS blob path to dump the query results to.'}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline-dogfood/ml-pipeline-gcp:latest
+    args: [
+      kfp_component.google.bigquery, query,
+      --query, {inputValue: query},
+      --project_id, {inputValue: project_id},
+      --dataset_id, {inputValue: dataset_id},
+      --table_id, {inputValue: table_id},
+      --output_gcs_path, {inputValue: output_gcs_path},
+      --job_config, {inputValue: job_config}
+    ]
+    env:
+      KFP_POD_NAME: "{{pod.name}}"
+    fileOutputs:
+      output_gcs_path: /tmp/kfp/output/bigquery/query-output-path.txt
