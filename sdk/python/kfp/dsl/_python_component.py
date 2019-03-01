@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from kfp.dsl import ComponentMeta, ParameterMeta, TypeMeta
+from kfp.dsl import BaseType
+from ._types import _instance_to_dict,_str_to_dict, _check_valid_dict
 
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
   """Decorator for Python component functions.
@@ -50,6 +52,24 @@ def python_component(name, description=None, base_image=None, target_component_f
 
   return _python_component
 
+def _annotation_to_typemeta(annotation):
+  '''_annotation_to_type_meta converts an annotation to an instance of TypeMeta
+  Args:
+    annotation(BaseType/str/dict): input/output annotations
+  Returns:
+    TypeMeta
+    '''
+  if isinstance(annotation, BaseType):
+    arg_type = TypeMeta.from_dict(_instance_to_dict(annotation))
+  elif isinstance(annotation, str):
+    arg_type = TypeMeta.from_dict(_str_to_dict(annotation))
+  elif isinstance(annotation, dict):
+    if not _check_valid_dict(annotation):
+      raise ValueError('Annotation ' + str(annotation) + ' is not a valid type dictionary.')
+    arg_type = TypeMeta.from_dict(annotation)
+  else:
+    raise ValueError('Annotation ' + str(annotation) + ' is not valid. Use core types, str, or dict.')
+
 def component():
   """Decorator for component functions that use ContainerOp.
   This is useful to enable type checking in the DSL compiler
@@ -67,7 +87,19 @@ def component():
     annotations = fullargspec.annotations
 
     # Construct the ComponentMeta
-    #TODO: convert and record
+    component_meta = ComponentMeta(name=func.__name__, description='')
+    # Inputs
+    for arg in args:
+      arg_type = TypeMeta()
+      if arg in annotations:
+        arg_type = _annotation_to_typemeta(annotations[arg])
+      component_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type))
+    # Outputs
+    for output in annotations['return']:
+      arg_type = _annotation_to_typemeta(annotations['return'][output])
+      component_meta.inputs.append(ParameterMeta(name=output, description='', param_type=arg_type))
+
+    #TODO: add descriptions to the metadata
     return func
 
   return _component
