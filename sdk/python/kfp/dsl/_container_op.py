@@ -92,6 +92,25 @@ class ComponentMeta(BaseMeta):
             'outputs': [ output.to_dict() for output in self.outputs ]
             }
 
+# Add a pipeline level metadata calss here.
+# If one day we combine the component and pipeline yaml, ComponentMeta and PipelineMeta will become one, too.
+class PipelineMeta(BaseMeta):
+  def __init__(
+      self,
+      name: str = '',
+      description: str = '',
+      inputs: List[ParameterMeta] = []
+  ):
+    self.name = name
+    self.description = description
+    self.inputs = inputs
+
+  def to_dict(self):
+    return {'name': self.name,
+            'description': self.description,
+            'inputs': [ input.to_dict() for input in self.inputs ]
+            }
+
 class ContainerOp(object):
   """Represents an op implemented by a docker container image."""
 
