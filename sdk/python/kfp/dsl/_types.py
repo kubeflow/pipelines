@@ -12,86 +12,66 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class MetaType:
+class BaseType:
 	'''MetaType is a base type for all scalar and artifact types.
 	'''
 	pass
 
 # Primitive Types
-class MetaInt(MetaType):
+class Integer(BaseType):
 	openapi_schema_validator = '''{
 		"type": "integer"
 	}'''
 
-def Integer(attr={}):
-	return type('Integer', (MetaInt, ), attr)
-
-class MetaString(MetaType):
+class String(BaseType):
 	openapi_schema_validator = '''{
 		"type": "string"
 	}'''
 
-def String(attr={}):
-	return type('String', (MetaString, ), attr)
-
-class MetaFloat(MetaType):
+class Float(BaseType):
 	openapi_schema_validator = '''{
 		"type": "number"
 	}'''
 
-def Float(attr={}):
-	return type('Float', (MetaFloat, ), attr)
-
-class MetaBool(MetaType):
+class Bool(BaseType):
 	openapi_schema_validator = '''{
 		"type": "boolean"
 	}'''
 
-def Bool(attr={}):
-	return type('Bool', (MetaBool, ), attr)
-
-class MetaList(MetaType):
+class List(BaseType):
 	openapi_schema_validator = '''{
 		"type": "array"
 	}'''
 
-def List(attr={}):
-	return type('List', (MetaList, ), attr)
-
-class MetaDict(MetaType):
+class Dict(BaseType):
 	openapi_schema_validator = '''{
 		"type": "object",
 	}'''
 
-def Dict(attr={}):
-	return type('Dict', (MetaDict, ), attr)
-
 # GCP Types
-class MetaGCSPath(MetaType):
+class GCSPath(BaseType):
 	openapi_schema_validator = '''{
 		"type": "string",
 		"pattern": "^gs://$"
-		}
 	}'''
-	# path_type describes the paths, for example, bucket, directory, file, etc.
-	path_type = ''
-	# file_type describes the files, for example, JSON, CSV, etc.
-	file_type = ''
 
-def GCSPath(attr={}):
-	return type('GCSPath', (MetaGCSPath, ), attr)
+	def __init__(self, path_type='', file_type=''):
+		'''
+		Args
+		:param path_type: describes the paths, for example, bucket, directory, file, etc
+		:param file_type: describes the files, for example, JSON, CSV, etc.
+		'''
+		self.path_type = path_type
+		self.file_type = file_type
 
-class MetaGCRPath(MetaType):
+class GCRPath(BaseType):
 	openapi_schema_validator = '''{
 		"type": "string",
 		"pattern": "^(us.|eu.|asia.)?gcr\\.io/.*$"
 		}
 	}'''
 
-def GCRPath(attr={}):
-	return type('GCRPath', (MetaGCRPath, ), attr)
-
-class MetaGCPRegion(MetaType):
+class GCPRegion(BaseType):
 	openapi_schema_validator = '''{
 		"type": "string", 
 		"enum": ["asia-east1","asia-east2","asia-northeast1",
@@ -102,27 +82,18 @@ class MetaGCPRegion(MetaType):
 					"us-east4","us-west1", "us-west4" ]
 	}'''
 
-def GCPRegion(attr={}):
-	return type('GCPRegion', (MetaGCPRegion, ), attr)
-
-class MetaGCPProjectID(MetaType):
+class GCPProjectID(BaseType):
 	'''MetaGCPProjectID: GCP project id'''
 	openapi_schema_validator = '''{
 		"type": "string"
 	}'''
 
-def GCPProjectID(attr={}):
-	return type('GCPProjectID', (MetaGCPProjectID, ), attr)
-
 # General Types
-class MetaLocalPath(MetaType):
+class LocalPath(BaseType):
 	#TODO: add restriction to path
 	openapi_schema_validator = '''{
 		"type": "string"
 	}'''
-
-def LocalPath(attr={}):
-	return type('LocalPath', (MetaLocalPath, ), attr)
 
 class InconsistentTypeException(Exception):
 	'''InconsistencyTypeException is raised when two types are not consistent'''
@@ -144,19 +115,15 @@ def _check_valid_dict(payload):
 				return False
 	return True
 
-def _class_to_dict(payload):
+def _instance_to_dict(instance):
 	'''serialize_type serializes the type instance into a json string
 	Args:
-		payload(type): A class that describes a type
+		instance(BaseType): An instance that describes a type
 
 	Return:
 		dict
 	'''
-	attrs = set([i for i in dir(payload) if not i.startswith('__')])
-	json_dict = {payload.__name__: {}}
-	for attr in attrs:
-		json_dict[payload.__name__][attr] = getattr(payload, attr)
-	return json_dict
+	return {type(instance).__name__: instance.__dict__}
 
 def _str_to_dict(payload):
 	import json
@@ -192,15 +159,15 @@ def check_types(typeA, typeB):
 	For each of the attribute in typeA, there is the same attribute in typeB with the same value.
 	However, typeB could contain more attributes that typeA does not contain.
 	Args:
-		typeA (type/str/dict): it describes a type from the upstream component output
-		typeB (type/str/dict): it describes a type from the downstream component input
+		typeA (BaseType/str/dict): it describes a type from the upstream component output
+		typeB (BaseType/str/dict): it describes a type from the downstream component input
 		'''
-	if isinstance(typeA, type):
-		typeA = _class_to_dict(typeA)
+	if isinstance(typeA, BaseType):
+		typeA = _instance_to_dict(typeA)
 	elif isinstance(typeA, str):
 		typeA = _str_to_dict(typeA)
-	if isinstance(typeB, type):
-		typeB = _class_to_dict(typeB)
+	if isinstance(typeB, BaseType):
+		typeB = _instance_to_dict(typeB)
 	elif isinstance(typeB, str):
 		typeB = _str_to_dict(typeB)
 	return _check_dict_types(typeA, typeB)

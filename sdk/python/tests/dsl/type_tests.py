@@ -13,28 +13,18 @@
 # limitations under the License.
 
 
-from kfp.dsl._types import _class_to_dict, _str_to_dict, check_types, GCSPath
+from kfp.dsl._types import _instance_to_dict, _str_to_dict, check_types, GCSPath
 import unittest
 
 class TestTypes(unittest.TestCase):
 
   def test_class_to_dict(self):
     """Test _class_to_dict function."""
-    gcspath_dict = _class_to_dict(GCSPath({'path_type': 'file', 'file_type': 'csv'}))
+    gcspath_dict = _instance_to_dict(GCSPath(path_type='file', file_type='csv'))
     golden_dict = {
         'GCSPath': {
             'path_type': 'file',
             'file_type': 'csv',
-            'openapi_schema_validator': '''{
-		"type": "object",
-		"properties": {
-			"path": {
-				"type": "string",
-				"pattern": "^gs://$"
-			}
-		}
-
-	}'''
         }
     }
     self.assertEqual(golden_dict, gcspath_dict)
@@ -51,16 +41,15 @@ class TestTypes(unittest.TestCase):
     self.assertEqual(golden_dict, gcspath_dict)
     gcspath_str = '{"file_type": "csv", "path_type": "file"}'
     with self.assertRaises(ValueError):
-      gcspath_dict = _str_to_dict(gcspath_str)
+      _str_to_dict(gcspath_str)
 
   def test_check_types(self):
     #Core types
-    typeA = GCSPath({'path_type': 'file', 'file_type': 'csv'})
-    typeB = GCSPath({'path_type': 'file', 'file_type': 'csv'})
+    typeA = GCSPath(path_type='file', file_type='csv')
+    typeB = GCSPath(path_type='file', file_type='csv')
     self.assertTrue(check_types(typeA, typeB))
-    typeA = GCSPath({'path_type': 'file', 'file_type': 'tsv'})
-    typeB = GCSPath({'path_type': 'file', 'file_type': 'csv'})
-    self.assertFalse(check_types(typeA, typeB))
+    typeC = GCSPath(path_type='file', file_type='tsv')
+    self.assertFalse(check_types(typeA, typeC))
 
     # Custom types
     typeA = {
