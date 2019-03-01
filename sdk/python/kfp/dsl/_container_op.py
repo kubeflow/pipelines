@@ -34,7 +34,9 @@ class BaseMeta(object):
     return yaml.dump(self.to_dict())
 
 class TypeMeta(BaseMeta):
-  def __init__(self, name, properties):
+  def __init__(self,
+      name: str = '',
+      properties: Dict = {}):
     self.name = name
     self.properties = properties
 
@@ -43,9 +45,9 @@ class TypeMeta(BaseMeta):
 
 class ParameterMeta(BaseMeta):
   def __init__(self,
-      name: str = None,
-      description: str = None,
-      param_type: TypeMeta = None):
+      name: str = '',
+      description: str = '',
+      param_type: TypeMeta = TypeMeta()):
     self.name = name
     self.description = description
     self.param_type = param_type
@@ -58,10 +60,10 @@ class ParameterMeta(BaseMeta):
 class ComponentMeta(BaseMeta):
   def __init__(
       self,
-      name: str = None,
-      description: str = None,
-      inputs: List[ParameterMeta] = None,
-      outputs: List[ParameterMeta] = None
+      name: str = '',
+      description: str = '',
+      inputs: List[ParameterMeta] = [],
+      outputs: List[ParameterMeta] = []
   ):
     self.name = name
     self.description = description
