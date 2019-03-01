@@ -60,7 +60,7 @@ class ParameterMeta(BaseMeta):
       name: str = '',
       description: str = '',
       param_type: TypeMeta = TypeMeta(),
-      default: str = ''):
+      default = ''):
     self.name = name
     self.description = description
     self.param_type = param_type
