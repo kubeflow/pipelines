@@ -59,15 +59,18 @@ class ParameterMeta(BaseMeta):
   def __init__(self,
       name: str = '',
       description: str = '',
-      param_type: TypeMeta = TypeMeta()):
+      param_type: TypeMeta = TypeMeta(),
+      default: str = ''):
     self.name = name
     self.description = description
     self.param_type = param_type
+    self.default = default
 
   def to_dict(self):
     return {'name': self.name,
             'description': self.description,
-            'type': self.param_type.to_dict()}
+            'type': self.param_type.to_dict(),
+            'default': self.default}
 
 class ComponentMeta(BaseMeta):
   def __init__(
