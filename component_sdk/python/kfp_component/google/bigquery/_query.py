@@ -22,6 +22,20 @@ from .. import common as gcp_common
 
 def query(query, project_id, dataset_id, table_id=None, 
     output_gcs_path=None, job_config=None):
+    """Submit a query to Bigquery service and dump outputs to a GCS blob.
+
+    Args:
+        query (str): The query used by Bigquery service to fetch the results.
+        project_id (str): The project to execute the query job.
+        dataset_id (str): The ID of the persistent dataset to keep the results
+            of the query.
+        table_id (str): The ID of the table to keep the results of the query. If
+            absent, the operation will generate a random id for the table.
+        output_gcs_path (str): The GCS blob path to dump the query results to.
+        job_config (dict): The full config spec for the query job.
+    Returns:
+        The API representation of the completed query job.
+    """
     client = bigquery.Client(project=project_id)
     if not job_config:
         job_config = bigquery.QueryJobConfig()
@@ -48,6 +62,7 @@ def query(query, project_id, dataset_id, table_id=None,
             if not extract_job:
                 extract_job = client.extract_table(table_ref, output_gcs_path)
             extract_job.result()  # Wait for export to finish
+        _dump_outputs(query_job, output_gcs_path)
         return query_job.to_api_repr()
 
 def _get_job(client, job_id):
@@ -63,6 +78,10 @@ def _display_job_link(project_id, job_id):
         text='Query Details'
     ))
 
-def _dump_outputs(job):
-    gcp_common.dump_file('/tmp/outputs/bigquery-job.json', 
+def _dump_outputs(job, output_path):
+    gcp_common.dump_file('/tmp/kfp/output/biquery/query-job.json', 
         json.dumps(job.to_api_repr()))
+    if not output_path:
+        output_path = ''
+    gcp_common.dump_file('/tmp/kfp/output/biquery/query-output-path.txt', 
+        output_path)
