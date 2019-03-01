@@ -71,7 +71,6 @@ class MetaGCSPath(MetaType):
 	openapi_schema_validator = '''{
 		"type": "string",
 		"pattern": "^gs://$"
-		}
 	}'''
 	# path_type describes the paths, for example, bucket, directory, file, etc.
 	path_type = ''

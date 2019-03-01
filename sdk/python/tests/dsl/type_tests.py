@@ -26,14 +26,8 @@ class TestTypes(unittest.TestCase):
             'path_type': 'file',
             'file_type': 'csv',
             'openapi_schema_validator': '''{
-		"type": "object",
-		"properties": {
-			"path": {
-				"type": "string",
-				"pattern": "^gs://$"
-			}
-		}
-
+		"type": "string",
+		"pattern": "^gs://$"
 	}'''
         }
     }
