@@ -68,8 +68,9 @@ def _annotation_to_typemeta(annotation):
     arg_type = TypeMeta.from_dict(annotation)
   else:
     raise ValueError('Annotation ' + str(annotation) + ' is not valid. Use core types, str, or dict.')
+  return arg_type
 
-def component():
+def component(func):
   """Decorator for component functions that use ContainerOp.
   This is useful to enable type checking in the DSL compiler
 
@@ -79,7 +80,7 @@ def component():
   def foobar(model: TFModel(), step: MLStep()):
     return dsl.ContainerOp()
   """
-  def _component(func):
+  def _component(*args, **kargs):
     import inspect
     fullargspec = inspect.getfullargspec(func)
     args = fullargspec.args
@@ -96,9 +97,16 @@ def component():
     # Outputs
     for output in annotations['return']:
       arg_type = _annotation_to_typemeta(annotations['return'][output])
-      component_meta.inputs.append(ParameterMeta(name=output, description='', param_type=arg_type))
+      component_meta.outputs.append(ParameterMeta(name=output, description='', param_type=arg_type))
 
     #TODO: add descriptions to the metadata
-    return func
+    #docstring parser:
+    #  https://github.com/rr-/docstring_parser
+    #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
+
+    print(component_meta.serialize())
+    #TODO: parse the metadata to the ContainerOp.
+    container_op = func(*args, **kargs)
+    return container_op
 
   return _component
