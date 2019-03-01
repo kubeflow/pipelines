@@ -48,7 +48,7 @@ class MetaBool(MetaType):
 	}'''
 
 def Bool(attr={}):
-	return type('Boolean', (MetaBool, ), attr)
+	return type('Bool', (MetaBool, ), attr)
 
 class MetaList(MetaType):
 	openapi_schema_validator = '''{
@@ -78,9 +78,6 @@ class MetaGCSPath(MetaType):
 	# file_type describes the files, for example, JSON, CSV, etc.
 	file_type = ''
 
-	def __init__(self, path):
-		self.path = path
-
 def GCSPath(attr={}):
 	return type('GCSPath', (MetaGCSPath, ), attr)
 
@@ -96,21 +93,14 @@ def GCRPath(attr={}):
 
 class MetaGCPRegion(MetaType):
 	openapi_schema_validator = '''{
-		"type": "object",
-			"properties": {
-				"region": {
-					"type": "string", 
-					"enum": ["asia-east1","asia-east2","asia-northeast1",
+		"type": "string", 
+		"enum": ["asia-east1","asia-east2","asia-northeast1",
 					"asia-south1","asia-southeast1","australia-southeast1",
 					"europe-north1","europe-west1","europe-west2",
 					"europe-west3","europe-west4","northamerica-northeast1",
 					"southamerica-east1","us-central1","us-east1",
 					"us-east4","us-west1", "us-west4" ]
-				}
 	}'''
-
-	def __init__(self, region):
-		self.region = region
 
 def GCPRegion(attr={}):
 	return type('GCPRegion', (MetaGCPRegion, ), attr)
