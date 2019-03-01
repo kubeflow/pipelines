@@ -12,4 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import ml_engine, dataflow
+from ._client import MLEngineClient
+
+def set_default_version(version_name):
+    """Set specified version as default version.
+    """
+    return MLEngineClient().set_default_version(version_name)
