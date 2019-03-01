@@ -1,9 +1,11 @@
-package test
+package integration
 
 import (
 	"io/ioutil"
 	"testing"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/test"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
@@ -37,11 +39,11 @@ func (s *PipelineApiTest) SetupTest() {
 		return
 	}
 
-	err := waitForReady(*namespace, *initializeTimeout)
+	err := test.WaitForReady(*namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 	}
-	clientConfig := getClientConfig(*namespace)
+	clientConfig := test.GetClientConfig(*namespace)
 	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
@@ -55,15 +57,15 @@ func (s *PipelineApiTest) SetupTest() {
 func (s *PipelineApiTest) TestPipelineAPI() {
 	t := s.T()
 
-	deleteAllPipelines(s.pipelineClient, t)
+	test.DeleteAllPipelines(s.pipelineClient, t)
 
 	/* ---------- Upload pipelines YAML ---------- */
-	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
+	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
 	assert.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.Name)
 
 	/* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
-	_, err = s.pipelineUploadClient.UploadFile("resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
+	_, err = s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to upload pipeline.")
 
@@ -78,7 +80,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUploadPipeline, err := s.pipelineUploadClient.UploadFile(
-		"resources/zip-arguments.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
+		"../resources/zip-arguments.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
 	assert.Nil(t, err)
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
@@ -172,14 +174,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Verify get template works ---------- */
 	template, err := s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: argumentYAMLPipeline.ID})
 	assert.Nil(t, err)
-	expected, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
+	expected, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	var expectedWorkflow v1alpha1.Workflow
 	err = yaml.Unmarshal(expected, &expectedWorkflow)
 	assert.Equal(t, expectedWorkflow, *template)
 
 	/* ---------- Clean up ---------- */
-	deleteAllPipelines(s.pipelineClient, t)
+	test.DeleteAllPipelines(s.pipelineClient, t)
 }
 
 func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
