@@ -16,13 +16,14 @@
 
 import { Apis } from '../lib/Apis';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
-import { PlotType } from '../components/viewers/Viewer';
-import { StoragePath, StorageService } from './WorkflowParser';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+// import { MarkdownViewerConfig } from '../components/viewers/MarkdownViewer';
 import { OutputArtifactLoader } from './OutputArtifactLoader';
 import { PagedTableConfig } from '../components/viewers/PagedTable';
-import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { PlotType } from '../components/viewers/Viewer';
 import { ROCCurveConfig } from '../components/viewers/ROCCurve';
+import { StoragePath, StorageService } from './WorkflowParser';
+import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
 
 describe('OutputArtifactLoader', () => {
   const storagePath: StoragePath = { bucket: 'b', key: 'k', source: StorageService.GCS };
