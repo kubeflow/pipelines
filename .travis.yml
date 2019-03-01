@@ -54,10 +54,11 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - ./build.sh /tmp/kfp.tar.gz
         - pip install /tmp/kfp.tar.gz
-        - pip install coverage
+        - pip install coverage coveralls
         - coverage run --include=*/kfp/* --append tests/dsl/main.py
         - coverage run --include=*/kfp/* --append tests/compiler/main.py
         - coverage run --include=*/kfp/* --append -m unittest discover --verbose --start-dir tests --top-level-directory=..
+        - coveralls
 
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/component_sdk/python
