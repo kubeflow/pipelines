@@ -19,41 +19,41 @@ class BaseType:
 
 # Primitive Types
 class Integer(BaseType):
-	openapi_schema_validator = '''{
+	openapi_schema_validator = {
 		"type": "integer"
-	}'''
+	}
 
 class String(BaseType):
-	openapi_schema_validator = '''{
+	openapi_schema_validator = {
 		"type": "string"
-	}'''
+	}
 
 class Float(BaseType):
-	openapi_schema_validator = '''{
+	openapi_schema_validator = {
 		"type": "number"
-	}'''
+	}
 
 class Bool(BaseType):
-	openapi_schema_validator = '''{
+	openapi_schema_validator = {
 		"type": "boolean"
-	}'''
+	}
 
 class List(BaseType):
-	openapi_schema_validator = '''{
+	openapi_schema_validator = {
 		"type": "array"
-	}'''
+	}
 
 class Dict(BaseType):
-	openapi_schema_validator = '''{
+	openapi_schema_validator = {
 		"type": "object",
-	}'''
+	}
 
 # GCP Types
 class GCSPath(BaseType):
-	openapi_schema_validator = '''{
+	openapi_schema_validator = {
 		"type": "string",
 		"pattern": "^gs://$"
-	}'''
+	}
 
 	def __init__(self, path_type='', file_type=''):
 		'''
@@ -65,14 +65,13 @@ class GCSPath(BaseType):
 		self.file_type = file_type
 
 class GCRPath(BaseType):
-	openapi_schema_validator = '''{
+	openapi_schema_validator = {
 		"type": "string",
 		"pattern": "^(us.|eu.|asia.)?gcr\\.io/.*$"
-		}
-	}'''
+	}
 
 class GCPRegion(BaseType):
-	openapi_schema_validator = '''{
+	openapi_schema_validator = {
 		"type": "string", 
 		"enum": ["asia-east1","asia-east2","asia-northeast1",
 					"asia-south1","asia-southeast1","australia-southeast1",
@@ -80,20 +79,20 @@ class GCPRegion(BaseType):
 					"europe-west3","europe-west4","northamerica-northeast1",
 					"southamerica-east1","us-central1","us-east1",
 					"us-east4","us-west1", "us-west4" ]
-	}'''
+	}
 
 class GCPProjectID(BaseType):
 	'''MetaGCPProjectID: GCP project id'''
-	openapi_schema_validator = '''{
+	openapi_schema_validator = {
 		"type": "string"
-	}'''
+	}
 
 # General Types
 class LocalPath(BaseType):
 	#TODO: add restriction to path
-	openapi_schema_validator = '''{
+	openapi_schema_validator = {
 		"type": "string"
-	}'''
+	}
 
 class InconsistentTypeException(Exception):
 	'''InconsistencyTypeException is raised when two types are not consistent'''
