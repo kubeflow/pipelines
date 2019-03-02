@@ -69,6 +69,9 @@ def launch_template(project_id, gcs_path, launch_parameters,
             launch_parameters['jobName'] = job_name
             response = df_client.launch_template(project_id, gcs_path, 
                 location, validate_only, launch_parameters)
-            job = response.get('job')
+            job = response.get('job', None)
+        if not job:
+            # Validate only mode
+            return job
         return wait_and_dump_job(df_client, project_id, location, job,
             wait_interval)
