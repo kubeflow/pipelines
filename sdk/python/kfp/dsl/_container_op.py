@@ -127,7 +127,7 @@ def _annotation_to_typemeta(annotation):
       raise ValueError('Annotation ' + str(annotation) + ' is not a valid type dictionary.')
     arg_type = TypeMeta.from_dict(annotation)
   else:
-    raise ValueError('Annotation ' + str(annotation) + ' is not valid. Use core types, str, or dict.')
+    return TypeMeta()
   return arg_type
 
 class ContainerOp(object):
