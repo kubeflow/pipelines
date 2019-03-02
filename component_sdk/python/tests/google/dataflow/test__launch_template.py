@@ -34,6 +34,7 @@ class LaunchTemplateTest(unittest.TestCase):
             'job': { 'id': 'job-1' }
         }
         expected_job = {
+            'id': 'job-1',
             'currentState': 'JOB_STATE_DONE'
         }
         mock_client().get_job.return_value = expected_job
@@ -64,6 +65,7 @@ class LaunchTemplateTest(unittest.TestCase):
             'currentState': 'JOB_STATE_PENDING'
         }
         expected_job = {
+            'id': 'job-1',
             'currentState': 'JOB_STATE_DONE'
         }
         mock_client().get_job.side_effect = [pending_job, expected_job]
@@ -89,6 +91,7 @@ class LaunchTemplateTest(unittest.TestCase):
             'job': { 'id': 'job-1' }
         }
         failed_job = {
+            'id': 'job-1',
             'currentState': 'JOB_STATE_FAILED'
         }
         mock_client().get_job.return_value = failed_job
