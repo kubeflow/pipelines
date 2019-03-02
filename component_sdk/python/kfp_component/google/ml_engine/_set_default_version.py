@@ -12,25 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  generateName: arguments-parameters-
-spec:
-  entrypoint: whalesay
-  arguments:
-    parameters:
-    - name: param1
-      value: hello
-    - name: param2
+from ._client import MLEngineClient
 
-  templates:
-  - name: whalesay
-    inputs:
-      parameters:
-      - name: param1
-      - name: param2
-    container:
-      image: docker/whalesay:latest
-      command: [cowsay]
-      args: ["{{inputs.parameters.param1}}-{{inputs.parameters.param2}}"]
+def set_default_version(version_name):
+    """Set specified version as default version.
+    """
+    return MLEngineClient().set_default_version(version_name)
