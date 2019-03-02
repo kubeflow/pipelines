@@ -19,7 +19,7 @@ from ._pipeline_param import _extract_pipelineparams
 import re
 from typing import Dict, List
 from abc import ABCMeta, abstractmethod
-from ._types import _check_valid_dict
+from ._types import _check_valid_dict, BaseType, _instance_to_dict, _str_to_dict
 
 class BaseMeta(object):
   __metaclass__ = ABCMeta
@@ -110,6 +110,25 @@ class PipelineMeta(BaseMeta):
             'description': self.description,
             'inputs': [ input.to_dict() for input in self.inputs ]
             }
+
+def _annotation_to_typemeta(annotation):
+  '''_annotation_to_type_meta converts an annotation to an instance of TypeMeta
+  Args:
+    annotation(BaseType/str/dict): input/output annotations
+  Returns:
+    TypeMeta
+    '''
+  if isinstance(annotation, BaseType):
+    arg_type = TypeMeta.from_dict(_instance_to_dict(annotation))
+  elif isinstance(annotation, str):
+    arg_type = TypeMeta.from_dict(_str_to_dict(annotation))
+  elif isinstance(annotation, dict):
+    if not _check_valid_dict(annotation):
+      raise ValueError('Annotation ' + str(annotation) + ' is not a valid type dictionary.')
+    arg_type = TypeMeta.from_dict(annotation)
+  else:
+    raise ValueError('Annotation ' + str(annotation) + ' is not valid. Use core types, str, or dict.')
+  return arg_type
 
 class ContainerOp(object):
   """Represents an op implemented by a docker container image."""

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from kfp.dsl import ComponentMeta, ParameterMeta, TypeMeta
-from ._types import _instance_to_dict,_str_to_dict, _check_valid_dict, BaseType
+from ._container_op import _annotation_to_typemeta
 
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
   """Decorator for Python component functions.
@@ -50,25 +50,6 @@ def python_component(name, description=None, base_image=None, target_component_f
     return func
 
   return _python_component
-
-def _annotation_to_typemeta(annotation):
-  '''_annotation_to_type_meta converts an annotation to an instance of TypeMeta
-  Args:
-    annotation(BaseType/str/dict): input/output annotations
-  Returns:
-    TypeMeta
-    '''
-  if isinstance(annotation, BaseType):
-    arg_type = TypeMeta.from_dict(_instance_to_dict(annotation))
-  elif isinstance(annotation, str):
-    arg_type = TypeMeta.from_dict(_str_to_dict(annotation))
-  elif isinstance(annotation, dict):
-    if not _check_valid_dict(annotation):
-      raise ValueError('Annotation ' + str(annotation) + ' is not a valid type dictionary.')
-    arg_type = TypeMeta.from_dict(annotation)
-  else:
-    raise ValueError('Annotation ' + str(annotation) + ' is not valid. Use core types, str, or dict.')
-  return arg_type
 
 def component(func):
   """Decorator for component functions that use ContainerOp.
