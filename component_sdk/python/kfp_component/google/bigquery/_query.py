@@ -22,7 +22,7 @@ from kfp_component.core import KfpExecutionContext, display
 from .. import common as gcp_common
 
 def query(query, project_id, dataset_id=None, table_id=None, 
-    output_gcs_path=None, job_config=None):
+    output_gcs_path=None, dataset_location='US', job_config=None):
     """Submit a query to Bigquery service and dump outputs to a GCS blob.
     
     Args:
@@ -34,6 +34,7 @@ def query(query, project_id, dataset_id=None, table_id=None,
         table_id (str): The ID of the table to keep the results of the query. If
             absent, the operation will generate a random id for the table.
         output_gcs_path (str): The GCS blob path to dump the query results to.
+        dataset_location (str): The location to create the dataset. Defaults to `US`.
         job_config (dict): The full config spec for the query job.
     Returns:
         The API representation of the completed query job.
@@ -52,7 +53,8 @@ def query(query, project_id, dataset_id=None, table_id=None,
         query_job = _get_job(client, job_id)
         table_ref = None
         if not query_job:
-            dataset_ref = _prepare_dataset_ref(client, dataset_id, output_gcs_path)
+            dataset_ref = _prepare_dataset_ref(client, dataset_id, output_gcs_path, 
+                dataset_location)
             if dataset_ref:
                 if not table_id:
                     table_id = job_id
@@ -80,7 +82,7 @@ def _get_job(client, job_id):
     except exceptions.NotFound:
         return None
 
-def _prepare_dataset_ref(client, dataset_id, output_gcs_path):
+def _prepare_dataset_ref(client, dataset_id, output_gcs_path, dataset_location):
     if not output_gcs_path and not dataset_id:
         return None
     
@@ -90,7 +92,7 @@ def _prepare_dataset_ref(client, dataset_id, output_gcs_path):
     dataset = _get_dataset(client, dataset_ref)
     if not dataset:
         logging.info('Creating dataset {}'.format(dataset_id))
-        dataset = _create_dataset(client, dataset_ref)
+        dataset = _create_dataset(client, dataset_ref, dataset_location)
     return dataset_ref
 
 def _get_dataset(client, dataset_ref):
@@ -99,9 +101,9 @@ def _get_dataset(client, dataset_ref):
     except exceptions.NotFound:
         return None
 
-def _create_dataset(client, dataset_ref):
+def _create_dataset(client, dataset_ref, location):
     dataset = bigquery.Dataset(dataset_ref)
-    dataset.location = "US"
+    dataset.location = location
     return client.create_dataset(dataset)
 
 def _display_job_link(project_id, job_id):
