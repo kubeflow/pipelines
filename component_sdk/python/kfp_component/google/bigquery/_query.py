@@ -21,6 +21,9 @@ from google.api_core import exceptions
 from kfp_component.core import KfpExecutionContext, display
 from .. import common as gcp_common
 
+# TODO(hongyes): make this path configurable as a environment variable
+KFP_OUTPUT_PATH = '/tmp/kfp/output/'
+
 def query(query, project_id, dataset_id=None, table_id=None, 
     output_gcs_path=None, dataset_location='US', job_config=None):
     """Submit a query to Bigquery service and dump outputs to a GCS blob.
@@ -71,7 +74,7 @@ def query(query, project_id, dataset_id=None, table_id=None,
             extract_job.result()  # Wait for export to
         else:
             # Download results to local disk if no gcs output path.
-            gcp_common.dump_file('/tmp/kfp/output/bigquery/query_output.csv', 
+            gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query_output.csv', 
                 query_result.to_dataframe().to_csv())
         _dump_outputs(query_job, output_gcs_path)
         return query_job.to_api_repr()
@@ -114,9 +117,9 @@ def _display_job_link(project_id, job_id):
     ))
 
 def _dump_outputs(job, output_path):
-    gcp_common.dump_file('/tmp/kfp/output/biquery/query-job.json', 
+    gcp_common.dump_file(KFP_OUTPUT_PATH + 'biquery/query-job.json', 
         json.dumps(job.to_api_repr()))
     if not output_path:
         output_path = ''
-    gcp_common.dump_file('/tmp/kfp/output/biquery/query-output-path.txt', 
+    gcp_common.dump_file(KFP_OUTPUT_PATH + 'biquery/query-output-path.txt', 
         output_path)
