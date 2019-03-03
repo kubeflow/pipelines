@@ -88,6 +88,7 @@ gapic-google-cloud-pubsub-v1,https://raw.githubusercontent.com/googleapis/api-cl
 google-apitools,https://raw.githubusercontent.com/google/apitools/master/LICENSE,Apache 2.0
 google-auth-library-python-httplib2,https://raw.githubusercontent.com/GoogleCloudPlatform/google-auth-library-python-httplib2/master/LICENSE,Apache 2.0
 google-cloud-bigquery,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-python/master/bigquery/LICENSE,Apache 2.0
+google-cloud-bigtable,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-python/master/bigtable/LICENSE,Apache 2.0
 google-cloud-core,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-python/master/core/LICENSE,Apache 2.0
 google-cloud-pubsub,https://raw.githubusercontent.com/GoogleCloudPlatform/google-cloud-python/master/pubsub/LICENSE,Apache 2.0
 google-gax,https://raw.githubusercontent.com/googleapis/gax-python/master/LICENSE,Apache 2.0
@@ -181,3 +182,8 @@ google-api-core,https://raw.githubusercontent.com/googleapis/google-cloud-python
 google-resumable-media,https://raw.githubusercontent.com/googleapis/google-resumable-media-python/master/LICENSE,Apache 2.0
 trainer,https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE,Apache 2.0
 pyarrow,https://raw.githubusercontent.com/apache/arrow/master/LICENSE.txt,Apache 2.0
+attrs,https://raw.githubusercontent.com/python-attrs/attrs/master/LICENSE,MIT
+pyrsistent,https://raw.githubusercontent.com/tobgu/pyrsistent/master/LICENCE.mit,MIT
+fire,https://raw.githubusercontent.com/google/python-fire/master/LICENSE,Apache 2.0
+kfp-component,https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE,Apache 2.0
+google-cloud-storage,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0

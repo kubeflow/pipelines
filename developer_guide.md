@@ -102,13 +102,17 @@ Secret Key:minio123
 
 **Q: I see an error of exceeding Github rate limit when deploying the system. What can I do?**
 
-See Ksonnet troubleshooting page [page](https://github.com/ksonnet/ksonnet/blob/master/docs/troubleshooting.md#github-rate-limiting-errors)
+See [Ksonnet troubleshooting page](https://github.com/ksonnet/ksonnet/blob/master/docs/troubleshooting.md#github-rate-limiting-errors)
 
 **Q: How do I check my API server log?**
 
 API server logs are located at /tmp directory of the pod. To SSH into the pod, run:
 ```bash
-kubectl exec -it -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE}) -- /bin/bash
+kubectl exec -it -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE}) -- /bin/sh
+```
+or
+```bash
+kubectl logs -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE})
 ```
 
 **Q: How to check my cluster status if I am using Minikube?**

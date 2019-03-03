@@ -32,7 +32,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import WarningIcon from '@material-ui/icons/WarningRounded';
 import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
-import { fonts, fontsize, dimension, commonCss, color, padding } from '../Css';
+import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
 import { logger } from '../lib/Utils';
 import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { debounce } from 'lodash';
@@ -169,6 +169,7 @@ export const css = stylesheet({
   },
   selectionToggle: {
     marginRight: 12,
+    minWidth: 32,
   },
   verticalAlignInitial: {
     verticalAlign: 'initial',
@@ -348,7 +349,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
           {/* Busy experience */}
           {this.state.isBusy && (<React.Fragment>
             <div className={commonCss.busyOverlay} />
-            <CircularProgress size={25} className={commonCss.absoluteCenter} style={{ zIndex: 2 }} />
+            <CircularProgress size={25} className={commonCss.absoluteCenter}
+              style={{ zIndex: zIndex.BUSY_OVERLAY }} />
           </React.Fragment>)}
 
           {/* Empty experience */}

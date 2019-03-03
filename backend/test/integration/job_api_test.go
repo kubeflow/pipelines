@@ -1,9 +1,11 @@
-package test
+package integration
 
 import (
 	"io/ioutil"
 	"testing"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/test"
 
 	"github.com/golang/glog"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
@@ -39,12 +41,12 @@ func (s *JobApiTestSuite) SetupTest() {
 		return
 	}
 
-	err := waitForReady(*namespace, *initializeTimeout)
+	err := test.WaitForReady(*namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 	}
 	s.namespace = *namespace
-	clientConfig := getClientConfig(*namespace)
+	clientConfig := test.GetClientConfig(*namespace)
 	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
@@ -71,7 +73,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	t := s.T()
 
 	/* ---------- Upload pipelines YAML ---------- */
-	helloWorldPipeline, err := s.pipelineUploadClient.UploadFile("resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
+	helloWorldPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world experiment ---------- */
@@ -108,7 +110,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new argument parameter job by uploading workflow manifest ---------- */
-	argParamsBytes, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
+	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)
@@ -206,10 +208,10 @@ func (s *JobApiTestSuite) TestJobApis() {
 	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsJob.ID)
 
 	/* ---------- Clean up ---------- */
-	deleteAllExperiments(s.experimentClient, t)
-	deleteAllPipelines(s.pipelineClient, t)
-	deleteAllJobs(s.jobClient, t)
-	deleteAllRuns(s.runClient, t)
+	test.DeleteAllExperiments(s.experimentClient, t)
+	test.DeleteAllPipelines(s.pipelineClient, t)
+	test.DeleteAllJobs(s.jobClient, t)
+	test.DeleteAllRuns(s.runClient, t)
 }
 
 func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, pipelineID string) {
@@ -240,7 +242,7 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 }
 
 func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob, experimentID string) {
-	argParamsBytes, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
+	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)

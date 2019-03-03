@@ -15,7 +15,8 @@ FROM python:3.5 as compiler
 RUN apt-get update -y && \
   apt-get install --no-install-recommends -y -q default-jdk wget
 RUN pip3 install setuptools==40.5.0
-RUN wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
+
+RUN wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar
 
 # WORKDIR /go/src/github.com/kubeflow/pipelines
 WORKDIR /go/src/github.com/kubeflow/pipelines
@@ -57,4 +58,4 @@ RUN apt-get update && apt-get install -y ca-certificates
 EXPOSE 8888
 
 # Start the apiserver
-CMD apiserver --config=/config --sampleconfig=/config/sample_config.json
+CMD apiserver --config=/config --sampleconfig=/config/sample_config.json -alsologtostderr=true

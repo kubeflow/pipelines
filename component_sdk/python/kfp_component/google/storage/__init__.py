@@ -12,25 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  generateName: arguments-parameters-
-spec:
-  entrypoint: whalesay
-  arguments:
-    parameters:
-    - name: param1
-      value: hello
-    - name: param2
-
-  templates:
-  - name: whalesay
-    inputs:
-      parameters:
-      - name: param1
-      - name: param2
-    container:
-      image: docker/whalesay:latest
-      command: [cowsay]
-      args: ["{{inputs.parameters.param1}}-{{inputs.parameters.param2}}"]
+from ._download_blob import download_blob
+from ._common_ops import parse_blob_path, is_gcs_path

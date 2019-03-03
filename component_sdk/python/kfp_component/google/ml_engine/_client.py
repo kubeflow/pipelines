@@ -81,25 +81,22 @@ class MLEngineClient:
             body = model
         ).execute()
 
-    def get_model(self, project_id, model_name):
+    def get_model(self, model_name):
         """Gets a model.
 
         Args:
-            project_id: the ID of the parent project.
             model_name: the name of the model.
         Returns:
             The retrieved model.
         """
         return self._ml_client.projects().models().get(
-            name = 'projects/{}/models/{}'.format(
-                project_id, model_name)
+            name = model_name
         ).execute()
 
-    def create_version(self, project_id, model_name, version):
+    def create_version(self, model_name, version):
         """Creates a new version.
 
         Args:
-            project_id: the ID of the parent project.
             model_name: the name of the parent model.
             version: the payload of the version.
 
@@ -107,16 +104,14 @@ class MLEngineClient:
             The created version.
         """
         return self._ml_client.projects().models().versions().create(
-            parent = 'projects/{}/models/{}'.format(project_id, model_name),
+            parent = model_name,
             body = version
         ).execute()
 
-    def get_version(self, project_id, model_name, version_name):
+    def get_version(self, version_name):
         """Gets a version.
 
         Args:
-            project_id: the ID of the parent project.
-            model_name: the name of the parent model.
             version_name: the name of the version.
 
         Returns:
@@ -124,20 +119,17 @@ class MLEngineClient:
         """
         try:
             return self._ml_client.projects().models().versions().get(
-                name = 'projects/{}/models/{}/versions/{}'.format(
-                    project_id, model_name, version_name)
+                name = version_name
             ).execute()
         except errors.HttpError as e:
             if e.resp.status == 404:
                 return None
             raise
 
-    def delete_version(self, project_id, model_name, version_name):
+    def delete_version(self, version_name):
         """Deletes a version.
 
         Args:
-            project_id: the ID of the parent project.
-            model_name: the name of the parent model.
             version_name: the name of the version.
 
         Returns:
@@ -145,14 +137,18 @@ class MLEngineClient:
         """
         try:
             return self._ml_client.projects().models().versions().delete(
-                name = 'projects/{}/models/{}/versions/{}'.format(
-                    project_id, model_name, version_name)
+                name = version_name
             ).execute()
         except errors.HttpError as e:
             if e.resp.status == 404:
                 logging.info('The version has already been deleted.')
                 return None
             raise
+
+    def set_default_version(self, version_name):
+        return self._ml_client.projects().models().versions().setDefault(
+            name = version_name
+        ).execute()
 
     def get_operation(self, operation_name):
         """Gets an operation.

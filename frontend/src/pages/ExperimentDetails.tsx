@@ -64,7 +64,7 @@ const css = stylesheet({
     lineHeight: '28px',
   },
   cardRow: {
-    borderBottom: '1px solid #eee',
+    borderBottom: `1px solid ${color.lightGrey}`,
     display: 'flex',
     flexFlow: 'row',
     minHeight: 120,
