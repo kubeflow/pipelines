@@ -358,11 +358,18 @@ func (s *RunStore) UpdateRun(runID string, condition string, workflowRuntimeMani
 		return util.NewInternalServerError(err, "transaction creation failed")
 	}
 
+	// Lock the row for update, so we ensure no other update of the same run
+	// happens while we're parsing it for metadata. We rely on per-row updates
+	// being synchronous, so metadata can be recorded at most once. Right now,
+	// persistence agent will call UpdateRun all the time, even if there is nothing
+	// new in the status of an Argo manifest. This means we need to keep track
+	// manually here on what the previously updated state of the run is, to ensure
+	// we do not add duplicate metadata. Hence the locking below.
 	row := tx.QueryRow("SELECT WorkflowRuntimeManifest FROM run_details WHERE UUID = ? FOR UPDATE", runID)
 	var storedManifest string
 	if err := row.Scan(&storedManifest); err != nil {
 		tx.Rollback()
-		return util.NewResourceNotFoundError("Run", runID)
+		return util.NewInternalServerError(err, "failed to find row with run id %q", runID)
 	}
 
 	if s.metadataStore != nil {

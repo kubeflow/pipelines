@@ -58,6 +58,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		return nil, err
 	}
 
+	// TODO(neuromage): Pass in metadata.Store instance for tests as well.
 	return &FakeClientManager{
 		db:                          db,
 		experimentStore:             storage.NewExperimentStore(db, time, uuid),

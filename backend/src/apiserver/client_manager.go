@@ -135,6 +135,18 @@ func (c *ClientManager) init() {
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
 
+	metadataStore := initMetadataStore()
+	runStore := storage.NewRunStore(db, c.time, metadataStore)
+	c.runStore = runStore
+
+	glog.Infof("Client manager initialized successfully")
+}
+
+func (c *ClientManager) Close() {
+	c.db.Close()
+}
+
+func initMetadataStore() *metadata.Store {
 	port, err := strconv.Atoi(getStringConfig(mysqlServicePort))
 	if err != nil {
 		glog.Fatalf("Failed to parse valid MySQL service port from %q: %v", getStringConfig(mysqlServicePort), err)
@@ -155,15 +167,7 @@ func (c *ClientManager) init() {
 	if err != nil {
 		glog.Fatalf("Failed to create ML Metadata store: %v", err)
 	}
-	metadataStore := metadata.NewStore(mlmdStore)
-	runStore := storage.NewRunStore(db, c.time, metadataStore)
-	c.runStore = runStore
-
-	glog.Infof("Client manager initialized successfully")
-}
-
-func (c *ClientManager) Close() {
-	c.db.Close()
+	return metadata.NewStore(mlmdStore)
 }
 
 func initDBClient(initConnectionTimeout time.Duration) *storage.DB {

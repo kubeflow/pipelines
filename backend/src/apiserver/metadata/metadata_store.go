@@ -2,30 +2,32 @@ package metadata
 
 import (
 	"encoding/json"
-	"fmt"
+	"ml_metadata/metadata_store/mlmetadata"
+	mlpb "ml_metadata/proto/metadata_store_go_proto"
 	"strings"
 
 	argoWorkflow "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-
-	"ml_metadata/metadata_store/mlmetadata"
-	mlpb "ml_metadata/proto/metadata_store_go_proto"
 )
 
-// Store ...
+// Store encapsulates a ML Metadata store.
 type Store struct {
 	mlmdStore *mlmetadata.Store
 }
 
-// NewStore ...
+// NewStore creates a new Store, using mlmdStore as the backing ML Metadata
+// store.
 func NewStore(mlmdStore *mlmetadata.Store) *Store {
 	return &Store{mlmdStore: mlmdStore}
 }
 
-// RecordOutputArtifacts ...
-func (s *Store) RecordOutputArtifacts(runID string, storedManifest, currentManifest string) error {
+// RecordOutputArtifacts records metadata on artifacts as parsed from the Argo
+// output parameters in currentManifest. storedManifest represents the currently
+// stored manifest for the run with id runID, and is used to ensure metadata is
+// recorded at most once per artifact.
+func (s *Store) RecordOutputArtifacts(runID, storedManifest, currentManifest string) error {
 	storedWorkflow := &argoWorkflow.Workflow{}
 	if err := json.Unmarshal([]byte(storedManifest), storedWorkflow); err != nil {
 		return util.NewInternalServerError(err, "unmarshaling workflow failed")
@@ -57,24 +59,30 @@ func (s *Store) RecordOutputArtifacts(runID string, storedManifest, currentManif
 						return util.NewInternalServerError(err, "metadata parsing failure")
 					}
 
-					for _, a := range artifacts {
-						id, err := s.mlmdStore.PutArtifactType(
-							a.ArtifactType, &mlmetadata.PutTypeOptions{AllFieldsMustMatch: true})
-						if err != nil {
-							return util.NewInternalServerError(err, "failed to register artifact type")
-						}
-						a.Artifact.TypeId = proto.Int64(int64(id))
-						_, err = s.mlmdStore.PutArtifacts([]*mlpb.Artifact{a.Artifact})
-						if err != nil {
-							return util.NewInternalServerError(err, "failed to record artifact")
-						}
-
+					if err := s.storeArtifacts(artifacts); err != nil {
+						return util.NewInternalServerError(err, "artifact storing failure")
 					}
 				}
 			}
 		}
 	}
 
+	return nil
+}
+
+func (s *Store) storeArtifacts(artifacts artifactStructs) error {
+	for _, a := range artifacts {
+		id, err := s.mlmdStore.PutArtifactType(
+			a.ArtifactType, &mlmetadata.PutTypeOptions{AllFieldsMustMatch: true})
+		if err != nil {
+			return util.NewInternalServerError(err, "failed to register artifact type")
+		}
+		a.Artifact.TypeId = proto.Int64(int64(id))
+		_, err = s.mlmdStore.PutArtifacts([]*mlpb.Artifact{a.Artifact})
+		if err != nil {
+			return util.NewInternalServerError(err, "failed to record artifact")
+		}
+	}
 	return nil
 }
 
@@ -85,7 +93,7 @@ type artifactStruct struct {
 
 func (a *artifactStruct) UnmarshalJSON(b []byte) error {
 	errorF := func(err error) error {
-		return fmt.Errorf("JSON Unmarshal failure: %v", err)
+		return util.NewInternalServerError(err, "JSON Unmarshal failure")
 	}
 
 	jsonMap := make(map[string]*json.RawMessage)
@@ -113,7 +121,7 @@ func parseTFXMetadata(value string) (artifactStructs, error) {
 	var tfxArtifacts artifactStructs
 
 	if err := json.Unmarshal([]byte(value), &tfxArtifacts); err != nil {
-		return nil, err
+		return nil, util.NewInternalServerError(err, "parse TFX metadata failure")
 	}
 	return tfxArtifacts, nil
 }

@@ -20,7 +20,6 @@ import (
 	"flag"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"time"
@@ -53,9 +52,6 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 
 func main() {
 	flag.Parse()
-	glog.Infof("starting API server")
-	log.Println("log says hello")
-	fmt.Println("fmt says hello")
 
 	initConfig()
 	clientManager := newClientManager()
