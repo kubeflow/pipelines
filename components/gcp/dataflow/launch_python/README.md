@@ -66,19 +66,17 @@ import json
     name='Dataflow launch python pipeline',
     description='Dataflow launch python pipeline'
 )
-def pipeline():
-    dataflow_python_op(
-        python_file_path='gs://ml-pipeline-playground/samples/dataflow/wc/wc.py',
-        project_id=PROJECT_ID,
-        requirements_file_path='gs://ml-pipeline-playground/samples/dataflow/wc/requirements.txt',
-        location='',
-        job_name_prefix='',
-        args=json.dumps([
-            '--output', '{}/wc/wordcount.out'.format(GCS_WORKING_DIR),
-            '--temp_location', '{}/dataflow/wc/tmp'.format(GCS_WORKING_DIR),
-            '--staging_location', '{}/dataflow/wc/staging'.format(GCS_WORKING_DIR)
-        ]),
-        wait_interval = '30').apply(gcp.use_gcp_secret('user-gcp-sa'))
+def pipeline(
+    python_file_path,
+    project_id,
+    requirements_file_path = '',
+    location = '',
+    job_name_prefix = '',
+    args = '',
+    wait_interval = 30
+):
+    dataflow_python_op(python_file_path, project_id, requirements_file_path, location, job_name_prefix, args,
+        wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
 ```
 
 ### Compile the pipeline
@@ -96,7 +94,16 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
 ```python
 #Specify pipeline argument values
-arguments = {}
+arguments = {
+    'python_file_path': 'gs://ml-pipeline-playground/samples/dataflow/wc/wc.py',
+    'project_id': PROJECT_ID,
+    'requirements_file_path': 'gs://ml-pipeline-playground/samples/dataflow/wc/requirements.txt',
+    'args': json.dumps([
+        '--output', '{}/wc/wordcount.out'.format(GCS_WORKING_DIR),
+        '--temp_location', '{}/dataflow/wc/tmp'.format(GCS_WORKING_DIR),
+        '--staging_location', '{}/dataflow/wc/staging'.format(GCS_WORKING_DIR)
+    ])
+}
 
 #Get or create an experiment and submit a pipeline run
 import kfp
