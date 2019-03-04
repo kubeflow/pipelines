@@ -92,9 +92,8 @@ def component(func):
     #  https://github.com/rr-/docstring_parser
     #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
 
-    print(component_meta.serialize())
-    #TODO: parse the metadata to the ContainerOp.
     container_op = func(*args, **kargs)
+    container_op._set_metadata(component_meta)
     return container_op
 
   return _component
