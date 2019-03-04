@@ -374,8 +374,9 @@ func (s *RunStore) UpdateRun(runID string, condition string, workflowRuntimeMani
 
 	if s.metadataStore != nil {
 		if err := s.metadataStore.RecordOutputArtifacts(runID, storedManifest, workflowRuntimeManifest); err != nil {
-			tx.Rollback()
-			return util.NewInternalServerError(err, "failed to record output artifacts")
+			// Metadata storage failed. Log the error here, but continue to allow the run
+			// to be updated as per usual.
+			glog.Errorf("Failed to record output artifacts: %+v", err)
 		}
 	}
 
