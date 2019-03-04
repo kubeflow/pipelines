@@ -22,6 +22,8 @@ from ._create_model import create_model
 from ._create_version import create_version
 from ._set_default_version import set_default_version
 
+KNOWN_MODEL_NAMES = ['saved_model.pb', 'saved_model.pbtext', 'model.pkl', 'model.pkl', 'model.pkl']
+
 @decorators.SetParseFns(python_version=str, runtime_version=str)
 def deploy(model_uri, project_id, model_id=None, version_id=None, 
     runtime_version=None, python_version=None, version=None, 
@@ -50,7 +52,8 @@ def deploy(model_uri, project_id, model_id=None, version_id=None,
             version as default version in the model.
         wait_interval (int): the interval to wait for a long running operation.
     """
-    model_uri = _search_tf_model_common_exporter_dir(model_uri)
+    storage_client = storage.Client()
+    model_uri = _search_dir_with_model(storage_client, model_uri)
     gcp_common.dump_file('/tmp/kfp/output/ml_engine/model_uri.txt', 
         model_uri)
     model = create_model(project_id, model_id)
@@ -63,17 +66,43 @@ def deploy(model_uri, project_id, model_id=None, version_id=None,
         version = set_default_version(version_name)
     return version
 
-def _search_tf_model_common_exporter_dir(model_uri):
-    bucket_name, blob_name = parse_blob_path(model_uri)
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket(bucket_name)
-    exporter_path = os.path.join(blob_name, 'export/exporter/')
-    iterator = bucket.list_blobs(prefix=exporter_path, delimiter='/')
-    for _ in iterator.pages:
+def _search_dir_with_model(storage_client, model_root_uri):
+    bucket_name, blob_name = parse_blob_path(model_root_uri)
+    bucket = storage_client.bucket(bucket_name)
+    if not blob_name.endswith('/'):
+        blob_name += '/'
+    it = bucket.list_blobs(prefix=blob_name, delimiter='/')
+    for resource in it:
+        basename = os.path.basename(resource.name)
+        if basename in KNOWN_MODEL_NAMES:
+            return model_root_uri
+    model_dir = _search_tf_export_root_dir(storage_client, bucket, blob_name)
+    if not model_dir:
+        model_dir = model_root_uri
+    return model_dir
+
+def _search_tf_export_root_dir(storage_client, bucket, blob_name):
+    export_root_path = os.path.join(blob_name, 'export/')
+    it = bucket.list_blobs(prefix=export_root_path, delimiter='/')
+    for _ in it.pages:
         # Iterate to the last page
         pass
-    if iterator.prefixes:
-        prefixes = list(iterator.prefixes)
-        prefixes.sort(reverse=True)
-        return 'gs://{}/{}'.format(bucket_name, prefixes[0])
-    return model_uri
+    prefixes = it.prefixes
+    print(prefixes)
+    if not prefixes:
+        return None
+    export_path = list(prefixes)[0]
+    print(export_path)
+    return _search_tf_export_dir(storage_client, bucket, export_path)
+
+def _search_tf_export_dir(storage_client, bucket, export_path):
+    it = bucket.list_blobs(prefix=export_path, delimiter='/')
+    for _ in it.pages:
+        # Iterate to the last page
+        pass
+    prefixes = it.prefixes
+    if prefixes:        
+        prefixes_list = list(prefixes)
+        prefixes_list.sort(reverse=True)
+        return 'gs://{}/{}'.format(bucket.name, prefixes_list[0])
+    return None
