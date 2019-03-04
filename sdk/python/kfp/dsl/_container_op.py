@@ -19,7 +19,7 @@ from ._pipeline_param import _extract_pipelineparams
 import re
 from typing import Dict, List
 from abc import ABCMeta, abstractmethod
-from ._types import _check_valid_dict, BaseType, _instance_to_dict, _str_to_dict
+from ._types import _check_valid_type_dict, BaseType, _instance_to_dict, _str_to_dict
 
 class BaseMeta(object):
   __metaclass__ = ABCMeta
@@ -37,16 +37,16 @@ class BaseMeta(object):
 class TypeMeta(BaseMeta):
   def __init__(self,
       name: str = '',
-      properties: Dict = {}):
+      properties: Dict = None):
     self.name = name
-    self.properties = properties
+    self.properties = {} if properties is None else properties
 
   def to_dict(self):
     return {self.name: self.properties}
 
   @staticmethod
   def from_dict(json_dict):
-    if not _check_valid_dict(json_dict):
+    if not _check_valid_type_dict(json_dict):
       raise ValueError(json_dict + ' is not a valid type string')
     type_meta = TypeMeta()
     type_meta.name, type_meta.properties = list(json_dict.items())[0]
@@ -59,11 +59,11 @@ class ParameterMeta(BaseMeta):
   def __init__(self,
       name: str = '',
       description: str = '',
-      param_type: TypeMeta = TypeMeta(),
+      param_type: TypeMeta = None,
       default = ''):
     self.name = name
     self.description = description
-    self.param_type = param_type
+    self.param_type = TypeMeta() if param_type is None else param_type
     self.default = default
 
   def to_dict(self):
@@ -77,13 +77,13 @@ class ComponentMeta(BaseMeta):
       self,
       name: str = '',
       description: str = '',
-      inputs: List[ParameterMeta] = [],
-      outputs: List[ParameterMeta] = []
+      inputs: List[ParameterMeta] = None,
+      outputs: List[ParameterMeta] = None
   ):
     self.name = name
     self.description = description
-    self.inputs = inputs
-    self.outputs = outputs
+    self.inputs = [] if inputs is None else inputs
+    self.outputs = [] if outputs is None else outputs
 
   def to_dict(self):
     return {'name': self.name,
@@ -99,11 +99,11 @@ class PipelineMeta(BaseMeta):
       self,
       name: str = '',
       description: str = '',
-      inputs: List[ParameterMeta] = []
+      inputs: List[ParameterMeta] = None
   ):
     self.name = name
     self.description = description
-    self.inputs = inputs
+    self.inputs = [] if inputs is None else inputs
 
   def to_dict(self):
     return {'name': self.name,
@@ -123,7 +123,7 @@ def _annotation_to_typemeta(annotation):
   elif isinstance(annotation, str):
     arg_type = TypeMeta.from_dict(_str_to_dict(annotation))
   elif isinstance(annotation, dict):
-    if not _check_valid_dict(annotation):
+    if not _check_valid_type_dict(annotation):
       raise ValueError('Annotation ' + str(annotation) + ' is not a valid type dictionary.')
     arg_type = TypeMeta.from_dict(annotation)
   else:
