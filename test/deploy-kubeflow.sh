@@ -50,6 +50,8 @@ KFAPP=${TEST_CLUSTER}
 
 function clean_up {
   echo "Clean up..."
+  # print current gcp service account
+  gcloud auth activate-service-account --key-file=/secret/gcp-credentials/user-gcp-sa.json
   cd ${DIR}/${KFAPP}
   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
   # delete the storage
