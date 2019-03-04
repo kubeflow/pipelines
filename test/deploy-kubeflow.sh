@@ -53,7 +53,6 @@ function clean_up {
   # print current gcp service account
   gcloud auth list
   gcloud auth activate-service-account --key-file=/secret/gcp-credentials/user-gcp-sa.json
-  gcloud auth list
   cd ${DIR}/${KFAPP}
   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
   # delete the storage
