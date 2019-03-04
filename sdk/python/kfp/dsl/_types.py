@@ -52,7 +52,7 @@ class Dict(BaseType):
 class GCSPath(BaseType):
 	openapi_schema_validator = {
 		"type": "string",
-		"pattern": "^gs://$"
+		"pattern": "^gs://.*$"
 	}
 
 	def __init__(self, path_type='', file_type=''):
@@ -67,18 +67,12 @@ class GCSPath(BaseType):
 class GCRPath(BaseType):
 	openapi_schema_validator = {
 		"type": "string",
-		"pattern": "^(us.|eu.|asia.)?gcr\\.io/.*$"
+		"pattern": "^.*gcr\\.io/.*$"
 	}
 
 class GCPRegion(BaseType):
 	openapi_schema_validator = {
-		"type": "string", 
-		"enum": ["asia-east1","asia-east2","asia-northeast1",
-					"asia-south1","asia-southeast1","australia-southeast1",
-					"europe-north1","europe-west1","europe-west2",
-					"europe-west3","europe-west4","northamerica-northeast1",
-					"southamerica-east1","us-central1","us-east1",
-					"us-east4","us-west1", "us-west4" ]
+		"type": "string"
 	}
 
 class GCPProjectID(BaseType):
@@ -98,8 +92,26 @@ class InconsistentTypeException(Exception):
 	'''InconsistencyTypeException is raised when two types are not consistent'''
 	pass
 
-def _check_valid_dict(payload):
-	'''_check_valid_dict_type checks whether a dict is a correct serialization of a type
+def check_types(checked_type, expected_type):
+	'''check_types checks the type consistency.
+	For each of the attribute in checked_type, there is the same attribute in expected_type with the same value.
+	However, expected_type could contain more attributes that checked_type does not contain.
+	Args:
+		checked_type (BaseType/str/dict): it describes a type from the upstream component output
+		expected_type (BaseType/str/dict): it describes a type from the downstream component input
+		'''
+	if isinstance(checked_type, BaseType):
+		checked_type = _instance_to_dict(checked_type)
+	elif isinstance(checked_type, str):
+		checked_type = _str_to_dict(checked_type)
+	if isinstance(expected_type, BaseType):
+		expected_type = _instance_to_dict(expected_type)
+	elif isinstance(expected_type, str):
+		expected_type = _str_to_dict(expected_type)
+	return _check_dict_types(checked_type, expected_type)
+
+def _check_valid_type_dict(payload):
+	'''_check_valid_type_dict checks whether a dict is a correct serialization of a type
 	Args:
 		payload(dict)
 	'''
@@ -115,7 +127,7 @@ def _check_valid_dict(payload):
 	return True
 
 def _instance_to_dict(instance):
-	'''serialize_type serializes the type instance into a json string
+	'''_instance_to_dict serializes the type instance into a python dictionary
 	Args:
 		instance(BaseType): An instance that describes a type
 
@@ -127,46 +139,28 @@ def _instance_to_dict(instance):
 def _str_to_dict(payload):
 	import json
 	json_dict = json.loads(payload)
-	if not _check_valid_dict(json_dict):
+	if not _check_valid_type_dict(json_dict):
 		raise ValueError(payload + ' is not a valid type string')
 	return json_dict
 
-def _check_dict_types(typeA, typeB):
+def _check_dict_types(checked_type, expected_type):
 	'''_check_type_types checks the type consistency.
 	Args:
-  	typeA (dict): A dict that describes a type from the upstream component output
-  	typeB (dict): A dict that describes a type from the downstream component input
+  	checked_type (dict): A dict that describes a type from the upstream component output
+  	expected_type (dict): A dict that describes a type from the downstream component input
 	'''
-	typeA_name,_ = list(typeA.items())[0]
-	typeB_name,_ = list(typeB.items())[0]
-	if typeA_name != typeB_name:
+	checked_type_name,_ = list(checked_type.items())[0]
+	expected_type_name,_ = list(expected_type.items())[0]
+	if checked_type_name != expected_type_name:
 		return False
-	type_name = typeA_name
-	for type_property in typeA[type_name]:
-		if type_property not in typeB[type_name]:
+	type_name = checked_type_name
+	for type_property in checked_type[type_name]:
+		if type_property not in expected_type[type_name]:
 			print(type_name + ' has a property ' + str(type_property) + ' that the latter does not.')
 			return False
-		if typeA[type_name][type_property] != typeB[type_name][type_property]:
+		if checked_type[type_name][type_property] != expected_type[type_name][type_property]:
 			print(type_name + ' has a property ' + str(type_property) + ' with value: ' +
-						str(typeA[type_name][type_property]) + ' and ' +
-						str(typeB[type_name][type_property]))
+						str(checked_type[type_name][type_property]) + ' and ' +
+						str(expected_type[type_name][type_property]))
 			return False
 	return True
-
-def check_types(typeA, typeB):
-	'''check_types checks the type consistency.
-	For each of the attribute in typeA, there is the same attribute in typeB with the same value.
-	However, typeB could contain more attributes that typeA does not contain.
-	Args:
-		typeA (BaseType/str/dict): it describes a type from the upstream component output
-		typeB (BaseType/str/dict): it describes a type from the downstream component input
-		'''
-	if isinstance(typeA, BaseType):
-		typeA = _instance_to_dict(typeA)
-	elif isinstance(typeA, str):
-		typeA = _str_to_dict(typeA)
-	if isinstance(typeB, BaseType):
-		typeB = _instance_to_dict(typeB)
-	elif isinstance(typeB, str):
-		typeB = _str_to_dict(typeB)
-	return _check_dict_types(typeA, typeB)
