@@ -1,4 +1,4 @@
-package test
+package integration
 
 import (
 	"testing"
@@ -10,6 +10,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -27,12 +28,12 @@ func (s *ExperimentApiTest) SetupTest() {
 		return
 	}
 
-	err := waitForReady(*namespace, *initializeTimeout)
+	err := test.WaitForReady(*namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 	}
 	s.namespace = *namespace
-	clientConfig := getClientConfig(*namespace)
+	clientConfig := test.GetClientConfig(*namespace)
 	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
@@ -155,7 +156,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Equal(t, expectedTrainingExperiment, experiment)
 
 	/* ---------- Clean up ---------- */
-	deleteAllExperiments(s.experimentClient, t)
+	test.DeleteAllExperiments(s.experimentClient, t)
 }
 
 func TestExperimentAPI(t *testing.T) {

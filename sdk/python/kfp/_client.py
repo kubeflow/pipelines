@@ -108,16 +108,25 @@ class Client(object):
     """
     import kfp_experiment
 
-    exp = kfp_experiment.models.ApiExperiment(name=name)
-    response = self._experiment_api.create_experiment(body=exp)
+    experiment = None
+    try:
+      experiment = self.get_experiment(experiment_name=name)
+    except:
+      # Ignore error if the experiment does not exist.
+      pass
+
+    if not experiment:
+      logging.info('Creating experiment {}.'.format(name))
+      experiment = kfp_experiment.models.ApiExperiment(name=name)
+      experiment = self._experiment_api.create_experiment(body=experiment)
     
     if self._is_ipython():
       import IPython
       html = \
           ('Experiment link <a href="%s/#/experiments/details/%s" target="_blank" >here</a>'
-          % (self._get_url_prefix(), response.id))
+          % (self._get_url_prefix(), experiment.id))
       IPython.display.display(IPython.display.HTML(html))
-    return response
+    return experiment
 
   def list_experiments(self, page_token='', page_size=10, sort_by=''):
     """List experiments.

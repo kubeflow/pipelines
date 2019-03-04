@@ -458,6 +458,42 @@ implementation:
         task_else = task_factory1()
         self.assertEqual(task_else.arguments, [])
 
+    def test_handling_env(self):
+        component_text = '''\
+implementation:
+  container:
+    image: busybox
+    env:
+      key1: value 1
+      key2: value 2
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        
+        import kfp
+        with kfp.dsl.Pipeline('Dummy'): #Forcing the TaskSpec conversion to ContainerOp
+            task1 = task_factory1()
+        actual_env = {env_var.name: env_var.value for env_var in task1.env_variables}
+        expected_env = {'key1': 'value 1', 'key2': 'value 2'}
+        self.assertDictEqual(expected_env, actual_env)
+
+    def test_handle_default_values_in_task_factory(self):
+        component_text = '''\
+inputs:
+- {name: Data, default: '123'}
+implementation:
+  container:
+    image: busybox
+    args:
+      - {inputValue: Data}
+'''
+        task_factory1 = comp.load_component_from_text(text=component_text)
+
+        task1 = task_factory1()
+        self.assertEqual(task1.arguments, ['123'])
+
+        task2 = task_factory1('456')
+        self.assertEqual(task2.arguments, ['456'])
+
 
 if __name__ == '__main__':
     unittest.main()
