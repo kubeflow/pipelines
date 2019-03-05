@@ -52,6 +52,7 @@ class ContainerOp(object):
     self.human_name = name
     self.name = _pipeline.Pipeline.get_default_pipeline().add_op(self, is_exit_handler)
     self.image = image
+    self.image_pull_policy = None
     self.command = command
     self.arguments = arguments
     self.is_exit_handler = is_exit_handler

@@ -283,6 +283,8 @@ class Compiler(object):
         'image': op.image,
       }
     }
+    if op.image_pull_policy:
+      template['container']['imagePullPolicy'] = op.image_pull_policy
     if processed_arguments:
       template['container']['args'] = processed_arguments
     if processed_command:
