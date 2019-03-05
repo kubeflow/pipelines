@@ -1,9 +1,10 @@
 
 # CloudML - Batch Predict
 
-Creates a MLEngine batch prediction job.
+## Intended Use
+A Kubeflow Pipeline component to submit a batch prediction job against a trained model to Google Cloud Machine Learning Engine service.
 
-## Input Parameters:
+## Runtime Parameters:
 Name | Description
 :--- | :----------
 project_id | Required. The ID of the parent project of the job.
@@ -17,7 +18,7 @@ prediction_input | Input parameters to create a prediction job. See [PredictionI
 job_id_prefix | The prefix of the generated job id.
 wait_interval | Optional interval to wait for a long running operation. Defaults to 30.
 
-## Output Parameters:
+## Output:
 Name | Description
 :--- | :----------
 job_id | The ID of the created batch job.
@@ -58,7 +59,7 @@ mlengine_batch_predict_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
 display(mlengine_batch_predict_op)
 ```
 
-### Run the component as a single pipeline
+### Here is an illustrative pipeline that uses the component
 
 
 ```python

@@ -1,9 +1,10 @@
 
 # CloudML - Train
 
-Submits a Cloud Machine Learning training job.
+## Intended Use
+A Kubeflow Pipeline component to submit a Cloud Machine Learning Engine training job as a step in a pipeline
 
-## Input Parameters:
+## Runtime Parameters:
 Name | Description
 :--- | :----------
 project_id | Required. The ID of the parent project of the job.
@@ -20,12 +21,12 @@ training_input | Input parameters to create a training job.
 job_id_prefix | The prefix of the generated job id.
 wait_interval |  Optional wait interval between calls to get job status. Defaults to 30.
 
-## Output Parameters:
+## Output:
 Name | Description
 :--- | :----------
 job_id | The ID of the created job.
 
-## Sample Code
+## Sample
 
 Note: the sample code below works in both IPython notebook or python code directly.
 
@@ -61,7 +62,7 @@ mlengine_train_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
 display(mlengine_train_op)
 ```
 
-### Run the component as a single pipeline
+### Here is an illustrative pipeline that uses the component
 
 
 ```python

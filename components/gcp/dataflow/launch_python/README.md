@@ -1,9 +1,10 @@
 
 # Dataflow - Launch Python
 
-Launch a self-executing beam python file. The input python code will be executed inside the KFP's cluster with Dataflow Runner. Client can optionally provide a requirements file to install additional packages to the container. The code will be executed under python 2.7, which is supported beam SDK.
+## Intended Use
+A Kubeflow Pipeline component to submit a Apache Beam job authored in python, to Google Cloud Dataflow for execution. The python beam code runs with Google Cloud Dataflow runner.
 
-## Input Parameters:
+## Run-Time Parameters:
 Name | Description
 :--- | :----------
 python_file_path |  The gcs or local path to the python file to run.
@@ -14,12 +15,12 @@ job_name_prefix |  Optional. The prefix of the genrated job name. If not provide
 args |  The list of args to pass to the python file.
 wait_interval |  Optional wait interval between calls to get job status. Defaults to 30.
 
-## Output Parameters:
+## Output:
 Name | Description
 :--- | :----------
 job_id | The id of the created dataflow job.
 
-## Sample Code
+## Sample
 
 Note: the sample code below works in both IPython notebook or python code directly.
 
@@ -55,7 +56,7 @@ dataflow_python_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
 display(dataflow_python_op)
 ```
 
-### Run the component as a single pipeline
+### Here is an illustrative pipeline that uses the component
 
 
 ```python

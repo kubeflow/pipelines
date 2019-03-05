@@ -1,9 +1,10 @@
 
 # CloudML - Deploy
 
-Deploys a model to MLEngine from a GCS URI.
+## Intended Use
+A Kubeflow Pipeline component to deploy a trained model from a Google Cloud Storage path to Google Cloud Machine Learning Engine service.
 
-## Input Parameters:
+## Runtime Parameters:
 Name | Description
 :--- | :----------
 model_uri | Required, the GCS URI which contains a model file. Common used TF model search path (export/exporter) will be used if exist. 
@@ -17,7 +18,7 @@ replace_existing_version | Boolean flag indicates whether to replace existing ve
 set_default | boolean flag indicates whether to set the new version as default version in the model. Defaults to false.
 wait_interval | Optional interval to wait for a long running operation. Defaults to 30.
 
-## Output Parameters:
+## Output:
 Name | Description
 :--- | :----------
 model_uri | The GCS URI for the found model.
@@ -58,7 +59,7 @@ mlengine_deploy_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
 display(mlengine_deploy_op)
 ```
 
-### Run the component as a single pipeline
+### Here is an illustrative pipeline that uses the component
 
 
 ```python

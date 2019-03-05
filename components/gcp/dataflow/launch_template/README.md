@@ -1,9 +1,11 @@
 
 # Dataflow - Launch Template
 
-Launchs a dataflow job from template.
+## Intended Use
 
-## Input Parameters:
+A Kubeflow Pipeline component to submit a job from a dataflow template to Google Cloud Dataflow service.
+
+## Runtime Parameters:
 Name | Description
 :--- | :----------
 project_id | Required. The ID of the Cloud Platform project that the job belongs to.
@@ -14,12 +16,12 @@ job_name_prefix |  Optional. The prefix of the genrated job name. If not provide
 validate_only | If true, the request is validated but not actually executed. Defaults to false.
 wait_interval | Optional wait interval between calls to get job status. Defaults to 30.
 
-## Output Parameters:
+## Output:
 Name | Description
 :--- | :----------
 job_id | The id of the created dataflow job.
 
-## Sample Code
+## Sample
 
 Note: the sample code below works in both IPython notebook or python code directly.
 
@@ -55,7 +57,7 @@ dataflow_template_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
 display(dataflow_template_op)
 ```
 
-### Run the component as a single pipeline
+### Here is an illustrative pipeline that uses the component
 
 
 ```python
