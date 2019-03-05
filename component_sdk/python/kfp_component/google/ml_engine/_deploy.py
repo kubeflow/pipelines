@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 
 from fire import decorators
@@ -75,6 +76,7 @@ def _search_dir_with_model(storage_client, model_root_uri):
     for resource in it:
         basename = os.path.basename(resource.name)
         if basename in KNOWN_MODEL_NAMES:
+            logging.info('Found model file under {}.'.format(model_root_uri))
             return model_root_uri
     model_dir = _search_tf_export_root_dir(storage_client, bucket, blob_name)
     if not model_dir:
@@ -83,26 +85,34 @@ def _search_dir_with_model(storage_client, model_root_uri):
 
 def _search_tf_export_root_dir(storage_client, bucket, blob_name):
     export_root_path = os.path.join(blob_name, 'export/')
+    logging.info('Searching model under {}.'.format(export_root_path))
     it = bucket.list_blobs(prefix=export_root_path, delimiter='/')
     for _ in it.pages:
-        # Iterate to the last page
+        # Iterate to the last page to get the full prefixes.
         pass
     prefixes = it.prefixes
-    print(prefixes)
     if not prefixes:
+        logging.info('No model was found under {}. Stop searching.'.format(
+            export_root_path))
+        return None
+    if len(prefixes) > 1:
+        logging.info('Found multiple dirs under {}. Stop searching.'.format(
+            export_root_path))
         return None
     export_path = list(prefixes)[0]
-    print(export_path)
     return _search_tf_export_dir(storage_client, bucket, export_path)
 
 def _search_tf_export_dir(storage_client, bucket, export_path):
     it = bucket.list_blobs(prefix=export_path, delimiter='/')
     for _ in it.pages:
-        # Iterate to the last page
+        # Iterate to the last page to get the full prefixes.
         pass
     prefixes = it.prefixes
     if prefixes:        
         prefixes_list = list(prefixes)
         prefixes_list.sort(reverse=True)
+        logging.info('Found TF model path {}.'.format(prefixes_list[0]))
         return 'gs://{}/{}'.format(bucket.name, prefixes_list[0])
+    logging.info('No model was found under {}. Stop searching.'.format(
+        export_path))
     return None
