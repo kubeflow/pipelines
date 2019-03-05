@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from kfp.dsl import ComponentMeta, ParameterMeta, TypeMeta
-from ._container_op import _annotation_to_typemeta
+from ._metadata import _annotation_to_typemeta
 
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
   """Decorator for Python component functions.

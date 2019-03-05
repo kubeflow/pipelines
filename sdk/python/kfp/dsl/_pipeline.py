@@ -14,7 +14,7 @@
 
 
 from . import _container_op
-from ._container_op import  PipelineMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
+from ._metadata import  PipelineMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 from . import _ops_group
 import sys
 
