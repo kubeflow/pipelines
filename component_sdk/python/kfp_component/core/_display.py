@@ -28,29 +28,30 @@ def display(obj):
             convention defined by IPython display API. The currently supported representation
             functions:
             
-            * `_repr_html_`: it returns a html content which will be converted into a 
+            * `_repr_markdown_`: it returns a markdown content which will be converted into a 
                 web-app metadata to KFP UI.
             * `_repr_kfpmetadata_`: it returns a KFP metadata json object, which follows
                 the convention from https://www.kubeflow.org/docs/pipelines/output-viewer/.
 
-            The supported builtin objects are HTML, Tensorboard, Link.
+            The supported builtin objects are markdown, Tensorboard, Link.
     """
     obj_dir = dir(obj)
-    if '_repr_html_' in obj_dir:
-        display_html(obj)
+    if '_repr_markdown_' in obj_dir:
+        display_markdown(obj)
 
     if '_repr_kfpmetadata_' in obj_dir:
         display_kfpmetadata(obj)
 
-def display_html(obj):
-    """Display html representation to KFP UI.
+def display_markdown(obj):
+    """Display markdown representation to KFP UI.
     """
-    if '_repr_html_' not in dir(obj):
-        raise ValueError('_repr_html_ function is not present.')
-    html = obj._repr_html_()
+    if '_repr_markdown_' not in dir(obj):
+        raise ValueError('_repr_markdown_ function is not present.')
+    markdown = obj._repr_markdown_()
     _output_ui_metadata({
-        'type': 'web-app',
-        'html': html
+        'type': 'markdown',
+        'source': markdown,
+        'storage': 'inline'
     })
 
 def display_kfpmetadata(obj):
@@ -75,14 +76,14 @@ def _output_ui_metadata(output):
             metadata['outputs'].append(output)
             json.dump(metadata, f)
 
-class HTML(object):
-    """Class to hold html raw data.
+class Markdown(object):
+    """Class to hold markdown raw data.
     """
     def __init__(self, data):
-        self._html = data
+        self._data = data
 
-    def _repr_html_(self):
-        return self._html
+    def _repr_markdown_(self):
+        return self._data
 
 class Tensorboard(object):
     """Class to hold tensorboard metadata.
@@ -96,9 +97,9 @@ class Tensorboard(object):
             'source': self._job_dir
         }
 
-class Link(HTML):
-    """Class to hold an HTML hyperlink data.
+class Link(Markdown):
+    """Class to hold an markdown hyperlink data.
     """
     def __init__(self, href, text):
         super(Link, self).__init__(
-            '<a href="{}">{}</a>'.format(href, text))
+            '## [{}]({})'.format(text, href))
