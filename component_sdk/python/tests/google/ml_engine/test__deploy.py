@@ -26,7 +26,8 @@ class TestDeploy(unittest.TestCase):
     def test_deploy_default_path(self, mock_set_default_version, mock_create_version, 
         mock_create_model, mock_storage_client):
 
-        mock_storage_client().get_bucket().list_blobs().prefixes = []
+        mock_storage_client().bucket().list_blobs().prefixes = []
+        mock_storage_client().bucket().list_blobs().__iter__.return_value = []
         mock_create_model.return_value = {
             'name': 'projects/mock-project/models/mock-model'
         }
@@ -51,9 +52,14 @@ class TestDeploy(unittest.TestCase):
     def test_deploy_tf_exporter_path(self, mock_set_default_version, mock_create_version, 
         mock_create_model, mock_storage_client):
 
-        mock_storage_client().get_bucket().list_blobs().prefixes = [
-            'uri/export/exporter/123'
+        prefixes_mock = mock.PropertyMock()
+        prefixes_mock.side_effect = [
+            set(['uri/export/exporter/']),
+            set(['uri/export/exporter/123']),
         ]
+        type(mock_storage_client().bucket().list_blobs()).prefixes = prefixes_mock
+        mock_storage_client().bucket().list_blobs().__iter__.return_value = []
+        mock_storage_client().bucket().name = 'model'
         mock_create_model.return_value = {
             'name': 'projects/mock-project/models/mock-model'
         }
@@ -77,8 +83,8 @@ class TestDeploy(unittest.TestCase):
 
     def test_deploy_set_default_version(self, mock_set_default_version, mock_create_version, 
         mock_create_model, mock_storage_client):
-
-        mock_storage_client().get_bucket().list_blobs().prefixes = []
+        mock_storage_client().bucket().list_blobs().prefixes = []
+        mock_storage_client().bucket().list_blobs().__iter__.return_value = []
         mock_create_model.return_value = {
             'name': 'projects/mock-project/models/mock-model'
         }
