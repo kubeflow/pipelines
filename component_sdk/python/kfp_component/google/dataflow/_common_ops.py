@@ -108,7 +108,8 @@ def display_job_link(project_id, job):
     ))
 
 def dump_job(job):
-    gcp_common.dump_file('/tmp/output/job.json', json.dumps(job))
+    gcp_common.dump_file('/tmp/kfp/output/dataflow/job.json', json.dumps(job))
+    gcp_common.dump_file('/tmp/kfp/output/dataflow/job_id.txt', job.get('id'))
 
 def stage_file(local_or_gcs_path):
     if not is_gcs_path(local_or_gcs_path):

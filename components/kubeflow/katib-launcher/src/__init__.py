@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,25 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  generateName: arguments-parameters-
-spec:
-  entrypoint: whalesay
-  arguments:
-    parameters:
-    - name: param1
-      value: hello
-    - name: param2
-
-  templates:
-  - name: whalesay
-    inputs:
-      parameters:
-      - name: param1
-      - name: param2
-    container:
-      image: docker/whalesay:latest
-      command: [cowsay]
-      args: ["{{inputs.parameters.param1}}-{{inputs.parameters.param2}}"]
+from .kubeflow_katib_launcher_op import kubeflow_studyjob_launcher_op

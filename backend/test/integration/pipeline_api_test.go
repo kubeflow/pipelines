@@ -1,9 +1,11 @@
-package test
+package integration
 
 import (
 	"io/ioutil"
 	"testing"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/test"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
@@ -37,11 +39,11 @@ func (s *PipelineApiTest) SetupTest() {
 		return
 	}
 
-	err := waitForReady(*namespace, *initializeTimeout)
+	err := test.WaitForReady(*namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 	}
-	clientConfig := getClientConfig(*namespace)
+	clientConfig := test.GetClientConfig(*namespace)
 	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
@@ -55,15 +57,15 @@ func (s *PipelineApiTest) SetupTest() {
 func (s *PipelineApiTest) TestPipelineAPI() {
 	t := s.T()
 
-	deleteAllPipelines(s.pipelineClient, t)
+	test.DeleteAllPipelines(s.pipelineClient, t)
 
 	/* ---------- Upload pipelines YAML ---------- */
-	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
+	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
 	assert.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.Name)
 
 	/* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
-	_, err = s.pipelineUploadClient.UploadFile("resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
+	_, err = s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to upload pipeline.")
 
@@ -75,19 +77,20 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.Name)
 
-	/* ---------- Upload pipelines tarball ---------- */
+	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUploadPipeline, err := s.pipelineUploadClient.UploadFile(
-		"resources/zip-arguments.tar.gz", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
+		"../resources/zip-arguments.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
+	assert.Nil(t, err)
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
 		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
-			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.tar.gz"}}})
+			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.zip"}}})
 	assert.Nil(t, err)
-	assert.Equal(t, "arguments.tar.gz", argumentUrlPipeline.Name)
+	assert.Equal(t, "arguments.zip", argumentUrlPipeline.Name)
 
 	/* ---------- Verify list pipeline works ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
@@ -108,7 +111,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, 2, len(listFirstPagePipelines))
 	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
-	assert.Equal(t, "arguments.tar.gz", listFirstPagePipelines[1].Name)
+	assert.Equal(t, "arguments.zip", listFirstPagePipelines[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
@@ -136,7 +139,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, 2, len(listSecondPagePipelines))
 	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[0].Name)
-	assert.Equal(t, "arguments.tar.gz", listSecondPagePipelines[1].Name)
+	assert.Equal(t, "arguments.zip", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
@@ -159,7 +162,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
 	assert.Equal(t, 4, totalSize)
-	assert.Equal(t, "arguments.tar.gz", listSecondPagePipelines[0].Name)
+	assert.Equal(t, "arguments.zip", listSecondPagePipelines[0].Name)
 	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)
 
@@ -171,14 +174,14 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Verify get template works ---------- */
 	template, err := s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: argumentYAMLPipeline.ID})
 	assert.Nil(t, err)
-	expected, err := ioutil.ReadFile("resources/arguments-parameters.yaml")
+	expected, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	var expectedWorkflow v1alpha1.Workflow
 	err = yaml.Unmarshal(expected, &expectedWorkflow)
 	assert.Equal(t, expectedWorkflow, *template)
 
 	/* ---------- Clean up ---------- */
-	deleteAllPipelines(s.pipelineClient, t)
+	test.DeleteAllPipelines(s.pipelineClient, t)
 }
 
 func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {

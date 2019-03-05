@@ -59,7 +59,7 @@ func TestDecompressPipelineTarball(t *testing.T) {
 	pipelineFile, err := DecompressPipelineTarball(tarballByte)
 	assert.Nil(t, err)
 
-	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments_tarball/arguments-parameters.yaml")
+	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
 	assert.Equal(t, expectedPipelineFile, pipelineFile)
 }
 
@@ -84,6 +84,36 @@ func TestDecompressPipelineTarball_EmptyTarball(t *testing.T) {
 	assert.Contains(t, err.Error(), "Not a valid tarball file")
 }
 
+func TestDecompressPipelineZip(t *testing.T) {
+	zipByte, _ := ioutil.ReadFile("test/arguments_zip/arguments-parameters.zip")
+	pipelineFile, err := DecompressPipelineZip(zipByte)
+	assert.Nil(t, err)
+
+	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
+	assert.Equal(t, expectedPipelineFile, pipelineFile)
+}
+
+func TestDecompressPipelineZip_MalformattedZip(t *testing.T) {
+	zipByte, _ := ioutil.ReadFile("test/malformatted_zip.zip")
+	_, err := DecompressPipelineZip(zipByte)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Not a valid zip file")
+}
+
+func TestDecompressPipelineZip_NonYamlZip(t *testing.T) {
+	zipByte, _ := ioutil.ReadFile("test/non_yaml_zip/non_yaml_file.zip")
+	_, err := DecompressPipelineZip(zipByte)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Expecting a YAML file inside the zip")
+}
+
+func TestDecompressPipelineZip_EmptyZip(t *testing.T) {
+	zipByte, _ := ioutil.ReadFile("test/empty_tarball/empty.zip")
+	_, err := DecompressPipelineZip(zipByte)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Not a valid zip file")
+}
+
 func TestReadPipelineFile_YAML(t *testing.T) {
 	file, _ := os.Open("test/arguments-parameters.yaml")
 	fileBytes, err := ReadPipelineFile("arguments-parameters.yaml", file, MaxFileLength)
@@ -93,12 +123,21 @@ func TestReadPipelineFile_YAML(t *testing.T) {
 	assert.Equal(t, expectedFileBytes, fileBytes)
 }
 
+func TestReadPipelineFile_Zip(t *testing.T) {
+	file, _ := os.Open("test/arguments_zip/arguments-parameters.zip")
+	pipelineFile, err := ReadPipelineFile("arguments-parameters.zip", file, MaxFileLength)
+	assert.Nil(t, err)
+
+	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
+	assert.Equal(t, expectedPipelineFile, pipelineFile)
+}
+
 func TestReadPipelineFile_Tarball(t *testing.T) {
 	file, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
 	pipelineFile, err := ReadPipelineFile("arguments.tar.gz", file, MaxFileLength)
 	assert.Nil(t, err)
 
-	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments_tarball/arguments-parameters.yaml")
+	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
 	assert.Equal(t, expectedPipelineFile, pipelineFile)
 }
 
