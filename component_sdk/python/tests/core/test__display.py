@@ -22,36 +22,40 @@ import unittest
 @mock.patch('kfp_component.core._display.open')
 class DisplayTest(unittest.TestCase):
 
-    def test_display_html(self, mock_open, mock_os, mock_json):
+    def test_display_markdown(self, mock_open, mock_os, mock_json):
         mock_os.path.isfile.return_value = False
 
-        display.display(display.HTML('<p>test</p>'))
+        display.display(display.Markdown('# test'))
 
         mock_json.dump.assert_called_with({
             'outputs': [{
-                'type': 'web-app',
-                'html': '<p>test</p>'
+                'type': 'markdown',
+                'source': '# test',
+                'storage': 'inline'
             }]
         }, mock.ANY)
 
-    def test_display_html_append(self, mock_open, mock_os, mock_json):
+    def test_display_markdown_append(self, mock_open, mock_os, mock_json):
         mock_os.path.isfile.return_value = True
         mock_json.load.return_value = {
             'outputs': [{
-                'type': 'web-app',
-                'html': '<p>test 1</p>'
+                'type': 'markdown',
+                'source': '# test 1',
+                'storage': 'inline'
             }]
         }
 
-        display.display(display.HTML('<p>test 2</p>'))
+        display.display(display.Markdown('# test 2'))
 
         mock_json.dump.assert_called_with({
             'outputs': [{
-                'type': 'web-app',
-                'html': '<p>test 1</p>'
+                'type': 'markdown',
+                'source': '# test 1',
+                'storage': 'inline'
             },{
-                'type': 'web-app',
-                'html': '<p>test 2</p>'
+                'type': 'markdown',
+                'source': '# test 2',
+                'storage': 'inline'
             }]
         }, mock.ANY)
 
@@ -74,7 +78,8 @@ class DisplayTest(unittest.TestCase):
 
         mock_json.dump.assert_called_with({
             'outputs': [{
-                'type': 'web-app',
-                'html': '<a href="https://test/link">Test Link</a>'
+                'type': 'markdown',
+                'source': '## [Test Link](https://test/link)',
+                'storage': 'inline'
             }]
         }, mock.ANY)
