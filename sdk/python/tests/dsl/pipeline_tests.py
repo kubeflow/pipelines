@@ -67,6 +67,6 @@ class TestPipeline(unittest.TestCase):
     )
     def my_pipeline1(a: {'Schema': {'file_type': 'csv'}}='good', b: Integer()=12):
       pass
-
-    self.assertEqual('p1', Pipeline.get_pipeline_functions()[my_pipeline1].name)
-    self.assertEqual('description1', Pipeline.get_pipeline_functions()[my_pipeline1].description)
+    pipeline_meta = Pipeline.get_pipeline_functions()[my_pipeline1]
+    self.assertEqual('p1', pipeline_meta.name)
+    self.assertEqual('description1', pipeline_meta.description)
