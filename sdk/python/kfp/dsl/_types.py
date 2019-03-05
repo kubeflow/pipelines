@@ -144,7 +144,7 @@ def _str_to_dict(payload):
 	return json_dict
 
 def _check_dict_types(checked_type, expected_type):
-	'''_check_type_types checks the type consistency.
+	'''_check_dict_types checks the type consistency.
 	Args:
   	checked_type (dict): A dict that describes a type from the upstream component output
   	expected_type (dict): A dict that describes a type from the downstream component input
