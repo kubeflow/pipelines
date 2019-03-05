@@ -156,10 +156,10 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
     # Inputs
     if component_spec.inputs is not None:
         for input in component_spec.inputs:
-            component_meta.inputs.append(ParameterMeta(name=input.name, description=input.description, type=_annotation_to_typemeta(input.type), default=input.default))
+            component_meta.inputs.append(ParameterMeta(name=input.name, description=input.description, param_type=_annotation_to_typemeta(input.type), default=input.default))
     if component_spec.outputs is not None:
         for output in component_spec.outputs:
-            component_meta.outputs.append(ParameterMeta(name=output.name, description=output.description, type=_annotation_to_typemeta(input.type)))
+            component_meta.outputs.append(ParameterMeta(name=output.name, description=output.description, param_type=_annotation_to_typemeta(output.type)))
 
     task = dsl.ContainerOp(
         name=name,
