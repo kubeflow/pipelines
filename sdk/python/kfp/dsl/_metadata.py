@@ -29,6 +29,9 @@ class BaseMeta(object):
     import yaml
     return yaml.dump(self.to_dict())
 
+  def __eq__(self, other):
+    return self.__dict__ == other.__dict__
+
 class TypeMeta(BaseMeta):
   def __init__(self,
       name: str = '',
@@ -46,9 +49,6 @@ class TypeMeta(BaseMeta):
     type_meta = TypeMeta()
     type_meta.name, type_meta.properties = list(json_dict.items())[0]
     return type_meta
-
-  def __eq__(self, other):
-    return self.__dict__ == other.__dict__
 
 class ParameterMeta(BaseMeta):
   def __init__(self,
