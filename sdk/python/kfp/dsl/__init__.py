@@ -15,6 +15,7 @@
 
 from ._pipeline_param import PipelineParam
 from ._pipeline import Pipeline, pipeline, get_pipeline_conf
-from ._container_op import ContainerOp, ComponentMeta, ParameterMeta, TypeMeta
+from ._container_op import ContainerOp
 from ._ops_group import OpsGroup, ExitHandler, Condition
 from ._python_component import python_component
+from ._metadata import ComponentMeta, ParameterMeta, TypeMeta
