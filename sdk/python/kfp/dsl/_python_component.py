@@ -63,7 +63,6 @@ def component(func):
   def _component(*args, **kargs):
     import inspect
     fullargspec = inspect.getfullargspec(func)
-    args = fullargspec.args
     annotations = fullargspec.annotations
 
     # defaults
@@ -75,7 +74,7 @@ def component(func):
     # Construct the ComponentMeta
     component_meta = ComponentMeta(name=func.__name__, description='')
     # Inputs
-    for arg in args:
+    for arg in fullargspec.args:
       arg_type = TypeMeta()
       arg_default = arg_defaults[arg] if arg in arg_defaults else ''
       if arg in annotations:
