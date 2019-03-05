@@ -14,7 +14,7 @@
 
 from typing import Dict, List
 from abc import ABCMeta, abstractmethod
-from ._types import _check_valid_type_dict
+from ._types import BaseType, _check_valid_type_dict, _str_to_dict, _instance_to_dict
 
 class BaseMeta(object):
   __metaclass__ = ABCMeta
