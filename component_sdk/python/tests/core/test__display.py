@@ -83,3 +83,10 @@ class DisplayTest(unittest.TestCase):
                 'storage': 'inline'
             }]
         }, mock.ANY)
+
+    def test___repr__(self, mock_open, mock_os, mock_json):
+        self.assertEqual('# Title', str(display.Markdown('# Title')))
+        self.assertEqual('Open Tensorboard at: gs://trained/model/', 
+            str(display.Tensorboard('gs://trained/model/')))
+        self.assertEqual('title: https://test/uri', 
+            str(display.Link('https://test/uri', 'title')))
