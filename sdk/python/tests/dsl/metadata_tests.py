@@ -15,6 +15,32 @@
 from kfp.dsl import ComponentMeta, ParameterMeta, TypeMeta
 import unittest
 
+class TestTypeMeta(unittest.TestCase):
+  def test_from_dict(self):
+    component_dict = {
+        'GCSPath': {
+            'bucket_type': 'directory',
+            'file_type': 'csv'
+        }
+    }
+    golden_type_meta = TypeMeta(name='GCSPath', properties={'bucket_type': 'directory',
+                                                          'file_type': 'csv'})
+    self.assertEqual(TypeMeta.from_dict(component_dict), golden_type_meta)
+
+  def test_eq(self):
+    type_a = TypeMeta(name='GCSPath', properties={'bucket_type': 'directory',
+                                                  'file_type': 'csv'})
+    type_b = TypeMeta(name='GCSPath', properties={'bucket_type': 'directory',
+                                                  'file_type': 'tsv'})
+    type_c = TypeMeta(name='GCSPatha', properties={'bucket_type': 'directory',
+                                                  'file_type': 'csv'})
+    type_d = TypeMeta(name='GCSPath', properties={'bucket_type': 'directory',
+                                                  'file_type': 'csv'})
+    self.assertNotEqual(type_a, type_b)
+    self.assertNotEqual(type_a, type_c)
+    self.assertEqual(type_a, type_d)
+
+
 class TestComponentMeta(unittest.TestCase):
 
   def test_to_dict(self):
@@ -90,14 +116,3 @@ class TestComponentMeta(unittest.TestCase):
         ]
     }
     self.assertEqual(component_meta.to_dict(), golden_meta)
-
-  def test_type_meta_from_dict(self):
-    component_dict = {
-        'GCSPath': {
-            'bucket_type': 'directory',
-            'file_type': 'csv'
-        }
-    }
-    golden_type_meta = TypeMeta(name='GCSPath', properties={'bucket_type': 'directory',
-                                                            'file_type': 'csv'})
-    self.assertEqual(TypeMeta.from_dict(component_dict), golden_type_meta)
