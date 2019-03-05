@@ -56,7 +56,6 @@ model.compile(loss='categorical_crossentropy',
               metrics=['accuracy'])
 
 x_train = x_train.astype('float32')
-x_train /= 255
 
 model.fit(
     x_train,
