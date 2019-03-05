@@ -27,7 +27,7 @@ outputs:
   - {name: job_id, description: 'The ID of the created dataflow job.'}
 implementation:
   container:
-    image: gcr.io/ml-pipeline-dogfood/ml-pipeline-gcp:latest
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest
     args: [
       kfp_component.google.dataflow, launch_template,
       --project_id, {inputValue: project_id},

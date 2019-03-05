@@ -32,7 +32,7 @@ outputs:
   - {name: version_name,  description: 'The name of the deployed version.'}
 implementation:
   container:
-    image: gcr.io/ml-pipeline-dogfood/ml-pipeline-gcp:latest
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest
     args: [
       kfp_component.google.ml_engine, deploy,
       --model_uri, {inputValue: model_uri},
