@@ -71,7 +71,7 @@ def query(query, project_id, dataset_id=None, table_id=None,
             extract_job = _get_job(client, job_id)
             if not extract_job:
                 extract_job = client.extract_table(table_ref, output_gcs_path)
-            extract_job.result()  # Wait for export to
+            extract_job.result()  # Wait for export to finish
         else:
             # Download results to local disk if no gcs output path.
             gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query_output.csv', 
