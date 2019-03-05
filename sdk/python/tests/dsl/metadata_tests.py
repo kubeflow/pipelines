@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl import ComponentMeta, ParameterMeta, TypeMeta
+from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta
 import unittest
 
 class TestTypeMeta(unittest.TestCase):

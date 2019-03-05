@@ -16,6 +16,7 @@
 from . import _pipeline
 from . import _pipeline_param
 from ._pipeline_param import _extract_pipelineparams
+from ._metadata import ComponentMeta
 import re
 from typing import Dict
 

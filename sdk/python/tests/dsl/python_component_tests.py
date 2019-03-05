@@ -14,7 +14,7 @@
 
 
 from kfp.dsl._python_component import component
-from kfp.dsl._container_op import ComponentMeta, ParameterMeta, TypeMeta
+from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta
 from kfp.dsl._types import GCSPath, Integer
 import unittest
 import mock

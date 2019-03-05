@@ -16,9 +16,7 @@ from collections import OrderedDict
 from typing import Mapping
 from ._structures import ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
 from ._components import _generate_output_file_name, _default_component_name
-from kfp.dsl import ComponentMeta, ParameterMeta, TypeMeta
-from kfp.dsl._container_op import _annotation_to_typemeta
-
+from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 
 def create_container_op_from_task(task_spec: TaskSpec):
     argument_values = task_spec.arguments
