@@ -56,7 +56,7 @@ fi
 GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/go/src/github.com/${GITHUB_REPO}
 JUNIT_TEST_RESULT=junit_ApiIntegrationTestOutput.xml
-TEST_DIR=backend/test
+TEST_DIR=backend/test/integration
 
 cd "${BASE_DIR}/${TEST_DIR}"
 

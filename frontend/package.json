@@ -14,6 +14,7 @@
     "immer": "^1.7.4",
     "js-yaml": "^3.12.0",
     "lodash": ">=4.17.11",
+    "markdown-it": "^8.4.2",
     "portable-fetch": "^3.0.0",
     "re-resizable": "^4.9.0",
     "react": "^16.7.0",

@@ -38,6 +38,7 @@ class LaunchPythonTest(unittest.TestCase):
             b'https://console.cloud.google.com/dataflow/locations/us-central1/jobs/job-1?project=project-1'
         ]
         expected_job = {
+            'id': 'job-1',
             'currentState': 'JOB_STATE_DONE'
         }
         mock_client().get_job.return_value = expected_job
@@ -56,6 +57,7 @@ class LaunchPythonTest(unittest.TestCase):
             }]
         }
         expected_job = {
+            'id': 'job-1',
             'currentState': 'JOB_STATE_DONE'
         }
         mock_client().get_job.return_value = expected_job
