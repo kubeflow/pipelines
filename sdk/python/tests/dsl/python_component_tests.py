@@ -14,15 +14,28 @@
 
 
 from kfp.dsl._python_component import component
+from kfp.dsl._container_op import ComponentMeta, ParameterMeta, TypeMeta
 from kfp.dsl._types import GCSPath, Integer
 import unittest
+import mock
 
-@component
-def componentA(a: {'Schema': {'file_type': 'csv'}}, b: '{"number": {"step": "large"}}' = 12, c: GCSPath(path_type='file', file_type='tsv') = 'gs://hello/world') -> {'model': Integer()}:
-  return 7
-
+@mock.patch('kfp.dsl.ContainerOp')
 class TestPythonComponent(unittest.TestCase):
 
-  def test_component(self):
+  def test_component(self, ContainerOp):
     """Test component decorator."""
+    @component
+    def componentA(a: {'Schema': {'file_type': 'csv'}}, b: '{"number": {"step": "large"}}' = 12, c: GCSPath(path_type='file', file_type='tsv') = 'gs://hello/world') -> {'model': Integer()}:
+      return ContainerOp()
+
+    ContainerOp()._set_metadata.return_value = None
     componentA(1,2,3)
+
+    golden_meta = ComponentMeta(name='componentA', description='')
+    golden_meta.inputs.append(ParameterMeta(name='a', description='', param_type=TypeMeta(name='Schema', properties={'file_type': 'csv'})))
+    golden_meta.inputs.append(ParameterMeta(name='b', description='', param_type=TypeMeta(name='number', properties={'step': 'large'}), default=12))
+    golden_meta.inputs.append(ParameterMeta(name='c', description='', param_type=TypeMeta(name='GCSPath', properties={'path_type':'file', 'file_type': 'tsv'}), default='gs://hello/world'))
+    golden_meta.inputs.append(ParameterMeta(name='model', description='', param_type=TypeMeta(name='Integer')))
+
+    ContainerOp()._set_metadata.assert_called_once_with(golden_meta)
+
