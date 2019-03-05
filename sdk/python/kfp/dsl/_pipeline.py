@@ -38,14 +38,21 @@ def pipeline(name, description):
     args = fullargspec.args
     annotations = fullargspec.annotations
 
+    # defaults
+    arg_defaults = {}
+    if fullargspec.defaults:
+      for arg, default in zip(reversed(fullargspec.args), reversed(fullargspec.defaults)):
+        arg_defaults[arg] = default
+
     # Construct the PipelineMeta
     pipeline_meta = PipelineMeta(name=name, description=description)
     # Inputs
     for arg in args:
       arg_type = TypeMeta()
+      arg_default = arg_defaults[arg] if arg in arg_defaults else ''
       if arg in annotations:
         arg_type = _annotation_to_typemeta(annotations[arg])
-      pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type))
+      pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
 
     #TODO: add descriptions to the metadata
     #docstring parser:
