@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from ._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
+
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
   """Decorator for Python component functions.
   This decorator adds the metadata to the function object itself.
@@ -47,3 +49,50 @@ def python_component(name, description=None, base_image=None, target_component_f
     return func
 
   return _python_component
+
+def component(func):
+  """Decorator for component functions that use ContainerOp.
+  This is useful to enable type checking in the DSL compiler
+
+  Usage:
+  ```python
+  @dsl.component
+  def foobar(model: TFModel(), step: MLStep()):
+    return dsl.ContainerOp()
+  """
+  def _component(*args, **kargs):
+    import inspect
+    fullargspec = inspect.getfullargspec(func)
+    annotations = fullargspec.annotations
+
+    # defaults
+    arg_defaults = {}
+    if fullargspec.defaults:
+      for arg, default in zip(reversed(fullargspec.args), reversed(fullargspec.defaults)):
+        arg_defaults[arg] = default
+
+    # Construct the ComponentMeta
+    component_meta = ComponentMeta(name=func.__name__, description='')
+    # Inputs
+    for arg in fullargspec.args:
+      arg_type = TypeMeta()
+      arg_default = arg_defaults[arg] if arg in arg_defaults else ''
+      if arg in annotations:
+        arg_type = _annotation_to_typemeta(annotations[arg])
+      component_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
+    # Outputs
+    for output in annotations['return']:
+      arg_type = _annotation_to_typemeta(annotations['return'][output])
+      component_meta.outputs.append(ParameterMeta(name=output, description='', param_type=arg_type))
+
+    #TODO: add descriptions to the metadata
+    #docstring parser:
+    #  https://github.com/rr-/docstring_parser
+    #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
+
+    print(component_meta.serialize())
+    #TODO: parse the metadata to the ContainerOp.
+    container_op = func(*args, **kargs)
+    return container_op
+
+  return _component
