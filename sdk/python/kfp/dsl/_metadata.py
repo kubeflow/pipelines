@@ -14,7 +14,7 @@
 
 from typing import Dict, List
 from abc import ABCMeta, abstractmethod
-from ._types import _check_valid_type_dict
+from ._types import BaseType, _check_valid_type_dict, _str_to_dict, _instance_to_dict
 
 class BaseMeta(object):
   __metaclass__ = ABCMeta
@@ -105,3 +105,22 @@ class PipelineMeta(BaseMeta):
             'description': self.description,
             'inputs': [ input.to_dict() for input in self.inputs ]
             }
+
+def _annotation_to_typemeta(annotation):
+  '''_annotation_to_type_meta converts an annotation to an instance of TypeMeta
+  Args:
+    annotation(BaseType/str/dict): input/output annotations
+  Returns:
+    TypeMeta
+    '''
+  if isinstance(annotation, BaseType):
+    arg_type = TypeMeta.from_dict(_instance_to_dict(annotation))
+  elif isinstance(annotation, str):
+    arg_type = TypeMeta.from_dict(_str_to_dict(annotation))
+  elif isinstance(annotation, dict):
+    if not _check_valid_type_dict(annotation):
+      raise ValueError('Annotation ' + str(annotation) + ' is not a valid type dictionary.')
+    arg_type = TypeMeta.from_dict(annotation)
+  else:
+    return TypeMeta()
+  return arg_type
