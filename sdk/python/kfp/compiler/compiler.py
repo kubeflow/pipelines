@@ -516,7 +516,7 @@ class Compiler(object):
     if pipeline_func not in registered_pipeline_functions:
       raise ValueError('Please use a function with @dsl.pipeline decorator.')
 
-    pipeline_name, _ = dsl.Pipeline.get_pipeline_functions()[pipeline_func]
+    pipeline_name = dsl.Pipeline.get_pipeline_functions()[pipeline_func].name
     pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_name)
 
     # Create the arg list with no default values and call pipeline function.

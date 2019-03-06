@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from kfp.dsl._types import _instance_to_dict, _str_to_dict, check_types, GCSPath
+from kfp.dsl._types import _instance_to_dict, check_types, GCSPath
 import unittest
 
 class TestTypes(unittest.TestCase):
@@ -28,20 +28,6 @@ class TestTypes(unittest.TestCase):
         }
     }
     self.assertEqual(golden_dict, gcspath_dict)
-
-  def test_str_to_dict(self):
-    gcspath_str = '{"GCSPath": {"file_type": "csv", "path_type": "file"}}'
-    gcspath_dict = _str_to_dict(gcspath_str)
-    golden_dict = {
-        'GCSPath': {
-            'path_type': 'file',
-            'file_type': 'csv'
-        }
-    }
-    self.assertEqual(golden_dict, gcspath_dict)
-    gcspath_str = '{"file_type": "csv", "path_type": "file"}'
-    with self.assertRaises(ValueError):
-      _str_to_dict(gcspath_str)
 
   def test_check_types(self):
     #Core types

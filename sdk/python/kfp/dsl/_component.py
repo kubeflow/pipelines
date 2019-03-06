@@ -60,6 +60,8 @@ def component(func):
   def foobar(model: TFModel(), step: MLStep()):
     return dsl.ContainerOp()
   """
+  from functools import wraps
+  @wraps(func)
   def _component(*args, **kargs):
     import inspect
     fullargspec = inspect.getfullargspec(func)
@@ -76,7 +78,7 @@ def component(func):
     # Inputs
     for arg in fullargspec.args:
       arg_type = TypeMeta()
-      arg_default = arg_defaults[arg] if arg in arg_defaults else ''
+      arg_default = arg_defaults[arg] if arg in arg_defaults else None
       if arg in annotations:
         arg_type = _annotation_to_typemeta(annotations[arg])
       component_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
@@ -90,9 +92,8 @@ def component(func):
     #  https://github.com/rr-/docstring_parser
     #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
 
-    print(component_meta.serialize())
-    #TODO: parse the metadata to the ContainerOp.
     container_op = func(*args, **kargs)
+    container_op._set_metadata(component_meta)
     return container_op
 
   return _component
