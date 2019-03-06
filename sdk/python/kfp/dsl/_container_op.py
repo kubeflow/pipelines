@@ -19,7 +19,6 @@ from ._pipeline_param import _extract_pipelineparams
 import re
 from typing import Dict
 
-
 class ContainerOp(object):
   """Represents an op implemented by a docker container image."""
 
