@@ -42,10 +42,9 @@ Configure
 - GCS storage bucket name (replace "my-bucket")
 - GCP project ID (replace "my-gcp-project")
 - Make sure the path to the taxi_utils.py is correct
-- Set the limit on the BigQuery query. The original dataset has 100M rows, which can take time to process. Set it to 20000 to run an sample test.
+- The original BigQuery dataset has 100M rows, which can take time to process. Modify the selection criteria (% of records) to run a sample test. 
 
-
-## Compile a run the pipeline
+## Compile and run the pipeline
 ```
 python tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow_large.py
 ```
