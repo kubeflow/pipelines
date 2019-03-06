@@ -14,7 +14,7 @@
 
 from typing import Dict, List
 from abc import ABCMeta, abstractmethod
-from ._types import BaseType, _check_valid_type_dict, _str_to_dict, _instance_to_dict
+from ._types import BaseType, _check_valid_type_dict, _instance_to_dict
 
 class BaseMeta(object):
   __metaclass__ = ABCMeta
@@ -39,15 +39,21 @@ class TypeMeta(BaseMeta):
     self.name = name
     self.properties = {} if properties is None else properties
 
-  def to_dict(self):
-    return {self.name: self.properties}
+  def to_dict_or_str(self):
+    if self.properties is None:
+      return self.name
+    else:
+      return {self.name: self.properties}
 
   @staticmethod
-  def from_dict(json_dict):
-    if not _check_valid_type_dict(json_dict):
-      raise ValueError(json_dict + ' is not a valid type string')
+  def from_dict_or_str(json):
     type_meta = TypeMeta()
-    type_meta.name, type_meta.properties = list(json_dict.items())[0]
+    if isinstance(json, Dict):
+      if not _check_valid_type_dict(json):
+        raise ValueError(json + ' is not a valid type string')
+      type_meta.name, type_meta.properties = list(json.items())[0]
+    elif isinstance(json, str):
+      type_meta.name = json
     return type_meta
 
 class ParameterMeta(BaseMeta):
@@ -64,7 +70,7 @@ class ParameterMeta(BaseMeta):
   def to_dict(self):
     return {'name': self.name,
             'description': self.description,
-            'type': self.param_type.to_dict(),
+            'type': self.param_type.to_dict_or_str(),
             'default': self.default}
 
 class ComponentMeta(BaseMeta):
@@ -114,13 +120,13 @@ def _annotation_to_typemeta(annotation):
     TypeMeta
     '''
   if isinstance(annotation, BaseType):
-    arg_type = TypeMeta.from_dict(_instance_to_dict(annotation))
+    arg_type = TypeMeta.from_dict_or_str(_instance_to_dict(annotation))
   elif isinstance(annotation, str):
-    arg_type = TypeMeta.from_dict(_str_to_dict(annotation))
+    arg_type = TypeMeta.from_dict_or_str(annotation)
   elif isinstance(annotation, dict):
     if not _check_valid_type_dict(annotation):
       raise ValueError('Annotation ' + str(annotation) + ' is not a valid type dictionary.')
-    arg_type = TypeMeta.from_dict(annotation)
+    arg_type = TypeMeta.from_dict_or_str(annotation)
   else:
     return TypeMeta()
   return arg_type

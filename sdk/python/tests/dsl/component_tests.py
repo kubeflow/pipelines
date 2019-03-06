@@ -29,7 +29,7 @@ class TestPythonComponent(unittest.TestCase):
         self._metadata = component_meta
 
     @component
-    def componentA(a: {'Schema': {'file_type': 'csv'}}, b: '{"number": {"step": "large"}}' = 12, c: GCSPath(path_type='file', file_type='tsv') = 'gs://hello/world') -> {'model': Integer()}:
+    def componentA(a: {'Schema': {'file_type': 'csv'}}, b: {'number': {'step': 'large'}} = 12, c: GCSPath(path_type='file', file_type='tsv') = 'gs://hello/world') -> {'model': Integer()}:
       return MockContainerOp()
 
     containerOp = componentA(1,2,3)
