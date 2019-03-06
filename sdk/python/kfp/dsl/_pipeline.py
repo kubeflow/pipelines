@@ -51,7 +51,6 @@ def pipeline(name, description):
     #docstring parser:
     #  https://github.com/rr-/docstring_parser
     #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
-    print(pipeline_meta.serialize())
     #TODO: parse the metadata to the Pipeline.
 
     Pipeline.add_pipeline(name, description, func)
