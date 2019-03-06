@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -184,7 +184,7 @@ class Compiler(object):
       for param in op.inputs + list(condition_params[op.name]):
         if param.op_name:
           unstream_op_names.add(param.op_name)
-      unstream_op_names |= set(op.dependent_op_names)
+      unstream_op_names |= set(op.deps)
 
       for op_name in unstream_op_names:
         upstream_op = pipeline.ops[op_name]
@@ -233,7 +233,7 @@ class Compiler(object):
                                        processed_args[i])
     return processed_args
 
-  def _op_to_template(self, op):
+  def _cop_to_template(self, op):
     """Generate template given an operator inherited from dsl.ContainerOp."""
 
     def _build_conventional_artifact(name, path):
@@ -420,17 +420,17 @@ class Compiler(object):
     for g in groups:
       templates.append(self._group_to_template(g, inputs, outputs, dependencies))
 
-    for op in pipeline.ops.values():
-      templates.append(self._op_to_template(op))
+    for cop in pipeline.cops.values():
+      templates.append(self._cop_to_template(cop))
     return templates
 
   def _create_volumes(self, pipeline):
     """Create volumes required for the templates"""
     volumes = []
     volume_name_set = set()
-    for op in pipeline.ops.values():
-      if op.volumes:
-        for v in op.volumes:
+    for op in pipeline.cops.values():
+      if op.k8s_volumes:
+        for v in op.k8s_volumes:
           # Remove volume duplicates which have the same name
           #TODO: check for duplicity based on the serialized volumes instead of just name.
           if v.name not in volume_name_set:
@@ -535,11 +535,8 @@ class Compiler(object):
       for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
         arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
 
-    # Sanitize operator names and param names
-    sanitized_ops = {}
-    for op in p.ops.values():
-      sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
-      op.name = sanitized_name
+    # Sanitize param names
+    for op in p.cops.values():
       for param in op.inputs + op.argument_inputs:
         param.name = K8sHelper.sanitize_k8s_name(param.name)
         if param.op_name:
@@ -556,8 +553,8 @@ class Compiler(object):
         for key in op.file_outputs.keys():
           sanitized_file_outputs[K8sHelper.sanitize_k8s_name(key)] = op.file_outputs[key]
         op.file_outputs = sanitized_file_outputs
-      sanitized_ops[sanitized_name] = op
-    p.ops = sanitized_ops
+      p.cops[op.name] = op
+      p.ops[op.name] = op
 
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow

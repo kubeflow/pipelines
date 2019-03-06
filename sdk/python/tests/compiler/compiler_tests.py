@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -112,7 +112,7 @@ class TestCompiler(unittest.TestCase):
     }
 
     self.maxDiff = None
-    self.assertEqual(golden_output, compiler.Compiler()._op_to_template(op))
+    self.assertEqual(golden_output, compiler.Compiler()._cop_to_template(op))
 
   def _get_yaml_from_tar(self, tar_file):
     with tarfile.open(tar_file, 'r:gz') as tar:

@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ class ContainerOp(object):
     self.resource_limits = {}
     self.resource_requests = {}
     self.node_selector = {}
-    self.volumes = []
+    self.k8s_volumes = []
     self.volume_mounts = []
     self.env_variables = []
     self.pod_annotations = {}
@@ -69,7 +69,7 @@ class ContainerOp(object):
     self.argument_inputs = _extract_pipelineparams([str(arg) for arg in (command or []) + (arguments or [])])
 
     self.file_outputs = file_outputs
-    self.dependent_op_names = []
+    self.deps = []
 
     self.inputs = []
     if self.argument_inputs:
@@ -101,7 +101,7 @@ class ContainerOp(object):
 
   def after(self, op):
     """Specify explicit dependency on another op."""
-    self.dependent_op_names.append(op.name)
+    self.deps.append(op.name)
     return self
 
   def _validate_memory_string(self, memory_string):
@@ -223,7 +223,7 @@ class ContainerOp(object):
       https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume.py
     """
 
-    self.volumes.append(volume)
+    self.k8s_volumes.append(volume)
     return self
 
   def add_volume_mount(self, volume_mount):

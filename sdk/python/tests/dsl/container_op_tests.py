@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ class TestContainerOp(unittest.TestCase):
       op1 = ContainerOp(name='op1', image='image',
           arguments=['%s hello %s %s' % (param1, param2, param1)],
           file_outputs={'out1': '/tmp/b'})
-      
+
     self.assertCountEqual([x.name for x in op1.inputs], ['param1', 'param2'])
     self.assertCountEqual(list(op1.outputs.keys()), ['out1'])
     self.assertCountEqual([x.op_name for x in op1.outputs.values()], ['op1'])
@@ -38,4 +38,4 @@ class TestContainerOp(unittest.TestCase):
       op1 = ContainerOp(name='op1', image='image')
       op2 = ContainerOp(name='op2', image='image')
       op2.after(op1)
-    self.assertCountEqual(op2.dependent_op_names, [op1.name])
+    self.assertCountEqual(op2.deps, [op1.name])
