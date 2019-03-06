@@ -60,6 +60,8 @@ def component(func):
   def foobar(model: TFModel(), step: MLStep()):
     return dsl.ContainerOp()
   """
+  from functools import wraps
+  @wraps(func)
   def _component(*args, **kargs):
     import inspect
     fullargspec = inspect.getfullargspec(func)
