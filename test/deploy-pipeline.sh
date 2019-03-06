@@ -19,7 +19,7 @@ set -ex
 
 usage()
 {
-    echo "usage: deploy.sh
+    echo "usage: deploy-pipeline.sh
     [--gcr_image_base_dir   the gcr image base directory including images such as apiImage and persistenceAgentImage]
     [--gcr_image_tag   		the tags for images such as apiImage and persistenceAgentImage]
     [-h help]"

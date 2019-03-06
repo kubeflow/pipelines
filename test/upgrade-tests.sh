@@ -18,9 +18,8 @@ set -ex
 
 usage()
 {
-    echo "usage: deploy.sh
+    echo "usage: upgrade-tests.sh
     [--platform             the deployment platform. Valid values are: [gcp, minikube]. Default is gcp.]
-    [--workflow_file        the file name of the argo workflow to run]
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
     [--timeout              timeout of the tests in seconds. Default is 1800 seconds. ]
@@ -38,9 +37,6 @@ while [ "$1" != "" ]; do
     case $1 in
              --platform )             shift
                                       PLATFORM=$1
-                                      ;;
-             --workflow_file )        shift
-                                      WORKFLOW_FILE=$1
                                       ;;
              --test_result_bucket )   shift
                                       TEST_RESULT_BUCKET=$1

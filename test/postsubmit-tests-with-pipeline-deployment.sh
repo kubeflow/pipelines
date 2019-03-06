@@ -18,7 +18,7 @@ set -ex
 
 usage()
 {
-    echo "usage: deploy.sh
+    echo "usage: postsubmit-tests-with-pipeline-deployment.sh
     [--platform             the deployment platform. Valid values are: [gcp, minikube]. Default is gcp.]
     [--workflow_file        the file name of the argo workflow to run]
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
