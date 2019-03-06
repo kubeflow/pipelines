@@ -15,4 +15,4 @@ RUN go build github.com/jstemmer/go-junit-report
 
 COPY . /go/src/github.com/kubeflow/pipelines
 
-ENTRYPOINT ["/go/src/github.com/kubeflow/pipelines/test/api-integration-test/run_test.sh"]
+ENTRYPOINT ["/go/src/github.com/kubeflow/pipelines/test/backend-test/run_test.sh"]

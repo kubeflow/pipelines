@@ -55,7 +55,7 @@ spec:
           - name: docker-path
             value: .
           - name: docker-file
-            value: test/api-integration-test/Dockerfile
+            value: test/backend-test/Dockerfile
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.api-integration-test-image-suffix}}"
       - name: build-frontend-integration-tests-image
@@ -207,6 +207,8 @@ spec:
       image: "{{inputs.parameters.api-integration-test-image}}"
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+        "--results-file-name", "junit_ApiIntegrationTestOutput.xml",
+        "--test-dir", "backend/test/integration",
       ]
       env:
       - name: GOOGLE_APPLICATION_CREDENTIALS
