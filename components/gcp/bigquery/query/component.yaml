@@ -18,9 +18,10 @@ description: |
 inputs:
   - {name: query, description: 'The query used by Bigquery service to fetch the results.'}
   - {name: project_id, description: 'The project to execute the query job.' }
-  - {name: dataset_id, description: 'The ID of the persistent dataset to keep the results of the query.'}
+  - {name: dataset_id, description: 'The ID of the persistent dataset to keep the results of the query.', default: '' }
   - {name: table_id, description: 'The ID of the table to keep the results of the query. If absent, the operation will generate a random id for the table.', default: '' }
   - {name: output_gcs_path, description: 'The GCS blob path to dump the query results to.', default: '' }
+  - {name: dataset_location, description: 'The location to create the dataset. Defaults to `US`.', default: 'US' }
   - {name: job_config, description: 'The full config spec for the query job.', default: '' }
 outputs:
   - {name: output_gcs_path, description: 'The GCS blob path to dump the query results to.'}
