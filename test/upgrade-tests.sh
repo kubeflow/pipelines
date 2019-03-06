@@ -32,6 +32,7 @@ TEST_RESULT_BUCKET=ml-pipeline-test
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
+WORKFLOW_FILE=upgrade_test.yaml
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -68,7 +69,7 @@ source "${DIR}/build-system-images.sh"
 
 # Run pre upgrade test before cluster is upgraded, to hydrate the cluster with some user data
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit ${DIR}/upgrade_test.yaml \
+ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
@@ -87,7 +88,7 @@ source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
 
 # Run upgrade test after cluster is upgraded. Verify user dat can still be retrieved
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit ${DIR}/upgrade_test.yaml \
+ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
