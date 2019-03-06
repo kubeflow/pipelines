@@ -54,6 +54,13 @@ func (s *PipelineApiTest) SetupTest() {
 	}
 }
 
+func (s *PipelineApiTest) TearDownTest() {
+	if *cleanup {
+		t := s.T()
+		test.DeleteAllPipelines(s.pipelineClient, t)
+	}
+}
+
 func (s *PipelineApiTest) TestPipelineAPI() {
 	t := s.T()
 
@@ -179,9 +186,6 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	var expectedWorkflow v1alpha1.Workflow
 	err = yaml.Unmarshal(expected, &expectedWorkflow)
 	assert.Equal(t, expectedWorkflow, *template)
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllPipelines(s.pipelineClient, t)
 }
 
 func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {

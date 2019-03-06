@@ -60,6 +60,15 @@ func (s *RunApiTestSuite) SetupTest() {
 	}
 }
 
+func (s *RunApiTestSuite) TearDownTest() {
+	if *cleanup {
+		t := s.T()
+		test.DeleteAllExperiments(s.experimentClient, t)
+		test.DeleteAllPipelines(s.pipelineClient, t)
+		test.DeleteAllRuns(s.runClient, t)
+	}
+}
+
 func (s *RunApiTestSuite) TestRunApis() {
 	t := s.T()
 
@@ -183,11 +192,6 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", runs[0].Name)
 	assert.Equal(t, string(runs[0].StorageState), api.Run_STORAGESTATE_ARCHIVED.String())
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, t)
-	test.DeleteAllPipelines(s.pipelineClient, t)
-	test.DeleteAllRuns(s.runClient, t)
 }
 
 func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, pipelineId string) {

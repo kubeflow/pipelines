@@ -69,6 +69,16 @@ func (s *JobApiTestSuite) SetupTest() {
 	}
 }
 
+func (s *JobApiTestSuite) TearDownTest() {
+	if *cleanup {
+		t := s.T()
+		test.DeleteAllExperiments(s.experimentClient, t)
+		test.DeleteAllPipelines(s.pipelineClient, t)
+		test.DeleteAllJobs(s.jobClient, t)
+		test.DeleteAllRuns(s.runClient, t)
+	}
+}
+
 func (s *JobApiTestSuite) TestJobApis() {
 	t := s.T()
 
@@ -206,12 +216,6 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, 1, totalSize)
 	argParamsRun := runs[0]
 	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsJob.ID)
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, t)
-	test.DeleteAllPipelines(s.pipelineClient, t)
-	test.DeleteAllJobs(s.jobClient, t)
-	test.DeleteAllRuns(s.runClient, t)
 }
 
 func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, pipelineID string) {

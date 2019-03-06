@@ -40,6 +40,12 @@ func (s *ExperimentApiTest) SetupTest() {
 	}
 }
 
+func (s *ExperimentApiTest) TearDownTest() {
+	if *cleanup {
+		test.DeleteAllExperiments(s.experimentClient, s.T())
+	}
+}
+
 func (s *ExperimentApiTest) TestExperimentAPI() {
 	t := s.T()
 
@@ -154,9 +160,6 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTrainingExperiment, experiment)
-
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, t)
 }
 
 func TestExperimentAPI(t *testing.T) {

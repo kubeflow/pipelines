@@ -70,20 +70,38 @@ source "${DIR}/deploy-kubeflow.sh"
 source "${DIR}/install-argo.sh"
 source "${DIR}/build-system-images.sh"
 
-# Deploy the pipeline
-source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
-
+# Run pre upgrade test before cluster is upgraded, to hydrate the cluster with some user data
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+ARGO_WORKFLOW=`argo submit ${DIR}/upgrade_test.yaml \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
+-p test-results-file-name="junit_UpgradeTestOutputBeforeUpgrade.xml" \
+-p cleanup="false" \
+-n ${NAMESPACE} \
+--serviceaccount test-runner \
+-o name
+`
+echo "pre upgrade test workflow submitted successfully"
+source "${DIR}/check-argo-status.sh"
+echo "test workflow completed"
+
+# Upgrade the pipeline with latest built image
+source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+
+# Run upgrade test after cluster is upgraded. Verify user dat can still be retrieved
+echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
+ARGO_WORKFLOW=`argo submit ${DIR}/upgrade_test.yaml \
+-p image-build-context-gcs-uri="$remote_code_archive_uri" \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+-p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+-p test-results-file-name="junit_UpgradeTestOutputAfterUpgrade.xml" \
+-p cleanup="true" \
 -n ${NAMESPACE} \
 --serviceaccount test-runner \
 -o name
 `
 
-echo "test workflow submitted successfully"
+echo "post upgrade test workflow submitted successfully"
 source "${DIR}/check-argo-status.sh"
 echo "test workflow completed"
