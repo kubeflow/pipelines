@@ -69,13 +69,15 @@ def query(query, project_id, dataset_id=None, table_id=None,
         if output_gcs_path:
             job_id = 'extract_' + ctx.context_id()
             extract_job = _get_job(client, job_id)
+            logging.info('Extracting data from table {} to {}.'.format(str(table_ref), output_gcs_path))
             if not extract_job:
                 extract_job = client.extract_table(table_ref, output_gcs_path)
             extract_job.result()  # Wait for export to finish
         else:
+            result_path = KFP_OUTPUT_PATH + 'bigquery/query_output.csv'
+            logging.info('Dumping results to {}.'.format(result_path))
             # Download results to local disk if no gcs output path.
-            gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query_output.csv', 
-                query_result.to_dataframe().to_csv())
+            gcp_common.dump_file(result_path, query_result.to_dataframe().to_csv())
         _dump_outputs(query_job, output_gcs_path)
         return query_job.to_api_repr()
 
@@ -117,9 +119,9 @@ def _display_job_link(project_id, job_id):
     ))
 
 def _dump_outputs(job, output_path):
-    gcp_common.dump_file(KFP_OUTPUT_PATH + 'biquery/query-job.json', 
+    gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-job.json', 
         json.dumps(job.to_api_repr()))
     if not output_path:
         output_path = ''
-    gcp_common.dump_file(KFP_OUTPUT_PATH + 'biquery/query-output-path.txt', 
+    gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-output-path.txt', 
         output_path)
