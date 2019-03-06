@@ -30,7 +30,7 @@ outputs:
   - {name: job_id, description: 'The ID of the created job.'}
 implementation:
   container:
-    image: gcr.io/ml-pipeline-dogfood/ml-pipeline-gcp:latest
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest
     args: [
       kfp_component.google.ml_engine, batch_predict,
       --project_id, {inputValue: project_id},

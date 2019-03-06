@@ -26,7 +26,7 @@ outputs:
   - {name: output_gcs_path, description: 'The GCS blob path to dump the query results to.'}
 implementation:
   container:
-    image: gcr.io/ml-pipeline-dogfood/ml-pipeline-gcp:latest
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest
     args: [
       kfp_component.google.bigquery, query,
       --query, {inputValue: query},

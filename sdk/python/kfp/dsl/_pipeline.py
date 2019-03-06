@@ -58,7 +58,6 @@ def pipeline(name, description):
     #docstring parser:
     #  https://github.com/rr-/docstring_parser
     #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
-
     Pipeline.add_pipeline(pipeline_meta, func)
     return func
 

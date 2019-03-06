@@ -32,13 +32,13 @@ outputs:
   - {name: version_name,  description: 'The name of the deployed version.'}
 implementation:
   container:
-    image: gcr.io/ml-pipeline-dogfood/ml-pipeline-gcp:latest
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest
     args: [
       kfp_component.google.ml_engine, deploy,
       --model_uri, {inputValue: model_uri},
       --project_id, {inputValue: project_id},
-      --model_short_name, {inputValue: model_short_name},
-      --version_short_name, {inputValue: version_short_name},
+      --model_id, {inputValue: model_id},
+      --version_id, {inputValue: version_id},
       --runtime_version, {inputValue: runtime_version},
       --version, {inputValue: version},
       --replace_existing_version, {inputValue: replace_existing_version},

@@ -42,6 +42,8 @@ def display(obj):
     if '_repr_kfpmetadata_' in obj_dir:
         display_kfpmetadata(obj)
 
+    logging.info(str(obj))
+
 def display_markdown(obj):
     """Display markdown representation to KFP UI.
     """
@@ -63,7 +65,6 @@ def display_kfpmetadata(obj):
     _output_ui_metadata(kfp_metadata)
 
 def _output_ui_metadata(output):
-    logging.info('Dumping metadata: {}'.format(output))
     with _OUTPUT_FILE_LOCK:
         metadata = {}
         if os.path.isfile(_OUTPUT_PATH):
@@ -85,6 +86,9 @@ class Markdown(object):
     def _repr_markdown_(self):
         return self._data
 
+    def __repr__(self):
+        return self._data
+
 class Tensorboard(object):
     """Class to hold tensorboard metadata.
     """
@@ -97,9 +101,17 @@ class Tensorboard(object):
             'source': self._job_dir
         }
 
+    def __repr__(self):
+        return 'Open Tensorboard at: {}'.format(self._job_dir)
+
 class Link(Markdown):
     """Class to hold an markdown hyperlink data.
     """
     def __init__(self, href, text):
         super(Link, self).__init__(
             '## [{}]({})'.format(text, href))
+        self._href = href
+        self._text = text
+
+    def __repr__(self):
+        return '{}: {}'.format(self._text, self._href)
