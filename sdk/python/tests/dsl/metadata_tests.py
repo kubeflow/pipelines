@@ -69,6 +69,11 @@ class TestComponentMeta(unittest.TestCase):
                                                                              ),
                                                          default='default2'
                                                          ),
+                                           ParameterMeta(name='input3',
+                                                         description='input3 desc',
+                                                         param_type=TypeMeta(name='Integer'),
+                                                         default='default3'
+                                                         ),
                                            ],
                                    outputs=[ParameterMeta(name='output1',
                                                           description='output1 desc',
@@ -105,6 +110,12 @@ class TestComponentMeta(unittest.TestCase):
                     }
                 },
                 'default': 'default2'
+            },
+            {
+                'name': 'input3',
+                'description': 'input3 desc',
+                'type': 'Integer',
+                'default': 'default3'
             }
         ],
         'outputs': [

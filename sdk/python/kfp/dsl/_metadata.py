@@ -40,7 +40,7 @@ class TypeMeta(BaseMeta):
     self.properties = {} if properties is None else properties
 
   def to_dict_or_str(self):
-    if self.properties is None:
+    if self.properties is None or len(self.properties) == 0:
       return self.name
     else:
       return {self.name: self.properties}

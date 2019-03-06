@@ -103,11 +103,11 @@ def check_types(checked_type, expected_type):
 	if isinstance(checked_type, BaseType):
 		checked_type = _instance_to_dict(checked_type)
 	elif isinstance(checked_type, str):
-                checked_type = {checked_type: {}}
+		checked_type = {checked_type: {}}
 	if isinstance(expected_type, BaseType):
 		expected_type = _instance_to_dict(expected_type)
 	elif isinstance(expected_type, str):
-                expected_type = {expected_type: {}}
+		expected_type = {expected_type: {}}
 	return _check_dict_types(checked_type, expected_type)
 
 def _check_valid_type_dict(payload):
