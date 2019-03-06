@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import kfp
 from kfp.dsl import Pipeline, PipelineParam, ContainerOp, pipeline
+from kfp.dsl._metadata import PipelineMeta, ParameterMeta, TypeMeta
 from kfp.dsl._types import GCSPath, Integer
 import unittest
 
@@ -54,8 +55,10 @@ class TestPipeline(unittest.TestCase):
     def my_pipeline2():
       pass
     
-    self.assertEqual(('p1', 'description1'), Pipeline.get_pipeline_functions()[my_pipeline1])
-    self.assertEqual(('p2', 'description2'), Pipeline.get_pipeline_functions()[my_pipeline2])
+    self.assertEqual('p1', Pipeline.get_pipeline_functions()[my_pipeline1].name)
+    self.assertEqual('description1', Pipeline.get_pipeline_functions()[my_pipeline1].description)
+    self.assertEqual('p2', Pipeline.get_pipeline_functions()[my_pipeline2].name)
+    self.assertEqual('description2', Pipeline.get_pipeline_functions()[my_pipeline2].description)
 
   def test_decorator_metadata(self):
     """Test @pipeline decorator with metadata."""
@@ -66,4 +69,9 @@ class TestPipeline(unittest.TestCase):
     def my_pipeline1(a: {'Schema': {'file_type': 'csv'}}='good', b: Integer()=12):
       pass
 
-    self.assertEqual(('p1', 'description1'), Pipeline.get_pipeline_functions()[my_pipeline1])
+    golden_meta = PipelineMeta(name='p1', description='description1')
+    golden_meta.inputs.append(ParameterMeta(name='a', description='', param_type=TypeMeta(name='Schema', properties={'file_type': 'csv'}), default='good'))
+    golden_meta.inputs.append(ParameterMeta(name='b', description='', param_type=TypeMeta(name='Integer'), default=12))
+
+    pipeline_meta = Pipeline.get_pipeline_functions()[my_pipeline1]
+    self.assertEqual(pipeline_meta, golden_meta)

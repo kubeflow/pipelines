@@ -38,22 +38,27 @@ def pipeline(name, description):
     args = fullargspec.args
     annotations = fullargspec.annotations
 
+    # defaults
+    arg_defaults = {}
+    if fullargspec.defaults:
+      for arg, default in zip(reversed(fullargspec.args), reversed(fullargspec.defaults)):
+        arg_defaults[arg] = default
+
     # Construct the PipelineMeta
-    pipeline_meta = PipelineMeta(name=func.__name__, description='')
+    pipeline_meta = PipelineMeta(name=name, description=description)
     # Inputs
     for arg in args:
       arg_type = TypeMeta()
+      arg_default = arg_defaults[arg] if arg in arg_defaults else None
       if arg in annotations:
         arg_type = _annotation_to_typemeta(annotations[arg])
-      pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type))
+      pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
 
     #TODO: add descriptions to the metadata
     #docstring parser:
     #  https://github.com/rr-/docstring_parser
     #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
-    #TODO: parse the metadata to the Pipeline.
-
-    Pipeline.add_pipeline(name, description, func)
+    Pipeline.add_pipeline(pipeline_meta, func)
     return func
 
   return _pipeline
@@ -114,9 +119,9 @@ class Pipeline():
     return Pipeline._pipeline_functions
 
   @staticmethod
-  def add_pipeline(name, description, func):
+  def add_pipeline(pipeline_meta, func):
     """Add a pipeline function (decorated with @pipeline)."""
-    Pipeline._pipeline_functions[func] = (name, description)
+    Pipeline._pipeline_functions[func] = pipeline_meta
 
   def __init__(self, name: str):
     """Create a new instance of Pipeline.
@@ -130,6 +135,7 @@ class Pipeline():
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
     self.group_id = 0
     self.conf = PipelineConf()
+    self._metadata = None
 
   def __enter__(self):
     if Pipeline._default_pipeline:
@@ -183,5 +189,14 @@ class Pipeline():
 
     self.group_id += 1
     return self.group_id
+
+  def _set_metadata(self, metadata):
+    '''_set_metadata passes the containerop the metadata information
+    Args:
+      metadata (ComponentMeta): component metadata
+    '''
+    if not isinstance(metadata, PipelineMeta):
+      raise ValueError('_set_medata is expecting PipelineMeta.')
+    self._metadata = metadata
 
 
