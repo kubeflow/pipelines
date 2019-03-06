@@ -117,9 +117,9 @@ def _display_job_link(project_id, job_id):
     ))
 
 def _dump_outputs(job, output_path):
-    gcp_common.dump_file(KFP_OUTPUT_PATH + 'biquery/query-job.json', 
+    gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-job.json', 
         json.dumps(job.to_api_repr()))
     if not output_path:
         output_path = ''
-    gcp_common.dump_file(KFP_OUTPUT_PATH + 'biquery/query-output-path.txt', 
+    gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-output-path.txt', 
         output_path)
