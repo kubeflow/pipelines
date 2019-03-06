@@ -140,15 +140,10 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
             _dummy_pipeline = dsl.Pipeline('dummy pipeline')
         _dummy_pipeline.__enter__()
 
-    from ._naming import _sanitize_kubernetes_resource_name, _make_name_unique_by_adding_index
-    output_name_to_kubernetes = {}
-    kubernetes_name_to_output_name = {}
-    for output_name in (output_paths or {}).keys():
-        kubernetes_name = _sanitize_kubernetes_resource_name(output_name)
-        kubernetes_name = _make_name_unique_by_adding_index(kubernetes_name, kubernetes_name_to_output_name, '-')
-        output_name_to_kubernetes[output_name] = kubernetes_name
-        kubernetes_name_to_output_name[kubernetes_name] = output_name
-    
+    #Renaming outputs to conform with ContainerOp/Argo
+    from ._naming import _sanitize_kubernetes_resource_name, generate_unique_name_conversion_table
+    output_names = (output_paths or {}).keys()
+    output_name_to_kubernetes = generate_unique_name_conversion_table(output_names, _sanitize_kubernetes_resource_name)
     output_paths_for_container_op = {output_name_to_kubernetes[name]: path for name, path in output_paths.items()}
 
     # Construct the ComponentMeta
