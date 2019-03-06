@@ -41,4 +41,3 @@ class TestPythonComponent(unittest.TestCase):
     golden_meta.outputs.append(ParameterMeta(name='model', description='', param_type=TypeMeta(name='Integer')))
 
     self.assertEqual(containerOp._metadata, golden_meta)
-

@@ -55,7 +55,7 @@ class ParameterMeta(BaseMeta):
       name: str = '',
       description: str = '',
       param_type: TypeMeta = None,
-      default = ''):
+      default = None):
     self.name = name
     self.description = description
     self.param_type = TypeMeta() if param_type is None else param_type

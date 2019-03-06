@@ -76,7 +76,7 @@ def component(func):
     # Inputs
     for arg in fullargspec.args:
       arg_type = TypeMeta()
-      arg_default = arg_defaults[arg] if arg in arg_defaults else ''
+      arg_default = arg_defaults[arg] if arg in arg_defaults else None
       if arg in annotations:
         arg_type = _annotation_to_typemeta(annotations[arg])
       component_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
