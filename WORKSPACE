@@ -1,12 +1,13 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "7be7dc01f1e0afdba6c8eb2b43d2fa01c743be1b9273ab1eaf6c233df078d705",
-    urls = ["https://github.com/bazelbuild/rules_go/releases/download/0.16.5/rules_go-0.16.5.tar.gz"],
+    sha256 = "492c3ac68ed9dcf527a07e6a1b2dcbf199c6bf8b35517951467ac32e421c06c1",
+    urls = ["https://github.com/bazelbuild/rules_go/releases/download/0.17.0/rules_go-0.17.0.tar.gz"],
 )
 
-load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_dependencies")
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 
 go_rules_dependencies()
 
@@ -21,6 +22,45 @@ http_archive(
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 gazelle_dependencies()
+
+http_archive(
+    name = "org_tensorflow",
+    sha256 = "24570d860d87dcfb936f53fb8dd30302452d0aa6b8b8537e4555c1bf839121a6",
+    strip_prefix = "tensorflow-1.13.0-rc0",
+    urls = [
+        "https://github.com/tensorflow/tensorflow/archive/v1.13.0-rc0.tar.gz",
+    ],
+)
+
+http_archive(
+    name = "io_bazel_rules_closure",
+    sha256 = "43c9b882fa921923bcba764453f4058d102bece35a37c9f6383c713004aacff1",
+    strip_prefix = "rules_closure-9889e2348259a5aad7e805547c1a0cf311cfcd91",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_closure/archive/9889e2348259a5aad7e805547c1a0cf311cfcd91.tar.gz",
+        "https://github.com/bazelbuild/rules_closure/archive/9889e2348259a5aad7e805547c1a0cf311cfcd91.tar.gz",  # 2018-12-21
+    ],
+)
+
+load("@org_tensorflow//tensorflow:workspace.bzl", "tf_workspace")
+
+tf_workspace()
+
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
+
+go_repository(
+    name = "google_ml_metadata",
+    commit = "becc26ab61f82bfe7c812894f56f597949ce0fdc",
+    importpath = "github.com/google/ml-metadata",
+)
+
+new_git_repository(
+    name = "libmysqlclient",
+    build_file = "@google_ml_metadata//ml_metadata:libmysqlclient.BUILD",
+    remote = "https://github.com/MariaDB/mariadb-connector-c.git",
+    tag = "v3.0.8-release",
+    workspace_file = "@google_ml_metadata//ml_metadata:libmysqlclient.WORKSPACE",
+)
 
 go_repository(
     name = "io_k8s_client_go",
