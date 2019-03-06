@@ -483,6 +483,12 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
                           "val4",
                         ],
                       ],
+                      "resource": Array [
+                        Array [],
+                      ],
+                      "volumeMounts": Array [
+                        Array [],
+                      ],
                     },
                     "label": "node1",
                   },
@@ -545,6 +551,12 @@ exports[`PipelineDetails shows clicked node info in the side panel if it is in t
                           "key4",
                           "val4",
                         ],
+                      ],
+                      "resource": Array [
+                        Array [],
+                      ],
+                      "volumeMounts": Array [
+                        Array [],
                       ],
                     }
                   }

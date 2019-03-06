@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, fontsize } from '../Css';
 import { SelectedNodeInfo } from '../lib/StaticGraphParser';
 
-export type nodeType = 'container' | 'dag' | 'unknown';
+export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
 const css = stylesheet({
   fontSizeTitle: {
@@ -42,19 +42,35 @@ class StaticNodeDetails extends React.Component<StaticNodeDetailsProps> {
     const nodeInfo = this.props.nodeInfo;
 
     return <div>
-      <DetailsTable title='Input parameters' fields={nodeInfo.inputs} />
+      {(nodeInfo.nodeType === 'container') && (
+	<div>
+          <DetailsTable title='Input parameters' fields={nodeInfo.inputs} />
 
-      <DetailsTable title='Output parameters' fields={nodeInfo.outputs} />
+          <DetailsTable title='Output parameters' fields={nodeInfo.outputs} />
 
-      <div className={classes(commonCss.header, css.fontSizeTitle)}>Arguments</div>
-      {nodeInfo.args.map((arg, i) =>
-        <div key={i} style={{ fontFamily: 'monospace' }}>{arg}</div>)}
+          <div className={classes(commonCss.header, css.fontSizeTitle)}>Arguments</div>
+          {nodeInfo.args.map((arg, i) =>
+            <div key={i} style={{ fontFamily: 'monospace' }}>{arg}</div>)}
 
-      <div className={classes(commonCss.header, css.fontSizeTitle)}>Command</div>
-      {nodeInfo.command.map((c, i) => <div key={i} style={{ fontFamily: 'monospace' }}>{c}</div>)}
+          <div className={classes(commonCss.header, css.fontSizeTitle)}>Command</div>
+          {nodeInfo.command.map((c, i) => <div key={i} style={{ fontFamily: 'monospace' }}>{c}</div>)}
 
-      <div className={classes(commonCss.header, css.fontSizeTitle)}>Image</div>
-      <div style={{ fontFamily: 'monospace' }}>{nodeInfo.image}</div>
+          <div className={classes(commonCss.header, css.fontSizeTitle)}>Image</div>
+          <div style={{ fontFamily: 'monospace' }}>{nodeInfo.image}</div>
+
+          <DetailsTable title='Volume Mounts' fields={nodeInfo.volumeMounts} />
+	</div>
+      )}
+
+      {(nodeInfo.nodeType === 'resource') && (
+	<div>
+          <DetailsTable title='Input parameters' fields={nodeInfo.inputs} />
+
+          <DetailsTable title='Output parameters' fields={nodeInfo.outputs} />
+
+          <DetailsTable title='Manifest' fields={nodeInfo.resource} />
+	</div>
+      )}
 
       {!!nodeInfo.condition && (
         <div>

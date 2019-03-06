@@ -408,11 +408,13 @@ exports[`RunDetails does not load logs if clicked node status is skipped 1`] = `
             >
               <MD2Tabs
                 onSwitch={[Function]}
-                selectedTab={2}
+                selectedTab={4}
                 tabs={
                   Array [
                     "Artifacts",
                     "Input/Output",
+                    "Volumes",
+                    "Manifest",
                     "Logs",
                   ]
                 }
@@ -517,11 +519,13 @@ exports[`RunDetails keeps side pane open and on same tab when logs change after 
             >
               <MD2Tabs
                 onSwitch={[Function]}
-                selectedTab={2}
+                selectedTab={4}
                 tabs={
                   Array [
                     "Artifacts",
                     "Input/Output",
+                    "Volumes",
+                    "Manifest",
                     "Logs",
                   ]
                 }
@@ -720,11 +724,13 @@ exports[`RunDetails loads and shows logs in side pane 1`] = `
             >
               <MD2Tabs
                 onSwitch={[Function]}
-                selectedTab={2}
+                selectedTab={4}
                 tabs={
                   Array [
                     "Artifacts",
                     "Input/Output",
+                    "Volumes",
+                    "Manifest",
                     "Logs",
                   ]
                 }
@@ -885,6 +891,8 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
                   Array [
                     "Artifacts",
                     "Input/Output",
+                    "Volumes",
+                    "Manifest",
                     "Logs",
                   ]
                 }
@@ -1107,6 +1115,8 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
                   Array [
                     "Artifacts",
                     "Input/Output",
+                    "Volumes",
+                    "Manifest",
                     "Logs",
                   ]
                 }
@@ -1207,6 +1217,8 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
                   Array [
                     "Artifacts",
                     "Input/Output",
+                    "Volumes",
+                    "Manifest",
                     "Logs",
                   ]
                 }
@@ -1321,11 +1333,13 @@ exports[`RunDetails shows error banner atop logs area if fetching logs failed 1`
             >
               <MD2Tabs
                 onSwitch={[Function]}
-                selectedTab={2}
+                selectedTab={4}
                 tabs={
                   Array [
                     "Artifacts",
                     "Input/Output",
+                    "Volumes",
+                    "Manifest",
                     "Logs",
                   ]
                 }
@@ -1761,6 +1775,8 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                   Array [
                     "Artifacts",
                     "Input/Output",
+                    "Volumes",
+                    "Manifest",
                     "Logs",
                   ]
                 }
@@ -1883,11 +1899,13 @@ exports[`RunDetails switches to logs tab in side pane 1`] = `
             >
               <MD2Tabs
                 onSwitch={[Function]}
-                selectedTab={2}
+                selectedTab={4}
                 tabs={
                   Array [
                     "Artifacts",
                     "Input/Output",
+                    "Volumes",
+                    "Manifest",
                     "Logs",
                   ]
                 }
@@ -1909,6 +1927,113 @@ exports[`RunDetails switches to logs tab in side pane 1`] = `
                         "",
                       ]
                     }
+                  />
+                </div>
+              </div>
+            </div>
+          </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails switches to manifest tab in side pane 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div
+          className="page"
+        >
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": Object {},
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId="node1"
+          />
+          <SidePanel
+            isBusy={false}
+            isOpen={true}
+            onClose={[Function]}
+            title="node1"
+          >
+            <div
+              className="page"
+            >
+              <MD2Tabs
+                onSwitch={[Function]}
+                selectedTab={3}
+                tabs={
+                  Array [
+                    "Artifacts",
+                    "Input/Output",
+                    "Volumes",
+                    "Manifest",
+                    "Logs",
+                  ]
+                }
+              />
+              <div
+                className="page"
+              >
+                <div
+                  className=""
+                >
+                  <Component
+                    fields={Array []}
+                    title="Resource Manifest"
                   />
                 </div>
               </div>
@@ -1966,6 +2091,113 @@ exports[`RunDetails switches to run output tab, shows empty message 1`] = `
         >
           No output artifacts found for this run.
         </span>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`RunDetails switches to volumes tab in side pane 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="page"
+  >
+    <MD2Tabs
+      onSwitch={[Function]}
+      selectedTab={0}
+      tabs={
+        Array [
+          "Graph",
+          "Run output",
+          "Config",
+        ]
+      }
+    />
+    <div
+      className="page"
+    >
+      <div
+        className="page graphPane"
+      >
+        <div
+          className="page"
+        >
+          <Graph
+            graph={
+              Graph {
+                "_defaultEdgeLabelFn": [Function],
+                "_defaultNodeLabelFn": [Function],
+                "_edgeLabels": Object {},
+                "_edgeObjs": Object {},
+                "_in": Object {},
+                "_isCompound": false,
+                "_isDirected": true,
+                "_isMultigraph": false,
+                "_label": Object {},
+                "_nodes": Object {},
+                "_out": Object {},
+                "_preds": Object {},
+                "_sucs": Object {},
+              }
+            }
+            onClick={[Function]}
+            selectedNodeId="node1"
+          />
+          <SidePanel
+            isBusy={false}
+            isOpen={true}
+            onClose={[Function]}
+            title="node1"
+          >
+            <div
+              className="page"
+            >
+              <MD2Tabs
+                onSwitch={[Function]}
+                selectedTab={2}
+                tabs={
+                  Array [
+                    "Artifacts",
+                    "Input/Output",
+                    "Volumes",
+                    "Manifest",
+                    "Logs",
+                  ]
+                }
+              />
+              <div
+                className="page"
+              >
+                <div
+                  className=""
+                >
+                  <Component
+                    fields={Array []}
+                    title="Volume Mounts"
+                  />
+                </div>
+              </div>
+            </div>
+          </SidePanel>
+          <div
+            className="footer"
+          >
+            <div
+              className="flex"
+            >
+              <pure(InfoOutlinedIcon)
+                className="infoIcon"
+              />
+              <span
+                className="infoSpan"
+              >
+                Runtime execution graph. Only steps that are currently running or have already completed are shown.
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

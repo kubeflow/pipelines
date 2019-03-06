@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -465,7 +465,7 @@ describe('RunDetails', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('switches to logs tab in side pane', async () => {
+  it('switches to volumes tab in side pane', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
@@ -478,6 +478,32 @@ describe('RunDetails', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('switches to manifest tab in side pane', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      status: { nodes: { node1: { id: 'node1', }, }, },
+    });
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    tree.find('Graph').simulate('click', 'node1');
+    tree.find('MD2Tabs').at(1).simulate('switch', 3);
+    expect(tree.state('sidepanelSelectedTab')).toEqual(3);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('switches to logs tab in side pane', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      status: { nodes: { node1: { id: 'node1', }, }, },
+    });
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await getRunSpy;
+    await TestUtils.flushPromises();
+    tree.find('Graph').simulate('click', 'node1');
+    tree.find('MD2Tabs').at(1).simulate('switch', 4);
+    expect(tree.state('sidepanelSelectedTab')).toEqual(4);
+    expect(tree).toMatchSnapshot();
+  });
+
   it('loads and shows logs in side pane', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
@@ -486,7 +512,7 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    tree.find('MD2Tabs').at(1).simulate('switch', 4);
     await getPodLogsSpy;
     expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
     expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1');
@@ -502,7 +528,7 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    tree.find('MD2Tabs').at(1).simulate('switch', 4);
     await getPodLogsSpy;
     await TestUtils.flushPromises();
     expect(tree.state()).toMatchObject({
@@ -528,7 +554,7 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    tree.find('MD2Tabs').at(1).simulate('switch', 4);
     await getPodLogsSpy;
     await TestUtils.flushPromises();
     expect(getPodLogsSpy).not.toHaveBeenCalled();
@@ -563,9 +589,9 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    tree.find('MD2Tabs').at(1).simulate('switch', 4);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(2);
+    expect(tree.state('sidepanelSelectedTab')).toEqual(4);
 
     const instance = tree.instance() as RunDetails;
     const refreshBtn = instance.getInitialToolbarState().actions.find(
@@ -573,7 +599,7 @@ describe('RunDetails', () => {
     await refreshBtn!.action();
     expect(getRunSpy).toHaveBeenCalledTimes(2);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(2);
+    expect(tree.state('sidepanelSelectedTab')).toEqual(4);
   });
 
   it('keeps side pane open and on same tab when more nodes are added after refresh', async () => {
@@ -589,9 +615,9 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    tree.find('MD2Tabs').at(1).simulate('switch', 4);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(2);
+    expect(tree.state('sidepanelSelectedTab')).toEqual(4);
 
     const instance = tree.instance() as RunDetails;
     const refreshBtn = instance.getInitialToolbarState().actions.find(
@@ -599,7 +625,7 @@ describe('RunDetails', () => {
     await refreshBtn!.action();
     expect(getRunSpy).toHaveBeenCalledTimes(2);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(2);
+    expect(tree.state('sidepanelSelectedTab')).toEqual(4);
   });
 
   it('keeps side pane open and on same tab when run status changes, shows new status', async () => {
@@ -610,9 +636,9 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    tree.find('MD2Tabs').at(1).simulate('switch', 4);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(2);
+    expect(tree.state('sidepanelSelectedTab')).toEqual(4);
     expect(updateToolbarSpy).toHaveBeenCalledTimes(3);
 
     const thirdCall = updateToolbarSpy.mock.calls[2][0];
@@ -635,9 +661,9 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    tree.find('MD2Tabs').at(1).simulate('switch', 4);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(2);
+    expect(tree.state('sidepanelSelectedTab')).toEqual(4);
 
     getPodLogsSpy.mockImplementationOnce(() => 'new test logs');
     const instance = tree.instance() as RunDetails;
@@ -656,7 +682,7 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    tree.find('MD2Tabs').at(1).simulate('switch', 4);
     await getPodLogsSpy;
     await TestUtils.flushPromises();
     expect(tree.state()).toMatchObject({
@@ -684,7 +710,7 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    tree.find('MD2Tabs').at(1).simulate('switch', 4);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
 
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
@@ -706,7 +732,7 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 2);
+    tree.find('MD2Tabs').at(1).simulate('switch', 4);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage',
       'This step is in Succeeded state with this message: some node message');
 
