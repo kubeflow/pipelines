@@ -16,6 +16,7 @@
 from . import _container_op
 from ._metadata import  PipelineMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 from . import _ops_group
+from ..components._naming import _make_name_unique_by_adding_index
 import sys
 
 
@@ -157,13 +158,8 @@ class Pipeline():
       op_name: a unique op name.
     """
 
-    op_name = op.human_name
     #If there is an existing op with this name then generate a new name.
-    if op_name in self.ops:
-      for i in range(2, sys.maxsize**10):
-        op_name = op_name + '-' + str(i)
-        if op_name not in self.ops:
-          break
+    op_name = _make_name_unique_by_adding_index(op.human_name, list(self.ops.keys()), ' ')
 
     self.ops[op_name] = op
     if not define_only:
