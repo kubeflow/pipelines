@@ -58,7 +58,7 @@ class TypeMeta(BaseMeta):
 
 class ParameterMeta(BaseMeta):
   def __init__(self,
-      name: str = '',
+      name: str,
       description: str = '',
       param_type: TypeMeta = None,
       default = None):
@@ -76,7 +76,7 @@ class ParameterMeta(BaseMeta):
 class ComponentMeta(BaseMeta):
   def __init__(
       self,
-      name: str = '',
+      name: str,
       description: str = '',
       inputs: List[ParameterMeta] = None,
       outputs: List[ParameterMeta] = None
@@ -98,7 +98,7 @@ class ComponentMeta(BaseMeta):
 class PipelineMeta(BaseMeta):
   def __init__(
       self,
-      name: str = '',
+      name: str,
       description: str = '',
       inputs: List[ParameterMeta] = None
   ):

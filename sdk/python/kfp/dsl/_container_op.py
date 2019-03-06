@@ -64,7 +64,7 @@ class ContainerOp(object):
     self.pod_annotations = {}
     self.pod_labels = {}
     self.num_retries = 0
-    self._metadata = ComponentMeta()
+    self._metadata = None
 
     self.argument_inputs = _extract_pipelineparams([str(arg) for arg in (command or []) + (arguments or [])])
 

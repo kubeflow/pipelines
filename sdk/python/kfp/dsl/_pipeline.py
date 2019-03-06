@@ -135,7 +135,7 @@ class Pipeline():
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
     self.group_id = 0
     self.conf = PipelineConf()
-    self._metadata = PipelineMeta()
+    self._metadata = None
 
   def __enter__(self):
     if Pipeline._default_pipeline:
