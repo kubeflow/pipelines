@@ -236,10 +236,10 @@ class Compiler(object):
   def _op_to_template(self, op):
     """Generate template given an operator inherited from dsl.ContainerOp."""
 
-    def _build_conventional_artifact(name):
+    def _build_conventional_artifact(name, path):
       return {
         'name': name,
-        'path': '/' + name + '.json',
+        'path': path,
         's3': {
           # TODO: parameterize namespace for minio service
           'endpoint': 'minio-service.kubeflow:9000',
@@ -301,8 +301,8 @@ class Compiler(object):
     # for the artifact output when default artifact repository is configured,
     # this part needs to be updated to use the default artifact repository.
     output_artifacts = []
-    output_artifacts.append(_build_conventional_artifact('mlpipeline-ui-metadata'))
-    output_artifacts.append(_build_conventional_artifact('mlpipeline-metrics'))
+    output_artifacts.append(_build_conventional_artifact('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json'))
+    output_artifacts.append(_build_conventional_artifact('mlpipeline-metrics', '/mlpipeline-metrics.json'))
     template['outputs']['artifacts'] = output_artifacts
 
     # Set resources.
