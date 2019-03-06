@@ -5,9 +5,9 @@ msgpack,https://raw.githubusercontent.com/msgpack/msgpack/python-0.1.7/python/CO
 Mako,https://raw.githubusercontent.com/zzzeek/mako/master/LICENSE,MIT
 python-editor,https://raw.githubusercontent.com/fmoo/python-editor/master/LICENSE,Apache v2
 tzlocal,https://raw.githubusercontent.com/regebro/tzlocal/master/LICENSE.txt,MIT
-itsdangerous,https://raw.githubusercontent.com/pallets/itsdangerous/master/LICENSE,3-Clause BSD
-Werkzeug,https://raw.githubusercontent.com/pallets/werkzeug/master/LICENSE,3-Clause BSD
-click,https://raw.githubusercontent.com/pallets/click/master/LICENSE,3-Clause BSD
+itsdangerous,https://raw.githubusercontent.com/pallets/itsdangerous/master/LICENSE.rst,3-Clause BSD
+Werkzeug,https://raw.githubusercontent.com/pallets/werkzeug/master/LICENSE.rst,3-Clause BSD
+click,https://raw.githubusercontent.com/pallets/click/master/LICENSE.rst,3-Clause BSD
 alembic,https://raw.githubusercontent.com/zzzeek/alembic/master/LICENSE,MIT
 sqlalchemy,https://raw.githubusercontent.com/zzzeek/sqlalchemy/master/LICENSE,MIT
 APScheduler,https://raw.githubusercontent.com/agronholm/apscheduler/master/LICENSE.txt,MIT
