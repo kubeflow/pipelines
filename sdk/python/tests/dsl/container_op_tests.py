@@ -16,7 +16,6 @@
 from kfp.dsl import Pipeline, PipelineParam, ContainerOp
 import unittest
 
-
 class TestContainerOp(unittest.TestCase):
 
   def test_basic(self):

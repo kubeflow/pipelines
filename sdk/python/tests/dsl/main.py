@@ -21,6 +21,7 @@ import pipeline_param_tests
 import container_op_tests
 import ops_group_tests
 import type_tests
+import metadata_tests
 
 if __name__ == '__main__':
   suite = unittest.TestSuite()
@@ -29,6 +30,7 @@ if __name__ == '__main__':
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(container_op_tests))
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(ops_group_tests))
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(type_tests))
+  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(metadata_tests))
   runner = unittest.TextTestRunner()
   if not runner.run(suite).wasSuccessful():
     sys.exit(1)
