@@ -56,11 +56,11 @@ func (s *Store) RecordOutputArtifacts(runID, storedManifest, currentManifest str
 
 					artifacts, err := parseTFXMetadata(*output.Value)
 					if err != nil {
-						return util.NewInternalServerError(err, "metadata parsing failure")
+						return util.NewInvalidInputError("metadata parsing failure: %v", err)
 					}
 
 					if err := s.storeArtifacts(artifacts); err != nil {
-						return util.NewInternalServerError(err, "artifact storing failure")
+						return util.NewInvalidInputError("artifact storing failure: %v", err)
 					}
 				}
 			}
@@ -93,7 +93,7 @@ type artifactStruct struct {
 
 func (a *artifactStruct) UnmarshalJSON(b []byte) error {
 	errorF := func(err error) error {
-		return util.NewInternalServerError(err, "JSON Unmarshal failure")
+		return util.NewInvalidInputError("JSON Unmarshal failure: %v", err)
 	}
 
 	jsonMap := make(map[string]*json.RawMessage)
