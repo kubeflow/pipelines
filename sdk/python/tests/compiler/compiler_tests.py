@@ -48,10 +48,11 @@ class TestCompiler(unittest.TestCase):
         data_source='old-snap',
         storage_class='test-class'
       )
+      snap = dsl.PipelineVolumeSnapshot(vol)
       last_op = dsl.ContainerOp(
         name='last-step',
         image='image',
-        volumes={'/mnt': vol}
+        volumes={'/mnt': snap}
       )
     op_output = {
       'container': {
@@ -152,13 +153,47 @@ class TestCompiler(unittest.TestCase):
         )
       }
     }
+    snap_output = {
+      'inputs': {'parameters': [{'name': 'vol-name'}]},
+      'name': 'vol-snapshot',
+      'outputs': {
+        'parameters': [
+          {
+            'name': 'vol-snapshot-name',
+            'valueFrom': {
+              'jsonPath': '{.metadata.name}'
+            }
+          },
+          {
+            'name': 'vol-snapshot-size',
+            'valueFrom': {
+              'jsonPath': '{.status.restoreSize}'
+            }
+          }
+        ]
+      },
+      'resource': {
+        'action': 'create',
+        'manifest': (
+          "apiVersion: snapshot.storage.k8s.io/v1alpha1\n"
+          "kind: VolumeSnapshot\n"
+          "metadata:\n"
+          "  name: '{{workflow.name}}-vol-snapshot'\n"
+          "spec:\n"
+          "  source:\n"
+          "    kind: PersistentVolumeClaim\n"
+          "    name: '{{inputs.parameters.vol-name}}'\n"
+        ),
+        'successCondition': 'status.readyToUse == true'
+      }
+    }
     last_op_output = {
       'container': {
         'image': 'image',
         'volumeMounts': [
           {
             'mountPath': '/mnt',
-            'name': 'vol',
+            'name': 'vol-snapshot-clone',
           }
         ]
       },
@@ -205,6 +240,7 @@ class TestCompiler(unittest.TestCase):
     self.maxDiff = None
     self.assertEqual(op_output, compiler.Compiler()._cop_to_template(op))
     self.assertEqual(vol_output, compiler.Compiler()._vol_to_template(vol))
+    self.assertEqual(snap_output, compiler.Compiler()._snap_to_template(snap))
     self.assertEqual(last_op_output, compiler.Compiler()._cop_to_template(last_op))
 
 

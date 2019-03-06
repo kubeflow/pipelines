@@ -15,6 +15,8 @@
 
 from . import _pipeline
 from . import _pipeline_param
+from . import _pipeline_volume
+from . import _pipeline_vsnapshot
 from ._pipeline_param import _extract_pipelineparams
 from ._metadata import ComponentMeta
 from kubernetes import client as k8s_client
@@ -43,8 +45,8 @@ class ContainerOp(object):
           one way for outside world to receive outputs of the container.
       is_exit_handler: Whether it is used as an exit handler.
       volumes: Dictionary for the user to match a path on the op's fs with a
-          PipelineVolume.
-          E.g {"/mnt": other_op.volumes["/output"], "/my/path": vol1}.
+          PipelineVolume or PipelineVolumeSnapshot.
+          E.g {"/mnt": other_op.volumes["/output"], "/my/path": snap}.
     """
 
     if not _pipeline.Pipeline.get_default_pipeline():
@@ -92,6 +94,8 @@ class ContainerOp(object):
     self.volumes = {}
     if volumes:
       for mount_path, volume in volumes.items():
+        if isinstance(volume, _pipeline_vsnapshot.PipelineVolumeSnapshot):
+          volume = _pipeline_volume.PipelineVolume(data_source=volume)
         if volume.from_snapshot:
           self.deps.append(volume.name)
         else:

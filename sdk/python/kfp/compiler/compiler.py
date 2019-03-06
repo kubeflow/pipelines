@@ -436,6 +436,37 @@ class Compiler(object):
       template["inputs"] = {"parameters": inputs}
     return template
 
+  def _snap_to_template(self, snap):
+    output_name = {
+      "name": "%s-name" % snap.name,
+      "valueFrom": {
+        "jsonPath": "{.metadata.name}"
+      }
+    }
+    output_size = {
+      "name": "%s-size" % snap.name,
+      "valueFrom": {
+        "jsonPath": "{.status.restoreSize}"
+      }
+    }
+    template = dict()
+    template["name"] = snap.name
+    template["resource"] = dict()
+    template["resource"]["action"] = "create"
+    template["resource"]["successCondition"] = "status.readyToUse == true"
+    template["resource"]["manifest"] = yaml.dump(snap.k8s_resource,
+                                                 default_flow_style=False)
+    template["outputs"] = {"parameters": [output_name, output_size]}
+    inputs = []
+    for i in snap.inputs:
+      if i.op_name is None or i.op_name == "":
+        inputs.append({"name": "%s" % i.name})
+      else:
+        inputs.append({"name": "%s-%s" % (i.op_name, i.name)})
+    if inputs != []:
+      template["inputs"] = {"parameters": inputs}
+    return template
+
   def _create_templates(self, pipeline):
     """Create all groups and ops templates in the pipeline."""
 
@@ -455,6 +486,9 @@ class Compiler(object):
 
     for vol in pipeline.vols.values():
       templates.append(self._vol_to_template(vol))
+
+    for snap in pipeline.snaps.values():
+      templates.append(self._snap_to_template(snap))
     return templates
 
   def _create_volumes(self, pipeline):

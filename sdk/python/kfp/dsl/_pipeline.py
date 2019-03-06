@@ -16,6 +16,7 @@
 from . import _container_op
 from ._metadata import  PipelineMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 from . import _pipeline_volume
+from . import _pipeline_vsnapshot
 from . import _ops_group
 from ..components._naming import _make_name_unique_by_adding_index
 from ..compiler._k8s_helper import K8sHelper
@@ -136,6 +137,7 @@ class Pipeline():
     self.ops = {}
     self.cops = {}
     self.vols = {}
+    self.snaps = {}
     self.global_params = set()
     # Add the root group.
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
@@ -171,6 +173,8 @@ class Pipeline():
       self.cops[op_name] = op
     elif isinstance(op, _pipeline_volume.PipelineVolume):
       self.vols[op_name] = op
+    elif isinstance(op, _pipeline_vsnapshot.PipelineVolumeSnapshot):
+      self.snaps[op_name] = op
     if not define_only:
       self.groups[-1].ops.append(op)
 

@@ -15,8 +15,9 @@
 
 from . import _pipeline
 from . import _pipeline_param
-from kubernetes import client as k8s_client
+from . import _pipeline_vsnapshot
 from ..compiler._k8s_helper import K8sHelper
+from kubernetes import client as k8s_client
 import re
 from typing import List, Dict
 
@@ -151,6 +152,36 @@ class PipelineVolume(object):
                 self.data_source = data_source
                 self.data_source_name = data_source
                 self.from_snapshot = True
+                if isinstance(data_source,
+                              _pipeline_vsnapshot.PipelineVolumeSnapshot):
+                    if self.data_source.new_snap:
+                        self.deps.add(data_source.name)
+                        self.inputs.append(
+                            _pipeline_param.PipelineParam(
+                                name="name",
+                                op_name=self.data_source.name
+                            )
+                        )
+                        self.inputs.append(
+                            _pipeline_param.PipelineParam(
+                                name="size",
+                                op_name=self.data_source.name
+                            )
+                        )
+                        self.data_source_name = data_source.name
+                        data_source = "{{inputs.parameters.%s-name}}" % \
+                                      data_source.name
+                        if size is None:
+                            size_param = True
+                            size = "{{inputs.parameters.%s-size}}" % \
+                                   self.data_source.name
+                    else:
+                        if data_source.snapshot is None:
+                            self.data_source_name = data_source.name
+                            data_source = data_source.name
+                        else:
+                            self.data_source_name = data_source.snapshot
+                            data_source = data_source.snapshot
             elif size:
                 self.from_scratch = True
 
@@ -315,6 +346,14 @@ class PipelineVolume(object):
         ret.name = name
 
         return ret
+
+    def snapshot(self, name: str = None, snapshot_class: str = None):
+        """Create a snapshot from this PipelineVolume"""
+        return _pipeline_vsnapshot.PipelineVolumeSnapshot(
+            pipeline_volume=self,
+            name=name,
+            snapshot_class=snapshot_class
+        )
 
     def _validate_memory_string(self, memory_string):
         """Validate a given string is valid for memory request or limit."""

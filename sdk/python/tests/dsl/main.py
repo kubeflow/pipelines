@@ -24,6 +24,7 @@ import type_tests
 import component_tests
 import metadata_tests
 import pipeline_volume_tests
+import pipeline_vsnapshot_tests
 
 
 if __name__ == '__main__':
@@ -37,6 +38,9 @@ if __name__ == '__main__':
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(metadata_tests))
   suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(
     pipeline_volume_tests)
+  )
+  suite.addTests(unittest.defaultTestLoader.loadTestsFromModule(
+    pipeline_vsnapshot_tests)
   )
   runner = unittest.TextTestRunner()
   if not runner.run(suite).wasSuccessful():
