@@ -14,6 +14,7 @@
 
 
 from kfp.dsl import Pipeline, PipelineParam, ContainerOp, pipeline
+from kfp.dsl._types import GCSPath, Integer
 import unittest
 
 
@@ -55,3 +56,14 @@ class TestPipeline(unittest.TestCase):
     
     self.assertEqual(('p1', 'description1'), Pipeline.get_pipeline_functions()[my_pipeline1])
     self.assertEqual(('p2', 'description2'), Pipeline.get_pipeline_functions()[my_pipeline2])
+
+  def test_decorator_metadata(self):
+    """Test @pipeline decorator with metadata."""
+    @pipeline(
+        name='p1',
+        description='description1'
+    )
+    def my_pipeline1(a: {'Schema': {'file_type': 'csv'}}='good', b: Integer()=12):
+      pass
+
+    self.assertEqual(('p1', 'description1'), Pipeline.get_pipeline_functions()[my_pipeline1])

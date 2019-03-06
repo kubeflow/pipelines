@@ -13,9 +13,16 @@
 # limitations under the License.
 
 
-from ._pipeline_param import PipelineParam
-from ._pipeline import Pipeline, pipeline, get_pipeline_conf
-from ._container_op import ContainerOp
-from ._ops_group import OpsGroup, ExitHandler, Condition
-from ._component import python_component
-#TODO: expose the component decorator when ready
+from kfp.dsl._component import component
+from kfp.dsl._types import GCSPath, Integer
+import unittest
+
+@component
+def componentA(a: {'Schema': {'file_type': 'csv'}}, b: '{"number": {"step": "large"}}' = 12, c: GCSPath(path_type='file', file_type='tsv') = 'gs://hello/world') -> {'model': Integer()}:
+  return 7
+
+class TestPythonComponent(unittest.TestCase):
+
+  def test_component(self):
+    """Test component decorator."""
+    componentA(1,2,3)

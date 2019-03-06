@@ -14,6 +14,7 @@
 
 
 from . import _container_op
+from ._metadata import  PipelineMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 from . import _ops_group
 import sys
 
@@ -32,6 +33,26 @@ def pipeline(name, description):
   ```
   """
   def _pipeline(func):
+    import inspect
+    fullargspec = inspect.getfullargspec(func)
+    args = fullargspec.args
+    annotations = fullargspec.annotations
+
+    # Construct the PipelineMeta
+    pipeline_meta = PipelineMeta(name=func.__name__, description='')
+    # Inputs
+    for arg in args:
+      arg_type = TypeMeta()
+      if arg in annotations:
+        arg_type = _annotation_to_typemeta(annotations[arg])
+      pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type))
+
+    #TODO: add descriptions to the metadata
+    #docstring parser:
+    #  https://github.com/rr-/docstring_parser
+    #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
+    #TODO: parse the metadata to the Pipeline.
+
     Pipeline.add_pipeline(name, description, func)
     return func
 
