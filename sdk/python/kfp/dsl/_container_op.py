@@ -16,6 +16,7 @@
 from . import _pipeline
 from . import _pipeline_param
 from ._pipeline_param import _extract_pipelineparams
+from ._metadata import ComponentMeta
 import re
 from typing import Dict
 
@@ -63,6 +64,7 @@ class ContainerOp(object):
     self.pod_annotations = {}
     self.pod_labels = {}
     self.num_retries = 0
+    self._metadata = None
 
     self.argument_inputs = _extract_pipelineparams([str(arg) for arg in (command or []) + (arguments or [])])
 
@@ -295,3 +297,12 @@ class ContainerOp(object):
 
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})
+
+  def _set_metadata(self, metadata):
+    '''_set_metadata passes the containerop the metadata information
+    Args:
+      metadata (ComponentMeta): component metadata
+    '''
+    if not isinstance(metadata, ComponentMeta):
+      raise ValueError('_set_medata is expecting ComponentMeta.')
+    self._metadata = metadata

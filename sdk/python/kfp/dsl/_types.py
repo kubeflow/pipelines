@@ -103,11 +103,11 @@ def check_types(checked_type, expected_type):
 	if isinstance(checked_type, BaseType):
 		checked_type = _instance_to_dict(checked_type)
 	elif isinstance(checked_type, str):
-		checked_type = _str_to_dict(checked_type)
+		checked_type = {checked_type: {}}
 	if isinstance(expected_type, BaseType):
 		expected_type = _instance_to_dict(expected_type)
 	elif isinstance(expected_type, str):
-		expected_type = _str_to_dict(expected_type)
+		expected_type = {expected_type: {}}
 	return _check_dict_types(checked_type, expected_type)
 
 def _check_valid_type_dict(payload):
@@ -135,13 +135,6 @@ def _instance_to_dict(instance):
 		dict
 	'''
 	return {type(instance).__name__: instance.__dict__}
-
-def _str_to_dict(payload):
-	import json
-	json_dict = json.loads(payload)
-	if not _check_valid_type_dict(json_dict):
-		raise ValueError(payload + ' is not a valid type string')
-	return json_dict
 
 def _check_dict_types(checked_type, expected_type):
 	'''_check_dict_types checks the type consistency.
