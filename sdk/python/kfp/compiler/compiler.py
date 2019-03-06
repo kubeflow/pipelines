@@ -181,10 +181,14 @@ class Compiler(object):
     dependencies = defaultdict(set)
     for op in pipeline.ops.values():
       unstream_op_names = set()
-      for param in op.inputs + list(condition_params[op.name]):
-        if param.op_name:
-          unstream_op_names.add(param.op_name)
+      # If op is not ContainerOp then dependencies are already resolved
+      if isinstance(op, dsl.ContainerOp):
+        for param in op.inputs + list(condition_params[op.name]):
+          if param.op_name:
+            unstream_op_names.add(param.op_name)
       unstream_op_names |= set(op.deps)
+      if isinstance(op, dsl.PipelineVolume) and op.name in unstream_op_names:
+        unstream_op_names.remove(op.name)
 
       for op_name in unstream_op_names:
         upstream_op = pipeline.ops[op_name]
@@ -406,6 +410,32 @@ class Compiler(object):
     template['dag'] = {'tasks': tasks}
     return template
 
+  def _vol_to_template(self, vol):
+    output_param = {
+      "name": "%s-name" % vol.name,
+      "valueFrom": {
+        "jsonPath": "{.metadata.name}"
+      }
+    }
+    template = dict()
+    template["name"] = vol.name
+    template["resource"] = dict()
+    template["resource"]["action"] = "create"
+    template["resource"]["manifest"] = yaml.dump(
+      K8sHelper.convert_k8s_obj_to_json(vol.k8s_resource),
+      default_flow_style=False
+    )
+    template["outputs"] = {"parameters": [output_param]}
+    inputs = []
+    for i in vol.inputs:
+      if i.op_name == "":
+        inputs.append({"name": "%s" % i.name})
+      else:
+        inputs.append({"name": "%s-%s" % (i.op_name, i.name)})
+    if inputs != []:
+      template["inputs"] = {"parameters": inputs}
+    return template
+
   def _create_templates(self, pipeline):
     """Create all groups and ops templates in the pipeline."""
 
@@ -422,6 +452,9 @@ class Compiler(object):
 
     for cop in pipeline.cops.values():
       templates.append(self._cop_to_template(cop))
+
+    for vol in pipeline.vols.values():
+      templates.append(self._vol_to_template(vol))
     return templates
 
   def _create_volumes(self, pipeline):
@@ -523,6 +556,8 @@ class Compiler(object):
     args_list = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
                  for arg_name in argspec.args]
     with dsl.Pipeline(pipeline_name) as p:
+      for arg in args_list:
+        p.global_params.add(arg)
       pipeline_func(*args_list)
 
     # Remove when argo supports local exit handler.

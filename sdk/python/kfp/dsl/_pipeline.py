@@ -15,6 +15,7 @@
 
 from . import _container_op
 from ._metadata import  PipelineMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
+from . import _pipeline_volume
 from . import _ops_group
 from ..components._naming import _make_name_unique_by_adding_index
 from ..compiler._k8s_helper import K8sHelper
@@ -134,6 +135,8 @@ class Pipeline():
     self.name = name
     self.ops = {}
     self.cops = {}
+    self.vols = {}
+    self.global_params = set()
     # Add the root group.
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
     self.group_id = 0
@@ -150,7 +153,7 @@ class Pipeline():
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
 
-  def add_op(self, op: _container_op.ContainerOp, define_only: bool):
+  def add_op(self, op, define_only: bool):
     """Add a new operator.
 
     Args:
@@ -166,6 +169,8 @@ class Pipeline():
     self.ops[op_name] = op
     if isinstance(op, _container_op.ContainerOp):
       self.cops[op_name] = op
+    elif isinstance(op, _pipeline_volume.PipelineVolume):
+      self.vols[op_name] = op
     if not define_only:
       self.groups[-1].ops.append(op)
 

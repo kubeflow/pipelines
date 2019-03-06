@@ -17,6 +17,7 @@ from . import _pipeline
 from . import _pipeline_param
 from ._pipeline_param import _extract_pipelineparams
 from ._metadata import ComponentMeta
+from kubernetes import client as k8s_client
 import re
 from typing import Dict
 
@@ -24,7 +25,8 @@ class ContainerOp(object):
   """Represents an op implemented by a docker container image."""
 
   def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
-               file_outputs : Dict[str, str]=None, is_exit_handler=False):
+               file_outputs : Dict[str, str]=None, is_exit_handler=False,
+               volumes: Dict = None):
     """Create a new instance of ContainerOp.
 
     Args:
@@ -40,6 +42,9 @@ class ContainerOp(object):
           the value of a PipelineParam is saved to its corresponding local file. It's
           one way for outside world to receive outputs of the container.
       is_exit_handler: Whether it is used as an exit handler.
+      volumes: Dictionary for the user to match a path on the op's fs with a
+          PipelineVolume.
+          E.g {"/mnt": other_op.volumes["/output"], "/my/path": vol1}.
     """
 
     if not _pipeline.Pipeline.get_default_pipeline():
@@ -83,6 +88,41 @@ class ContainerOp(object):
     self.output=None
     if len(self.outputs) == 1:
       self.output = list(self.outputs.values())[0]
+
+    self.volumes = {}
+    if volumes:
+      for mount_path, volume in volumes.items():
+        if volume.from_snapshot:
+          self.deps.append(volume.name)
+        else:
+          for dep in volume.deps:
+            self.deps.append(dep)
+        self.volumes[mount_path] = volume.after(self)
+        if volume.pvc:
+          claim_name = volume.pvc
+        else:
+          claim_name = "{{tasks.%s.outputs.parameters.%s-name}}" % (
+            volume.name, volume.name
+          )
+        self.k8s_volumes.append(
+          k8s_client.V1Volume(
+            name=volume.name,
+            persistent_volume_claim=
+              k8s_client.V1PersistentVolumeClaimVolumeSource(
+                claim_name=claim_name
+              )
+          )
+        )
+        self.volume_mounts.append(
+          k8s_client.V1VolumeMount(
+              name=volume.name,
+              mount_path=mount_path,
+            )
+        )
+
+    self.volume = None
+    if len(self.volumes) == 1:
+      self.volume = list(self.volumes.values())[0]
 
   def apply(self, mod_func):
     """Applies a modifier function to self. The function should return the passed object.

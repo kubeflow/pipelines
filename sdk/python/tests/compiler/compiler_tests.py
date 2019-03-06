@@ -42,7 +42,18 @@ class TestCompiler(unittest.TestCase):
         .add_env_variable(k8s_client.V1EnvVar(
           name='GOOGLE_APPLICATION_CREDENTIALS',
           value='/secret/gcp-credentials/user-gcp-sa.json'))
-    golden_output = {
+      vol = dsl.PipelineVolume(
+        name='vol',
+        size='1Gi',
+        data_source='old-snap',
+        storage_class='test-class'
+      )
+      last_op = dsl.ContainerOp(
+        name='last-step',
+        image='image',
+        volumes={'/mnt': vol}
+      )
+    op_output = {
       'container': {
         'image': 'image',
         'args': [
@@ -110,9 +121,93 @@ class TestCompiler(unittest.TestCase):
         }]
       }
     }
+    vol_output = {
+      'name': 'vol',
+      'outputs': {
+        'parameters': [{
+          'name': 'vol-name',
+          'valueFrom': {
+            'jsonPath': '{.metadata.name}'
+          }
+          }]
+      },
+      'resource': {
+        'action': 'create',
+        'manifest': (
+          "apiVersion: v1\n"
+          "kind: PersistentVolumeClaim\n"
+          "metadata:\n"
+          "  name: '{{workflow.name}}-vol'\n"
+          "spec:\n"
+          "  accessModes:\n"
+          "  - ReadWriteMany\n"
+          "  dataSource:\n"
+          "    apiGroup: snapshot.storage.k8s.io\n"
+          "    kind: VolumeSnapshot\n"
+          "    name: old-snap\n"
+          "  resources:\n"
+          "    requests:\n"
+          "      storage: 1Gi\n"
+          "  storageClassName: test-class\n"
+        )
+      }
+    }
+    last_op_output = {
+      'container': {
+        'image': 'image',
+        'volumeMounts': [
+          {
+            'mountPath': '/mnt',
+            'name': 'vol',
+          }
+        ]
+      },
+      'name': 'last-step',
+      'outputs': {
+        'artifacts': [{
+          'name': 'mlpipeline-ui-metadata',
+          'path': '/mlpipeline-ui-metadata.json',
+          's3': {
+            'accessKeySecret': {
+              'key': 'accesskey',
+              'name': 'mlpipeline-minio-artifact',
+            },
+            'bucket': 'mlpipeline',
+            'endpoint': 'minio-service.kubeflow:9000',
+            'insecure': True,
+            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
+            'secretKeySecret': {
+              'key': 'secretkey',
+              'name': 'mlpipeline-minio-artifact',
+            }
+          }
+        }, {
+          'name': 'mlpipeline-metrics',
+          'path': '/mlpipeline-metrics.json',
+          's3': {
+            'accessKeySecret': {
+              'key': 'accesskey',
+              'name': 'mlpipeline-minio-artifact',
+            },
+            'bucket': 'mlpipeline',
+            'endpoint': 'minio-service.kubeflow:9000',
+            'insecure': True,
+            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz',
+            'secretKeySecret': {
+              'key': 'secretkey',
+              'name': 'mlpipeline-minio-artifact',
+            }
+          }
+        }]
+      }
+    }
 
     self.maxDiff = None
-    self.assertEqual(golden_output, compiler.Compiler()._cop_to_template(op))
+    self.assertEqual(op_output, compiler.Compiler()._cop_to_template(op))
+    self.assertEqual(vol_output, compiler.Compiler()._vol_to_template(vol))
+    self.assertEqual(last_op_output, compiler.Compiler()._cop_to_template(last_op))
+
+
 
   def _get_yaml_from_tar(self, tar_file):
     with tarfile.open(tar_file, 'r:gz') as tar:
@@ -232,6 +327,26 @@ class TestCompiler(unittest.TestCase):
   def test_py_retry(self):
     """Test retry functionality."""
     self._test_py_compile('retry')
+
+  def test_py_volumes1(self):
+    """Test a pipeline with a volume and volume mount."""
+    self._test_py_compile('volumes1')
+
+  def test_py_volumes2(self):
+    """Test a pipeline with a volume and volume mount."""
+    self._test_py_compile('volumes2')
+
+  def test_py_volumes3(self):
+    """Test a pipeline with a volume and volume mount."""
+    self._test_py_compile('volumes3')
+
+  def test_py_volumes4(self):
+    """Test a pipeline with a volume and volume mount."""
+    self._test_py_compile('volumes4')
+
+  def test_py_volumes5(self):
+    """Test a pipeline with a volume and volume mount."""
+    self._test_py_compile('volumes5')
 
   def test_py_image_pull_secret(self):
     """Test pipeline imagepullsecret."""
