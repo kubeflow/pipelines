@@ -103,8 +103,8 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 #Specify pipeline argument values
 arguments = {
     'project_id': PROJECT_ID,
-    'model_path': 'gs://ml-pipeline-playground/samples/ml_engine/cencus/trained_model/',
-    'input_paths': '["gs://ml-pipeline-playground/samples/ml_engine/cencus/test.json"]',
+    'model_path': 'gs://ml-pipeline-playground/samples/ml_engine/census/trained_model/',
+    'input_paths': '["gs://ml-pipeline-playground/samples/ml_engine/census/test.json"]',
     'input_data_format': 'JSON',
     'output_path': GCS_WORKING_DIR + '/batch_predict/output/',
     'region': 'us-central1',
