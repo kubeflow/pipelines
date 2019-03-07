@@ -21,6 +21,7 @@ import yaml
 
 from .. import dsl
 from ._k8s_helper import K8sHelper
+from ..dsl._pipeline_param import _match_serialized_pipelineparam
 
 class Compiler(object):
   """DSL Compiler.
@@ -218,8 +219,7 @@ class Compiler(object):
     for i, _ in enumerate(processed_args):
       # unsanitized_argument_inputs stores a dict: string of sanitized param -> string of unsanitized param
       matches = []
-      match = re.findall(r'{{pipelineparam:op=([\w\s\_-]*);name=([\w\s\_-]+);value=(.*?)}}', str(processed_args[i]))
-      matches += match
+      matches += _match_serialized_pipelineparam(str(processed_args[i]))
       unsanitized_argument_inputs = {}
       for x in list(set(matches)):
         sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(x[1]), K8sHelper.sanitize_k8s_name(x[0]), x[2]))

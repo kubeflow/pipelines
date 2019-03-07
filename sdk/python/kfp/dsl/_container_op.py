@@ -24,7 +24,7 @@ class ContainerOp(object):
   """Represents an op implemented by a docker container image."""
 
   def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
-               file_outputs : Dict[str, str]=None, is_exit_handler=False):
+               file_outputs : Dict[str, str]=None, is_exit_handler=False, metadata: ComponentMeta=None):
     """Create a new instance of ContainerOp.
 
     Args:
@@ -65,6 +65,8 @@ class ContainerOp(object):
     self.pod_labels = {}
     self.num_retries = 0
     self._metadata = None
+    if metadata is not None:
+      self._set_metadata(metadata)
 
     self.argument_inputs = _extract_pipelineparams([str(arg) for arg in (command or []) + (arguments or [])])
 
@@ -77,8 +79,13 @@ class ContainerOp(object):
 
     self.outputs = {}
     if file_outputs:
-      self.outputs = {name: _pipeline_param.PipelineParam(name, op_name=self.name)
-          for name in file_outputs.keys()}
+      for output in file_outputs.keys():
+        output_type = None
+        if isinstance(self._metadata, ComponentMeta):
+          for output_meta in self._metadata.outputs:
+            if output_meta.name == output:
+              output_type = output_meta.param_type
+        self.outputs[output] = _pipeline_param.PipelineParam(name=output, op_name=self.name, param_type=output_type)
 
     self.output=None
     if len(self.outputs) == 1:

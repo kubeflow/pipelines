@@ -56,6 +56,9 @@ class TypeMeta(BaseMeta):
       type_meta.name = json
     return type_meta
 
+  def serialize(self):
+    return str(self.to_dict_or_str())
+
 class ParameterMeta(BaseMeta):
   def __init__(self,
       name: str,
