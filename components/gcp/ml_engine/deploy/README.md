@@ -102,7 +102,7 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 ```python
 #Specify pipeline argument values
 arguments = {
-    'model_uri': 'gs://ml-pipeline-playground/samples/ml_engine/cencus/trained_model/',
+    'model_uri': 'gs://ml-pipeline-playground/samples/ml_engine/census/trained_model/',
     'project_id': PROJECT_ID,
     'model_id': 'kfp_sample_model',
     'runtime_version': '1.10',
