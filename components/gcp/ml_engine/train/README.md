@@ -111,7 +111,7 @@ arguments = {
     'project_id': PROJECT_ID,
     'python_module': 'trainer.task',
     'package_uris': json.dumps([
-        'gs://ml-pipeline-playground/samples/ml_engine/cencus/trainer.tar.gz'
+        'gs://ml-pipeline-playground/samples/ml_engine/census/trainer.tar.gz'
     ]),
     'region': 'us-central1',
     'args': json.dumps([
