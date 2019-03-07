@@ -100,6 +100,13 @@ func TestDecompressPipelineZip_MalformattedZip(t *testing.T) {
 	assert.Contains(t, err.Error(), "Not a valid zip file")
 }
 
+func TestDecompressPipelineZip_MalformedZip2(t *testing.T) {
+	zipByte, _ := ioutil.ReadFile("test/malformed_zip2.zip")
+	_, err := DecompressPipelineZip(zipByte)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Not a valid zip file")
+}
+
 func TestDecompressPipelineZip_NonYamlZip(t *testing.T) {
 	zipByte, _ := ioutil.ReadFile("test/non_yaml_zip/non_yaml_file.zip")
 	_, err := DecompressPipelineZip(zipByte)
