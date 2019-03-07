@@ -37,8 +37,8 @@ class TestCreateVersion(unittest.TestCase):
             'response': version
         }
 
-        result = create_version('mock_project', 'mock_model', 
-            deployemnt_uri = 'gs://test-location', version_name = 'mock_version',
+        result = create_version('projects/mock_project/models/mock_model', 
+            deployemnt_uri = 'gs://test-location', version_id = 'mock_version',
             version = version, 
             replace_existing = True)
 
@@ -64,7 +64,7 @@ class TestCreateVersion(unittest.TestCase):
         }
 
         with self.assertRaises(RuntimeError) as context:
-            create_version('mock_project', 'mock_model',
+            create_version('projects/mock_project/models/mock_model',
                 version = version, replace_existing = True, wait_interval = 30)
 
         self.assertEqual(
@@ -89,7 +89,7 @@ class TestCreateVersion(unittest.TestCase):
         mock_mlengine_client().get_version.side_effect = [
             pending_version, ready_version]
 
-        result = create_version('mock_project', 'mock_model', version = version, 
+        result = create_version('projects/mock_project/models/mock_model', version = version, 
             replace_existing = True, wait_interval = 0)
 
         self.assertEqual(ready_version, result)
@@ -114,7 +114,7 @@ class TestCreateVersion(unittest.TestCase):
             pending_version, failed_version]
 
         with self.assertRaises(RuntimeError) as context:
-            create_version('mock_project', 'mock_model', version = version, 
+            create_version('projects/mock_project/models/mock_model', version = version, 
                 replace_existing = True, wait_interval = 0)
 
         self.assertEqual(
@@ -148,7 +148,7 @@ class TestCreateVersion(unittest.TestCase):
             create_operation
         ]
 
-        result = create_version('mock_project', 'mock_model', version = version, 
+        result = create_version('projects/mock_project/models/mock_model', version = version, 
             replace_existing = True, wait_interval = 0)
 
         self.assertEqual(version, result)
@@ -180,7 +180,7 @@ class TestCreateVersion(unittest.TestCase):
         mock_mlengine_client().get_operation.return_value = delete_operation
 
         with self.assertRaises(RuntimeError) as context:
-            create_version('mock_project', 'mock_model', version = version, 
+            create_version('projects/mock_project/models/mock_model', version = version, 
                 replace_existing = True, wait_interval = 0)
 
         self.assertEqual(
@@ -203,7 +203,7 @@ class TestCreateVersion(unittest.TestCase):
         mock_mlengine_client().get_version.return_value = conflicting_version
 
         with self.assertRaises(RuntimeError) as context:
-            create_version('mock_project', 'mock_model', version = version, 
+            create_version('projects/mock_project/models/mock_model', version = version, 
                 replace_existing = False, wait_interval = 0)
 
         self.assertEqual(

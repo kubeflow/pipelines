@@ -15,9 +15,10 @@
 
 from . import _pipeline
 from . import _pipeline_param
+from ._pipeline_param import _extract_pipelineparams
+from ._metadata import ComponentMeta
 import re
 from typing import Dict
-
 
 class ContainerOp(object):
   """Represents an op implemented by a docker container image."""
@@ -63,14 +64,10 @@ class ContainerOp(object):
     self.pod_annotations = {}
     self.pod_labels = {}
     self.num_retries = 0
+    self._metadata = None
 
-    matches = []
-    for arg in (command or []) + (arguments or []):
-      match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', str(arg))
-      matches += match
+    self.argument_inputs = _extract_pipelineparams([str(arg) for arg in (command or []) + (arguments or [])])
 
-    self.argument_inputs = [_pipeline_param.PipelineParam(x[1], x[0], x[2])
-                            for x in list(set(matches))]
     self.file_outputs = file_outputs
     self.dependent_op_names = []
 
@@ -300,3 +297,12 @@ class ContainerOp(object):
 
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})
+
+  def _set_metadata(self, metadata):
+    '''_set_metadata passes the containerop the metadata information
+    Args:
+      metadata (ComponentMeta): component metadata
+    '''
+    if not isinstance(metadata, ComponentMeta):
+      raise ValueError('_set_medata is expecting ComponentMeta.')
+    self._metadata = metadata

@@ -17,7 +17,7 @@
 import * as React from 'react';
 import TestUtils from '../TestUtils';
 import { ListRequest, Apis } from '../lib/Apis';
-import { shallow } from 'enzyme';
+import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import RecurringRunsManager, { RecurringRunListProps } from './RecurringRunsManager';
 import { ApiJob, ApiResourceType } from '../apis/job';
 
@@ -30,6 +30,8 @@ describe('RecurringRunsManager', () => {
       return super._setEnabledState(id, enabled);
     }
   }
+
+  let tree: ReactWrapper | ShallowWrapper;
 
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
@@ -74,8 +76,10 @@ describe('RecurringRunsManager', () => {
     updateSnackbarSpy.mockReset();
   });
 
+  afterEach(() => tree.unmount());
+
   it('calls API to load recurring runs', async () => {
-    const tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
+    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     await (tree.instance() as TestRecurringRunsManager)._loadRuns({});
     expect(listJobsSpy).toHaveBeenCalledTimes(1);
     expect(listJobsSpy).toHaveBeenLastCalledWith(
@@ -87,13 +91,12 @@ describe('RecurringRunsManager', () => {
       undefined);
     expect(tree.state('runs')).toEqual(JOBS);
     expect(tree).toMatchSnapshot();
-    tree.unmount();
   });
 
   it('shows error dialog if listing fails', async () => {
     TestUtils.makeErrorResponseOnce(listJobsSpy, 'woops!');
     jest.spyOn(console, 'error').mockImplementation();
-    const tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
+    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     await (tree.instance() as TestRecurringRunsManager)._loadRuns({});
     expect(listJobsSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -101,25 +104,24 @@ describe('RecurringRunsManager', () => {
       title: 'Error retrieving recurring run configs',
     }));
     expect(tree.state('runs')).toEqual([]);
-    tree.unmount();
   });
 
   it('calls API to enable run', async () => {
-    const tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
+    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', true);
     expect(enableJobSpy).toHaveBeenCalledTimes(1);
     expect(enableJobSpy).toHaveBeenLastCalledWith('test-run');
   });
 
   it('calls API to disable run', async () => {
-    const tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
+    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', false);
     expect(disableJobSpy).toHaveBeenCalledTimes(1);
     expect(disableJobSpy).toHaveBeenLastCalledWith('test-run');
   });
 
   it('shows error if enable API call fails', async () => {
-    const tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
+    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     TestUtils.makeErrorResponseOnce(enableJobSpy, 'cannot enable');
     await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', true);
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
@@ -130,7 +132,7 @@ describe('RecurringRunsManager', () => {
   });
 
   it('shows error if disable API call fails', async () => {
-    const tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
+    tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     TestUtils.makeErrorResponseOnce(disableJobSpy, 'cannot disable');
     await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', false);
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
@@ -141,12 +143,12 @@ describe('RecurringRunsManager', () => {
   });
 
   it('renders run name as link to its details page', () => {
-    const tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
     expect((tree.instance() as RecurringRunsManager)._nameCustomRenderer({ value: 'test-run', id: 'run-id' })).toMatchSnapshot();
   });
 
   it('renders a disable button if the run is enabled, clicking the button calls disable API', async () => {
-    const tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 
@@ -160,7 +162,7 @@ describe('RecurringRunsManager', () => {
   });
 
   it('renders an enable button if the run is disabled, clicking the button calls enable API', async () => {
-    const tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 
@@ -174,7 +176,7 @@ describe('RecurringRunsManager', () => {
   });
 
   it('renders an enable button if the run\'s enabled field is undefined, clicking the button calls enable API', async () => {
-    const tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 
@@ -188,7 +190,7 @@ describe('RecurringRunsManager', () => {
   });
 
   it('reloads the list of runs after enable/disabling', async () => {
-    const tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
     await TestUtils.flushPromises();
     tree.update();
 

@@ -171,6 +171,7 @@ describe('deploy helloworld sample run', () => {
 
   it('opens the side panel when graph node is clicked', () => {
     $('.graphNode').click();
+    browser.pause(1000);
     $('button=Logs').waitForVisible();
   });
 

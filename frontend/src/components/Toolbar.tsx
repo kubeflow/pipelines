@@ -78,7 +78,7 @@ const css = stylesheet({
   link: {
     $nest: {
       '&:hover': {
-        background: color.hoverBg,
+        background: color.lightGrey,
       }
     },
     borderRadius: 3,
@@ -97,7 +97,7 @@ const css = stylesheet({
     justifyContent: 'space-between',
   },
   topLevelToolbar: {
-    borderBottom: '1px solid #eee',
+    borderBottom: `1px solid ${color.lightGrey}`,
     paddingBottom: 15,
     paddingLeft: 20,
   },

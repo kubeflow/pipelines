@@ -28,3 +28,5 @@ from ._create_version import create_version
 from ._delete_version import delete_version
 from ._train import train
 from ._batch_predict import batch_predict
+from ._deploy import deploy
+from ._set_default_version import set_default_version

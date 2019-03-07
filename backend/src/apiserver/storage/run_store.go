@@ -20,9 +20,11 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/metadata"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -59,6 +61,7 @@ type RunStore struct {
 	db                     *DB
 	resourceReferenceStore *ResourceReferenceStore
 	time                   util.TimeInterface
+	metadataStore          *metadata.Store
 }
 
 // Runs two SQL queries in a transaction to return a list of matching runs, as well as their
@@ -350,6 +353,33 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 }
 
 func (s *RunStore) UpdateRun(runID string, condition string, workflowRuntimeManifest string) (err error) {
+	tx, err := s.db.DB.Begin()
+	if err != nil {
+		return util.NewInternalServerError(err, "transaction creation failed")
+	}
+
+	// Lock the row for update, so we ensure no other update of the same run
+	// happens while we're parsing it for metadata. We rely on per-row updates
+	// being synchronous, so metadata can be recorded at most once. Right now,
+	// persistence agent will call UpdateRun all the time, even if there is nothing
+	// new in the status of an Argo manifest. This means we need to keep track
+	// manually here on what the previously updated state of the run is, to ensure
+	// we do not add duplicate metadata. Hence the locking below.
+	row := tx.QueryRow("SELECT WorkflowRuntimeManifest FROM run_details WHERE UUID = ? FOR UPDATE", runID)
+	var storedManifest string
+	if err := row.Scan(&storedManifest); err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "failed to find row with run id %q", runID)
+	}
+
+	if s.metadataStore != nil {
+		if err := s.metadataStore.RecordOutputArtifacts(runID, storedManifest, workflowRuntimeManifest); err != nil {
+			// Metadata storage failed. Log the error here, but continue to allow the run
+			// to be updated as per usual.
+			glog.Errorf("Failed to record output artifacts: %+v", err)
+		}
+	}
+
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
@@ -358,16 +388,22 @@ func (s *RunStore) UpdateRun(runID string, condition string, workflowRuntimeMani
 		Where(sq.Eq{"UUID": runID}).
 		ToSql()
 	if err != nil {
+		tx.Rollback()
 		return util.NewInternalServerError(err,
 			"Failed to create query to update run %s. error: '%v'", runID, err.Error())
 	}
-	result, err := s.db.Exec(sql, args...)
+	result, err := tx.Exec(sql, args...)
 	if err != nil {
+		tx.Rollback()
 		return util.NewInternalServerError(err,
 			"Failed to update run %s. error: '%v'", runID, err.Error())
 	}
 	if r, _ := result.RowsAffected(); r != 1 {
+		tx.Rollback()
 		return util.NewInvalidInputError("Failed to update run %s. Row not found.", runID)
+	}
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "failed to commit transaction")
 	}
 	return nil
 }
@@ -510,7 +546,13 @@ func (s *RunStore) toRunMetadatas(models []model.ListableDataModel) []model.Run 
 	return runMetadatas
 }
 
-// factory function for run store
-func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
-	return &RunStore{db: db, resourceReferenceStore: NewResourceReferenceStore(db), time: time}
+// NewRunStore creates a new RunStore. If metadataStore is non-nil, it will be
+// used to record artifact metadata.
+func NewRunStore(db *DB, time util.TimeInterface, metadataStore *metadata.Store) *RunStore {
+	return &RunStore{
+		db:                     db,
+		resourceReferenceStore: NewResourceReferenceStore(db),
+		time:                   time,
+		metadataStore:          metadataStore,
+	}
 }

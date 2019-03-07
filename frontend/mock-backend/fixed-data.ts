@@ -668,9 +668,11 @@ export const data = {
   runs,
 };
 
+// tslint:disable:object-literal-sort-keys
 export const namedPipelines = {
-  examplePipeline: pipelines[0],
-  examplePipeline2: pipelines[1],
+  unstructuredTextPipeline: pipelines[0],
+  imageClassificationPipeline: pipelines[1],
   noParamsPipeline: pipelines[2],
   undefinedParamsPipeline: pipelines[3],
 };
+// tslint:enable:object-literal-sort-keys

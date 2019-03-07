@@ -23,24 +23,32 @@ import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml
 
 class LoadComponentTestCase(unittest.TestCase):
-    def test_load_component_from_file(self):
-        _this_file = Path(__file__).resolve()
-        _this_dir = _this_file.parent
-        _test_data_dir = _this_dir.joinpath('test_data')
-        component_path_obj = _test_data_dir.joinpath('python_add.component.yaml')
-        component_text = component_path_obj.read_text()
-        component_dict = load_yaml(component_text)
-        task_factory1 = comp.load_component_from_file(str(component_path_obj))
-        assert task_factory1.__doc__ == component_dict['description']
+    def _test_load_component_from_file(self, component_path: str):
+        task_factory1 = comp.load_component_from_file(component_path)
 
         arg1 = 3
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
-        assert task1.human_name == component_dict['name']
-        assert task1.image == component_dict['implementation']['container']['image']
 
-        assert task1.arguments[0] == str(arg1)
-        assert task1.arguments[1] == str(arg2)
+        self.assertEqual(task1.human_name, 'Add')
+        self.assertEqual(task_factory1.__doc__.strip(), 'Returns sum of two arguments')
+        self.assertEqual(task1.image, 'python:3.5')
+        self.assertEqual(task1.arguments[0], str(arg1))
+        self.assertEqual(task1.arguments[1], str(arg2))
+
+    def test_load_component_from_yaml_file(self):
+        _this_file = Path(__file__).resolve()
+        _this_dir = _this_file.parent
+        _test_data_dir = _this_dir.joinpath('test_data')
+        component_path = _test_data_dir.joinpath('python_add.component.yaml')
+        self._test_load_component_from_file(str(component_path))
+
+    def test_load_component_from_zipped_yaml_file(self):
+        _this_file = Path(__file__).resolve()
+        _this_dir = _this_file.parent
+        _test_data_dir = _this_dir.joinpath('test_data')
+        component_path = _test_data_dir.joinpath('python_add.component.zip')
+        self._test_load_component_from_file(str(component_path))
 
     @unittest.skip
     @unittest.expectedFailure #The repo is non-public and will change soon. TODO: Update the URL and enable the test once we move to a public repo
@@ -457,6 +465,42 @@ implementation:
         
         task_else = task_factory1()
         self.assertEqual(task_else.arguments, [])
+
+    def test_handling_env(self):
+        component_text = '''\
+implementation:
+  container:
+    image: busybox
+    env:
+      key1: value 1
+      key2: value 2
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        
+        import kfp
+        with kfp.dsl.Pipeline('Dummy'): #Forcing the TaskSpec conversion to ContainerOp
+            task1 = task_factory1()
+        actual_env = {env_var.name: env_var.value for env_var in task1.env_variables}
+        expected_env = {'key1': 'value 1', 'key2': 'value 2'}
+        self.assertDictEqual(expected_env, actual_env)
+
+    def test_handle_default_values_in_task_factory(self):
+        component_text = '''\
+inputs:
+- {name: Data, default: '123'}
+implementation:
+  container:
+    image: busybox
+    args:
+      - {inputValue: Data}
+'''
+        task_factory1 = comp.load_component_from_text(text=component_text)
+
+        task1 = task_factory1()
+        self.assertEqual(task1.arguments, ['123'])
+
+        task2 = task_factory1('456')
+        self.assertEqual(task2.arguments, ['456'])
 
 
 if __name__ == '__main__':
