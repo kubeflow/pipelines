@@ -2,7 +2,12 @@
   "outputs": [
     {
       "storage": "inline",
-      "source": "# Title\n[some link here](http://example.com)",
+      "source": "## [Model Details](https://console.cloud.google.com/mlengine/models/kfp_sample_model?project=ml-pipeline-dogfood)",
+      "type": "markdown"
+    },
+    {
+      "source": "\n## Online Prediction\n\n### `REST` endpoint\nThe `REST` endpoint for online prediction is as follows:\n```\nPOST https://ml.googleapis.com/v1/projects/ml-pipeline-dogfood/models/kfp_sample_model/versions/ver_37520a025cbf47df193cbab536a146bf:predict\n```\nTry the REST endpoint in [Google OAuth 2.0 Playgound](https://developers.google.com/oauthplayground/#step3&apisSelect=https://www.googleapis.com/auth/cloud-platform&postData={\"instances\":[]}&url=https://ml.googleapis.com/v1/projects/ml-pipeline-dogfood/models/kfp_sample_model/versions/ver_37520a025cbf47df193cbab536a146bf:predict&content_type=application/json&http_method=POST).\n\n### GCloud command\n```bash\ngcloud ml-engine predict --model kfp_sample_model                     --version ver_37520a025cbf47df193cbab536a146bf                    --json-instances instances.json\n```\n        ",
+      "storage": "inline",
       "type": "markdown"
     },
     {
