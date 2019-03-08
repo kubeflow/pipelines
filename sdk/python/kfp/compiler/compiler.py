@@ -562,13 +562,16 @@ class Compiler(object):
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
 
-  def compile(self, pipeline_func, package_path):
+  def compile(self, pipeline_func, package_path, type_check=False):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
       pipeline_func: pipeline functions with @dsl.pipeline decorator.
       package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
+      type_check: whether to enable the type check or not, default: False.
     """
+    import kfp
+    kfp.TYPE_CHECK = type_check
     workflow = self._compile(pipeline_func)
     yaml.Dumper.ignore_aliases = lambda *args : True
     yaml_text = yaml.dump(workflow, default_flow_style=False)
