@@ -48,7 +48,7 @@ class TypeMeta(BaseMeta):
   @staticmethod
   def from_dict_or_str(json):
     type_meta = TypeMeta()
-    if isinstance(json, Dict):
+    if isinstance(json, dict):
       if not _check_valid_type_dict(json):
         raise ValueError(json + ' is not a valid type string')
       type_meta.name, type_meta.properties = list(json.items())[0]

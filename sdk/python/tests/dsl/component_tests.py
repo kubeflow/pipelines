@@ -48,7 +48,7 @@ class TestPythonComponent(unittest.TestCase):
     def a_op(field_l: Integer()) -> {'field_m': GCSPath(path_type='file', file_type='tsv'), 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}, 'field_o': 'GcsUri'}:
       return ContainerOp(
         name = 'operator a',
-        image = 'gcr.io/ml-pipeline/component-b',
+        image = 'gcr.io/ml-pipeline/component-a',
         arguments = [
           '--field-l', field_l,
         ],
@@ -65,7 +65,7 @@ class TestPythonComponent(unittest.TestCase):
         field_z: GCSPath(path_type='file', file_type='tsv')) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
-          image = 'gcr.io/ml-pipeline/component-a',
+          image = 'gcr.io/ml-pipeline/component-b',
           command = [
               'python3',
               field_x,
