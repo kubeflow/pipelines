@@ -309,7 +309,7 @@ class ContainerOp(object):
     self._metadata = metadata
     if self.file_outputs:
       for output in self.file_outputs.keys():
-        output_type = None
+        output_type = self.outputs[output].param_type
         for output_meta in self._metadata.outputs:
           if output_meta.name == output:
             output_type = output_meta.param_type

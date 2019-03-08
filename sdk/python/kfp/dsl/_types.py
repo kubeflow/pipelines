@@ -144,6 +144,9 @@ def _check_dict_types(checked_type, expected_type):
 	'''
 	checked_type_name,_ = list(checked_type.items())[0]
 	expected_type_name,_ = list(expected_type.items())[0]
+	if checked_type_name == '' or expected_type_name == '':
+		# If the type name is empty, it matches any types
+		return True
 	if checked_type_name != expected_type_name:
 		return False
 	type_name = checked_type_name

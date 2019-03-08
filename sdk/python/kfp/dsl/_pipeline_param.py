@@ -58,7 +58,7 @@ class PipelineParam(object):
   value passed between components.
   """
   
-  def __init__(self, name: str, op_name: str=None, value: str=None, param_type: TypeMeta=None):
+  def __init__(self, name: str, op_name: str=None, value: str=None, param_type: TypeMeta=TypeMeta()):
     """Create a new instance of PipelineParam.
     Args:
       name: name of the pipeline parameter.

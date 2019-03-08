@@ -123,3 +123,85 @@ class TestPythonComponent(unittest.TestCase):
     with Pipeline('pipeline') as p:
       a = a_op(field_l=12)
       b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+
+  def test_type_check_without_types(self):
+    """Test type check at the decorator."""
+    @component
+    def a_op(field_l: Integer()) -> {'field_m': {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}}:
+      return ContainerOp(
+          name = 'operator a',
+          image = 'gcr.io/ml-pipeline/component-b',
+          arguments = [
+              '--field-l', field_l,
+          ],
+          file_outputs = {
+              'field_m': '/schema.txt',
+              'field_n': '/feature.txt',
+              'field_o': '/output.txt'
+          }
+      )
+
+    @component
+    def b_op(field_x,
+        field_y: Integer(),
+        field_z: GCSPath(path_type='file', file_type='tsv')) -> {'output_model_uri': 'GcsUri'}:
+      return ContainerOp(
+          name = 'operator b',
+          image = 'gcr.io/ml-pipeline/component-a',
+          command = [
+              'python3',
+              field_x,
+          ],
+          arguments = [
+              '--field-y', field_y,
+              '--field-z', field_z,
+          ],
+          file_outputs = {
+              'output_model_uri': '/schema.txt',
+          }
+      )
+
+    with Pipeline('pipeline') as p:
+      a = a_op(field_l=12)
+      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+
+  def test_type_check_nonnamed_inputs(self):
+    """Test type check at the decorator."""
+    @component
+    def a_op(field_l: Integer()) -> {'field_m': {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}}:
+      return ContainerOp(
+          name = 'operator a',
+          image = 'gcr.io/ml-pipeline/component-b',
+          arguments = [
+              '--field-l', field_l,
+          ],
+          file_outputs = {
+              'field_m': '/schema.txt',
+              'field_n': '/feature.txt',
+              'field_o': '/output.txt'
+          }
+      )
+
+    @component
+    def b_op(field_x,
+        field_y: Integer(),
+        field_z: GCSPath(path_type='file', file_type='tsv')) -> {'output_model_uri': 'GcsUri'}:
+      return ContainerOp(
+          name = 'operator b',
+          image = 'gcr.io/ml-pipeline/component-a',
+          command = [
+              'python3',
+              field_x,
+          ],
+          arguments = [
+              '--field-y', field_y,
+              '--field-z', field_z,
+          ],
+          file_outputs = {
+              'output_model_uri': '/schema.txt',
+          }
+      )
+
+    with Pipeline('pipeline') as p:
+      a = a_op(field_l=12)
+      b = b_op(a.outputs['field_n'], field_z=a.outputs['field_m'], field_y=a.outputs['field_o'])
