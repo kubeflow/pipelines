@@ -34,6 +34,7 @@ menu, nav, output, ruby, section, summary,
 time, mark, audio, video {
   border: 0;
   /* Consider adding flex-shrink: 0; */
+  font-size: 100%;
   margin: 0;
   padding: 0;
   vertical-align: baseline;
