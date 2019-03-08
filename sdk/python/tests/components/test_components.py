@@ -21,6 +21,7 @@ sys.path.insert(0, __file__ + '/../../../')
 
 import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml
+from kfp.dsl._types import InconsistentTypeException
 
 class LoadComponentTestCase(unittest.TestCase):
     def _test_load_component_from_file(self, component_path: str):
@@ -502,7 +503,7 @@ implementation:
         task2 = task_factory1('456')
         self.assertEqual(task2.arguments, ['456'])
 
-    def test_type_check(self):
+    def test_type_check_all_with_types(self):
         component_a = '''\
 name: component a
 description: component a desc
@@ -549,6 +550,152 @@ implementation:
         task_factory_b = comp.load_component_from_text(text=component_b)
         a = task_factory_a(field_l=12)
         b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+
+    def test_type_check_all_with_lacking_types(self):
+        component_a = '''\
+name: component a
+description: component a desc
+inputs:
+  - {name: field_l, type: Integer}
+outputs:
+  - {name: field_m, type: {GCSPath: {path_type: file, file_type: csv}}}
+  - {name: field_n}
+  - {name: field_o, type: GcsUri} 
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/component-a
+    command: [python3, /pipelines/component/src/train.py]
+    args: [
+      --field-l, {inputValue: field_l},
+    ]
+    fileOutputs: 
+      field_m: /schema.txt
+      field_n: /feature.txt
+      field_o: /output.txt
+'''
+        component_b = '''\
+name: component b
+description: component b desc
+inputs:
+  - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
+  - {name: field_y}
+  - {name: field_z, type: {GCSPath: {path_type: file, file_type: csv}}}
+outputs:
+  - {name: output_model_uri, type: GcsUri}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/component-a
+    command: [python3]
+    args: [
+      --field-x, {inputValue: field_x},
+      --field-y, {inputValue: field_y},
+      --field-z, {inputValue: field_z},
+    ]
+    fileOutputs: 
+      output_model_uri: /schema.txt
+'''
+        task_factory_a = comp.load_component_from_text(text=component_a)
+        task_factory_b = comp.load_component_from_text(text=component_b)
+        a = task_factory_a(field_l=12)
+        b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+
+    def test_type_check_all_with_inconsistent_types_property_value(self):
+        component_a = '''\
+name: component a
+description: component a desc
+inputs:
+  - {name: field_l, type: Integer}
+outputs:
+  - {name: field_m, type: {GCSPath: {path_type: file, file_type: tsv}}}
+  - {name: field_n, type: {customized_type: {property_a: value_a, property_b: value_b}}}
+  - {name: field_o, type: GcsUri} 
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/component-a
+    command: [python3, /pipelines/component/src/train.py]
+    args: [
+      --field-l, {inputValue: field_l},
+    ]
+    fileOutputs: 
+      field_m: /schema.txt
+      field_n: /feature.txt
+      field_o: /output.txt
+'''
+        component_b = '''\
+name: component b
+description: component b desc
+inputs:
+  - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
+  - {name: field_y, type: GcsUri}
+  - {name: field_z, type: {GCSPath: {path_type: file, file_type: csv}}}
+outputs:
+  - {name: output_model_uri, type: GcsUri}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/component-a
+    command: [python3]
+    args: [
+      --field-x, {inputValue: field_x},
+      --field-y, {inputValue: field_y},
+      --field-z, {inputValue: field_z},
+    ]
+    fileOutputs: 
+      output_model_uri: /schema.txt
+'''
+        task_factory_a = comp.load_component_from_text(text=component_a)
+        task_factory_b = comp.load_component_from_text(text=component_b)
+        a = task_factory_a(field_l=12)
+        with self.assertRaises(InconsistentTypeException):
+            b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+
+    def test_type_check_all_with_inconsistent_types_type_name(self):
+        component_a = '''\
+name: component a
+description: component a desc
+inputs:
+  - {name: field_l, type: Integer}
+outputs:
+  - {name: field_m, type: {GCSPath: {path_type: file, file_type: csv}}}
+  - {name: field_n, type: {customized_type: {property_a: value_a, property_b: value_b}}}
+  - {name: field_o, type: GcrUri} 
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/component-a
+    command: [python3, /pipelines/component/src/train.py]
+    args: [
+      --field-l, {inputValue: field_l},
+    ]
+    fileOutputs: 
+      field_m: /schema.txt
+      field_n: /feature.txt
+      field_o: /output.txt
+'''
+        component_b = '''\
+name: component b
+description: component b desc
+inputs:
+  - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
+  - {name: field_y, type: GcsUri}
+  - {name: field_z, type: {GCSPath: {path_type: file, file_type: csv}}}
+outputs:
+  - {name: output_model_uri, type: GcsUri}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/component-a
+    command: [python3]
+    args: [
+      --field-x, {inputValue: field_x},
+      --field-y, {inputValue: field_y},
+      --field-z, {inputValue: field_z},
+    ]
+    fileOutputs: 
+      output_model_uri: /schema.txt
+'''
+        task_factory_a = comp.load_component_from_text(text=component_a)
+        task_factory_b = comp.load_component_from_text(text=component_b)
+        a = task_factory_a(field_l=12)
+        with self.assertRaises(InconsistentTypeException):
+            b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
 if __name__ == '__main__':
     unittest.main()
