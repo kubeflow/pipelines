@@ -16,6 +16,18 @@ from ._client import DataprocClient
 from kfp_component.core import KfpExecutionContext
 
 def delete_cluster(project_id, region, name, wait_interval=30):
+    """Deletes a DataProc cluster.
+    
+    Args:
+        project_id (str): Required. The ID of the Google Cloud Platform project 
+            that the cluster belongs to.
+        region (str): Required. The Cloud Dataproc region in which to handle the 
+            request.
+        name (str): Required. The cluster name to delete.
+        wait_interval (int): The wait seconds between polling the operation. 
+            Defaults to 30s.
+
+    """
     client = DataprocClient()
     operation_name = None
     with KfpExecutionContext(

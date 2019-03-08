@@ -22,6 +22,34 @@ from .. import common as gcp_common
 def create_cluster(project_id, region, name=None, name_prefix=None,
     initialization_actions=None, config_bucket=None, image_version=None,
     cluster=None, wait_interval=30):
+    """Creates a DataProc cluster under a project.
+
+    Args:
+        project_id (str): Required. The ID of the Google Cloud Platform project 
+            that the cluster belongs to.
+        region (str): Required. The Cloud Dataproc region in which to handle the 
+            request.
+        name (str): Optional. The cluster name. Cluster names within a project
+            must be unique. Names of deleted clusters can be reused.
+        name_prefix (str): Optional. The prefix of the cluster name.
+        initialization_actions (list): Optional. List of GCS URIs of executables 
+            to execute on each node after config is completed. By default,
+            executables are run on master and all worker nodes. 
+        config_bucket (str): Optional. A Google Cloud Storage bucket used to 
+            stage job dependencies, config files, and job driver console output.
+        image_version (str): Optional. The version of software inside the cluster.
+        cluster (dict): Optional. The full cluster config. See [full details](
+            https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.clusters#Cluster)
+        wait_interval (int): The wait seconds between polling the operation. 
+            Defaults to 30s.
+
+    Returns:
+        The created cluster object.
+
+    Outputs:
+        $KFP_OUTPUT_PATH/dataproc/cluster_name.txt: The cluster name of the 
+            created cluster.
+    """
     if not cluster:
         cluster = {}
     cluster['projectId'] = project_id
