@@ -313,7 +313,7 @@ class ContainerOp(object):
         for output_meta in self._metadata.outputs:
           if output_meta.name == output:
             output_type = output_meta.param_type
-      self.outputs[output].param_type = output_type
+        self.outputs[output].param_type = output_type
 
     self.output=None
     if len(self.outputs) == 1:

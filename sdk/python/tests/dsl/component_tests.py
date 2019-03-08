@@ -16,13 +16,13 @@
 from kfp.dsl._component import component
 from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta
 from kfp.dsl._types import GCSPath, Integer
+from kfp.dsl import ContainerOp, Pipeline
 import unittest
-import mock
 
 class TestPythonComponent(unittest.TestCase):
 
-  def test_component(self):
-    """Test component decorator."""
+  def test_component_metadata(self):
+    """Test component decorator metadata."""
 
     class MockContainerOp:
       def _set_metadata(self, component_meta):
@@ -41,3 +41,43 @@ class TestPythonComponent(unittest.TestCase):
     golden_meta.outputs.append(ParameterMeta(name='model', description='', param_type=TypeMeta(name='Integer')))
 
     self.assertEqual(containerOp._metadata, golden_meta)
+
+  def test_type_check(self):
+    """Test type check at the decorator."""
+    @component
+    def a_op(field_l: Integer) -> {'field_m': 'Integer', 'field_n': {'GCSPath': {'path_type': 'file', 'file_type': 'csv'}}}:
+      return ContainerOp(
+        name = 'operator a',
+        image = 'gcr.io/ml-pipeline/component-b',
+        arguments = [
+          '--field-l', field_l,
+        ],
+        file_outputs = {
+          'field_m': '/schema.txt',
+          'field_n': '/feature.txt'
+        }
+      )
+
+    @component
+    def b_op(field_x: {'GCSPath': {'path_type': 'file', 'file_type': 'csv'}},
+        field_y: 'GcsUri',
+        field_z: 'Integer') -> {'output_model_uri': 'GcsUri'}:
+      return ContainerOp(
+          name = 'operator b',
+          image = 'gcr.io/ml-pipeline/component-a',
+          command = [
+              'python3',
+              field_x,
+          ],
+          arguments = [
+              '--field-y', field_y,
+              '--field-z', field_z,
+          ],
+          file_outputs = {
+              'output_model_uri': '/schema.txt',
+          }
+      )
+
+    with Pipeline('pipeline') as p:
+      a = a_op(field_l=12)
+      b = b_op(field_x=a.outputs['field_n'], field_y='gs://ml-pipeline', field_z=a.outputs['field_m'])
