@@ -236,3 +236,17 @@ class TestCompiler(unittest.TestCase):
   def test_py_image_pull_secret(self):
     """Test pipeline imagepullsecret."""
     self._test_py_compile('imagepullsecret')
+
+  def test_compile_pipeline_with_after(self):
+    def op():
+      return dsl.ContainerOp(
+        name='Some component name',
+        image='image'
+      )
+
+    @dsl.pipeline(name='Pipeline', description='')
+    def pipeline():
+      task1 = op()
+      task2 = op().after(task1)
+    
+    compiler.Compiler()._compile(pipeline)

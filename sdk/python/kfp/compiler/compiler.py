@@ -551,6 +551,8 @@ class Compiler(object):
       if op.output is not None:
         op.output.name = K8sHelper.sanitize_k8s_name(op.output.name)
         op.output.op_name = K8sHelper.sanitize_k8s_name(op.output.op_name)
+      if op.dependent_op_names:
+        op.dependent_op_names = [K8sHelper.sanitize_k8s_name(name) for name in op.dependent_op_names]
       if op.file_outputs is not None:
         sanitized_file_outputs = {}
         for key in op.file_outputs.keys():
