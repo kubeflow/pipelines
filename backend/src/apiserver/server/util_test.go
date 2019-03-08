@@ -148,6 +148,15 @@ func TestReadPipelineFile_Zip_AnyExtension(t *testing.T) {
 	assert.Equal(t, expectedPipelineFile, pipelineFile)
 }
 
+func TestReadPipelineFile_MultifileZip(t *testing.T) {
+	file, _ := os.Open("test/pipeline_plus_component/pipeline_plus_component.zip")
+	pipelineFile, err := ReadPipelineFile("pipeline_plus_component.ai-hub-package", file, MaxFileLength)
+	assert.Nil(t, err)
+
+	expectedPipelineFile, _ := ioutil.ReadFile("test/pipeline_plus_component/pipeline.yaml")
+	assert.Equal(t, expectedPipelineFile, pipelineFile)
+}
+
 func TestReadPipelineFile_Tarball(t *testing.T) {
 	file, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
 	pipelineFile, err := ReadPipelineFile("arguments.tar.gz", file, MaxFileLength)
@@ -163,6 +172,15 @@ func TestReadPipelineFile_Tarball_AnyExtension(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
+	assert.Equal(t, expectedPipelineFile, pipelineFile)
+}
+
+func TestReadPipelineFile_MultifileTarball(t *testing.T) {
+	file, _ := os.Open("test/pipeline_plus_component/pipeline_plus_component.tar.gz")
+	pipelineFile, err := ReadPipelineFile("pipeline_plus_component.ai-hub-package", file, MaxFileLength)
+	assert.Nil(t, err)
+
+	expectedPipelineFile, _ := ioutil.ReadFile("test/pipeline_plus_component/pipeline.yaml")
 	assert.Equal(t, expectedPipelineFile, pipelineFile)
 }
 
