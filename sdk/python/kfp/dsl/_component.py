@@ -103,7 +103,6 @@ def component(func):
     if kargs is not None:
       for key in kargs:
         if isinstance(kargs[key], PipelineParam):
-          print(key)
           for input_spec in component_meta.inputs:
             if input_spec.name == key and not check_types(input_spec.param_type.serialize(), kargs[key].param_type.serialize()):
               raise InconsistentTypeException('Component "' + component_meta.name + '" is expecting ' + input_spec.name +
