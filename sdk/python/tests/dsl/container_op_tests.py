@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from kfp.dsl import Pipeline, PipelineParam, ContainerOp
+from kfp.dsl import Pipeline, PipelineParam, ContainerOp, Sidecar
 import unittest
 
 class TestContainerOp(unittest.TestCase):
@@ -23,14 +23,19 @@ class TestContainerOp(unittest.TestCase):
     with Pipeline('somename') as p:
       param1 = PipelineParam('param1')
       param2 = PipelineParam('param2')
-      op1 = ContainerOp(name='op1', image='image',
+      op1 = (ContainerOp(name='op1', image='image',
           arguments=['%s hello %s %s' % (param1, param2, param1)],
           file_outputs={'out1': '/tmp/b'})
+            .add_sidecar(Sidecar(name='sidecar1', image='image1'))
+            .add_sidecar(Sidecar(name='sidecar2', image='image2')))
       
     self.assertCountEqual([x.name for x in op1.inputs], ['param1', 'param2'])
     self.assertCountEqual(list(op1.outputs.keys()), ['out1'])
     self.assertCountEqual([x.op_name for x in op1.outputs.values()], ['op1'])
     self.assertEqual(op1.output.name, 'out1')
+    self.assertCountEqual([sidecar.name for sidecar in op1.sidecars], ['sidecar1', 'sidecar2'])
+    self.assertCountEqual([sidecar.image for sidecar in op1.sidecars], ['image1', 'image2'])
+
 
   def test_after_op(self):
     """Test duplicate ops."""

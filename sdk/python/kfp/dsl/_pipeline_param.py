@@ -14,14 +14,13 @@
 
 
 import re
-from collections import namedtuple
-
-
+from collections import namedtuple, Iterable
+from typing import List
 # TODO: Move this to a separate class
 # For now, this identifies a condition with only "==" operator supported.
 ConditionOperator = namedtuple('ConditionOperator', 'operator operand1 operand2')
 
-def _extract_pipelineparams(payloads: str or list[str]):
+def _extract_pipelineparams(payloads: str or List[str]):
   """_extract_pipelineparam extract a list of PipelineParam instances from the payload string.
   Note: this function removes all duplicate matches.
 
@@ -36,6 +35,54 @@ def _extract_pipelineparams(payloads: str or list[str]):
   for payload in payloads:
     matches += re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
   return [PipelineParam(x[1], x[0], x[2]) for x in list(set(matches))]
+
+
+def extract_pipelineparams_from_any(payload) -> List['PipelineParam']:
+  """Recursively extract PipelineParam instances or serialized string from any object or list of objects.
+
+  Args:
+    payload (str or k8_obj or list[str or k8_obj]): a string/a list 
+        of strings that contains serialized pipelineparams or a k8 definition 
+        object.
+  Return:
+    List[PipelineParam]
+  """
+  if not payload:
+    return []
+
+  # PipelineParam
+  if isinstance(payload, PipelineParam):
+    return [payload]
+ 
+  # str
+  if isinstance(payload, str):
+    return _extract_pipelineparams(payload)
+  
+  # list or tuple or iterable
+  if isinstance(payload, list) or isinstance(payload, tuple) or isinstance(payload, Iterable):
+    pipeline_params = []
+    for item in payload:
+      pipeline_params += extract_pipelineparams_from_any(item)
+    return list(set(pipeline_params))
+
+  # dict
+  if isinstance(payload, dict):
+    pipeline_params = []
+    for item in payload.values():
+      pipeline_params += extract_pipelineparams_from_any(item)
+      return list(set(pipeline_params))
+
+  # k8s object
+  if hasattr(payload, 'swagger_types') and isinstance(payload.swagger_types, dict):
+    pipeline_params = []
+    for key in payload.swagger_types.keys():
+      pipeline_params += extract_pipelineparams_from_any(getattr(payload, key))
+
+    return list(set(pipeline_params))
+
+  # return empty list  
+  return []
+
 
 class PipelineParam(object):
   """Representing a future value that is passed between pipeline components.
@@ -66,9 +113,19 @@ class PipelineParam(object):
     if op_name and value:
       raise ValueError('op_name and value cannot be both set.')
 
-    self.op_name = op_name
     self.name = name
-    self.value = value
+    # ensure value is None even if empty string or empty list
+    # so that serialization and unserialization remain consistent
+    # (i.e. None => '' => None)
+    self.op_name = op_name if op_name else None
+    self.value = value if value else None
+
+  @property
+  def full_name(self):
+    """Unique name in the argo yaml for the PipelineParam"""
+    if self.op_name:
+        return self.op_name + '-' + self.name
+    return self.name
 
   def __str__(self):
     """String representation.

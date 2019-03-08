@@ -1,0 +1,227 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: argoproj.io/v1alpha1
+spec:
+  entrypoint: save-most-frequent
+  onExit: exiting
+  arguments:
+    parameters:
+    - name: message
+    - name: outputpath
+    - name: cpu-limit
+      value: '0.5'
+    - name: gpu-limit
+      value: '2'
+    - name: mirror
+      value: 'True'
+    - name: sidecar-image-tag
+      value: latest
+  serviceAccountName: pipeline-runner
+  templates:
+  - name: exit-handler-1
+    inputs:
+      parameters:
+      - name: message
+      - name: mirror
+      - name: outputpath
+      - name: sidecar-image-tag
+    dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: message
+            value: "{{inputs.parameters.message}}"
+        template: get-frequent
+        name: get-frequent
+      - dependencies:
+        - get-frequent
+        arguments:
+          parameters:
+          - name: get-frequent-word
+            value: "{{tasks.get-frequent.outputs.parameters.get-frequent-word}}"
+          - name: mirror
+            value: "{{inputs.parameters.mirror}}"
+          - name: outputpath
+            value: "{{inputs.parameters.outputpath}}"
+          - name: sidecar-image-tag
+            value: "{{inputs.parameters.sidecar-image-tag}}"
+        template: save
+        name: save
+  - outputs:
+      artifacts:
+      - path: "/mlpipeline-ui-metadata.json"
+        name: mlpipeline-ui-metadata
+        s3:
+          insecure: true
+          endpoint: minio-service.kubeflow:9000
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+      - path: "/mlpipeline-metrics.json"
+        name: mlpipeline-metrics
+        s3:
+          insecure: true
+          endpoint: minio-service.kubeflow:9000
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+    container:
+      command:
+      - sh
+      - "-c"
+      image: python:3.5-jessie
+      args:
+      - echo exit!
+    name: exiting
+  - outputs:
+      artifacts:
+      - path: "/mlpipeline-ui-metadata.json"
+        name: mlpipeline-ui-metadata
+        s3:
+          insecure: true
+          endpoint: minio-service.kubeflow:9000
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+      - path: "/mlpipeline-metrics.json"
+        name: mlpipeline-metrics
+        s3:
+          insecure: true
+          endpoint: minio-service.kubeflow:9000
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+      parameters:
+      - valueFrom:
+          path: "/tmp/message.txt"
+        name: get-frequent-word
+    container:
+      command:
+      - sh
+      - "-c"
+      image: python:3.5-jessie
+      resources:
+        requests:
+          memory: 200M
+      args:
+      - python -c "from collections import Counter; words = Counter('{{inputs.parameters.message}}'.split());
+        print(max(words, key=words.get))" | tee /tmp/message.txt
+    inputs:
+      parameters:
+      - name: message
+    name: get-frequent
+  - sidecars:
+    - mirrorVolumeMounts: "{{inputs.parameters.mirror}}"
+      image: busybox:{{inputs.parameters.sidecar-image-tag}}
+      name: busybox
+    metadata:
+      annotations:
+        tf-version.cloud-tpus.google.com: '1.12'
+    inputs:
+      parameters:
+      - name: get-frequent-word
+      - name: mirror
+      - name: outputpath
+      - name: sidecar-image-tag
+    container:
+      imagePullPolicy: Always
+      command:
+      - sh
+      - "-c"
+      resources:
+        limits:
+          cloud-tpus.google.com/v2: '8'
+          nvidia.com/gpu: "{{inputs.parameters.gpu-limit}}"
+          cpu: "{{inputs.parameters.cpu-limit}}"
+      image: google/cloud-sdk
+      args:
+      - echo {{inputs.parameters.get-frequent-word}} | tee /tmp/results.txt | gsutil
+        cp /tmp/results.txt {{inputs.parameters.outputpath}}
+    nodeSelector:
+      cloud.google.com/gke-accelerator: nvidia-tesla-k80
+    outputs:
+      artifacts:
+      - path: "/mlpipeline-ui-metadata.json"
+        name: mlpipeline-ui-metadata
+        s3:
+          insecure: true
+          endpoint: minio-service.kubeflow:9000
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+      - path: "/mlpipeline-metrics.json"
+        name: mlpipeline-metrics
+        s3:
+          insecure: true
+          endpoint: minio-service.kubeflow:9000
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+    name: save
+  - name: save-most-frequent
+    inputs:
+      parameters:
+      - name: message
+      - name: mirror
+      - name: outputpath
+      - name: sidecar-image-tag
+    dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: message
+            value: "{{inputs.parameters.message}}"
+          - name: mirror
+            value: "{{inputs.parameters.mirror}}"
+          - name: outputpath
+            value: "{{inputs.parameters.outputpath}}"
+          - name: sidecar-image-tag
+            value: "{{inputs.parameters.sidecar-image-tag}}"
+        template: exit-handler-1
+        name: exit-handler-1
+      - name: exiting
+        template: exiting
+kind: Workflow
+metadata:
+  generateName: save-most-frequent-
