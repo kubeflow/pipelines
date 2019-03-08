@@ -162,8 +162,10 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         command=command,
         arguments=arguments,
         file_outputs=output_paths_for_container_op,
-        metadata=component_meta,
     )
+
+    task._set_metadata(component_meta)
+
     if env:
         from kubernetes import client as k8s_client
         for name, value in env.items():

@@ -32,7 +32,7 @@ class TestPythonComponent(unittest.TestCase):
     def componentA(a: {'Schema': {'file_type': 'csv'}}, b: {'number': {'step': 'large'}} = 12, c: GCSPath(path_type='file', file_type='tsv') = 'gs://hello/world') -> {'model': Integer()}:
       return MockContainerOp()
 
-    containerOp = componentA(1,2,3)
+    containerOp = componentA(1,2,c=3)
 
     golden_meta = ComponentMeta(name='componentA', description='')
     golden_meta.inputs.append(ParameterMeta(name='a', description='', param_type=TypeMeta(name='Schema', properties={'file_type': 'csv'})))
