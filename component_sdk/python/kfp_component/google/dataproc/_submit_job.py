@@ -19,6 +19,25 @@ from kfp_component.core import KfpExecutionContext, display
 from .. import common as gcp_common
 
 def submit_job(project_id, region, cluster_name, job, wait_interval=30):
+    """Submits a Cloud Dataproc job.
+    
+    Args:
+        project_id (str): Required. The ID of the Google Cloud Platform project 
+            that the cluster belongs to.
+        region (str): Required. The Cloud Dataproc region in which to handle the 
+            request.
+        cluster_name (str): Required. The cluster to run the job.
+        job (dict): Optional. The full payload of a [Dataproc job](
+            https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs).
+        wait_interval (int): The wait seconds between polling the operation. 
+            Defaults to 30s.
+
+    Returns:
+        The created job payload.
+
+    Output Files:
+        $KFP_OUTPUT_PATH/dataproc/job_id.txt: The ID of the created job.
+    """
     if 'reference' not in job:
         job['reference'] = {}
     job['reference']['projectId'] = project_id

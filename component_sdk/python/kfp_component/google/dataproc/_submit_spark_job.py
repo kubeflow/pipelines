@@ -17,6 +17,33 @@ from ._submit_job import submit_job
 def submit_spark_job(project_id, region, cluster_name, 
     main_jar_file_uri=None, main_class=None, args=[], spark_job={}, job={}, 
     wait_interval=30):
+    """Submits a Cloud Dataproc job for running Apache Spark applications on YARN.
+    
+    Args:
+        project_id (str): Required. The ID of the Google Cloud Platform project 
+            that the cluster belongs to.
+        region (str): Required. The Cloud Dataproc region in which to handle the 
+            request.
+        cluster_name (str): Required. The cluster to run the job.
+        main_jar_file_uri (str): The name of the driver's main class. The jar file 
+            that contains the class must be in the default CLASSPATH or specified 
+            in jarFileUris.
+        args (list): Optional. The arguments to pass to the driver. Do not include 
+            arguments, such as --conf, that can be set as job properties, since a 
+            collision may occur that causes an incorrect job submission.
+        spark_job (dict): Optional. The full payload of a [SparkJob](
+            https://cloud.google.com/dataproc/docs/reference/rest/v1/SparkJob).
+        job (dict): Optional. The full payload of a [Dataproc job](
+            https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs).
+        wait_interval (int): The wait seconds between polling the operation. 
+            Defaults to 30s.
+
+    Returns:
+        The created job payload.
+
+    Output Files:
+        $KFP_OUTPUT_PATH/dataproc/job_id.txt: The ID of the created job.
+    """
     if main_jar_file_uri:
         spark_job['mainJarFileUri'] = main_jar_file_uri
     if main_class:

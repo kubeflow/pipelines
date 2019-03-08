@@ -46,7 +46,7 @@ def create_cluster(project_id, region, name=None, name_prefix=None,
     Returns:
         The created cluster object.
 
-    Outputs:
+    Output Files:
         $KFP_OUTPUT_PATH/dataproc/cluster_name.txt: The cluster name of the 
             created cluster.
     """

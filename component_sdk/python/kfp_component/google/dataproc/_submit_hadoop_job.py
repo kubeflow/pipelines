@@ -37,10 +37,18 @@ def submit_hadoop_job(project_id, region, cluster_name,
         args (list): Optional. The arguments to pass to the driver. Do not include 
             arguments, such as -libjars or -Dfoo=bar, that can be set as job properties, 
             since a collision may occur that causes an incorrect job submission.
-        hadoop_job (dict): Optional. The full 
-        job (dict):
+        hadoop_job (dict): Optional. The full payload of a [hadoop job](
+            https://cloud.google.com/dataproc/docs/reference/rest/v1/HadoopJob).
+        job (dict): Optional. The full payload of a [Dataproc job](
+            https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs).
         wait_interval (int): The wait seconds between polling the operation. 
             Defaults to 30s.
+
+    Returns:
+        The created job payload.
+
+    Output Files:
+        $KFP_OUTPUT_PATH/dataproc/job_id.txt: The ID of the created job.
     """
     if main_jar_file_uri:
         hadoop_job['mainJarFileUri'] = main_jar_file_uri

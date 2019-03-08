@@ -17,6 +17,33 @@ from ._submit_job import submit_job
 def submit_pig_job(project_id, region, cluster_name, 
     queries=[], query_file_uri=None, script_variables={}, pig_job={}, 
     job={}, wait_interval=30):
+    """Submits a Cloud Dataproc job for running Apache Pig queries on YARN.
+    
+    Args:
+        project_id (str): Required. The ID of the Google Cloud Platform project 
+            that the cluster belongs to.
+        region (str): Required. The Cloud Dataproc region in which to handle the 
+            request.
+        cluster_name (str): Required. The cluster to run the job.
+        queries (list): Required. The queries to execute. You do not need to 
+            terminate a query with a semicolon. Multiple queries can be specified 
+            in one string by separating each with a semicolon. 
+        query_file_uri (str): The HCFS URI of the script that contains Pig queries.
+        script_variables (dict): Optional. Mapping of query variable names to values 
+            (equivalent to the Pig command: name=[value]).
+        pig_job (dict): Optional. The full payload of a [Pig job](
+            https://cloud.google.com/dataproc/docs/reference/rest/v1/PigJob)
+        job (dict): Optional. The full payload of a [Dataproc job](
+            https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs).
+        wait_interval (int): The wait seconds between polling the operation. 
+            Defaults to 30s.
+
+    Returns:
+        The created job payload.
+
+    Output Files:
+        $KFP_OUTPUT_PATH/dataproc/job_id.txt: The ID of the created job.
+    """
     if queries:
         pig_job['queryList'] = { 'queries': queries }
     if query_file_uri:
