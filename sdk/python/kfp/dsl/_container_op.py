@@ -77,8 +77,8 @@ class ContainerOp(object):
 
     self.outputs = {}
     if self.file_outputs:
-      for output in self.file_outputs.keys():
-        self.outputs[output] = _pipeline_param.PipelineParam(name=output, op_name=self.name)
+      self.outputs = {name: _pipeline_param.PipelineParam(name, op_name=self.name)
+                      for name in file_outputs.keys()}
 
     self.output=None
     if len(self.outputs) == 1:

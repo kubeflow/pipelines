@@ -571,15 +571,19 @@ class Compiler(object):
       type_check: whether to enable the type check or not, default: False.
     """
     import kfp
-    kfp.TYPE_CHECK = type_check
-    workflow = self._compile(pipeline_func)
-    yaml.Dumper.ignore_aliases = lambda *args : True
-    yaml_text = yaml.dump(workflow, default_flow_style=False)
+    type_check_old_value = kfp.TYPE_CHECK
+    try:
+      kfp.TYPE_CHECK = type_check
+      workflow = self._compile(pipeline_func)
+      yaml.Dumper.ignore_aliases = lambda *args : True
+      yaml_text = yaml.dump(workflow, default_flow_style=False)
 
-    from contextlib import closing
-    from io import BytesIO
-    with tarfile.open(package_path, "w:gz") as tar:
-      with closing(BytesIO(yaml_text.encode())) as yaml_file:
-        tarinfo = tarfile.TarInfo('pipeline.yaml')
-        tarinfo.size = len(yaml_file.getvalue())
-        tar.addfile(tarinfo, fileobj=yaml_file)
+      from contextlib import closing
+      from io import BytesIO
+      with tarfile.open(package_path, "w:gz") as tar:
+        with closing(BytesIO(yaml_text.encode())) as yaml_file:
+          tarinfo = tarfile.TarInfo('pipeline.yaml')
+          tarinfo.size = len(yaml_file.getvalue())
+          tar.addfile(tarinfo, fileobj=yaml_file)
+    finally:
+      kfp.TYPE_CHECK = type_check_old_value
