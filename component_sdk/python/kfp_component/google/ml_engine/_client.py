@@ -17,6 +17,7 @@ import time
 
 import googleapiclient.discovery as discovery
 from googleapiclient import errors
+from ..common import wait_operation_done
 
 class MLEngineClient:
     """ Client for calling MLEngine APIs.
@@ -174,24 +175,8 @@ class MLEngineClient:
         Returns:
             The completed operation.
         """
-        operation = None
-        while True:
-            operation = self._ml_client.projects().operations().get(
-                name = operation_name
-            ).execute()
-            done = operation.get('done', False)
-            if done:
-                break
-            logging.info('Operation {} is not done. Wait for {}s.'.format(operation_name, wait_interval))
-            time.sleep(wait_interval)
-        error = operation.get('error', None)
-        if error:
-            raise RuntimeError('Failed to complete operation {}: {} {}'.format(
-                operation_name,
-                error.get('code', 'Unknown code'),
-                error.get('message', 'Unknown message'),
-            ))
-        return operation
+        return wait_operation_done(
+            lambda: self.get_operation(operation_name), wait_interval)
 
     def cancel_operation(self, operation_name):
         """Cancels an operation.
