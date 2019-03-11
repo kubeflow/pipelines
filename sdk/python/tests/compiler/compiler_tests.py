@@ -302,3 +302,17 @@ class TestCompiler(unittest.TestCase):
 
     finally:
       shutil.rmtree(tmpdir)
+
+  def test_compile_pipeline_with_after(self):
+    def op():
+      return dsl.ContainerOp(
+        name='Some component name',
+        image='image'
+      )
+
+    @dsl.pipeline(name='Pipeline', description='')
+    def pipeline():
+      task1 = op()
+      task2 = op().after(task1)
+    
+    compiler.Compiler()._compile(pipeline)

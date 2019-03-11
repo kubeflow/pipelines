@@ -54,20 +54,20 @@ func loadFile(fileReader io.Reader, maxFileLength int) ([]byte, error) {
 	return pipelineFile[:size], nil
 }
 
-func isSupportedPipelineFormat(fileName string) bool {
-	return isYamlFile(fileName) || isCompressedTarballFile(fileName) || isZipFile(fileName)
+func isSupportedPipelineFormat(fileName string, compressedFile []byte) bool {
+	return isYamlFile(fileName) || isCompressedTarballFile(compressedFile) || isZipFile(compressedFile)
 }
 
 func isYamlFile(fileName string) bool {
 	return strings.HasSuffix(fileName, ".yaml") || strings.HasSuffix(fileName, ".yml")
 }
 
-func isZipFile(fileName string) bool {
-	return strings.HasSuffix(fileName, ".zip")
+func isZipFile(compressedFile []byte) bool {
+	return len(compressedFile) > 2 && compressedFile[0] == '\x50' && compressedFile[1] == '\x4B' //Signature of zip file is "PK"
 }
 
-func isCompressedTarballFile(fileName string) bool {
-	return strings.HasSuffix(fileName, ".tar.gz")
+func isCompressedTarballFile(compressedFile []byte) bool {
+	return len(compressedFile) > 2 && compressedFile[0] == '\x1F' && compressedFile[1] == '\x8B'
 }
 
 func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
@@ -113,10 +113,6 @@ func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
 }
 
 func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) ([]byte, error) {
-	if !isSupportedPipelineFormat(fileName) {
-		return nil, util.NewInvalidInputError("Unexpected pipeline file format. Support formats are .zip, .tar.gz or YAML.")
-	}
-
 	// Read file into size limited byte array.
 	pipelineFileBytes, err := loadFile(fileReader, maxFileLength)
 	if err != nil {
@@ -127,9 +123,9 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 	switch {
 	case isYamlFile(fileName):
 		processedFile = pipelineFileBytes
-	case isZipFile(fileName):
+	case isZipFile(pipelineFileBytes):
 		processedFile, err = DecompressPipelineZip(pipelineFileBytes)
-	case isCompressedTarballFile(fileName):
+	case isCompressedTarballFile(pipelineFileBytes):
 		processedFile, err = DecompressPipelineTarball(pipelineFileBytes)
 	default:
 		return nil, util.NewInvalidInputError("Unexpected pipeline file format. Support .zip, .tar.gz or YAML.")
