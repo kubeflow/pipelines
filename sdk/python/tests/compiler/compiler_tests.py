@@ -23,6 +23,10 @@ import tempfile
 import unittest
 import yaml
 
+from kfp.dsl._component import component
+from kfp.dsl import ContainerOp, pipeline
+from kfp.dsl._types import Integer, InconsistentTypeException
+
 class TestCompiler(unittest.TestCase):
 
   def test_operator_to_template(self):
@@ -236,6 +240,68 @@ class TestCompiler(unittest.TestCase):
   def test_py_image_pull_secret(self):
     """Test pipeline imagepullsecret."""
     self._test_py_compile('imagepullsecret')
+
+  def test_type_checking_with_consistent_types(self):
+    """Test type check pipeline parameters against component metadata."""
+    @component
+    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: 'Integer'):
+      return ContainerOp(
+          name = 'operator a',
+          image = 'gcr.io/ml-pipeline/component-b',
+          arguments = [
+              '--field-l', field_m,
+              '--field-o', field_o,
+          ],
+      )
+
+    @pipeline(
+        name='p1',
+        description='description1'
+    )
+    def my_pipeline(a: {'GCSPath': {'path_type':'file', 'file_type': 'tsv'}}='good', b: Integer()=12):
+      a_op(field_m=a, field_o=b)
+
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+    tmpdir = tempfile.mkdtemp()
+    try:
+      simple_package_path = os.path.join(tmpdir, 'simple.tar.gz')
+      compiler.Compiler().compile(my_pipeline, simple_package_path, type_check=True)
+
+    finally:
+      shutil.rmtree(tmpdir)
+
+  def test_type_checking_with_inconsistent_types(self):
+    """Test type check pipeline parameters against component metadata."""
+    @component
+    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: 'Integer'):
+      return ContainerOp(
+          name = 'operator a',
+          image = 'gcr.io/ml-pipeline/component-b',
+          arguments = [
+              '--field-l', field_m,
+              '--field-o', field_o,
+          ],
+      )
+
+    @pipeline(
+        name='p1',
+        description='description1'
+    )
+    def my_pipeline(a: {'GCSPath': {'path_type':'file', 'file_type': 'csv'}}='good', b: Integer()=12):
+      a_op(field_m=a, field_o=b)
+
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+    tmpdir = tempfile.mkdtemp()
+    try:
+      simple_package_path = os.path.join(tmpdir, 'simple.tar.gz')
+      with self.assertRaises(InconsistentTypeException):
+        compiler.Compiler().compile(my_pipeline, simple_package_path, type_check=True)
+      compiler.Compiler().compile(my_pipeline, simple_package_path, type_check=False)
+
+    finally:
+      shutil.rmtree(tmpdir)
 
   def test_compile_pipeline_with_after(self):
     def op():

@@ -141,9 +141,9 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         _dummy_pipeline.__enter__()
 
     #Renaming outputs to conform with ContainerOp/Argo
-    from ._naming import _sanitize_kubernetes_resource_name, generate_unique_name_conversion_table
+    from ._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
     output_names = (output_paths or {}).keys()
-    output_name_to_kubernetes = generate_unique_name_conversion_table(output_names, _sanitize_kubernetes_resource_name)
+    output_name_to_kubernetes = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
     output_paths_for_container_op = {output_name_to_kubernetes[name]: path for name, path in output_paths.items()}
 
     # Construct the ComponentMeta
@@ -163,12 +163,13 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         arguments=arguments,
         file_outputs=output_paths_for_container_op,
     )
+
+    task._set_metadata(component_meta)
+
     if env:
         from kubernetes import client as k8s_client
         for name, value in env.items():
             task.add_env_variable(k8s_client.V1EnvVar(name=name, value=value))
- 
-    task._set_metadata(component_meta)
   
     if need_dummy:
         _dummy_pipeline.__exit__()
