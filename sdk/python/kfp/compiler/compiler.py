@@ -22,6 +22,7 @@ import yaml
 from .. import dsl
 from ._k8s_helper import K8sHelper
 from ..dsl._pipeline_param import _match_serialized_pipelineparam
+from ..dsl._metadata import TypeMeta
 
 class Compiler(object):
   """DSL Compiler.
@@ -520,8 +521,17 @@ class Compiler(object):
     pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_name)
 
     # Create the arg list with no default values and call pipeline function.
-    args_list = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
-                 for arg_name in argspec.args]
+    # Assign type information to the PipelineParam
+    pipeline_meta = dsl.Pipeline.get_pipeline_functions()[pipeline_func]
+    args_list = []
+    for arg_name in argspec.args:
+      arg_type = TypeMeta()
+      for input in pipeline_meta.inputs:
+        if arg_name == input.name:
+          arg_type = input.param_type
+          break
+      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type = arg_type))
+
     with dsl.Pipeline(pipeline_name) as p:
       pipeline_func(*args_list)
 

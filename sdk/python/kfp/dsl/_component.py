@@ -86,9 +86,10 @@ def component(func):
         arg_type = _annotation_to_typemeta(annotations[arg])
       component_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
     # Outputs
-    for output in annotations['return']:
-      arg_type = _annotation_to_typemeta(annotations['return'][output])
-      component_meta.outputs.append(ParameterMeta(name=output, description='', param_type=arg_type))
+    if 'return' in annotations:
+      for output in annotations['return']:
+        arg_type = _annotation_to_typemeta(annotations['return'][output])
+        component_meta.outputs.append(ParameterMeta(name=output, description='', param_type=arg_type))
 
     #TODO: add descriptions to the metadata
     #docstring parser:
