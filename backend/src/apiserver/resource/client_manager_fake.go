@@ -15,8 +15,12 @@
 package resource
 
 import (
+	"ml_metadata/metadata_store/mlmetadata"
+	mlpb "ml_metadata/proto/metadata_store_go_proto"
+
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/metadata"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
@@ -64,7 +68,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		experimentStore:             storage.NewExperimentStore(db, time, uuid),
 		pipelineStore:               storage.NewPipelineStore(db, time, uuid),
 		jobStore:                    storage.NewJobStore(db, time),
-		runStore:                    storage.NewRunStore(db, time, nil),
+		runStore:                    storage.NewRunStore(db, time, initFakeMetadataStore()),
 		workflowClientFake:          NewWorkflowClientFake(),
 		resourceReferenceStore:      storage.NewResourceReferenceStore(db),
 		dBStatusStore:               storage.NewDBStatusStore(db),
@@ -73,6 +77,18 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		time:                        time,
 		uuid:                        uuid,
 	}, nil
+}
+
+func initFakeMetadataStore() *metadata.Store {
+	cfg := &mlpb.ConnectionConfig{
+		Config: &mlpb.ConnectionConfig_FakeDatabase{&mlpb.FakeDatabaseConfig{}},
+	}
+
+	mlmdStore, err := mlmetadata.NewStore(cfg)
+	if err != nil {
+		glog.Fatalf("Failed to create ML Metadata store: %v", err)
+	}
+	return metadata.NewStore(mlmdStore)
 }
 
 func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
