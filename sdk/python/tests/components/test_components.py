@@ -702,7 +702,7 @@ implementation:
         with self.assertRaises(InconsistentTypeException):
             b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
-    def test_type_check_all_with_inconsistent_types_nonnamed_inputs(self):
+    def test_type_check_all_with_consistent_types_nonnamed_inputs(self):
         component_a = '''\
 name: component a
 description: component a desc
