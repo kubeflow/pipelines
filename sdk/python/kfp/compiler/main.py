@@ -43,12 +43,15 @@ def parse_arguments():
                       type=str,
                       required=True,
                       help='local path to the output workflow yaml file.')
+  parser.add_argument('--type-check',
+                      action='store_true',
+                      help='enable the type check, default is disabled.')
 
   args = parser.parse_args()
   return args
 
 
-def _compile_pipeline_function(function_name, output_path):
+def _compile_pipeline_function(function_name, output_path, type_check):
 
   pipeline_funcs = list(dsl.Pipeline.get_pipeline_functions().keys())
   if len(pipeline_funcs) == 0:
@@ -66,27 +69,27 @@ def _compile_pipeline_function(function_name, output_path):
   else:
     pipeline_func = pipeline_funcs[0]
 
-  kfp.compiler.Compiler().compile(pipeline_func, output_path)
+  kfp.compiler.Compiler().compile(pipeline_func, output_path, type_check)
 
 
-def compile_package(package_path, namespace, function_name, output_path):
+def compile_package(package_path, namespace, function_name, output_path, type_check):
   tmpdir = tempfile.mkdtemp()
   sys.path.insert(0, tmpdir)
   try:
     subprocess.check_call(['python3', '-m', 'pip', 'install', package_path, '-t', tmpdir])
     __import__(namespace)
-    _compile_pipeline_function(function_name, output_path)
+    _compile_pipeline_function(function_name, output_path, type_check)
   finally:
     del sys.path[0]
     shutil.rmtree(tmpdir)
 
 
-def compile_pyfile(pyfile, function_name, output_path):
+def compile_pyfile(pyfile, function_name, output_path, type_check):
   sys.path.insert(0, os.path.dirname(pyfile))
   try:
     filename = os.path.basename(pyfile)
     __import__(os.path.splitext(filename)[0])
-    _compile_pipeline_function(function_name, output_path)
+    _compile_pipeline_function(function_name, output_path, type_check)
   finally:
     del sys.path[0]
 
@@ -97,9 +100,9 @@ def main():
       (args.py is not None and args.package is not None)):
     raise ValueError('Either --py or --package is needed but not both.')
   if args.py:
-    compile_pyfile(args.py, args.function, args.output)
+    compile_pyfile(args.py, args.function, args.output, args.type_check)
   else:
     if args.namespace is None:
       raise ValueError('--namespace is required for compiling packages.')
-    compile_package(args.package, args.namespace, args.function, args.output)
+    compile_package(args.package, args.namespace, args.function, args.output, args.type_check)
   

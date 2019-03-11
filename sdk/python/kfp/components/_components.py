@@ -25,7 +25,9 @@ from ._naming import _sanitize_file_name, _sanitize_python_function_name, genera
 from ._yaml_utils import load_yaml
 from ._structures import ComponentSpec
 from ._structures import *
-
+from kfp.dsl import PipelineParam
+from kfp.dsl._types import InconsistentTypeException, check_types
+import kfp
 
 _default_component_name = 'Component'
 
@@ -202,12 +204,21 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
 
     def create_task_from_component_and_arguments(pythonic_arguments):
         #Converting the argument names and not passing None arguments
-        valid_argument_types = (str, int, float, bool, GraphInputArgument, TaskOutputArgument) #Hack for passed PipelineParams. TODO: Remove the hack once they're no longer passed here.
+        valid_argument_types = (str, int, float, bool, GraphInputArgument, TaskOutputArgument, PipelineParam) #Hack for passed PipelineParams. TODO: Remove the hack once they're no longer passed here.
         arguments = {
             pythonic_name_to_input_name[k]: (v if isinstance(v, valid_argument_types) else str(v))
             for k, v in pythonic_arguments.items()
             if v is not None
         }
+        for key in arguments:
+            if isinstance(arguments[key], PipelineParam):
+                if kfp.TYPE_CHECK:
+                    for input_spec in component_spec.inputs:
+                        if input_spec.name == key:
+                            if arguments[key].param_type is not None and not check_types(arguments[key].param_type.to_dict_or_str(), '' if input_spec.type is None else input_spec.type):
+                                raise InconsistentTypeException('Component "' + name + '" is expecting ' + key + ' to be type(' + str(input_spec.type) + '), but the passed argument is type(' + arguments[key].param_type.serialize() + ')')
+                arguments[key] = str(arguments[key])
+
         task = TaskSpec(
             component_ref=component_ref,
             arguments=arguments,
