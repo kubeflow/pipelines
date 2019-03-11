@@ -48,13 +48,16 @@ class TypeMeta(BaseMeta):
   @staticmethod
   def from_dict_or_str(json):
     type_meta = TypeMeta()
-    if isinstance(json, Dict):
+    if isinstance(json, dict):
       if not _check_valid_type_dict(json):
         raise ValueError(json + ' is not a valid type string')
       type_meta.name, type_meta.properties = list(json.items())[0]
     elif isinstance(json, str):
       type_meta.name = json
     return type_meta
+
+  def serialize(self):
+    return str(self.to_dict_or_str())
 
 class ParameterMeta(BaseMeta):
   def __init__(self,
