@@ -27,9 +27,6 @@ inputs:
       deleted clusters can be reused
     default: ''
   - name: name_prefix
-    description: 'The regional endpoint to which to direct the request.'
-    default: ''
-  - name: job_name_prefix
     description: 'Optional. The prefix of the cluster name.'
     default: ''
   - name: initialization_actions
