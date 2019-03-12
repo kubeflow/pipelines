@@ -1,0 +1,73 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: dataproc_create_cluster
+description: |
+  Creates a DataProc cluster under a project.
+inputs:
+  - name: project_id
+    description: >-
+      Required. The ID of the Google Cloud Platform project that the cluster belongs to.
+  - name: region
+    description: 'Required. The Cloud Dataproc region in which to handle the request.'
+  - name: name
+    description: >-
+      Optional. The cluster name. Cluster names within a project must be unique. Names of 
+      deleted clusters can be reused
+    default: ''
+  - name: name_prefix
+    description: 'Optional. The prefix of the cluster name.'
+    default: ''
+  - name: initialization_actions
+    description: >-
+      Optional. List of GCS URIs of executables to execute on each node after config
+      is completed. By default, executables are run on master and all worker nodes.
+    default: ''
+  - name: config_bucket
+    description: >-
+      Optional. A Google Cloud Storage bucket used to stage job dependencies, config
+      files, and job driver console output.
+    default: ''
+  - name: image_version
+    description: 'Optional. The version of software inside the cluster.'
+    default: ''
+  - name: cluster
+    description: >-
+      Optional. The full cluster config. See 
+      [full details](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.clusters#Cluster)
+    default: ''
+  - name: wait_interval
+    default: '30'
+    description: 'Optional. The wait seconds between polling the operation. Defaults to 30.'
+outputs:
+  - {name: cluster_name, description: 'The cluster name of the created cluster.'}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest
+    args: [
+      kfp_component.google.dataproc, create_cluster,
+      --project_id, {inputValue: project_id},
+      --region, {inputValue: region},
+      --name, {inputValue: name},
+      --name_prefix, {inputValue: name_prefix},
+      --initialization_actions, {inputValue: initialization_actions},
+      --config_bucket, {inputValue: config_bucket},
+      --image_version, {inputValue: image_version},
+      --cluster, {inputValue: cluster},
+      --wait_interval, {inputValue: wait_interval}
+    ]
+    env:
+      KFP_POD_NAME: "{{pod.name}}"
+    fileOutputs:
+      cluster_name: /tmp/kfp/output/dataproc/cluster_name.txt
