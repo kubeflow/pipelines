@@ -44,6 +44,10 @@ def submit_hive_job(project_id, region, cluster_name,
     Output Files:
         $KFP_OUTPUT_PATH/dataproc/job_id.txt: The ID of the created job.
     """
+    if not hive_job:
+        hive_job = {}
+    if not job:
+        job = {}
     if queries:
         hive_job['queryList'] = { 'queries': queries }
     if query_file_uri:
