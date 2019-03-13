@@ -50,6 +50,10 @@ def submit_hadoop_job(project_id, region, cluster_name,
     Output Files:
         $KFP_OUTPUT_PATH/dataproc/job_id.txt: The ID of the created job.
     """
+    if not hadoop_job:
+        hadoop_job = {}
+    if not job:
+        job = {}
     if main_jar_file_uri:
         hadoop_job['mainJarFileUri'] = main_jar_file_uri
     if main_class:
