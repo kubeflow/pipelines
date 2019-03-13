@@ -44,6 +44,10 @@ def submit_pig_job(project_id, region, cluster_name,
     Output Files:
         $KFP_OUTPUT_PATH/dataproc/job_id.txt: The ID of the created job.
     """
+    if not pig_job:
+        pig_job = {}
+    if not job:
+        job = {}
     if queries:
         pig_job['queryList'] = { 'queries': queries }
     if query_file_uri:
