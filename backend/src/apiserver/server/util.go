@@ -80,7 +80,7 @@ func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file.")
 	}
 	tarReader := tar.NewReader(gzipReader)
-	var pipelineYamlReader *tar.Reader
+	var pipelineYamlReader *tar.Reader = nil
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
@@ -112,7 +112,7 @@ func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
 	if len(reader.File) < 1 {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Empty zip file.")
 	}
-	var pipelineYamlFile *zip.File
+	var pipelineYamlFile *zip.File = nil
 	for _, file := range reader.File {
 		if isPipelineYamlFile(file.Name) {
 			pipelineYamlFile = file
