@@ -16,9 +16,24 @@
 import re
 from collections import namedtuple, Iterable
 from typing import List
+from ._metadata import TypeMeta
+
+
 # TODO: Move this to a separate class
 # For now, this identifies a condition with only "==" operator supported.
 ConditionOperator = namedtuple('ConditionOperator', 'operator operand1 operand2')
+
+def _match_serialized_pipelineparam(payload: str):
+  """_match_serialized_pipelineparam matches the serialized pipelineparam.
+  Args:
+    payloads (str): a string that contains the serialized pipelineparam.
+
+  Returns:
+    List(tuple())"""
+  match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?)}}', payload)
+  if len(match) == 0:
+    match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
+  return match
 
 def _extract_pipelineparams(payloads: str or List[str]):
   """_extract_pipelineparam extract a list of PipelineParam instances from the payload string.
@@ -33,7 +48,7 @@ def _extract_pipelineparams(payloads: str or List[str]):
     payloads = [payloads]
   matches = []
   for payload in payloads:
-    matches += re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
+    matches += _match_serialized_pipelineparam(payload)
   return [PipelineParam(x[1], x[0], x[2]) for x in list(set(matches))]
 
 
@@ -92,7 +107,7 @@ class PipelineParam(object):
   value passed between components.
   """
   
-  def __init__(self, name: str, op_name: str=None, value: str=None):
+  def __init__(self, name: str, op_name: str=None, value: str=None, param_type: TypeMeta=TypeMeta()):
     """Create a new instance of PipelineParam.
     Args:
       name: name of the pipeline parameter.
@@ -102,6 +117,7 @@ class PipelineParam(object):
                argument.
       value: The actual value of the PipelineParam. If provided, the PipelineParam is
              "resolved" immediately. For now, we support string only.
+      param_type: the type of the PipelineParam.
     Raises: ValueError in name or op_name contains invalid characters, or both op_name
             and value are set.
     """
@@ -119,6 +135,7 @@ class PipelineParam(object):
     # (i.e. None => '' => None)
     self.op_name = op_name if op_name else None
     self.value = value if value else None
+    self.param_type = param_type
 
   @property
   def full_name(self):
@@ -143,7 +160,10 @@ class PipelineParam(object):
 
     op_name = self.op_name if self.op_name else ''
     value = self.value if self.value else ''
-    return '{{pipelineparam:op=%s;name=%s;value=%s}}' % (op_name, self.name, value)
+    if self.param_type is None:
+      return '{{pipelineparam:op=%s;name=%s;value=%s}}' % (op_name, self.name, value)
+    else:
+      return '{{pipelineparam:op=%s;name=%s;value=%s;type=%s}}' % (op_name, self.name, value, self.param_type.serialize())
   
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})

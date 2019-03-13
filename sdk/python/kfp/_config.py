@@ -11,5 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from . import ml_engine, dataflow, dataproc
+#TODO: wrap the DSL level configuration into one Config
+TYPE_CHECK = False

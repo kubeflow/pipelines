@@ -21,6 +21,7 @@ from kubernetes.client.models import (
 
 from . import _pipeline
 from . import _pipeline_param
+from ._metadata import ComponentMeta
 
 # generics
 T = TypeVar('T')
@@ -684,6 +685,7 @@ class ContainerOp(object):
         self.file_outputs = file_outputs
         self.dependent_op_names = []
         self.is_exit_handler = is_exit_handler
+        self._metadata = None
 
         self.outputs = {}
         if file_outputs:
@@ -695,6 +697,7 @@ class ContainerOp(object):
         self.output = None
         if len(self.outputs) == 1:
             self.output = list(self.outputs.values())[0]
+                 
 
     @property
     def inputs(self):
@@ -828,3 +831,24 @@ class ContainerOp(object):
 
     def __repr__(self):
         return str({self.__class__.__name__: self.__dict__})
+      
+    def _set_metadata(self, metadata):
+        '''_set_metadata passes the containerop the metadata information
+        and configures the right output
+        Args:
+          metadata (ComponentMeta): component metadata
+        '''
+        if not isinstance(metadata, ComponentMeta):
+          raise ValueError('_set_medata is expecting ComponentMeta.')
+       self._metadata = metadata
+        if self.file_outputs:
+          for output in self.file_outputs.keys():
+            output_type = self.outputs[output].param_type
+            for output_meta in self._metadata.outputs:
+              if output_meta.name == output:
+                output_type = output_meta.param_type
+            self.outputs[output].param_type = output_type
+
+        self.output=None
+        if len(self.outputs) == 1:
+          self.output = list(self.outputs.values())[0]                        
