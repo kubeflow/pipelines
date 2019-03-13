@@ -69,6 +69,7 @@ implementation:
       --region, {inputValue: region},
       --cluster_name, {inputValue: cluster_name},
       --main_jar_file_uri, {inputValue: main_jar_file_uri},
+      --main_class, {inputValue: main_class},
       --args, {inputValue: args},
       --spark_job, {inputValue: spark_job},
       --job, {inputValue: job},
