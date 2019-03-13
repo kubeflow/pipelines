@@ -48,7 +48,7 @@ def use_az_secret(secret_name='azcreds'):
                         )
                     )
                 )
-                    .add_env_variable(
+                .add_env_variable(
                     k8s_client.V1EnvVar(
                         name='AZ_CLIENT_ID',
                         value_from=k8s_client.V1EnvVarSource(
