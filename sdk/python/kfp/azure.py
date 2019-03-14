@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def use_az_secret(secret_name='azcreds'):
+def use_azure_secret(secret_name='azcreds'):
     """An operator that configures the container to use Azure user credentials.
 
         The azcreds secret is created as part of the kubeflow deployment that
@@ -22,7 +22,7 @@ def use_az_secret(secret_name='azcreds'):
         access to. 
     """
 
-    def _use_az_secret(task):
+    def _use_azure_secret(task):
         from kubernetes import client as k8s_client
         return (
             task            
@@ -72,4 +72,4 @@ def use_az_secret(secret_name='azcreds'):
                 )
         )
     
-    return _use_az_secret
+    return _use_azure_secret
