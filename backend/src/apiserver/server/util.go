@@ -80,7 +80,6 @@ func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file.")
 	}
 	tarReader := tar.NewReader(gzipReader)
-	var pipelineYamlReader *tar.Reader = nil
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
@@ -90,18 +89,14 @@ func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 			return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file.")
 		}
 		if isPipelineYamlFile(header.Name) {
-			pipelineYamlReader = tarReader
-			break
+			decompressedFile, err := ioutil.ReadAll(tarReader)
+			if err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the tarball file.")
+			}
+			return decompressedFile, err
 		}
 	}
-	if pipelineYamlReader == nil {
-		return nil, util.NewInvalidInputError("Error extracting pipeline from the .tar.gz file. Could not find any *pipeline.yaml files inside the archive.")
-	}
-	decompressedFile, err := ioutil.ReadAll(pipelineYamlReader)
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the tarball file.")
-	}
-	return decompressedFile, err
+	return nil, util.NewInvalidInputError("Error extracting pipeline from the .tar.gz file. Could not find any *pipeline.yaml files inside the archive.")
 }
 
 func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
@@ -112,25 +107,20 @@ func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
 	if len(reader.File) < 1 {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Empty zip file.")
 	}
-	var pipelineYamlFile *zip.File = nil
 	for _, file := range reader.File {
 		if isPipelineYamlFile(file.Name) {
-			pipelineYamlFile = file
-			break
+			rc, err := file.Open()
+			if err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Failed to read the content.")
+			}
+			decompressedFile, err := ioutil.ReadAll(rc)
+			if err != nil {
+				return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the zip file.")
+			}
+			return decompressedFile, err
 		}
 	}
-	if pipelineYamlFile == nil {
-		return nil, util.NewInvalidInputError("Error extracting pipeline from the zip file. Could not find any *pipeline.yaml files inside the archive.")
-	}
-	rc, err := pipelineYamlFile.Open()
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Failed to read the content.")
-	}
-	decompressedFile, err := ioutil.ReadAll(rc)
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the zip file.")
-	}
-	return decompressedFile, err
+	return nil, util.NewInvalidInputError("Error extracting pipeline from the zip file. Could not find any *pipeline.yaml files inside the archive.")
 }
 
 func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) ([]byte, error) {
