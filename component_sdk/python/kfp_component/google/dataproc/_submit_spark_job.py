@@ -28,6 +28,9 @@ def submit_spark_job(project_id, region, cluster_name,
         main_jar_file_uri (str): The name of the driver's main class. The jar file 
             that contains the class must be in the default CLASSPATH or specified 
             in jarFileUris.
+        main_class (str): The name of the driver's main class. The jar file that 
+            contains the class must be in the default CLASSPATH or specified in 
+            jarFileUris. 
         args (list): Optional. The arguments to pass to the driver. Do not include 
             arguments, such as --conf, that can be set as job properties, since a 
             collision may occur that causes an incorrect job submission.
