@@ -74,6 +74,15 @@ class DataprocClient:
             jobId = job_id
         ).execute()
 
+    def cancel_job(self, project_id, region, job_id):
+        """Cancels a job
+        """
+        return self._dataproc.projects().regions().jobs().cancel(
+            projectId = project_id,
+            region = region,
+            jobId = job_id
+        ).execute()
+
     def get_operation(self, operation_name):
         """Gets a operation by name.
         """
