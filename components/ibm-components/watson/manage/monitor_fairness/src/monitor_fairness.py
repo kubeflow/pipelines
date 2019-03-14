@@ -8,6 +8,12 @@ from ibm_ai_openscale.utils import *
 from ibm_ai_openscale.supporting_classes import PayloadRecord, Feature
 from ibm_ai_openscale.supporting_classes.enums import *
 
+def get_secret_creds(path):
+    with open(path, 'r') as f:
+        cred = f.readline().strip('\'')
+    f.close()
+    return cred
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', type=str, help='Deployed model name', default='AIOS Spark German Risk Model - Final')
@@ -23,21 +29,11 @@ if __name__ == "__main__":
     cos_bucket_name = args.cos_bucket_name
     aios_manifest_path = args.aios_manifest_path
 
-    with open("/app/secrets/aios_guid", 'r') as f:
-        aios_guid = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/cloud_api_key", 'r') as f:
-        cloud_api_key = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/cos_url", 'r') as f:
-        cos_url = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/cos_apikey", 'r') as f:
-        cos_apikey = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/cos_resource_id", 'r') as f:
-        cos_resource_instance_id = f.readline().strip('\'')
-    f.close()
+    aios_guid = get_secret_creds("/app/secrets/aios_guid")
+    cloud_api_key = get_secret_creds("/app/secrets/cloud_api_key")
+    cos_url = get_secret_creds("/app/secrets/cos_url")
+    cos_apikey = get_secret_creds("/app/secrets/cos_apikey")
+    cos_resource_instance_id = get_secret_creds("/app/secrets/cos_resource_id")
 
     ''' Upload data to IBM Cloud object storage '''
     cos = ibm_boto3.resource('s3',

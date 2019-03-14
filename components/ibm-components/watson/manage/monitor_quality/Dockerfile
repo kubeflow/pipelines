@@ -9,4 +9,4 @@ COPY src $APP_HOME
 WORKDIR $APP_HOME
 
 ENTRYPOINT ["python"]
-CMD ["enable_quality_monitoring.py"]
+CMD ["monitor_quality.py"]

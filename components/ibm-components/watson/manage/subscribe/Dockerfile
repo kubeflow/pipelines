@@ -9,4 +9,4 @@ COPY src $APP_HOME
 WORKDIR $APP_HOME
 
 ENTRYPOINT ["python"]
-CMD ["openscale_subscriptions.py"]
+CMD ["subscribe.py"]

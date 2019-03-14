@@ -7,6 +7,12 @@ from ibm_ai_openscale.supporting_classes import PayloadRecord, Feature
 from ibm_ai_openscale.supporting_classes.enums import *
 from watson_machine_learning_client import WatsonMachineLearningAPIClient
 
+def get_secret_creds(path):
+    with open(path, 'r') as f:
+        cred = f.readline().strip('\'')
+    f.close()
+    return cred
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--aios_schema', type=str, help='AI OpenScale Schema Name', default="data_mart_credit_risk")
@@ -20,18 +26,10 @@ if __name__ == "__main__":
     model_uid = args.model_uid
     label_column = args.label_column
 
-    with open("/app/secrets/wml_credentials", 'r') as f:
-        wml_creds = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/aios_guid", 'r') as f:
-        aios_guid = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/cloud_api_key", 'r') as f:
-        cloud_api_key = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/postgres_uri", 'r') as f:
-        postgres_uri = f.readline().strip('\'')
-    f.close()
+    wml_creds = get_secret_creds("/app/secrets/wml_credentials")
+    aios_guid = get_secret_creds("/app/secrets/aios_guid")
+    cloud_api_key = get_secret_creds("/app/secrets/cloud_api_key")
+    postgres_uri = get_secret_creds("/app/secrets/postgres_uri")
 
     WML_CREDENTIALS = json.loads(wml_creds)
 
@@ -121,3 +119,6 @@ if __name__ == "__main__":
             credit_risk_scoring_endpoint = deployment['entity']['scoring_url']
 
     print('Scoring endpoint is: ' + credit_risk_scoring_endpoint + '\n')
+
+    with open("/tmp/model_name.txt", "w") as report:
+        report.write(model_name)
