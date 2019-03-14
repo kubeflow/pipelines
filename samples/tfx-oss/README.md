@@ -18,8 +18,9 @@ conda create -n tfx-kfp pip python=3.5.3
 then activate the environment.
 
 
-Install TFX and Kubeflow Pipelines SDK
+Install TensorFlow, TFX and Kubeflow Pipelines SDK
 ```
+!pip3 install tensorflow=1.12 --upgrade
 !pip3 install https://storage.googleapis.com/ml-pipeline/tfx/tfx-0.12.0rc0-py2.py3-none-any.whl 
 !pip3 install https://storage.googleapis.com/ml-pipeline/release/0.1.10/kfp.tar.gz --upgrade
 ```
@@ -44,7 +45,7 @@ gfile.Copy('tfx/examples/chicago_taxi_pipeline/taxi_utils.py', 'gs://<my bucket>
 
 Modify the pipeline configuration file at 
 ```
-tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow_large.py
+tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
 ```
 Configure 
 - Set `_input_bucket` to the GCS directory where you've copied taxi_utils.py. I.e. gs://<my bucket>/<path>/
@@ -54,7 +55,7 @@ Configure
 
 ## Compile and run the pipeline
 ```
-python tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow_large.py
+python tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
 ```
-This will generate a file named chicago_taxi_pipeline_kubeflow_large.tar.gz 
+This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz 
 Upload this file to the Pipelines Cluster and crate a run.
