@@ -21,7 +21,7 @@ then activate the environment.
 Install TensorFlow, TFX and Kubeflow Pipelines SDK
 ```
 pip install tensorflow --upgrade
-pip install tfx 
+pip install tfx
 pip install kfp --upgrade
 ```
 
@@ -45,7 +45,7 @@ gfile.Copy('tfx/tfx/examples/chicago_taxi_pipeline/taxi_utils.py', 'gs://<my buc
 
 Modify the pipeline configuration file at 
 ```
-tfx/tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
+tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
 ```
 Configure 
 - Set `_input_bucket` to the GCS directory where you've copied taxi_utils.py. I.e. gs://<my bucket>/<path>/
@@ -55,7 +55,7 @@ Configure
 
 ## Compile and run the pipeline
 ```
-python tfx/tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
+python tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
 ```
-This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz
-Upload this file to the Pipelines Cluster and create a run.
+This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz 
+Upload this file to the Pipelines Cluster and crate a run.
