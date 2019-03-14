@@ -77,3 +77,33 @@ class TestSubmitJob(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             submit_job('mock-project', 'mock-region', 'mock-cluster', job)
+
+    def test_cancel_succeed(self, mock_dataproc_client,
+        mock_kfp_context, mock_dump_json, mock_display):
+        mock_kfp_context().__enter__().context_id.return_value = 'ctx1'
+        job = {}
+        returned_job = {
+            'reference': {
+                'projectId': 'mock-project',
+                'jobId': 'mock-job'
+            },
+            'placement': {
+                'clusterName': 'mock-cluster'
+            },
+            'status': {
+                'state': 'DONE'
+            }
+        }
+        mock_dataproc_client().submit_job.return_value = returned_job
+        mock_dataproc_client().get_job.return_value = returned_job
+
+        submit_job('mock-project', 'mock-region', 'mock-cluster', job)
+
+        cancel_func = mock_kfp_context.call_args[1]['on_cancel']        
+        cancel_func()
+
+        mock_dataproc_client().cancel_job.assert_called_with(
+            'mock-project',
+            'mock-region',
+            'mock-job'
+        )
