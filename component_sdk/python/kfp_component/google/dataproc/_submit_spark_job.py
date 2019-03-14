@@ -25,9 +25,7 @@ def submit_spark_job(project_id, region, cluster_name,
         region (str): Required. The Cloud Dataproc region in which to handle the 
             request.
         cluster_name (str): Required. The cluster to run the job.
-        main_jar_file_uri (str): The name of the driver's main class. The jar file 
-            that contains the class must be in the default CLASSPATH or specified 
-            in jarFileUris.
+        main_jar_file_uri (str): The HCFS URI of the jar file that contains the main class.
         main_class (str): The name of the driver's main class. The jar file that 
             contains the class must be in the default CLASSPATH or specified in 
             jarFileUris. 
