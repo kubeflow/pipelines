@@ -14,7 +14,7 @@
 
 
 import re
-from collections import namedtuple, Iterable
+from collections import namedtuple
 from typing import List
 from ._metadata import TypeMeta
 
@@ -71,10 +71,10 @@ def extract_pipelineparams_from_any(payload) -> List['PipelineParam']:
  
   # str
   if isinstance(payload, str):
-    return _extract_pipelineparams(payload)
+    return list(set(_extract_pipelineparams(payload)))
   
-  # list or tuple or iterable
-  if isinstance(payload, list) or isinstance(payload, tuple) or isinstance(payload, Iterable):
+  # list or tuple
+  if isinstance(payload, list) or isinstance(payload, tuple):
     pipeline_params = []
     for item in payload:
       pipeline_params += extract_pipelineparams_from_any(item)

@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import re
-from typing import Any, Dict, List, TypeVar, Union
+import warnings
+from typing import Any, Dict, List, TypeVar, Union, Callable
 from kubernetes.client.models import (
     V1Container, V1EnvVar, V1EnvFromSource, V1SecurityContext, V1Probe,
     V1ResourceRequirements, V1VolumeDevice, V1VolumeMount, V1ContainerPort,
@@ -30,6 +31,35 @@ StringOrStringList = Union[str, List[str]]
 
 
 # util functions
+def deprecation_warning(func: Callable, op_name: str,
+                        container_name: str) -> Callable:
+    """Decorator function to give a pending deprecation warning"""
+
+    def _wrapped(*args, **kwargs):
+        warnings.warn(
+            '`dsl.ContainerOp.%s` will be removed in future releases. '
+            'Use `dsl.ContainerOp.container.%s` instead.' %
+            (op_name, container_name), PendingDeprecationWarning)
+        return func(*args, **kwargs)
+
+    return _wrapped
+
+
+def _proxy_container_op_props(cls):
+    # properties mapping to proxy: ContainerOps.<prop> => Container.<prop>
+    prop_map = dict(image='image', env_variables='env')
+    # itera and create class props
+    for op_prop, container_prop in prop_map.items():
+        getter = deprecation_warning(
+            lambda self: getattr(self._container, container_prop), op_prop,
+            container_prop)
+        setter = deprecation_warning(
+            lambda self, value: setattr(self._container, container_prop, value
+                                        ), op_prop, container_prop)
+        setattr(cls, op_prop, property(getter, setter))
+    return cls
+
+
 def as_list(value: Any, if_none: Union[None, List] = None) -> List:
     """Convert any value except None to a list if not already a list."""
     if value is None:
@@ -599,6 +629,7 @@ class ContainerOp(object):
                  image: str,
                  command: StringOrStringList = None,
                  arguments: StringOrStringList = None,
+                 sidecars: List[Sidecar] = None,
                  file_outputs: Dict[str, str] = None,
                  is_exit_handler=False):
         """Create a new instance of ContainerOp.
@@ -655,20 +686,21 @@ class ContainerOp(object):
             """Decorator func to proxy to ContainerOp.container"""
 
             def _decorated(*args, **kwargs):
+                # execute method
                 ret = getattr(self._container, proxy_attr)(*args, **kwargs)
                 if ret == self._container:
                     return self
                 return ret
 
-            return _decorated
+            return deprecation_warning(_decorated, proxy_attr, proxy_attr)
 
         # iter thru container and attach a proxy func to the container method
         for attr_to_proxy in dir(self._container):
             func = getattr(self._container, attr_to_proxy)
-            # only proxy public callables
-            if hasattr(func,
-                       '__call__') and (attr_to_proxy[0] != '_'
-                                        ) and attr_to_proxy not in ignore_set:
+            # ignore private methods
+            if hasattr(func, '__call__') and (attr_to_proxy[0] != '_') and (
+                    attr_to_proxy not in ignore_set):
+                # only proxy public callables
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
 
         # TODO: proper k8s definitions so that `convert_k8s_obj_to_json` can be used?
@@ -678,7 +710,7 @@ class ContainerOp(object):
         self.pod_annotations = {}
         self.pod_labels = {}
         self.num_retries = 0
-        self.sidecars = []
+        self.sidecars = sidecars or []
 
         # attributes specific to `ContainerOp`
         self._inputs = []
@@ -697,7 +729,22 @@ class ContainerOp(object):
         self.output = None
         if len(self.outputs) == 1:
             self.output = list(self.outputs.values())[0]
-                 
+
+    @property
+    def command(self):
+        return self._container.command
+
+    @command.setter
+    def command(self, value):
+        self._container.command = as_list(value)
+
+    @property
+    def arguments(self):
+        return self._container.args
+
+    @arguments.setter
+    def arguments(self, value):
+        self._container.args = as_list(value)
 
     @property
     def inputs(self):
@@ -715,6 +762,8 @@ class ContainerOp(object):
                     param for param in _pipeline_param.
                     extract_pipelineparams_from_any(getattr(self, key))
                 ]
+            # keep only unique
+            self._inputs = list(set(self._inputs))
         return self._inputs
 
     @inputs.setter
@@ -831,7 +880,7 @@ class ContainerOp(object):
 
     def __repr__(self):
         return str({self.__class__.__name__: self.__dict__})
-      
+
     def _set_metadata(self, metadata):
         '''_set_metadata passes the containerop the metadata information
         and configures the right output
@@ -839,16 +888,21 @@ class ContainerOp(object):
           metadata (ComponentMeta): component metadata
         '''
         if not isinstance(metadata, ComponentMeta):
-          raise ValueError('_set_medata is expecting ComponentMeta.')
-       self._metadata = metadata
-        if self.file_outputs:
-          for output in self.file_outputs.keys():
-            output_type = self.outputs[output].param_type
-            for output_meta in self._metadata.outputs:
-              if output_meta.name == output:
-                output_type = output_meta.param_type
-            self.outputs[output].param_type = output_type
+            raise ValueError('_set_medata is expecting ComponentMeta.')
 
-        self.output=None
-        if len(self.outputs) == 1:
-          self.output = list(self.outputs.values())[0]                        
+        self._metadata = metadata
+
+        if self.file_outputs:
+            for output in self.file_outputs.keys():
+                output_type = self.outputs[output].param_type
+                for output_meta in self._metadata.outputs:
+                    if output_meta.name == output:
+                        output_type = output_meta.param_type
+                self.outputs[output].param_type = output_type
+
+            self.output = None
+            if len(self.outputs) == 1:
+                self.output = list(self.outputs.values())[0]
+
+
+ContainerOp = _proxy_container_op_props(ContainerOp)

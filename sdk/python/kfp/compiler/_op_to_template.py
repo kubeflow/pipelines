@@ -29,12 +29,8 @@ def _get_pipelineparam(payload: str) -> List[str]:
         payload {str}: string
     """
 
-    matches = re.findall(
-        r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}',
-        payload)
-    return [
-        dsl.PipelineParam(x[1], x[0], x[2]) for x in list(set(matches))
-    ]
+    matches = dsl._match_serialized_pipelineparam(payload)
+    return [dsl.PipelineParam(x[1], x[0], x[2]) for x in list(set(matches))]
 
 
 def _sanitize_pipelineparam(param: dsl.PipelineParam, in_place=True):
@@ -117,7 +113,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     # k8s_obj
     if hasattr(obj, 'swagger_types') and isinstance(obj.swagger_types, dict):
         # process everything inside recursively
-        for key in obj.swagger_types.keys(): 
+        for key in obj.swagger_types.keys():
             setattr(obj, key, _process_obj(getattr(obj, key), map_to_tmpl_var))
         # return json representation of the k8s obj
         return K8sHelper.convert_k8s_obj_to_json(obj)
@@ -179,7 +175,7 @@ def _parameters_to_json(params: List[dsl.PipelineParam]):
 def _inputs_to_json(inputs_params: List[dsl.PipelineParam], _artifacts=None):
     """Converts a list of PipelineParam into an argo `inputs` JSON obj."""
     parameters = _parameters_to_json(inputs_params)
-    return {'parameters': parameters } if parameters else None
+    return {'parameters': parameters} if parameters else None
 
 
 def _outputs_to_json(outputs: Dict[str, dsl.PipelineParam],
@@ -225,6 +221,7 @@ def _build_conventional_artifact(name):
         },
     }
 
+
 # TODO: generate argo python classes from swagger and use convert_k8s_obj_to_json??
 def _op_to_template(op: dsl.ContainerOp):
     """Generate template given an operator inherited from dsl.ContainerOp."""
@@ -247,13 +244,13 @@ def _op_to_template(op: dsl.ContainerOp):
     }
 
     # inputs
-    inputs = _inputs_to_json(op.inputs)
+    inputs = _inputs_to_json(processed_op.inputs)
     if inputs:
         template['inputs'] = inputs
 
     # outputs
     template['outputs'] = _outputs_to_json(op.outputs, op.file_outputs,
-                                    output_artifacts)
+                                           output_artifacts)
 
     # node selector
     if processed_op.node_selector:

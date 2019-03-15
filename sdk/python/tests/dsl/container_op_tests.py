@@ -13,8 +13,12 @@
 # limitations under the License.
 
 
-from kfp.dsl import Pipeline, PipelineParam, ContainerOp, Sidecar
+import warnings
 import unittest
+from kubernetes.client.models import V1EnvVar, V1VolumeMount
+
+from kfp.dsl import Pipeline, PipelineParam, ContainerOp, Sidecar
+
 
 class TestContainerOp(unittest.TestCase):
 
@@ -44,3 +48,38 @@ class TestContainerOp(unittest.TestCase):
       op2 = ContainerOp(name='op2', image='image')
       op2.after(op1)
     self.assertCountEqual(op2.dependent_op_names, [op1.name])
+
+
+  def test_deprecation_warnings(self):
+    """Test deprecation warnings."""
+    with Pipeline('somename') as p:
+      op = ContainerOp(name='op1', image='image')
+
+      with self.assertWarns(PendingDeprecationWarning):
+        op.env_variables = [V1EnvVar(name="foo", value="bar")]
+
+      with self.assertWarns(PendingDeprecationWarning):
+        op.image = 'image2'
+
+      with self.assertWarns(PendingDeprecationWarning):
+        op.set_memory_request('10M')
+
+      with self.assertWarns(PendingDeprecationWarning):
+        op.set_memory_limit('10M')
+
+      with self.assertWarns(PendingDeprecationWarning):
+        op.set_cpu_request('100m')
+
+      with self.assertWarns(PendingDeprecationWarning):
+        op.set_cpu_limit('1')
+
+      with self.assertWarns(PendingDeprecationWarning):
+        op.set_gpu_limit('1')
+
+      with self.assertWarns(PendingDeprecationWarning):
+        op.add_env_variable(V1EnvVar(name="foo", value="bar"))
+
+      with self.assertWarns(PendingDeprecationWarning):
+        op.add_volume_mount(V1VolumeMount(
+          mount_path='/secret/gcp-credentials',
+          name='gcp-credentials'))
