@@ -103,7 +103,10 @@ class KfpExecutionContext:
         if (self._on_cancel and 
                 self.under_kfp_environment() and 
                 self._should_cancel()):
+            logging.info('Cancelling...')
             self._on_cancel()
+        
+        logging.info('Exit')
 
     def _should_cancel(self):
         """Checks argo's execution config deadline and decide whether the operation
@@ -114,11 +117,13 @@ class KfpExecutionContext:
         """
         pod = self._get_pod()
         if not pod or not pod.metadata or not pod.metadata.annotations:
+            logging.info('No pod metadata or annotations.')
             return False
 
         argo_execution_config_json = pod.metadata.annotations.get(
             ARGO_EXECUTION_CONTROL_ANNOTATION, None)
         if not argo_execution_config_json:
+            logging.info('No argo execution config data.')
             return False
         
         try:
@@ -129,6 +134,7 @@ class KfpExecutionContext:
         
         deadline_json = argo_execution_config.get('deadline', None)
         if not deadline_json:
+            logging.info('No argo execution deadline config.')
             return False
         
         try:

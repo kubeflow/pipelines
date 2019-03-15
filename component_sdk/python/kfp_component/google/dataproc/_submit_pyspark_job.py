@@ -43,6 +43,10 @@ def submit_pyspark_job(project_id, region, cluster_name,
     Output Files:
         $KFP_OUTPUT_PATH/dataproc/job_id.txt: The ID of the created job.
     """
+    if not pyspark_job:
+        pyspark_job = {}
+    if not job:
+        job = {}
     if main_python_file_uri:
         pyspark_job['mainPythonFileUri'] = main_python_file_uri
     if args:

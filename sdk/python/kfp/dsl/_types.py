@@ -19,72 +19,63 @@ class BaseType:
 
 # Primitive Types
 class Integer(BaseType):
-	openapi_schema_validator = {
+	openAPIV3Schema = {
 		"type": "integer"
 	}
 
 class String(BaseType):
-	openapi_schema_validator = {
+	openAPIV3Schema = {
 		"type": "string"
 	}
 
 class Float(BaseType):
-	openapi_schema_validator = {
+	openAPIV3Schema = {
 		"type": "number"
 	}
 
 class Bool(BaseType):
-	openapi_schema_validator = {
+	openAPIV3Schema = {
 		"type": "boolean"
 	}
 
 class List(BaseType):
-	openapi_schema_validator = {
+	openAPIV3Schema = {
 		"type": "array"
 	}
 
 class Dict(BaseType):
-	openapi_schema_validator = {
+	openAPIV3Schema = {
 		"type": "object",
 	}
 
 # GCP Types
 class GCSPath(BaseType):
-	openapi_schema_validator = {
+	openAPIV3Schema = {
 		"type": "string",
 		"pattern": "^gs://.*$"
 	}
 
-	def __init__(self, path_type='', file_type=''):
-		'''
-		Args
-		:param path_type: describes the paths, for example, bucket, directory, file, etc
-		:param file_type: describes the files, for example, JSON, CSV, etc.
-		'''
-		self.path_type = path_type
-		self.file_type = file_type
-
 class GCRPath(BaseType):
-	openapi_schema_validator = {
+	openAPIV3Schema = {
 		"type": "string",
 		"pattern": "^.*gcr\\.io/.*$"
 	}
 
 class GCPRegion(BaseType):
-	openapi_schema_validator = {
+	openAPIV3Schema = {
 		"type": "string"
 	}
 
 class GCPProjectID(BaseType):
 	'''MetaGCPProjectID: GCP project id'''
-	openapi_schema_validator = {
+	openAPIV3Schema = {
 		"type": "string"
 	}
 
 # General Types
 class LocalPath(BaseType):
 	#TODO: add restriction to path
-	openapi_schema_validator = {
+	openAPIV3Schema = {
 		"type": "string"
 	}
 

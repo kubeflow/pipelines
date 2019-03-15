@@ -29,7 +29,7 @@ class TestPythonComponent(unittest.TestCase):
         self._metadata = component_meta
 
     @component
-    def componentA(a: {'Schema': {'file_type': 'csv'}}, b: Integer() = 12, c: GCSPath(path_type='file', file_type='tsv') = 'gs://hello/world') -> {'model': Integer()}:
+    def componentA(a: {'Schema': {'file_type': 'csv'}}, b: Integer() = 12, c: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}} = 'gs://hello/world') -> {'model': Integer()}:
       return MockContainerOp()
 
     containerOp = componentA(1,2,c=3)
@@ -46,7 +46,7 @@ class TestPythonComponent(unittest.TestCase):
     """Test type check at the decorator."""
     kfp.TYPE_CHECK = True
     @component
-    def a_op(field_l: Integer()) -> {'field_m': GCSPath(path_type='file', file_type='tsv'), 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}, 'field_o': 'GcsUri'}:
+    def a_op(field_l: Integer()) -> {'field_m': GCSPath(), 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}, 'field_o': 'GcsUri'}:
       return ContainerOp(
         name = 'operator a',
         image = 'gcr.io/ml-pipeline/component-a',
@@ -63,7 +63,7 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x: {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}},
         field_y: 'GcsUri',
-        field_z: GCSPath(path_type='file', file_type='tsv')) -> {'output_model_uri': 'GcsUri'}:
+        field_z: GCSPath()) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -88,7 +88,7 @@ class TestPythonComponent(unittest.TestCase):
     """Test type check at the decorator."""
     kfp.TYPE_CHECK = True
     @component
-    def a_op(field_l: Integer()) -> {'field_m': {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}, 'field_o': 'Integer'}:
+    def a_op(field_l: Integer()) -> {'field_m': 'GCSPath', 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}, 'field_o': 'Integer'}:
       return ContainerOp(
           name = 'operator a',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -105,7 +105,7 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x: {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}},
         field_y: Integer(),
-        field_z: GCSPath(path_type='file', file_type='tsv')) -> {'output_model_uri': 'GcsUri'}:
+        field_z: GCSPath()) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-a',
@@ -147,7 +147,7 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x: {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}},
         field_y: Integer(),
-        field_z: GCSPath(path_type='file', file_type='csv')) -> {'output_model_uri': 'GcsUri'}:
+        field_z: {'GCSPath': {'path_type': 'file', 'file_type':'csv'}}) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-a',
@@ -190,7 +190,7 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x: {'customized_type_a': {'property_a': 'value_a', 'property_b': 'value_b'}},
         field_y: Integer(),
-        field_z: GCSPath(path_type='file', file_type='tsv')) -> {'output_model_uri': 'GcsUri'}:
+        field_z: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-a',
@@ -233,7 +233,7 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x,
         field_y: Integer(),
-        field_z: GCSPath(path_type='file', file_type='tsv')) -> {'output_model_uri': 'GcsUri'}:
+        field_z: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-a',
@@ -275,7 +275,7 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x,
         field_y: Integer(),
-        field_z: GCSPath(path_type='file', file_type='tsv')) -> {'output_model_uri': 'GcsUri'}:
+        field_z: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-a',
@@ -317,7 +317,49 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x: {'customized_type_a': {'property_a': 'value_a', 'property_b': 'value_b'}},
         field_y: Integer(),
-        field_z: GCSPath(path_type='file', file_type='tsv')) -> {'output_model_uri': 'GcsUri'}:
+        field_z: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
+      return ContainerOp(
+          name = 'operator b',
+          image = 'gcr.io/ml-pipeline/component-a',
+          command = [
+              'python3',
+              field_x,
+          ],
+          arguments = [
+              '--field-y', field_y,
+              '--field-z', field_z,
+          ],
+          file_outputs = {
+              'output_model_uri': '/schema.txt',
+          }
+      )
+
+    with Pipeline('pipeline') as p:
+      a = a_op(field_l=12)
+      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+
+  def test_type_check_with_openapi_schema(self):
+    """Test type check at the decorator."""
+    kfp.TYPE_CHECK = True
+    @component
+    def a_op(field_l: Integer()) -> {'field_m': 'GCSPath', 'field_n': {'customized_type': {'openAPIV3Schema': '{"type": "string", "pattern": "^.*gcr\\.io/.*$"}'}}, 'field_o': 'Integer'}:
+      return ContainerOp(
+          name = 'operator a',
+          image = 'gcr.io/ml-pipeline/component-b',
+          arguments = [
+              '--field-l', field_l,
+          ],
+          file_outputs = {
+              'field_m': '/schema.txt',
+              'field_n': '/feature.txt',
+              'field_o': '/output.txt'
+          }
+      )
+
+    @component
+    def b_op(field_x: {'customized_type': {'openAPIV3Schema': '{"type": "string", "pattern": "^.*gcr\\.io/.*$"}'}},
+        field_y: Integer(),
+        field_z: GCSPath()) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-a',
