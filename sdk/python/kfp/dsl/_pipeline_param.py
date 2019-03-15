@@ -48,7 +48,13 @@ def _extract_pipelineparams(payloads: str or list[str]):
   matches = []
   for payload in payloads:
     matches += _match_serialized_pipelineparam(payload)
-  return [PipelineParam(x[1], x[0], x[2]) for x in list(set(matches))]
+  pipeline_params = []
+  for x in list(set(matches)):
+    if len(x) == 3 or (len(x) == 4 and x[3] == ''):
+      pipeline_params.append(PipelineParam(x[1], x[0], x[2]))
+    elif len(x) == 4:
+      pipeline_params.append(PipelineParam(x[1], x[0], x[2], TypeMeta.from_dict_or_str(x[3])))
+  return pipeline_params
 
 class PipelineParam(object):
   """Representing a future value that is passed between pipeline components.
