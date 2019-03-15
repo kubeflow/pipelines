@@ -32,21 +32,6 @@ class BaseMeta(object):
   def __eq__(self, other):
     return self.__dict__ == other.__dict__
 
-def _convert_ordereddict_to_dict_in_str(payload):
-  ''' _convert_ordereddict_to_dict_in_str converts the ordereddict struct in the serialized string
-  to dict struct.
-  TODO: this function assumes only one ordereddict. need to extend for multiple ordereddict.'''
-  import re
-  import ast
-  matches = re.findall(r'OrderedDict\((.+)\)', payload)
-  for match in matches:
-    list_dict = ast.literal_eval(match)
-    real_dict = {}
-    for item in list_dict:
-      real_dict[item[0]] = item[1]
-    payload = re.sub(r'OrderedDict\((.+)\)', str(real_dict), payload)
-  return payload
-
 class TypeMeta(BaseMeta):
   def __init__(self,
       name: str = '',
@@ -64,13 +49,14 @@ class TypeMeta(BaseMeta):
   def from_dict_or_str(json):
     type_meta = TypeMeta()
     if isinstance(json, str) and '{' in json:
-      json = _convert_ordereddict_to_dict_in_str(json)
       import ast
       json = ast.literal_eval(json)
     if isinstance(json, dict):
       if not _check_valid_type_dict(json):
         raise ValueError(json + ' is not a valid type string')
       type_meta.name, type_meta.properties = list(json.items())[0]
+      # Convert possible OrderedDict to dict
+      type_meta.properties = dict(type_meta.properties)
     elif isinstance(json, str):
       type_meta.name = json
     return type_meta
