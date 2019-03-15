@@ -29,7 +29,7 @@ def _match_serialized_pipelineparam(payload: str):
 
   Returns:
     List(tuple())"""
-  match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?)}}', payload)
+  match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?);}}', payload)
   if len(match) == 0:
     match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
   return match
@@ -48,7 +48,13 @@ def _extract_pipelineparams(payloads: str or list[str]):
   matches = []
   for payload in payloads:
     matches += _match_serialized_pipelineparam(payload)
-  return [PipelineParam(x[1], x[0], x[2]) for x in list(set(matches))]
+  pipeline_params = []
+  for x in list(set(matches)):
+    if len(x) == 3 or (len(x) == 4 and x[3] == ''):
+      pipeline_params.append(PipelineParam(x[1], x[0], x[2]))
+    elif len(x) == 4:
+      pipeline_params.append(PipelineParam(x[1], x[0], x[2], TypeMeta.from_dict_or_str(x[3])))
+  return pipeline_params
 
 class PipelineParam(object):
   """Representing a future value that is passed between pipeline components.
@@ -104,7 +110,7 @@ class PipelineParam(object):
     if self.param_type is None:
       return '{{pipelineparam:op=%s;name=%s;value=%s}}' % (op_name, self.name, value)
     else:
-      return '{{pipelineparam:op=%s;name=%s;value=%s;type=%s}}' % (op_name, self.name, value, self.param_type.serialize())
+      return '{{pipelineparam:op=%s;name=%s;value=%s;type=%s;}}' % (op_name, self.name, value, self.param_type.serialize())
   
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})
