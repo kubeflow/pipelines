@@ -223,9 +223,12 @@ class Compiler(object):
       matches += _match_serialized_pipelineparam(str(processed_args[i]))
       unsanitized_argument_inputs = {}
       for x in list(set(matches)):
-        sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(x[1]), K8sHelper.sanitize_k8s_name(x[0]), x[2]))
-        unsanitized_argument_inputs[sanitized_str] = str(dsl.PipelineParam(x[1], x[0], x[2]))
-
+        if len(x) == 3 or (len(x) == 4 and x[3] == ''):
+          sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(x[1]), K8sHelper.sanitize_k8s_name(x[0]), x[2]))
+          unsanitized_argument_inputs[sanitized_str] = str(dsl.PipelineParam(x[1], x[0], x[2]))
+        elif len(x) == 4:
+          sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(x[1]), K8sHelper.sanitize_k8s_name(x[0]), x[2], TypeMeta.from_dict_or_str(x[3])))
+          unsanitized_argument_inputs[sanitized_str] = str(dsl.PipelineParam(x[1], x[0], x[2], TypeMeta.from_dict_or_str(x[3])))
       if argument_inputs:
         for param in argument_inputs:
           if str(param) in unsanitized_argument_inputs:
@@ -257,7 +260,6 @@ class Compiler(object):
           }
         },
       }
-
     processed_arguments = self._process_args(op.arguments, op.argument_inputs)
     processed_command = self._process_args(op.command, op.argument_inputs)
 
