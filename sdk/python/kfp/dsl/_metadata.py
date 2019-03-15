@@ -48,6 +48,7 @@ class TypeMeta(BaseMeta):
   @staticmethod
   def from_dict_or_str(json):
     type_meta = TypeMeta()
+    # When it is a serialized string of a dict, convert the string to dict.
     if isinstance(json, str) and '{' in json:
       import ast
       json = ast.literal_eval(json)
