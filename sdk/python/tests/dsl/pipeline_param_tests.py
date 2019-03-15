@@ -29,13 +29,13 @@ class TestPipelineParam(unittest.TestCase):
     """Test string representation."""
 
     p = PipelineParam(name='param1', op_name='op1')
-    self.assertEqual('{{pipelineparam:op=op1;name=param1;value=;type=}}', str(p))
+    self.assertEqual('{{pipelineparam:op=op1;name=param1;value=;type=;}}', str(p))
 
     p = PipelineParam(name='param2')
-    self.assertEqual('{{pipelineparam:op=;name=param2;value=;type=}}', str(p))
+    self.assertEqual('{{pipelineparam:op=;name=param2;value=;type=;}}', str(p))
 
     p = PipelineParam(name='param3', value='value3')
-    self.assertEqual('{{pipelineparam:op=;name=param3;value=value3;type=}}', str(p))
+    self.assertEqual('{{pipelineparam:op=;name=param3;value=value3;type=;}}', str(p))
 
   def test_extract_pipelineparam(self):
     """Test _extract_pipeleineparam."""
@@ -50,3 +50,5 @@ class TestPipelineParam(unittest.TestCase):
     payload = [str(p1) + stuff_chars + str(p2), str(p2) + stuff_chars + str(p3)]
     params = _extract_pipelineparams(payload)
     self.assertListEqual([p1, p2, p3], params)
+
+  #TODO: add more unit tests to cover real type instances

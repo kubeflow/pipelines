@@ -29,7 +29,7 @@ def _match_serialized_pipelineparam(payload: str):
 
   Returns:
     List(tuple())"""
-  match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?)}}', payload)
+  match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?);}}', payload)
   if len(match) == 0:
     match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
   return match
@@ -110,7 +110,7 @@ class PipelineParam(object):
     if self.param_type is None:
       return '{{pipelineparam:op=%s;name=%s;value=%s}}' % (op_name, self.name, value)
     else:
-      return '{{pipelineparam:op=%s;name=%s;value=%s;type=%s}}' % (op_name, self.name, value, self.param_type.serialize())
+      return '{{pipelineparam:op=%s;name=%s;value=%s;type=%s;}}' % (op_name, self.name, value, self.param_type.serialize())
   
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})
