@@ -112,8 +112,9 @@ def _check_valid_type_dict(payload):
 		if not isinstance(payload[type_name], dict):
 			return False
 		property_types = (int, str, float, bool)
+		property_value_types = (int, str, float, bool, dict)
 		for property_name in payload[type_name]:
-			if not isinstance(property_name, property_types) or not isinstance(payload[type_name][property_name], property_types):
+			if not isinstance(property_name, property_types) or not isinstance(payload[type_name][property_name], property_value_types):
 				return False
 	return True
 
