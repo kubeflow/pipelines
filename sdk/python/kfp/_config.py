@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #TODO: wrap the DSL level configuration into one Config
-TYPE_CHECK = False
+TYPE_CHECK = True
