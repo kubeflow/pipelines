@@ -141,3 +141,8 @@ class PipelineParam(object):
   def __hash__(self):
     return hash((self.op_name, self.name))
 
+  def ignore_type(self):
+    """ignore_type ignores the type information such that type checking would also pass"""
+    self.param_type = TypeMeta()
+    return self
+

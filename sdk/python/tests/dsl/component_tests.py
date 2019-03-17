@@ -342,7 +342,7 @@ class TestPythonComponent(unittest.TestCase):
     """Test type check at the decorator."""
     kfp.TYPE_CHECK = True
     @component
-    def a_op(field_l: Integer()) -> {'field_m': 'GCSPath', 'field_n': {'customized_type': {'openAPIV3Schema': '{"type": "string", "pattern": "^.*gcr\\.io/.*$"}'}}, 'field_o': 'Integer'}:
+    def a_op(field_l: Integer()) -> {'field_m': 'GCSPath', 'field_n': {'customized_type': {'openAPIV3Schema': '{"type": "string", "pattern": "^gs://.*$"}'}}, 'field_o': 'Integer'}:
       return ContainerOp(
           name = 'operator a',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -357,7 +357,7 @@ class TestPythonComponent(unittest.TestCase):
       )
 
     @component
-    def b_op(field_x: {'customized_type': {'openAPIV3Schema': '{"type": "string", "pattern": "^.*gcr\\.io/.*$"}'}},
+    def b_op(field_x: {'customized_type': {'openAPIV3Schema': '{"type": "string", "pattern": "^gs://.*$"}'}},
         field_y: Integer(),
         field_z: GCSPath()) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
@@ -379,3 +379,47 @@ class TestPythonComponent(unittest.TestCase):
     with Pipeline('pipeline') as p:
       a = a_op(field_l=12)
       b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+
+  def test_type_check_with_ignore_type(self):
+    """Test type check at the decorator."""
+    kfp.TYPE_CHECK = True
+    @component
+    def a_op(field_l: Integer()) -> {'field_m': 'GCSPath', 'field_n': {'customized_type': {'openAPIV3Schema': '{"type": "string", "pattern": "^gs://.*$"}'}}, 'field_o': 'Integer'}:
+      return ContainerOp(
+          name = 'operator a',
+          image = 'gcr.io/ml-pipeline/component-b',
+          arguments = [
+              '--field-l', field_l,
+          ],
+          file_outputs = {
+              'field_m': '/schema.txt',
+              'field_n': '/feature.txt',
+              'field_o': '/output.txt'
+          }
+      )
+
+    @component
+    def b_op(field_x: {'customized_type': {'openAPIV3Schema': '{"type": "string", "pattern": "^gcs://.*$"}'}},
+        field_y: Integer(),
+        field_z: GCSPath()) -> {'output_model_uri': 'GcsUri'}:
+      return ContainerOp(
+          name = 'operator b',
+          image = 'gcr.io/ml-pipeline/component-a',
+          command = [
+              'python3',
+              field_x,
+          ],
+          arguments = [
+              '--field-y', field_y,
+              '--field-z', field_z,
+          ],
+          file_outputs = {
+              'output_model_uri': '/schema.txt',
+          }
+      )
+
+    with Pipeline('pipeline') as p:
+      a = a_op(field_l=12)
+      with self.assertRaises(InconsistentTypeException):
+        b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+      b = b_op(field_x=a.outputs['field_n'].ignore_type(), field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
