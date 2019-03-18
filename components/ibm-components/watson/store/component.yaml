@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Watson Machine Learning: Store model'
+name: 'Watson Machine Learning - Store model'
 description: |
   Store and persistent trained model on Watson Machine Learning.
 inputs:

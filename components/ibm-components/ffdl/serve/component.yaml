@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Seldon Core: Serve Model'
+name: 'Seldon Core - Serve Model'
 description: |
   Serve Machine Learning and Deep Learning Models remotely as web service using Seldon Core
 inputs:

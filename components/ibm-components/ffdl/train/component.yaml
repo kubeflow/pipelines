@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Fabric for Deep Learning: Train Model'
+name: 'Fabric for Deep Learning - Train Model'
 description: |
   Train Machine Learning and Deep Learning Models remotely using Fabric for Deep Learning
 inputs:
