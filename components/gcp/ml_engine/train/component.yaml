@@ -31,6 +31,7 @@ inputs:
   - {name: wait_interval,     description: 'Optional wait interval between calls to get job status. Defaults to 30.', default: '30'}
 outputs:
   - {name: job_id,            description: 'The ID of the created job.'}
+  - {name: job_dir,           description: 'The output directory of the job'}
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest
@@ -54,3 +55,4 @@ implementation:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       job_id: /tmp/kfp/output/ml_engine/job_id.txt
+      job_dir: /tmp/kfp/output/ml_engine/job_dir.txt
