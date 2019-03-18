@@ -30,7 +30,9 @@ class DataflowClient:
         ).execute()
 
     def get_job(self, project_id, job_id, location=None, view=None):
-        return self._df.projects().jobs().get(
+        if not location:
+            location = 'us-central1'
+        return self._df.projects().locations().jobs().get(
             projectId = project_id,
             jobId = job_id,
             location = location,
@@ -38,7 +40,9 @@ class DataflowClient:
         ).execute()
 
     def cancel_job(self, project_id, job_id, location):
-        return self._df.projects().jobs().update(
+        if not location:
+            location = 'us-central1'
+        return self._df.projects().locations().jobs().update(
             projectId = project_id,
             jobId = job_id,
             location = location,
