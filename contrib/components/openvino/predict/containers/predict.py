@@ -17,11 +17,12 @@ def get_local_file(source_path):
         try:
             gs_client = storage.Client()
             bucket = gs_client.get_bucket(bucket_name)
-            blob = bucket.blob(file_path)
-            blob.download_to_filename(file_name)
-        except Exception as er:
-            print(er)
-            return ""
+        except exceptions.DefaultCredentialsError:
+            # if credentials fails, try to connect as anonymous user
+            gs_client = storage.Client.create_anonymous_client()
+            bucket = gs_client.bucket(bucket_name, user_project=None)
+        blob = bucket.blob(file_path)
+        blob.download_to_filename(file_name)
     elif parsed_path.scheme == "":
         # in case of local path just pass the input argument
         if os.path.isfile(source_path):
@@ -93,7 +94,7 @@ def main():
 
     # Read IR
     print("Reading IR...")
-    net = IENetwork.from_ir(model=model_xml, weights=model_bin)
+    net = IENetwork(model=model_xml, weights=model_bin)
 
     input_blob = next(iter(net.inputs))
     output_blob = next(iter(net.outputs))
