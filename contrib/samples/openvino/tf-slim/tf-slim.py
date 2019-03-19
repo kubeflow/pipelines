@@ -40,7 +40,7 @@ def tf_slim_optimize(
 
     dsl.ContainerOp(
         name='openvino-predict',
-        image='gcr.io/constant-cubist-173123/inference_server/ml_predict:5',
+        image='gcr.io/constant-cubist-173123/inference_server/ml_predict:6',
         command=['python3', 'predict.py'],
         arguments=[
             '--model_bin', mo.outputs['bin'],
