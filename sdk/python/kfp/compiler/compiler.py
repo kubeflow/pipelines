@@ -160,6 +160,12 @@ class Compiler(object):
           new_current_conditions_params.append(group.condition.operand1)
         if isinstance(group.condition.operand2, dsl.PipelineParam):
           new_current_conditions_params.append(group.condition.operand2)
+      elif group.type == 'while':
+        new_current_conditions_params = list(current_conditions_params)
+        if isinstance(group.condition_when_entering.operand1, dsl.PipelineParam):
+          new_current_conditions_params.append(group.condition_when_entering.operand1)
+        if isinstance(group.condition_when_entering.operand2, dsl.PipelineParam):
+          new_current_conditions_params.append(group.condition_when_entering.operand2)
       for op in group.ops:
         for param in new_current_conditions_params:
           conditions[op.name].add(param)
@@ -167,6 +173,12 @@ class Compiler(object):
         _get_condition_params_for_ops_helper(g, new_current_conditions_params)
 
     _get_condition_params_for_ops_helper(root_group, [])
+    # Sanitize the pipelineparams in the conditions.
+    for op in conditions:
+      for param in conditions[op]:
+        param.name = K8sHelper.sanitize_k8s_name(param.name)
+        if param.op_name:
+          param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
     return conditions
 
   def _get_dependencies(self, pipeline, root_group, op_groups):
