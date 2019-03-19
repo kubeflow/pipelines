@@ -39,13 +39,10 @@ def upload_file(source_file, target_folder):
     parsed_path = urlparse(target_folder)
     if parsed_path.scheme == "gs":
         bucket_name = parsed_path.netloc
-        print("bucket_name", bucket_name)
         folder_path = parsed_path.path[1:]
-        print("folder path", folder_path)
         try:
             gs_client = storage.Client()
             bucket = gs_client.get_bucket(bucket_name)
-            print(folder_path + "/" + source_file)
             blob = bucket.blob(folder_path + "/" + source_file)
             blob.upload_from_filename(source_file)
         except Exception as er:
@@ -72,11 +69,12 @@ def main():
                         help='GCS or local path to results upload folder')
     parser.add_argument('--batch_size', type=int, default=1,
                         help='batch size to be used for inference')
-    parser.add_argument('--scale_div', default=1,
+    parser.add_argument('--scale_div', type=float, default=1,
                         help='scale the np input by division of by the value')
-    parser.add_argument('--scale_sub', default=128,
+    parser.add_argument('--scale_sub', type=float, default=128,
                         help='scale the np input by substraction of the value')
     args = parser.parse_args()
+    print(args)
 
     device = "CPU"
     plugin_dir = None
@@ -123,10 +121,11 @@ def main():
 
     print("Loading input numpy")
     imgs = np.load(input_numpy_file, mmap_mode='r', allow_pickle=False)
-    imgs = imgs / args.scale_div - args.scale_sub
+    print("div", args.scale_div,"sub",args.scale_sub)
+    imgs = (imgs / args.scale_div) - args.scale_div
     lbs = np.load(label_numpy_file, mmap_mode='r', allow_pickle=False)
 
-    print("loaded data", imgs.shape, imgs.dtype, np.min(imgs), np.max(imgs))
+    print("Loaded input data", imgs.shape, imgs.dtype, "Min value:", np.min(imgs), "Max value", np.max(imgs))
 
     combined_results = {}  # dictionary storing results for all model outputs
     processing_times = np.zeros((0),int)
@@ -140,7 +139,7 @@ def main():
         results = exec_net.infer(inputs={input_blob: img})
         end_time = datetime.datetime.now()
         duration = (end_time - start_time).total_seconds() * 1000
-        print("inference duration:", duration, "ms")
+        print("Inference duration:", duration, "ms")
         processing_times = np.append(processing_times,np.array([int(duration)]))
         output = list(results.keys())[0] # check only one output
         nu = results[output]
@@ -162,12 +161,12 @@ def main():
 
     filename = output.replace("/", "_") + ".npy"
     np.save(filename, combined_results[output])
-    status = upload_file(filename, args.output_folder)
-    print("upload status", status)
+    upload_file(filename, args.output_folder)
+    print("Inference results uploaded to", filename)
     print('Classification accuracy: {:.2f}'.format(100*matched_count/total_executed))
     print('Average time: {:.2f} ms; average speed: {:.2f} fps'.format(round(np.average(processing_times), 2),round(1000 * batch_size / np.average(processing_times), 2)))
 
-    accuracy = 100*matched_count/total_executed
+    accuracy = matched_count/total_executed
     latency = np.average(processing_times)
     metrics = {'metrics': [{'name': 'accuracy-score','numberValue':  accuracy,'format': "PERCENTAGE"},
                            {'name': 'latency','numberValue':  latency,'format': "RAW"}]}

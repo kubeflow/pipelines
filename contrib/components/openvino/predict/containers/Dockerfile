@@ -67,7 +67,7 @@ ENV PYTHONPATH=/usr/local/lib
 COPY requirements.txt .
 RUN pip3 install setuptools wheel
 RUN pip3 install -r requirements.txt
-COPY predict.py .
+COPY predict.py classes.py ./
 
 
 
