@@ -111,6 +111,18 @@ class PipelineParam(object):
       return '{{pipelineparam:op=%s;name=%s;value=%s}}' % (op_name, self.name, value)
     else:
       return '{{pipelineparam:op=%s;name=%s;value=%s;type=%s;}}' % (op_name, self.name, value, self.param_type.serialize())
+
+  def assign(self, other):
+    """assign copies the content of another pipelineparam to this instance.
+    Args:
+      other (PipelineParam)
+    """
+    if not isinstance(other, PipelineParam):
+      raise ValueError('assign is expecting a PipelineParam instance.')
+    self.op_name = other.op_name
+    self.name = other.op_name
+    self.value = other.value
+    self.param_type = other.param_type
   
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})

@@ -112,10 +112,14 @@ class While(OpsGroup):
     super(While, self).__init__('while')
     if not isinstance(condition, (ConditionOperator)):
       raise ValueError
+    import copy
+    self.condition_when_entering = copy.deepcopy(condition)
     self.condition = condition
 
   def __exit__(self, *args):
-    #TODO: while needs special handling of the condition because
+    # While needs special handling of the condition because
     # the pipelineparam during the exit contains the dynamic information
     # that are needed to resolve the condition.
+    import copy
+    self.condition_when_exiting = copy.deepcopy(self.condition)
     _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
