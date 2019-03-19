@@ -53,7 +53,7 @@ implementation:
       kfp_component.google.dataflow, launch_python,
       --python_file_path, {inputValue: python_file_path},
       --project_id, {inputValue: project_id},
-      --staging_dir, {inputValue: staging_dir}
+      --staging_dir, {inputValue: staging_dir},
       --requirements_file_path, {inputValue: requirements_file_path},
       --args, {inputValue: args},
       --wait_interval, {inputValue: wait_interval}
