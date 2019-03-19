@@ -55,6 +55,8 @@ class ContainerOp(object):
     self.command = command
     self.arguments = arguments
     self.is_exit_handler = is_exit_handler
+    self.mlpipeline_ui_metadata_path = '/mlpipeline-ui-metadata.json'
+    self.mlpipeline_metrics_path = '/mlpipeline-metrics.json'
     self.resource_limits = {}
     self.resource_requests = {}
     self.node_selector = {}
@@ -198,14 +200,14 @@ class ContainerOp(object):
     return self.add_resource_limit("cpu", cpu)
 
   def set_gpu_limit(self, gpu, vendor = "nvidia"):
-    """Set gpu limit for the operator. This function add '<vendor>.com/gpu' into resource limit. 
-    Note that there is no need to add GPU request. GPUs are only supposed to be specified in 
+    """Set gpu limit for the operator. This function add '<vendor>.com/gpu' into resource limit.
+    Note that there is no need to add GPU request. GPUs are only supposed to be specified in
     the limits section. See https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/.
 
     Args:
       gpu: A string which must be a positive number.
-      vendor: Optional. A string which is the vendor of the requested gpu. The supported values 
-        are: 'nvidia' (default), and 'amd'. 
+      vendor: Optional. A string which is the vendor of the requested gpu. The supported values
+        are: 'nvidia' (default), and 'amd'.
     """
 
     self._validate_positive_number(gpu, 'gpu')
@@ -251,7 +253,7 @@ class ContainerOp(object):
     return self
 
   def add_node_selector_constraint(self, label_name, value):
-    """Add a constraint for nodeSelector. Each constraint is a key-value pair label. For the 
+    """Add a constraint for nodeSelector. Each constraint is a key-value pair label. For the
     container to be eligible to run on a node, the node must have each of the constraints appeared
     as labels.
 
@@ -293,6 +295,26 @@ class ContainerOp(object):
     """
 
     self.num_retries = num_retries
+    return self
+
+  def set_mlpipeline_ui_metadata_path(self, mlpipeline_ui_metadata_path: str):
+    """Update the artifact path for the mlpipeline-ui-metadata.json file.
+
+    Args:
+      mlpipeline_ui_metadata_path: Path to the mlpipeline-ui-metadata.json
+    """
+
+    self.mlpipeline_ui_metadata_path = mlpipeline_ui_metadata_path
+    return self
+
+  def set_mlpipeline_metrics_path(self, mlpipeline_metrics_path: str):
+    """Update the artifact path for the mlpipeline-metrics.json file.
+
+    Args:
+      mlpipeline_metrics_path: Path to the mlpipeline-metrics.json
+    """
+
+    self.mlpipeline_metrics_path = mlpipeline_metrics_path
     return self
 
   def __repr__(self):

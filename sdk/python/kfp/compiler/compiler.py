@@ -304,8 +304,8 @@ class Compiler(object):
     # for the artifact output when default artifact repository is configured,
     # this part needs to be updated to use the default artifact repository.
     output_artifacts = []
-    output_artifacts.append(_build_conventional_artifact('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json'))
-    output_artifacts.append(_build_conventional_artifact('mlpipeline-metrics', '/mlpipeline-metrics.json'))
+    output_artifacts.append(_build_conventional_artifact('mlpipeline-ui-metadata', op.mlpipeline_ui_metadata_path))
+    output_artifacts.append(_build_conventional_artifact('mlpipeline-metrics', op.mlpipeline_metrics_path))
     template['outputs']['artifacts'] = output_artifacts
 
     # Set resources.
