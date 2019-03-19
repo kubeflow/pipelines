@@ -61,6 +61,8 @@ class TypeMeta(BaseMeta):
       type_meta.properties = dict(type_meta.properties)
     elif isinstance(payload, str):
       type_meta.name = payload
+    else:
+      raise ValueError('from_dict_or_str is expecting either dict or str.')
     return type_meta
 
   def serialize(self):
