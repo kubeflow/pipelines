@@ -14,10 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# version 21
-# does proxy agent config change ever? for old jobs
-# store endpoint to config map
-
 set -ex
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
@@ -25,7 +21,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 function run-proxy-agent {
   ## start the proxy process
   # https://github.com/google/inverting-proxy/blob/master/agent/Dockerfile
-  # Proxy to ambassador endpoint so anything registered to ambassador can be transparently accessed by proxy agent.
+  # Connect proxy agent to ambassador so anything registered to ambassador can be transparently accessed.
   /opt/bin/proxy-forwarding-agent \
         --debug=${DEBUG} \
         --proxy=${PROXY_URL} \
@@ -48,7 +44,7 @@ if kubectl get configmap inverse-proxy-config; then
   exit 0
 fi
 
-# Activate service account for gcloud first
+# Activate service account for gcloud SDK first
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
