@@ -9,6 +9,8 @@ This pipeline demonstrates the TFX capablities at scale. The pipeline uses a pub
 
 ## Setup
 
+Enable DataFlow API for your GKE cluster: <https://console.developers.google.com/apis/api/dataflow.googleapis.com/overview>
+
 Create a local Python 3.5 conda environment
 ```
 conda create -n tfx-kfp pip python=3.5.3
@@ -29,7 +31,13 @@ git clone https://github.com/tensorflow/tfx
 
 Upload the utility code to your storage bucket. You can modify this code if needed for a different dataset.
 ```
-gsutil cp tfx/examples/chicago_taxi_pipeline/taxi_utils.py gs://my-bucket/
+gsutil cp tfx/examples/chicago_taxi_pipeline/taxi_utils.py gs://my-bucket/<path>/
+```
+
+If gsutil does not work, try `tensorflow.gfile`:
+```
+from tensorflow import gfile
+gfile.Copy('tfx/examples/chicago_taxi_pipeline/taxi_utils.py', 'gs://<my bucket>/<path>/taxi_utils.py')
 ```
 
 ## Configure the TFX Pipeline
@@ -39,9 +47,9 @@ Modify the pipeline configuration file at
 tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow_large.py
 ```
 Configure 
-- GCS storage bucket name (replace "my-bucket")
-- GCP project ID (replace "my-gcp-project")
-- Make sure the path to the taxi_utils.py is correct
+- Set `_input_bucket` to the GCS directory where you've copied taxi_utils.py. I.e. gs://<my bucket>/<path>/
+- Set `_output_bucket` to the GCS directory where you've want the results to be written
+- Set GCP project ID (replace my-gcp-project). Note that it should be project ID, not project name.
 - The original BigQuery dataset has 100M rows, which can take time to process. Modify the selection criteria (% of records) to run a sample test. 
 
 ## Compile and run the pipeline

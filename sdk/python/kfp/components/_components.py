@@ -21,11 +21,13 @@ __all__ = [
 
 import sys
 from collections import OrderedDict
-from ._naming import _sanitize_file_name, _sanitize_python_function_name, _make_name_unique_by_adding_index
+from ._naming import _sanitize_file_name, _sanitize_python_function_name, generate_unique_name_conversion_table
 from ._yaml_utils import load_yaml
 from ._structures import ComponentSpec
 from ._structures import *
-
+from kfp.dsl import PipelineParam
+from kfp.dsl._types import InconsistentTypeException, check_types
+import kfp
 
 _default_component_name = 'Component'
 
@@ -77,7 +79,7 @@ def load_component_from_url(url):
     import requests
     resp = requests.get(url)
     resp.raise_for_status()
-    return _create_task_factory_from_component_text(resp.content, url)
+    return _load_component_from_yaml_or_zip_bytes(resp.content, url)
 
 
 def load_component_from_file(filename):
@@ -93,8 +95,8 @@ def load_component_from_file(filename):
     '''
     if filename is None:
         raise TypeError
-    with open(filename, 'r') as yaml_file:
-        return _create_task_factory_from_component_text(yaml_file, filename)
+    with open(filename, 'rb') as component_stream:
+        return _load_component_from_yaml_or_zip_stream(component_stream, filename)
 
 
 def load_component_from_text(text):
@@ -111,6 +113,31 @@ def load_component_from_text(text):
     if text is None:
         raise TypeError
     return _create_task_factory_from_component_text(text, None)
+
+
+_COMPONENT_FILE_NAME_IN_ARCHIVE = 'component.yaml'
+
+
+def _load_component_from_yaml_or_zip_bytes(bytes, component_filename=None):
+    import io
+    component_stream = io.BytesIO(bytes)
+    return _load_component_from_yaml_or_zip_stream(component_stream, component_filename)
+
+
+def _load_component_from_yaml_or_zip_stream(stream, component_filename=None):
+    '''Loads component from a stream and creates a task factory function.
+    The stream can be YAML or a zip file with a component.yaml file inside.
+    '''
+    import zipfile
+    stream.seek(0)
+    if zipfile.is_zipfile(stream):
+        stream.seek(0)
+        with zipfile.ZipFile(stream) as zip_obj:
+            with zip_obj.open(_COMPONENT_FILE_NAME_IN_ARCHIVE) as component_stream:
+                return _create_task_factory_from_component_text(component_stream, component_filename)
+    else:
+        stream.seek(0)
+        return _create_task_factory_from_component_text(stream, component_filename)
 
 
 def _create_task_factory_from_component_text(text_or_file, component_filename=None):
@@ -165,15 +192,11 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     description = component_spec.description
     
     inputs_list = component_spec.inputs or [] #List[InputSpec]
+    input_names = [input.name for input in inputs_list]
 
     #Creating the name translation tables : Original <-> Pythonic 
-    input_name_to_pythonic = {}
-    pythonic_name_to_input_name = {}
-    for io_port in inputs_list:
-        pythonic_name = _sanitize_python_function_name(io_port.name)
-        pythonic_name = _make_name_unique_by_adding_index(pythonic_name, pythonic_name_to_input_name, '_')
-        input_name_to_pythonic[io_port.name] = pythonic_name
-        pythonic_name_to_input_name[pythonic_name] = io_port.name
+    input_name_to_pythonic = generate_unique_name_conversion_table(input_names, _sanitize_python_function_name)
+    pythonic_name_to_input_name = {v: k for k, v in input_name_to_pythonic.items()}
 
     if component_ref is None:
         component_ref = ComponentReference(name=component_spec.name or component_filename or _default_component_name)
@@ -181,12 +204,21 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
 
     def create_task_from_component_and_arguments(pythonic_arguments):
         #Converting the argument names and not passing None arguments
-        valid_argument_types = (str, int, float, bool, GraphInputArgument, TaskOutputArgument) #Hack for passed PipelineParams. TODO: Remove the hack once they're no longer passed here.
+        valid_argument_types = (str, int, float, bool, GraphInputArgument, TaskOutputArgument, PipelineParam) #Hack for passed PipelineParams. TODO: Remove the hack once they're no longer passed here.
         arguments = {
             pythonic_name_to_input_name[k]: (v if isinstance(v, valid_argument_types) else str(v))
             for k, v in pythonic_arguments.items()
             if v is not None
         }
+        for key in arguments:
+            if isinstance(arguments[key], PipelineParam):
+                if kfp.TYPE_CHECK:
+                    for input_spec in component_spec.inputs:
+                        if input_spec.name == key:
+                            if arguments[key].param_type is not None and not check_types(arguments[key].param_type.to_dict_or_str(), '' if input_spec.type is None else input_spec.type):
+                                raise InconsistentTypeException('Component "' + name + '" is expecting ' + key + ' to be type(' + str(input_spec.type) + '), but the passed argument is type(' + arguments[key].param_type.serialize() + ')')
+                arguments[key] = str(arguments[key])
+
         task = TaskSpec(
             component_ref=component_ref,
             arguments=arguments,

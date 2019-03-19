@@ -35,6 +35,10 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	_ "ml_metadata/metadata_store/mlmetadata"
+	_ "ml_metadata/proto/metadata_store_go_proto"
+	_ "ml_metadata/proto/metadata_store_service_go_proto"
 )
 
 var (
@@ -48,7 +52,6 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 
 func main() {
 	flag.Parse()
-	glog.Infof("starting API server")
 
 	initConfig()
 	clientManager := newClientManager()

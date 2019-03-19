@@ -12,4 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._utils import normalize_name, dump_file, check_resource_changed
+from ._utils import (normalize_name, dump_file, 
+    check_resource_changed, wait_operation_done)

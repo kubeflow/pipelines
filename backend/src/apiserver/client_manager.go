@@ -17,19 +17,25 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 	"time"
 
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/metadata"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	minio "github.com/minio/minio-go"
+
+	"ml_metadata/metadata_store/mlmetadata"
+	mlpb "ml_metadata/proto/metadata_store_go_proto"
 )
 
 const (
@@ -56,6 +62,8 @@ type ClientManager struct {
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
+
+	MetadataStore *mlmetadata.Store
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -117,7 +125,6 @@ func (c *ClientManager) init() {
 	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid)
 	c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
 	c.jobStore = storage.NewJobStore(db, c.time)
-	c.runStore = storage.NewRunStore(db, c.time)
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
@@ -127,11 +134,40 @@ func (c *ClientManager) init() {
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+
+	metadataStore := initMetadataStore()
+	runStore := storage.NewRunStore(db, c.time, metadataStore)
+	c.runStore = runStore
+
 	glog.Infof("Client manager initialized successfully")
 }
 
 func (c *ClientManager) Close() {
 	c.db.Close()
+}
+
+func initMetadataStore() *metadata.Store {
+	port, err := strconv.Atoi(getStringConfig(mysqlServicePort))
+	if err != nil {
+		glog.Fatalf("Failed to parse valid MySQL service port from %q: %v", getStringConfig(mysqlServicePort), err)
+	}
+
+	cfg := &mlpb.ConnectionConfig{
+		Config: &mlpb.ConnectionConfig_Mysql{
+			&mlpb.MySQLDatabaseConfig{
+				Host:     proto.String(getStringConfig(mysqlServiceHost)),
+				Port:     proto.Uint32(uint32(port)),
+				Database: proto.String("mlmetadata"),
+				User:     proto.String("root"),
+			},
+		},
+	}
+
+	mlmdStore, err := mlmetadata.NewStore(cfg)
+	if err != nil {
+		glog.Fatalf("Failed to create ML Metadata store: %v", err)
+	}
+	return metadata.NewStore(mlmdStore)
 }
 
 func initDBClient(initConnectionTimeout time.Duration) *storage.DB {

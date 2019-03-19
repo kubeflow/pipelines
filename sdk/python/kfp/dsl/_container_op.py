@@ -16,6 +16,7 @@
 from . import _pipeline
 from . import _pipeline_param
 from ._pipeline_param import _extract_pipelineparams
+from ._metadata import ComponentMeta
 import re
 from typing import Dict
 
@@ -63,6 +64,7 @@ class ContainerOp(object):
     self.pod_annotations = {}
     self.pod_labels = {}
     self.num_retries = 0
+    self._metadata = None
 
     self.argument_inputs = _extract_pipelineparams([str(arg) for arg in (command or []) + (arguments or [])])
 
@@ -74,9 +76,9 @@ class ContainerOp(object):
       self.inputs += self.argument_inputs
 
     self.outputs = {}
-    if file_outputs:
+    if self.file_outputs:
       self.outputs = {name: _pipeline_param.PipelineParam(name, op_name=self.name)
-          for name in file_outputs.keys()}
+                      for name in file_outputs.keys()}
 
     self.output=None
     if len(self.outputs) == 1:
@@ -295,3 +297,24 @@ class ContainerOp(object):
 
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})
+
+  def _set_metadata(self, metadata):
+    '''_set_metadata passes the containerop the metadata information
+    and configures the right output
+    Args:
+      metadata (ComponentMeta): component metadata
+    '''
+    if not isinstance(metadata, ComponentMeta):
+      raise ValueError('_set_medata is expecting ComponentMeta.')
+    self._metadata = metadata
+    if self.file_outputs:
+      for output in self.file_outputs.keys():
+        output_type = self.outputs[output].param_type
+        for output_meta in self._metadata.outputs:
+          if output_meta.name == output:
+            output_type = output_meta.param_type
+        self.outputs[output].param_type = output_type
+
+    self.output=None
+    if len(self.outputs) == 1:
+      self.output = list(self.outputs.values())[0]

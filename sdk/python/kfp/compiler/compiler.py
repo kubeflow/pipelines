@@ -21,6 +21,8 @@ import yaml
 
 from .. import dsl
 from ._k8s_helper import K8sHelper
+from ..dsl._pipeline_param import _match_serialized_pipelineparam
+from ..dsl._metadata import TypeMeta
 
 class Compiler(object):
   """DSL Compiler.
@@ -217,14 +219,12 @@ class Compiler(object):
     processed_args = list(map(str, raw_args))
     for i, _ in enumerate(processed_args):
       # unsanitized_argument_inputs stores a dict: string of sanitized param -> string of unsanitized param
-      matches = []
-      match = re.findall(r'{{pipelineparam:op=([\w\s\_-]*);name=([\w\s\_-]+);value=(.*?)}}', str(processed_args[i]))
-      matches += match
+      param_tuples = []
+      param_tuples += _match_serialized_pipelineparam(str(processed_args[i]))
       unsanitized_argument_inputs = {}
-      for x in list(set(matches)):
-        sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(x[1]), K8sHelper.sanitize_k8s_name(x[0]), x[2]))
-        unsanitized_argument_inputs[sanitized_str] = str(dsl.PipelineParam(x[1], x[0], x[2]))
-
+      for param_tuple in list(set(param_tuples)):
+        sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(param_tuple.name), K8sHelper.sanitize_k8s_name(param_tuple.op), param_tuple.value, TypeMeta.deserialize(param_tuple.type)))
+        unsanitized_argument_inputs[sanitized_str] = str(dsl.PipelineParam(param_tuple.name, param_tuple.op, param_tuple.value, TypeMeta.deserialize(param_tuple.type)))
       if argument_inputs:
         for param in argument_inputs:
           if str(param) in unsanitized_argument_inputs:
@@ -256,7 +256,6 @@ class Compiler(object):
           }
         },
       }
-
     processed_arguments = self._process_args(op.arguments, op.argument_inputs)
     processed_command = self._process_args(op.command, op.argument_inputs)
 
@@ -516,12 +515,21 @@ class Compiler(object):
     if pipeline_func not in registered_pipeline_functions:
       raise ValueError('Please use a function with @dsl.pipeline decorator.')
 
-    pipeline_name, _ = dsl.Pipeline.get_pipeline_functions()[pipeline_func]
+    pipeline_name = dsl.Pipeline.get_pipeline_functions()[pipeline_func].name
     pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_name)
 
     # Create the arg list with no default values and call pipeline function.
-    args_list = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
-                 for arg_name in argspec.args]
+    # Assign type information to the PipelineParam
+    pipeline_meta = dsl.Pipeline.get_pipeline_functions()[pipeline_func]
+    args_list = []
+    for arg_name in argspec.args:
+      arg_type = TypeMeta()
+      for input in pipeline_meta.inputs:
+        if arg_name == input.name:
+          arg_type = input.param_type
+          break
+      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type = arg_type))
+
     with dsl.Pipeline(pipeline_name) as p:
       pipeline_func(*args_list)
 
@@ -551,6 +559,8 @@ class Compiler(object):
       if op.output is not None:
         op.output.name = K8sHelper.sanitize_k8s_name(op.output.name)
         op.output.op_name = K8sHelper.sanitize_k8s_name(op.output.op_name)
+      if op.dependent_op_names:
+        op.dependent_op_names = [K8sHelper.sanitize_k8s_name(name) for name in op.dependent_op_names]
       if op.file_outputs is not None:
         sanitized_file_outputs = {}
         for key in op.file_outputs.keys():
@@ -562,21 +572,28 @@ class Compiler(object):
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
 
-  def compile(self, pipeline_func, package_path):
+  def compile(self, pipeline_func, package_path, type_check=False):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
       pipeline_func: pipeline functions with @dsl.pipeline decorator.
       package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
+      type_check: whether to enable the type check or not, default: False.
     """
-    workflow = self._compile(pipeline_func)
-    yaml.Dumper.ignore_aliases = lambda *args : True
-    yaml_text = yaml.dump(workflow, default_flow_style=False)
+    import kfp
+    type_check_old_value = kfp.TYPE_CHECK
+    try:
+      kfp.TYPE_CHECK = type_check
+      workflow = self._compile(pipeline_func)
+      yaml.Dumper.ignore_aliases = lambda *args : True
+      yaml_text = yaml.dump(workflow, default_flow_style=False)
 
-    from contextlib import closing
-    from io import BytesIO
-    with tarfile.open(package_path, "w:gz") as tar:
-      with closing(BytesIO(yaml_text.encode())) as yaml_file:
-        tarinfo = tarfile.TarInfo('pipeline.yaml')
-        tarinfo.size = len(yaml_file.getvalue())
-        tar.addfile(tarinfo, fileobj=yaml_file)
+      from contextlib import closing
+      from io import BytesIO
+      with tarfile.open(package_path, "w:gz") as tar:
+        with closing(BytesIO(yaml_text.encode())) as yaml_file:
+          tarinfo = tarfile.TarInfo('pipeline.yaml')
+          tarinfo.size = len(yaml_file.getvalue())
+          tar.addfile(tarinfo, fileobj=yaml_file)
+    finally:
+      kfp.TYPE_CHECK = type_check_old_value
