@@ -19,63 +19,63 @@ class BaseType:
 
 # Primitive Types
 class Integer(BaseType):
-	openAPIV3Schema = {
+	openapi_schema_validator = {
 		"type": "integer"
 	}
 
 class String(BaseType):
-	openAPIV3Schema = {
+	openapi_schema_validator = {
 		"type": "string"
 	}
 
 class Float(BaseType):
-	openAPIV3Schema = {
+	openapi_schema_validator = {
 		"type": "number"
 	}
 
 class Bool(BaseType):
-	openAPIV3Schema = {
+	openapi_schema_validator = {
 		"type": "boolean"
 	}
 
 class List(BaseType):
-	openAPIV3Schema = {
+	openapi_schema_validator = {
 		"type": "array"
 	}
 
 class Dict(BaseType):
-	openAPIV3Schema = {
+	openapi_schema_validator = {
 		"type": "object",
 	}
 
 # GCP Types
 class GCSPath(BaseType):
-	openAPIV3Schema = {
+	openapi_schema_validator = {
 		"type": "string",
 		"pattern": "^gs://.*$"
 	}
 
 class GCRPath(BaseType):
-	openAPIV3Schema = {
+	openapi_schema_validator = {
 		"type": "string",
 		"pattern": "^.*gcr\\.io/.*$"
 	}
 
 class GCPRegion(BaseType):
-	openAPIV3Schema = {
+	openapi_schema_validator = {
 		"type": "string"
 	}
 
 class GCPProjectID(BaseType):
 	'''MetaGCPProjectID: GCP project id'''
-	openAPIV3Schema = {
+	openapi_schema_validator = {
 		"type": "string"
 	}
 
 # General Types
 class LocalPath(BaseType):
 	#TODO: add restriction to path
-	openAPIV3Schema = {
+	openapi_schema_validator = {
 		"type": "string"
 	}
 

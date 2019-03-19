@@ -807,7 +807,7 @@ description: component a desc
 inputs:
   - {name: field_l, type: Integer}
 outputs:
-  - {name: field_m, type: {GCSPath: {openAPIV3Schema: {type: string, pattern: ^gs://.*$ } }}}
+  - {name: field_m, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: ^gs://.*$ } }}}
   - {name: field_n, type: {customized_type: {property_a: value_a, property_b: value_b}}}
   - {name: field_o, type: GcrUri} 
 implementation:
@@ -828,7 +828,7 @@ description: component b desc
 inputs:
   - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
   - {name: field_y, type: GcrUri}
-  - {name: field_z, type: {GCSPath: {openAPIV3Schema: {type: string, pattern: ^gs://.*$ } }}}
+  - {name: field_z, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: ^gs://.*$ } }}}
 outputs:
   - {name: output_model_uri, type: GcsUri}
 implementation:
@@ -856,7 +856,7 @@ description: component a desc
 inputs:
   - {name: field_l, type: Integer}
 outputs:
-  - {name: field_m, type: {GCSPath: {openAPIV3Schema: {type: string, pattern: ^gs://.*$ } }}}
+  - {name: field_m, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: ^gs://.*$ } }}}
   - {name: field_n, type: {customized_type: {property_a: value_a, property_b: value_b}}}
   - {name: field_o, type: GcrUri} 
 implementation:
@@ -877,7 +877,7 @@ description: component b desc
 inputs:
   - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
   - {name: field_y, type: GcrUri}
-  - {name: field_z, type: {GCSPath: {openAPIV3Schema: {type: string, pattern: ^gcs://.*$ } }}}
+  - {name: field_z, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: ^gcs://.*$ } }}}
 outputs:
   - {name: output_model_uri, type: GcsUri}
 implementation:
