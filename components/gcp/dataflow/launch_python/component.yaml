@@ -16,8 +16,12 @@ name: Launch Python
 description: |
   Launch a self-executing beam python file.
 inputs:
-  - {name: python_file_path, description: 'The gcs or local path to the python file to run.'}
-  - {name: project_id, description: 'The ID of the parent project.' }
+  - name: python_file_path
+    description: 'The gcs or local path to the python file to run.'
+    type: String
+  - name: project_id
+    description: 'The ID of the parent project.'
+    type: GCPProjectID
   - name: staging_dir
     description: >-
       Optional. The GCS directory for keeping staging files.
@@ -25,11 +29,23 @@ inputs:
       for resuming the job in case of failure and it will be passed as
       `staging_location` and `temp_location` command line args of the beam code.
     default: ''
-  - {name: requirements_file_path, description: 'Optional, the gcs or local path to the pip requirements file', default: '' }
-  - {name: args, description: 'The list of args to pass to the python file.', default: '[]' }
-  - {name: wait_interval, default: '30', description: 'Optional wait interval between calls to get job status. Defaults to 30.' }
+    type: GCSPath
+  - name: requirements_file_path
+    description: 'Optional, the gcs or local path to the pip requirements file'
+    default: ''
+    type: GCSPath
+  - name: args
+    description: 'The list of args to pass to the python file.'
+    default: '[]'
+    type: List
+  - name: wait_interval
+    default: '30'
+    description: 'Optional wait interval between calls to get job status. Defaults to 30.'
+    type: Integer
 outputs:
-  - {name: job_id, description: 'The id of the created dataflow job.'}
+  - name: job_id
+    description: 'The id of the created dataflow job.'
+    type: String
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest
