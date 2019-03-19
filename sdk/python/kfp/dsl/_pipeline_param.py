@@ -21,6 +21,7 @@ from ._metadata import TypeMeta
 # TODO: Move this to a separate class
 # For now, this identifies a condition with only "==" operator supported.
 ConditionOperator = namedtuple('ConditionOperator', 'operator operand1 operand2')
+PipelineParamTuple = namedtuple('PipelineParamTuple', 'name op value type')
 
 def _match_serialized_pipelineparam(payload: str):
   """_match_serialized_pipelineparam matches the serialized pipelineparam.
@@ -28,11 +29,18 @@ def _match_serialized_pipelineparam(payload: str):
     payloads (str): a string that contains the serialized pipelineparam.
 
   Returns:
-    List(tuple())"""
-  match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?);}}', payload)
-  if len(match) == 0:
-    match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
-  return match
+    PipelineParamTuple
+  """
+  matches = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?);}}', payload)
+  if len(matches) == 0:
+    matches = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
+  param_tuples = []
+  for match in matches:
+    if len(match) == 3:
+      param_tuples.append(PipelineParamTuple(name=match[1], op=match[0], value=match[2], type=''))
+    elif len(match) == 4:
+      param_tuples.append(PipelineParamTuple(name=match[1], op=match[0], value=match[2], type=match[3]))
+  return param_tuples
 
 def _extract_pipelineparams(payloads: str or list[str]):
   """_extract_pipelineparam extract a list of PipelineParam instances from the payload string.
@@ -45,15 +53,12 @@ def _extract_pipelineparams(payloads: str or list[str]):
   """
   if isinstance(payloads, str):
     payloads = [payloads]
-  matches = []
+  param_tuples = []
   for payload in payloads:
-    matches += _match_serialized_pipelineparam(payload)
+    param_tuples += _match_serialized_pipelineparam(payload)
   pipeline_params = []
-  for x in list(set(matches)):
-    if len(x) == 3 or (len(x) == 4 and x[3] == ''):
-      pipeline_params.append(PipelineParam(x[1], x[0], x[2]))
-    elif len(x) == 4:
-      pipeline_params.append(PipelineParam(x[1], x[0], x[2], TypeMeta.from_dict_or_str(x[3])))
+  for param_tuple in list(set(param_tuples)):
+    pipeline_params.append(PipelineParam(param_tuple.name, param_tuple.op, param_tuple.value, TypeMeta.deserialize(param_tuple.type)))
   return pipeline_params
 
 class PipelineParam(object):

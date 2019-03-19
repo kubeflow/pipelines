@@ -219,16 +219,12 @@ class Compiler(object):
     processed_args = list(map(str, raw_args))
     for i, _ in enumerate(processed_args):
       # unsanitized_argument_inputs stores a dict: string of sanitized param -> string of unsanitized param
-      matches = []
-      matches += _match_serialized_pipelineparam(str(processed_args[i]))
+      param_tuples = []
+      param_tuples += _match_serialized_pipelineparam(str(processed_args[i]))
       unsanitized_argument_inputs = {}
-      for x in list(set(matches)):
-        if len(x) == 3 or (len(x) == 4 and x[3] == ''):
-          sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(x[1]), K8sHelper.sanitize_k8s_name(x[0]), x[2]))
-          unsanitized_argument_inputs[sanitized_str] = str(dsl.PipelineParam(x[1], x[0], x[2]))
-        elif len(x) == 4:
-          sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(x[1]), K8sHelper.sanitize_k8s_name(x[0]), x[2], TypeMeta.from_dict_or_str(x[3])))
-          unsanitized_argument_inputs[sanitized_str] = str(dsl.PipelineParam(x[1], x[0], x[2], TypeMeta.from_dict_or_str(x[3])))
+      for param_tuple in list(set(param_tuples)):
+        sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(param_tuple.name), K8sHelper.sanitize_k8s_name(param_tuple.op), param_tuple.value, TypeMeta.deserialize(param_tuple.type)))
+        unsanitized_argument_inputs[sanitized_str] = str(dsl.PipelineParam(param_tuple.name, param_tuple.op, param_tuple.value, TypeMeta.deserialize(param_tuple.type)))
       if argument_inputs:
         for param in argument_inputs:
           if str(param) in unsanitized_argument_inputs:
