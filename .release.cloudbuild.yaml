@@ -74,6 +74,18 @@ steps:
   id:   'tagPersistenceagentCommitSHA'
   waitFor: ['pullPersistenceagent']
 
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA']
+  id:   'pullInverseProxyAgent'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA', 'gcr.io/ml-pipeline/inverse-proxy-agent:$TAG_NAME']
+  id:   'tagInverseProxyAgentVersionNumber'
+  waitFor: ['pullInverseProxyAgent']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA', 'gcr.io/ml-pipeline/inverse-proxy-agent:$COMMIT_SHA']
+  id:   'tagInverseProxyAgentCommitSHA'
+  waitFor: ['pullInverseProxyAgent']
+
 # Copy the Python SDK
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz', '/workspace/']
@@ -126,5 +138,7 @@ images:
 - 'gcr.io/ml-pipeline/persistenceagent:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/viewer-crd-controller:$TAG_NAME'
 - 'gcr.io/ml-pipeline/viewer-crd-controller:$COMMIT_SHA'
+- 'gcr.io/ml-pipeline/inverse-proxy-agent:$TAG_NAME'
+- 'gcr.io/ml-pipeline/inverse-proxy-agent:$COMMIT_SHA'
 
 timeout: '1200s'
