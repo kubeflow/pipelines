@@ -29,15 +29,15 @@ class TestPythonComponent(unittest.TestCase):
         self._metadata = component_meta
 
     @component
-    def componentA(a: {'Schema': {'file_type': 'csv'}}, b: Integer() = 12, c: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}} = 'gs://hello/world') -> {'model': Integer()}:
+    def componentA(a: {'ArtifactA': {'file_type': 'csv'}}, b: Integer() = 12, c: {'ArtifactB': {'path_type': 'file', 'file_type':'tsv'}} = 'gs://hello/world') -> {'model': Integer()}:
       return MockContainerOp()
 
     containerOp = componentA(1,2,c=3)
 
     golden_meta = ComponentMeta(name='componentA', description='')
-    golden_meta.inputs.append(ParameterMeta(name='a', description='', param_type=TypeMeta(name='Schema', properties={'file_type': 'csv'})))
+    golden_meta.inputs.append(ParameterMeta(name='a', description='', param_type=TypeMeta(name='ArtifactA', properties={'file_type': 'csv'})))
     golden_meta.inputs.append(ParameterMeta(name='b', description='', param_type=TypeMeta(name='Integer'), default=12))
-    golden_meta.inputs.append(ParameterMeta(name='c', description='', param_type=TypeMeta(name='GCSPath', properties={'path_type':'file', 'file_type': 'tsv'}), default='gs://hello/world'))
+    golden_meta.inputs.append(ParameterMeta(name='c', description='', param_type=TypeMeta(name='ArtifactB', properties={'path_type':'file', 'file_type': 'tsv'}), default='gs://hello/world'))
     golden_meta.outputs.append(ParameterMeta(name='model', description='', param_type=TypeMeta(name='Integer')))
 
     self.assertEqual(containerOp._metadata, golden_meta)
@@ -130,7 +130,7 @@ class TestPythonComponent(unittest.TestCase):
     """Test type check at the decorator."""
     kfp.TYPE_CHECK = True
     @component
-    def a_op(field_l: Integer()) -> {'field_m': {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}, 'field_o': 'Integer'}:
+    def a_op(field_l: Integer()) -> {'field_m': {'ArtifactB': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}, 'field_o': 'Integer'}:
       return ContainerOp(
           name = 'operator a',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -147,7 +147,7 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x: {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}},
         field_y: Integer(),
-        field_z: {'GCSPath': {'path_type': 'file', 'file_type':'csv'}}) -> {'output_model_uri': 'GcsUri'}:
+        field_z: {'ArtifactB': {'path_type': 'file', 'file_type':'csv'}}) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-a',
@@ -173,7 +173,7 @@ class TestPythonComponent(unittest.TestCase):
     """Test type check at the decorator."""
     kfp.TYPE_CHECK = True
     @component
-    def a_op(field_l: Integer()) -> {'field_m': {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}, 'field_o': 'Integer'}:
+    def a_op(field_l: Integer()) -> {'field_m': {'ArtifactB': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}, 'field_o': 'Integer'}:
       return ContainerOp(
           name = 'operator a',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -190,7 +190,7 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x: {'customized_type_a': {'property_a': 'value_a', 'property_b': 'value_b'}},
         field_y: Integer(),
-        field_z: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
+        field_z: {'ArtifactB': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-a',
@@ -216,7 +216,7 @@ class TestPythonComponent(unittest.TestCase):
     """Test type check at the decorator."""
     kfp.TYPE_CHECK = True
     @component
-    def a_op(field_l: Integer()) -> {'field_m': {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}}:
+    def a_op(field_l: Integer()) -> {'field_m': {'ArtifactB': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}}:
       return ContainerOp(
           name = 'operator a',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -233,7 +233,7 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x,
         field_y: Integer(),
-        field_z: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
+        field_z: {'ArtifactB': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-a',
@@ -258,7 +258,7 @@ class TestPythonComponent(unittest.TestCase):
     """Test type check at the decorator."""
     kfp.TYPE_CHECK = True
     @component
-    def a_op(field_l: Integer()) -> {'field_m': {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}}:
+    def a_op(field_l: Integer()) -> {'field_m': {'ArtifactB': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}}:
       return ContainerOp(
           name = 'operator a',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -275,7 +275,7 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x,
         field_y: Integer(),
-        field_z: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
+        field_z: {'ArtifactB': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-a',
@@ -300,7 +300,7 @@ class TestPythonComponent(unittest.TestCase):
     """Test type check at the decorator."""
     kfp.TYPE_CHECK = False
     @component
-    def a_op(field_l: Integer()) -> {'field_m': {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}, 'field_o': 'Integer'}:
+    def a_op(field_l: Integer()) -> {'field_m': {'ArtifactB': {'path_type': 'file', 'file_type':'tsv'}}, 'field_n': {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}}, 'field_o': 'Integer'}:
       return ContainerOp(
           name = 'operator a',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -317,7 +317,7 @@ class TestPythonComponent(unittest.TestCase):
     @component
     def b_op(field_x: {'customized_type_a': {'property_a': 'value_a', 'property_b': 'value_b'}},
         field_y: Integer(),
-        field_z: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
+        field_z: {'ArtifactB': {'path_type': 'file', 'file_type':'tsv'}}) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
           image = 'gcr.io/ml-pipeline/component-a',
