@@ -46,23 +46,37 @@ class TypeMeta(BaseMeta):
       return {self.name: self.properties}
 
   @staticmethod
-  def from_dict_or_str(json):
+  def from_dict_or_str(payload):
+    '''from_dict_or_str accepts a payload object and returns a TypeMeta instance
+     Args:
+       payload (str/dict): the payload could be a str or a dict
+    '''
+
     type_meta = TypeMeta()
-    if isinstance(json, str) and '{' in json:
-      import ast
-      json = ast.literal_eval(json)
-    if isinstance(json, dict):
-      if not _check_valid_type_dict(json):
-        raise ValueError(json + ' is not a valid type string')
-      type_meta.name, type_meta.properties = list(json.items())[0]
+    if isinstance(payload, dict):
+      if not _check_valid_type_dict(payload):
+        raise ValueError(payload + ' is not a valid type string')
+      type_meta.name, type_meta.properties = list(payload.items())[0]
       # Convert possible OrderedDict to dict
       type_meta.properties = dict(type_meta.properties)
-    elif isinstance(json, str):
-      type_meta.name = json
+    elif isinstance(payload, str):
+      type_meta.name = payload
+    else:
+      raise ValueError('from_dict_or_str is expecting either dict or str.')
     return type_meta
 
   def serialize(self):
     return str(self.to_dict_or_str())
+
+  @staticmethod
+  def deserialize(payload):
+    # If the payload is a string of a dict serialization, convert it back to a dict
+    try:
+      import ast
+      payload = ast.literal_eval(payload)
+    except:
+      pass
+    return TypeMeta.from_dict_or_str(payload)
 
 class ParameterMeta(BaseMeta):
   def __init__(self,
@@ -128,13 +142,13 @@ def _annotation_to_typemeta(annotation):
     TypeMeta
     '''
   if isinstance(annotation, BaseType):
-    arg_type = TypeMeta.from_dict_or_str(_instance_to_dict(annotation))
+    arg_type = TypeMeta.deserialize(_instance_to_dict(annotation))
   elif isinstance(annotation, str):
-    arg_type = TypeMeta.from_dict_or_str(annotation)
+    arg_type = TypeMeta.deserialize(annotation)
   elif isinstance(annotation, dict):
     if not _check_valid_type_dict(annotation):
       raise ValueError('Annotation ' + str(annotation) + ' is not a valid type dictionary.')
-    arg_type = TypeMeta.from_dict_or_str(annotation)
+    arg_type = TypeMeta.deserialize(annotation)
   else:
     return TypeMeta()
   return arg_type
