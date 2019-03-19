@@ -18,6 +18,7 @@ set -ex
 
 TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
+
 # Install ksonnet
 KS_VERSION="0.13.0"
 
