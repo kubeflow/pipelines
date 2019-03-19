@@ -365,15 +365,9 @@ func (s *RunStore) UpdateRun(runID string, condition string, workflowRuntimeMani
 	// new in the status of an Argo manifest. This means we need to keep track
 	// manually here on what the previously updated state of the run is, to ensure
 	// we do not add duplicate metadata. Hence the locking below.
-	var query string
-	switch x := s.db.SQLDialect.(type) {
-	case MySQLDialect:
-		query = "SELECT WorkflowRuntimeManifest FROM run_details WHERE UUID = ? FOR UPDATE"
-	case SQLiteDialect:
-		query = "SELECT WorkflowRuntimeManifest FROM run_details WHERE UUID = ?"
-	default:
-		glog.Fatal("Unsupported SQL dialect: %v", x)
-	}
+	query := "SELECT WorkflowRuntimeManifest FROM run_details WHERE UUID = ?"
+	query = s.db.SelectForUpdate(query)
+
 	row := tx.QueryRow(query, runID)
 	var storedManifest string
 	if err := row.Scan(&storedManifest); err != nil {
