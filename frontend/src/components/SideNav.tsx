@@ -39,8 +39,12 @@ export const sideNavColors = {
   fgActiveInvisible: 'rgb(227, 233, 237, 0)',
   fgDefault: '#9aa0a6',
   hover: '#f1f3f4',
-  separator: '#eceef0',
+  separator: '#bdc1c6',
+  sideNavBorder: '#e8eaed',
 };
+
+const COLLAPSED_SIDE_NAV_SIZE = 72;
+const EXPANDED_SIDE_NAV_SIZE = 220;
 
 export const css = stylesheet({
   active: {
@@ -62,14 +66,14 @@ export const css = stylesheet({
     fontWeight: 'bold',
     height: 44,
     marginBottom: 16,
-    maxWidth: 220,
+    maxWidth: EXPANDED_SIDE_NAV_SIZE,
     overflow: 'hidden',
     padding: '12px 10px 10px 26px',
     textAlign: 'left',
     textTransform: 'none',
     transition: 'max-width 0.3s',
     whiteSpace: 'nowrap',
-    width: 220,
+    width: EXPANDED_SIDE_NAV_SIZE,
   },
   chevron: {
     color: sideNavColors.fgDefault,
@@ -78,8 +82,8 @@ export const css = stylesheet({
     transition: 'transform 0.3s',
   },
   collapsedButton: {
-    maxWidth: 72,
-    minWidth: 72,
+    maxWidth: COLLAPSED_SIDE_NAV_SIZE,
+    minWidth: COLLAPSED_SIDE_NAV_SIZE,
     padding: '12px 10px 10px 26px',
   },
   collapsedChevron: {
@@ -90,7 +94,7 @@ export const css = stylesheet({
     opacity: 0,
   },
   collapsedRoot: {
-    width: '72px !important',
+    width: `${COLLAPSED_SIDE_NAV_SIZE}px !important`,
   },
   collapsedSeparator: {
     margin: '20px !important',
@@ -150,9 +154,10 @@ export const css = stylesheet({
   },
   root: {
     background: sideNavColors.bg,
+    borderRight: `1px ${sideNavColors.sideNavBorder} solid`,
     paddingTop: 15,
     transition: 'width 0.3s',
-    width: 220,
+    width: EXPANDED_SIDE_NAV_SIZE,
   },
   separator: {
     border: '0px none transparent',
