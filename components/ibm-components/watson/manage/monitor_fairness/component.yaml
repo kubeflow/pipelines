@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Enable fairness monitoring on Watson OpenScale
+name: 'Watson OpenScale - Monitor Fairness'
 description: |
   Enable model fairness monitoring on Watson OpenScale.
 inputs:
@@ -22,6 +22,7 @@ inputs:
 implementation:
   container:
     image: docker.io/aipipeline/monitor_fairness:latest
+    command: ['python']
     args: [
       -u, monitor_fairness.py,
       --model_name, {inputValue: model_name},
