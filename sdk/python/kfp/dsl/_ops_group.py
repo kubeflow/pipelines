@@ -100,32 +100,9 @@ class Condition(OpsGroup):
     super(Condition, self).__init__('condition')
     self.condition = condition
 
-# class While(OpsGroup):
-#   """While loop with conditions.
-#   TODO: Example usage:
-#   """
-#   def __init__(self, condition):
-#     """Create a while loop structure
-#     Args:
-#       condition (ConditionOperator): the condition.
-#     """
-#     super(While, self).__init__('while')
-#     if not isinstance(condition, (ConditionOperator)):
-#       raise ValueError
-#     import copy
-#     self.condition_when_entering = copy.deepcopy(condition)
-#     self.condition = condition
-#
-#   def __exit__(self, *args):
-#     # While needs special handling of the condition because
-#     # the pipelineparam during the exit contains the dynamic information
-#     # that are needed to resolve the condition.
-#     import copy
-#     self.condition_when_exiting = copy.deepcopy(self.condition)
-#     _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
-
 class Graph(OpsGroup):
   """Graph DAG with inputs, recursive_inputs, and outputs.
+  This is not used directly by the users but auto generated when the graph_component decoration exists
   TODO: Example usage:
   """
   def __init__(self, name):
