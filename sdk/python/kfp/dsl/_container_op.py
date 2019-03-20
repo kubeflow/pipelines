@@ -24,7 +24,7 @@ class ContainerOp(object):
   """Represents an op implemented by a docker container image."""
 
   def __init__(self, name: str, image: str, command: str=None, arguments: str=None,
-               file_outputs : Dict[str, str]=None, output_artifact_paths : Dict[str, str]={},
+               file_outputs : Dict[str, str]=None, output_artifact_paths : Dict[str, str]=None,
                is_exit_handler=False):
     """Create a new instance of ContainerOp.
 
@@ -59,7 +59,7 @@ class ContainerOp(object):
     self.image = image
     self.command = command
     self.arguments = arguments
-    self.output_artifact_paths = output_artifact_paths
+    self.output_artifact_paths = output_artifact_paths or {}
     self.is_exit_handler = is_exit_handler
     self.resource_limits = {}
     self.resource_requests = {}
