@@ -30,22 +30,18 @@ class DataflowClient:
         ).execute()
 
     def get_job(self, project_id, job_id, location=None, view=None):
-        if not location:
-            location = 'us-central1'
         return self._df.projects().locations().jobs().get(
             projectId = project_id,
             jobId = job_id,
-            location = location,
+            location = self._get_location(location),
             view = view
         ).execute()
 
     def cancel_job(self, project_id, job_id, location):
-        if not location:
-            location = 'us-central1'
         return self._df.projects().locations().jobs().update(
             projectId = project_id,
             jobId = job_id,
-            location = location,
+            location = self._get_location(location),
             body = {
                 'requestedState': 'JOB_STATE_CANCELLED'
             }
@@ -60,3 +56,8 @@ class DataflowClient:
             pageSize = page_size,
             pageToken = page_token,
             location = location).execute()
+
+    def _get_location(self, location):
+        if not location:
+            location = 'us-central1'
+        return location
