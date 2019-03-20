@@ -133,7 +133,7 @@ def graph_component(func):
       raise ValueError('Default pipeline not defined.')
     # If this is a recursive call
     for ops_group in _pipeline.Pipeline.get_default_pipeline().groups:
-      if ops_group.name.endswith(func.__name__):
+      if ops_group.type == 'graph' and ops_group.name == func.__name__:
         # Store the current input pipelineparam and return
         ops_group.recursive_inputs = args + kargs.values()
         return

@@ -28,7 +28,7 @@ class OpsGroup(object):
   def __init__(self, group_type: str, name: str=None):
     """Create a new instance of OpsGroup.
     Args:
-      group_type: one of 'pipeline', 'exit_handler', 'condition', and 'graph-'.
+      group_type: one of 'pipeline', 'exit_handler', 'condition', and 'graph'.
     """
     self.type = group_type
     self.ops = list()
@@ -106,7 +106,7 @@ class Graph(OpsGroup):
   TODO: Example usage:
   """
   def __init__(self, name):
-    super(Graph, self).__init__('graph-' + name)
+    super(Graph, self).__init__(group_type='graph', name=name)
     self.inputs = []
     self.recursive_inputs = []
     self.outputs = {}
