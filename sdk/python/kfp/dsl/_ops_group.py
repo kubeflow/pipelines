@@ -35,21 +35,42 @@ class OpsGroup(object):
     self.groups = list()
     self.name = name
 
+  @staticmethod
+  def _get_opsgroup_pipeline(group_type, name):
+    """retrieves the opsgroup when the pipeline already contains it.
+    the opsgroup might be already in the pipeline in case of recursive calls.
+    Args:
+      group_type (str): one of 'pipeline', 'exit_handler', 'condition', and 'graph'.
+      name (str): the name before conversion. """
+    if not _pipeline.Pipeline.get_default_pipeline():
+      raise ValueError('Default pipeline not defined.')
+    if name is None:
+      raise ValueError('name must be a string.')
+    name_prefix = (group_type + '-' + name + '-').replace('_', '-')
+    for ops_group in _pipeline.Pipeline.get_default_pipeline().groups:
+      if ops_group.type == group_type and ops_group.name.startswith(name_prefix):
+        return ops_group
+    return None
+
+  def _make_name_unique(self):
+    """Generate a unique opsgroup name in the pipeline"""
+    if not _pipeline.Pipeline.get_default_pipeline():
+      raise ValueError('Default pipeline not defined.')
+
+    self.name = (self.type + '-' + ('' if self.name is None else self.name + '-') +
+                   str(_pipeline.Pipeline.get_default_pipeline().get_next_group_id()))
+    self.name = self.name.replace('_', '-')
+
   def __enter__(self):
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
 
-    if not self.name:
-      self.name = (self.type + '-' +
-          str(_pipeline.Pipeline.get_default_pipeline().get_next_group_id()))
-    self.name = self.name.replace('_', '-')
-
+    self._make_name_unique()
     _pipeline.Pipeline.get_default_pipeline().push_ops_group(self)
     return self
 
   def __exit__(self, *args):
     _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
-
 
 class ExitHandler(OpsGroup):
   """Represents an exit handler that is invoked upon exiting a group of ops.

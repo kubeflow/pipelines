@@ -15,7 +15,7 @@
 from ._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 from ._pipeline_param import PipelineParam
 from ._types import check_types, InconsistentTypeException
-from ._ops_group import Graph
+from ._ops_group import OpsGroup, Graph
 from . import _pipeline
 import kfp
 
@@ -129,15 +129,13 @@ def graph_component(func):
   @wraps(func)
   def _graph_component(*args, **kargs):
     # Entering Graph Context
-    if not _pipeline.Pipeline.get_default_pipeline():
-      raise ValueError('Default pipeline not defined.')
-    # If this is a recursive call
-    for ops_group in _pipeline.Pipeline.get_default_pipeline().groups:
-      if ops_group.type == 'graph' and ops_group.name == func.__name__:
-        # Store the current input pipelineparam and return
-        ops_group.recursive_inputs = list(args) + list(kargs.values())
-        return
+    graph_ops_group = OpsGroup._get_opsgroup_pipeline('graph', func.__name__)
+    # If the ops group already exists, record the inputs and exit.
+    if graph_ops_group is not None:
+      graph_ops_group.recursive_inputs = list(args) + list(kargs.values())
+      return
     graph_ops_group = Graph(func.__name__)
+    graph_ops_group._make_name_unique()
     _pipeline.Pipeline.get_default_pipeline().push_ops_group(graph_ops_group)
 
     # Process
