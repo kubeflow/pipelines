@@ -14,6 +14,7 @@
 import mock
 import unittest
 
+from googleapiclient import errors
 from kfp_component.google.dataproc import delete_cluster
 
 MODULE = 'kfp_component.google.dataproc._delete_cluster'
@@ -29,4 +30,13 @@ class TestDeleteCluster(unittest.TestCase):
 
         mock_client().delete_cluster.assert_called_with('mock-project', 
             'mock-region', 'mock-cluster', request_id='ctx1')
+
+    def test_delete_cluster_ignore_not_found(self, mock_client, mock_context):
+        mock_context().__enter__().context_id.return_value = 'ctx1'
+        mock_client().delete_cluster.side_effect = errors.HttpError(
+            resp = mock.Mock(status=404),
+            content = b'not found'
+        )
+
+        delete_cluster('mock-project', 'mock-region', 'mock-cluster')
 
