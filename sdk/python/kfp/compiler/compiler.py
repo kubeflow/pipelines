@@ -113,8 +113,10 @@ class Compiler(object):
     inputs = defaultdict(set)
     outputs = defaultdict(set)
     for op in pipeline.ops.values():
+      #print('op name: '+ op.name)
       # op's inputs and all params used in conditions for that op are both considered.
       for param in op.inputs + list(condition_params[op.name]):
+        #print('\tparam: ' + str(param))
         # if the value is already provided (immediate value), then no need to expose
         # it as input for its parent groups.
         if param.value:
@@ -125,11 +127,16 @@ class Compiler(object):
           upstream_op = pipeline.ops[param.op_name]
           upstream_groups, downstream_groups = self._get_uncommon_ancestors(
               op_groups, upstream_op, op)
+          #print('\t\tupstream:')
+          #print(upstream_groups)
+          #print('\t\tdownstream:')
+          #print(downstream_groups)
           for i, g in enumerate(downstream_groups):
             if i == 0:
               # If it is the first uncommon downstream group, then the input comes from
               # the first uncommon upstream group.
               inputs[g].add((full_name, upstream_groups[0]))
+              #print('\t\t\tadding ' + full_name + ' to ' + str(g) + ' from op name: ' + str(upstream_groups[0]))
             else:
               # If not the first downstream group, then the input is passed down from
               # its ancestor groups so the upstream group is None.
@@ -145,6 +152,24 @@ class Compiler(object):
           if not op.is_exit_handler:
             for g in op_groups[op.name]:
               inputs[g].add((full_name, None))
+
+    # Generate the input/output for ops groups
+    def _get_inputs_outputs_opsgroup(group, inputs):
+      if group.type == 'condition':
+        #print('group: ' + group.name)
+        if isinstance(group.condition.operand1, dsl.PipelineParam):
+          full_name = self._pipelineparam_full_name(group.condition.operand1)
+          inputs[group.name].add((full_name, group.condition.operand1.op_name))
+          #print('\tadd ' + full_name + " from op name: "+ group.condition.operand1.op_name)
+        if isinstance(group.condition.operand2, dsl.PipelineParam):
+          full_name = self._pipelineparam_full_name(group.condition.operand2)
+          inputs[group.name].add((full_name, group.condition.operand2.op_name))
+          #print('\tadd ' + full_name)
+      for subgroup in group.groups:
+        _get_inputs_outputs_opsgroup(subgroup, inputs)
+
+    _get_inputs_outputs_opsgroup(root_group, inputs)
+
     return inputs, outputs
 
   def _get_condition_params_for_ops(self, root_group):
@@ -193,6 +218,22 @@ class Compiler(object):
         upstream_groups, downstream_groups = self._get_uncommon_ancestors(
             op_groups, upstream_op, op)
         dependencies[downstream_groups[0]].add(upstream_groups[0])
+
+    # Generate dependencies for ops groups
+    def _get_dependency_opsgroup(group, dependencies):
+      if group.type == 'condition':
+        #print('group: ' + group.name)
+        if isinstance(group.condition.operand1, dsl.PipelineParam):
+          dependencies[group.name].add((group.condition.operand1.op_name))
+          #print('\tadd dependency on op name: '+ group.condition.operand1.op_name)
+        if isinstance(group.condition.operand2, dsl.PipelineParam):
+          dependencies[group.name].add((group.condition.operand2.op_name))
+          #print('\tadd dependency on op name: '+ group.condition.operand2.op_name)
+      for subgroup in group.groups:
+        _get_dependency_opsgroup(subgroup, dependencies)
+
+    _get_dependency_opsgroup(root_group, dependencies)
+
     return dependencies
 
   def _resolve_value_or_reference(self, value_or_reference, potential_references):
@@ -340,6 +381,7 @@ class Compiler(object):
     """
     template = {'name': group.name}
 
+    #print('group_name: ' + group.name)
     # Generate inputs section.
     if inputs.get(group.name, None):
       template_inputs = [{'name': x[0]} for x in inputs[group.name]]
@@ -347,6 +389,8 @@ class Compiler(object):
       template['inputs'] = {
         'parameters': template_inputs
       }
+      # for input in inputs[group.name]:
+      #   print(input[0])
 
     # Generate outputs section.
     if outputs.get(group.name, None):
@@ -370,10 +414,13 @@ class Compiler(object):
       }
 
       if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
+        #print('\tresolving condition for ' + sub_group.name)
         subgroup_inputs = inputs.get(sub_group.name, [])
         condition = sub_group.condition
         operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
         operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
+        #print('\t\t' + operand1_value)
+        #print('\t\t' + operand2_value)
         task['when'] = '{} {} {}'.format(operand1_value, condition.operator, operand2_value)
 
       # Generate dependencies section for this task.
