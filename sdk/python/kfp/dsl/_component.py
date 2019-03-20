@@ -135,13 +135,13 @@ def graph_component(func):
     for ops_group in _pipeline.Pipeline.get_default_pipeline().groups:
       if ops_group.type == 'graph' and ops_group.name == func.__name__:
         # Store the current input pipelineparam and return
-        ops_group.recursive_inputs = args + kargs.values()
+        ops_group.recursive_inputs = list(args) + list(kargs.values())
         return
     graph_ops_group = Graph(func.__name__)
     _pipeline.Pipeline.get_default_pipeline().push_ops_group(graph_ops_group)
 
     # Process
-    graph_ops_group.inputs = args + kargs.values()
+    graph_ops_group.inputs = list(args) + list(kargs.values())
     #TODO: check if the inputs is a list of pipelineparams
     graph_ops_group.outputs = func(*args, **kargs)
     #TODO: check if the outputs is a dictionary of str to pipelineparams
