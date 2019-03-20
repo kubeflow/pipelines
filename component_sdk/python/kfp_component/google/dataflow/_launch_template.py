@@ -17,14 +17,14 @@ import logging
 import re
 import time
 
+from google.cloud import storage
 from kfp_component.core import KfpExecutionContext
 from ._client import DataflowClient
-from .. import common as gcp_common
-from ._common_ops import (generate_job_name, get_job_by_name, 
-    wait_and_dump_job)
+from ._common_ops import (wait_and_dump_job, get_staging_location, 
+    read_job_id_and_location, upload_job_id_and_location)
 
 def launch_template(project_id, gcs_path, launch_parameters, 
-    location=None, job_name_prefix=None, validate_only=None, 
+    location=None, validate_only=None, staging_dir=None, 
     wait_interval=30):
     """Launchs a dataflow job from template.
 
@@ -40,15 +40,17 @@ def launch_template(project_id, gcs_path, launch_parameters,
             `jobName` will be replaced by generated name.
         location (str): The regional endpoint to which to direct the 
             request.
-        job_name_prefix (str): Optional. The prefix of the genrated job
-            name. If not provided, the method will generated a random name.
         validate_only (boolean): If true, the request is validated but 
             not actually executed. Defaults to false.
+        staging_dir (str): Optional. The GCS directory for keeping staging files. 
+            A random subdirectory will be created under the directory to keep job info
+            for resuming the job in case of failure.
         wait_interval (int): The wait seconds between polling.
     
     Returns:
         The completed job.
     """
+    storage_client = storage.Client()
     df_client = DataflowClient()
     job_id = None
     def cancel():
@@ -59,19 +61,24 @@ def launch_template(project_id, gcs_path, launch_parameters,
                 location
             )
     with KfpExecutionContext(on_cancel=cancel) as ctx:
-        job_name = generate_job_name(
-            job_name_prefix,
-            ctx.context_id())
-        print(job_name)
-        job = get_job_by_name(df_client, project_id, job_name, 
-            location)
-        if not job:
-            launch_parameters['jobName'] = job_name
-            response = df_client.launch_template(project_id, gcs_path, 
-                location, validate_only, launch_parameters)
-            job = response.get('job', None)
+        staging_location = get_staging_location(staging_dir, ctx.context_id())
+        job_id, _ = read_job_id_and_location(storage_client, staging_location)
+        # Continue waiting for the job if it's has been uploaded to staging location.
+        if job_id:
+            job = df_client.get_job(project_id, job_id, location)
+            return wait_and_dump_job(df_client, project_id, location, job,
+                wait_interval)
+
+        if not launch_parameters:
+            launch_parameters = {}
+        launch_parameters['jobName'] = 'job-' + ctx.context_id()
+        response = df_client.launch_template(project_id, gcs_path, 
+            location, validate_only, launch_parameters)
+        job = response.get('job', None)
         if not job:
             # Validate only mode
             return job
+        job_id = job.get('id')
+        upload_job_id_and_location(storage_client, staging_location, job_id, location)
         return wait_and_dump_job(df_client, project_id, location, job,
             wait_interval)
