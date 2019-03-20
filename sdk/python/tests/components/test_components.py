@@ -33,7 +33,7 @@ class LoadComponentTestCase(unittest.TestCase):
         task1 = task_factory1(arg1, arg2)
 
         self.assertEqual(task1.human_name, 'Add')
-        self.assertEqual(task_factory1.__doc__.strip(), 'Returns sum of two arguments')
+        self.assertEqual(task_factory1.__doc__.strip(), 'Add\nReturns sum of two arguments')
         self.assertEqual(task1.image, 'python:3.5')
         self.assertEqual(task1.arguments[0], str(arg1))
         self.assertEqual(task1.arguments[1], str(arg2))
@@ -62,7 +62,7 @@ class LoadComponentTestCase(unittest.TestCase):
         component_text = resp.content
         component_dict = load_yaml(component_text)
         task_factory1 = comp.load_component_from_url(url)
-        assert task_factory1.__doc__ == component_dict['description']
+        assert task_factory1.__doc__ == component_dict['name'] + '\n' + component_dict['description']
 
         arg1 = 3
         arg2 = 5
