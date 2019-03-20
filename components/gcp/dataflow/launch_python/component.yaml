@@ -16,15 +16,36 @@ name: Launch Python
 description: |
   Launch a self-executing beam python file.
 inputs:
-  - {name: python_file_path, description: 'The gcs or local path to the python file to run.'}
-  - {name: project_id, description: 'The ID of the parent project.' }
-  - {name: requirements_file_path, description: 'Optional, the gcs or local path to the pip requirements file', default: '' }
-  - {name: location, description: 'The regional endpoint to which to direct the request.', default: '' }
-  - {name: job_name_prefix, description: 'Optional. The prefix of the genrated job name. If not provided, the method will generated a random name.', default: '' }
-  - {name: args, description: 'The list of args to pass to the python file.', default: '[]' }
-  - {name: wait_interval, default: '30', description: 'Optional wait interval between calls to get job status. Defaults to 30.' }
+  - name: python_file_path
+    description: 'The gcs or local path to the python file to run.'
+    type: String
+  - name: project_id
+    description: 'The ID of the parent project.'
+    type: GCPProjectID
+  - name: staging_dir
+    description: >-
+      Optional. The GCS directory for keeping staging files.
+      A random subdirectory will be created under the directory to keep job info
+      for resuming the job in case of failure and it will be passed as
+      `staging_location` and `temp_location` command line args of the beam code.
+    default: ''
+    type: GCSPath
+  - name: requirements_file_path
+    description: 'Optional, the gcs or local path to the pip requirements file'
+    default: ''
+    type: GCSPath
+  - name: args
+    description: 'The list of args to pass to the python file.'
+    default: '[]'
+    type: List
+  - name: wait_interval
+    default: '30'
+    description: 'Optional wait interval between calls to get job status. Defaults to 30.'
+    type: Integer
 outputs:
-  - {name: job_id, description: 'The id of the created dataflow job.'}
+  - name: job_id
+    description: 'The id of the created dataflow job.'
+    type: String
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest
@@ -32,9 +53,8 @@ implementation:
       kfp_component.google.dataflow, launch_python,
       --python_file_path, {inputValue: python_file_path},
       --project_id, {inputValue: project_id},
+      --staging_dir, {inputValue: staging_dir},
       --requirements_file_path, {inputValue: requirements_file_path},
-      --location, {inputValue: location},
-      --job_name_prefix, {inputValue: job_name_prefix},
       --args, {inputValue: args},
       --wait_interval, {inputValue: wait_interval}
     ]
