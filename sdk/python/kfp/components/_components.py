@@ -190,6 +190,8 @@ _created_task_transformation_handler.append(_dsl_bridge.create_container_op_from
 def _create_task_factory_from_component_spec(component_spec:ComponentSpec, component_filename=None, component_ref: ComponentReference = None):
     name = component_spec.name or _default_component_name
     description = component_spec.description
+    if component_spec.name:
+        description = component_spec.name + '\n' + description
     
     inputs_list = component_spec.inputs or [] #List[InputSpec]
     input_names = [input.name for input in inputs_list]
