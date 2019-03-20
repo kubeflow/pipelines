@@ -19,39 +19,50 @@ inputs:
   - name: project_id
     description: >-
       Required. The ID of the Google Cloud Platform project that the cluster belongs to.
+    type: GCPProjectID
   - name: region
     description: 'Required. The Cloud Dataproc region in which to handle the request.'
+    type: GCPRegion
   - name: name
     description: >-
       Optional. The cluster name. Cluster names within a project must be unique. Names of 
       deleted clusters can be reused
     default: ''
+    type: String
   - name: name_prefix
     description: 'Optional. The prefix of the cluster name.'
     default: ''
+    type: String
   - name: initialization_actions
     description: >-
       Optional. List of GCS URIs of executables to execute on each node after config
       is completed. By default, executables are run on master and all worker nodes.
     default: ''
+    type: List
   - name: config_bucket
     description: >-
       Optional. A Google Cloud Storage bucket used to stage job dependencies, config
       files, and job driver console output.
     default: ''
+    type: GCSPath
   - name: image_version
     description: 'Optional. The version of software inside the cluster.'
     default: ''
+    type: String
   - name: cluster
     description: >-
       Optional. The full cluster config. See 
       [full details](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.clusters#Cluster)
     default: ''
+    type: Dict
   - name: wait_interval
     default: '30'
     description: 'Optional. The wait seconds between polling the operation. Defaults to 30.'
+    type: Integer
 outputs:
-  - {name: cluster_name, description: 'The cluster name of the created cluster.'}
+  - name: cluster_name
+    description: 'The cluster name of the created cluster.'
+    type: String
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest

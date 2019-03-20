@@ -16,15 +16,38 @@ name: Bigquery - Query
 description: |
   Submit a query to Bigquery service and write outputs to a GCS blob.
 inputs:
-  - {name: query, description: 'The query used by Bigquery service to fetch the results.'}
-  - {name: project_id, description: 'The project to execute the query job.' }
-  - {name: dataset_id, description: 'The ID of the persistent dataset to keep the results of the query.', default: '' }
-  - {name: table_id, description: 'The ID of the table to keep the results of the query. If absent, the operation will generate a random id for the table.', default: '' }
-  - {name: output_gcs_path, description: 'The GCS blob path to dump the query results to.', default: '' }
-  - {name: dataset_location, description: 'The location to create the dataset. Defaults to `US`.', default: 'US' }
-  - {name: job_config, description: 'The full config spec for the query job.', default: '' }
+  - name: query
+    description: 'The query used by Bigquery service to fetch the results.'
+    type: String
+  - name: project_id
+    description: 'The project to execute the query job.'
+    type: GCPProjectID
+  - name: dataset_id
+    description: 'The ID of the persistent dataset to keep the results of the query.'
+    default: ''
+    type: String
+  - name: table_id
+    description: >-
+      The ID of the table to keep the results of the query. If absent, the operation
+      will generate a random id for the table.
+    default: '' 
+    type: String
+  - name: output_gcs_path
+    description: 'The GCS blob path to dump the query results to.'
+    default: ''
+    type: GCSPath
+  - name: dataset_location
+    description: 'The location to create the dataset. Defaults to `US`.'
+    default: 'US'
+    type: String
+  - name: job_config
+    description: 'The full config spec for the query job.'
+    default: ''
+    type: Dict
 outputs:
-  - {name: output_gcs_path, description: 'The GCS blob path to dump the query results to.'}
+  - name: output_gcs_path
+    description: 'The GCS blob path to dump the query results to.'
+    type: GCSPath
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest

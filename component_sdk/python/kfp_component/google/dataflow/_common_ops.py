@@ -26,41 +26,6 @@ _JOB_SUCCESSFUL_STATES = ['JOB_STATE_DONE', 'JOB_STATE_UPDATED', 'JOB_STATE_DRAI
 _JOB_FAILED_STATES = ['JOB_STATE_STOPPED', 'JOB_STATE_FAILED', 'JOB_STATE_CANCELLED']
 _JOB_TERMINATED_STATES = _JOB_SUCCESSFUL_STATES + _JOB_FAILED_STATES
 
-def generate_job_name(job_name, context_id):
-    """Generates a stable job name in the job context.
-
-    If user provided ``job_name`` has value, the function will use it
-    as a prefix and appends first 8 characters of ``context_id`` to 
-    make the name unique across contexts. If the ``job_name`` is empty,
-    it will use ``job-{context_id}`` as the job name.
-    """
-    if job_name:
-        return '{}-{}'.format(
-            gcp_common.normalize_name(job_name),
-            context_id[:8])
-
-    return 'job-{}'.format(context_id)
-
-def get_job_by_name(df_client, project_id, job_name, location=None):
-    """Gets a job by its name.
-
-    The function lists all jobs under a project or a region location.
-    Compares their names with the ``job_name`` and return the job
-    once it finds a match. If none of the jobs matches, it returns 
-    ``None``.
-    """
-    page_token = None
-    while True:
-        response = df_client.list_aggregated_jobs(project_id, 
-            page_size=50, page_token=page_token, location=location)
-        for job in response.get('jobs', []):
-            name = job.get('name', None)
-            if job_name == name:
-                return job
-        page_token = response.get('nextPageToken', None)
-        if not page_token:
-            return None
-
 def wait_for_job_done(df_client, project_id, job_id, location=None, wait_interval=30):
     while True:
         job = df_client.get_job(project_id, job_id, location=location)
@@ -120,3 +85,37 @@ def stage_file(local_or_gcs_path):
     download_blob(local_or_gcs_path, local_file_path)
     return local_file_path
 
+def get_staging_location(staging_dir, context_id):
+    if not staging_dir:
+        return None
+
+    staging_location = os.path.join(staging_dir, context_id)
+    logging.info('staging_location: {}'.format(staging_location))
+    return staging_location
+
+def read_job_id_and_location(storage_client, staging_location):
+    if staging_location:
+        job_blob = _get_job_blob(storage_client, staging_location)
+        if job_blob.exists():
+            job_data = job_blob.download_as_string().decode().split(',')
+            # Returns (job_id, location)
+            logging.info('Found existing job {}.'.format(job_data))
+            return (job_data[0], job_data[1])
+
+    return (None, None)
+
+def upload_job_id_and_location(storage_client, staging_location, job_id, location):
+    if not staging_location:
+        return
+    if not location:
+        location = ''
+    data = '{},{}'.format(job_id, location)
+    job_blob = _get_job_blob(storage_client, staging_location)
+    logging.info('Uploading {} to {}.'.format(data, job_blob))
+    job_blob.upload_from_string(data)
+
+def _get_job_blob(storage_client, staging_location):
+    bucket_name, staging_blob_name = parse_blob_path(staging_location)
+    job_blob_name = os.path.join(staging_blob_name, 'kfp/dataflow/launch_python/job.txt')
+    bucket = storage_client.bucket(bucket_name)
+    return bucket.blob(job_blob_name)

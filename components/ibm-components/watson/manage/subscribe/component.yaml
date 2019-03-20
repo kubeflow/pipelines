@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Subscribe Watson OpenScale
+name: 'Watson OpenScale - Subscribe'
 description: |
   Binding deployed models and subscribe them to Watson OpenScale service.
 inputs:
@@ -23,6 +23,7 @@ outputs:
 implementation:
   container:
     image: docker.io/aipipeline/subscribe:latest
+    command: ['python']
     args: [
       -u, subscribe.py,
       --model_name, {inputValue: model_name},
@@ -31,4 +32,4 @@ implementation:
       --label_column, {inputValue: label_column}
     ]
     fileOutputs:
-      job_id: /tmp/model_name.txt
+      model_name: /tmp/model_name.txt
