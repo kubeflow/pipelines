@@ -15,6 +15,8 @@
 from ._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 from ._pipeline_param import PipelineParam
 from ._types import check_types, InconsistentTypeException
+from ._ops_group import Graph
+from . import _pipeline
 import kfp
 
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
@@ -54,7 +56,7 @@ def python_component(name, description=None, base_image=None, target_component_f
   return _python_component
 
 def component(func):
-  """Decorator for component functions that use ContainerOp.
+  """Decorator for component functions that returns a ContainerOp.
   This is useful to enable type checking in the DSL compiler
 
   Usage:
@@ -118,3 +120,34 @@ def component(func):
     return container_op
 
   return _component
+
+def graph_component(func):
+  """Decorator for graph component functions.
+  This decorator returns an ops_group """
+  #TODO: add usage
+  from functools import wraps
+  @wraps(func)
+  def _graph_component(*args, **kargs):
+    # Entering Graph Context
+    if not _pipeline.Pipeline.get_default_pipeline():
+      raise ValueError('Default pipeline not defined.')
+    # If this is a recursive call
+    for ops_group in _pipeline.Pipeline.get_default_pipeline().groups:
+      if ops_group.name.endswith(func.__name__):
+        # Store the current input pipelineparam and return
+        ops_group.recursive_inputs = args + kargs.values()
+        return
+    graph_ops_group = Graph(func.__name__)
+    _pipeline.Pipeline.get_default_pipeline().push_ops_group(graph_ops_group)
+
+    # Process
+    graph_ops_group.inputs = args + kargs.values()
+    #TODO: check if the inputs is a list of pipelineparams
+    graph_ops_group.outputs = func(*args, **kargs)
+    #TODO: check if the outputs is a dictionary of str to pipelineparams
+
+    # Exiting Graph Context
+    _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
+
+    return graph_ops_group
+  return _graph_component

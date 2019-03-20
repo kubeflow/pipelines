@@ -28,7 +28,7 @@ class OpsGroup(object):
   def __init__(self, group_type: str, name: str=None):
     """Create a new instance of OpsGroup.
     Args:
-      group_type: one of 'pipeline', 'exit_handler', 'condition', and 'loop'.
+      group_type: one of 'pipeline', 'exit_handler', 'condition', and 'graph-'.
     """
     self.type = group_type
     self.ops = list()
@@ -100,26 +100,36 @@ class Condition(OpsGroup):
     super(Condition, self).__init__('condition')
     self.condition = condition
 
-class While(OpsGroup):
-  """While loop with conditions.
+# class While(OpsGroup):
+#   """While loop with conditions.
+#   TODO: Example usage:
+#   """
+#   def __init__(self, condition):
+#     """Create a while loop structure
+#     Args:
+#       condition (ConditionOperator): the condition.
+#     """
+#     super(While, self).__init__('while')
+#     if not isinstance(condition, (ConditionOperator)):
+#       raise ValueError
+#     import copy
+#     self.condition_when_entering = copy.deepcopy(condition)
+#     self.condition = condition
+#
+#   def __exit__(self, *args):
+#     # While needs special handling of the condition because
+#     # the pipelineparam during the exit contains the dynamic information
+#     # that are needed to resolve the condition.
+#     import copy
+#     self.condition_when_exiting = copy.deepcopy(self.condition)
+#     _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
+
+class Graph(OpsGroup):
+  """Graph DAG with inputs, recursive_inputs, and outputs.
   TODO: Example usage:
   """
-  def __init__(self, condition):
-    """Create a while loop structure
-    Args:
-      condition (ConditionOperator): the condition.
-    """
-    super(While, self).__init__('while')
-    if not isinstance(condition, (ConditionOperator)):
-      raise ValueError
-    import copy
-    self.condition_when_entering = copy.deepcopy(condition)
-    self.condition = condition
-
-  def __exit__(self, *args):
-    # While needs special handling of the condition because
-    # the pipelineparam during the exit contains the dynamic information
-    # that are needed to resolve the condition.
-    import copy
-    self.condition_when_exiting = copy.deepcopy(self.condition)
-    _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
+  def __init__(self, name):
+    super(Graph, self).__init__('graph-' + name)
+    self.inputs = []
+    self.recursive_inputs = []
+    self.outputs = {}
