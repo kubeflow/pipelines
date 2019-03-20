@@ -303,9 +303,9 @@ class Compiler(object):
     # TODO: after argo addresses the issue that configures a unique path
     # for the artifact output when default artifact repository is configured,
     # this part needs to be updated to use the default artifact repository.
-    output_artifacts = []
-    output_artifacts.append(_build_conventional_artifact('mlpipeline-ui-metadata', op.mlpipeline_ui_metadata_path))
-    output_artifacts.append(_build_conventional_artifact('mlpipeline-metrics', op.mlpipeline_metrics_path))
+    op.output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
+    op.output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
+    output_artifacts = [_build_conventional_artifact(name, path) for name, path in op.output_artifact_paths.items()]
     template['outputs']['artifacts'] = output_artifacts
 
     # Set resources.
