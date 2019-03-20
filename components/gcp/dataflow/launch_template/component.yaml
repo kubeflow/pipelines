@@ -16,15 +16,46 @@ name: Launch Dataflow Template
 description: |
   Launchs a dataflow job from template.
 inputs:
-  - {name: project_id, description: 'Required. The ID of the Cloud Platform project that the job belongs to.'}
-  - {name: gcs_path, description: 'Required. A Cloud Storage path to the template from which to create the job. Must be valid Cloud Storage URL, beginning with `gs://`.' }
-  - {name: launch_parameters, description: 'Parameters to provide to the template being launched. Schema defined in https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters. `jobName` will be replaced by generated name.' }
-  - {name: location, description: 'The regional endpoint to which to direct the request.', default: '' }
-  - {name: job_name_prefix, description: 'Optional. The prefix of the genrated job name. If not provided, the method will generated a random name.', default: '' }
-  - {name: validate_only, description: 'If true, the request is validated but not actually executed. Defaults to false.', default: 'False' }
-  - {name: wait_interval, description: 'Optional wait interval between calls to get job status. Defaults to 30.', default: '30'}
+  - name: project_id
+    description: 'Required. The ID of the Cloud Platform project that the job belongs to.'
+    type: GCPProjectID
+  - name: gcs_path
+    description: >-
+      Required. A Cloud Storage path to the template from
+      which to create the job. Must be valid Cloud Storage URL, beginning with `gs://`.
+    type: GCSPath
+  - name: launch_parameters
+    description: >-
+      Parameters to provide to the template being launched. Schema defined in 
+      https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters.
+      `jobName` will be replaced by generated name.'
+    type: Dict
+    default: '{}'
+  - name: location
+    description: 'The regional endpoint to which to direct the request.'
+    default: ''
+    type: GCPRegion
+  - name: validate_only
+    description: >-
+      If true, the request is validated but not actually executed. Defaults to false.
+    default: 'False'
+    type: Bool
+  - name: staging_dir
+    description: >-
+      Optional. The GCS directory for keeping staging files.
+      A random subdirectory will be created under the directory to keep job info
+      for resuming the job in case of failure.
+    default: ''
+    type: GCSPath
+  - name: wait_interval
+    description: >-
+      Optional wait interval between calls to get job status. Defaults to 30.
+    default: '30'
+    type: Integer
 outputs:
-  - {name: job_id, description: 'The ID of the created dataflow job.'}
+  - name: job_id
+    description: 'The id of the created dataflow job.'
+    type: String
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest
@@ -34,8 +65,8 @@ implementation:
       --gcs_path, {inputValue: gcs_path},
       --launch_parameters, {inputValue: launch_parameters},
       --location, {inputValue: location},
-      --job_name_prefix, {inputValue: job_name_prefix},
       --validate_only, {inputValue: validate_only},
+      --staging_dir, {inputValue: staging_dir},
       --wait_interval, {inputValue: wait_interval},
     ]
     env:

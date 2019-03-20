@@ -20,16 +20,16 @@ from kfp_component.google.dataflow import launch_template
 
 MODULE = 'kfp_component.google.dataflow._launch_template'
 
+@mock.patch(MODULE + '.storage')
 @mock.patch('kfp_component.google.dataflow._common_ops.display')
 @mock.patch(MODULE + '.KfpExecutionContext')
 @mock.patch(MODULE + '.DataflowClient')
 class LaunchTemplateTest(unittest.TestCase):
 
-    def test_launch_template_succeed(self, mock_client, mock_context, mock_display):
+    def test_launch_template_succeed(self, mock_client, mock_context, mock_display, 
+        mock_storage):
         mock_context().__enter__().context_id.return_value = 'context-1'
-        mock_client().list_aggregated_jobs.return_value = {
-            'jobs': []
-        }
+        mock_storage.Client().bucket().blob().exists.return_value = False
         mock_client().launch_template.return_value = {
             'job': { 'id': 'job-1' }
         }
@@ -46,21 +46,19 @@ class LaunchTemplateTest(unittest.TestCase):
             "environment": {
                 "zone": "us-central1"
             }
-        })
+        }, staging_dir='gs://staging/dir')
 
         self.assertEqual(expected_job, result)
         mock_client().launch_template.assert_called_once()
+        mock_storage.Client().bucket().blob().upload_from_string.assert_called_with(
+            'job-1,'
+        )
 
     def test_launch_template_retry_succeed(self, 
-        mock_client, mock_context, mock_display):
+        mock_client, mock_context, mock_display, mock_storage):
         mock_context().__enter__().context_id.return_value = 'ctx-1'
-        # The job with same name already exists.
-        mock_client().list_aggregated_jobs.return_value = {
-            'jobs': [{
-                'id': 'job-1',
-                'name': 'test_job-ctx-1'
-            }]
-        }
+        mock_storage.Client().bucket().blob().exists.return_value = True
+        mock_storage.Client().bucket().blob().download_as_string.return_value = b'job-1,'
         pending_job = {
             'currentState': 'JOB_STATE_PENDING'
         }
@@ -77,16 +75,15 @@ class LaunchTemplateTest(unittest.TestCase):
             "environment": {
                 "zone": "us-central1"
             }
-        }, job_name_prefix='test-job', wait_interval=0)
+        }, staging_dir='gs://staging/dir', wait_interval=0)
 
         self.assertEqual(expected_job, result)
         mock_client().launch_template.assert_not_called()
     
-    def test_launch_template_fail(self, mock_client, mock_context, mock_display):
+    def test_launch_template_fail(self, mock_client, mock_context, mock_display, 
+        mock_storage):
         mock_context().__enter__().context_id.return_value = 'context-1'
-        mock_client().list_aggregated_jobs.return_value = {
-            'jobs': []
-        }
+        mock_storage.Client().bucket().blob().exists.return_value = False
         mock_client().launch_template.return_value = {
             'job': { 'id': 'job-1' }
         }

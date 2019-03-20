@@ -20,44 +20,55 @@ inputs:
     description: >-
       Required. The ID of the Google Cloud Platform project that the cluster
       belongs to.
+    type: GCPProjectID
   - name: region
     description: >-
       Required. The Cloud Dataproc region in which to handle the request.
+    type: GCPRegion
   - name: cluster_name
     description: 'Required. The cluster to run the job.'
+    type: String
   - name: main_jar_file_uri
     default: ''
     description: >-
       The HCFS URI of the jar file that contains the main class.
+    type: GCSPath
   - name: main_class
     default: ''
     description: >-
       The name of the driver's main class. The jar file that 
       contains the class must be in the default CLASSPATH or specified in 
       jarFileUris.
+    type: String
   - name: args
     default: ''
     description: >-
       Optional. The arguments to pass to the driver. Do not include 
       arguments, such as --conf, that can be set as job properties, since a 
       collision may occur that causes an incorrect job submission.
+    type: List
   - name: spark_job
     default: ''
     description: >-
       Optional. The full payload of a
       [SparkJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/SparkJob).
+    type: Dict
   - name: job
     default: ''
     description: >-
       Optional. The full payload of a
       [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs).
+    type: Dict
   - name: wait_interval
     default: '30'
     description: >-
       Optional. The wait seconds between polling the operation.
       Defaults to 30.
+    type: Integer
 outputs:
-  - {name: job_id, description: 'The ID of the created job.'}
+  - name: job_id
+    description: 'The ID of the created job.'
+    type: String
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest

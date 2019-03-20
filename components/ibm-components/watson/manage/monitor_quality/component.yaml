@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Enable quality monitoring on Watson OpenScale
+name: 'Watson OpenScale - Monitor quality'
 description: |
   Enable model quality monitoring on Watson OpenScale.
 inputs:
@@ -21,6 +21,7 @@ inputs:
 implementation:
   container:
     image: docker.io/aipipeline/monitor_quality:latest
+    command: ['python']
     args: [
       -u, monitor_quality.py,
       --model_name, {inputValue: model_name},

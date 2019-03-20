@@ -20,6 +20,7 @@ from kfp_component.google.dataflow import launch_python
 
 MODULE = 'kfp_component.google.dataflow._launch_python'
 
+@mock.patch(MODULE + '.storage')
 @mock.patch('kfp_component.google.dataflow._common_ops.display')
 @mock.patch(MODULE + '.stage_file')
 @mock.patch(MODULE + '.KfpExecutionContext')
@@ -29,11 +30,9 @@ MODULE = 'kfp_component.google.dataflow._launch_python'
 class LaunchPythonTest(unittest.TestCase):
 
     def test_launch_python_succeed(self, mock_subprocess, mock_process, 
-        mock_client, mock_context, mock_stage_file, mock_display):
+        mock_client, mock_context, mock_stage_file, mock_display, mock_storage):
         mock_context().__enter__().context_id.return_value = 'ctx-1'
-        mock_client().list_aggregated_jobs.return_value = {
-            'jobs': []
-        }
+        mock_storage.Client().bucket().blob().exists.return_value = False
         mock_process().read_lines.return_value = [
             b'https://console.cloud.google.com/dataflow/locations/us-central1/jobs/job-1?project=project-1'
         ]
@@ -43,36 +42,32 @@ class LaunchPythonTest(unittest.TestCase):
         }
         mock_client().get_job.return_value = expected_job
 
-        result = launch_python('/tmp/test.py', 'project-1')
+        result = launch_python('/tmp/test.py', 'project-1', staging_dir='gs://staging/dir')
 
         self.assertEqual(expected_job, result)
+        mock_storage.Client().bucket().blob().upload_from_string.assert_called_with(
+            'job-1,us-central1'
+        )
 
     def test_launch_python_retry_succeed(self, mock_subprocess, mock_process, 
-        mock_client, mock_context, mock_stage_file, mock_display):
+        mock_client, mock_context, mock_stage_file, mock_display, mock_storage):
         mock_context().__enter__().context_id.return_value = 'ctx-1'
-        mock_client().list_aggregated_jobs.return_value = {
-            'jobs': [{
-                'id': 'job-1',
-                'name': 'test_job-ctx-1'
-            }]
-        }
+        mock_storage.Client().bucket().blob().exists.return_value = True
+        mock_storage.Client().bucket().blob().download_as_string.return_value = b'job-1,us-central1'
         expected_job = {
             'id': 'job-1',
             'currentState': 'JOB_STATE_DONE'
         }
         mock_client().get_job.return_value = expected_job
 
-        result = launch_python('/tmp/test.py', 'project-1', job_name_prefix='test-job')
+        result = launch_python('/tmp/test.py', 'project-1', staging_dir='gs://staging/dir')
 
         self.assertEqual(expected_job, result)
         mock_process.assert_not_called()
 
     def test_launch_python_no_job_created(self, mock_subprocess, mock_process, 
-        mock_client, mock_context, mock_stage_file, mock_display):
+        mock_client, mock_context, mock_stage_file, mock_display, mock_storage):
         mock_context().__enter__().context_id.return_value = 'ctx-1'
-        mock_client().list_aggregated_jobs.return_value = {
-            'jobs': []
-        }
         mock_process().read_lines.return_value = [
             b'no job id',
             b'no job id'
