@@ -30,10 +30,10 @@ class TestTypes(unittest.TestCase):
 
   def test_check_types(self):
     #Core types
-    typeA = {'GCSPath': {'path_type': 'file', 'file_type':'csv'}}
-    typeB = {'GCSPath': {'path_type': 'file', 'file_type':'csv'}}
+    typeA = {'ArtifactA': {'path_type': 'file', 'file_type':'csv'}}
+    typeB = {'ArtifactA': {'path_type': 'file', 'file_type':'csv'}}
     self.assertTrue(check_types(typeA, typeB))
-    typeC = {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}
+    typeC = {'ArtifactA': {'path_type': 'file', 'file_type':'tsv'}}
     self.assertFalse(check_types(typeA, typeC))
 
     # Custom types
