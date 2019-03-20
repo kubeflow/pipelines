@@ -97,9 +97,8 @@ def main():
       status_code = requests.head(url).status_code
     except requests.ConnectionError:
       pass
-    expected_codes = frozenset([307, 401])
-    # 307 - Temporary Redirect, Jupyter sends this if VM has access rights.
-    # 401 - unauthorized, proxy sends this if VM does not have access rights.
+    expected_codes = frozenset([307])
+    # 307 - Temporary Redirect, Proxy server sends this if VM has access rights.
     if status_code in expected_codes:
       logging.debug("Status code from the url %s", status_code)
       print(url)

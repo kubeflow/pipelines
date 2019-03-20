@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2017 Google Inc.
+# Copyright 2019 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ set -ex
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 function run-proxy-agent {
-  ## start the proxy process
+  # Start the proxy process
   # https://github.com/google/inverting-proxy/blob/master/agent/Dockerfile
   # Connect proxy agent to ambassador so anything registered to ambassador can be transparently accessed.
   /opt/bin/proxy-forwarding-agent \
@@ -36,8 +36,8 @@ function run-proxy-agent {
 }
 
 # Check if the cluster already have proxy agent installed by checking ConfigMap.
-# If so, reuse the existing endpoint (a.k.a BACKEND_ID).
 if kubectl get configmap inverse-proxy-config; then
+  # If ConfigMap already exist, reuse the existing endpoint (a.k.a BACKEND_ID) and same ProxyUrl.
   PROXY_URL=$(kubectl get configmap inverse-proxy-config -o json | jq -r ".data.ProxyUrl")
   BACKEND_ID=$(kubectl get configmap inverse-proxy-config -o json | jq -r ".data.BackendId")
   run-proxy-agent
