@@ -6,20 +6,20 @@
 A Kubeflow Pipeline component to submit a job from a dataflow template to Google Cloud Dataflow service.
 
 ## Runtime Parameters:
-Name | Description
-:--- | :----------
-project_id | Required. The ID of the Cloud Platform project that the job belongs to.
-gcs_path | Required. A Cloud Storage path to the template from which to create the job. Must be valid Cloud Storage URL, beginning with 'gs://'.
-launch_parameters | Parameters to provide to the template being launched. Schema defined in https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters. `jobName` will be replaced by generated name.
-location | Optional. The regional endpoint to which to direct the request.
-job_name_prefix |  Optional. The prefix of the genrated job name. If not provided, the method will generated a random name.
-validate_only | If true, the request is validated but not actually executed. Defaults to false.
-wait_interval | Optional wait interval between calls to get job status. Defaults to 30.
+Name | Description | Type | Default
+:--- | :---------- | :--- | :------
+project_id | Required. The ID of the Cloud Platform project that the job belongs to. | GCPProjectID |
+gcs_path | Required. A Cloud Storage path to the template from which to create the job. Must be valid Cloud Storage URL, beginning with 'gs://'. | GCSPath |
+launch_parameters | Parameters to provide to the template being launched. Schema defined in https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters. `jobName` will be replaced by generated name. | Dict | `{}`
+location | Optional. The regional endpoint to which to direct the request. | GCPRegion | ``
+validate_only | If true, the request is validated but not actually executed. Defaults to false. | Bool | `False`
+staging_dir | Optional. The GCS directory for keeping staging files. A random subdirectory will be created under the directory to keep job info for resuming the job in case of failure. | GCSPath | ``
+wait_interval | Optional wait interval between calls to get job status. Defaults to 30. | Integer | `30`
 
 ## Output:
-Name | Description
-:--- | :----------
-job_id | The id of the created dataflow job.
+Name | Description | Type
+:--- | :---------- | :---
+job_id | The id of the created dataflow job. | String
 
 ## Sample
 
@@ -39,11 +39,11 @@ COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/maste
 ```
 
 ### Install KFP SDK
+Install the SDK (Uncomment the code if the SDK is not installed before)
 
 
 ```python
-# Install the SDK (Uncomment the code if the SDK is not installed before)
-# KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.11/kfp.tar.gz'
+# KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.12/kfp.tar.gz'
 # !pip3 install $KFP_PACKAGE --upgrade
 ```
 
@@ -69,16 +69,26 @@ import json
     description='Dataflow launch template pipeline'
 )
 def pipeline(
-    project_id, 
-    gcs_path, 
-    launch_parameters, 
-    location='', 
-    job_name_prefix='', 
-    validate_only='', 
-    wait_interval = 30
-):
-    dataflow_template_op(project_id, gcs_path, launch_parameters, location, job_name_prefix, validate_only, 
-        wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    project_id = PROJECT_ID, 
+    gcs_path = 'gs://dataflow-templates/latest/Word_Count', 
+    launch_parameters = json.dumps({
+       'parameters': {
+           'inputFile': 'gs://dataflow-samples/shakespeare/kinglear.txt',
+           'output': '{}/output'.format(GCS_WORKING_DIR)
+       }
+    }), 
+    location = '',
+    validate_only = 'False', 
+    staging_dir = GCS_WORKING_DIR,
+    wait_interval = 30):
+    dataflow_template_op(
+        project_id = project_id, 
+        gcs_path = gcs_path, 
+        launch_parameters = launch_parameters, 
+        location = location, 
+        validate_only = validate_only,
+        staging_dir = staging_dir,
+        wait_interval = wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
 ```
 
 ### Compile the pipeline
@@ -96,16 +106,7 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
 ```python
 #Specify pipeline argument values
-arguments = {
-    'project_id': PROJECT_ID,
-    'gcs_path': 'gs://dataflow-templates/latest/Word_Count',
-    'launch_parameters': json.dumps({
-       'parameters': {
-           'inputFile': 'gs://dataflow-samples/shakespeare/kinglear.txt',
-           'output': '{}/dataflow/launch-template/'.format(GCS_WORKING_DIR)
-       }
-    })
-}
+arguments = {}
 
 #Get or create an experiment and submit a pipeline run
 import kfp
@@ -115,4 +116,9 @@ experiment = client.create_experiment(EXPERIMENT_NAME)
 #Submit a pipeline run
 run_name = pipeline_func.__name__ + ' run'
 run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arguments)
+```
+
+
+```python
+
 ```
