@@ -464,12 +464,13 @@ class Compiler(object):
     volumes = self._create_volumes(pipeline)
 
     # The whole pipeline workflow
+    pipeline_name = pipeline.name or 'Pipeline'
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
-      'metadata': {'generateName': pipeline.name + '-'},
+      'metadata': {'generateName': pipeline_name + '-'},
       'spec': {
-        'entrypoint': pipeline.name,
+        'entrypoint': pipeline_name,
         'templates': templates,
         'arguments': {'parameters': input_params},
         'serviceAccountName': 'pipeline-runner'
