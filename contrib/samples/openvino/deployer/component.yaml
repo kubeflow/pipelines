@@ -1,0 +1,107 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: ovms-deployment-pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: model-export-path
+      value: gs://intelai_public_models/resnet_50_i8
+    - name: server-name
+      value: resnet
+    - name: log-level
+      value: DEBUG
+    - name: batch-size
+      value: auto
+    - name: model-version-policy
+      value: '{"latest": { "num_versions":2 }}'
+    - name: replicas
+      value: '1'
+  entrypoint: ovms-deployment-pipeline
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --model-export-path
+      - '{{inputs.parameters.model-export-path}}'
+      - --server-name
+      - '{{inputs.parameters.server-name}}'
+      - --log-level
+      - '{{inputs.parameters.log-level}}'
+      - --batch-size
+      - '{{inputs.parameters.batch-size}}'
+      - --model-version-policy
+      - '{{inputs.parameters.model-version-policy}}'
+      - --replicas
+      - '{{inputs.parameters.replicas}}'
+      command:
+      - ./deploy.sh
+      image: gcr.io/constant-cubist-173123/inference_server/ml_deployer:9
+    inputs:
+      parameters:
+      - name: batch-size
+      - name: log-level
+      - name: model-export-path
+      - name: model-version-policy
+      - name: replicas
+      - name: server-name
+    name: openvino-model-server-deployer
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      - name: mlpipeline-metrics
+        path: /mlpipeline-metrics.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: openvino-model-server-deployer-output
+        valueFrom:
+          path: /tmp/server_endpoint
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: batch-size
+            value: '{{inputs.parameters.batch-size}}'
+          - name: log-level
+            value: '{{inputs.parameters.log-level}}'
+          - name: model-export-path
+            value: '{{inputs.parameters.model-export-path}}'
+          - name: model-version-policy
+            value: '{{inputs.parameters.model-version-policy}}'
+          - name: replicas
+            value: '{{inputs.parameters.replicas}}'
+          - name: server-name
+            value: '{{inputs.parameters.server-name}}'
+        name: openvino-model-server-deployer
+        template: openvino-model-server-deployer
+    inputs:
+      parameters:
+      - name: batch-size
+      - name: log-level
+      - name: model-export-path
+      - name: model-version-policy
+      - name: replicas
+      - name: server-name
+    name: ovms-deployment-pipeline

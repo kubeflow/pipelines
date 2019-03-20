@@ -4,6 +4,7 @@ set -x
 
 KUBERNETES_NAMESPACE="${KUBERNETES_NAMESPACE:-kubeflow}"
 SERVER_NAME="${SERVER_NAME:-model-server}"
+SERVER_ENDPOINT_OUTPUT_FILE="${SERVER_ENDPOINT_OUTPUT_FILE:-/tmp/server_endpoint/data}"
 
 while (($#)); do
    case $1 in
@@ -32,19 +33,24 @@ while (($#)); do
        export REPLICAS="$1"
        shift
        ;;
-      "--batch-size")
+     "--batch-size")
        shift
        export BATCH_SIZE="$1"
        shift
        ;;
-      "--model-version-policy")
+     "--model-version-policy")
        shift
        export MODEL_VERSION_POLICY="$1"
        shift
        ;;
-      "--log-level")
+     "--log-level")
        shift
        export LOG_LEVEL="$1"
+       shift
+       ;;
+     "--server-endpoint-output-file")
+       shift
+       SERVER_ENDPOINT_OUTPUT_FILE = "$1"
        shift
        ;;
      *)
@@ -143,5 +149,5 @@ sleep 10
 echo "Logs from the TF Serving pod:"
 kubectl logs ${pod_name} --namespace "${KUBERNETES_NAMESPACE}"
 
-echo "ovms-${SERVER_NAME}:80" > /tmp/server_endpoint
-
+mkdir -p "$(dirname "$SERVER_ENDPOINT_OUTPUT_FILE")"
+echo "ovms-${SERVER_NAME}:80" > "$SERVER_ENDPOINT_OUTPUT_FILE"
