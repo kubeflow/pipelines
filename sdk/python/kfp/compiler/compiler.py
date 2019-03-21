@@ -156,7 +156,7 @@ class Compiler(object):
     def _get_inputs_outputs_recursive_opsgroup(group):
       #TODO: refactor the following codes with the above
       if group.is_recursive:
-        for param in list(condition_params[group.name]):
+        for param in group.inputs + list(condition_params[group.name]):
           if param.value:
             continue
           full_name = self._pipelineparam_full_name(param)
@@ -201,13 +201,13 @@ class Compiler(object):
         for param in new_current_conditions_params:
           conditions[op.name].add(param)
       for g in group.groups:
-        if not g.is_recursive:
-          _get_condition_params_for_ops_helper(g, new_current_conditions_params)
-        else:
+        if g.is_recursive:
           # If the subgroup is a recursive opsgroup, propagate the pipelineparams
           # in the condition, similar to the ops.
           for param in new_current_conditions_params:
             conditions[g.name].add(param)
+        else:
+          _get_condition_params_for_ops_helper(g, new_current_conditions_params)
     _get_condition_params_for_ops_helper(root_group, [])
     return conditions
 
@@ -429,16 +429,17 @@ class Compiler(object):
     # Generate tasks section.
     tasks = []
     for sub_group in group.groups + group.ops:
-      task = {
-        'name': sub_group.name,
-        'template': sub_group.name,
-      }
-      if isinstance(sub_group, OpsGroup) and sub_group.is_recursive:
+      is_recursive_subgroup = (isinstance(sub_group, OpsGroup) and sub_group.is_recursive)
+      if is_recursive_subgroup:
         task = {
             'name': sub_group.recursive_ref.name,
             'template': sub_group.recursive_ref.name,
         }
-
+      else:
+        task = {
+          'name': sub_group.name,
+          'template': sub_group.name,
+        }
       if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
         subgroup_inputs = inputs.get(sub_group.name, [])
         condition = sub_group.condition
@@ -464,10 +465,21 @@ class Compiler(object):
             })
           else:
             # The value comes from its parent.
-            arguments.append({
-              'name': param_name,
-              'value': '{{inputs.parameters.%s}}' % param_name
-            })
+            if is_recursive_subgroup:
+              for index, input in enumerate(sub_group.inputs):
+                if param_name == input.name:
+                  break
+              referenced_input = sub_group.recursive_ref.inputs[index-1]
+              full_name = self._pipelineparam_full_name(referenced_input)
+              arguments.append({
+                  'name': full_name,
+                  'value': '{{inputs.parameters.%s}}' % param_name
+              })
+            else:
+              arguments.append({
+                'name': param_name,
+                'value': '{{inputs.parameters.%s}}' % param_name
+              })
         arguments.sort(key=lambda x: x['name'])
         task['arguments'] = {'parameters': arguments}
       tasks.append(task)
