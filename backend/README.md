@@ -5,13 +5,22 @@ Pipelines backend.
 All components can be built using [Bazel](https://bazel.build/). To build
 everything under backend, run:
 ```
-bazel build //backend/...
+bazel build --action_env=PATH --define=grpc_no_ares=true //backend/...
 ```
 
 To run all tests:
 ```
-bazel test //backend/...
+bazel test --action_env=PATH --define=grpc_no_ares=true //backend/...
 ```
+
+The API server itself can only be built/tested using Bazel. The following commands target building and testing just the API server.
+```
+bazel build --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver/...
+```
+```
+bazel test --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver/...
+```
+
 
 ## Building Go client library and swagger files
 After making changes to proto files, the Go client libraries and swagger
