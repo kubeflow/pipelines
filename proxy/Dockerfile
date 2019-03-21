@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Ping to a specific version of invert proxy agent
+# Pin to a specific version of invert proxy agent
 FROM gcr.io/inverting-proxy/agent@sha256:d0a06a247bb443f9528356a1341cadfa4c4479a034097ef9ed8cf200c6383ec0
 
 RUN apt-get update && apt-get install -y curl jq python-pip

@@ -14,10 +14,6 @@
 # limitations under the License.
 
 """CLI tool that returns URL of the proxy for particular zone and version."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import functools
 import json
@@ -53,7 +49,6 @@ def urls_for_zone(zone, location_to_urls_map):
   if region in location_to_urls_map:
     urls.extend(location_to_urls_map[region])
 
-  approx_region_map = {}
   region_regex = re.compile("([a-z]+-[a-z]+)\d+")
   for location in location_to_urls_map:
     region_match = region_regex.match(location)
@@ -63,7 +58,7 @@ def urls_for_zone(zone, location_to_urls_map):
   if country in location_to_urls_map:
     urls.extend(location_to_urls_map[country])
 
-  return urls
+  return set(urls)
 
 
 def main():
@@ -102,10 +97,10 @@ def main():
     if status_code in expected_codes:
       logging.debug("Status code from the url %s", status_code)
       print(url)
-      return
+      exit(0)
     logging.debug("Incorrect status_code from the server: %s. Expected: %s",
                   status_code, expected_codes)
   raise ValueError("No working URL found")
 
-
-main()
+if __name__ == '__main__':
+  main()
