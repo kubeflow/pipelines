@@ -53,7 +53,7 @@ class TestDeploy(unittest.TestCase):
         mock_create_model, mock_storage_client):
 
         prefixes_mock = mock.PropertyMock()
-        prefixes_mock.return_value = set(['gs://model/uri/012/', 'gs://model/uri/123/'])
+        prefixes_mock.return_value = set(['uri/012/', 'uri/123/'])
         type(mock_storage_client().bucket().list_blobs()).prefixes = prefixes_mock
         mock_storage_client().bucket().list_blobs().__iter__.return_value = []
         mock_storage_client().bucket().name = 'model'

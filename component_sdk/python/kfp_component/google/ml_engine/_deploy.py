@@ -88,7 +88,6 @@ def _search_dir_with_model(storage_client, model_root_uri):
     return model_dir
 
 def _search_tf_export_dir_base(storage_client, bucket, export_dir_base):
-    # By convention, TF Estimator
     logging.info('Searching model under export base dir: {}.'.format(export_dir_base))
     it = bucket.list_blobs(prefix=export_dir_base, delimiter='/')
     for _ in it.pages:
@@ -106,4 +105,4 @@ def _search_tf_export_dir_base(storage_client, bucket, export_dir_base):
 
     last_timestamped_dir = max(timestamped_dirs)
     logging.info('Found timestamped sub-directory: {}.'.format(last_timestamped_dir))
-    return last_timestamped_dir
+    return 'gs://{}/{}'.format(bucket.name, last_timestamped_dir)
