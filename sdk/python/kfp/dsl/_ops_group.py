@@ -34,6 +34,18 @@ class OpsGroup(object):
     self.ops = list()
     self.groups = list()
     self.name = name
+    # The following two fields are references to another OpsGroup that is already created.
+    self.is_recursive = False
+    self.recursive_ref = None
+
+  def resolve_recursion(self):
+    """resolve_recursion resolves the recursion scenario where the OpsGroup is already created."""
+    old_opsgroup = self._get_opsgroup_pipeline(self.type, self.name)
+    if old_opsgroup is None:
+      return
+    self.is_recursive = True
+    self.recursive_ref = old_opsgroup
+
 
   @staticmethod
   def _get_opsgroup_pipeline(group_type, name):
@@ -129,5 +141,10 @@ class Graph(OpsGroup):
   def __init__(self, name):
     super(Graph, self).__init__(group_type='graph', name=name)
     self.inputs = []
-    self.recursive_inputs = []
     self.outputs = {}
+    self.dependencies = []
+
+  def after(self, dependency):
+    """Specify explicit dependency on another op."""
+    self.dependencies.append(dependency)
+    return self

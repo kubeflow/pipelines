@@ -128,21 +128,20 @@ def graph_component(func):
   from functools import wraps
   @wraps(func)
   def _graph_component(*args, **kargs):
-    # Entering Graph Context
-    graph_ops_group = OpsGroup._get_opsgroup_pipeline('graph', func.__name__)
-    # If the ops group already exists, record the inputs and exit.
-    if graph_ops_group is not None:
-      graph_ops_group.recursive_inputs = list(args) + list(kargs.values())
-      return
     graph_ops_group = Graph(func.__name__)
-    graph_ops_group._make_name_unique()
-    _pipeline.Pipeline.get_default_pipeline().push_ops_group(graph_ops_group)
-
-    # Process
     graph_ops_group.inputs = list(args) + list(kargs.values())
     #TODO: check if the inputs is a list of pipelineparams
-    graph_ops_group.outputs = func(*args, **kargs)
-    #TODO: check if the outputs is a dictionary of str to pipelineparams
+
+    graph_ops_group.resolve_recursion()
+
+    # Entering Graph Context
+    _pipeline.Pipeline.get_default_pipeline().push_ops_group(graph_ops_group)
+
+    # Call the function
+    if not graph_ops_group.is_recursive:
+      graph_ops_group._make_name_unique()
+      graph_ops_group.outputs = func(*args, **kargs)
+      #TODO: check if the outputs is a dictionary of str to pipelineparams
 
     # Exiting Graph Context
     _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
