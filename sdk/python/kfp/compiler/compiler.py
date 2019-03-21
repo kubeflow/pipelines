@@ -23,6 +23,7 @@ from .. import dsl
 from ._k8s_helper import K8sHelper
 from ..dsl._pipeline_param import _match_serialized_pipelineparam
 from ..dsl._metadata import TypeMeta
+from ..dsl._ops_group import OpsGroup
 
 class Compiler(object):
   """DSL Compiler.
@@ -432,6 +433,11 @@ class Compiler(object):
         'name': sub_group.name,
         'template': sub_group.name,
       }
+      if isinstance(sub_group, OpsGroup) and sub_group.is_recursive:
+        task = {
+            'name': sub_group.recursive_ref.name,
+            'template': sub_group.recursive_ref.name,
+        }
 
       if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
         subgroup_inputs = inputs.get(sub_group.name, [])

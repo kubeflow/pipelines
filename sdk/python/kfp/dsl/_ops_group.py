@@ -30,6 +30,7 @@ class OpsGroup(object):
     Args:
       group_type: one of 'pipeline', 'exit_handler', 'condition', and 'graph'.
     """
+    #TODO: declare the group_type to be strongly typed
     self.type = group_type
     self.ops = list()
     self.groups = list()
