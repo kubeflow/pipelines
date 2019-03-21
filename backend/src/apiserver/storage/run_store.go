@@ -565,8 +565,8 @@ func (s *RunStore) TerminateRun(runId string) error {
 	result, err := s.db.Exec(`
 		UPDATE run_details
 		SET Conditions = "Terminating"
-		WHERE UUID = ? AND (Conditions = ? OR Conditions = ?)`,
-		runId, string(workflowapi.NodeRunning), string(workflowapi.NodePending))
+		WHERE UUID = ? AND (Conditions = ? OR Conditions = ? OR Conditions = ?)`,
+		runId, string(workflowapi.NodeRunning), string(workflowapi.NodePending), "")
 
 	if err != nil {
 		return util.NewInternalServerError(err,

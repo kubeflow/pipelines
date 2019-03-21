@@ -280,7 +280,6 @@ func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) e
 
 	var operation = func() error {
 		_, err = wfClient.Patch(name, types.MergePatchType, patch)
-		//if err != nil && !apierr.IsConflict(err) //we can stop immediately
 		return err
 	}
 	var backoffPolicy = backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
@@ -296,11 +295,11 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 
 	err = r.runStore.TerminateRun(runId)
 	if err != nil {
-		return util.Wrap(err, "Terminate pipeline failed")
+		return util.Wrap(err, "Terminate run failed")
 	}
 
 	err = TerminateWorkflow(r.workflowClient, runDetail.Run.Name)
-	return util.Wrap(err, "Terminate pipeline failed")
+	return util.Wrap(err, "Terminate run failed")
 }
 
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
