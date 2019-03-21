@@ -29,6 +29,15 @@ $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/scheduledworkflow:latest
 ```
 
+To build the viewer CRD controller image and upload it to GCR:
+```bash
+# Run in the repository root directory
+$ docker build -t gcr.io/<your-gcp-project>/viewer-crd-controller:latest -f backend/Dockerfile.viewercontroller .
+# Push to GCR
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/viewer-crd-controller:latest
+```
+
 To build the persistence agent image and upload it to GCR:
 ```bash
 # Run in the repository root directory
