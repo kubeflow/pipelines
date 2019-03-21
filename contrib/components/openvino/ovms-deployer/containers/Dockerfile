@@ -32,20 +32,11 @@ RUN apt-get update -q && apt-get upgrade -y && \
     apt-get install -y -qq --no-install-recommends google-cloud-sdk && \
     gcloud config set component_manager/disable_update_check true
 
-ENV KUBEFLOW_VERSION v0.2.5
-
-# Checkout the kubeflow packages at image build time so that we do not
-# require calling in to the GitHub API at run time.
-RUN cd /src && \
-    mkdir -p github.com/kubeflow && \
-    cd github.com/kubeflow && \
-    git clone https://github.com/kubeflow/kubeflow && \
-    cd kubeflow && \
-    git checkout ${KUBEFLOW_VERSION}
-
-ADD . /deploy/
+RUN conda install -y opencv && conda clean -a -y
+ADD requirements.txt /deploy/
 WORKDIR /deploy
 RUN pip install -r requirements.txt
+ADD apply_template.py deploy.sh evaluate.py ovms.j2 classes.py /deploy/
 ENTRYPOINT ["./deploy.sh"]
 
 

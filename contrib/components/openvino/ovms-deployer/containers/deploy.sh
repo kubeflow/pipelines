@@ -84,6 +84,7 @@ kubectl config set-credentials pipeline --token "$(cat /var/run/secrets/kubernet
 kubectl config set-context kubeflow --cluster "${CLUSTER_NAME}" --user pipeline
 kubectl config use-context kubeflow
 
+echo "Generating service and deployment yaml files"
 python apply_template.py
 
 kubectl apply -f ovms.yaml
