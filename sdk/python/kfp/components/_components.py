@@ -189,9 +189,12 @@ _created_task_transformation_handler.append(_dsl_bridge.create_container_op_from
 #TODO: Refactor the function to make it shorter
 def _create_task_factory_from_component_spec(component_spec:ComponentSpec, component_filename=None, component_ref: ComponentReference = None):
     name = component_spec.name or _default_component_name
-    description = component_spec.description
+
+    func_docstring_lines = []
     if component_spec.name:
-        description = component_spec.name + '\n' + description
+        func_docstring_lines.append(component_spec.name)
+    if component_spec.description:
+        func_docstring_lines.append(component_spec.description)
     
     inputs_list = component_spec.inputs or [] #List[InputSpec]
     input_names = [input.name for input in inputs_list]
@@ -240,7 +243,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     return _dynamic.create_function_from_parameters(
         create_task_from_component_and_arguments,        
         factory_function_parameters,
-        documentation=description,
+        documentation='\n'.join(func_docstring_lines),
         func_name=name,
         func_filename=component_filename
     )
