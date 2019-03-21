@@ -21,7 +21,6 @@ import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ExperimentsIcon from '../icons/experiments';
 import IconButton from '@material-ui/core/IconButton';
 import JupyterhubIcon from '@material-ui/icons/Code';
-import KubeflowLogo from '../icons/kubeflowLogo';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 import PipelinesIcon from '../icons/pipelines';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -31,21 +30,24 @@ import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { RoutePage } from '../components/Router';
 import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
-import { fontsize, dimension, commonCss } from '../Css';
+import { fontsize, commonCss } from '../Css';
 import { logger } from '../lib/Utils';
 
 export const sideNavColors = {
-  bg: '#0f4471',
-  fgActive: '#fff',
+  bg: '#f8fafb',
+  fgActive: '#0d6de7',
   fgActiveInvisible: 'rgb(227, 233, 237, 0)',
-  fgDefault: '#87a1b8',
-  hover: '#3f698d',
-  separator: '#41698d',
+  fgDefault: '#9aa0a6',
+  hover: '#f1f3f4',
+  separator: '#bdc1c6',
+  sideNavBorder: '#e8eaed',
 };
+
+const COLLAPSED_SIDE_NAV_SIZE = 72;
+const EXPANDED_SIDE_NAV_SIZE = 220;
 
 export const css = stylesheet({
   active: {
-    backgroundColor: sideNavColors.hover + ' !important',
     color: sideNavColors.fgActive + ' !important',
   },
   buildInfo: {
@@ -54,22 +56,24 @@ export const css = stylesheet({
     marginLeft: 30,
   },
   button: {
-    borderRadius: dimension.base / 2,
+    '&:hover': {
+      backgroundColor: sideNavColors.hover,
+    },
+    borderRadius: 0,
     color: sideNavColors.fgDefault,
     display: 'block',
     fontSize: fontsize.medium,
     fontWeight: 'bold',
-    height: dimension.base,
+    height: 44,
     marginBottom: 16,
-    marginLeft: 16,
-    maxWidth: 186,
+    maxWidth: EXPANDED_SIDE_NAV_SIZE,
     overflow: 'hidden',
-    padding: 10,
+    padding: '12px 10px 10px 26px',
     textAlign: 'left',
     textTransform: 'none',
     transition: 'max-width 0.3s',
     whiteSpace: 'nowrap',
-    width: 186,
+    width: EXPANDED_SIDE_NAV_SIZE,
   },
   chevron: {
     color: sideNavColors.fgDefault,
@@ -78,9 +82,9 @@ export const css = stylesheet({
     transition: 'transform 0.3s',
   },
   collapsedButton: {
-    maxWidth: dimension.base,
-    minWidth: dimension.base,
-    padding: 10,
+    maxWidth: COLLAPSED_SIDE_NAV_SIZE,
+    minWidth: COLLAPSED_SIDE_NAV_SIZE,
+    padding: '12px 10px 10px 26px',
   },
   collapsedChevron: {
     transform: 'rotate(180deg)',
@@ -90,10 +94,22 @@ export const css = stylesheet({
     opacity: 0,
   },
   collapsedRoot: {
-    width: '72px !important',
+    width: `${COLLAPSED_SIDE_NAV_SIZE}px !important`,
   },
   collapsedSeparator: {
     margin: '20px !important',
+  },
+  indicator: {
+    borderBottom: '3px solid transparent',
+    borderLeft: `3px solid ${sideNavColors.fgActive}`,
+    borderTop: '3px solid transparent',
+    height: 38,
+    left: 0,
+    position: 'absolute',
+    zIndex: 1,
+  },
+  indicatorHidden: {
+    opacity: 0,
   },
   infoHidden: {
     opacity: 0,
@@ -113,21 +129,7 @@ export const css = stylesheet({
     verticalAlign: 'super',
   },
   link: {
-    color: '#b7d1e8'
-  },
-  logo: {
-    display: 'flex',
-    marginBottom: 16,
-    marginLeft: '9px !important',
-
-  },
-  logoLabel: {
-    color: sideNavColors.fgActive,
-    display: 'flex',
-    flexDirection: 'column',
-    fontSize: fontsize.title,
-    justifyContent: 'center',
-    marginLeft: 12,
+    color: '#77abda'
   },
   openInNewTabIcon: {
     height: 12,
@@ -152,9 +154,10 @@ export const css = stylesheet({
   },
   root: {
     background: sideNavColors.bg,
-    paddingTop: 12,
+    borderRight: `1px ${sideNavColors.sideNavBorder} solid`,
+    paddingTop: 15,
     transition: 'width 0.3s',
-    width: 220,
+    width: EXPANDED_SIDE_NAV_SIZE,
   },
   separator: {
     border: '0px none transparent',
@@ -242,16 +245,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
     return (
       <div id='sideNav' className={classes(css.root, commonCss.flexColumn, commonCss.noShrink, collapsed && css.collapsedRoot)}>
         <div style={{ flexGrow: 1 }}>
-          <Tooltip title={'Kubeflow Pipelines'} enterDelay={300} placement={'right'}
-            disableFocusListener={!collapsed} disableHoverListener={!collapsed}
-            disableTouchListener={!collapsed}>
-            <Link id='kfpLogoBtn' to={RoutePage.PIPELINES} className={classes(css.button, collapsed && css.collapsedButton, css.logo, commonCss.unstyled)}>
-              <KubeflowLogo color={iconColor.active} style={{ flexShrink: 0 }} />
-              <span className={classes(collapsed && css.collapsedLabel, css.label, css.logoLabel)}>
-                Kubeflow
-              </span>
-            </Link>
-          </Tooltip>
+          <div className={classes(css.indicator, !page.startsWith(RoutePage.PIPELINES) && css.indicatorHidden)} />
           <Tooltip title={'Pipeline List'} enterDelay={300} placement={'right-start'}
             disableFocusListener={!collapsed} disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}>
@@ -264,6 +258,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
               </Button>
             </Link>
           </Tooltip>
+          <div className={classes(css.indicator, !this._highlightExperimentsButton(page) && css.indicatorHidden)} />
           <Tooltip title={'Experiment List'} enterDelay={300} placement={'right-start'}
             disableFocusListener={!collapsed} disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}>
@@ -293,6 +288,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
             </Tooltip>
           )}
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
+          <div className={classes(css.indicator, (page !== RoutePage.ARCHIVE) && css.indicatorHidden)} />
           <Tooltip title={'Archive'} enterDelay={300} placement={'right-start'}
             disableFocusListener={!collapsed} disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}>
