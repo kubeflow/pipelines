@@ -23,6 +23,8 @@ SWAGGER_CMD=../../bazel-bin/external/com_github_go_swagger/cmd/swagger/*stripped
 AUTOGEN_CMD="../../bazel-bin/external/com_github_mbrukman_autogen/autogen_tool"
 GENERATED_GO_PROTO_FILES="${BAZEL_BINDIR}/backend/api/api_generated_go_sources/src/github.com/kubeflow/pipelines/backend/api/go_client/*.go"
 
+# TODO this script should be able to be run from anywhere, not just within .../backend/api/
+
 # Delete currently generated code.
 rm -r -f go_http_client/*
 rm -r -f go_client/*
