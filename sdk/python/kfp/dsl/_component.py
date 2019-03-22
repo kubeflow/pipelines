@@ -123,8 +123,18 @@ def component(func):
 
 def graph_component(func):
   """Decorator for graph component functions.
-  This decorator returns an ops_group """
-  #TODO: add usage
+  This decorator returns an ops_group.
+
+  Usage:
+  ```python
+  @dsl._component.graph_component
+  def flip_component(flip_result):
+    print_flip = PrintOp(flip_result)
+    flipA = FlipCoinOp().after(print_flip)
+    with dsl.Condition(flipA.output == 'heads'):
+      flip_component(flipA.output)
+    return {'flip_result': flipA.output}
+  """
   from functools import wraps
   @wraps(func)
   def _graph_component(*args, **kargs):

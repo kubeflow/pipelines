@@ -137,7 +137,6 @@ class Condition(OpsGroup):
 class Graph(OpsGroup):
   """Graph DAG with inputs, recursive_inputs, and outputs.
   This is not used directly by the users but auto generated when the graph_component decoration exists
-  TODO: Example usage:
   """
   def __init__(self, name):
     super(Graph, self).__init__(group_type='graph', name=name)
