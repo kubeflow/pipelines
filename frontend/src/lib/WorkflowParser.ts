@@ -75,11 +75,16 @@ export default class WorkflowParser {
         if (node.name === `${workflowName}.onExit`) {
           nodeLabel = `onExit - ${node.templateName}`;
         }
+        // Argo considers terminated runs as having "Failed", so we have to examine the failure message to
+        // determine why the run failed.
+        const phase = node.phase as NodePhase === NodePhase.FAILED && node.message === 'terminated'
+          ? NodePhase.TERMINATED
+          : node.phase as NodePhase;
         g.setNode(node.id, {
           height: Constants.NODE_HEIGHT,
-          icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt),
+          icon: statusToIcon(phase, node.startedAt, node.finishedAt),
           label: nodeLabel,
-          statusColoring: statusToBgColor(node.phase as NodePhase),
+          statusColoring: statusToBgColor(phase),
           width: Constants.NODE_WIDTH,
           ...node,
         });

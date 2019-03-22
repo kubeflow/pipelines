@@ -20,6 +20,8 @@ import PendingIcon from '@material-ui/icons/Schedule';
 import RunningIcon from '../icons/statusRunning';
 import SkippedIcon from '@material-ui/icons/SkipNext';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
+import TerminatedIcon from '../icons/statusTerminated';
+import TerminatingIcon from '@material-ui/icons/NotInterested';
 import Tooltip from '@material-ui/core/Tooltip';
 import UnknownIcon from '@material-ui/icons/Help';
 import { color } from '../Css';
@@ -41,6 +43,8 @@ export enum NodePhase {
   RUNNING = 'Running',
   SKIPPED = 'Skipped',
   SUCCEEDED = 'Succeeded',
+  TERMINATING = 'Terminating',
+  TERMINATED = 'Terminated',
   UNKNOWN = 'Unknown',
 }
 
@@ -49,10 +53,12 @@ export function hasFinished(status?: NodePhase): boolean {
     case NodePhase.SUCCEEDED: // Fall through
     case NodePhase.FAILED: // Fall through
     case NodePhase.ERROR: // Fall through
-    case NodePhase.SKIPPED:
+    case NodePhase.SKIPPED: // Fall through
+    case NodePhase.TERMINATED:
       return true;
     case NodePhase.PENDING: // Fall through
     case NodePhase.RUNNING: // Fall through
+    case NodePhase.TERMINATING: // Fall through
     case NodePhase.UNKNOWN:
       return false;
     default:
@@ -70,10 +76,14 @@ export function statusToBgColor(status?: NodePhase): string {
       return statusBgColors.notStarted;
     case NodePhase.RUNNING:
       return statusBgColors.running;
-    case NodePhase.SKIPPED:
-      return statusBgColors.stopOrSkip;
     case NodePhase.SUCCEEDED:
       return statusBgColors.succeeded;
+    case NodePhase.SKIPPED:
+      // fall through
+    case NodePhase.TERMINATED:
+      // fall through
+    case NodePhase.TERMINATING:
+      return statusBgColors.stopOrSkip;
     case NodePhase.UNKNOWN:
       // fall through
     default:
@@ -116,6 +126,16 @@ export function statusToIcon(status?: NodePhase, startDate?: Date | string, endD
       IconComponent = SuccessIcon;
       iconColor = color.success;
       title = 'Executed successfully';
+      break;
+    case NodePhase.TERMINATED:
+      IconComponent = TerminatedIcon;
+      iconColor = color.terminate;
+      title = 'Manually terminated';
+      break;
+    case NodePhase.TERMINATING:
+      IconComponent = TerminatingIcon;
+      iconColor = color.terminate;
+      title = 'Run is terminating';
       break;
     case NodePhase.UNKNOWN:
       break;
