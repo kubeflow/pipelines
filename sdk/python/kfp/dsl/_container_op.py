@@ -111,8 +111,8 @@ class Container(V1Container):
       
 
       # creates a operation
-      op = ContainerOp(name='bash-ops', i
-                       mage='busybox:latest', 
+      op = ContainerOp(name='bash-ops', 
+                       image='busybox:latest', 
                        command=['echo'], 
                        arguments=['$MSG'])
 
@@ -624,7 +624,36 @@ class Sidecar(Container):
 
 
 class ContainerOp(object):
-    """Represents an op implemented by a container image."""
+    """
+    Represents an op implemented by a container image.
+    
+    Example
+
+        from kfp import dsl
+        from kubernetes.client.models import V1EnvVar
+
+
+        @dsl.pipeline(
+            name='foo',
+            description='hello world')
+        def foo_pipeline(tag: str, pull_image_policy: str):
+
+            # any attributes can be parameterized (both serialized string or actual PipelineParam)
+            op = dsl.ContainerOp(name='foo', 
+                                image='busybox:' % tag,
+                                # pass in sidecars list
+                                sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
+                                # pass in k8s container kwargs
+                                container_kwargs={'env': [V1EnvVar('foo', 'bar')]})
+
+            # set `imagePullPolicy` property for `container` with `PipelineParam` 
+            op.container.set_pull_image_policy(pull_image_policy)
+
+            # add sidecar with parameterized image tag
+            # sidecar follows the argo sidecar swagger spec
+            op.add_sidecar(dsl.Sidecar('redis', 'redis:' % tag).set_image_pull_policy('Always'))
+    
+    """
 
     # list of attributes that might have pipeline params - used to generate
     # the input parameters during compilation.
