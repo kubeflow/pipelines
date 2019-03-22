@@ -65,7 +65,7 @@ outputs:
     type: String
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:f98ec68488cfbac022893a87c5bca083f03f2065
     args: [
       kfp_component.google.dataproc, create_cluster,
       --project_id, {inputValue: project_id},
