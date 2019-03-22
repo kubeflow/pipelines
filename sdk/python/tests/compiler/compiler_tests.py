@@ -207,9 +207,6 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
         golden = yaml.load(f)
       compiled = self._get_yaml_from_tar(target_tar)
-      import json
-      with open('/pipelines/sdk/python/dist/'+file_base_name+'.yaml', 'w') as f:
-        json.dump(compiled, f)
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:

@@ -33,7 +33,7 @@ class LoadComponentTestCase(unittest.TestCase):
         task1 = task_factory1(arg1, arg2)
 
         self.assertEqual(task1.human_name, 'Add')
-        self.assertEqual(task_factory1.__doc__.strip(), 'Returns sum of two arguments')
+        self.assertEqual(task_factory1.__doc__.strip(), 'Add\nReturns sum of two arguments')
         self.assertEqual(task1.container.image, 'python:3.5')
         self.assertEqual(task1.container.args[0], str(arg1))
         self.assertEqual(task1.container.args[1], str(arg2))

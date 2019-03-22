@@ -22,51 +22,6 @@ from .. import dsl
 T = TypeVar('T')
 
 
-def _get_pipelineparam(payload: str) -> List[str]:
-    """Get a list of `PipelineParam` from a string.
-    
-    Args:
-        payload {str}: string
-    """
-
-    matches = dsl._match_serialized_pipelineparam(payload)
-    return [dsl.PipelineParam(x[1], x[0], x[2]) for x in list(set(matches))]
-
-
-def _sanitize_pipelineparam(param: dsl.PipelineParam, in_place=True):
-    """Sanitize the name and op_name of a PipelineParam.
-  
-    Args:
-      params: a PipelineParam to sanitize
-      in_place: if set, do an in-place update to PipelineParm, otherwise return a 
-                new instance of PipelineParam.
-    """
-    if in_place:
-        param.name = K8sHelper.sanitize_k8s_name(param.name)
-        param.op_name = K8sHelper.sanitize_k8s_name(
-            param.op_name) if param.op_name else param.op_name
-        return param
-
-    return dsl.PipelineParam(
-        K8sHelper.sanitize_k8s_name(param.name),
-        K8sHelper.sanitize_k8s_name(param.op_name), param.value)
-
-
-def _sanitize_pipelineparams(
-        params: Union[dsl.PipelineParam, List[dsl.PipelineParam]],
-        in_place=True):
-    """Sanitize the name(s) of a PipelineParam (or a list of PipelineParam) and
-    return a list of sanitized PipelineParam.
-  
-    Args:
-      params: a PipelineParam or a list of PipelineParam to sanitize
-      in_place: if set, do an in-place update to the PipelineParm, otherwise return 
-                new instances of PipelineParam.
-    """
-    params = params if isinstance(params, list) else [params]
-    return [_sanitize_pipelineparam(param, in_place) for param in params]
-
-
 def _process_obj(obj: Any, map_to_tmpl_var: dict):
     """Recursively sanitize and replace any PipelineParam (instances and serialized strings)
     in the object with the corresponding template variables
@@ -80,14 +35,12 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     # serialized str might be unsanitized
     if isinstance(obj, str):
         # get signature
-        pipeline_params = _get_pipelineparam(obj)
-        if not pipeline_params:
+        param_tuples = dsl._match_serialized_pipelineparam(obj)
+        if not param_tuples:
             return obj
         # replace all unsanitized signature with template var
-        for param in pipeline_params:
-            pattern = str(param)
-            sanitized = str(_sanitize_pipelineparam(param))
-            obj = re.sub(pattern, map_to_tmpl_var[sanitized], obj)
+        for param_tuple in param_tuples:
+            obj = re.sub(param_tuple.pattern, map_to_tmpl_var[param_tuple.pattern], obj)
 
     # list
     if isinstance(obj, list):
@@ -139,19 +92,10 @@ def _process_container_ops(op: dsl.ContainerOp):
         dsl.ContainerOp
     """
 
-    # tmp map: unsanitized rpr -> sanitized PipelineParam
-    # in-place sanitize of all PipelineParam (except outputs and file_outputs)
-    _map = {
-        str(param): _sanitize_pipelineparam(param, in_place=True)
-        for param in op.inputs
-    }
-
-    # map: unsanitized pipeline param rpr -> template var string
-    # used to replace unsanitized pipeline param strings with the corresponding
-    # template var strings
+    # map param's (unsanitized pattern or serialized str pattern) -> input param var str
     map_to_tmpl_var = {
-        key: '{{inputs.parameters.%s}}' % param.full_name
-        for key, param in _map.items()
+        (param.pattern or str(param)): '{{inputs.parameters.%s}}' % param.full_name
+        for param in op.inputs
     }
 
     # process all attr with pipelineParams except inputs and outputs parameters
