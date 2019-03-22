@@ -55,31 +55,31 @@ class TestContainerOp(unittest.TestCase):
     with Pipeline('somename') as p:
       op = ContainerOp(name='op1', image='image')
 
-      with self.assertWarns(PendingDeprecationWarning):
-        op.env_variables = [V1EnvVar(name="foo", value="bar")]
+    with self.assertWarns(PendingDeprecationWarning):
+      op.env_variables = [V1EnvVar(name="foo", value="bar")]
 
-      with self.assertWarns(PendingDeprecationWarning):
-        op.image = 'image2'
+    with self.assertWarns(PendingDeprecationWarning):
+      op.image = 'image2'
 
-      with self.assertWarns(PendingDeprecationWarning):
-        op.set_memory_request('10M')
+    with self.assertWarns(PendingDeprecationWarning):
+      op.set_memory_request('10M')
 
-      with self.assertWarns(PendingDeprecationWarning):
-        op.set_memory_limit('10M')
+    with self.assertWarns(PendingDeprecationWarning):
+      op.set_memory_limit('10M')
 
-      with self.assertWarns(PendingDeprecationWarning):
-        op.set_cpu_request('100m')
+    with self.assertWarns(PendingDeprecationWarning):
+      op.set_cpu_request('100m')
 
-      with self.assertWarns(PendingDeprecationWarning):
-        op.set_cpu_limit('1')
+    with self.assertWarns(PendingDeprecationWarning):
+      op.set_cpu_limit('1')
 
-      with self.assertWarns(PendingDeprecationWarning):
-        op.set_gpu_limit('1')
+    with self.assertWarns(PendingDeprecationWarning):
+      op.set_gpu_limit('1')
 
-      with self.assertWarns(PendingDeprecationWarning):
-        op.add_env_variable(V1EnvVar(name="foo", value="bar"))
+    with self.assertWarns(PendingDeprecationWarning):
+      op.add_env_variable(V1EnvVar(name="foo", value="bar"))
 
-      with self.assertWarns(PendingDeprecationWarning):
-        op.add_volume_mount(V1VolumeMount(
-          mount_path='/secret/gcp-credentials',
-          name='gcp-credentials'))
+    with self.assertWarns(PendingDeprecationWarning):
+      op.add_volume_mount(V1VolumeMount(
+        mount_path='/secret/gcp-credentials',
+        name='gcp-credentials'))

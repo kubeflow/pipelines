@@ -45,17 +45,29 @@ def deprecation_warning(func: Callable, op_name: str,
     return _wrapped
 
 
-def _proxy_container_op_props(cls):
+def _create_getter_setter(prop):
+    """Create a tuple of getter and setter methods for a property in `Container`."""
+    def _getter(self):
+        return getattr(self._container, prop)   
+    def _setter(self, value):
+        return setattr(self._container, prop, value)
+    return _getter, _setter
+
+
+def _proxy_container_op_props(cls: "ContainerOp"):
+    """Takes the `ContainerOp` class and proxy the PendingDeprecation properties
+    in `ContainerOp` to the `Container` instance.
+    """
     # properties mapping to proxy: ContainerOps.<prop> => Container.<prop>
     prop_map = dict(image='image', env_variables='env')
     # itera and create class props
     for op_prop, container_prop in prop_map.items():
-        getter = deprecation_warning(
-            lambda self: getattr(self._container, container_prop), op_prop,
-            container_prop)
-        setter = deprecation_warning(
-            lambda self, value: setattr(self._container, container_prop, value
-                                        ), op_prop, container_prop)
+        # create getter and setter
+        _getter, _setter = _create_getter_setter(container_prop)
+        # decorate with deprecation warning
+        getter = deprecation_warning(_getter, op_prop, container_prop)
+        setter = deprecation_warning(_setter, op_prop, container_prop)
+        # update attribites with properties
         setattr(cls, op_prop, property(getter, setter))
     return cls
 
@@ -537,7 +549,6 @@ class Sidecar(Container):
 
         from kfp.dsl import ContainerOp, Sidecar
 
-
         # creates a `ContainerOp` and adds a redis `Sidecar`
         op = (ContainerOp(name='foo-op', image='busybox:latest')
                 .add_sidecar(
@@ -630,6 +641,7 @@ class ContainerOp(object):
                  command: StringOrStringList = None,
                  arguments: StringOrStringList = None,
                  sidecars: List[Sidecar] = None,
+                 container_kwargs: Dict = None,
                  file_outputs: Dict[str, str] = None,
                  is_exit_handler=False):
         """Create a new instance of ContainerOp.
@@ -643,6 +655,10 @@ class ContainerOp(object):
           arguments: the arguments of the command. The command can include "%s" and supply
               a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
               At container run time the argument will be 'echo param_value'.
+          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy 
+                    together with the `main` container.
+          container_kwargs: the dict of additional keyword arguments to pass to the
+                            op's `Container` definition.
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
