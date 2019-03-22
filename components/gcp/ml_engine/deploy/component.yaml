@@ -16,20 +16,67 @@ name: Deploy a model to Cloud ML Engine
 description: |
   Creates a Cloud Machine Learning version and optionally a model if it's not exist.
 inputs:
-  - {name: model_uri,                 description: 'Required, the GCS URI which contains a model file. Common used TF model search path (export/exporter) will be used if exist.'}
-  - {name: project_id,                description: 'Required, the ID of the parent project.'}
-  - {name: model_id,                  description: 'Optional, the user provided name of the model.', default: '' }
-  - {name: version_id,                description: 'Optional, the user provided name of the version. If it is not provided, the operation uses a random name.', default: '' }
-  - {name: runtime_version,           description: 'Optional, the Cloud ML Engine runtime version to use for this deployment. If not set, Cloud ML Engine uses the default stable version, 1.0.', default: '' }
-  - {name: python_version,            description: 'Optional, the version of Python used in prediction. If not set, the default version is `2.7`. Python `3.5` is available when runtimeVersion is set to `1.4` and above. Python `2.7` works with all supported runtime versions.', default: '' }
-  - {name: version,                   description: 'Optional, the payload of the new version.', default: '' }
-  - {name: replace_existing_version,  description: 'Boolean flag indicates whether to replace existing version in case of conflict.', default: 'Fasle' }
-  - {name: set_default,               description: 'Boolean flag indicates whether to set the new version as default version in the model.', default: 'False'}
-  - {name: wait_interval,             description: 'The interval to wait for a long running operation.', default: '30'}
+  - name: model_uri
+    description: >-
+      Required, the GCS URI which contains a model file.
+      Common used TF model search path (export/exporter) will be used if exist.
+    type: GCSPath
+  - name: project_id
+    description: 'Required, the ID of the parent project.'
+    type: GCPProjectID
+  - name: model_id
+    description: 'Optional, the user provided name of the model.'
+    default: ''
+    type: String
+  - name: version_id
+    description: >-
+      Optional, the user provided name of the version. If it is not provided,
+      the operation uses a random name.
+    default: ''
+    type: String
+  - name: runtime_version
+    description: >-
+      Optional, the Cloud ML Engine runtime version to use for this deployment.
+      If not set, Cloud ML Engine uses the default stable version, 1.0.
+    default: ''
+    type: String
+  - name: python_version
+    description: >-
+      Optional, the version of Python used in prediction. If not set, the default
+      version is `2.7`. Python `3.5` is available when runtimeVersion is set to
+      `1.4` and above. Python `2.7` works with all supported runtime versions.
+    default: ''
+    type: String
+  - name: version
+    description: 'Optional, the payload of the new version.'
+    default: ''
+    type: Dict
+  - name: replace_existing_version
+    description: >-
+      Boolean flag indicates whether to replace existing version in case of
+      conflict.
+    default: 'Fasle'
+    type: Bool
+  - name: set_default
+    description: >-
+      Boolean flag indicates whether to set the new version as default
+      version in the model.
+    default: 'False'
+    type: Bool
+  - name: wait_interval
+    description: 'The interval to wait for a long running operation.'
+    default: '30'
+    type: Integer
 outputs:
-  - {name: model_uri,     description: 'The URI of the model.'}
-  - {name: model_name,    description: 'The name of the deployed model.'}
-  - {name: version_name,  description: 'The name of the deployed version.'}
+  - name: model_uri
+    description: 'The URI of the model.'
+    type: GCSPath
+  - name: model_name
+    description: 'The name of the deployed model.'
+    type: String
+  - name: version_name
+    description: 'The name of the deployed version.'
+    type: String
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest

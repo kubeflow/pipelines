@@ -15,6 +15,7 @@
 from kubernetes.client.models import V1Container, V1EnvVar
 from kfp.dsl import PipelineParam
 from kfp.dsl._pipeline_param import _extract_pipelineparams, extract_pipelineparams_from_any
+from kfp.dsl._metadata import TypeMeta
 import unittest
 
 
@@ -29,13 +30,13 @@ class TestPipelineParam(unittest.TestCase):
     """Test string representation."""
 
     p = PipelineParam(name='param1', op_name='op1')
-    self.assertEqual('{{pipelineparam:op=op1;name=param1;value=;type=}}', str(p))
+    self.assertEqual('{{pipelineparam:op=op1;name=param1;value=;type=;}}', str(p))
 
     p = PipelineParam(name='param2')
-    self.assertEqual('{{pipelineparam:op=;name=param2;value=;type=}}', str(p))
+    self.assertEqual('{{pipelineparam:op=;name=param2;value=;type=;}}', str(p))
 
     p = PipelineParam(name='param3', value='value3')
-    self.assertEqual('{{pipelineparam:op=;name=param3;value=value3;type=}}', str(p))
+    self.assertEqual('{{pipelineparam:op=;name=param3;value=value3;type=;}}', str(p))
 
   def test_extract_pipelineparams(self):
     """Test _extract_pipeleineparams."""
@@ -65,3 +66,17 @@ class TestPipelineParam(unittest.TestCase):
 
     params = extract_pipelineparams_from_any(container)   
     self.assertListEqual(sorted([p1, p2, p3]), sorted(params))
+    
+  def test_extract_pipelineparam_with_types(self):
+    """Test _extract_pipelineparams. """
+    p1 = PipelineParam(name='param1', op_name='op1', param_type=TypeMeta(name='customized_type_a', properties={'property_a': 'value_a'}))
+    p2 = PipelineParam(name='param2', param_type=TypeMeta(name='customized_type_b'))
+    p3 = PipelineParam(name='param3', value='value3', param_type=TypeMeta(name='customized_type_c', properties={'property_c': 'value_c'}))
+    stuff_chars = ' between '
+    payload = str(p1) + stuff_chars + str(p2) + stuff_chars + str(p3)
+    params = _extract_pipelineparams(payload)
+    self.assertListEqual([p1, p2, p3], params)
+    # Expecting the _extract_pipelineparam to dedup the pipelineparams among all the payloads.
+    payload = [str(p1) + stuff_chars + str(p2), str(p2) + stuff_chars + str(p3)]
+    params = _extract_pipelineparams(payload)
+    self.assertListEqual([p1, p2, p3], params)

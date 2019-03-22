@@ -184,10 +184,65 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, "hello world", runs[0].Name)
 	assert.Equal(t, string(runs[0].StorageState), api.Run_STORAGESTATE_ARCHIVED.String())
 
+	/* ---------- Upload long-running pipeline YAML ---------- */
+	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", uploadParams.NewUploadPipelineParamsWithTimeout(350))
+	assert.Nil(t, err)
+
+	/* ---------- Create a new long-running run by specifying pipeline ID ---------- */
+	createLongRunningRunRequest := &runparams.CreateRunParams{Body: &run_model.APIRun{
+		Name:        "long running",
+		Description: "this pipeline will run long enough for us to manually terminate it before it finishes",
+		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID: longRunningPipeline.ID,
+		},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
+				Relationship: run_model.APIRelationshipOWNER},
+		},
+	}}
+	longRunningRunDetail, _, err := s.runClient.Create(createLongRunningRunRequest)
+	assert.Nil(t, err)
+
+	/* ---------- Terminate the long-running run ------------*/
+	err = s.runClient.Terminate(&runparams.TerminateRunParams{
+		RunID: longRunningRunDetail.Run.ID,
+	})
+
+	/* ---------- Get long-running run ---------- */
+	longRunningRunDetail, _, err = s.runClient.Get(&runparams.GetRunParams{RunID: longRunningRunDetail.Run.ID})
+	assert.Nil(t, err)
+	s.checkTerminatedRunDetail(t, longRunningRunDetail, helloWorldExperiment.ID, longRunningPipeline.ID)
+
 	/* ---------- Clean up ---------- */
 	test.DeleteAllExperiments(s.experimentClient, t)
 	test.DeleteAllPipelines(s.pipelineClient, t)
 	test.DeleteAllRuns(s.runClient, t)
+}
+
+func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, pipelineId string) {
+	// Check workflow manifest is not empty
+	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "wait-awhile")
+	// Check runtime workflow manifest is not empty
+	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "wait-awhile")
+
+	expectedRun := &run_model.APIRun{
+		ID:          runDetail.Run.ID,
+		Name:        "long running",
+		Description: "this pipeline will run long enough for us to manually terminate it before it finishes",
+		Status:      "Terminating",
+		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID:       pipelineId,
+			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+		},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+				Relationship: run_model.APIRelationshipOWNER,
+			},
+		},
+		CreatedAt:   runDetail.Run.CreatedAt,
+		ScheduledAt: runDetail.Run.ScheduledAt,
+	}
+	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
 func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, pipelineId string) {

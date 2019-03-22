@@ -45,14 +45,16 @@ def submit_job(project_id, region, cluster_name, job, wait_interval=30):
         job['placement'] = {}
     job['placement']['clusterName'] = cluster_name
     client = DataprocClient()
-    operation_name = None
+    job_id = None
     with KfpExecutionContext(
-        on_cancel=lambda: client.cancel_operation(operation_name)) as ctx:
+        on_cancel=lambda: client.cancel_job(
+            project_id, region, job_id)) as ctx:
         submitted_job = client.submit_job(project_id, region, job, 
             request_id=ctx.context_id())
+        job_id = submitted_job['reference']['jobId']
         _dump_metadata(submitted_job, region)
         submitted_job = _wait_for_job_done(client, project_id, region, 
-            submitted_job['reference']['jobId'], wait_interval)
+            job_id, wait_interval)
         return _dump_job(submitted_job)
 
 def _wait_for_job_done(client, project_id, region, job_id, wait_interval):

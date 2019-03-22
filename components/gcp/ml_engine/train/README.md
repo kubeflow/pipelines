@@ -5,26 +5,27 @@
 A Kubeflow Pipeline component to submit a Cloud Machine Learning Engine training job as a step in a pipeline
 
 ## Runtime Parameters:
-Name | Description
-:--- | :----------
-project_id | Required. The ID of the parent project of the job.
-python_module | The Python module name to run after installing the packages.
-package_uris | The Google Cloud Storage location of the packages with the training program and any additional dependencies. The maximum number of package URIs is 100.
-region | The Google Compute Engine region to run the training job in.
-args | Command line arguments to pass to the program.
-job_dir |  The list of args to pass to the python file.
-python_version | A Google Cloud Storage path in which to store training outputs and other data needed for training. This path is passed to your TensorFlow program as the `--job-dir` command-line argument. The benefit of specifying this field is that Cloud ML validates the path for use in training.
-runtime_version | The Cloud ML Engine runtime version to use for training. If not set, Cloud ML Engine uses the default stable version, 1.0.
-master_image_uri | The Docker image to run on the master replica. This image must be in Container Registry.
-worker_image_uri | The Docker image to run on the worker replica. This image must be in Container Registry.
-training_input | Input parameters to create a training job.
-job_id_prefix | The prefix of the generated job id.
-wait_interval |  Optional wait interval between calls to get job status. Defaults to 30.
+Name | Description | Type | Default
+:--- | :---------- | :--- | :------
+project_id | Required. The ID of the parent project of the job. | GCPProjectID |
+python_module | The Python module name to run after installing the packages. | String | ``
+package_uris | The Google Cloud Storage location of the packages with the training program and any additional dependencies. The maximum number of package URIs is 100. | List | ``
+region | The Google Compute Engine region to run the training job in. | GCPRegion | ``
+args | Command line arguments to pass to the program. | List | ``
+job_dir |  The list of args to pass to the python file. | GCSPath | ``
+python_version | A Google Cloud Storage path in which to store training outputs and other data needed for training. This path is passed to your TensorFlow program as the `--job-dir` command-line argument. The benefit of specifying this field is that Cloud ML validates the path for use in training. | String | ``
+runtime_version | The Cloud ML Engine runtime version to use for training. If not set, Cloud ML Engine uses the default stable version, 1.0. | String | ``
+master_image_uri | The Docker image to run on the master replica. This image must be in Container Registry. | GCRPath | ``
+worker_image_uri | The Docker image to run on the worker replica. This image must be in Container Registry. | GCRPath | ``
+training_input | Input parameters to create a training job. | Dict | ``
+job_id_prefix | The prefix of the generated job id. | String | ``
+wait_interval |  Optional wait interval between calls to get job status. Defaults to 30. | Integer | `30`
 
 ## Output:
-Name | Description
-:--- | :----------
-job_id | The ID of the created job.
+Name | Description | Type
+:--- | :---------- | :---
+job_id | The ID of the created job. | String
+job_dir | The output directory of the job. | GCSPath
 
 ## Sample
 

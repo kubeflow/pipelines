@@ -20,43 +20,54 @@ inputs:
     description: >-
       Required. The ID of the Google Cloud Platform project that the cluster
       belongs to.
+    type: GCPProjectID
   - name: region
     description: >-
       Required. The Cloud Dataproc region in which to handle the request.
+    type: GCPRegion
   - name: cluster_name
     description: 'Required. The cluster to run the job.'
+    type: String
   - name: queries
     default: ''
     description: >-
       Required. The queries to execute. You do not need to
       terminate a query with a semicolon. Multiple queries can be specified
       in one string by separating each with a semicolon. 
+    type: List
   - name: query_file_uri
     default: ''
     description: >-
       The HCFS URI of the script that contains Hive queries.
+    type: GCSPath
   - name: script_variables
     default: ''
     description: >-
       Optional. Mapping of query variable names to 
       values (equivalent to the Hive command: SET name="value";).
+    type: Dict
   - name: hive_job
     default: ''
     description: >-
       Optional. The full payload of a 
-      [HiveJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/HiveJob)
+      [HiveJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/HiveJob).
+    type: Dict
   - name: job
     default: ''
     description: >-
       Optional. The full payload of a
       [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs).
+    type: Dict
   - name: wait_interval
     default: '30'
     description: >-
       Optional. The wait seconds between polling the operation.
       Defaults to 30.
+    type: Integer
 outputs:
-  - {name: job_id, description: 'The ID of the created job.'}
+  - name: job_id
+    description: 'The ID of the created job.'
+    type: String
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:latest

@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -55,6 +56,9 @@ type RunStoreInterface interface {
 
 	// Store a new metric entry to run_metrics table.
 	ReportMetric(metric *model.RunMetric) (err error)
+
+	// Terminate a run
+	TerminateRun(runId string) error
 }
 
 type RunStore struct {
@@ -365,19 +369,20 @@ func (s *RunStore) UpdateRun(runID string, condition string, workflowRuntimeMani
 	// new in the status of an Argo manifest. This means we need to keep track
 	// manually here on what the previously updated state of the run is, to ensure
 	// we do not add duplicate metadata. Hence the locking below.
-	row := tx.QueryRow("SELECT WorkflowRuntimeManifest FROM run_details WHERE UUID = ? FOR UPDATE", runID)
+	query := "SELECT WorkflowRuntimeManifest FROM run_details WHERE UUID = ?"
+	query = s.db.SelectForUpdate(query)
+
+	row := tx.QueryRow(query, runID)
 	var storedManifest string
 	if err := row.Scan(&storedManifest); err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err, "failed to find row with run id %q", runID)
+		return util.NewInvalidInputError("Failed to update run %s. Row not found.", runID)
 	}
 
-	if s.metadataStore != nil {
-		if err := s.metadataStore.RecordOutputArtifacts(runID, storedManifest, workflowRuntimeManifest); err != nil {
-			// Metadata storage failed. Log the error here, but continue to allow the run
-			// to be updated as per usual.
-			glog.Errorf("Failed to record output artifacts: %+v", err)
-		}
+	if err := s.metadataStore.RecordOutputArtifacts(runID, storedManifest, workflowRuntimeManifest); err != nil {
+		// Metadata storage failed. Log the error here, but continue to allow the run
+		// to be updated as per usual.
+		glog.Errorf("Failed to record output artifacts: %+v", err)
 	}
 
 	sql, args, err := sq.
@@ -555,4 +560,23 @@ func NewRunStore(db *DB, time util.TimeInterface, metadataStore *metadata.Store)
 		time:                   time,
 		metadataStore:          metadataStore,
 	}
+}
+
+func (s *RunStore) TerminateRun(runId string) error {
+	result, err := s.db.Exec(`
+		UPDATE run_details
+		SET Conditions = "Terminating"
+		WHERE UUID = ? AND (Conditions = ? OR Conditions = ? OR Conditions = ?)`,
+		runId, string(workflowapi.NodeRunning), string(workflowapi.NodePending), "")
+
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to terminate run %s. error: '%v'", runId, err.Error())
+	}
+
+	if r, _ := result.RowsAffected(); r != 1 {
+		return util.NewInvalidInputError("Failed to terminate run %s. Row not found.", runId)
+	}
+
+	return nil
 }

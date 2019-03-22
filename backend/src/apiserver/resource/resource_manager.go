@@ -21,6 +21,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -262,6 +263,43 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
 	return r.jobStore.ListJobs(filterContext, opts)
+}
+
+// TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
+func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) error {
+	patchObj := map[string]interface{} {
+		"spec": map[string]interface{} {
+			"activeDeadlineSeconds": 0,
+		},
+	}
+
+	patch, err := json.Marshal(patchObj)
+	if err != nil {
+		return util.NewInternalServerError(err, "Unexpected error while marshalling a patch object.")
+	}
+
+	var operation = func() error {
+		_, err = wfClient.Patch(name, types.MergePatchType, patch)
+		return err
+	}
+	var backoffPolicy = backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
+	err = backoff.Retry(operation, backoffPolicy)
+	return err
+}
+
+func (r *ResourceManager) TerminateRun(runId string) error {
+	runDetail, err := r.checkRunExist(runId)
+	if err != nil {
+		return util.Wrap(err, "Delete run failed")
+	}
+
+	err = r.runStore.TerminateRun(runId)
+	if err != nil {
+		return util.Wrap(err, "Terminate run failed")
+	}
+
+	err = TerminateWorkflow(r.workflowClient, runDetail.Run.Name)
+	return util.Wrap(err, "Terminate run failed")
 }
 
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
