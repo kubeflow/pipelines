@@ -144,14 +144,11 @@ def graph_component(func):
       if not isinstance(input, PipelineParam):
         raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')
 
-    graph_ops_group.resolve_recursion()
-
-    # Entering Graph Context
-    _pipeline.Pipeline.get_default_pipeline().push_ops_group(graph_ops_group)
+    # Entering the Graph Context
+    graph_ops_group.__enter__()
 
     # Call the function
-    if not graph_ops_group.is_recursive:
-      graph_ops_group._make_name_unique()
+    if not graph_ops_group.recursive_ref:
       graph_ops_group.outputs = func(*args, **kargs)
       if not isinstance(graph_ops_group.outputs, dict):
         raise ValueError(func.__name__ + ' needs to return a dictionary of string to PipelineParam.')
@@ -159,8 +156,8 @@ def graph_component(func):
         if not (isinstance(output, str) and isinstance(graph_ops_group.outputs[output], PipelineParam)):
           raise ValueError(func.__name__ + ' needs to return a dictionary of string to PipelineParam.')
 
-    # Exiting Graph Context
-    _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
+    # Exiting the Graph Context
+    graph_ops_group.__exit__()
 
     return graph_ops_group
   return _graph_component
