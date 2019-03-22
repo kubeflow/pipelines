@@ -54,18 +54,15 @@ class TestOpsGroup(unittest.TestCase):
 
       # When a graph opsgraph is called.
       graph_ops_group_one = dsl._ops_group.Graph('hello')
-      graph_ops_group_one.resolve_recursion()
-      self.assertFalse(graph_ops_group_one.is_recursive)
-      p.push_ops_group(graph_ops_group_one)
-      graph_ops_group_one._make_name_unique()
+      graph_ops_group_one.__enter__()
+      self.assertFalse(graph_ops_group_one.recursive_ref)
       self.assertEqual('graph-hello-1', graph_ops_group_one.name)
 
       # Another graph opsgraph is called with the same name
       # when the previous graph opsgraphs is not finished.
       graph_ops_group_two = dsl._ops_group.Graph('hello')
-      graph_ops_group_two.resolve_recursion()
-      self.assertFalse(graph_ops_group_one.is_recursive)
-      self.assertTrue(graph_ops_group_two.is_recursive)
+      graph_ops_group_two.__enter__()
+      self.assertTrue(graph_ops_group_two.recursive_ref)
       self.assertEqual(graph_ops_group_one, graph_ops_group_two.recursive_ref)
 
 class TestExitHandler(unittest.TestCase):

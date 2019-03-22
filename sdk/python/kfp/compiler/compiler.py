@@ -68,7 +68,7 @@ class Compiler(object):
       for g in root_group.groups:
         # Add recursive opsgroup in the ops_to_groups
         # such that the i/o dependency can be propagated to the ancester opsgroups
-        if g.is_recursive:
+        if g.recursive_ref:
           ops_to_groups[g.name] = [x.name for x in current_groups] + [g.name]
           continue
         current_groups.append(g)
@@ -90,7 +90,7 @@ class Compiler(object):
       for g in group.groups:
         # Skip the recursive opsgroup because no templates
         # need to be generated for the recursive opsgroups.
-        if not g.is_recursive:
+        if not g.recursive_ref:
           groups += _get_groups_helper(g)
       return groups
 
@@ -159,7 +159,7 @@ class Compiler(object):
     # It propagates the recursive opsgroups IO to their ancester opsgroups
     def _get_inputs_outputs_recursive_opsgroup(group):
       #TODO: refactor the following codes with the above
-      if group.is_recursive:
+      if group.recursive_ref:
         for param in group.inputs + list(condition_params[group.name]):
           if param.value:
             continue
@@ -207,7 +207,7 @@ class Compiler(object):
       for g in group.groups:
         # If the subgroup is a recursive opsgroup, propagate the pipelineparams
         # in the condition expression, similar to the ops.
-        if g.is_recursive:
+        if g.recursive_ref:
           for param in new_current_conditions_params:
             conditions[g.name].add(param)
         else:
@@ -245,7 +245,7 @@ class Compiler(object):
     # Generate dependencies based on the recursive opsgroups
     #TODO: refactor the following codes with the above
     def _get_dependency_opsgroup(group, dependencies):
-      if group.is_recursive:
+      if group.recursive_ref:
         unstream_op_names = set()
         for param in group.inputs + list(condition_params[group.name]):
           if param.op_name:
@@ -435,7 +435,7 @@ class Compiler(object):
     # Generate tasks section.
     tasks = []
     for sub_group in group.groups + group.ops:
-      is_recursive_subgroup = (isinstance(sub_group, OpsGroup) and sub_group.is_recursive)
+      is_recursive_subgroup = (isinstance(sub_group, OpsGroup) and sub_group.recursive_ref)
       # Special handling for recursive subgroup: use the existing opsgroup name
       if is_recursive_subgroup:
         task = {

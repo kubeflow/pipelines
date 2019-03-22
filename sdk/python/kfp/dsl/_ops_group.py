@@ -28,25 +28,16 @@ class OpsGroup(object):
   def __init__(self, group_type: str, name: str=None):
     """Create a new instance of OpsGroup.
     Args:
-      group_type: one of 'pipeline', 'exit_handler', 'condition', and 'graph'.
+      group_type (str): one of 'pipeline', 'exit_handler', 'condition', and 'graph'.
+      name (str): name of the opsgroup
     """
     #TODO: declare the group_type to be strongly typed
     self.type = group_type
     self.ops = list()
     self.groups = list()
     self.name = name
-    # The following two fields are references to another OpsGroup that is already created.
-    self.is_recursive = False
+    # recursive_ref points to the opsgroups with the same name if exists.
     self.recursive_ref = None
-
-  def resolve_recursion(self):
-    """resolve_recursion resolves the recursion scenario where the OpsGroup is already created."""
-    old_opsgroup = self._get_opsgroup_pipeline(self.type, self.name)
-    if old_opsgroup is None:
-      return
-    self.is_recursive = True
-    self.recursive_ref = old_opsgroup
-
 
   @staticmethod
   def _get_opsgroup_pipeline(group_type, name):
@@ -58,7 +49,7 @@ class OpsGroup(object):
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
     if name is None:
-      raise ValueError('name must be a string.')
+      return None
     name_prefix = (group_type + '-' + name + '-').replace('_', '-')
     for ops_group in _pipeline.Pipeline.get_default_pipeline().groups:
       if ops_group.type == group_type and ops_group.name.startswith(name_prefix):
@@ -78,7 +69,10 @@ class OpsGroup(object):
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
 
-    self._make_name_unique()
+    self.recursive_ref = self._get_opsgroup_pipeline(self.type, self.name)
+    if not self.recursive_ref:
+      self._make_name_unique()
+
     _pipeline.Pipeline.get_default_pipeline().push_ops_group(self)
     return self
 
