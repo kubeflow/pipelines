@@ -49,6 +49,10 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
     this._isMounted = false;
   }
 
+  public componentDidMount(): void {
+    this.clearBanner();
+  }
+
   public clearBanner(): void {
     this.props.updateBanner({});
   }
