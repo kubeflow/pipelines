@@ -38,7 +38,15 @@ exports[`Archive renders archived runs 1`] = `
         "pageTitle": "Archive",
       }
     }
-    updateBanner={[MockFunction]}
+    updateBanner={
+      [MockFunction] {
+        "calls": Array [
+          Array [
+            Object {},
+          ],
+        ],
+      }
+    }
     updateDialog={null}
     updateSnackbar={null}
     updateToolbar={
