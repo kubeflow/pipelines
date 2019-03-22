@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import kfp.dsl as dsl
 from kfp.dsl import Pipeline, PipelineParam, ContainerOp, ExitHandler, OpsGroup
 import unittest
 
@@ -47,6 +47,26 @@ class TestOpsGroup(unittest.TestCase):
     self.assertFalse(loop_group.groups)
     self.assertCountEqual([x.name for x in loop_group.ops], ['op4'])
 
+  def test_recursive_opsgroups(self):
+    """Test recursive opsgroups."""
+    with Pipeline('somename') as p:
+      self.assertEqual(1, len(p.groups))
+
+      # When a graph opsgraph is called.
+      graph_ops_group_one = dsl._ops_group.Graph('hello')
+      graph_ops_group_one.resolve_recursion()
+      self.assertFalse(graph_ops_group_one.is_recursive)
+      p.push_ops_group(graph_ops_group_one)
+      graph_ops_group_one._make_name_unique()
+      self.assertEqual('graph-hello-1', graph_ops_group_one.name)
+
+      # Another graph opsgraph is called with the same name
+      # when the previous graph opsgraphs is not finished.
+      graph_ops_group_two = dsl._ops_group.Graph('hello')
+      graph_ops_group_two.resolve_recursion()
+      self.assertFalse(graph_ops_group_one.is_recursive)
+      self.assertTrue(graph_ops_group_two.is_recursive)
+      self.assertEqual(graph_ops_group_one, graph_ops_group_two.recursive_ref)
 
 class TestExitHandler(unittest.TestCase):
   
