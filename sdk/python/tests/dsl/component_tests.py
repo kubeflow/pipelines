@@ -14,7 +14,7 @@
 
 import kfp
 import kfp.dsl as dsl
-from kfp.dsl._component import component
+from kfp.dsl._component import component, graph_component
 from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta
 from kfp.dsl._types import GCSPath, Integer, InconsistentTypeException
 from kfp.dsl import ContainerOp, Pipeline, PipelineParam
@@ -429,7 +429,7 @@ class TestGraphComponent(unittest.TestCase):
 
   def test_graphcomponent_basic(self):
     """Test graph_component decorator metadata."""
-    @dsl._component.graph_component
+    @graph_component
     def flip_component(flip_result):
       with dsl.Condition(flip_result == 'heads'):
         flip_component(flip_result)
