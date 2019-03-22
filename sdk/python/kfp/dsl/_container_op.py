@@ -684,8 +684,9 @@ class ContainerOp(object):
             self, is_exit_handler)
 
         # `container` prop in `io.argoproj.workflow.v1alpha1.Template`
+        container_kwargs = container_kwargs or {}
         self._container = Container(
-            image=image, args=arguments, command=command)
+            image=image, args=arguments, command=command, **container_kwargs)
         # for chaining, and returning back to `ContainerOp` when updating `Container`
         # i.e
         #   op._container.set_image_policy('Always').parent == op   # True
