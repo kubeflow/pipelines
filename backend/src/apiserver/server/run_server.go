@@ -134,6 +134,14 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 	return nil
 }
 
+func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.TerminateRun(request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
 func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {
 	return &RunServer{resourceManager: resourceManager}
 }
