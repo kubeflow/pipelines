@@ -40,6 +40,43 @@ Model optimizer options can include any of the parameters supported by OpenVINO 
 
 Refer to OpenVINO [documentation](https://software.intel.com/en-us/articles/OpenVINO-ModelOptimizer) for details. 
 ```bash
+mo.py --help
+usage: mo.py [-h] [--framework {tf,caffe,mxnet,kaldi,onnx}]
+             [--input_model INPUT_MODEL] [--model_name MODEL_NAME]
+             [--output_dir OUTPUT_DIR] [--input_shape INPUT_SHAPE]
+             [--scale SCALE] [--reverse_input_channels]
+             [--log_level {CRITICAL,ERROR,WARN,WARNING,INFO,DEBUG,NOTSET}]
+             [--input INPUT] [--output OUTPUT] [--mean_values MEAN_VALUES]
+             [--scale_values SCALE_VALUES]
+             [--data_type {FP16,FP32,half,float}] [--disable_fusing]
+             [--disable_resnet_optimization]
+             [--finegrain_fusing FINEGRAIN_FUSING] [--disable_gfusing]
+             [--move_to_preprocess] [--extensions EXTENSIONS] [--batch BATCH]
+             [--version] [--silent]
+             [--freeze_placeholder_with_value FREEZE_PLACEHOLDER_WITH_VALUE]
+             [--generate_deprecated_IR_V2] [--input_model_is_text]
+             [--input_checkpoint INPUT_CHECKPOINT]
+             [--input_meta_graph INPUT_META_GRAPH]
+             [--saved_model_dir SAVED_MODEL_DIR]
+             [--saved_model_tags SAVED_MODEL_TAGS]
+             [--offload_unsupported_operations_to_tf]
+             [--tensorflow_subgraph_patterns TENSORFLOW_SUBGRAPH_PATTERNS]
+             [--tensorflow_operation_patterns TENSORFLOW_OPERATION_PATTERNS]
+             [--tensorflow_custom_operations_config_update TENSORFLOW_CUSTOM_OPERATIONS_CONFIG_UPDATE]
+             [--tensorflow_use_custom_operations_config TENSORFLOW_USE_CUSTOM_OPERATIONS_CONFIG]
+             [--tensorflow_object_detection_api_pipeline_config TENSORFLOW_OBJECT_DETECTION_API_PIPELINE_CONFIG]
+             [--tensorboard_logdir TENSORBOARD_LOGDIR]
+             [--tensorflow_custom_layer_libraries TENSORFLOW_CUSTOM_LAYER_LIBRARIES]
+             [--disable_nhwc_to_nchw] [--input_proto INPUT_PROTO] [-k K]
+             [--mean_file MEAN_FILE] [--mean_file_offsets MEAN_FILE_OFFSETS]
+             [--disable_omitting_optional] [--enable_flattening_nested_params]
+             [--input_symbol INPUT_SYMBOL] [--nd_prefix_name ND_PREFIX_NAME]
+             [--pretrained_model_name PRETRAINED_MODEL_NAME]
+             [--save_params_from_nd] [--legacy_mxnet_model] [--counts COUNTS]
+             [--remove_output_softmax]
+
+optional arguments:
+  -h, --help            show this help message and exit
   --framework {tf,caffe,mxnet,kaldi,onnx}
                         Name of the framework used to train the input model.
 
@@ -59,16 +96,15 @@ Framework-agnostic parameters:
   --input_shape INPUT_SHAPE
                         Input shape(s) that should be fed to an input node(s)
                         of the model. Shape is defined as a comma-separated
-                        list of integer numbers enclosed in parentheses, for
-                        example [1,3,227,227] or [1,227,227,3], where the
-                        order of dimensions depends on the framework input
-                        layout of the model. For example, [N,C,H,W] is used
-                        for Caffe* models and [N,H,W,C] for TensorFlow*
-                        models. Model Optimizer performs necessary
-                        transformations to convert the shape to the layout
-                        required by Inference Engine (N,C,H,W). Two types of
-                        brackets are allowed to enclose the dimensions: [...]
-                        or (...). The shape should not contain undefined
+                        list of integer numbers enclosed in parentheses or
+                        square brackets, for example [1,3,227,227] or
+                        (1,227,227,3), where the order of dimensions depends
+                        on the framework input layout of the model. For
+                        example, [N,C,H,W] is used for Caffe* models and
+                        [N,H,W,C] for TensorFlow* models. Model Optimizer
+                        performs necessary transformations to convert the
+                        shape to the layout required by Inference Engine
+                        (N,C,H,W). The shape should not contain undefined
                         dimensions (? or -1) and should fit the dimensions
                         defined in the input operation of the graph. If there
                         are multiple inputs in the model, --input_shape should
@@ -82,13 +118,13 @@ Framework-agnostic parameters:
                         not applied for any input that does not match with the
                         original input of the model.
   --reverse_input_channels
-                        Switches the input channels order from RGB to BGR (or
+                        Switch the input channels order from RGB to BGR (or
                         vice versa). Applied to original inputs of the model
-                        when and only when a number of channels equals 3.
-                        Applied after application of --mean_values and
-                        --scale_values options, so numbers in --mean_values
-                        and --scale_values go in the order of channels used in
-                        the original model.
+                        if and only if a number of channels equals 3. Applied
+                        after application of --mean_values and --scale_values
+                        options, so numbers in --mean_values and
+                        --scale_values go in the order of channels used in the
+                        original model.
   --log_level {CRITICAL,ERROR,WARN,WARNING,INFO,DEBUG,NOTSET}
                         Logger level
   --input INPUT         The name of the input operation of the given model.
@@ -100,30 +136,30 @@ Framework-agnostic parameters:
                         Mean values to be used for the input image per
                         channel. Values to be provided in the (R,G,B) or
                         [R,G,B] format. Can be defined for desired input of
-                        the model, e.g.: "--mean_values
-                        data[255,255,255],info[255,255,255]" The exact meaning
-                        and order of channels depend on how the original model
-                        was trained.
+                        the model, for example: "--mean_values
+                        data[255,255,255],info[255,255,255]". The exact
+                        meaning and order of channels depend on how the
+                        original model was trained.
   --scale_values SCALE_VALUES
                         Scale values to be used for the input image per
                         channel. Values are provided in the (R,G,B) or [R,G,B]
-                        format.Can be defined for desired input of the model,
-                        e.g.: "--scale_values
-                        data[255,255,255],info[255,255,255]"The exact meaning
-                        and order of channels depend on how the original model
-                        was trained.
+                        format. Can be defined for desired input of the model,
+                        for example: "--scale_values
+                        data[255,255,255],info[255,255,255]". The exact
+                        meaning and order of channels depend on how the
+                        original model was trained.
   --data_type {FP16,FP32,half,float}
                         Data type for all intermediate tensors and weights. If
                         original model is in FP32 and --data_type=FP16 is
                         specified, all model weights and biases are quantized
                         to FP16.
-  --disable_fusing      Turns off fusing of linear operations to Convolution
+  --disable_fusing      Turn off fusing of linear operations to Convolution
   --disable_resnet_optimization
-                        Turns off resnet optimization
+                        Turn off resnet optimization
   --finegrain_fusing FINEGRAIN_FUSING
                         Regex for layers/operations that won't be fused.
                         Example: --finegrain_fusing Convolution1,.*Scale.*
-  --disable_gfusing     Turns off fusing of grouped convolutions
+  --disable_gfusing     Turn off fusing of grouped convolutions
   --move_to_preprocess  Move mean values to IR preprocess section
   --extensions EXTENSIONS
                         Directory or a comma separated list of directories
@@ -133,23 +169,34 @@ Framework-agnostic parameters:
   --batch BATCH, -b BATCH
                         Input batch size
   --version             Version of Model Optimizer
-  --silent              Prevents any output messages except those that
-                        correspond to log level equalsERROR, that can be set
+  --silent              Prevent any output messages except those that
+                        correspond to log level equals ERROR, that can be set
                         with the following option: --log_level. By default,
                         log level is already ERROR.
   --freeze_placeholder_with_value FREEZE_PLACEHOLDER_WITH_VALUE
-                        Replace input layer with constant node with provided
-                        value, e.g.: node_name->True
+                        Replaces input layer with constant node with provided
+                        value, e.g.: "node_name->True"
+  --generate_deprecated_IR_V2
+                        Force to generate legacy/deprecated IR V2 to work with
+                        previous versions of the Inference Engine. The
+                        resulting IR may or may not be correctly loaded by
+                        Inference Engine API (including the most recent and
+                        old versions of Inference Engine) and provided as a
+                        partially-validated backup option for specific
+                        deployment scenarios. Use it at your own discretion.
+                        By default, without this option, the Model Optimizer
+                        generates IR V3.
 
 TensorFlow*-specific parameters:
   --input_model_is_text
-                        TensorFlow*: treat the input model file in a text
-                        protobuf format instead of binary, which is default.
+                        TensorFlow*: treat the input model file as a text
+                        protobuf format. If not specified, the Model Optimizer
+                        treats it as a binary file by default.
   --input_checkpoint INPUT_CHECKPOINT
                         TensorFlow*: variables file to load.
   --input_meta_graph INPUT_META_GRAPH
-                        Tensorflow*: a file with a non-trained model before
-                        freezing
+                        Tensorflow*: a file with a meta-graph of the model
+                        before freezing
   --saved_model_dir SAVED_MODEL_DIR
                         TensorFlow*: directory representing non frozen model
   --saved_model_tags SAVED_MODEL_TAGS
@@ -180,6 +227,11 @@ TensorFlow*-specific parameters:
   --tensorboard_logdir TENSORBOARD_LOGDIR
                         TensorFlow*: dump the input graph to a given directory
                         that should be used with TensorBoard.
+  --tensorflow_custom_layer_libraries TENSORFLOW_CUSTOM_LAYER_LIBRARIES
+                        TensorFlow*: comma separated list of shared libraries
+                        with TensorFlow* custom operations implementation.
+  --disable_nhwc_to_nchw
+                        Disables default translation from NHWC to NCHW
 
 Caffe*-specific parameters:
   --input_proto INPUT_PROTO, -d INPUT_PROTO
@@ -220,17 +272,19 @@ Mxnet-specific parameters:
   --nd_prefix_name ND_PREFIX_NAME
                         Prefix name for args.nd and argx.nd files.
   --pretrained_model_name PRETRAINED_MODEL_NAME
-                        Pretrained model without extension and epoch number
-                        which will be merged with args.nd and argx.nd files.
+                        Name of a pretrained MXNet model without extension and
+                        epoch number. This model will be merged with args.nd
+                        and argx.nd files
   --save_params_from_nd
-                        Enable save built params file from nd files.
-  --legacy_mxnet_model  Load the model trained with less version of MXNet than
-                        1.0.0
+                        Enable saving built parameters file from .nd files
+  --legacy_mxnet_model  Enable MXNet loader to make a model compatible with
+                        the latest MXNet version. Use only if your model was
+                        trained with MXNet version lower than 1.0.0
 
 Kaldi-specific parameters:
   --counts COUNTS       Path to the counts file
   --remove_output_softmax
-                        Removes the Softmax layer that is the output layer
+                        Removes the SoftMax layer that is the output layer
 ```
 
 The output folder specify then should be uploaded the generated model file in IR format with .bin and .xml
