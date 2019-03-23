@@ -27,7 +27,6 @@ implementation:
       /app/config.py,
       --token, {inputValue: token},
       --url, {inputValue: url},
-      --name, {inputValue: name}
+      --name, {inputValue: name},
+      --output-secret-name-file, {outputPath: secret_name},
     ]
-    fileOutputs:
-      secret_name: /tmp/ai-pipeline-creds
