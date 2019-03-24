@@ -1,14 +1,16 @@
-FROM l.gcr.io/google/bazel:0.21.0 as builder
+FROM l.gcr.io/google/bazel:0.23.0 as builder
 
-RUN apt-get update && \
-  apt-get install -y cmake clang musl-dev openssl
+# RUN apt-get update && \
+#   apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
-COPY WORKSPACE WORKSPACE
-COPY backend/src backend/src
-COPY backend/api backend/api
+COPY . .
+# COPY backend/src backend/src
+# COPY backend/api backend/api
+# COPY tools
 
-RUN bazel build -c opt --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver:apiserver
+# RUN bazel build -c opt --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver:apiserver
+RUN bazel --bazelrc=tools/bazel_builder/bazelrc build -c opt backend/src/apiserver:apiserver --config=remote
 
 
 # Compile
