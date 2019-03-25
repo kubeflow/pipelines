@@ -87,6 +87,19 @@ steps:
   id:   'copyPythonSDKToLatest'
   waitFor: ['copyPythonSDKLocal']
 
+# Copy the Python Component SDK
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp-component.tar.gz', '/workspace/']
+  id:   'copyPythonComponentSDKLocal'
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://ml-pipeline/release/$TAG_NAME/kfp-component.tar.gz']
+  id:   'copyPythonComponentSDK'
+  waitFor: ['copyPythonComponentSDKLocal']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://ml-pipeline/release/latest/kfp-component.tar.gz']
+  id:   'copyPythonComponentSDKToLatest'
+  waitFor: ['copyPythonComponentSDKLocal']
+
 # Build the tagged samples
 - name: 'debian'
   entrypoint: '/bin/bash'

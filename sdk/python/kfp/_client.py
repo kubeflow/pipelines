@@ -108,16 +108,25 @@ class Client(object):
     """
     import kfp_experiment
 
-    exp = kfp_experiment.models.ApiExperiment(name=name)
-    response = self._experiment_api.create_experiment(body=exp)
+    experiment = None
+    try:
+      experiment = self.get_experiment(experiment_name=name)
+    except:
+      # Ignore error if the experiment does not exist.
+      pass
+
+    if not experiment:
+      logging.info('Creating experiment {}.'.format(name))
+      experiment = kfp_experiment.models.ApiExperiment(name=name)
+      experiment = self._experiment_api.create_experiment(body=experiment)
     
     if self._is_ipython():
       import IPython
       html = \
           ('Experiment link <a href="%s/#/experiments/details/%s" target="_blank" >here</a>'
-          % (self._get_url_prefix(), response.id))
+          % (self._get_url_prefix(), experiment.id))
       IPython.display.display(IPython.display.HTML(html))
-    return response
+    return experiment
 
   def list_experiments(self, page_token='', page_size=10, sort_by=''):
     """List experiments.
@@ -169,7 +178,7 @@ class Client(object):
       with tar.extractfile(all_yaml_files[0]) as f:
         return yaml.load(f)
 
-  def run_pipeline(self, experiment_id, job_name, pipeline_package_path, params={}):
+  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None):
     """Run a specified pipeline.
 
     Args:
@@ -177,21 +186,26 @@ class Client(object):
       job_name: name of the job.
       pipeline_package_path: local path of the pipeline package(tar.gz file).
       params: a dictionary with key (string) as param name and value (string) as as param value.
+      pipeline_id: the string ID of a pipeline.
 
     Returns:
       A run object. Most important field is id.
     """
     import kfp_run
 
-    pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
-    pipeline_json_string = json.dumps(pipeline_obj)
+    pipeline_json_string = None
+    if pipeline_package_path:
+      pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
+      pipeline_json_string = json.dumps(pipeline_obj)
     api_params = [kfp_run.ApiParameter(name=_k8s_helper.K8sHelper.sanitize_k8s_name(k), value=str(v))
                   for k,v in params.items()]
     key = kfp_run.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_run.models.ApiResourceType.EXPERIMENT)
     reference = kfp_run.models.ApiResourceReference(key, kfp_run.models.ApiRelationship.OWNER)
     spec = kfp_run.models.ApiPipelineSpec(
-        workflow_manifest=pipeline_json_string, parameters=api_params)
+        pipeline_id=pipeline_id,
+        workflow_manifest=pipeline_json_string, 
+        parameters=api_params)
     run_body = kfp_run.models.ApiRun(
         pipeline_spec=spec, resource_references=[reference], name=job_name)
 

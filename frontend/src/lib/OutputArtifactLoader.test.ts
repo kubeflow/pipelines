@@ -16,13 +16,14 @@
 
 import { Apis } from '../lib/Apis';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
-import { PlotType } from '../components/viewers/Viewer';
-import { StoragePath, StorageService } from './WorkflowParser';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { MarkdownViewerConfig } from '../components/viewers/MarkdownViewer';
 import { OutputArtifactLoader } from './OutputArtifactLoader';
 import { PagedTableConfig } from '../components/viewers/PagedTable';
-import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
-import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { PlotType } from '../components/viewers/Viewer';
 import { ROCCurveConfig } from '../components/viewers/ROCCurve';
+import { StoragePath, StorageService } from './WorkflowParser';
+import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
 
 describe('OutputArtifactLoader', () => {
   const storagePath: StoragePath = { bucket: 'b', key: 'k', source: StorageService.GCS };
@@ -240,6 +241,44 @@ describe('OutputArtifactLoader', () => {
         htmlContent: fileToRead,
         type: PlotType.WEB_APP,
       } as HTMLViewerConfig);
+    });
+  });
+
+  describe('buildMarkdownViewerConfig', () => {
+    it('requires "source" metadata field', () => {
+      const metadata = { header: 'header', format: 'format' };
+      expect(OutputArtifactLoader.buildMarkdownViewerConfig(metadata as any)).rejects.toThrowError(
+        'Malformed metadata, property "source" is required.');
+    });
+
+    it('returns a markdown viewer config with basic metadata for inline markdown', async () => {
+      const metadata = { source: '# some markdown here', storage: 'inline' };
+      expect(await OutputArtifactLoader.buildMarkdownViewerConfig(metadata as any)).toEqual({
+        markdownContent: '# some markdown here',
+        type: PlotType.MARKDOWN,
+      } as MarkdownViewerConfig);
+    });
+
+    it('returns a markdown viewer config with basic metadata for gcs path markdown', async () => {
+      const metadata = { source: 'gs://path', storage: 'gcs' };
+      fileToRead = `<html><body>
+        Hello World!
+      </body></html>`;
+      expect(await OutputArtifactLoader.buildMarkdownViewerConfig(metadata as any)).toEqual({
+        markdownContent: fileToRead,
+        type: PlotType.MARKDOWN,
+      } as MarkdownViewerConfig);
+    });
+
+    it('assumes remote path by default, and returns a markdown viewer config with basic metadata', async () => {
+      const metadata = { source: 'gs://path' };
+      fileToRead = `<html><body>
+        Hello World!
+      </body></html>`;
+      expect(await OutputArtifactLoader.buildMarkdownViewerConfig(metadata as any)).toEqual({
+        markdownContent: fileToRead,
+        type: PlotType.MARKDOWN,
+      } as MarkdownViewerConfig);
     });
   });
 

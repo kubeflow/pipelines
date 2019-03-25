@@ -76,72 +76,99 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
  * @param graph The dagre graph object
  * @param rootTemplateId The current template being explored at this level of recursion
  * @param templates An unchanging map of template name to template and type
- * @param parent The task that was being examined when the function recursed
+ * @param parentFullPath The task that was being examined when the function recursed. This string
+ * includes all of the nodes above it. For example, with a graph such as:
+ *     A
+ *    / \
+ *   B   C
+ *      / \
+ *     D   E
+ * where A and C are DAGs, the parentFullPath when rootTemplateId is C would be: /A/C
  */
 function buildDag(
-    graph: dagre.graphlib.Graph,
-    rootTemplateId: string,
-    templates: Map<string, { nodeType: nodeType, template: Template }>,
-    parent?: string): void {
+  graph: dagre.graphlib.Graph,
+  rootTemplateId: string,
+  templates: Map<string, { nodeType: nodeType, template: Template }>,
+  alreadyVisited: Map<string, string>,
+  parentFullPath: string): void {
 
   const root = templates.get(rootTemplateId);
 
   if (root && root.nodeType === 'dag') {
+    // Mark that we have visited this DAG, and save the original qualified path to it.
+    alreadyVisited.set(rootTemplateId, parentFullPath || '/' + rootTemplateId);
     const template = root.template;
 
     (template.dag.tasks || []).forEach((task) => {
 
-      const nodeId = (parent || '') + '/' + task.name;
+      const nodeId = parentFullPath + '/' + task.name;
 
       // If the user specifies an exit handler, then the compiler will wrap the entire Pipeline
       // within an additional DAG template prefixed with "exit-handler".
       // If this is the case, we simply treat it as the root of the graph and work from there
       if (task.name.startsWith('exit-handler')) {
-        buildDag(graph, task.template, templates);
-      } else {
-
-        // Parent here will be the task that pointed to this DAG template.
-        // We do not set an edge if the task has dependencies because in that case it makes sense
-        // for incoming edges to only be drawn from its dependencies, not the DAG node itself
-        if (parent && !task.dependencies) {
-          graph.setEdge(parent, nodeId);
-        }
-
-        // This object contains information about the node that we display to the user when they
-        // click on a node in the graph
-        const info = new SelectedNodeInfo();
-        if (task.when) {
-          info.condition = task.when;
-        }
-
-        // "Child" here is the template that this task points to. This template should either be a
-        // DAG, in which case we recurse, or a container which can be thought of as a leaf node
-        const child = templates.get(task.template);
-        if (child) {
-          if (child.nodeType === 'dag') {
-            buildDag(graph, task.template, templates, nodeId);
-          } else if (child.nodeType === 'container' ) {
-            _populateInfoFromTemplate(info, child.template);
-          } else {
-            logger.error(`Unknown nodetype: ${child.nodeType} on template: ${child.template}`);
-          }
-        }
-
-        graph.setNode(nodeId, {
-          bgColor: task.when ? 'cornsilk' : undefined,
-          height: Constants.NODE_HEIGHT,
-          info,
-          label: task.template,
-          width: Constants.NODE_WIDTH,
-        });
+        buildDag(graph, task.template, templates, alreadyVisited, '');
+        return;
       }
+
+      // If this task has already been visited, retrieve the qualified path name that was assigned
+      // to it, add an edge, and move on to the next task
+      if (alreadyVisited.has(task.name)) {
+        graph.setEdge(parentFullPath, alreadyVisited.get(task.name)!);
+        return;
+      }
+
+      // Parent here will be the task that pointed to this DAG template.
+      // Within a DAG template, tasks can have dependencies on one another, and long chains of
+      // dependencies can be present within a single DAG. In these cases, we choose not to draw an
+      // edge from the DAG node itself to these tasks with dependencies because such an edge would
+      // not be meaningful to the user. For example, consider a DAG A with two tasks, B and C, where
+      // task C depends on the output of task B. C is a task of A, but it's much more semantically
+      // important that C depends on B, so to avoid cluttering the graph, we simply omit the edge
+      // between A and C:
+      //      A                  A
+      //    /   \    becomes    /
+      //   B <-- C             B
+      //                      /
+      //                     C
+      if (parentFullPath && !task.dependencies) {
+        graph.setEdge(parentFullPath, nodeId);
+      }
+
+      // This object contains information about the node that we display to the user when they
+      // click on a node in the graph
+      const info = new SelectedNodeInfo();
+      if (task.when) {
+        info.condition = task.when;
+      }
+
+      // "Child" here is the template that this task points to. This template should either be a
+      // DAG, in which case we recurse, or a container which can be thought of as a leaf node
+      const child = templates.get(task.template);
+      if (child) {
+        if (child.nodeType === 'dag') {
+          buildDag(graph, task.template, templates, alreadyVisited, nodeId);
+        } else if (child.nodeType === 'container' ) {
+          _populateInfoFromTemplate(info, child.template);
+        } else {
+          throw new Error(`Unknown nodetype: ${child.nodeType} on workflow template: ${child.template}`);
+        }
+      }
+
+      graph.setNode(nodeId, {
+        bgColor: task.when ? 'cornsilk' : undefined,
+        height: Constants.NODE_HEIGHT,
+        info,
+        label: task.template,
+        width: Constants.NODE_WIDTH,
+      });
 
       // DAG tasks can indicate dependencies which are graphically shown as parents with edges
       // pointing to their children (the task(s)).
       // TODO: The addition of the parent prefix to the dependency here is only valid if nodes only
       // ever directly depend on their siblings. This is true now but may change in the future, and
       // this will need to be updated.
-      (task.dependencies || []).forEach((dep) => graph.setEdge((parent || '') + '/' + dep, nodeId));
+      (task.dependencies || []).forEach((dep) => graph.setEdge(parentFullPath + '/' + dep, nodeId));
     });
   }
 }
@@ -184,7 +211,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
     }
   }
 
-  buildDag(graph, workflow.spec.entrypoint, templates);
+  buildDag(graph, workflow.spec.entrypoint, templates, new Map(), '');
 
   // DSL-compiled Pipelines will always include a DAG, so they should never reach this point.
   // It is, however, possible for users to upload manually constructed Pipelines, and extremely
