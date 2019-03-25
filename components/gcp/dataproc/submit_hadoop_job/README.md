@@ -47,7 +47,7 @@ REGION = 'us-central1'
 MAIN_CLASS = 'org.apache.hadoop.examples.WordCount'
 INTPUT_GCS_PATH = 'gs://ml-pipeline-playground/shakespeare1.txt'
 EXPERIMENT_NAME = 'Dataproc - Submit Hadoop Job'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/7622e57666c17088c94282ccbe26d6a52768c226/components/gcp/dataproc/submit_hadoop_job/component.yaml'
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataproc/submit_hadoop_job/component.yaml'
 ```
 
 ### Insepct Input Data

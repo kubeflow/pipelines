@@ -37,7 +37,7 @@ PROJECT_ID = '<Please put your project ID here>'
 
 # Optional Parameters
 EXPERIMENT_NAME = 'CLOUDML - Deploy'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/gcp/ml_engine/deploy/component.yaml'
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/ml_engine/deploy/component.yaml'
 ```
 
 ### Install KFP SDK
