@@ -1,10 +1,13 @@
 package metadata
 
 import (
+	"encoding/json"
 	"fmt"
+	"ml_metadata/metadata_store/mlmetadata"
 	mlpb "ml_metadata/proto/metadata_store_go_proto"
 	"testing"
 
+	argo "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 )
@@ -119,4 +122,197 @@ func TestParseValidTFXMetadata(t *testing.T) {
 			t.Errorf("parseTFXMetadata(%q)\nGot:\n<%+v, %+v>\nWant:\n%+v, nil error\nDiff:\n%s", test.input, got, err, test.want, cmp.Diff(test.want, got))
 		}
 	}
+}
+
+func fakeMLMDStore(t *testing.T) *mlmetadata.Store {
+	cfg := &mlpb.ConnectionConfig{
+		Config: &mlpb.ConnectionConfig_FakeDatabase{&mlpb.FakeDatabaseConfig{}},
+	}
+
+	mlmdStore, err := mlmetadata.NewStore(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create ML Metadata Store: %v", err)
+	}
+	return mlmdStore
+}
+
+func TestRecordOutputArtifacts(t *testing.T) {
+
+	tests := []struct {
+		desc          string
+		stored        *argo.Workflow
+		current       *argo.Workflow
+		wantTypes     []*mlpb.ArtifactType
+		wantArtifacts []*mlpb.Artifact
+	}{
+		{
+			desc: "nothing is recorded when node is still running",
+			stored: &argo.Workflow{Status: argo.WorkflowStatus{
+				Nodes: map[string]argo.NodeStatus{
+					"step_1": argo.NodeStatus{
+						ID:    "step_1_node_id",
+						Phase: argo.NodeRunning,
+						Outputs: &argo.Outputs{
+							Parameters: []argo.Parameter{
+								argo.Parameter{
+									ValueFrom: &argo.ValueFrom{Path: "/output/ml_metadata/output1"},
+									Value: proto.String(`[{
+										"artifact_type": { "name": "step_1_artifact_type",
+																			 "properties": {"state": "STRING" } },
+										"artifact": { "uri": "/location 2",
+										  						"properties": {
+																		 "state": {"stringValue": "complete"} } }
+										}]`),
+								}}}}}}},
+			current: &argo.Workflow{Status: argo.WorkflowStatus{
+				Nodes: map[string]argo.NodeStatus{
+					"step_1": argo.NodeStatus{
+						ID:    "step_1_node_id",
+						Phase: argo.NodeRunning,
+						Outputs: &argo.Outputs{
+							Parameters: []argo.Parameter{
+								argo.Parameter{
+									ValueFrom: &argo.ValueFrom{Path: "/output/ml_metadata/output1"},
+									Value: proto.String(`[{
+										"artifact_type": { "name": "step_1_artifact_type",
+																			 "properties": {"state": "STRING" } },
+										"artifact": { "uri": "/step_1_location",
+										  						"properties": {
+																		 "state": {"stringValue": "complete"} } }
+										}]`),
+								}}}}}}},
+			wantTypes:     nil,
+			wantArtifacts: nil,
+		},
+		{
+			desc: "artifacts are recorded when node transitions to Complete",
+			stored: &argo.Workflow{Status: argo.WorkflowStatus{
+				Nodes: map[string]argo.NodeStatus{
+					"step_1": argo.NodeStatus{
+						ID:    "step_1_node_id",
+						Phase: argo.NodeRunning,
+						Outputs: &argo.Outputs{
+							Parameters: []argo.Parameter{
+								argo.Parameter{
+									ValueFrom: &argo.ValueFrom{Path: "/output/ml_metadata/output1"},
+									Value: proto.String(`[{
+										"artifact_type": { "name": "step_1_artifact_type",
+																			 "properties": {"state": "STRING" } },
+										"artifact": { "uri": "/location 2",
+										  						"properties": {
+																		 "state": {"stringValue": "complete"} } }
+										}]`),
+								}}}}}}},
+			current: &argo.Workflow{Status: argo.WorkflowStatus{
+				Nodes: map[string]argo.NodeStatus{
+					"step_1": argo.NodeStatus{
+						ID:    "step_1_node_id",
+						Phase: argo.NodeSucceeded,
+						Outputs: &argo.Outputs{
+							Parameters: []argo.Parameter{
+								argo.Parameter{
+									ValueFrom: &argo.ValueFrom{Path: "/output/ml_metadata/output1"},
+									Value: proto.String(`[{
+										"artifact_type": { "name": "step_1_artifact_type",
+																			 "properties": {"state": "STRING" } },
+										"artifact": { "uri": "/step_1_location",
+										  						"properties": {
+																		 "state": {"stringValue": "complete"} } }
+										}]`),
+								}}}}}}},
+			wantTypes: []*mlpb.ArtifactType{
+				&mlpb.ArtifactType{
+					Id:         proto.Int64(1),
+					Name:       proto.String("step_1_artifact_type"),
+					Properties: map[string]mlpb.PropertyType{"state": mlpb.PropertyType_STRING},
+				}},
+			wantArtifacts: []*mlpb.Artifact{
+				&mlpb.Artifact{
+					Id:     proto.Int64(1),
+					TypeId: proto.Int64(1),
+					Uri:    proto.String("/step_1_location"),
+					Properties: map[string]*mlpb.Value{
+						"state": &mlpb.Value{Value: &mlpb.Value_StringValue{"complete"}}},
+				}},
+		},
+		{
+			desc: "Records artifacts only from Node with output parameter specified in ValueFrom Path",
+			stored: &argo.Workflow{Status: argo.WorkflowStatus{
+				Nodes: map[string]argo.NodeStatus{
+					"step_1": argo.NodeStatus{
+						ID:    "step_1_node_id",
+						Phase: argo.NodeRunning,
+						Outputs: &argo.Outputs{
+							Parameters: []argo.Parameter{
+								argo.Parameter{
+									Value: proto.String(`[{
+										"artifact_type": { "name": "step_1_artifact_type",
+																			 "properties": {"state": "STRING" } },
+										"artifact": { "uri": "/location 2",
+										  						"properties": {
+																		 "state": {"stringValue": "complete"} } }
+										}]`),
+								}}}}}}},
+			current: &argo.Workflow{Status: argo.WorkflowStatus{
+				Nodes: map[string]argo.NodeStatus{
+					"step_1": argo.NodeStatus{
+						ID:    "step_1_node_id",
+						Phase: argo.NodeSucceeded,
+						Outputs: &argo.Outputs{
+							Parameters: []argo.Parameter{
+								argo.Parameter{
+									Value: proto.String(`[{
+										"artifact_type": { "name": "step_1_artifact_type",
+																			 "properties": {"state": "STRING" } },
+										"artifact": { "uri": "/step_1_location",
+										  						"properties": {
+																		 "state": {"stringValue": "complete"} } }
+										}]`),
+								}}}}}}},
+			wantTypes:     nil,
+			wantArtifacts: nil,
+		},
+	}
+
+	for _, test := range tests {
+		mlmdStore := fakeMLMDStore(t)
+		store := Store{mlmdStore: mlmdStore}
+
+		current, err := json.Marshal(test.current)
+		if err != nil {
+			t.Errorf("Test: %q", test.desc)
+			t.Errorf("json.Marshal(%v) = %v", test.current, err)
+			continue
+		}
+
+		stored, err := json.Marshal(test.stored)
+		if err != nil {
+			t.Errorf("Test: %q", test.desc)
+			t.Errorf("json.Marshal(%v) = %v", test.stored, err)
+			continue
+		}
+
+		if err := store.RecordOutputArtifacts("", string(stored), string(current)); err != nil {
+			t.Errorf("Test: %q", test.desc)
+			t.Errorf("store.RecordOutputArtifacts(%q, %q) = %v\nWant non-nil error\n", current, stored, err)
+			continue
+		}
+
+		gotTypes, err := mlmdStore.GetArtifactTypesByID([]mlmetadata.ArtifactTypeID{1})
+		if !cmp.Equal(gotTypes, test.wantTypes) {
+			t.Errorf("Test: %q", test.desc)
+			t.Errorf("mlmdStore.GetArtifactTypes()\n")
+			t.Errorf("Got artifact types:\n%v\nWant\n%v\n", gotTypes, test.wantTypes)
+			t.Errorf("Got error:\n%v\nWant nil error\n", err)
+		}
+
+		gotArtifacts, err := mlmdStore.GetArtifacts()
+		if !cmp.Equal(gotArtifacts, test.wantArtifacts) {
+			t.Errorf("Test: %q", test.desc)
+			t.Errorf("mlmdStore.GetArtifacts()\n")
+			t.Errorf("Got artifacts:\n%v\nWant\n%v\n", gotArtifacts, test.wantArtifacts)
+			t.Errorf("Got error:\n%v\nWant nil error\n", err)
+		}
+	}
+
 }
