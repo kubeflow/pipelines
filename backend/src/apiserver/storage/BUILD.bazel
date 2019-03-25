@@ -40,8 +40,6 @@ go_library(
         "@google_ml_metadata//ml_metadata/metadata_store:metadata_store_go",  # keep
         "@google_ml_metadata//ml_metadata/proto:metadata_store_go_proto",  # keep
         "@google_ml_metadata//ml_metadata/proto:metadata_store_service_go_proto",  # keep
-        "@io_k8s_apimachinery//pkg/api/errors:go_default_library",
-        "@io_k8s_apimachinery//pkg/types:go_default_library",
         "@io_k8s_apimachinery//pkg/util/json:go_default_library",
     ],
 )
