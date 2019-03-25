@@ -22,7 +22,7 @@ sys.path.insert(0, __file__ + '/../../../')
 import kfp
 import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml
-from kfp.dsl._types import InconsistentTypeException
+from kfp.dsl.types import InconsistentTypeException
 
 class LoadComponentTestCase(unittest.TestCase):
     def _test_load_component_from_file(self, component_path: str):

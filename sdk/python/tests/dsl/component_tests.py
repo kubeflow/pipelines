@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import kfp
-from kfp.dsl import component, GCSPath, Integer
+from kfp.dsl import component
 from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta
-from kfp.dsl._types import InconsistentTypeException
+from kfp.dsl.types import Integer, GCSPath, InconsistentTypeException
 from kfp.dsl import ContainerOp, Pipeline
 import unittest
 
