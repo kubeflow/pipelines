@@ -121,6 +121,7 @@ def component(func):
 
   return _component
 
+#TODO: combine the component and graph_component decorators into one
 def graph_component(func):
   """Decorator for graph component functions.
   This decorator returns an ops_group.
