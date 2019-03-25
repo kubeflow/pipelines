@@ -477,7 +477,7 @@ class Compiler(object):
               for index, input in enumerate(sub_group.inputs):
                 if param_name == input.name:
                   break
-              referenced_input = sub_group.recursive_ref.inputs[index-1]
+              referenced_input = sub_group.recursive_ref.inputs[index]
               full_name = self._pipelineparam_full_name(referenced_input)
               arguments.append({
                   'name': full_name,

@@ -47,7 +47,7 @@ class TestOpsGroup(unittest.TestCase):
     self.assertFalse(loop_group.groups)
     self.assertCountEqual([x.name for x in loop_group.ops], ['op4'])
 
-  def test_recursive_opsgroups(self):
+  def test_basic_recursive_opsgroups(self):
     """Test recursive opsgroups."""
     with Pipeline('somename') as p:
       self.assertEqual(1, len(p.groups))
@@ -64,6 +64,23 @@ class TestOpsGroup(unittest.TestCase):
       graph_ops_group_two.__enter__()
       self.assertTrue(graph_ops_group_two.recursive_ref)
       self.assertEqual(graph_ops_group_one, graph_ops_group_two.recursive_ref)
+
+  def test_recursive_opsgroups_with_prefix_names(self):
+    """Test recursive opsgroups."""
+    with Pipeline('somename') as p:
+      self.assertEqual(1, len(p.groups))
+
+      # When a graph opsgraph is called.
+      graph_ops_group_one = dsl._ops_group.Graph('foo_bar')
+      graph_ops_group_one.__enter__()
+      self.assertFalse(graph_ops_group_one.recursive_ref)
+      self.assertEqual('graph-foo-bar-1', graph_ops_group_one.name)
+
+      # Another graph opsgraph is called with the name as the prefix of the ops_group_one
+      # when the previous graph opsgraphs is not finished.
+      graph_ops_group_two = dsl._ops_group.Graph('foo')
+      graph_ops_group_two.__enter__()
+      self.assertFalse(graph_ops_group_two.recursive_ref)
 
 class TestExitHandler(unittest.TestCase):
   
