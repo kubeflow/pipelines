@@ -15,7 +15,7 @@
  */
 
 import * as Utils from '../lib/Utils';
-import { NodePhase, hasFinished, statusBgColors, statusToBgColor, statusToIcon } from './Status';
+import { NodePhase, hasFinished, statusBgColors, statusToBgColor, statusToIcon, checkIfTerminated } from './Status';
 import { shallow } from 'enzyme';
 
 
@@ -77,13 +77,13 @@ describe('Status', () => {
   });
 
   describe('hasFinished', () => {
-    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
+    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED, NodePhase.TERMINATED].forEach(status => {
       it(`returns \'true\' if status is: ${status}`, () => {
         expect(hasFinished(status)).toBe(true);
       });
     });
 
-    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach(status => {
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN, NodePhase.TERMINATING].forEach(status => {
       it(`returns \'false\' if status is: ${status}`, () => {
         expect(hasFinished(status)).toBe(false);
       });
@@ -127,16 +127,52 @@ describe('Status', () => {
       });
     });
 
-    it('returns color \'running\' if status is \'Running\'', () => {
-      expect(statusToBgColor(NodePhase.RUNNING)).toEqual(statusBgColors.running);
+    [NodePhase.RUNNING, NodePhase.TERMINATING].forEach(status => {
+      it(`returns color \'running\' if status is: ${status}`, () => {
+        expect(statusToBgColor(status)).toEqual(statusBgColors.running);
+      });
     });
 
-    it('returns color \'stop or skip\' if status is \'Skipped\'', () => {
-      expect(statusToBgColor(NodePhase.SKIPPED)).toEqual(statusBgColors.stopOrSkip);
+    [NodePhase.SKIPPED, NodePhase.TERMINATED].forEach(status => {
+      it(`returns color \'terminated or skipped\' if status is: ${status}`, () => {
+        expect(statusToBgColor(status)).toEqual(statusBgColors.terminatedOrSkipped);
+      });
     });
 
     it('returns color \'succeeded\' if status is \'Succeeded\'', () => {
       expect(statusToBgColor(NodePhase.SUCCEEDED)).toEqual(statusBgColors.succeeded);
+    });
+  });
+
+  describe('checkIfTerminated', () => {
+    it('returns status \'terminated\' if status is \'failed\' and error message is \'terminated\'', () => {
+      expect(checkIfTerminated(NodePhase.FAILED, 'terminated')).toEqual(NodePhase.TERMINATED);
+    });
+
+    [
+      NodePhase.SUCCEEDED,
+      NodePhase.ERROR,
+      NodePhase.SKIPPED,
+      NodePhase.PENDING,
+      NodePhase.RUNNING,
+      NodePhase.TERMINATING,
+      NodePhase.UNKNOWN
+    ].forEach(status => {
+      it(`returns the original status, even if message is 'terminated', if status is: ${status}`, () => {
+        expect(checkIfTerminated(status, 'terminated')).toEqual(status);
+      });
+    });
+
+    it('returns \'failed\' if status is \'failed\' and no error message is provided', () => {
+      expect(checkIfTerminated(NodePhase.FAILED)).toEqual(NodePhase.FAILED);
+    });
+
+    it('returns \'failed\' if status is \'failed\' and empty error message is provided', () => {
+      expect(checkIfTerminated(NodePhase.FAILED, '')).toEqual(NodePhase.FAILED);
+    });
+
+    it('returns \'failed\' if status is \'failed\' and arbitrary error message is provided', () => {
+      expect(checkIfTerminated(NodePhase.FAILED, 'some random error')).toEqual(NodePhase.FAILED);
     });
   });
 });

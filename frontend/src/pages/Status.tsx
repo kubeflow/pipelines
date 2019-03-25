@@ -21,7 +21,6 @@ import RunningIcon from '../icons/statusRunning';
 import SkippedIcon from '@material-ui/icons/SkipNext';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
 import TerminatedIcon from '../icons/statusTerminated';
-import TerminatingIcon from '@material-ui/icons/NotInterested';
 import Tooltip from '@material-ui/core/Tooltip';
 import UnknownIcon from '@material-ui/icons/Help';
 import { color } from '../Css';
@@ -31,8 +30,8 @@ export const statusBgColors = {
   error: '#fce8e6',
   notStarted: '#f7f7f7',
   running: '#e8f0fe',
-  stopOrSkip: '#f1f3f4',
   succeeded: '#e6f4ea',
+  terminatedOrSkipped: '#f1f3f4',
   warning: '#fef7f0',
 };
 
@@ -66,7 +65,8 @@ export function hasFinished(status?: NodePhase): boolean {
   }
 }
 
-export function statusToBgColor(status?: NodePhase): string {
+export function statusToBgColor(status?: NodePhase, errorMessage?: string): string {
+  status = checkIfTerminated(status, errorMessage);
   switch (status) {
     case NodePhase.ERROR:
       // fall through
@@ -74,6 +74,8 @@ export function statusToBgColor(status?: NodePhase): string {
       return statusBgColors.error;
     case NodePhase.PENDING:
       return statusBgColors.notStarted;
+    case NodePhase.TERMINATING:
+      // fall through
     case NodePhase.RUNNING:
       return statusBgColors.running;
     case NodePhase.SUCCEEDED:
@@ -81,9 +83,7 @@ export function statusToBgColor(status?: NodePhase): string {
     case NodePhase.SKIPPED:
       // fall through
     case NodePhase.TERMINATED:
-      // fall through
-    case NodePhase.TERMINATING:
-      return statusBgColors.stopOrSkip;
+      return statusBgColors.terminatedOrSkipped;
     case NodePhase.UNKNOWN:
       // fall through
     default:
@@ -92,7 +92,17 @@ export function statusToBgColor(status?: NodePhase): string {
   }
 }
 
-export function statusToIcon(status?: NodePhase, startDate?: Date | string, endDate?: Date | string): JSX.Element {
+export function checkIfTerminated(status?: NodePhase, errorMessage?: string): NodePhase | undefined {
+  // Argo considers terminated runs as having "Failed", so we have to examine the failure message to
+  // determine why the run failed.
+  if (status === NodePhase.FAILED && errorMessage === 'terminated') {
+    status = NodePhase.TERMINATED;
+  }
+  return status;
+}
+
+export function statusToIcon(status?: NodePhase, startDate?: Date | string, endDate?: Date | string, errorMessage?: string): JSX.Element {
+  status = checkIfTerminated(status, errorMessage);
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
@@ -118,6 +128,11 @@ export function statusToIcon(status?: NodePhase, startDate?: Date | string, endD
       iconColor = color.blue;
       title = 'Running';
       break;
+    case NodePhase.TERMINATING:
+      IconComponent = RunningIcon;
+      iconColor = color.blue;
+      title = 'Run is terminating';
+      break;
     case NodePhase.SKIPPED:
       IconComponent = SkippedIcon;
       title = 'Execution has been skipped for this resource';
@@ -130,12 +145,7 @@ export function statusToIcon(status?: NodePhase, startDate?: Date | string, endD
     case NodePhase.TERMINATED:
       IconComponent = TerminatedIcon;
       iconColor = color.terminate;
-      title = 'Manually terminated';
-      break;
-    case NodePhase.TERMINATING:
-      IconComponent = TerminatingIcon;
-      iconColor = color.terminate;
-      title = 'Run is terminating';
+      title = 'Run was manually terminated';
       break;
     case NodePhase.UNKNOWN:
       break;

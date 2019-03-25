@@ -91,7 +91,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
         dialogTitle = 'An error occurred';
         break;
       case 'warning':
-        bannerModeCss = stylesheet({ mode: { backgroundColor: color.warningBg, color: color.errorText, } });
+        bannerModeCss = stylesheet({ mode: { backgroundColor: color.warningBg, color: color.warningText, } });
         bannerIcon = <WarningIcon className={css.icon} />;
         dialogTitle = 'Warning';
         break;
