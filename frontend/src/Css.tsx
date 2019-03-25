@@ -42,6 +42,7 @@ export const color = {
   theme: '#1a73e8',
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
+  warningText: '#ee8100',
   weak: '#9aa0a6',
 };
 

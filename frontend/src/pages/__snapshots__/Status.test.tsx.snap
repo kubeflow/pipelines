@@ -5373,7 +5373,7 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: TERMINATED 
   title={
     <div>
       <div>
-        Manually terminated
+        Run was manually terminated
       </div>
     </div>
   }
@@ -5799,10 +5799,10 @@ exports[`Status statusToIcon renders an icon with tooltip for phase: TERMINATING
       }
     }
   >
-    <pure(NotInterestedIcon)
+    <StatusRunning
       style={
         Object {
-          "color": "#80868b",
+          "color": "#4285f4",
           "height": 18,
           "width": 18,
         }
