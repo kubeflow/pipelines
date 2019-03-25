@@ -33,7 +33,7 @@ GCS_STAGING_DIR = 'gs://<Please put your GCS path here>' # No ending slash
 
 # Optional Parameters
 EXPERIMENT_NAME = 'Dataflow - Launch Python'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/07a0dd32c7d12066b2526210b0ae5a9ed9d9a90c/components/gcp/dataflow/launch_python/component.yaml'
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataflow/launch_python/component.yaml'
 ```
 
 ### Install KFP SDK
