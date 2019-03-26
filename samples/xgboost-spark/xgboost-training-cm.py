@@ -204,4 +204,4 @@ def xgb_train_pipeline(
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
-  compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.tar.gz')
+  compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.zip')
