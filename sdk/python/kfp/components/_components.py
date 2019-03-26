@@ -26,7 +26,7 @@ from ._yaml_utils import load_yaml
 from ._structures import ComponentSpec
 from ._structures import *
 from kfp.dsl import PipelineParam
-from kfp.dsl._types import InconsistentTypeException, check_types
+from kfp.dsl.types import InconsistentTypeException, check_types
 import kfp
 
 _default_component_name = 'Component'
