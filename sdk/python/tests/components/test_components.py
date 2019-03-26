@@ -504,401 +504,337 @@ implementation:
         task2 = task_factory1('456')
         self.assertEqual(task2.arguments, ['456'])
 
-    def test_type_check_all_with_types(self):
+    def test_type_compatibility_check_for_simple_types(self):
         component_a = '''\
-name: component a
-description: component a desc
-inputs:
-  - {name: field_l, type: Integer}
 outputs:
-  - {name: field_m, type: {ArtifactA: {path_type: file, file_type: csv}}}
-  - {name: field_n, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_o, type: GcsUri} 
+  - {name: out1, type: custom_type}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3, /pipelines/component/src/train.py]
-    args: [
-      --field-l, {inputValue: field_l},
-    ]
-    fileOutputs: 
-      field_m: /schema.txt
-      field_n: /feature.txt
-      field_o: /output.txt
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
 '''
         component_b = '''\
-name: component b
-description: component b desc
 inputs:
-  - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_y, type: GcsUri}
-  - {name: field_z, type: {ArtifactA: {path_type: file, file_type: csv}}}
-outputs:
-  - {name: output_model_uri, type: GcsUri}
+  - {name: in1, type: custom_type}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3]
-    args: [
-      --field-x, {inputValue: field_x},
-      --field-y, {inputValue: field_y},
-      --field-z, {inputValue: field_z},
-    ]
-    fileOutputs: 
-      output_model_uri: /schema.txt
+    image: busybox
+    command: [echo, {inputValue: in1}]
 '''
         kfp.TYPE_CHECK = True
-        task_factory_a = comp.load_component_from_text(text=component_a)
-        task_factory_b = comp.load_component_from_text(text=component_b)
-        a = task_factory_a(field_l=12)
-        b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
 
-    def test_type_check_with_lacking_types(self):
+    def test_type_compatibility_check_for_types_with_parameters(self):
         component_a = '''\
-name: component a
-description: component a desc
-inputs:
-  - {name: field_l, type: Integer}
 outputs:
-  - {name: field_m, type: {ArtifactA: {path_type: file, file_type: csv}}}
-  - {name: field_n}
-  - {name: field_o, type: GcsUri} 
+  - {name: out1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3, /pipelines/component/src/train.py]
-    args: [
-      --field-l, {inputValue: field_l},
-    ]
-    fileOutputs: 
-      field_m: /schema.txt
-      field_n: /feature.txt
-      field_o: /output.txt
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
 '''
         component_b = '''\
-name: component b
-description: component b desc
 inputs:
-  - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_y}
-  - {name: field_z, type: {ArtifactA: {path_type: file, file_type: csv}}}
-outputs:
-  - {name: output_model_uri, type: GcsUri}
+  - {name: in1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3]
-    args: [
-      --field-x, {inputValue: field_x},
-      --field-y, {inputValue: field_y},
-      --field-z, {inputValue: field_z},
-    ]
-    fileOutputs: 
-      output_model_uri: /schema.txt
+    image: busybox
+    command: [echo, {inputValue: in1}]
 '''
         kfp.TYPE_CHECK = True
-        task_factory_a = comp.load_component_from_text(text=component_a)
-        task_factory_b = comp.load_component_from_text(text=component_b)
-        a = task_factory_a(field_l=12)
-        b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
 
-    def test_type_check_with_inconsistent_types_property_value(self):
+    def test_type_compatibility_check_when_using_positional_arguments(self):
+        """Tests that `op2(task1.output)` works as good as `op2(in1=task1.output)`"""
         component_a = '''\
-name: component a
-description: component a desc
-inputs:
-  - {name: field_l, type: Integer}
 outputs:
-  - {name: field_m, type: {ArtifactA: {path_type: file, file_type: tsv}}}
-  - {name: field_n, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_o, type: GcsUri} 
+  - {name: out1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3, /pipelines/component/src/train.py]
-    args: [
-      --field-l, {inputValue: field_l},
-    ]
-    fileOutputs: 
-      field_m: /schema.txt
-      field_n: /feature.txt
-      field_o: /output.txt
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
 '''
         component_b = '''\
-name: component b
-description: component b desc
 inputs:
-  - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_y, type: GcsUri}
-  - {name: field_z, type: {ArtifactA: {path_type: file, file_type: csv}}}
-outputs:
-  - {name: output_model_uri, type: GcsUri}
+  - {name: in1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3]
-    args: [
-      --field-x, {inputValue: field_x},
-      --field-y, {inputValue: field_y},
-      --field-z, {inputValue: field_z},
-    ]
-    fileOutputs: 
-      output_model_uri: /schema.txt
+    image: busybox
+    command: [echo, {inputValue: in1}]
 '''
         kfp.TYPE_CHECK = True
-        task_factory_a = comp.load_component_from_text(text=component_a)
-        task_factory_b = comp.load_component_from_text(text=component_b)
-        a = task_factory_a(field_l=12)
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(a_task.outputs['out1'])
+
+    def test_type_compatibility_check_when_input_type_is_missing(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: custom_type}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_type_compatibility_check_when_argument_type_is_missing(self):
+        component_a = '''\
+outputs:
+  - {name: out1}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: custom_type}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_fail_type_compatibility_check_when_simple_type_name_is_different(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: type_A}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: type_Z}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
         with self.assertRaises(InconsistentTypeException):
-            b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
 
-    def test_type_check_with_inconsistent_types_type_name(self):
+    def test_fail_type_compatibility_check_when_parametrized_type_name_is_different(self):
         component_a = '''\
-name: component a
-description: component a desc
-inputs:
-  - {name: field_l, type: Integer}
 outputs:
-  - {name: field_m, type: {ArtifactA: {path_type: file, file_type: csv}}}
-  - {name: field_n, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_o, type: GcrUri} 
+  - {name: out1, type: {parametrized_type_A: {property_a: value_a}}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3, /pipelines/component/src/train.py]
-    args: [
-      --field-l, {inputValue: field_l},
-    ]
-    fileOutputs: 
-      field_m: /schema.txt
-      field_n: /feature.txt
-      field_o: /output.txt
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
 '''
         component_b = '''\
-name: component b
-description: component b desc
 inputs:
-  - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_y, type: GcsUri}
-  - {name: field_z, type: {ArtifactA: {path_type: file, file_type: csv}}}
-outputs:
-  - {name: output_model_uri, type: GcsUri}
+  - {name: in1, type: {parametrized_type_Z: {property_a: value_a}}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3]
-    args: [
-      --field-x, {inputValue: field_x},
-      --field-y, {inputValue: field_y},
-      --field-z, {inputValue: field_z},
-    ]
-    fileOutputs: 
-      output_model_uri: /schema.txt
+    image: busybox
+    command: [echo, {inputValue: in1}]
 '''
         kfp.TYPE_CHECK = True
-        task_factory_a = comp.load_component_from_text(text=component_a)
-        task_factory_b = comp.load_component_from_text(text=component_b)
-        a = task_factory_a(field_l=12)
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
         with self.assertRaises(InconsistentTypeException):
-            b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
 
-    def test_type_check_with_consistent_types_nonnamed_inputs(self):
+    def test_fail_type_compatibility_check_when_type_property_value_is_different(self):
         component_a = '''\
-name: component a
-description: component a desc
-inputs:
-  - {name: field_l, type: Integer}
 outputs:
-  - {name: field_m, type: {ArtifactA: {path_type: file, file_type: csv}}}
-  - {name: field_n, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_o, type: GcsUri} 
+  - {name: out1, type: {parametrized_type: {property_a: value_a}}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3, /pipelines/component/src/train.py]
-    args: [
-      --field-l, {inputValue: field_l},
-    ]
-    fileOutputs: 
-      field_m: /schema.txt
-      field_n: /feature.txt
-      field_o: /output.txt
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
 '''
         component_b = '''\
-name: component b
-description: component b desc
 inputs:
-  - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_y, type: GcsUri}
-  - {name: field_z, type: {ArtifactA: {path_type: file, file_type: csv}}}
-outputs:
-  - {name: output_model_uri, type: GcsUri}
+  - {name: in1, type: {parametrized_type: {property_a: DIFFERENT VALUE}}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3]
-    args: [
-      --field-x, {inputValue: field_x},
-      --field-y, {inputValue: field_y},
-      --field-z, {inputValue: field_z},
-    ]
-    fileOutputs: 
-      output_model_uri: /schema.txt
+    image: busybox
+    command: [echo, {inputValue: in1}]
 '''
         kfp.TYPE_CHECK = True
-        task_factory_a = comp.load_component_from_text(text=component_a)
-        task_factory_b = comp.load_component_from_text(text=component_b)
-        a = task_factory_a(field_l=12)
-        b = task_factory_b(a.outputs['field_n'], field_z=a.outputs['field_m'], field_y=a.outputs['field_o'])
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        with self.assertRaises(InconsistentTypeException):
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
 
-    def test_type_check_with_inconsistent_types_disabled(self):
+    @unittest.skip('Type compatibility check currently works the opposite way')
+    def test_type_compatibility_check_when_argument_type_has_extra_type_parameters(self):
         component_a = '''\
-name: component a
-description: component a desc
-inputs:
-  - {name: field_l, type: Integer}
 outputs:
-  - {name: field_m, type: {ArtifactA: {path_type: file, file_type: csv}}}
-  - {name: field_n, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_o, type: GcrUri} 
+  - {name: out1, type: {parametrized_type: {property_a: value_a, extra_property: extra_value}}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3, /pipelines/component/src/train.py]
-    args: [
-      --field-l, {inputValue: field_l},
-    ]
-    fileOutputs: 
-      field_m: /schema.txt
-      field_n: /feature.txt
-      field_o: /output.txt
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
 '''
         component_b = '''\
-name: component b
-description: component b desc
 inputs:
-  - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_y, type: GcsUri}
-  - {name: field_z, type: {ArtifactA: {path_type: file, file_type: csv}}}
-outputs:
-  - {name: output_model_uri, type: GcsUri}
+  - {name: in1, type: {parametrized_type: {property_a: value_a}}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3]
-    args: [
-      --field-x, {inputValue: field_x},
-      --field-y, {inputValue: field_y},
-      --field-z, {inputValue: field_z},
-    ]
-    fileOutputs: 
-      output_model_uri: /schema.txt
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    @unittest.skip('Type compatibility check currently works the opposite way')
+    def test_fail_type_compatibility_check_when_argument_type_has_missing_type_parameters(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: {parametrized_type: {property_a: value_a}}}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        with self.assertRaises(InconsistentTypeException):
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_type_compatibility_check_not_failing_when_disabled(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: type_A}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: type_Z}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
 '''
         kfp.TYPE_CHECK = False
-        task_factory_a = comp.load_component_from_text(text=component_a)
-        task_factory_b = comp.load_component_from_text(text=component_b)
-        a = task_factory_a(field_l=12)
-        b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+        kfp.TYPE_CHECK = True
 
-    def test_type_check_with_openapi_shema(self):
-      component_a = '''\
-name: component a
-description: component a desc
-inputs:
-  - {name: field_l, type: Integer}
+    def test_type_compatibility_check_not_failing_when_type_is_ignored(self):
+        component_a = '''\
 outputs:
-  - {name: field_m, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: ^gs://.*$ } }}}
-  - {name: field_n, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_o, type: GcrUri} 
+  - {name: out1, type: type_A}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3, /pipelines/component/src/train.py]
-    args: [
-      --field-l, {inputValue: field_l},
-    ]
-    fileOutputs: 
-      field_m: /schema.txt
-      field_n: /feature.txt
-      field_o: /output.txt
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
 '''
-      component_b = '''\
-name: component b
-description: component b desc
+        component_b = '''\
 inputs:
-  - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_y, type: GcrUri}
-  - {name: field_z, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: ^gs://.*$ } }}}
-outputs:
-  - {name: output_model_uri, type: GcsUri}
+  - {name: in1, type: type_Z}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3]
-    args: [
-      --field-x, {inputValue: field_x},
-      --field-y, {inputValue: field_y},
-      --field-z, {inputValue: field_z},
-    ]
-    fileOutputs: 
-      output_model_uri: /schema.txt
+    image: busybox
+    command: [echo, {inputValue: in1}]
 '''
-      kfp.TYPE_CHECK = True
-      task_factory_a = comp.load_component_from_text(text=component_a)
-      task_factory_b = comp.load_component_from_text(text=component_b)
-      a = task_factory_a(field_l=12)
-      b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'].ignore_type())
 
-    def test_type_check_ignore_type(self):
-      component_a = '''\
-name: component a
-description: component a desc
-inputs:
-  - {name: field_l, type: Integer}
+    def test_type_compatibility_check_for_types_with_schema(self):
+        component_a = '''\
 outputs:
-  - {name: field_m, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: ^gs://.*$ } }}}
-  - {name: field_n, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_o, type: GcrUri} 
+  - {name: out1, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: "^gs://.*$" } }}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3, /pipelines/component/src/train.py]
-    args: [
-      --field-l, {inputValue: field_l},
-    ]
-    fileOutputs: 
-      field_m: /schema.txt
-      field_n: /feature.txt
-      field_o: /output.txt
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
 '''
-      component_b = '''\
-name: component b
-description: component b desc
+        component_b = '''\
 inputs:
-  - {name: field_x, type: {customized_type: {property_a: value_a, property_b: value_b}}}
-  - {name: field_y, type: GcrUri}
-  - {name: field_z, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: ^gcs://.*$ } }}}
-outputs:
-  - {name: output_model_uri, type: GcsUri}
+  - {name: in1, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: "^gs://.*$" } }}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/component-a
-    command: [python3]
-    args: [
-      --field-x, {inputValue: field_x},
-      --field-y, {inputValue: field_y},
-      --field-z, {inputValue: field_z},
-    ]
-    fileOutputs: 
-      output_model_uri: /schema.txt
+    image: busybox
+    command: [echo, {inputValue: in1}]
 '''
-      kfp.TYPE_CHECK = True
-      task_factory_a = comp.load_component_from_text(text=component_a)
-      task_factory_b = comp.load_component_from_text(text=component_b)
-      a = task_factory_a(field_l=12)
-      with self.assertRaises(InconsistentTypeException):
-        b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
-      b = task_factory_b(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'].ignore_type())
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_fail_type_compatibility_check_for_types_with_different_schemas(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: AAA } }}}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: ZZZ } }}}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        with self.assertRaises(InconsistentTypeException):
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
+
 
 if __name__ == '__main__':
     unittest.main()
