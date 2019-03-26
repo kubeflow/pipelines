@@ -23,6 +23,7 @@ from .. import dsl
 from ._k8s_helper import K8sHelper
 from ..dsl._pipeline_param import _match_serialized_pipelineparam
 from ..dsl._metadata import TypeMeta
+from ..dsl._ops_group import OpsGroup
 
 class Compiler(object):
   """DSL Compiler.
@@ -65,6 +66,11 @@ class Compiler(object):
     def _get_op_groups_helper(current_groups, ops_to_groups):
       root_group = current_groups[-1]
       for g in root_group.groups:
+        # Add recursive opsgroup in the ops_to_groups
+        # such that the i/o dependency can be propagated to the ancester opsgroups
+        if g.recursive_ref:
+          ops_to_groups[g.name] = [x.name for x in current_groups] + [g.name]
+          continue
         current_groups.append(g)
         _get_op_groups_helper(current_groups, ops_to_groups)
         del current_groups[-1]
@@ -82,7 +88,10 @@ class Compiler(object):
     def _get_groups_helper(group):
       groups = [group]
       for g in group.groups:
-        groups += _get_groups_helper(g)
+        # Skip the recursive opsgroup because no templates
+        # need to be generated for the recursive opsgroups.
+        if not g.recursive_ref:
+          groups += _get_groups_helper(g)
       return groups
 
     return _get_groups_helper(root_group)
@@ -145,6 +154,38 @@ class Compiler(object):
           if not op.is_exit_handler:
             for g in op_groups[op.name]:
               inputs[g].add((full_name, None))
+
+    # Generate the input/output for recursive opsgroups
+    # It propagates the recursive opsgroups IO to their ancester opsgroups
+    def _get_inputs_outputs_recursive_opsgroup(group):
+      #TODO: refactor the following codes with the above
+      if group.recursive_ref:
+        for param in group.inputs + list(condition_params[group.name]):
+          if param.value:
+            continue
+          full_name = self._pipelineparam_full_name(param)
+          if param.op_name:
+            upstream_op = pipeline.ops[param.op_name]
+            upstream_groups, downstream_groups = self._get_uncommon_ancestors(
+              op_groups, upstream_op, group)
+            for i, g in enumerate(downstream_groups):
+              if i == 0:
+                inputs[g].add((full_name, upstream_groups[0]))
+              else:
+                inputs[g].add((full_name, None))
+            for i, g in enumerate(upstream_groups):
+              if i == len(upstream_groups) - 1:
+                outputs[g].add((full_name, None))
+              else:
+                outputs[g].add((full_name, upstream_groups[i+1]))
+          else:
+            if not op.is_exit_handler:
+              for g in op_groups[op.name]:
+                inputs[g].add((full_name, None))
+      for subgroup in group.groups:
+        _get_inputs_outputs_recursive_opsgroup(subgroup)
+
+    _get_inputs_outputs_recursive_opsgroup(root_group)
     return inputs, outputs
 
   def _get_condition_params_for_ops(self, root_group):
@@ -164,8 +205,13 @@ class Compiler(object):
         for param in new_current_conditions_params:
           conditions[op.name].add(param)
       for g in group.groups:
-        _get_condition_params_for_ops_helper(g, new_current_conditions_params)
-
+        # If the subgroup is a recursive opsgroup, propagate the pipelineparams
+        # in the condition expression, similar to the ops.
+        if g.recursive_ref:
+          for param in new_current_conditions_params:
+            conditions[g.name].add(param)
+        else:
+          _get_condition_params_for_ops_helper(g, new_current_conditions_params)
     _get_condition_params_for_ops_helper(root_group, [])
     return conditions
 
@@ -179,6 +225,8 @@ class Compiler(object):
       then G3 is dependent on G2. Basically dependency only exists in the first uncommon
       ancesters in their ancesters chain. Only sibling groups/ops can have dependencies.
     """
+    #TODO: move the condition_params out because both the _get_inputs_outputs
+    # and _get_dependencies depend on it.
     condition_params = self._get_condition_params_for_ops(root_group)
     dependencies = defaultdict(set)
     for op in pipeline.ops.values():
@@ -193,6 +241,29 @@ class Compiler(object):
         upstream_groups, downstream_groups = self._get_uncommon_ancestors(
             op_groups, upstream_op, op)
         dependencies[downstream_groups[0]].add(upstream_groups[0])
+
+    # Generate dependencies based on the recursive opsgroups
+    #TODO: refactor the following codes with the above
+    def _get_dependency_opsgroup(group, dependencies):
+      if group.recursive_ref:
+        unstream_op_names = set()
+        for param in group.inputs + list(condition_params[group.name]):
+          if param.op_name:
+            unstream_op_names.add(param.op_name)
+        unstream_op_names |= set(group.dependencies)
+
+        for op_name in unstream_op_names:
+          upstream_op = pipeline.ops[op_name]
+          upstream_groups, downstream_groups = self._get_uncommon_ancestors(
+              op_groups, upstream_op, group)
+          dependencies[downstream_groups[0]].add(upstream_groups[0])
+
+
+      for subgroup in group.groups:
+        _get_dependency_opsgroup(subgroup, dependencies)
+
+    _get_dependency_opsgroup(root_group, dependencies)
+
     return dependencies
 
   def _resolve_value_or_reference(self, value_or_reference, potential_references):
@@ -364,11 +435,18 @@ class Compiler(object):
     # Generate tasks section.
     tasks = []
     for sub_group in group.groups + group.ops:
-      task = {
-        'name': sub_group.name,
-        'template': sub_group.name,
-      }
-
+      is_recursive_subgroup = (isinstance(sub_group, OpsGroup) and sub_group.recursive_ref)
+      # Special handling for recursive subgroup: use the existing opsgroup name
+      if is_recursive_subgroup:
+        task = {
+            'name': sub_group.recursive_ref.name,
+            'template': sub_group.recursive_ref.name,
+        }
+      else:
+        task = {
+          'name': sub_group.name,
+          'template': sub_group.name,
+        }
       if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
         subgroup_inputs = inputs.get(sub_group.name, [])
         condition = sub_group.condition
@@ -394,10 +472,22 @@ class Compiler(object):
             })
           else:
             # The value comes from its parent.
-            arguments.append({
-              'name': param_name,
-              'value': '{{inputs.parameters.%s}}' % param_name
-            })
+            # Special handling for recursive subgroup: argument name comes from the existing opsgroup
+            if is_recursive_subgroup:
+              for index, input in enumerate(sub_group.inputs):
+                if param_name == input.name:
+                  break
+              referenced_input = sub_group.recursive_ref.inputs[index]
+              full_name = self._pipelineparam_full_name(referenced_input)
+              arguments.append({
+                  'name': full_name,
+                  'value': '{{inputs.parameters.%s}}' % param_name
+              })
+            else:
+              arguments.append({
+                'name': param_name,
+                'value': '{{inputs.parameters.%s}}' % param_name
+              })
         arguments.sort(key=lambda x: x['name'])
         task['arguments'] = {'parameters': arguments}
       tasks.append(task)
@@ -410,6 +500,15 @@ class Compiler(object):
 
     new_root_group = pipeline.groups[0]
 
+    # Generate core data structures to prepare for argo yaml generation
+    #   op_groups: op name -> list of ancestor groups including the current op
+    #   inputs, outputs: group/op names -> list of tuples (param_name, producing_op_name)
+    #   dependencies: group/op name -> list of dependent groups/ops.
+    #   groups: opsgroups
+    # Special Handling for the recursive opsgroup
+    #   op_groups also contains the recursive opsgroups
+    #   condition_params from _get_condition_params_for_ops also contains the recursive opsgroups
+    #   groups does not include the recursive opsgroups
     op_groups = self._get_groups_for_ops(new_root_group)
     inputs, outputs = self._get_inputs_outputs(pipeline, new_root_group, op_groups)
     dependencies = self._get_dependencies(pipeline, new_root_group, op_groups)
