@@ -12,6 +12,7 @@ from subprocess import Popen, PIPE
 import shutil
 import glob
 import re
+import json
 from tensorflow.python.tools.freeze_graph import freeze_graph
 from tensorflow.python.tools.saved_model_cli import _show_all
 from urllib.parse import urlparse
@@ -192,15 +193,24 @@ def main():
 
     print("Saved model exported to:", SAVED_MODEL_DIR)
     _show_all(SAVED_MODEL_DIR)
-    pb_visual_writer = tf.summary.FileWriter(EXPORT_DIR)
+    pb_visual_writer = tf.summary.FileWriter(SAVED_MODEL_DIR)
     pb_visual_writer.add_graph(sess.graph)
     print("Visualize the model by running: "
-          "tensorboard --logdir={}".format(SAVED_MODEL_DIR))
+          "tensorboard --logdir={}".format(EXPORT_DIR))
     with open('/tmp/saved_model_dir.txt', 'w') as f:
         f.write(SAVED_MODEL_DIR)
     with open('/tmp/export_dir.txt', 'w') as f:
         f.write(EXPORT_DIR)
 
+    artifacts = {"version": 1,"outputs": [
+            {
+                "type": "tensorboard",
+                "source": SAVED_MODEL_DIR
+            }
+        ]
+    }
+    with open('/mlpipeline-ui-metadata.json', 'w') as f:
+        json.dump(artifacts, f)
 
 if __name__ == "__main__":
     main()

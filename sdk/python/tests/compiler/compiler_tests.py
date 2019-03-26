@@ -25,7 +25,7 @@ import yaml
 
 from kfp.dsl._component import component
 from kfp.dsl import ContainerOp, pipeline
-from kfp.dsl._types import Integer, InconsistentTypeException
+from kfp.dsl.types import Integer, InconsistentTypeException
 
 class TestCompiler(unittest.TestCase):
 

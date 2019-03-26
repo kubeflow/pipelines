@@ -15,6 +15,7 @@
 package resource
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -95,8 +96,40 @@ func (c *FakeWorkflowClient) DeleteCollection(options *v1.DeleteOptions,
 
 func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
 	subresources ...string) (*v1alpha1.Workflow, error) {
-	glog.Error("This fake method is not yet implemented.")
-	return nil, nil
+
+	var dat map[string]interface{}
+	json.Unmarshal(data, &dat)
+
+	// TODO: Should we actually assert the type here, or just panic if it's wrong?
+
+	spec := dat["spec"].(map[string]interface{})
+	activeDeadlineSeconds := spec["activeDeadlineSeconds"].(float64)
+
+	// Simulate terminating a workflow
+	if pt == types.MergePatchType && activeDeadlineSeconds == 0 {
+		workflow, ok := c.workflows[name]
+		if ok {
+			newActiveDeadlineSeconds := int64(0)
+			workflow.Spec.ActiveDeadlineSeconds = &newActiveDeadlineSeconds
+			return workflow, nil
+		}
+	}
+
+	return nil, errors.New("Failed to patch worfklow")
+}
+
+func (c *FakeWorkflowClient) isTerminated(name string) (bool, error) {
+	workflow, ok := c.workflows[name]
+	if !ok {
+		return false, errors.New("No workflow found with name: " + name)
+	}
+
+	activeDeadlineSeconds := workflow.Spec.ActiveDeadlineSeconds
+	if activeDeadlineSeconds == nil {
+		return false, errors.New("No ActiveDeadlineSeconds found in workflow with name: " + name)
+	}
+
+	return *activeDeadlineSeconds == 0, nil
 }
 
 type FakeBadWorkflowClient struct {

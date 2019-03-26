@@ -47,7 +47,7 @@ REGION = 'us-central1'
 MAIN_CLASS = 'org.apache.hadoop.examples.WordCount'
 INTPUT_GCS_PATH = 'gs://ml-pipeline-playground/shakespeare1.txt'
 EXPERIMENT_NAME = 'Dataproc - Submit Hadoop Job'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/7622e57666c17088c94282ccbe26d6a52768c226/components/gcp/dataproc/submit_hadoop_job/component.yaml'
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataproc/submit_hadoop_job/component.yaml'
 ```
 
 ### Insepct Input Data
@@ -72,8 +72,6 @@ To continue to run the sample, make sure that the service account of the noteboo
 !gsutil rm $OUTPUT_GCS_PATH/**
 ```
 
-    CommandException: No URLs matched: gs://hongyes-ml-tests/dataproc/hadoop/output/**
-
 
 ### Install KFP SDK
 Install the SDK (Uncomment the code if the SDK is not installed before)
@@ -93,9 +91,6 @@ import kfp.components as comp
 dataproc_submit_hadoop_job_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
 display(dataproc_submit_hadoop_job_op)
 ```
-
-
-    <function dataproc_submit_hadoop_job(project_id, region, cluster_name, main_jar_file_uri='', main_class='', args='', hadoop_job='', job='', wait_interval='30')>
 
 
 ### Here is an illustrative pipeline that uses the component
@@ -156,13 +151,6 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 ```
 
 
-Experiment link <a href="/pipeline/#/experiments/details/bc344edd-4cce-4535-8b11-b34a65e549e9" target="_blank" >here</a>
-
-
-
-Run link <a href="/pipeline/#/runs/details/23edc062-46b1-11e9-8b9e-42010a800110" target="_blank" >here</a>
-
-
 ### Inspect the outputs
 
 The sample in the notebook will count the words in the input text and output them in sharded files. Here is the command to inspect them:
@@ -171,6 +159,4 @@ The sample in the notebook will count the words in the input text and output the
 ```python
 !gsutil cat $OUTPUT_GCS_PATH/*
 ```
-
-    AccessDeniedException: 403 
 

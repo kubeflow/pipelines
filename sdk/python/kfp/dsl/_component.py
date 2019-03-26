@@ -14,9 +14,8 @@
 
 from ._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 from ._pipeline_param import PipelineParam
-from ._types import check_types, InconsistentTypeException
-from ._ops_group import OpsGroup, Graph
-from . import _pipeline
+from .types import check_types, InconsistentTypeException
+from ._ops_group import Graph
 import kfp
 
 def python_component(name, description=None, base_image=None, target_component_file: str = None):

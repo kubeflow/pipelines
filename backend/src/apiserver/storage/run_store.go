@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -55,6 +56,9 @@ type RunStoreInterface interface {
 
 	// Store a new metric entry to run_metrics table.
 	ReportMetric(metric *model.RunMetric) (err error)
+
+	// Terminate a run
+	TerminateRun(runId string) error
 }
 
 type RunStore struct {
@@ -556,4 +560,23 @@ func NewRunStore(db *DB, time util.TimeInterface, metadataStore *metadata.Store)
 		time:                   time,
 		metadataStore:          metadataStore,
 	}
+}
+
+func (s *RunStore) TerminateRun(runId string) error {
+	result, err := s.db.Exec(`
+		UPDATE run_details
+		SET Conditions = "Terminating"
+		WHERE UUID = ? AND (Conditions = ? OR Conditions = ? OR Conditions = ?)`,
+		runId, string(workflowapi.NodeRunning), string(workflowapi.NodePending), "")
+
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to terminate run %s. error: '%v'", runId, err.Error())
+	}
+
+	if r, _ := result.RowsAffected(); r != 1 {
+		return util.NewInvalidInputError("Failed to terminate run %s. Row not found.", runId)
+	}
+
+	return nil
 }

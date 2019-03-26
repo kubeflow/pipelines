@@ -53,10 +53,7 @@ class TestDeploy(unittest.TestCase):
         mock_create_model, mock_storage_client):
 
         prefixes_mock = mock.PropertyMock()
-        prefixes_mock.side_effect = [
-            set(['uri/export/exporter/']),
-            set(['uri/export/exporter/123']),
-        ]
+        prefixes_mock.return_value = set(['uri/012/', 'uri/123/'])
         type(mock_storage_client().bucket().list_blobs()).prefixes = prefixes_mock
         mock_storage_client().bucket().list_blobs().__iter__.return_value = []
         mock_storage_client().bucket().name = 'model'
@@ -73,7 +70,7 @@ class TestDeploy(unittest.TestCase):
         self.assertEqual(expected_version, result)
         mock_create_version.assert_called_with(
             'projects/mock-project/models/mock-model',
-            'gs://model/uri/export/exporter/123',
+            'gs://model/uri/123/',
             None, # version_name
             None, # runtime_version
             None, # python_version
