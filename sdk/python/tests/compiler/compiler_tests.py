@@ -285,7 +285,7 @@ class TestCompiler(unittest.TestCase):
 
   def test_py_recursive(self):
     """Test pipeline recursive."""
-    self._test_py_compile('recursive')
+    self._test_py_compile_yaml('recursive')
 
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
