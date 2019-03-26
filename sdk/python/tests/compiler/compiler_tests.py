@@ -241,6 +241,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline imagepullsecret."""
     self._test_py_compile('imagepullsecret')
 
+  def test_py_recursive(self):
+    """Test pipeline recursive."""
+    self._test_py_compile('recursive')
+
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
     @component

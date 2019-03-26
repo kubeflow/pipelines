@@ -17,5 +17,4 @@ from ._pipeline_param import PipelineParam
 from ._pipeline import Pipeline, pipeline, get_pipeline_conf
 from ._container_op import ContainerOp
 from ._ops_group import OpsGroup, ExitHandler, Condition
-from ._component import python_component, component
-#TODO: expose the component decorator when ready
+from ._component import python_component, graph_component, component
