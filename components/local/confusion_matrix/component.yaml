@@ -1,15 +1,15 @@
 name: Confusion matrix
 description: Calculates confusion matrix
 inputs:
-  - {name: Predictions,     type: {GcsUri: [text, CSV]},    description: 'GCS path of prediction file pattern.'}
-  - {name: Output dir,      type: {GcsUri: Directory},      description: 'GCS path of the output directory.'}
-outputs:
-  - {name: UI metadata,     type: UI metadata}
-  - {name: Metrics,         type: Metrics}
+  - {name: Predictions,     type: {GcsPath: {data_type: CSV}},        description: 'GCS path of prediction file pattern.'}
+  - {name: Output dir,      type: {GcsPath: {path_type: Directory}},  description: 'GCS path of the output directory.'}
+#outputs:
+#  - {name: UI metadata,     type: UI metadata}
+#  - {name: Metrics,         type: Metrics}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:85c6413a2e13da4b8f198aeac1abc2f3a74fe789
-    command: [python, /ml/confusion_matrix.py] #python2.7
+    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:2c2445df83fa879387a200747cc20f72a7ee9727
+    command: [python2, /ml/confusion_matrix.py]
     args: [
       --predictions, {inputValue: Predictions},
       --output,      {inputValue: Output dir},
