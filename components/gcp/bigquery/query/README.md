@@ -1,30 +1,81 @@
 
-# Bigquery - Query
-
-## Intended Use
+# Submitting a query using BigQuery 
 A Kubeflow Pipeline component to submit a query to Google Cloud Bigquery service and dump outputs to a Google Cloud Storage blob. 
 
-## Run-Time Parameters:
-Name | Description
-:--- | :----------
-query | The query used by Bigquery service to fetch the results.
-project_id | The project to execute the query job.
-dataset_id | The ID of the persistent dataset to keep the results of the query. If the dataset does not exist, the operation will create a new one.
-table_id | The ID of the table to keep the results of the query. If absent, the operation will generate a random id for the table.
-output_gcs_path | The GCS blob path to dump the query results to.
-dataset_location | The location to create the dataset. Defaults to `US`.
-job_config | The full config spec for the query job. See [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) for details.
+## Intended Use
+The component is intended to export query data from BiqQuery service to Cloud Storage. 
 
-## Output:
-Name | Description
-:--- | :----------
-output_gcs_path | The GCS blob path to dump the query results to.
+## Runtime arguments
+Name | Description | Data type | Optional | Default
+:--- | :---------- | :-------- | :------- | :------
+query | The query used by Bigquery service to fetch the results. | String | No |
+project_id | The project to execute the query job. | GCPProjectID | No |
+dataset_id | The ID of the persistent dataset to keep the results of the query. If the dataset does not exist, the operation will create a new one. | String | Yes | ` `
+table_id | The ID of the table to keep the results of the query. If absent, the operation will generate a random id for the table. | String | Yes | ` `
+output_gcs_path | The path to the Cloud Storage bucket to store the query output. | GCSPath | Yes | ` `
+dataset_location | The location to create the dataset. Defaults to `US`. | String | Yes | `US`
+job_config | The full config spec for the query job. See [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) for details. | Dict | Yes | ` `
 
-## Sample
+
+## Outputs
+Name | Description | Type
+:--- | :---------- | :---
+output_gcs_path | The path to the Cloud Storage bucket containing the query output in CSV format. | GCSPath
+
+## Cautions and requirements
+To use the component, the following requirements must be met:
+* BigQuery API is enabled
+* The component is running under a secret of [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
+
+```python
+bigquery_query_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+```
+
+* The Kubeflow user service account is a member of `roles/bigquery.admin` role of the project.
+* The Kubeflow user service account is also a member of `roles/storage.objectCreator` role of the Cloud Storage output bucket.
+
+## Detailed Description
+The component does several things:
+1. Creates persistent dataset and table if they do not exist.
+1. Submits a query to BigQuery service and persists the result to the table.
+1. Creates an extraction job to output the table data to a Cloud Storage bucket in CSV format.
+
+Here are the steps to use the component in a pipeline:
+1. Install KFP SDK
+Install the SDK (Uncomment the code if the SDK is not installed before)
+
+
+```python
+%%capture
+
+KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.13/kfp.tar.gz'
+!pip3 install $KFP_PACKAGE --upgrade
+```
+
+2. Load the component by DSL
+
+
+```python
+import kfp.components as comp
+
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/bigquery/query/component.yaml'
+bigquery_query_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
+help(bigquery_query_op)
+```
+
+For more information about the component, please checkout:
+* [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/bigquery/_query.py)
+* [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
+* [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/bigquery/query/sample.ipynb)
+* [BigQuery query REST API](https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query)
+
+
+### Sample
 
 Note: the sample code below works in both IPython notebook or python code directly.
 
-### Set sample parameters
+#### Set sample parameters
 
 
 ```python
@@ -34,29 +85,9 @@ GCS_WORKING_DIR = 'gs://<Please put your GCS path here>' # No ending slash
 
 # Optional Parameters
 EXPERIMENT_NAME = 'Bigquery -Query'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/bigquery/query/component.yaml'
 ```
 
-### Install KFP SDK
-
-
-```python
-# Install the SDK (Uncomment the code if the SDK is not installed before)
-# KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.11/kfp.tar.gz'
-# !pip3 install $KFP_PACKAGE --upgrade
-```
-
-### Load component definitions
-
-
-```python
-import kfp.components as comp
-
-bigquery_query_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
-display(bigquery_query_op)
-```
-
-### Here is an illustrative pipeline that uses the component
+#### Run the component as a single pipeline
 
 
 ```python
@@ -76,21 +107,27 @@ def pipeline(
     dataset_location='US', 
     job_config=''
 ):
-    bigquery_query_op(query, project_id, dataset_id, table_id, output_gcs_path, dataset_location, 
-        job_config).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    bigquery_query_op(
+        query=query, 
+        project_id=project_id, 
+        dataset_id=dataset_id, 
+        table_id=table_id, 
+        output_gcs_path=output_gcs_path, 
+        dataset_location=dataset_location, 
+        job_config=job_config).apply(gcp.use_gcp_secret('user-gcp-sa'))
 ```
 
-### Compile the pipeline
+#### Compile the pipeline
 
 
 ```python
 pipeline_func = pipeline
-pipeline_filename = pipeline_func.__name__ + '.pipeline.tar.gz'
+pipeline_filename = pipeline_func.__name__ + '.pipeline.zip'
 import kfp.compiler as compiler
 compiler.Compiler().compile(pipeline_func, pipeline_filename)
 ```
 
-### Submit the pipeline for execution
+#### Submit the pipeline for execution
 
 
 ```python

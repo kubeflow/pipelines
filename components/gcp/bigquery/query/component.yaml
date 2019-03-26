@@ -14,7 +14,8 @@
 
 name: Bigquery - Query
 description: |
-  Submit a query to Bigquery service and write outputs to a GCS blob.
+  A Kubeflow Pipeline component to submit a query to Google Cloud Bigquery 
+  service and dump outputs to a Google Cloud Storage blob. 
 inputs:
   - name: query
     description: 'The query used by Bigquery service to fetch the results.'
@@ -33,7 +34,7 @@ inputs:
     default: '' 
     type: String
   - name: output_gcs_path
-    description: 'The GCS blob path to dump the query results to.'
+    description: 'The path to the Cloud Storage bucket to store the query output.'
     default: ''
     type: GCSPath
   - name: dataset_location
@@ -41,12 +42,15 @@ inputs:
     default: 'US'
     type: String
   - name: job_config
-    description: 'The full config spec for the query job.'
+    description: >-
+      The full config spec for the query job.See 
+      [QueryJobConfig](https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJobConfig.html#google.cloud.bigquery.job.QueryJobConfig) 
+      for details.
     default: ''
     type: Dict
 outputs:
   - name: output_gcs_path
-    description: 'The GCS blob path to dump the query results to.'
+    description: 'The path to the Cloud Storage bucket containing the query output in CSV format.'
     type: GCSPath
 implementation:
   container:
