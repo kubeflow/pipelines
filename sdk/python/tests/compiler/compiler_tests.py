@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import sys
 import zipfile
+import tarfile
 import tempfile
 import unittest
 import yaml
@@ -123,6 +124,10 @@ class TestCompiler(unittest.TestCase):
       with open(zip.extract(zip.namelist()[0]), 'r') as yaml_file:
         return yaml.load(yaml_file)
 
+  def _get_yaml_from_tar(self, tar_file):
+    with tarfile.open(tar_file, 'r:gz') as tar:
+      return yaml.load(tar.extractfile(tar.getmembers()[0]))
+
   def test_basic_workflow(self):
     """Test compiling a basic workflow."""
 
@@ -197,7 +202,7 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
       os.chdir(cwd)
 
-  def _test_py_compile(self, file_base_name):
+  def _test_py_compile_zip(self, file_base_name):
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     py_file = os.path.join(test_data_dir, file_base_name + '.py')
     tmpdir = tempfile.mkdtemp()
@@ -214,33 +219,69 @@ class TestCompiler(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
+  def _test_py_compile_targz(self, file_base_name):
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    py_file = os.path.join(test_data_dir, file_base_name + '.py')
+    tmpdir = tempfile.mkdtemp()
+    try:
+      target_tar = os.path.join(tmpdir, file_base_name + '.tar.gz')
+      subprocess.check_call([
+          'dsl-compile', '--py', py_file, '--output', target_tar])
+      with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
+        golden = yaml.load(f)
+      compiled = self._get_yaml_from_tar(target_tar)
+
+      self.maxDiff = None
+      self.assertEqual(golden, compiled)
+    finally:
+      shutil.rmtree(tmpdir)
+
+  def _test_py_compile_yaml(self, file_base_name):
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    py_file = os.path.join(test_data_dir, file_base_name + '.py')
+    tmpdir = tempfile.mkdtemp()
+    try:
+      target_yaml = os.path.join(tmpdir, file_base_name + '-pipeline.yaml')
+      subprocess.check_call([
+          'dsl-compile', '--py', py_file, '--output', target_yaml])
+      with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
+        golden = yaml.load(f)
+
+      with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
+        compiled = yaml.load(f)
+
+      self.maxDiff = None
+      self.assertEqual(golden, compiled)
+    finally:
+      shutil.rmtree(tmpdir)
+
   def test_py_compile_basic(self):
     """Test basic sequential pipeline."""
-    self._test_py_compile('basic')
+    self._test_py_compile_zip('basic')
 
   def test_py_compile_condition(self):
     """Test a pipeline with conditions."""
-    self._test_py_compile('coin')
+    self._test_py_compile_zip('coin')
 
   def test_py_compile_immediate_value(self):
     """Test a pipeline with immediate value parameter."""
-    self._test_py_compile('immediate_value')
+    self._test_py_compile_targz('immediate_value')
 
   def test_py_compile_default_value(self):
     """Test a pipeline with a parameter with default value."""
-    self._test_py_compile('default_value')
+    self._test_py_compile_targz('default_value')
 
   def test_py_volume(self):
     """Test a pipeline with a volume and volume mount."""
-    self._test_py_compile('volume')
+    self._test_py_compile_yaml('volume')
 
   def test_py_retry(self):
     """Test retry functionality."""
-    self._test_py_compile('retry')
+    self._test_py_compile_yaml('retry')
 
   def test_py_image_pull_secret(self):
     """Test pipeline imagepullsecret."""
-    self._test_py_compile('imagepullsecret')
+    self._test_py_compile_yaml('imagepullsecret')
 
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
