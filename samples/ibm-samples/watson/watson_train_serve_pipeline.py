@@ -74,5 +74,5 @@ def kfp_wml_pipeline(
 if __name__ == '__main__':
     # compile the pipeline
     import kfp.compiler as compiler
-    pipeline_filename = kfp_wml_pipeline.__name__ + '.tar.gz'
+    pipeline_filename = kfp_wml_pipeline.__name__ + '.zip'
     compiler.Compiler().compile(kfp_wml_pipeline, pipeline_filename)

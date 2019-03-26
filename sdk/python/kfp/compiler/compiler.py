@@ -17,6 +17,7 @@ from collections import defaultdict
 import inspect
 import re
 import tarfile
+import zipfile
 import yaml
 
 from .. import dsl
@@ -688,12 +689,25 @@ class Compiler(object):
       yaml.Dumper.ignore_aliases = lambda *args : True
       yaml_text = yaml.dump(workflow, default_flow_style=False)
 
-      from contextlib import closing
-      from io import BytesIO
-      with tarfile.open(package_path, "w:gz") as tar:
-        with closing(BytesIO(yaml_text.encode())) as yaml_file:
-          tarinfo = tarfile.TarInfo('pipeline.yaml')
-          tarinfo.size = len(yaml_file.getvalue())
-          tar.addfile(tarinfo, fileobj=yaml_file)
+      if package_path.endswith('.tar.gz') or package_path.endswith('.tgz'):
+        from contextlib import closing
+        from io import BytesIO
+        with tarfile.open(package_path, "w:gz") as tar:
+          with closing(BytesIO(yaml_text.encode())) as yaml_file:
+            tarinfo = tarfile.TarInfo('pipeline.yaml')
+            tarinfo.size = len(yaml_file.getvalue())
+            tar.addfile(tarinfo, fileobj=yaml_file)
+      elif package_path.endswith('.zip'):
+        with zipfile.ZipFile(package_path, "w") as zip:
+          zipinfo = zipfile.ZipInfo('pipeline.yaml')
+          zipinfo.compress_type = zipfile.ZIP_DEFLATED
+          zip.writestr(zipinfo, yaml_text)
+      elif package_path.endswith('.yaml') or package_path.endswith('.yml'):
+          with open(package_path, 'w') as yaml_file:
+            yaml_file.write(yaml_text)
+      else:
+        raise ValueError('The output path '+ package_path + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
     finally:
       kfp.TYPE_CHECK = type_check_old_value
+
+

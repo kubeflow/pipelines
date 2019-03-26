@@ -40,4 +40,4 @@ def immediate_value_pipeline():
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
-  compiler.Compiler().compile(immediate_value_pipeline, __file__ + '.tar.gz')
+  compiler.Compiler().compile(immediate_value_pipeline, __file__ + '.zip')
