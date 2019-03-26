@@ -84,14 +84,6 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
-	if false {
-		//FIX: pipelineUploadClient.UploadFile does not always return error when pipeline is wrong. In some cases (e.g. missing pipeline file inside archive) it returns (nil, nil).
-		argumentUploadPipeline, err := s.pipelineUploadClient.UploadFile(
-			"../resources/arguments.pipeline.broken_file.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("arguments.pipeline.broken_file")})
-		assert.Nil(t, err)
-		assert.NotNil(t, argumentUploadPipeline)
-	}
-
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
