@@ -189,7 +189,8 @@ class Client(object):
         if len(all_yaml_files) > 1:
           raise ValueError('Invalid package. Multiple yaml files in the package.')
 
-        with zip.extract(all_yaml_files[0]) as f:
+        filename = zip.extract(all_yaml_files[0])
+        with open(filename, 'r') as f:
           return yaml.load(f)
     elif package_file.endswith('.yaml') or package_file.endswith('.yml'):
       with open(package_file, 'r') as f:
