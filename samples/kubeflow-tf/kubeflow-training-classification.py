@@ -13,16 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-from pathlib import Path
-
 import kfp.dsl as dsl
 import kfp.gcp as gcp
 
 from kfp.components import ComponentStore
 
 cs = ComponentStore()
-cs.local_search_paths.append(str(Path(__file__).parent.joinpath('../../components/'))) #local repo checkout path
 cs.url_search_prefixes.append('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/')
 cs.url_search_prefixes.append('https://raw.githubusercontent.com/Ark-kun/pipelines/Added-component-definitions-to-our-components/components/')
 
