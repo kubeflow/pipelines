@@ -1,0 +1,34 @@
+name: TFX - Data Validation
+description: |
+  Runs Tensorflow Data Validation. https://www.tensorflow.org/tfx/data_validation/get_started
+  Tensorflow Data Validation (TFDV) can analyze training and serving data to:
+  * compute descriptive statistics,
+  * infer a schema,
+  * detect data anomalies.
+inputs:
+- {name: Inference data,    type: {GcsPath: {data_type: CSV}},  description: GCS path of the CSV file from which to infer the schema.}
+- {name: Validation data,   type: {GcsPath: {data_type: CSV}},  description: GCS path of the CSV file whose contents should be validated.}
+- {name: Column names,      type: {GcsPath: {data_type: JSON}}, description: GCS json file containing a list of column names.}
+- {name: Key columns,       type: String,                       description: Comma separated list of columns to treat as keys.}
+- {name: GCP Project,       type: GcpProject, default: '',      description: The GCP project to run the dataflow job.}
+- {name: Mode,              type: String,     default: local,   description: Whether to run the job locally or in Cloud Dataflow. Valid values are "local" and "cloud". }
+- {name: Validation output, type: {GcsPath: {path_type: Directory}}, description: GCS or local directory.}
+outputs:
+- {name: Schema,            type: {GcsPath: {data_type: TFDV schema JSON}}, description: GCS path of the inferred schema JSON.}
+- {name: Validation result, type: String,                       description: Indicates whether anomalies were detected or not.}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:3b949b37aa2cefd3180398d59116f43ce965a2a6
+    command: [python2, /ml/validate.py]
+    args: [
+      --csv-data-for-inference, {inputValue: Inference data},
+      --csv-data-to-validate,   {inputValue: Validation data},
+      --column-names,           {inputValue: Column names},
+      --key-columns,            {inputValue: Key columns},
+      --project,                {inputValue: Project},
+      --mode,                   {inputValue: Mode},
+      --output,                 {inputValue: Validation output},
+    ]
+    fileOutputs:
+      Schema: /schema.txt
+      Validation result: /output_validation_result.txt
