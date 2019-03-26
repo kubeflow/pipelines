@@ -224,6 +224,11 @@ def generate_static_html_output(output_dir, slicing_columns):
 def main():
   tf.logging.set_verbosity(tf.logging.INFO)
   args = parse_arguments()
+  args.slice_columns = [
+    column
+    for column in column_group.split(',')
+    for column_group in args.slice_columns
+  ]
   schema = json.loads(file_io.read_file_to_string(args.schema))
   eval_model_parent_dir = os.path.join(args.model, 'tfma_eval_model_dir')
   model_export_dir = os.path.join(eval_model_parent_dir, file_io.list_directory(eval_model_parent_dir)[0])
