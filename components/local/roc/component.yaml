@@ -12,7 +12,7 @@ implementation:
     image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:85c6413a2e13da4b8f198aeac1abc2f3a74fe789
     command: [python, /ml/confusion_matrix.py] #python2.7
     args: [
-      --predictions, {inputValue: Predictions},
+      --predictions, {inputValue: Predictions dir},
       --trueclass,   {inputValue: True class},
       --output,      {inputValue: Output dir},
     ]
