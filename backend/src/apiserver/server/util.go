@@ -102,7 +102,7 @@ func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 	}
 
 	header, err := tarReader.Next()
-	if err != nil || header == nil {
+	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file.")
 	}
 	if !isYamlFile(header.Name) {
