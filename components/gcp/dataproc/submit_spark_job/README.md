@@ -47,7 +47,7 @@ SPARK_FILE_URI = 'file:///usr/lib/spark/examples/jars/spark-examples.jar'
 MAIN_CLASS = 'org.apache.spark.examples.SparkPi'
 ARGS = ['1000']
 EXPERIMENT_NAME = 'Dataproc - Submit Spark Job'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/7622e57666c17088c94282ccbe26d6a52768c226/components/gcp/dataproc/submit_spark_job/component.yaml'
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataproc/submit_spark_job/component.yaml'
 ```
 
 ### Install KFP SDK

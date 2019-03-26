@@ -477,7 +477,7 @@ class Compiler(object):
               for index, input in enumerate(sub_group.inputs):
                 if param_name == input.name:
                   break
-              referenced_input = sub_group.recursive_ref.inputs[index-1]
+              referenced_input = sub_group.recursive_ref.inputs[index]
               full_name = self._pipelineparam_full_name(referenced_input)
               arguments.append({
                   'name': full_name,
@@ -563,12 +563,13 @@ class Compiler(object):
     volumes = self._create_volumes(pipeline)
 
     # The whole pipeline workflow
+    pipeline_name = pipeline.name or 'Pipeline'
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
-      'metadata': {'generateName': pipeline.name + '-'},
+      'metadata': {'generateName': pipeline_name + '-'},
       'spec': {
-        'entrypoint': pipeline.name,
+        'entrypoint': pipeline_name,
         'templates': templates,
         'arguments': {'parameters': input_params},
         'serviceAccountName': 'pipeline-runner'

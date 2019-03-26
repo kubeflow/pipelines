@@ -112,6 +112,12 @@ service RunService {
       get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
     };
   }
+
+  rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{run_id}/terminate"
+    };
+  }
 }
 
 message CreateRunRequest {
@@ -137,6 +143,10 @@ message ListRunsRequest {
   // A base-64 encoded, JSON-serialized Filter protocol buffer (see
   // filter.proto).
   string filter = 5;
+}
+
+message TerminateRunRequest {
+  string run_id = 1;
 }
 
 message ListRunsResponse {

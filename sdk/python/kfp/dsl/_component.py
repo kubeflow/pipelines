@@ -14,9 +14,8 @@
 
 from ._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 from ._pipeline_param import PipelineParam
-from ._types import check_types, InconsistentTypeException
-from ._ops_group import OpsGroup, Graph
-from . import _pipeline
+from .types import check_types, InconsistentTypeException
+from ._ops_group import Graph
 import kfp
 
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
@@ -121,13 +120,15 @@ def component(func):
 
   return _component
 
+#TODO: combine the component and graph_component decorators into one
 def graph_component(func):
   """Decorator for graph component functions.
   This decorator returns an ops_group.
 
   Usage:
   ```python
-  @dsl._component.graph_component
+  import kfp.dsl as dsl
+  @dsl.graph_component
   def flip_component(flip_result):
     print_flip = PrintOp(flip_result)
     flipA = FlipCoinOp().after(print_flip)
@@ -145,19 +146,15 @@ def graph_component(func):
         raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')
 
     # Entering the Graph Context
-    graph_ops_group.__enter__()
-
-    # Call the function
-    if not graph_ops_group.recursive_ref:
-      graph_ops_group.outputs = func(*args, **kargs)
-      if not isinstance(graph_ops_group.outputs, dict):
-        raise ValueError(func.__name__ + ' needs to return a dictionary of string to PipelineParam.')
-      for output in graph_ops_group.outputs:
-        if not (isinstance(output, str) and isinstance(graph_ops_group.outputs[output], PipelineParam)):
+    with graph_ops_group:
+      # Call the function
+      if not graph_ops_group.recursive_ref:
+        graph_ops_group.outputs = func(*args, **kargs)
+        if not isinstance(graph_ops_group.outputs, dict):
           raise ValueError(func.__name__ + ' needs to return a dictionary of string to PipelineParam.')
-
-    # Exiting the Graph Context
-    graph_ops_group.__exit__()
+        for output in graph_ops_group.outputs:
+          if not (isinstance(output, str) and isinstance(graph_ops_group.outputs[output], PipelineParam)):
+            raise ValueError(func.__name__ + ' needs to return a dictionary of string to PipelineParam.')
 
     return graph_ops_group
   return _graph_component

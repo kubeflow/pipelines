@@ -50,9 +50,10 @@ class OpsGroup(object):
       raise ValueError('Default pipeline not defined.')
     if name is None:
       return None
-    name_prefix = (group_type + '-' + name + '-').replace('_', '-')
+    name_pattern = '^' + (group_type + '-' + name + '-').replace('_', '-') + '[\d]+$'
     for ops_group in _pipeline.Pipeline.get_default_pipeline().groups:
-      if ops_group.type == group_type and ops_group.name.startswith(name_prefix):
+      import re
+      if ops_group.type == group_type and re.match(name_pattern ,ops_group.name):
         return ops_group
     return None
 
