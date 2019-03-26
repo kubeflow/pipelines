@@ -338,14 +338,4 @@ describe('SideNav', () => {
     expect(tree.state('displayBuildInfo')).toBeUndefined();
     expect(consoleErrorSpy.mock.calls[0][0]).toBe('Failed to retrieve build info');
   });
-
-  it('logs an error if the call isJupyterHubAvailable fails', async () => {
-    TestUtils.makeErrorResponseOnce(checkHubSpy, 'Uh oh!');
-
-    tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
-    await TestUtils.flushPromises();
-
-    expect(tree.state('jupyterHubAvailable')).toEqual(false);
-    expect(consoleErrorSpy.mock.calls[0][0]).toBe('Failed to reach Jupyter Hub');
-  });
 });
