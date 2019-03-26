@@ -195,6 +195,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
 
     this.state = {
       collapsed,
+      // Set jupyterHubAvailable to false so UI don't show Jupyter Hub link
       jupyterHubAvailable: false,
       manualCollapseState: LocalStorage.hasKey(LocalStorageKey.navbarCollapsed),
     };
@@ -219,15 +220,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
       logger.error('Failed to retrieve build info', err);
     }
 
-    // Verify Jupyter Hub is reachable
-    let jupyterHubAvailable = false;
-    try {
-      jupyterHubAvailable = await Apis.isJupyterHubAvailable();
-    } catch (err) {
-      logger.error('Failed to reach Jupyter Hub', err);
-    }
-
-    this.setStateSafe({ displayBuildInfo, jupyterHubAvailable });
+    this.setStateSafe({ displayBuildInfo});
   }
 
   public componentWillUnmount(): void {
