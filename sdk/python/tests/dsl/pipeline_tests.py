@@ -15,7 +15,7 @@
 import kfp
 from kfp.dsl import Pipeline, PipelineParam, ContainerOp, pipeline
 from kfp.dsl._metadata import PipelineMeta, ParameterMeta, TypeMeta
-from kfp.dsl._types import GCSPath, Integer
+from kfp.dsl.types import GCSPath, Integer
 import unittest
 
 
