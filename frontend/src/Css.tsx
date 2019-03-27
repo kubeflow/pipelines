@@ -22,7 +22,7 @@ export const color = {
   activeBg: '#eaf1fd',
   alert: '#f9ab00', // Google yellow 600
   background: '#fff',
-  blue: '#4285f4', // Google blue 500F
+  blue: '#4285f4', // Google blue 500
   disabledBg: '#ddd',
   divider: '#e0e0e0',
   errorBg: '#fbe9e7',

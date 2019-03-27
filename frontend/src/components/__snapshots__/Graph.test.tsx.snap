@@ -22,11 +22,16 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -60,11 +65,16 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -167,11 +177,16 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="flipcoin1"
     >
-      flipcoin1
-    </div>
+      <div
+        className="label"
+      >
+        flipcoin1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -205,11 +220,16 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="tails1"
     >
-      tails1
-    </div>
+      <div
+        className="label"
+      >
+        tails1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -243,11 +263,16 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="heads1"
     >
-      heads1
-    </div>
+      <div
+        className="label"
+      >
+        heads1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -281,11 +306,16 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="flipcoin2"
     >
-      flipcoin2
-    </div>
+      <div
+        className="label"
+      >
+        flipcoin2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -319,11 +349,16 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="heads2"
     >
-      heads2
-    </div>
+      <div
+        className="label"
+      >
+        heads2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -357,11 +392,16 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="tails2"
     >
-      tails2
-    </div>
+      <div
+        className="label"
+      >
+        tails2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -882,11 +922,16 @@ exports[`Graph renders a graph with a placeholder node and edge 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -994,11 +1039,16 @@ exports[`Graph renders a graph with a selected node 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1032,11 +1082,16 @@ exports[`Graph renders a graph with a selected node 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1137,11 +1192,16 @@ exports[`Graph renders a graph with colored edges 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1175,11 +1235,16 @@ exports[`Graph renders a graph with colored edges 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1280,11 +1345,16 @@ exports[`Graph renders a graph with colored nodes 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1318,11 +1388,16 @@ exports[`Graph renders a graph with colored nodes 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1363,11 +1438,16 @@ exports[`Graph renders a graph with one node 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1408,11 +1488,16 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1446,11 +1531,16 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1551,11 +1641,16 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1589,11 +1684,16 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1694,11 +1794,16 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node1"
     >
-      node1
-    </div>
+      <div
+        className="label"
+      >
+        node1
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
@@ -1732,11 +1837,16 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
       }
     }
   >
-    <div
-      className="label"
+    <WithStyles(Tooltip)
+      enterDelay={300}
+      title="node2"
     >
-      node2
-    </div>
+      <div
+        className="label"
+      >
+        node2
+      </div>
+    </WithStyles(Tooltip)>
     <div
       className="icon"
       style={
