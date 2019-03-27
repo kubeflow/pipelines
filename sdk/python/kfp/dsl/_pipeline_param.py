@@ -32,8 +32,8 @@ def sanitize_k8s_name(name):
     return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
 
 
-def _match_serialized_pipelineparam(payload: str):
-  """_match_serialized_pipelineparam matches the serialized pipelineparam.
+def match_serialized_pipelineparam(payload: str):
+  """match_serialized_pipelineparam matches the serialized pipelineparam.
   Args:
     payloads (str): a string that contains the serialized pipelineparam.
 
@@ -76,7 +76,7 @@ def _extract_pipelineparams(payloads: str or List[str]):
     payloads = [payloads]
   param_tuples = []
   for payload in payloads:
-    param_tuples += _match_serialized_pipelineparam(payload)
+    param_tuples += match_serialized_pipelineparam(payload)
   pipeline_params = []
   for param_tuple in list(set(param_tuples)):
     pipeline_params.append(PipelineParam(param_tuple.name, 

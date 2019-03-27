@@ -23,7 +23,6 @@ from .. import dsl
 from ._k8s_helper import K8sHelper
 from ._op_to_template import _op_to_template
 
-from ..dsl._pipeline_param import _match_serialized_pipelineparam
 from ..dsl._metadata import TypeMeta
 
 class Compiler(object):
@@ -432,10 +431,6 @@ class Compiler(object):
     for op in p.ops.values():
       sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
       op.name = sanitized_name
-      for param in op.inputs: # + op.argument_inputs:
-        param.name = K8sHelper.sanitize_k8s_name(param.name)
-        if param.op_name:
-          param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
       for param in op.outputs.values():
         param.name = K8sHelper.sanitize_k8s_name(param.name)
         if param.op_name:

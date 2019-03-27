@@ -35,7 +35,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     # serialized str might be unsanitized
     if isinstance(obj, str):
         # get signature
-        param_tuples = dsl._match_serialized_pipelineparam(obj)
+        param_tuples = dsl.match_serialized_pipelineparam(obj)
         if not param_tuples:
             return obj
         # replace all unsanitized signature with template var
