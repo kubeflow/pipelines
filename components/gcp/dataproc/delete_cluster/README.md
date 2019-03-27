@@ -29,7 +29,7 @@ CLUSTER_NAME = '<Please put your existing cluster name here>'
 
 REGION = 'us-central1'
 EXPERIMENT_NAME = 'Dataproc - Delete Cluster'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/e5b0081cdcbef6a056c0da114d2eb81ab8d8152d/components/gcp/dataproc/delete_cluster/component.yaml'
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataproc/delete_cluster/component.yaml'
 ```
 
 ### Install KFP SDK

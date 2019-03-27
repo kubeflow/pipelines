@@ -47,7 +47,7 @@ natality_csv = load 'gs://public-datasets/natality/csv' using PigStorage(':');
 top_natality_csv = LIMIT natality_csv 10; 
 dump natality_csv;'''
 EXPERIMENT_NAME = 'Dataproc - Submit Pig Job'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/gcp/dataproc/submit_pig_job/component.yaml'
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataproc/submit_pig_job/component.yaml'
 ```
 
 ### Install KFP SDK

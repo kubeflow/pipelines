@@ -35,7 +35,7 @@ PROJECT_ID = '<Please put your project ID here>'
 
 # Optional Parameters
 EXPERIMENT_NAME = 'Dataproc - Create Cluster'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/e5b0081cdcbef6a056c0da114d2eb81ab8d8152d/components/gcp/dataproc/create_cluster/component.yaml'
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataproc/create_cluster/component.yaml'
 ```
 
 ### Install KFP SDK

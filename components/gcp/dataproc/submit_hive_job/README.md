@@ -60,7 +60,7 @@ LOCATION 'gs://public-datasets/natality/csv';
 
 SELECT * FROM natality_csv LIMIT 10;'''
 EXPERIMENT_NAME = 'Dataproc - Submit SparkSQL Job'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/gcp/dataproc/submit_hive_job/component.yaml'
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataproc/submit_hive_job/component.yaml'
 ```
 
 ### Install KFP SDK

@@ -15,7 +15,7 @@
 
 from . import _container_op
 from . import _pipeline
-
+from ._pipeline_param import ConditionOperator
 
 class OpsGroup(object):
   """Represents a logical group of ops and group of OpsGroups.
@@ -28,28 +28,57 @@ class OpsGroup(object):
   def __init__(self, group_type: str, name: str=None):
     """Create a new instance of OpsGroup.
     Args:
-      group_type: one of 'pipeline', 'exit_handler', 'condition', and 'loop'.
+      group_type (str): one of 'pipeline', 'exit_handler', 'condition', and 'graph'.
+      name (str): name of the opsgroup
     """
+    #TODO: declare the group_type to be strongly typed
     self.type = group_type
     self.ops = list()
     self.groups = list()
     self.name = name
+    # recursive_ref points to the opsgroups with the same name if exists.
+    self.recursive_ref = None
+
+  @staticmethod
+  def _get_opsgroup_pipeline(group_type, name):
+    """retrieves the opsgroup when the pipeline already contains it.
+    the opsgroup might be already in the pipeline in case of recursive calls.
+    Args:
+      group_type (str): one of 'pipeline', 'exit_handler', 'condition', and 'graph'.
+      name (str): the name before conversion. """
+    if not _pipeline.Pipeline.get_default_pipeline():
+      raise ValueError('Default pipeline not defined.')
+    if name is None:
+      return None
+    name_pattern = '^' + (group_type + '-' + name + '-').replace('_', '-') + '[\d]+$'
+    for ops_group in _pipeline.Pipeline.get_default_pipeline().groups:
+      import re
+      if ops_group.type == group_type and re.match(name_pattern ,ops_group.name):
+        return ops_group
+    return None
+
+  def _make_name_unique(self):
+    """Generate a unique opsgroup name in the pipeline"""
+    if not _pipeline.Pipeline.get_default_pipeline():
+      raise ValueError('Default pipeline not defined.')
+
+    self.name = (self.type + '-' + ('' if self.name is None else self.name + '-') +
+                   str(_pipeline.Pipeline.get_default_pipeline().get_next_group_id()))
+    self.name = self.name.replace('_', '-')
 
   def __enter__(self):
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
 
-    if not self.name:
-      self.name = (self.type + '-' +
-          str(_pipeline.Pipeline.get_default_pipeline().get_next_group_id()))
-    self.name = self.name.replace('_', '-')
+    self.recursive_ref = self._get_opsgroup_pipeline(self.type, self.name)
+    if not self.recursive_ref:
+      self._make_name_unique()
 
     _pipeline.Pipeline.get_default_pipeline().push_ops_group(self)
     return self
 
   def __exit__(self, *args):
     _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
-
 
 class ExitHandler(OpsGroup):
   """Represents an exit handler that is invoked upon exiting a group of ops.
@@ -92,10 +121,25 @@ class Condition(OpsGroup):
   def __init__(self, condition):
     """Create a new instance of ExitHandler.
     Args:
-      exit_op: an operator invoked at exiting a group of ops.
+      condition (ConditionOperator): the condition.
 
     Raises:
       ValueError is the exit_op is invalid.
     """
     super(Condition, self).__init__('condition')
     self.condition = condition
+
+class Graph(OpsGroup):
+  """Graph DAG with inputs, recursive_inputs, and outputs.
+  This is not used directly by the users but auto generated when the graph_component decoration exists
+  """
+  def __init__(self, name):
+    super(Graph, self).__init__(group_type='graph', name=name)
+    self.inputs = []
+    self.outputs = {}
+    self.dependencies = []
+
+  def after(self, dependency):
+    """Specify explicit dependency on another op."""
+    self.dependencies.append(dependency)
+    return self

@@ -14,7 +14,7 @@ name: 'Watson Machine Learning - Deploy Model'
 description: |
   Deploy stored model on Watson Machine Learning as a web service.
 inputs:
-  - {name: model_uid,       description: 'Required. UID for the Watson Machine Learning model'}
+  - {name: model_uid,       description: 'Required. UID for the stored model on Watson Machine Learning'}
   - {name: model_name,      description: 'Required. Model Name on Watson Machine Learning'}
   - {name: scoring_payload, description: 'Required. Sample Payload file name in the object storage'}
 outputs:

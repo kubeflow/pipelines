@@ -21,6 +21,7 @@ type RunInterface interface {
 	List(params *params.ListRunsParams) ([]*model.APIRun, int, string, error)
 	ListAll(params *params.ListRunsParams, maxResultSize int) ([]*model.APIRun, error)
 	Unarchive(params *params.UnarchiveRunParams) error
+	Terminate(params *params.TerminateRunParams) error
 }
 
 type RunClient struct {
@@ -236,4 +237,19 @@ func listAllForRun(client RunInterface, parameters *params.ListRunsParams, maxRe
 	}
 
 	return allResults, nil
+}
+
+func (c *RunClient) Terminate(parameters *params.TerminateRunParams) error {
+	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
+	defer cancel()
+
+	// Make service call
+	parameters.Context = ctx
+	_, err := c.apiClient.RunService.TerminateRun(parameters, PassThroughAuth)
+	if err != nil {
+		return util.NewUserError(err,
+			fmt.Sprintf("Failed to terminate run. Params: %+v", parameters),
+			fmt.Sprintf("Failed to terminate run %v", parameters.RunID))
+	}
+	return nil
 }
