@@ -48,14 +48,45 @@ def kubeflow_training(output, project,
   # set the flag to use GPU trainer
   use_gpu = False
 
-  preprocess = dataflow_tf_transform_op(train, evaluation, schema, project, preprocess_mode, '', '%s/%s/transformed' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
-  training = kubeflow_tf_training_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, '', '%s/%s/train' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
+  preprocess = dataflow_tf_transform_op(
+      training_data_file_pattern=train,
+      evaluation_data_file_pattern=evaluation,
+      schema=schema,
+      gcp_project=project,
+      run_mode=preprocess_mode,
+      preprocessing_module='',
+      transformed_data_dir='%s/%s/transformed' % (output, workflow)
+  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+  training = kubeflow_tf_training_op(
+      transformed_data_dir=preprocess.output,
+      schema=schema,
+      learning_rate=learning_rate,
+      hidden_layer_size=hidden_layer_size,
+      steps=steps,
+      target=target,
+      preprocessing_module='',
+      training_output_dir='%s/%s/train' % (output, workflow)
+  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
   if use_gpu:
     training.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:d3c4add0a95e930c70a330466d0923827784eb9a',
     training.set_gpu_limit(1)
 
-  prediction = dataflow_tf_predict_op(evaluation, schema, target,  training.output, predict_mode, project, '%s/%s/predict' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
-  confusion_matrix = confusion_matrix_op(prediction.output, '%s/%s/confusionmatrix' % (output, workflow)).apply(gcp.use_gcp_secret('user-gcp-sa'))
+  prediction = dataflow_tf_predict_op(
+      data_file_pattern=evaluation,
+      schema=schema,
+      target_column=target,
+      model=training.output,
+      run_mode=predict_mode,
+      gcp_project=project,
+      predictions_dir='%s/%s/predict' % (output, workflow)
+  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+  confusion_matrix = confusion_matrix_op(
+      predictions=prediction.output,
+      output_dir='%s/%s/confusionmatrix' % (output, workflow)
+  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 
 if __name__ == '__main__':
