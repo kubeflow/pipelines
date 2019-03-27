@@ -72,13 +72,10 @@ export default class WorkflowParser {
     (Object as any).values(workflowNodes)
       .forEach((node: NodeStatus) => {
         let nodeLabel = node.displayName || node.id;
-        let bgColor;
         if (node.name === `${workflowName}.onExit`) {
           nodeLabel = `onExit - ${node.templateName}`;
-          bgColor = color.lightGrey;
         }
         g.setNode(node.id, {
-          bgColor,
           height: Constants.NODE_HEIGHT,
           icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt),
           label: nodeLabel,

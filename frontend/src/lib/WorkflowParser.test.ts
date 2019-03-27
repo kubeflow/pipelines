@@ -275,6 +275,34 @@ describe('WorkflowParser', () => {
       expect(g.nodes()).toEqual(['node1', 'node3']);
       expect(g.edges()).toEqual([{ v: 'node1', w: 'node3' }]);
     });
+
+    it('gives exit-handler nodes a special, more human-readable label based on template name', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            exitNode: {
+              id: 'exitNode',
+              name: 'testWorkflow.onExit',
+              phase: 'Succeeded',
+              templateName: 'clean',
+              type: 'Pod',
+            },
+            node1: {
+              id: 'node1',
+              name: 'node1',
+              phase: 'Succeeded',
+              templateName: 'some-template',
+              type: 'Pod',
+            },
+          },
+        }
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+      expect(g.nodes()).toEqual(['exitNode', 'node1']);
+      expect(g.node('node1').label).toEqual('node1');
+      expect(g.node('exitNode').label).toEqual('onExit - clean');
+    });
   });
 
   describe('getNodeInputOutputParams', () => {
