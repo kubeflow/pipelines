@@ -6,15 +6,15 @@ description: |
   * tracking metrics over time
   * model quality performance on different feature slices
 inputs:
-- {name: Model,           type: {GcsPath: {path_type: Directory, data_type: Exported TensorFlow models dir}}, description: GCS path to the model which will be evaluated.}
-- {name: Evaluation data, type: {GcsPath: {data_type: CSV}},              description: GCS path of eval files.}
-- {name: Schema,          type: {GcsPath: {data_type: TFDV schema JSON}}, description: GCS json schema file path.}
+- {name: Model,           type: {GCSPath: {path_type: Directory, data_type: Exported TensorFlow models dir}}, description: GCS path to the model which will be evaluated.}
+- {name: Evaluation data, type: {GCSPath: {data_type: CSV}},              description: GCS path of eval files.}
+- {name: Schema,          type: {GCSPath: {data_type: TFDV schema JSON}}, description: GCS json schema file path.}
 - {name: Run mode,        type: String,     default: local,               description: whether to run the job locally or in Cloud Dataflow.}
 - {name: GCP project,     type: GcpProject, default: '',                  description: 'The GCP project to run the dataflow job, if running in the `cloud` mode.'}
 - {name: Slice columns,   type: String,                                   description: Comma-separated list of columns on which to slice for analysis.}
-- {name: Analysis results dir, type: {GcsPath: {path_type: Directory}},   description: GCS or local directory where the analysis results should be written.}
+- {name: Analysis results dir, type: {GCSPath: {path_type: Directory}},   description: GCS or local directory where the analysis results should be written.}
 outputs:
-- {name: Analysis results dir, type: {GcsPath: {path_type: Directory}},   description: GCS or local directory where the analysis results should were written.}
+- {name: Analysis results dir, type: {GCSPath: {path_type: Directory}},   description: GCS or local directory where the analysis results should were written.}
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:2c2445df83fa879387a200747cc20f72a7ee9727

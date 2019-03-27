@@ -1,8 +1,8 @@
 name: Confusion matrix
 description: Calculates confusion matrix
 inputs:
-  - {name: Predictions,     type: {GcsPath: {data_type: CSV}},        description: 'GCS path of prediction file pattern.'}
-  - {name: Output dir,      type: {GcsPath: {path_type: Directory}},  description: 'GCS path of the output directory.'}
+  - {name: Predictions,     type: {GCSPath: {data_type: CSV}},        description: 'GCS path of prediction file pattern.'}
+  - {name: Output dir,      type: {GCSPath: {path_type: Directory}},  description: 'GCS path of the output directory.'}
 #outputs:
 #  - {name: UI metadata,     type: UI metadata}
 #  - {name: Metrics,         type: Metrics}

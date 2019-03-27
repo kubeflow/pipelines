@@ -6,15 +6,15 @@ description: |
   * infer a schema,
   * detect data anomalies.
 inputs:
-- {name: Inference data,    type: {GcsPath: {data_type: CSV}},  description: GCS path of the CSV file from which to infer the schema.}
-- {name: Validation data,   type: {GcsPath: {data_type: CSV}},  description: GCS path of the CSV file whose contents should be validated.}
-- {name: Column names,      type: {GcsPath: {data_type: JSON}}, description: GCS json file containing a list of column names.}
+- {name: Inference data,    type: {GCSPath: {data_type: CSV}},  description: GCS path of the CSV file from which to infer the schema.}
+- {name: Validation data,   type: {GCSPath: {data_type: CSV}},  description: GCS path of the CSV file whose contents should be validated.}
+- {name: Column names,      type: {GCSPath: {data_type: JSON}}, description: GCS json file containing a list of column names.}
 - {name: Key columns,       type: String,                       description: Comma separated list of columns to treat as keys.}
 - {name: GCP project,       type: GcpProject, default: '',      description: The GCP project to run the dataflow job.}
 - {name: Run mode,          type: String,     default: local,   description: Whether to run the job locally or in Cloud Dataflow. Valid values are "local" and "cloud". }
-- {name: Validation output, type: {GcsPath: {path_type: Directory}}, description: GCS or local directory.}
+- {name: Validation output, type: {GCSPath: {path_type: Directory}}, description: GCS or local directory.}
 outputs:
-- {name: Schema,            type: {GcsPath: {data_type: TFDV schema JSON}}, description: GCS path of the inferred schema JSON.}
+- {name: Schema,            type: {GCSPath: {data_type: TFDV schema JSON}}, description: GCS path of the inferred schema JSON.}
 - {name: Validation result, type: String,                       description: Indicates whether anomalies were detected or not.}
 implementation:
   container:
