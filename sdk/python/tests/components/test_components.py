@@ -290,6 +290,49 @@ implementation:
         actual_signature = list(signature.parameters.keys())
         self.assertSequenceEqual(actual_signature, ['in1', 'in3', 'in2'], str)
 
+    def test_inputs_reordering_when_inputs_have_defaults(self):
+        '''Tests reordering of inputs with default values.
+        In python signature, optional arguments must come after the required arguments.
+        '''
+        component_text = '''\
+inputs:
+- {name: in1}
+- {name: in2, default: val}
+- {name: in3}
+implementation:
+  container:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        import inspect
+        signature = inspect.signature(task_factory1)
+        actual_signature = list(signature.parameters.keys())
+        self.assertSequenceEqual(actual_signature, ['in1', 'in3', 'in2'], str)
+
+    def test_inputs_reordering_stability(self):
+        '''Tests input reordering stability. Required inputs and optional/default inputs should keep the ordering.
+        In python signature, optional arguments must come after the required arguments.
+        '''
+        component_text = '''\
+inputs:
+- {name: a1}
+- {name: b1, default: val}
+- {name: a2}
+- {name: b2, optional: True}
+- {name: a3}
+- {name: b3, default: val}
+- {name: a4}
+- {name: b4, optional: True}
+implementation:
+  container:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        import inspect
+        signature = inspect.signature(task_factory1)
+        actual_signature = list(signature.parameters.keys())
+        self.assertSequenceEqual(actual_signature, ['a1', 'a2', 'a3', 'a4', 'b1', 'b2', 'b3', 'b4'], str)
+
     def test_missing_optional_input_value_argument(self):
         '''Missing optional inputs should resolve to nothing'''
         component_text = '''\
