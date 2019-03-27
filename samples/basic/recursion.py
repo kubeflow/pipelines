@@ -45,9 +45,9 @@ def flip_component(flip_result):
   flipA = FlipCoinOp().after(print_flip)
   with dsl.Condition(flipA.output == 'heads'):
     # When the flip_component is called recursively, the flipA.output
-    # from inside the component will be passed to the next flip_component
-    # as the input, compared to the flipA.output in the flipcoin
-    # function.
+    # from inside the graph component will be passed to the next flip_component
+    # as the input whereas the flip_result in the current graph component
+    # comes from the flipA.output in the flipcoin function.
     flip_component(flipA.output)
   # Return a dictionary of string to arguments
   # such that the downstream components that depend
