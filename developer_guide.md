@@ -80,14 +80,9 @@ pip install ./dsl/ --upgrade && python ./dsl/tests/main.py
 pip install ./dsl-compiler/ --upgrade && python ./dsl-compiler/tests/main.py
 ```
 
-## Integration test
+## Integration test & E2E test
 
-### API server
-Check [this](https://github.com/kubeflow/pipelines/blob/master/test/apiserver/README.md) page for more details.
-
-## E2E test
-TODO: Add instruction
-
+Check [this](https://github.com/kubeflow/pipelines/blob/master/test/README.md) page for more details.
 
 ## Troubleshooting
 

@@ -53,7 +53,8 @@ def create_cluster(project_id, region, name=None, name_prefix=None,
     if not cluster:
         cluster = {}
     cluster['projectId'] = project_id
-    cluster['config'] = {}
+    if 'config' not in cluster:
+        cluster['config'] = {}
     if name:
         cluster['clusterName'] = name
     if initialization_actions:
