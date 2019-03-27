@@ -640,7 +640,7 @@ class ContainerOp(object):
 
             # any attributes can be parameterized (both serialized string or actual PipelineParam)
             op = dsl.ContainerOp(name='foo', 
-                                image='busybox:' % tag,
+                                image='busybox:%s' % tag,
                                 # pass in sidecars list
                                 sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
                                 # pass in k8s container kwargs
@@ -651,7 +651,7 @@ class ContainerOp(object):
 
             # add sidecar with parameterized image tag
             # sidecar follows the argo sidecar swagger spec
-            op.add_sidecar(dsl.Sidecar('redis', 'redis:' % tag).set_image_pull_policy('Always'))
+            op.add_sidecar(dsl.Sidecar('redis', 'redis:%s' % tag).set_image_pull_policy('Always'))
     
     """
 
@@ -716,10 +716,6 @@ class ContainerOp(object):
         container_kwargs = container_kwargs or {}
         self._container = Container(
             image=image, args=arguments, command=command, **container_kwargs)
-        # for chaining, and returning back to `ContainerOp` when updating `Container`
-        # i.e
-        #   op._container.set_image_policy('Always').parent == op   # True
-        setattr(self._container, "parent", self)
 
         # NOTE for backward compatibility (remove in future?)
         # proxy old ContainerOp callables to Container
@@ -950,5 +946,6 @@ class ContainerOp(object):
             if len(self.outputs) == 1:
                 self.output = list(self.outputs.values())[0]
 
-
+# proxy old ContainerOp properties to ContainerOp.container
+# with PendingDeprecationWarning.
 ContainerOp = _proxy_container_op_props(ContainerOp)
