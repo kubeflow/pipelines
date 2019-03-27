@@ -37,12 +37,21 @@ class PrintOp(dsl.ContainerOp):
         command=['echo', msg],
     )
 
-@dsl._component.graph_component
+# Use the dsl.graph_component to decorate functions that are
+# recursively called.
+@dsl.graph_component
 def flip_component(flip_result):
   print_flip = PrintOp(flip_result)
   flipA = FlipCoinOp().after(print_flip)
   with dsl.Condition(flipA.output == 'heads'):
+    # When the flip_component is called recursively, the flipA.output
+    # from inside the component will be passed to the next flip_component
+    # as the input, compared to the flipA.output in the flipcoin
+    # function.
     flip_component(flipA.output)
+  # Return a dictionary of string to arguments
+  # such that the downstream components that depend
+  # on this graph component can access the output.
   return {'flip_result': flipA.output}
 
 @dsl.pipeline(
@@ -52,6 +61,8 @@ def flip_component(flip_result):
 def flipcoin():
   flipA = FlipCoinOp()
   flip_loop = flip_component(flipA.output)
+  # flip_loop is a graph_component with the outputs field
+  # filled with the returned dictionary.
   PrintOp('cool, it is over. %s' % flip_loop.outputs['flip_result'])
 
 if __name__ == '__main__':
