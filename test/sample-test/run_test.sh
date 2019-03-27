@@ -257,7 +257,7 @@ elif [ "$TEST_NAME" == "recursion" ]; then
   dsl-compile --py recursion.py --output recursion.tar.gz
 
   cd "${TEST_DIR}"
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/recursion.tar.gz --result SAMPLE_RECURSION_TEST_RESULT --output $SAMPLE_RECURSION_TEST_OUTPUT --testname recursion --namespace ${NAMESPACE}
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/recursion.tar.gz --result $SAMPLE_RECURSION_TEST_RESULT --output $SAMPLE_RECURSION_TEST_OUTPUT --testname recursion --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_RECURSION_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_RECURSION_TEST_RESULT}
