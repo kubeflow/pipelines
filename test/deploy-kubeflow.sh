@@ -55,6 +55,9 @@ function clean_up {
   ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
   # delete the storage
   gcloud deployment-manager --project=${PROJECT} deployments delete ${KFAPP}-storage --quiet
+  gcloud iam service-accounts delete ${TEST_CLUSTER}-admin@ml-pipeline-test.iam.gserviceaccount.com --quiet
+  gcloud iam service-accounts delete ${TEST_CLUSTER}-vm@ml-pipeline-test.iam.gserviceaccount.com --quiet
+  gcloud iam service-accounts delete ${TEST_CLUSTER}-user@ml-pipeline-test.iam.gserviceaccount.com --quiet
 }
 trap clean_up EXIT SIGINT SIGTERM
 
