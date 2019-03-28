@@ -216,7 +216,7 @@ class Compiler(object):
     _get_condition_params_for_ops_helper(root_group, [])
     return conditions
 
-  def _get_dependencies(self, pipeline, root_group, op_groups):
+  def _get_dependencies(self, pipeline, root_group, op_groups, groups):
     """Get dependent groups and ops for all ops and groups.
 
     Returns:
@@ -238,7 +238,14 @@ class Compiler(object):
       unstream_op_names |= set(op.dependent_op_names)
 
       for op_name in unstream_op_names:
-        upstream_op = pipeline.ops[op_name]
+        # the dependent op could be either a ContainerOp or an opsgroup
+        if op_name in pipeline.ops:
+          upstream_op = pipeline.ops[op_name]
+        elif op_name in groups:
+          upstream_op = groups[op_name]
+        else:
+          raise ValueError('compiler cannot find the ' + op_name)
+
         upstream_groups, downstream_groups = self._get_uncommon_ancestors(
             op_groups, upstream_op, op)
         dependencies[downstream_groups[0]].add(upstream_groups[0])
@@ -394,8 +401,8 @@ class Compiler(object):
     #   groups does not include the recursive opsgroups
     op_groups = self._get_groups_for_ops(new_root_group)
     inputs, outputs = self._get_inputs_outputs(pipeline, new_root_group, op_groups)
-    dependencies = self._get_dependencies(pipeline, new_root_group, op_groups)
     groups = self._get_groups(new_root_group)
+    dependencies = self._get_dependencies(pipeline, new_root_group, op_groups, groups)
 
     templates = []
     for g in groups:
