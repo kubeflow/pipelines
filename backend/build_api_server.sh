@@ -18,7 +18,7 @@
 # build/test infrastructure that uses Remote Build Execution. Since access to
 # RBE requires authentication credentials, this script lets you pass those
 # credentials to the docker builder to be used by Bazel.
-set -e
+set -ex
 
 usage() {
   cat <<EOM
@@ -67,6 +67,7 @@ if [[ -z "${IMAGE_TAG}" ]]; then
 fi
 
 WORKING_DIRECTORY="$(cd $(dirname "${BASH_SOURCE[0]}")/../. && pwd )"
+cd ${WORKING_DIRECTORY}
 
 if [[ ${USE_REMOTE_BUILD} == true ]]; then
   echo "Building API Server Using Remote Build Execution..."
