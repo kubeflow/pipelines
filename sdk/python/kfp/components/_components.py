@@ -76,6 +76,12 @@ def load_component_from_url(url):
     '''
     if url is None:
         raise TypeError
+
+    #Handling Google Cloud Storage URIs
+    if url.startswith('gs://'):
+        #Replacing the gs:// URI with https:// URI (works for public objects)
+        url = 'https://storage.googleapis.com/' + url[len('gs://'):]
+
     import requests
     resp = requests.get(url)
     resp.raise_for_status()
