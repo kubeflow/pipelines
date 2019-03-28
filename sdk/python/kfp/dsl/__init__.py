@@ -13,8 +13,8 @@
 # limitations under the License.
 
 
-from ._pipeline_param import PipelineParam
+from ._pipeline_param import PipelineParam, match_serialized_pipelineparam
 from ._pipeline import Pipeline, pipeline, get_pipeline_conf
-from ._container_op import ContainerOp
+from ._container_op import ContainerOp, Sidecar
 from ._ops_group import OpsGroup, ExitHandler, Condition
 from ._component import python_component, graph_component, component
