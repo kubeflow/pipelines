@@ -169,7 +169,7 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
     if env:
         from kubernetes import client as k8s_client
         for name, value in env.items():
-            task.add_env_variable(k8s_client.V1EnvVar(name=name, value=value))
+            task.container.add_env_variable(k8s_client.V1EnvVar(name=name, value=value))
   
     if need_dummy:
         _dummy_pipeline.__exit__()

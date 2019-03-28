@@ -34,9 +34,9 @@ class LoadComponentTestCase(unittest.TestCase):
 
         self.assertEqual(task1.human_name, 'Add')
         self.assertEqual(task_factory1.__doc__.strip(), 'Add\nReturns sum of two arguments')
-        self.assertEqual(task1.image, 'python:3.5')
-        self.assertEqual(task1.arguments[0], str(arg1))
-        self.assertEqual(task1.arguments[1], str(arg2))
+        self.assertEqual(task1.container.image, 'python:3.5')
+        self.assertEqual(task1.container.args[0], str(arg1))
+        self.assertEqual(task1.container.args[1], str(arg2))
 
     def test_load_component_from_yaml_file(self):
         _this_file = Path(__file__).resolve()
@@ -68,7 +68,7 @@ class LoadComponentTestCase(unittest.TestCase):
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
         assert task1.human_name == component_dict['name']
-        assert task1.image == component_dict['implementation']['container']['image']
+        assert task1.container.image == component_dict['implementation']['container']['image']
 
         assert task1.arguments[0] == str(arg1)
         assert task1.arguments[1] == str(arg2)
@@ -83,7 +83,7 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task1 = task_factory1()
-        assert task1.image == component_dict['implementation']['container']['image']
+        assert task1.container.image == component_dict['implementation']['container']['image']
 
     @unittest.expectedFailure
     def test_fail_on_duplicate_input_names(self):
@@ -525,7 +525,7 @@ implementation:
         import kfp
         with kfp.dsl.Pipeline('Dummy'): #Forcing the TaskSpec conversion to ContainerOp
             task1 = task_factory1()
-        actual_env = {env_var.name: env_var.value for env_var in task1.env_variables}
+        actual_env = {env_var.name: env_var.value for env_var in task1.container.env}
         expected_env = {'key1': 'value 1', 'key2': 'value 2'}
         self.assertDictEqual(expected_env, actual_env)
 

@@ -19,6 +19,9 @@ import time
 import logging
 import re
 
+from .. import dsl
+
+
 class K8sHelper(object):
   """ Kubernetes Helper """
 
@@ -159,7 +162,11 @@ class K8sHelper(object):
                    for sub_obj in obj)
     elif isinstance(k8s_obj, (datetime, date)):
       return k8s_obj.isoformat()
-
+    elif isinstance(k8s_obj, dsl.PipelineParam): 
+      if isinstance(k8s_obj.value, str):
+        return k8s_obj.value
+      return '{{inputs.parameters.%s}}' % k8s_obj.full_name
+    
     if isinstance(k8s_obj, dict):
       obj_dict = k8s_obj
     else:
