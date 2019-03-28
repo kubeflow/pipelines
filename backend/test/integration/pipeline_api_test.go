@@ -80,7 +80,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUploadPipeline, err := s.pipelineUploadClient.UploadFile(
-		"../resources/zip-arguments.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
+		"../resources/arguments.pipeline.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
 	assert.Nil(t, err)
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
@@ -88,9 +88,9 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
 		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
-			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.zip"}}})
+			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip"}}})
 	assert.Nil(t, err)
-	assert.Equal(t, "arguments.zip", argumentUrlPipeline.Name)
+	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
 
 	/* ---------- Verify list pipeline works ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(params.NewListPipelinesParams())
@@ -111,7 +111,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, 2, len(listFirstPagePipelines))
 	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[0].Name)
-	assert.Equal(t, "arguments.zip", listFirstPagePipelines[1].Name)
+	assert.Equal(t, "arguments.pipeline.zip", listFirstPagePipelines[1].Name)
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
@@ -139,7 +139,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, 2, len(listSecondPagePipelines))
 	assert.Equal(t, 4, totalSize)
 	assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[0].Name)
-	assert.Equal(t, "arguments.zip", listSecondPagePipelines[1].Name)
+	assert.Equal(t, "arguments.pipeline.zip", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- List pipelines sort by unsupported description field. Should fail. ---------- */
@@ -162,7 +162,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(listSecondPagePipelines))
 	assert.Equal(t, 4, totalSize)
-	assert.Equal(t, "arguments.zip", listSecondPagePipelines[0].Name)
+	assert.Equal(t, "arguments.pipeline.zip", listSecondPagePipelines[0].Name)
 	assert.Equal(t, "arguments-parameters.yaml", listSecondPagePipelines[1].Name)
 	assert.Empty(t, nextPageToken)
 
