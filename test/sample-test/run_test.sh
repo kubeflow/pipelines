@@ -248,6 +248,19 @@ elif [ "$TEST_NAME" == "paralleljoin" ]; then
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_PARALLEL_JOIN_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_PARALLEL_JOIN_TEST_RESULT}
+elif [ "$TEST_NAME" == "recursion" ]; then
+  SAMPLE_RECURSION_TEST_RESULT=junit_SampleRecursionOutput.xml
+  SAMPLE_RECURSION_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  # Compile samples
+  cd ${BASE_DIR}/samples/basic
+  dsl-compile --py recursion.py --output recursion.tar.gz
+
+  cd "${TEST_DIR}"
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/recursion.tar.gz --result $SAMPLE_RECURSION_TEST_RESULT --output $SAMPLE_RECURSION_TEST_OUTPUT --testname recursion --namespace ${NAMESPACE}
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp ${SAMPLE_RECURSION_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_RECURSION_TEST_RESULT}
 elif [ "$TEST_NAME" == "xgboost" ]; then
   SAMPLE_XGBOOST_TEST_RESULT=junit_SampleXGBoostOutput.xml
   SAMPLE_XGBOOST_TEST_OUTPUT=${RESULTS_GCS_DIR}
