@@ -64,8 +64,6 @@ spec:
             value: frontend/Dockerfile
           - name: image-name
             value: "{{inputs.parameters.frontend-image}}"
-          - name: build-script
-            value: ""
       - name: build-scheduledworkflow-image
         template: build-image
         arguments:
@@ -78,8 +76,6 @@ spec:
             value: "{{inputs.parameters.scheduledworkflow-image}}"
           - name: docker-file
             value: backend/Dockerfile.scheduledworkflow
-          - name: build-script
-            value: ""
       - name: build-persistenceagent-image
         template: build-image
         arguments:
@@ -92,8 +88,6 @@ spec:
             value: "{{inputs.parameters.persistenceagent-image}}"
           - name: docker-file
             value: backend/Dockerfile.persistenceagent
-          - name: build-script
-            value: ""
 
   # Build image and upload to GCR
   - name: build-image
@@ -107,6 +101,8 @@ spec:
       - name: docker-file
         value: Dockerfile
       - name: image-name
+      - name: build-script
+        value: ""
     outputs:
       parameters:
         - name: strict-image-name
