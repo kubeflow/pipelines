@@ -230,7 +230,6 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
         golden = yaml.load(f)
       compiled = self._get_yaml_from_tar(target_tar)
-
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:
@@ -258,6 +257,14 @@ class TestCompiler(unittest.TestCase):
   def test_py_compile_basic(self):
     """Test basic sequential pipeline."""
     self._test_py_compile_zip('basic')
+
+  def test_py_compile_with_sidecar(self):
+    """Test pipeline with sidecar."""
+    self._test_py_compile_yaml('sidecar')
+
+  def test_py_compile_with_pipelineparams(self):
+    """Test pipeline with multiple pipeline params."""
+    self._test_py_compile_yaml('pipelineparams')
 
   def test_py_compile_condition(self):
     """Test a pipeline with conditions."""

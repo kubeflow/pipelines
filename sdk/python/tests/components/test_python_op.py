@@ -49,7 +49,6 @@ class PythonOpTestCase(unittest.TestCase):
                 task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
-
             process = subprocess.run(full_command)
 
             output_path = list(task.file_outputs.values())[0]
