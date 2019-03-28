@@ -43,9 +43,9 @@ def parse_arguments():
                       type=str,
                       required=True,
                       help='local path to the output workflow yaml file.')
-  parser.add_argument('--type-check',
+  parser.add_argument('--disable-type-check',
                       action='store_true',
-                      help='enable the type check, default is disabled.')
+                      help='disable the type check, default is enabled.')
 
   args = parser.parse_args()
   return args
@@ -100,9 +100,9 @@ def main():
       (args.py is not None and args.package is not None)):
     raise ValueError('Either --py or --package is needed but not both.')
   if args.py:
-    compile_pyfile(args.py, args.function, args.output, args.type_check)
+    compile_pyfile(args.py, args.function, args.output, not args.disable_type_check)
   else:
     if args.namespace is None:
       raise ValueError('--namespace is required for compiling packages.')
-    compile_package(args.package, args.namespace, args.function, args.output, args.type_check)
+    compile_package(args.package, args.namespace, args.function, args.output, not args.disable_type_check)
   
