@@ -50,7 +50,7 @@ func (s *Store) RecordOutputArtifacts(runID, storedManifest, currentManifest str
 			// Newly completed node. Record output ml-metadata artifacts.
 			if n.Outputs != nil {
 				for _, output := range n.Outputs.Parameters {
-					if !strings.HasPrefix(output.ValueFrom.Path, "/output/ml_metadata/") {
+					if output.ValueFrom == nil || output.Value == nil || !strings.HasPrefix(output.ValueFrom.Path, "/output/ml_metadata/") {
 						continue
 					}
 

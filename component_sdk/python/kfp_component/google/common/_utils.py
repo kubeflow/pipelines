@@ -15,6 +15,7 @@
 import logging
 import re
 import os
+import time
 
 def normalize_name(name,
               valid_first_char_pattern='a-zA-Z',
@@ -89,4 +90,34 @@ def check_resource_changed(requested_resource,
         if requested_resource[property_name] != existing_value:
             return True
     return False
+
+def wait_operation_done(get_operation, wait_interval):
+    """Waits for an operation to be done.
+
+    Args:
+        get_operation: the name of the operation.
+        wait_interval: the wait interview between pulling job
+            status.
+
+    Returns:
+        The completed operation.
+    """
+    operation = None
+    while True:
+        operation = get_operation()
+        operation_name = operation.get('name')
+        done = operation.get('done', False)
+        if done:
+            break
+        logging.info('Operation {} is not done. Wait for {}s.'.format(
+            operation_name, wait_interval))
+        time.sleep(wait_interval)
+        error = operation.get('error', None)
+        if error:
+            raise RuntimeError('Failed to complete operation {}: {} {}'.format(
+                operation_name,
+                error.get('code', 'Unknown code'),
+                error.get('message', 'Unknown message'),
+            ))
+    return operation
 

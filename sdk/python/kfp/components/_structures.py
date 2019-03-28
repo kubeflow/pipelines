@@ -225,6 +225,14 @@ class SourceSpec(ModelBase):
         super().__init__(locals())
 
 
+class MetadataSpec(ModelBase):
+    def __init__(self,
+        annotations: Optional[Dict[str, str]] = None,
+        labels: Optional[Dict[str, str]] = None,
+    ):
+        super().__init__(locals())
+
+
 class ComponentSpec(ModelBase):
     '''Component specification. Describes the metadata (name, description, source), the interface (inputs and outputs) and the implementation of the component.'''
     def __init__(
@@ -233,6 +241,7 @@ class ComponentSpec(ModelBase):
         name: Optional[str] = None, #? Move to metadata?
         description: Optional[str] = None, #? Move to metadata?
         source: Optional[SourceSpec] = None, #? Move to metadata?
+        metadata: Optional[MetadataSpec] = None,
         inputs: Optional[List[InputSpec]] = None,
         outputs: Optional[List[OutputSpec]] = None,
         version: Optional[str] = 'google.com/cloud/pipelines/component/v1',

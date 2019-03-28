@@ -16,7 +16,7 @@ from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta
 import unittest
 
 class TestTypeMeta(unittest.TestCase):
-  def test_from_dict_or_str(self):
+  def test_deserialize(self):
     component_dict = {
         'GCSPath': {
             'bucket_type': 'directory',
@@ -25,11 +25,11 @@ class TestTypeMeta(unittest.TestCase):
     }
     golden_type_meta = TypeMeta(name='GCSPath', properties={'bucket_type': 'directory',
                                                           'file_type': 'csv'})
-    self.assertEqual(TypeMeta.from_dict_or_str(component_dict), golden_type_meta)
+    self.assertEqual(TypeMeta.deserialize(component_dict), golden_type_meta)
 
     component_str = 'GCSPath'
     golden_type_meta = TypeMeta(name='GCSPath')
-    self.assertEqual(TypeMeta.from_dict_or_str(component_str), golden_type_meta)
+    self.assertEqual(TypeMeta.deserialize(component_str), golden_type_meta)
 
 
   def test_eq(self):

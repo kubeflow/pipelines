@@ -17,10 +17,15 @@ from collections import defaultdict
 import inspect
 import re
 import tarfile
+import zipfile
 import yaml
 
 from .. import dsl
 from ._k8s_helper import K8sHelper
+from ._op_to_template import _op_to_template
+
+from ..dsl._metadata import TypeMeta
+from ..dsl._ops_group import OpsGroup
 
 class Compiler(object):
   """DSL Compiler.
@@ -63,6 +68,11 @@ class Compiler(object):
     def _get_op_groups_helper(current_groups, ops_to_groups):
       root_group = current_groups[-1]
       for g in root_group.groups:
+        # Add recursive opsgroup in the ops_to_groups
+        # such that the i/o dependency can be propagated to the ancester opsgroups
+        if g.recursive_ref:
+          ops_to_groups[g.name] = [x.name for x in current_groups] + [g.name]
+          continue
         current_groups.append(g)
         _get_op_groups_helper(current_groups, ops_to_groups)
         del current_groups[-1]
@@ -80,7 +90,10 @@ class Compiler(object):
     def _get_groups_helper(group):
       groups = [group]
       for g in group.groups:
-        groups += _get_groups_helper(g)
+        # Skip the recursive opsgroup because no templates
+        # need to be generated for the recursive opsgroups.
+        if not g.recursive_ref:
+          groups += _get_groups_helper(g)
       return groups
 
     return _get_groups_helper(root_group)
@@ -117,7 +130,6 @@ class Compiler(object):
         # it as input for its parent groups.
         if param.value:
           continue
-
         full_name = self._pipelineparam_full_name(param)
         if param.op_name:
           upstream_op = pipeline.ops[param.op_name]
@@ -143,6 +155,38 @@ class Compiler(object):
           if not op.is_exit_handler:
             for g in op_groups[op.name]:
               inputs[g].add((full_name, None))
+
+    # Generate the input/output for recursive opsgroups
+    # It propagates the recursive opsgroups IO to their ancester opsgroups
+    def _get_inputs_outputs_recursive_opsgroup(group):
+      #TODO: refactor the following codes with the above
+      if group.recursive_ref:
+        for param in group.inputs + list(condition_params[group.name]):
+          if param.value:
+            continue
+          full_name = self._pipelineparam_full_name(param)
+          if param.op_name:
+            upstream_op = pipeline.ops[param.op_name]
+            upstream_groups, downstream_groups = self._get_uncommon_ancestors(
+              op_groups, upstream_op, group)
+            for i, g in enumerate(downstream_groups):
+              if i == 0:
+                inputs[g].add((full_name, upstream_groups[0]))
+              else:
+                inputs[g].add((full_name, None))
+            for i, g in enumerate(upstream_groups):
+              if i == len(upstream_groups) - 1:
+                outputs[g].add((full_name, None))
+              else:
+                outputs[g].add((full_name, upstream_groups[i+1]))
+          else:
+            if not op.is_exit_handler:
+              for g in op_groups[op.name]:
+                inputs[g].add((full_name, None))
+      for subgroup in group.groups:
+        _get_inputs_outputs_recursive_opsgroup(subgroup)
+
+    _get_inputs_outputs_recursive_opsgroup(root_group)
     return inputs, outputs
 
   def _get_condition_params_for_ops(self, root_group):
@@ -162,8 +206,13 @@ class Compiler(object):
         for param in new_current_conditions_params:
           conditions[op.name].add(param)
       for g in group.groups:
-        _get_condition_params_for_ops_helper(g, new_current_conditions_params)
-
+        # If the subgroup is a recursive opsgroup, propagate the pipelineparams
+        # in the condition expression, similar to the ops.
+        if g.recursive_ref:
+          for param in new_current_conditions_params:
+            conditions[g.name].add(param)
+        else:
+          _get_condition_params_for_ops_helper(g, new_current_conditions_params)
     _get_condition_params_for_ops_helper(root_group, [])
     return conditions
 
@@ -177,6 +226,8 @@ class Compiler(object):
       then G3 is dependent on G2. Basically dependency only exists in the first uncommon
       ancesters in their ancesters chain. Only sibling groups/ops can have dependencies.
     """
+    #TODO: move the condition_params out because both the _get_inputs_outputs
+    # and _get_dependencies depend on it.
     condition_params = self._get_condition_params_for_ops(root_group)
     dependencies = defaultdict(set)
     for op in pipeline.ops.values():
@@ -191,6 +242,29 @@ class Compiler(object):
         upstream_groups, downstream_groups = self._get_uncommon_ancestors(
             op_groups, upstream_op, op)
         dependencies[downstream_groups[0]].add(upstream_groups[0])
+
+    # Generate dependencies based on the recursive opsgroups
+    #TODO: refactor the following codes with the above
+    def _get_dependency_opsgroup(group, dependencies):
+      if group.recursive_ref:
+        unstream_op_names = set()
+        for param in group.inputs + list(condition_params[group.name]):
+          if param.op_name:
+            unstream_op_names.add(param.op_name)
+        unstream_op_names |= set(group.dependencies)
+
+        for op_name in unstream_op_names:
+          upstream_op = pipeline.ops[op_name]
+          upstream_groups, downstream_groups = self._get_uncommon_ancestors(
+              op_groups, upstream_op, group)
+          dependencies[downstream_groups[0]].add(upstream_groups[0])
+
+
+      for subgroup in group.groups:
+        _get_dependency_opsgroup(subgroup, dependencies)
+
+    _get_dependency_opsgroup(root_group, dependencies)
+
     return dependencies
 
   def _resolve_value_or_reference(self, value_or_reference, potential_references):
@@ -211,128 +285,8 @@ class Compiler(object):
     else:
       return str(value_or_reference)
 
-  def _process_args(self, raw_args, argument_inputs):
-    if not raw_args:
-      return []
-    processed_args = list(map(str, raw_args))
-    for i, _ in enumerate(processed_args):
-      # unsanitized_argument_inputs stores a dict: string of sanitized param -> string of unsanitized param
-      matches = []
-      match = re.findall(r'{{pipelineparam:op=([\w\s\_-]*);name=([\w\s\_-]+);value=(.*?)}}', str(processed_args[i]))
-      matches += match
-      unsanitized_argument_inputs = {}
-      for x in list(set(matches)):
-        sanitized_str = str(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(x[1]), K8sHelper.sanitize_k8s_name(x[0]), x[2]))
-        unsanitized_argument_inputs[sanitized_str] = str(dsl.PipelineParam(x[1], x[0], x[2]))
-
-      if argument_inputs:
-        for param in argument_inputs:
-          if str(param) in unsanitized_argument_inputs:
-            full_name = self._pipelineparam_full_name(param)
-            processed_args[i] = re.sub(unsanitized_argument_inputs[str(param)], '{{inputs.parameters.%s}}' % full_name,
-                                       processed_args[i])
-    return processed_args
-
   def _op_to_template(self, op):
-    """Generate template given an operator inherited from dsl.ContainerOp."""
-
-    def _build_conventional_artifact(name, path):
-      return {
-        'name': name,
-        'path': path,
-        's3': {
-          # TODO: parameterize namespace for minio service
-          'endpoint': 'minio-service.kubeflow:9000',
-          'bucket': 'mlpipeline',
-          'key': 'runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz',
-          'insecure': True,
-          'accessKeySecret': {
-            'name': 'mlpipeline-minio-artifact',
-            'key': 'accesskey',
-          },
-          'secretKeySecret': {
-            'name': 'mlpipeline-minio-artifact',
-            'key': 'secretkey'
-          }
-        },
-      }
-
-    processed_arguments = self._process_args(op.arguments, op.argument_inputs)
-    processed_command = self._process_args(op.command, op.argument_inputs)
-
-    input_parameters = []
-    for param in op.inputs:
-      one_parameter = {'name': self._pipelineparam_full_name(param)}
-      if param.value:
-        one_parameter['value'] = str(param.value)
-      input_parameters.append(one_parameter)
-    # Sort to make the results deterministic.
-    input_parameters.sort(key=lambda x: x['name'])
-
-    output_parameters = []
-    for param in op.outputs.values():
-      output_parameters.append({
-        'name': self._pipelineparam_full_name(param),
-        'valueFrom': {'path': op.file_outputs[param.name]}
-      })
-    output_parameters.sort(key=lambda x: x['name'])
-
-    template = {
-      'name': op.name,
-      'container': {
-        'image': op.image,
-      }
-    }
-    if processed_arguments:
-      template['container']['args'] = processed_arguments
-    if processed_command:
-      template['container']['command'] = processed_command
-    if input_parameters:
-      template['inputs'] = {'parameters': input_parameters}
-
-    template['outputs'] = {}
-    if output_parameters:
-      template['outputs'] = {'parameters': output_parameters}
-
-    # Generate artifact for metadata output
-    # The motivation of appending the minio info in the yaml
-    # is to specify a unique path for the metadata.
-    # TODO: after argo addresses the issue that configures a unique path
-    # for the artifact output when default artifact repository is configured,
-    # this part needs to be updated to use the default artifact repository.
-    output_artifacts = []
-    output_artifacts.append(_build_conventional_artifact('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json'))
-    output_artifacts.append(_build_conventional_artifact('mlpipeline-metrics', '/mlpipeline-metrics.json'))
-    template['outputs']['artifacts'] = output_artifacts
-
-    # Set resources.
-    if op.resource_limits or op.resource_requests:
-      template['container']['resources'] = {}
-    if op.resource_limits:
-      template['container']['resources']['limits'] = op.resource_limits
-    if op.resource_requests:
-      template['container']['resources']['requests'] = op.resource_requests
-
-    # Set nodeSelector.
-    if op.node_selector:
-      template['nodeSelector'] = op.node_selector
-
-    if op.env_variables:
-      template['container']['env'] = list(map(K8sHelper.convert_k8s_obj_to_json, op.env_variables))
-    if op.volume_mounts:
-      template['container']['volumeMounts'] = list(map(K8sHelper.convert_k8s_obj_to_json, op.volume_mounts))
-
-    if op.pod_annotations or op.pod_labels:
-      template['metadata'] = {}
-      if op.pod_annotations:
-        template['metadata']['annotations'] = op.pod_annotations
-      if op.pod_labels:
-        template['metadata']['labels'] = op.pod_labels
-
-    if op.num_retries:
-      template['retryStrategy'] = {'limit': op.num_retries}
-
-    return template
+    return _op_to_template(op)
 
   def _group_to_template(self, group, inputs, outputs, dependencies):
     """Generate template given an OpsGroup.
@@ -348,15 +302,14 @@ class Compiler(object):
       template['inputs'] = {
         'parameters': template_inputs
       }
-
     # Generate outputs section.
     if outputs.get(group.name, None):
       template_outputs = []
-      for param_name, depentent_name in outputs[group.name]:
+      for param_name, dependent_name in outputs[group.name]:
         template_outputs.append({
           'name': param_name,
           'valueFrom': {
-            'parameter': '{{tasks.%s.outputs.parameters.%s}}' % (depentent_name, param_name)
+            'parameter': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
           }
         })
       template_outputs.sort(key=lambda x: x['name'])
@@ -365,11 +318,18 @@ class Compiler(object):
     # Generate tasks section.
     tasks = []
     for sub_group in group.groups + group.ops:
-      task = {
-        'name': sub_group.name,
-        'template': sub_group.name,
-      }
-
+      is_recursive_subgroup = (isinstance(sub_group, OpsGroup) and sub_group.recursive_ref)
+      # Special handling for recursive subgroup: use the existing opsgroup name
+      if is_recursive_subgroup:
+        task = {
+            'name': sub_group.recursive_ref.name,
+            'template': sub_group.recursive_ref.name,
+        }
+      else:
+        task = {
+          'name': sub_group.name,
+          'template': sub_group.name,
+        }
       if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
         subgroup_inputs = inputs.get(sub_group.name, [])
         condition = sub_group.condition
@@ -395,10 +355,22 @@ class Compiler(object):
             })
           else:
             # The value comes from its parent.
-            arguments.append({
-              'name': param_name,
-              'value': '{{inputs.parameters.%s}}' % param_name
-            })
+            # Special handling for recursive subgroup: argument name comes from the existing opsgroup
+            if is_recursive_subgroup:
+              for index, input in enumerate(sub_group.inputs):
+                if param_name == input.name:
+                  break
+              referenced_input = sub_group.recursive_ref.inputs[index]
+              full_name = self._pipelineparam_full_name(referenced_input)
+              arguments.append({
+                  'name': full_name,
+                  'value': '{{inputs.parameters.%s}}' % param_name
+              })
+            else:
+              arguments.append({
+                'name': param_name,
+                'value': '{{inputs.parameters.%s}}' % param_name
+              })
         arguments.sort(key=lambda x: x['name'])
         task['arguments'] = {'parameters': arguments}
       tasks.append(task)
@@ -411,6 +383,15 @@ class Compiler(object):
 
     new_root_group = pipeline.groups[0]
 
+    # Generate core data structures to prepare for argo yaml generation
+    #   op_groups: op name -> list of ancestor groups including the current op
+    #   inputs, outputs: group/op names -> list of tuples (param_name, producing_op_name)
+    #   dependencies: group/op name -> list of dependent groups/ops.
+    #   groups: opsgroups
+    # Special Handling for the recursive opsgroup
+    #   op_groups also contains the recursive opsgroups
+    #   condition_params from _get_condition_params_for_ops also contains the recursive opsgroups
+    #   groups does not include the recursive opsgroups
     op_groups = self._get_groups_for_ops(new_root_group)
     inputs, outputs = self._get_inputs_outputs(pipeline, new_root_group, op_groups)
     dependencies = self._get_dependencies(pipeline, new_root_group, op_groups)
@@ -421,7 +402,7 @@ class Compiler(object):
       templates.append(self._group_to_template(g, inputs, outputs, dependencies))
 
     for op in pipeline.ops.values():
-      templates.append(self._op_to_template(op))
+      templates.append(_op_to_template(op))
     return templates
 
   def _create_volumes(self, pipeline):
@@ -433,9 +414,9 @@ class Compiler(object):
         for v in op.volumes:
           # Remove volume duplicates which have the same name
           #TODO: check for duplicity based on the serialized volumes instead of just name.
-          if v.name not in volume_name_set:
-            volume_name_set.add(v.name)
-            volumes.append(K8sHelper.convert_k8s_obj_to_json(v))
+          if v['name'] not in volume_name_set:
+            volume_name_set.add(v['name'])
+            volumes.append(v)
     volumes.sort(key=lambda x: x['name'])
     return volumes
 
@@ -465,12 +446,13 @@ class Compiler(object):
     volumes = self._create_volumes(pipeline)
 
     # The whole pipeline workflow
+    pipeline_name = pipeline.name or 'Pipeline'
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
-      'metadata': {'generateName': pipeline.name + '-'},
+      'metadata': {'generateName': pipeline_name + '-'},
       'spec': {
-        'entrypoint': pipeline.name,
+        'entrypoint': pipeline_name,
         'templates': templates,
         'arguments': {'parameters': input_params},
         'serviceAccountName': 'pipeline-runner'
@@ -520,8 +502,17 @@ class Compiler(object):
     pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_name)
 
     # Create the arg list with no default values and call pipeline function.
-    args_list = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
-                 for arg_name in argspec.args]
+    # Assign type information to the PipelineParam
+    pipeline_meta = dsl.Pipeline.get_pipeline_functions()[pipeline_func]
+    args_list = []
+    for arg_name in argspec.args:
+      arg_type = TypeMeta()
+      for input in pipeline_meta.inputs:
+        if arg_name == input.name:
+          arg_type = input.param_type
+          break
+      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type = arg_type))
+
     with dsl.Pipeline(pipeline_name) as p:
       pipeline_func(*args_list)
 
@@ -540,10 +531,6 @@ class Compiler(object):
     for op in p.ops.values():
       sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
       op.name = sanitized_name
-      for param in op.inputs + op.argument_inputs:
-        param.name = K8sHelper.sanitize_k8s_name(param.name)
-        if param.op_name:
-          param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
       for param in op.outputs.values():
         param.name = K8sHelper.sanitize_k8s_name(param.name)
         if param.op_name:
@@ -560,25 +547,44 @@ class Compiler(object):
         op.file_outputs = sanitized_file_outputs
       sanitized_ops[sanitized_name] = op
     p.ops = sanitized_ops
-
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
 
-  def compile(self, pipeline_func, package_path):
+  def compile(self, pipeline_func, package_path, type_check=True):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
       pipeline_func: pipeline functions with @dsl.pipeline decorator.
       package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
+      type_check: whether to enable the type check or not, default: False.
     """
-    workflow = self._compile(pipeline_func)
-    yaml.Dumper.ignore_aliases = lambda *args : True
-    yaml_text = yaml.dump(workflow, default_flow_style=False)
+    import kfp
+    type_check_old_value = kfp.TYPE_CHECK
+    try:
+      kfp.TYPE_CHECK = type_check
+      workflow = self._compile(pipeline_func)
+      yaml.Dumper.ignore_aliases = lambda *args : True
+      yaml_text = yaml.dump(workflow, default_flow_style=False)
 
-    from contextlib import closing
-    from io import BytesIO
-    with tarfile.open(package_path, "w:gz") as tar:
-      with closing(BytesIO(yaml_text.encode())) as yaml_file:
-        tarinfo = tarfile.TarInfo('pipeline.yaml')
-        tarinfo.size = len(yaml_file.getvalue())
-        tar.addfile(tarinfo, fileobj=yaml_file)
+      if package_path.endswith('.tar.gz') or package_path.endswith('.tgz'):
+        from contextlib import closing
+        from io import BytesIO
+        with tarfile.open(package_path, "w:gz") as tar:
+          with closing(BytesIO(yaml_text.encode())) as yaml_file:
+            tarinfo = tarfile.TarInfo('pipeline.yaml')
+            tarinfo.size = len(yaml_file.getvalue())
+            tar.addfile(tarinfo, fileobj=yaml_file)
+      elif package_path.endswith('.zip'):
+        with zipfile.ZipFile(package_path, "w") as zip:
+          zipinfo = zipfile.ZipInfo('pipeline.yaml')
+          zipinfo.compress_type = zipfile.ZIP_DEFLATED
+          zip.writestr(zipinfo, yaml_text)
+      elif package_path.endswith('.yaml') or package_path.endswith('.yml'):
+          with open(package_path, 'w') as yaml_file:
+            yaml_file.write(yaml_text)
+      else:
+        raise ValueError('The output path '+ package_path + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
+    finally:
+      kfp.TYPE_CHECK = type_check_old_value
+
+

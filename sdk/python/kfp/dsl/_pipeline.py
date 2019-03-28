@@ -86,6 +86,7 @@ def get_pipeline_conf():
   """
   return Pipeline.get_default_pipeline().conf
 
+#TODO: Pipeline is in fact an opsgroup, refactor the code.
 class Pipeline():
   """A pipeline contains a list of operators.
 

@@ -13,6 +13,10 @@
 # limitations under the License.
 
 from ._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
+from ._pipeline_param import PipelineParam
+from .types import check_types, InconsistentTypeException
+from ._ops_group import Graph
+import kfp
 
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
   """Decorator for Python component functions.
@@ -51,7 +55,7 @@ def python_component(name, description=None, base_image=None, target_component_f
   return _python_component
 
 def component(func):
-  """Decorator for component functions that use ContainerOp.
+  """Decorator for component functions that returns a ContainerOp.
   This is useful to enable type checking in the DSL compiler
 
   Usage:
@@ -83,17 +87,74 @@ def component(func):
         arg_type = _annotation_to_typemeta(annotations[arg])
       component_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
     # Outputs
-    for output in annotations['return']:
-      arg_type = _annotation_to_typemeta(annotations['return'][output])
-      component_meta.outputs.append(ParameterMeta(name=output, description='', param_type=arg_type))
+    if 'return' in annotations:
+      for output in annotations['return']:
+        arg_type = _annotation_to_typemeta(annotations['return'][output])
+        component_meta.outputs.append(ParameterMeta(name=output, description='', param_type=arg_type))
 
     #TODO: add descriptions to the metadata
     #docstring parser:
     #  https://github.com/rr-/docstring_parser
     #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
 
+    if kfp.TYPE_CHECK:
+      arg_index = 0
+      for arg in args:
+        if isinstance(arg, PipelineParam) and not check_types(arg.param_type.to_dict_or_str(), component_meta.inputs[arg_index].param_type.to_dict_or_str()):
+          raise InconsistentTypeException('Component "' + component_meta.name + '" is expecting ' + component_meta.inputs[arg_index].name +
+                                          ' to be type(' + component_meta.inputs[arg_index].param_type.serialize() +
+                                          '), but the passed argument is type(' + arg.param_type.serialize() + ')')
+        arg_index += 1
+      if kargs is not None:
+        for key in kargs:
+          if isinstance(kargs[key], PipelineParam):
+            for input_spec in component_meta.inputs:
+              if input_spec.name == key and not check_types(kargs[key].param_type.to_dict_or_str(), input_spec.param_type.to_dict_or_str()):
+                raise InconsistentTypeException('Component "' + component_meta.name + '" is expecting ' + input_spec.name +
+                                                ' to be type(' + input_spec.param_type.serialize() +
+                                                '), but the passed argument is type(' + kargs[key].param_type.serialize() + ')')
+
     container_op = func(*args, **kargs)
     container_op._set_metadata(component_meta)
     return container_op
 
   return _component
+
+#TODO: combine the component and graph_component decorators into one
+def graph_component(func):
+  """Decorator for graph component functions.
+  This decorator returns an ops_group.
+
+  Usage:
+  ```python
+  import kfp.dsl as dsl
+  @dsl.graph_component
+  def flip_component(flip_result):
+    print_flip = PrintOp(flip_result)
+    flipA = FlipCoinOp().after(print_flip)
+    with dsl.Condition(flipA.output == 'heads'):
+      flip_component(flipA.output)
+    return {'flip_result': flipA.output}
+  """
+  from functools import wraps
+  @wraps(func)
+  def _graph_component(*args, **kargs):
+    graph_ops_group = Graph(func.__name__)
+    graph_ops_group.inputs = list(args) + list(kargs.values())
+    for input in graph_ops_group.inputs:
+      if not isinstance(input, PipelineParam):
+        raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')
+
+    # Entering the Graph Context
+    with graph_ops_group:
+      # Call the function
+      if not graph_ops_group.recursive_ref:
+        graph_ops_group.outputs = func(*args, **kargs)
+        if not isinstance(graph_ops_group.outputs, dict):
+          raise ValueError(func.__name__ + ' needs to return a dictionary of string to PipelineParam.')
+        for output in graph_ops_group.outputs:
+          if not (isinstance(output, str) and isinstance(graph_ops_group.outputs[output], PipelineParam)):
+            raise ValueError(func.__name__ + ' needs to return a dictionary of string to PipelineParam.')
+
+    return graph_ops_group
+  return _graph_component

@@ -55,15 +55,6 @@ class GCSPath(BaseType):
 		"pattern": "^gs://.*$"
 	}
 
-	def __init__(self, path_type='', file_type=''):
-		'''
-		Args
-		:param path_type: describes the paths, for example, bucket, directory, file, etc
-		:param file_type: describes the files, for example, JSON, CSV, etc.
-		'''
-		self.path_type = path_type
-		self.file_type = file_type
-
 class GCRPath(BaseType):
 	openapi_schema_validator = {
 		"type": "string",
@@ -121,8 +112,9 @@ def _check_valid_type_dict(payload):
 		if not isinstance(payload[type_name], dict):
 			return False
 		property_types = (int, str, float, bool)
+		property_value_types = (int, str, float, bool, dict)
 		for property_name in payload[type_name]:
-			if not isinstance(property_name, property_types) or not isinstance(payload[type_name][property_name], property_types):
+			if not isinstance(property_name, property_types) or not isinstance(payload[type_name][property_name], property_value_types):
 				return False
 	return True
 
@@ -144,7 +136,11 @@ def _check_dict_types(checked_type, expected_type):
 	'''
 	checked_type_name,_ = list(checked_type.items())[0]
 	expected_type_name,_ = list(expected_type.items())[0]
+	if checked_type_name == '' or expected_type_name == '':
+		# If the type name is empty, it matches any types
+		return True
 	if checked_type_name != expected_type_name:
+		print('type name ' + str(checked_type_name) + ' is different from expected: ' + str(expected_type_name))
 		return False
 	type_name = checked_type_name
 	for type_property in checked_type[type_name]:

@@ -19,8 +19,10 @@ from pathlib import Path
 
 sys.path.insert(0, __file__ + '/../../../')
 
+import kfp
 import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml
+from kfp.dsl.types import InconsistentTypeException
 
 class LoadComponentTestCase(unittest.TestCase):
     def _test_load_component_from_file(self, component_path: str):
@@ -31,10 +33,10 @@ class LoadComponentTestCase(unittest.TestCase):
         task1 = task_factory1(arg1, arg2)
 
         self.assertEqual(task1.human_name, 'Add')
-        self.assertEqual(task_factory1.__doc__.strip(), 'Returns sum of two arguments')
-        self.assertEqual(task1.image, 'python:3.5')
-        self.assertEqual(task1.arguments[0], str(arg1))
-        self.assertEqual(task1.arguments[1], str(arg2))
+        self.assertEqual(task_factory1.__doc__.strip(), 'Add\nReturns sum of two arguments')
+        self.assertEqual(task1.container.image, 'python:3.5')
+        self.assertEqual(task1.container.args[0], str(arg1))
+        self.assertEqual(task1.container.args[1], str(arg2))
 
     def test_load_component_from_yaml_file(self):
         _this_file = Path(__file__).resolve()
@@ -60,13 +62,13 @@ class LoadComponentTestCase(unittest.TestCase):
         component_text = resp.content
         component_dict = load_yaml(component_text)
         task_factory1 = comp.load_component_from_url(url)
-        assert task_factory1.__doc__ == component_dict['description']
+        assert task_factory1.__doc__ == component_dict['name'] + '\n' + component_dict['description']
 
         arg1 = 3
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
         assert task1.human_name == component_dict['name']
-        assert task1.image == component_dict['implementation']['container']['image']
+        assert task1.container.image == component_dict['implementation']['container']['image']
 
         assert task1.arguments[0] == str(arg1)
         assert task1.arguments[1] == str(arg2)
@@ -81,7 +83,7 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task1 = task_factory1()
-        assert task1.image == component_dict['implementation']['container']['image']
+        assert task1.container.image == component_dict['implementation']['container']['image']
 
     @unittest.expectedFailure
     def test_fail_on_duplicate_input_names(self):
@@ -288,6 +290,49 @@ implementation:
         actual_signature = list(signature.parameters.keys())
         self.assertSequenceEqual(actual_signature, ['in1', 'in3', 'in2'], str)
 
+    def test_inputs_reordering_when_inputs_have_defaults(self):
+        '''Tests reordering of inputs with default values.
+        In python signature, optional arguments must come after the required arguments.
+        '''
+        component_text = '''\
+inputs:
+- {name: in1}
+- {name: in2, default: val}
+- {name: in3}
+implementation:
+  container:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        import inspect
+        signature = inspect.signature(task_factory1)
+        actual_signature = list(signature.parameters.keys())
+        self.assertSequenceEqual(actual_signature, ['in1', 'in3', 'in2'], str)
+
+    def test_inputs_reordering_stability(self):
+        '''Tests input reordering stability. Required inputs and optional/default inputs should keep the ordering.
+        In python signature, optional arguments must come after the required arguments.
+        '''
+        component_text = '''\
+inputs:
+- {name: a1}
+- {name: b1, default: val}
+- {name: a2}
+- {name: b2, optional: True}
+- {name: a3}
+- {name: b3, default: val}
+- {name: a4}
+- {name: b4, optional: True}
+implementation:
+  container:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        import inspect
+        signature = inspect.signature(task_factory1)
+        actual_signature = list(signature.parameters.keys())
+        self.assertSequenceEqual(actual_signature, ['a1', 'a2', 'a3', 'a4', 'b1', 'b2', 'b3', 'b4'], str)
+
     def test_missing_optional_input_value_argument(self):
         '''Missing optional inputs should resolve to nothing'''
         component_text = '''\
@@ -480,7 +525,7 @@ implementation:
         import kfp
         with kfp.dsl.Pipeline('Dummy'): #Forcing the TaskSpec conversion to ContainerOp
             task1 = task_factory1()
-        actual_env = {env_var.name: env_var.value for env_var in task1.env_variables}
+        actual_env = {env_var.name: env_var.value for env_var in task1.container.env}
         expected_env = {'key1': 'value 1', 'key2': 'value 2'}
         self.assertDictEqual(expected_env, actual_env)
 
@@ -501,6 +546,337 @@ implementation:
 
         task2 = task_factory1('456')
         self.assertEqual(task2.arguments, ['456'])
+
+    def test_type_compatibility_check_for_simple_types(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: custom_type}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: custom_type}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_type_compatibility_check_for_types_with_parameters(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_type_compatibility_check_when_using_positional_arguments(self):
+        """Tests that `op2(task1.output)` works as good as `op2(in1=task1.output)`"""
+        component_a = '''\
+outputs:
+  - {name: out1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(a_task.outputs['out1'])
+
+    def test_type_compatibility_check_when_input_type_is_missing(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: custom_type}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_type_compatibility_check_when_argument_type_is_missing(self):
+        component_a = '''\
+outputs:
+  - {name: out1}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: custom_type}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_fail_type_compatibility_check_when_simple_type_name_is_different(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: type_A}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: type_Z}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        with self.assertRaises(InconsistentTypeException):
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_fail_type_compatibility_check_when_parametrized_type_name_is_different(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: {parametrized_type_A: {property_a: value_a}}}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: {parametrized_type_Z: {property_a: value_a}}}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        with self.assertRaises(InconsistentTypeException):
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_fail_type_compatibility_check_when_type_property_value_is_different(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: {parametrized_type: {property_a: value_a}}}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: {parametrized_type: {property_a: DIFFERENT VALUE}}}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        with self.assertRaises(InconsistentTypeException):
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    @unittest.skip('Type compatibility check currently works the opposite way')
+    def test_type_compatibility_check_when_argument_type_has_extra_type_parameters(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: {parametrized_type: {property_a: value_a, extra_property: extra_value}}}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: {parametrized_type: {property_a: value_a}}}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    @unittest.skip('Type compatibility check currently works the opposite way')
+    def test_fail_type_compatibility_check_when_argument_type_has_missing_type_parameters(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: {parametrized_type: {property_a: value_a}}}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: {parametrized_type: {property_a: value_a, property_b: value_b}}}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        with self.assertRaises(InconsistentTypeException):
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_type_compatibility_check_not_failing_when_disabled(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: type_A}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: type_Z}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = False
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+        kfp.TYPE_CHECK = True
+
+    def test_type_compatibility_check_not_failing_when_type_is_ignored(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: type_A}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: type_Z}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'].ignore_type())
+
+    def test_type_compatibility_check_for_types_with_schema(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: "^gs://.*$" } }}}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: "^gs://.*$" } }}}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        b_task = task_factory_b(in1=a_task.outputs['out1'])
+
+    def test_fail_type_compatibility_check_for_types_with_different_schemas(self):
+        component_a = '''\
+outputs:
+  - {name: out1, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: AAA } }}}
+implementation:
+  container:
+    image: busybox
+    command: [bash, -c, 'mkdir -p "$(dirname "$0")"; date > "$0"', {outputPath: out1}]
+'''
+        component_b = '''\
+inputs:
+  - {name: in1, type: {GCSPath: {openapi_schema_validator: {type: string, pattern: ZZZ } }}}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: in1}]
+'''
+        kfp.TYPE_CHECK = True
+        task_factory_a = comp.load_component_from_text(component_a)
+        task_factory_b = comp.load_component_from_text(component_b)
+        a_task = task_factory_a()
+        with self.assertRaises(InconsistentTypeException):
+            b_task = task_factory_b(in1=a_task.outputs['out1'])
 
 
 if __name__ == '__main__':

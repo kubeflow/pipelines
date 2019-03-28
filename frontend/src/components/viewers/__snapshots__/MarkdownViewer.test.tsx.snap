@@ -19,6 +19,7 @@ exports[`MarkdownViewer renders some basic markdown 1`] = `
   }
 >
   <div
+    className="markdown-viewer"
     dangerouslySetInnerHTML={
       Object {
         "__html": "<h1>Title</h1>
@@ -45,6 +46,7 @@ exports[`MarkdownViewer sanitizes the markdown to remove XSS 1`] = `
   }
 >
   <div
+    className="markdown-viewer"
     dangerouslySetInnerHTML={
       Object {
         "__html": "<pre><code>  lower[click me](javascript&amp;#x3a;...)lower

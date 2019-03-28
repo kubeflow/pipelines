@@ -18,6 +18,7 @@ import logging
 import json
 import os
 import tarfile
+import zipfile
 import yaml
 from datetime import datetime
 
@@ -165,42 +166,66 @@ class Client(object):
           return self._experiment_api.get_experiment(id=experiment.id)
     raise ValueError('No experiment is found with name {}.'.format(experiment_name))
 
-  def _extract_pipeline_yaml(self, tar_file):
-    with tarfile.open(tar_file, "r:gz") as tar:
-      all_yaml_files = [m for m in tar if m.isfile() and 
-          (os.path.splitext(m.name)[-1] == '.yaml' or os.path.splitext(m.name)[-1] == '.yml')]
-      if len(all_yaml_files) == 0:
-        raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
+  def _extract_pipeline_yaml(self, package_file):
+    if package_file.endswith('.tar.gz') or package_file.endswith('.tgz'):
+      with tarfile.open(package_file, "r:gz") as tar:
+        all_yaml_files = [m for m in tar if m.isfile() and
+            (os.path.splitext(m.name)[-1] == '.yaml' or os.path.splitext(m.name)[-1] == '.yml')]
+        if len(all_yaml_files) == 0:
+          raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
         
-      if len(all_yaml_files) > 1:
-        raise ValueError('Invalid package. Multiple yaml files in the package.')
+        if len(all_yaml_files) > 1:
+          raise ValueError('Invalid package. Multiple yaml files in the package.')
         
-      with tar.extractfile(all_yaml_files[0]) as f:
-        return yaml.load(f)
+        with tar.extractfile(all_yaml_files[0]) as f:
+          return yaml.load(f)
+    elif package_file.endswith('.zip'):
+      with zipfile.ZipFile(package_file, 'r') as zip:
+        all_yaml_files = [m for m in zip.namelist() if
+                          (os.path.splitext(m)[-1] == '.yaml' or os.path.splitext(m)[-1] == '.yml')]
+        if len(all_yaml_files) == 0:
+          raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
 
-  def run_pipeline(self, experiment_id, job_name, pipeline_package_path, params={}):
+        if len(all_yaml_files) > 1:
+          raise ValueError('Invalid package. Multiple yaml files in the package.')
+
+        filename = zip.extract(all_yaml_files[0])
+        with open(filename, 'r') as f:
+          return yaml.load(f)
+    elif package_file.endswith('.yaml') or package_file.endswith('.yml'):
+      with open(package_file, 'r') as f:
+        return yaml.load(f)
+    else:
+      raise ValueError('The package_file '+ package_file + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
+
+  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None):
     """Run a specified pipeline.
 
     Args:
       experiment_id: The string id of an experiment.
       job_name: name of the job.
-      pipeline_package_path: local path of the pipeline package(tar.gz file).
+      pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: a dictionary with key (string) as param name and value (string) as as param value.
+      pipeline_id: the string ID of a pipeline.
 
     Returns:
       A run object. Most important field is id.
     """
     import kfp_run
 
-    pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
-    pipeline_json_string = json.dumps(pipeline_obj)
+    pipeline_json_string = None
+    if pipeline_package_path:
+      pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
+      pipeline_json_string = json.dumps(pipeline_obj)
     api_params = [kfp_run.ApiParameter(name=_k8s_helper.K8sHelper.sanitize_k8s_name(k), value=str(v))
                   for k,v in params.items()]
     key = kfp_run.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_run.models.ApiResourceType.EXPERIMENT)
     reference = kfp_run.models.ApiResourceReference(key, kfp_run.models.ApiRelationship.OWNER)
     spec = kfp_run.models.ApiPipelineSpec(
-        workflow_manifest=pipeline_json_string, parameters=api_params)
+        pipeline_id=pipeline_id,
+        workflow_manifest=pipeline_json_string, 
+        parameters=api_params)
     run_body = kfp_run.models.ApiRun(
         pipeline_spec=spec, resource_references=[reference], name=job_name)
 

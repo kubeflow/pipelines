@@ -57,4 +57,4 @@ def ffdlPipeline(
 
 if __name__ == '__main__':
     import kfp.compiler as compiler
-    compiler.Compiler().compile(ffdlPipeline, __file__ + '.tar.gz')
+    compiler.Compiler().compile(ffdlPipeline, __file__ + '.zip')

@@ -95,6 +95,37 @@ func NewRunListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 	return command
 }
 
+func NewRunTerminateCmd(root *RootCommand) *cobra.Command {
+	var (
+		runID string
+		err   error
+	)
+	var command = &cobra.Command{
+		Use:   "terminate ID",
+		Short: "Terminate a run",
+
+		// Validation
+		Args: func(cmd *cobra.Command, args []string) error {
+			runID, err = ValidateSingleString(args, "ID")
+			return err
+		},
+
+		// Execute
+		RunE: func(cmd *cobra.Command, args []string) error {
+			params := params.NewTerminateRunParams()
+			params.RunID = runID
+			err := root.RunClient().Terminate(params)
+			if err != nil {
+				return util.ExtractErrorForCLI(err, root.Debug())
+			}
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), "Run was terminated successfully.")
+			return nil
+		},
+	}
+	command.SetOutput(root.Writer())
+	return command
+}
+
 type WorkflowForDisplay struct {
 	Workflow *workflowapi.Workflow `json:"workflow,omitempty"`
 }

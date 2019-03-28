@@ -4,7 +4,7 @@ This sample walks through running [TFX](https://github.com/tensorflow/tfx) [Taxi
 
 ## Overview
 
-This pipeline demonstrates the TFX capablities at scale. The pipeline uses a public BigQuery dataset and uses GCP services to preprpocess data (Dataflow) and train the model (Cloud ML Engine). The model is then deployed to Cloud ML Engine Prediction service.
+This pipeline demonstrates the TFX capabilities at scale. The pipeline uses a public BigQuery dataset and uses GCP services to preprocess data (Dataflow) and train the model (Cloud ML Engine). The model is then deployed to Cloud ML Engine Prediction service.
 
 
 ## Setup
@@ -57,5 +57,5 @@ Configure
 ```
 python tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
 ```
-This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz 
+This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz
 Upload this file to the Pipelines Cluster and crate a run.

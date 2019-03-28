@@ -16,8 +16,43 @@
 
 import * as React from 'react';
 import Viewer, { ViewerConfig } from './Viewer';
+import { cssRaw } from 'typestyle';
 // tslint:disable-next-line:no-var-requires
 const markdownIt = require('markdown-it');
+
+cssRaw(`
+.markdown-viewer h1,
+.markdown-viewer h2,
+.markdown-viewer h3,
+.markdown-viewer h4,
+.markdown-viewer h5,
+.markdown-viewer h6 {
+position: relative;
+  margin-top: 1em;
+  margin-bottom: 16px;
+  font-size: initial;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.markdown-viewer h1,
+.markdown-viewer h2 {
+  padding-bottom: .3em;
+  border-bottom: 1px solid #eee;
+}
+
+.markdown-viewer code,
+.markdown-viewer pre {
+  background-color: #f8f8f8;
+  border-radius: 5px;
+}
+
+.markdown-viewer pre {
+  border: solid 1px #eee;
+  margin: 7px 0;
+  padding: 7px;
+}
+`);
 
 export interface MarkdownViewerConfig extends ViewerConfig {
   markdownContent: string;
@@ -44,7 +79,7 @@ class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
       return null;
     }
     const html = markdownIt().render(this._config.markdownContent);
-    return <div dangerouslySetInnerHTML={{ __html: html }} />;
+    return <div className='markdown-viewer' dangerouslySetInnerHTML={{ __html: html }} />;
   }
 }
 
