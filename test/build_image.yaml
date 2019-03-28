@@ -114,6 +114,7 @@ spec:
         "--docker_path", "{{inputs.parameters.docker-path}}",
         "--docker_file", "{{inputs.parameters.docker-file}}",
         "--image_name", "{{inputs.parameters.image-name}}",
+        "--build_script", "{{inputs.parameters.build-script}}",
       ]
       env:
       - name: DOCKER_HOST
