@@ -38,7 +38,7 @@ PARSED=$(getopt --longoptions=$LONGOPTS --options=$OPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
 
 USE_REMOTE_BUILD=true
-GCP_CREDENTIALS_FILE=$GOOGLE_APPLICATION_CREDENTIALS
+GCP_CREDENTIALS_FILE=${GOOGLE_APPLICATION_CREDENTIALS}
 
 while true; do
   case $1 in

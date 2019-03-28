@@ -16,14 +16,14 @@ ARG use_remote_build=false
 # RUN bazel build -c opt --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver:apiserver
 RUN if [ "$use_remote_build" = "true" ]; then \
     echo "Using remote build execution ..." && \
-    echo ${google_application_credentials}  > /credentials.json && \
+    echo "$google_application_credentials"  > /credentials.json && \
     bazel --bazelrc=tools/bazel_builder/bazelrc \
-    build -c opt backend/src/apiserver:apiserver --config=remote \
-    --google_credentials=/credentials.json; \
+      build -c opt backend/src/apiserver:apiserver --config=remote \
+      --google_credentials=/credentials.json; \
   else \
     echo "Using local build execution..." && \
     bazel --bazelrc=tools/bazel_builder/bazelrc \
-    build -c opt backend/src/apiserver:apiserver; \
+      build -c opt backend/src/apiserver:apiserver; \
   fi
 
 # Compile
