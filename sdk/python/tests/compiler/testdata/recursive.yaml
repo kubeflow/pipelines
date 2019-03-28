@@ -127,11 +127,6 @@ spec:
       parameters:
       - name: flip-output
     name: graph-flip-component-1
-    outputs:
-      parameters:
-      - name: flip-2-output
-        valueFrom:
-          parameter: '{{tasks.flip-2.outputs.parameters.flip-2-output}}'
   - dag:
       tasks:
       - name: flip
@@ -146,9 +141,10 @@ spec:
         template: graph-flip-component-1
       - arguments:
           parameters:
-          - name: flip-2-output
-            value: '{{tasks.graph-flip-component-1.outputs.parameters.flip-2-output}}'
+          - name: flip-output
+            value: '{{tasks.flip.outputs.parameters.flip-output}}'
         dependencies:
+        - flip
         - graph-flip-component-1
         name: print-2
         template: print-2
@@ -193,11 +189,11 @@ spec:
   - container:
       command:
       - echo
-      - cool, it is over. {{inputs.parameters.flip-2-output}}
+      - cool, it is over. {{inputs.parameters.flip-output}}
       image: alpine:3.6
     inputs:
       parameters:
-      - name: flip-2-output
+      - name: flip-output
     name: print-2
     outputs:
       artifacts:

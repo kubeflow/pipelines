@@ -44,7 +44,6 @@ def flip_component(flip_result):
   flipA = FlipCoinOp().after(print_flip)
   with dsl.Condition(flipA.output == 'heads'):
     flip_component(flipA.output)
-  return {'flip_result': flipA.output}
 
 @dsl.pipeline(
     name='pipeline flip coin',
@@ -53,7 +52,7 @@ def flip_component(flip_result):
 def recursive():
   flipA = FlipCoinOp()
   flip_loop = flip_component(flipA.output)
-  PrintOp('cool, it is over. %s' % flip_loop.outputs['flip_result'])
+  PrintOp('cool, it is over. %s' % flipA.output).after(flip_loop)
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
