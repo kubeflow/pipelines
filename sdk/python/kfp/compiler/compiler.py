@@ -673,7 +673,7 @@ class Compiler(object):
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
 
-  def compile(self, pipeline_func, package_path, type_check=False):
+  def compile(self, pipeline_func, package_path, type_check=True):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
