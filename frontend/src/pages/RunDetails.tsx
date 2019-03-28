@@ -140,7 +140,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
           true,
           () => this.refresh()
         ),
-        buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: this.props.runId!,
