@@ -51,7 +51,9 @@ def flip_component(flip_result):
 )
 def recursive():
   flipA = FlipCoinOp()
+  flipB = FlipCoinOp()
   flip_loop = flip_component(flipA.output)
+  flip_loop.after(flipB)
   PrintOp('cool, it is over. %s' % flipA.output).after(flip_loop)
 
 if __name__ == '__main__':
