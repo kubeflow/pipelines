@@ -73,7 +73,14 @@ For more information about the component, please checkout:
 
 ### Sample
 
-Note: the sample code below works in both IPython notebook or python code directly.
+Note: The following sample code works in IPython notebook or directly in Python code.
+
+In this sample, we send a query to get the top questions from stackdriver public data and output the data to a Cloud Storage bucket. Here is the query:
+
+
+```python
+QUERY = 'SELECT * FROM `bigquery-public-data.stackoverflow.posts_questions` LIMIT 10'
+```
 
 #### Set sample parameters
 
@@ -82,9 +89,13 @@ Note: the sample code below works in both IPython notebook or python code direct
 # Required Parameters
 PROJECT_ID = '<Please put your project ID here>'
 GCS_WORKING_DIR = 'gs://<Please put your GCS path here>' # No ending slash
+```
 
+
+```python
 # Optional Parameters
 EXPERIMENT_NAME = 'Bigquery -Query'
+OUTPUT_PATH = '{}/bigquery/query/questions.csv'.format(GCS_WORKING_DIR)
 ```
 
 #### Run the component as a single pipeline
@@ -99,11 +110,11 @@ import json
     description='Bigquery query pipeline'
 )
 def pipeline(
-    query, 
-    project_id, 
+    query=QUERY, 
+    project_id = PROJECT_ID, 
     dataset_id='', 
     table_id='', 
-    output_gcs_path='', 
+    output_gcs_path=OUTPUT_PATH, 
     dataset_location='US', 
     job_config=''
 ):
@@ -122,7 +133,7 @@ def pipeline(
 
 ```python
 pipeline_func = pipeline
-pipeline_filename = pipeline_func.__name__ + '.pipeline.zip'
+pipeline_filename = pipeline_func.__name__ + '.zip'
 import kfp.compiler as compiler
 compiler.Compiler().compile(pipeline_func, pipeline_filename)
 ```
@@ -132,11 +143,7 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
 ```python
 #Specify pipeline argument values
-arguments = {
-    'query': 'SELECT * FROM `bigquery-public-data.stackoverflow.posts_questions` LIMIT 10',
-    'project_id': PROJECT_ID,
-    'output_gcs_path': '{}/bigquery/query/questions.csv'.format(GCS_WORKING_DIR)
-}
+arguments = {}
 
 #Get or create an experiment and submit a pipeline run
 import kfp
@@ -146,4 +153,11 @@ experiment = client.create_experiment(EXPERIMENT_NAME)
 #Submit a pipeline run
 run_name = pipeline_func.__name__ + ' run'
 run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arguments)
+```
+
+#### Inspect the output
+
+
+```python
+!gsutil cat OUTPUT_PATH
 ```

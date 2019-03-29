@@ -58,7 +58,7 @@ Install the SDK (Uncomment the code if the SDK is not installed before)
 ```python
 %%capture
 
-KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.13/kfp.tar.gz'
+KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
 !pip3 install $KFP_PACKAGE --upgrade
 ```
 
@@ -70,7 +70,7 @@ import kfp.components as comp
 
 COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/ml_engine/train/component.yaml'
 mlengine_train_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
-display(mlengine_train_op)
+help(mlengine_train_op)
 ```
 
 For more information about the component, please checkout:
@@ -81,8 +81,9 @@ For more information about the component, please checkout:
 
 
 ### Sample
-
 Note: The following sample code works in IPython notebook or directly in Python code.
+
+In this sample, we use the code from [census estimator sample](https://github.com/GoogleCloudPlatform/cloudml-samples/tree/master/census/estimator) to train a model in Cloud Machine Learning Engine service. In order to pass the code to the service, we need to package the python code and upload it in a Cloud Storage bucket. Make sure that you have read and write permissions on the bucket that you use as the working directory. 
 
 #### Set sample parameters
 
@@ -91,9 +92,44 @@ Note: The following sample code works in IPython notebook or directly in Python 
 # Required Parameters
 PROJECT_ID = '<Please put your project ID here>'
 GCS_WORKING_DIR = 'gs://<Please put your GCS path here>' # No ending slash
+```
 
+
+```python
 # Optional Parameters
 EXPERIMENT_NAME = 'CLOUDML - Train'
+TRAINER_GCS_PATH = GCS_WORKING_DIR + '/train/trainer.tar.gz'
+OUTPUT_GCS_PATH = GCS_WORKING_DIR + '/train/output/'
+```
+
+#### Clean up the working directory
+
+
+```python
+%%capture
+!gsutil rm -r $GCS_WORKING_DIR
+```
+
+#### Download the sample trainer code to local
+
+
+```python
+%%capture
+!wget https://github.com/GoogleCloudPlatform/cloudml-samples/archive/master.zip
+!unzip master.zip
+```
+
+#### Package code and upload the package to Cloud Storage
+
+
+```python
+%%capture
+%%bash -s "$TRAINER_GCS_PATH"
+pushd ./cloudml-samples-master/census/estimator/
+python setup.py sdist
+gsutil cp dist/preprocessing-1.0.tar.gz $1
+popd
+rm -fr ./cloudml-samples-master/ ./master.zip ./dist
 ```
 
 #### Example pipeline that uses the component
@@ -108,14 +144,20 @@ import json
     description='CloudML training pipeline'
 )
 def pipeline(
-    project_id,
-    python_module = '',
-    package_uris = '',
-    region = '',
-    args = '',
-    job_dir = '',
+    project_id = PROJECT_ID,
+    python_module = 'trainer.task',
+    package_uris = json.dumps([TRAINER_GCS_PATH]),
+    region = 'us-central1',
+    args = json.dumps([
+        '--train-files', 'gs://cloud-samples-data/ml-engine/census/data/adult.data.csv',
+        '--eval-files', 'gs://cloud-samples-data/ml-engine/census/data/adult.test.csv',
+        '--train-steps', '1000',
+        '--eval-steps', '100',
+        '--verbosity', 'DEBUG'
+    ]),
+    job_dir = OUTPUT_GCS_PATH,
     python_version = '',
-    runtime_version = '',
+    runtime_version = '1.10',
     master_image_uri = '',
     worker_image_uri = '',
     training_input = '',
@@ -142,7 +184,7 @@ def pipeline(
 
 ```python
 pipeline_func = pipeline
-pipeline_filename = pipeline_func.__name__ + '.pipeline.zip'
+pipeline_filename = pipeline_func.__name__ + '.zip'
 import kfp.compiler as compiler
 compiler.Compiler().compile(pipeline_func, pipeline_filename)
 ```
@@ -152,23 +194,7 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
 ```python
 #Specify pipeline argument values
-arguments = {
-    'project_id': PROJECT_ID,
-    'python_module': 'trainer.task',
-    'package_uris': json.dumps([
-        'gs://ml-pipeline-playground/samples/ml_engine/census/trainer.tar.gz'
-    ]),
-    'region': 'us-central1',
-    'args': json.dumps([
-        '--train-files', 'gs://cloud-samples-data/ml-engine/census/data/adult.data.csv',
-        '--eval-files', 'gs://cloud-samples-data/ml-engine/census/data/adult.test.csv',
-        '--train-steps', '1000',
-        '--eval-steps', '100',
-        '--verbosity', 'DEBUG'
-    ]),
-    'job_dir': GCS_WORKING_DIR + '/train/output/',
-    'runtime_version': '1.10'
-}
+arguments = {}
 
 #Get or create an experiment and submit a pipeline run
 import kfp
@@ -178,4 +204,17 @@ experiment = client.create_experiment(EXPERIMENT_NAME)
 #Submit a pipeline run
 run_name = pipeline_func.__name__ + ' run'
 run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arguments)
+```
+
+#### Inspect the results
+
+Follow the `Run` link to open the KFP UI. In the step logs, you should be able to click on the links to:
+* Job dashboard
+* And realtime logs on Stackdriver
+
+Use the following command to inspect the contents in the output directory:
+
+
+```python
+!gsutil ls $OUTPUT_GCS_PATH
 ```
