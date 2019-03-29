@@ -193,6 +193,7 @@ class Compiler(object):
     """
     inputs = defaultdict(set)
     outputs = defaultdict(set)
+
     for op in pipeline.ops.values():
       # op's inputs and all params used in conditions for that op are both considered.
       for param in op.inputs + list(condition_params[op.name]):
@@ -231,7 +232,9 @@ class Compiler(object):
     def _get_inputs_outputs_recursive_opsgroup(group):
       #TODO: refactor the following codes with the above
       if group.recursive_ref:
-        for param in group.inputs + list(condition_params[group.name]):
+        params = [(param, False) for param in group.inputs]
+        params.extend([(param, True) for param in list(condition_params[group.name])])
+        for param, is_condition_param in params:
           if param.value:
             continue
           full_name = self._pipelineparam_full_name(param)
@@ -242,6 +245,10 @@ class Compiler(object):
             for i, g in enumerate(downstream_groups):
               if i == 0:
                 inputs[g].add((full_name, upstream_groups[0]))
+              # There is no need to pass the condition param as argument to the downstream ops.
+              #TODO: this might also apply to ops. add a TODO here and think about it.
+              elif i == len(downstream_groups) - 1 and is_condition_param:
+                continue
               else:
                 inputs[g].add((full_name, None))
             for i, g in enumerate(upstream_groups):
@@ -351,8 +358,6 @@ class Compiler(object):
     inputs, outputs, dependencies are all helper dicts.
     """
     template = {'name': group.name}
-    print('group_to_template----------------------')
-    print('group: ' + group.name)
 
     # Generate inputs section.
     if inputs.get(group.name, None):
@@ -389,11 +394,9 @@ class Compiler(object):
           'name': sub_group.name,
           'template': sub_group.name,
         }
-      print('\tsub_group: ' + sub_group.name)
       if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
         subgroup_inputs = inputs.get(sub_group.name, [])
         condition = sub_group.condition
-        print('\t\tcondition operand1: ' + str(condition.operand1))
         operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
         operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
         task['when'] = '{} {} {}'.format(operand1_value, condition.operator, operand2_value)
@@ -410,10 +413,22 @@ class Compiler(object):
         for param_name, dependent_name in inputs[sub_group.name]:
           if dependent_name:
             # The value comes from an upstream sibling.
-            arguments.append({
-              'name': param_name,
-              'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-            })
+            # Special handling for recursive subgroup: argument name comes from the existing opsgroup
+            if is_recursive_subgroup:
+              for index, input in enumerate(sub_group.inputs):
+                if param_name == input.name:
+                  break
+              referenced_input = sub_group.recursive_ref.inputs[index]
+              full_name = self._pipelineparam_full_name(referenced_input)
+              arguments.append({
+                  'name': full_name,
+                  'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+              })
+            else:
+              arguments.append({
+                'name': param_name,
+                'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+              })
           else:
             # The value comes from its parent.
             # Special handling for recursive subgroup: argument name comes from the existing opsgroup
@@ -459,11 +474,6 @@ class Compiler(object):
     opsgroups_groups = self._get_groups_for_opsgroups(new_root_group)
     condition_params = self._get_condition_params_for_ops(new_root_group)
     inputs, outputs = self._get_inputs_outputs(pipeline, new_root_group, op_groups, opsgroups_groups, condition_params)
-    print('inputs------------------------')
-    for input in inputs:
-      print('group/op name: ' + input)
-      for param_name, op_name in inputs[input]:
-        print('\tparam: ' + param_name + '-> opname: ' + (op_name if op_name is not None else 'None'))
     dependencies = self._get_dependencies(pipeline, new_root_group, op_groups, opsgroups_groups, opsgroups, condition_params)
 
     templates = []
