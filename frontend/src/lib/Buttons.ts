@@ -282,7 +282,8 @@ export default class Buttons {
     callback: (_: string[], success: boolean) => void): void {
     this._dialogActionHandler(
       ids,
-      'Do you want to terminate this run? This action cannot be undone.',
+      'Do you want to terminate this run? This action cannot be undone. This will terminate any'
+      + ' running pods, but they will not be deleted.',
       useCurrentResource,
       id => Apis.runServiceApi.terminateRun(id),
       callback,
