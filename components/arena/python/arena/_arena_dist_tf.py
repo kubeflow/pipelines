@@ -21,7 +21,7 @@ import logging
 # def DistributeTFOp(name, image, gpus: int, ):
 
 class DistributeTFOp(dsl.ContainerOp):
-  """Submit MPI Job."""
+  """Submit Distributed TFJob with Parameter Server mode."""
 
   # arena Image is "cheyang/arena_launcher"
   def __init__(self, name, image, workers, ps, gpus, worker_cpu, worker_memory, ps_cpu, ps_memory,

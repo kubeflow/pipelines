@@ -22,7 +22,7 @@ import logging
 # def arena_submit_standalone_job_op(name, image, gpus: int, ):
 
 class MPIOp(dsl.ContainerOp):
-  """Submit MPI Job."""
+  """Submit MPI Job, it can run Allreduce-style Distributed Training."""
 
   # arena Image is "cheyang/arena_launcher"
   def __init__(self, name, image, workers, gpus, cpu, memory, rdma,
