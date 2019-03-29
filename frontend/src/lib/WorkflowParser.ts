@@ -71,10 +71,14 @@ export default class WorkflowParser {
     // Create dagre graph nodes from workflow nodes.
     (Object as any).values(workflowNodes)
       .forEach((node: NodeStatus) => {
+        let nodeLabel = node.displayName || node.id;
+        if (node.name === `${workflowName}.onExit`) {
+          nodeLabel = `onExit - ${node.templateName}`;
+        }
         g.setNode(node.id, {
           height: Constants.NODE_HEIGHT,
           icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt),
-          label: node.displayName || node.id,
+          label: nodeLabel,
           statusColoring: statusToBgColor(node.phase as NodePhase),
           width: Constants.NODE_WIDTH,
           ...node,
