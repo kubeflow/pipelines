@@ -22,7 +22,7 @@ def resnet_preprocess_op(project_id: 'GcpProject', output: 'GcsUri', train_csv: 
                          validation_csv: 'GcsUri[text/csv]', labels, step_name='preprocess'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/resnet-preprocess:3b949b37aa2cefd3180398d59116f43ce965a2a6',
+        image = 'gcr.io/ml-pipeline/resnet-preprocess:2c2445df83fa879387a200747cc20f72a7ee9727',
         arguments = [
             '--project_id', project_id,
             '--output', output,
@@ -38,7 +38,7 @@ def resnet_train_op(data_dir, output: 'GcsUri', region: 'GcpRegion', depth: int,
                     num_eval_images: int, num_label_classes: int, tf_version, step_name='train'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/resnet-train:3b949b37aa2cefd3180398d59116f43ce965a2a6',
+        image = 'gcr.io/ml-pipeline/resnet-train:2c2445df83fa879387a200747cc20f72a7ee9727',
         arguments = [
             '--data_dir', data_dir,
             '--output', output,
@@ -60,7 +60,7 @@ def resnet_deploy_op(model_dir, model, version, project_id: 'GcpProject', region
                      tf_version, step_name='deploy'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/resnet-deploy:3b949b37aa2cefd3180398d59116f43ce965a2a6',
+        image = 'gcr.io/ml-pipeline/resnet-deploy:2c2445df83fa879387a200747cc20f72a7ee9727',
         arguments = [
             '--model', model,
             '--version', version,
