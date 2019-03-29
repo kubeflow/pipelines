@@ -16,6 +16,7 @@
 from . import _container_op
 from ._metadata import  PipelineMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 from . import _ops_group
+from ._s3artifact import S3Artifactory
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
 
@@ -69,6 +70,7 @@ class PipelineConf():
   """
   def __init__(self):
     self.image_pull_secrets = []
+    self.s3_artifactory = S3Artifactory()
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """ configure the pipeline level imagepullsecret
@@ -79,10 +81,46 @@ class PipelineConf():
       https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
     """
     self.image_pull_secrets = image_pull_secrets
+    return self
+
+  def set_s3_artifactory(self, s3_artifactory: S3Artifactory):
+    """ configure the pipeline level s3 artifactory
+
+    Args:
+      s3_artifactory: `S3Artifactory` object
+    """
+    self.s3_artifactory = s3_artifactory
+    return self
+
 
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline
     Note: call the function inside the user defined pipeline function.
+
+  Example
+  ```
+    from kfp import dsl
+    from kfp.dsl import get_pipeline_conf, S3Artifactory, ContainerOp
+    from kubernetes.client.models import V1LocalObjectReference
+
+    @dsl.pipeline(name='foo', description='example of configuring pipeline.')
+    def transport_sim_pipeline(bucket: str = "foobucket", image_pull_policy: str = 'IfNotPresent'):
+        
+        s3_artifactory = (S3Artifactory()
+                            .bucket(bucket)
+                            .endpoint('s3.amazonaws.com'),
+                            .insecure(False)
+                            .region('ap-southeast-1')
+                            .access_key_secret(name='s3_credential', key='accesskey')
+                            .secret_key_secret(name='s3_credential', key='secretkey'))
+
+        (get_pipeline_conf()
+            .set_image_pull_secrets([V1LocalObjectReference(name="foosecret")])
+            .set_s3_artifactory(s3_artifactory))
+        
+        op = ContainerOp('foo', image='busybox:latest')
+  ```
+
   """
   return Pipeline.get_default_pipeline().conf
 

@@ -23,6 +23,7 @@ from kubernetes.client.models import (
 from . import _pipeline
 from . import _pipeline_param
 from ._metadata import ComponentMeta
+from ._s3artifact import S3Artifactory
 
 # generics
 T = TypeVar('T')
@@ -661,7 +662,7 @@ class ContainerOp(object):
     # in the compilation process to generate the DAGs and task io parameters.
     attrs_with_pipelineparams = [
         '_container', 'node_selector', 'volumes', 'pod_annotations',
-        'pod_labels', 'num_retries', 'sidecars'
+        'pod_labels', 'num_retries', 'sidecars', '_s3_artifactory'
     ]
 
     def __init__(self,
@@ -671,6 +672,7 @@ class ContainerOp(object):
                  arguments: StringOrStringList = None,
                  sidecars: List[Sidecar] = None,
                  container_kwargs: Dict = None,
+                 s3_artifactory: S3Artifactory = None,
                  file_outputs: Dict[str, str] = None,
                  is_exit_handler=False):
         """Create a new instance of ContainerOp.
@@ -688,6 +690,7 @@ class ContainerOp(object):
                     together with the `main` container.
           container_kwargs: the dict of additional keyword arguments to pass to the
                             op's `Container` definition.
+          s3_artifactory: custom `S3Artifactory` object to generate output artifacts.
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
@@ -760,6 +763,7 @@ class ContainerOp(object):
         self.dependent_op_names = []
         self.is_exit_handler = is_exit_handler
         self._metadata = None
+        self._s3_artifactory = s3_artifactory
 
         self.outputs = {}
         if file_outputs:
@@ -833,6 +837,41 @@ class ContainerOp(object):
                         )
         """
         return self._container
+
+    @property
+    def s3_artifactory(self):
+        """`S3Artifactory` factory object used to create artifacts.
+
+        Example:
+            import kfp.dsl as dsl
+            from kubernetes.client.models import V1EnvVar
+    
+            @dsl.pipeline(name='example_pipeline')
+            def immediate_value_pipeline(bucket: str):
+                op = dsl.ContainerOp(name='example', image='nginx:alpine')
+                # customize s3 artifactory
+                (op.s3_artifactory
+                   .bucket(bucket)
+                   .endpoint('s3.amazonaws.com'),
+                   .insecure(False)
+                   .region('ap-southeast-1')
+                   .access_key_secret(name='s3_credential', key='accesskey')
+                   .secret_key_secret(name='s3_credential', key='secretkey'))
+        """
+        # create default s3 artifactory if not created
+        if not self._s3_artifactory:
+            self._s3_artifactory = S3Artifactory()
+        return self._s3_artifactory
+
+    def set_s3_artifactory(self, s3_artifactory: S3Artifactory):
+        """Specify the s3 artifactory configuration to use when outputing the artifacts.
+
+        Arg
+          s3_artifactory: `S3Artifactory` factory object used to create artifacts.
+        """
+        self._s3_artifactory = s3_artifactory
+        return self
+
 
     def apply(self, mod_func):
         """Applies a modifier function to self. The function should return the passed object.

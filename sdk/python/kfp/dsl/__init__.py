@@ -18,3 +18,4 @@ from ._pipeline import Pipeline, pipeline, get_pipeline_conf
 from ._container_op import ContainerOp, Sidecar
 from ._ops_group import OpsGroup, ExitHandler, Condition
 from ._component import python_component, graph_component, component
+from ._s3artifact import S3Artifactory

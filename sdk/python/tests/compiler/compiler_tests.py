@@ -249,6 +249,10 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
         compiled = yaml.load(f)
 
+      with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
+        with open('/pipelines/sdk/python/dist/%s.yaml' % file_base_name, 'w') as f2:
+          f2.write(f.read())
+  
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:
@@ -265,6 +269,10 @@ class TestCompiler(unittest.TestCase):
   def test_py_compile_with_pipelineparams(self):
     """Test pipeline with multiple pipeline params."""
     self._test_py_compile_yaml('pipelineparams')
+
+  def test_py_compile_with_s3artifactory(self):
+    """Test pipeline with parameterized s3artifactory."""
+    self._test_py_compile_yaml('s3artifactory')
 
   def test_py_compile_condition(self):
     """Test a pipeline with conditions."""

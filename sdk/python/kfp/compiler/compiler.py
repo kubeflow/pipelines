@@ -27,6 +27,7 @@ from ._op_to_template import _op_to_template
 from ..dsl._metadata import TypeMeta
 from ..dsl._ops_group import OpsGroup
 
+
 class Compiler(object):
   """DSL Compiler.
 
@@ -531,6 +532,13 @@ class Compiler(object):
     for op in p.ops.values():
       sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
       op.name = sanitized_name
+      
+      # if op has no customized s3 artifactory assign one from the pipeline
+      # NOTE DO NOT use `op.s3_artifactory` as s3_artifactory will be auto-created
+      # if it does not exist
+      if not op._s3_artifactory:
+        op.set_s3_artifactory(p.conf.s3_artifactory)
+
       for param in op.outputs.values():
         param.name = K8sHelper.sanitize_k8s_name(param.name)
         if param.op_name:

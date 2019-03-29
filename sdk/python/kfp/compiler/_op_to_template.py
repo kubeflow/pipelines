@@ -15,6 +15,9 @@
 import re
 from typing import Union, List, Any, Callable, TypeVar, Dict
 
+from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
+from argo.models.io_argoproj_workflow_v1alpha1_s3_artifact import IoArgoprojWorkflowV1alpha1S3Artifact
+
 from ._k8s_helper import K8sHelper
 from .. import dsl
 
@@ -32,6 +35,12 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
       map_to_tmpl_var: a dict that maps an unsanitized pipeline
                        params signature into a template var
     """
+    # duck typing
+    if hasattr(obj, 'process_pipelineparams') and hasattr(
+            obj.process_pipelineparams, '__call__'):
+        return obj.process_pipelineparams(lambda value: _process_obj(
+            value, map_to_tmpl_var))
+
     # serialized str might be unsanitized
     if isinstance(obj, str):
         # get signature
@@ -40,7 +49,8 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
             return obj
         # replace all unsanitized signature with template var
         for param_tuple in param_tuples:
-            obj = re.sub(param_tuple.pattern, map_to_tmpl_var[param_tuple.pattern], obj)
+            obj = re.sub(param_tuple.pattern,
+                         map_to_tmpl_var[param_tuple.pattern], obj)
 
     # list
     if isinstance(obj, list):
@@ -93,10 +103,9 @@ def _process_container_ops(op: dsl.ContainerOp):
     """
 
     # map param's (unsanitized pattern or serialized str pattern) -> input param var str
-    map_to_tmpl_var = {
-        (param.pattern or str(param)): '{{inputs.parameters.%s}}' % param.full_name
-        for param in op.inputs
-    }
+    map_to_tmpl_var = {(param.pattern or str(param)):
+                       '{{inputs.parameters.%s}}' % param.full_name
+                       for param in op.inputs}
 
     # process all attr with pipelineParams except inputs and outputs parameters
     for key in op.attrs_with_pipelineparams:
@@ -144,25 +153,12 @@ def _outputs_to_json(outputs: Dict[str, dsl.PipelineParam],
     return ret
 
 
-def _build_conventional_artifact(name):
+def _build_conventional_artifact(op, name):
     return {
         'name': name,
         'path': '/' + name + '.json',
-        's3': {
-            # TODO: parameterize namespace for minio service
-            'endpoint': 'minio-service.kubeflow:9000',
-            'bucket': 'mlpipeline',
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz',
-            'insecure': True,
-            'accessKeySecret': {
-                'name': 'mlpipeline-minio-artifact',
-                'key': 'accesskey',
-            },
-            'secretKeySecret': {
-                'name': 'mlpipeline-minio-artifact',
-                'key': 'secretkey'
-            }
-        },
+        's3': K8sHelper.convert_k8s_obj_to_json(
+                op.s3_artifactory.create('runs/{{workflow.uid}}/{{pod.name}}/%s.tgz' % name))
     }
 
 
@@ -177,7 +173,7 @@ def _op_to_template(op: dsl.ContainerOp):
 
     # default output artifacts
     output_artifacts = [
-        _build_conventional_artifact(name)
+        _build_conventional_artifact(op, name)
         for name in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']
     ]
 

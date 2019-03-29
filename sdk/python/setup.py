@@ -52,6 +52,8 @@ setup(
       'kfp_job',
       'kfp_job.api',
       'kfp_job.models',
+      'argo',
+      'argo.models'
     ],
     classifiers=[
       'Intended Audience :: Developers',

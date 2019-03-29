@@ -46,11 +46,22 @@ echo "{\"packageName\": \"kfp_uploadpipeline\"}" > /tmp/config.json
 java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../../backend/api/swagger/pipeline.upload.swagger.json -o $DIR -c /tmp/config.json
 echo "{\"packageName\": \"kfp_job\"}" > /tmp/config.json
 java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../../backend/api/swagger/job.swagger.json -o $DIR -c /tmp/config.json
+echo "{\"packageName\": \"argo\"}" > /tmp/config.json
+java -jar /tmp/swagger-codegen-cli.jar generate -l python \
+  -i https://raw.githubusercontent.com/argoproj/argo/master/api/openapi-spec/swagger.json \
+  -o $DIR \
+  -c /tmp/config.json \
+  -DmodelTests=false \
+  -DmodelDocs=false \
+  -Dmodels=io.argoproj.workflow.v1alpha1.S3Artifact,io.k8s.api.core.v1.SecretKeySelector \
+  --import-mappings "IoK8sApiCoreV1SecretKeySelector=from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector as IoK8sApiCoreV1SecretKeySelector"
 rm /tmp/config.json
 
 # Merge generated code with the rest code (setup.py, seira_client, etc).
 cp -r kfp $DIR
 cp ./setup.py $DIR
+touch $DIR/argo/__init__.py
+touch $DIR/argo/models/__init__.py
 
 # Build tarball package.
 cd $DIR
