@@ -274,13 +274,13 @@ class Compiler(object):
     condition_params = self._get_condition_params_for_ops(root_group)
     dependencies = defaultdict(set)
     for op in pipeline.ops.values():
-      unstream_op_names = set()
+      upstream_op_names = set()
       for param in op.inputs + list(condition_params[op.name]):
         if param.op_name:
-          unstream_op_names.add(param.op_name)
-      unstream_op_names |= set(op.dependent_names)
+          upstream_op_names.add(param.op_name)
+      upstream_op_names |= set(op.dependent_names)
 
-      for op_name in unstream_op_names:
+      for op_name in upstream_op_names:
         # the dependent op could be either a ContainerOp or an opsgroup
         if op_name in pipeline.ops:
           upstream_op = pipeline.ops[op_name]
@@ -296,19 +296,24 @@ class Compiler(object):
     # Generate dependencies based on the recursive opsgroups
     #TODO: refactor the following codes with the above
     def _get_dependency_opsgroup(group, dependencies):
+      upstream_op_names = set()
       if group.recursive_ref:
-        unstream_op_names = set()
         for param in group.inputs + list(condition_params[group.name]):
           if param.op_name:
-            unstream_op_names.add(param.op_name)
-        unstream_op_names |= set(group.dependencies)
+            upstream_op_names.add(param.op_name)
+      else:
+        upstream_op_names = set([dependency.name for dependency in group.dependencies])
 
-        for op_name in unstream_op_names:
+      for op_name in upstream_op_names:
+        if op_name in pipeline.ops:
           upstream_op = pipeline.ops[op_name]
-          upstream_groups, downstream_groups = self._get_uncommon_ancestors(
-              op_groups, opsgroups_groups, upstream_op, group)
-          dependencies[downstream_groups[0]].add(upstream_groups[0])
-
+        elif op_name in opsgroups_groups:
+          upstream_op = opsgroups_groups[op_name]
+        else:
+          raise ValueError('compiler cannot find the ' + op_name)
+        upstream_groups, downstream_groups = self._get_uncommon_ancestors(
+            op_groups, opsgroups_groups, upstream_op, group)
+        dependencies[downstream_groups[0]].add(upstream_groups[0])
 
       for subgroup in group.groups:
         _get_dependency_opsgroup(subgroup, dependencies)
