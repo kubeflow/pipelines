@@ -154,7 +154,34 @@ class Compiler(object):
     group2 = op2_groups[common_groups_len:]
     return (group1, group2)
 
-  def _get_inputs_outputs(self, pipeline, root_group, op_groups, opsgroup_groups):
+  def _get_condition_params_for_ops(self, root_group):
+    """Get parameters referenced in conditions of ops."""
+
+    conditions = defaultdict(set)
+
+    def _get_condition_params_for_ops_helper(group, current_conditions_params):
+      new_current_conditions_params = current_conditions_params
+      if group.type == 'condition':
+        new_current_conditions_params = list(current_conditions_params)
+        if isinstance(group.condition.operand1, dsl.PipelineParam):
+          new_current_conditions_params.append(group.condition.operand1)
+        if isinstance(group.condition.operand2, dsl.PipelineParam):
+          new_current_conditions_params.append(group.condition.operand2)
+      for op in group.ops:
+        for param in new_current_conditions_params:
+          conditions[op.name].add(param)
+      for g in group.groups:
+        # If the subgroup is a recursive opsgroup, propagate the pipelineparams
+        # in the condition expression, similar to the ops.
+        if g.recursive_ref:
+          for param in new_current_conditions_params:
+            conditions[g.name].add(param)
+        else:
+          _get_condition_params_for_ops_helper(g, new_current_conditions_params)
+    _get_condition_params_for_ops_helper(root_group, [])
+    return conditions
+
+  def _get_inputs_outputs(self, pipeline, root_group, op_groups, opsgroup_groups, condition_params):
     """Get inputs and outputs of each group and op.
 
     Returns:
@@ -164,7 +191,6 @@ class Compiler(object):
       produces the param. If the param is a pipeline param (no producer op), then
       producing_op_name is None.
     """
-    condition_params = self._get_condition_params_for_ops(root_group)
     inputs = defaultdict(set)
     outputs = defaultdict(set)
     for op in pipeline.ops.values():
@@ -233,34 +259,7 @@ class Compiler(object):
     _get_inputs_outputs_recursive_opsgroup(root_group)
     return inputs, outputs
 
-  def _get_condition_params_for_ops(self, root_group):
-    """Get parameters referenced in conditions of ops."""
-
-    conditions = defaultdict(set)
-
-    def _get_condition_params_for_ops_helper(group, current_conditions_params):
-      new_current_conditions_params = current_conditions_params
-      if group.type == 'condition':
-        new_current_conditions_params = list(current_conditions_params)
-        if isinstance(group.condition.operand1, dsl.PipelineParam):
-          new_current_conditions_params.append(group.condition.operand1)
-        if isinstance(group.condition.operand2, dsl.PipelineParam):
-          new_current_conditions_params.append(group.condition.operand2)
-      for op in group.ops:
-        for param in new_current_conditions_params:
-          conditions[op.name].add(param)
-      for g in group.groups:
-        # If the subgroup is a recursive opsgroup, propagate the pipelineparams
-        # in the condition expression, similar to the ops.
-        if g.recursive_ref:
-          for param in new_current_conditions_params:
-            conditions[g.name].add(param)
-        else:
-          _get_condition_params_for_ops_helper(g, new_current_conditions_params)
-    _get_condition_params_for_ops_helper(root_group, [])
-    return conditions
-
-  def _get_dependencies(self, pipeline, root_group, op_groups, opsgroups_groups, groups):
+  def _get_dependencies(self, pipeline, root_group, op_groups, opsgroups_groups, opsgroups, condition_params):
     """Get dependent groups and ops for all ops and groups.
 
     Returns:
@@ -270,9 +269,6 @@ class Compiler(object):
       then G3 is dependent on G2. Basically dependency only exists in the first uncommon
       ancesters in their ancesters chain. Only sibling groups/ops can have dependencies.
     """
-    #TODO: move the condition_params out because both the _get_inputs_outputs
-    # and _get_dependencies depend on it.
-    condition_params = self._get_condition_params_for_ops(root_group)
     dependencies = defaultdict(set)
     for op in pipeline.ops.values():
       upstream_op_names = set()
@@ -285,8 +281,8 @@ class Compiler(object):
         # the dependent op could be either a ContainerOp or an opsgroup
         if op_name in pipeline.ops:
           upstream_op = pipeline.ops[op_name]
-        elif op_name in groups:
-          upstream_op = groups[op_name]
+        elif op_name in opsgroups:
+          upstream_op = opsgroups[op_name]
         else:
           raise ValueError('compiler cannot find the ' + op_name)
 
@@ -335,7 +331,12 @@ class Compiler(object):
       task_names = [task_name for param_name, task_name in potential_references if param_name == parameter_name]
       if task_names:
         task_name = task_names[0]
-        return '{{tasks.%s.outputs.parameters.%s}}' % (task_name, parameter_name)
+        # When the task_name is None, the parameter comes directly from ancient ancesters
+        # instead of parents. Thus, it is resolved as the input parameter in the current group.
+        if task_name is None:
+          return '{{inputs.parameters.%s}}' % parameter_name
+        else:
+          return '{{tasks.%s.outputs.parameters.%s}}' % (task_name, parameter_name)
       else:
         return '{{inputs.parameters.%s}}' % parameter_name
     else:
@@ -350,6 +351,8 @@ class Compiler(object):
     inputs, outputs, dependencies are all helper dicts.
     """
     template = {'name': group.name}
+    print('group_to_template----------------------')
+    print('group: ' + group.name)
 
     # Generate inputs section.
     if inputs.get(group.name, None):
@@ -386,9 +389,11 @@ class Compiler(object):
           'name': sub_group.name,
           'template': sub_group.name,
         }
+      print('\tsub_group: ' + sub_group.name)
       if isinstance(sub_group, dsl.OpsGroup) and sub_group.type == 'condition':
         subgroup_inputs = inputs.get(sub_group.name, [])
         condition = sub_group.condition
+        print('\t\tcondition operand1: ' + str(condition.operand1))
         operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
         operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
         task['when'] = '{} {} {}'.format(operand1_value, condition.operator, operand2_value)
@@ -441,9 +446,10 @@ class Compiler(object):
 
     # Generate core data structures to prepare for argo yaml generation
     #   op_groups: op name -> list of ancestor groups including the current op
-    #   inputs, outputs: group/op names -> list of tuples (param_name, producing_op_name)
-    #   dependencies: group/op name -> list of dependent groups/ops.
     #   opsgroups: a dictionary of ospgroup.name -> opsgroup
+    #   inputs, outputs: group/op names -> list of tuples (full_param_name, producing_op_name)
+    #   condition_params: recursive_group/op names -> list of pipelineparam
+    #   dependencies: group/op name -> list of dependent groups/ops.
     # Special Handling for the recursive opsgroup
     #   op_groups also contains the recursive opsgroups
     #   condition_params from _get_condition_params_for_ops also contains the recursive opsgroups
@@ -451,8 +457,14 @@ class Compiler(object):
     opsgroups = self._get_groups(new_root_group)
     op_groups = self._get_groups_for_ops(new_root_group)
     opsgroups_groups = self._get_groups_for_opsgroups(new_root_group)
-    inputs, outputs = self._get_inputs_outputs(pipeline, new_root_group, op_groups, opsgroups_groups)
-    dependencies = self._get_dependencies(pipeline, new_root_group, op_groups, opsgroups_groups, opsgroups)
+    condition_params = self._get_condition_params_for_ops(new_root_group)
+    inputs, outputs = self._get_inputs_outputs(pipeline, new_root_group, op_groups, opsgroups_groups, condition_params)
+    print('inputs------------------------')
+    for input in inputs:
+      print('group/op name: ' + input)
+      for param_name, op_name in inputs[input]:
+        print('\tparam: ' + param_name + '-> opname: ' + (op_name if op_name is not None else 'None'))
+    dependencies = self._get_dependencies(pipeline, new_root_group, op_groups, opsgroups_groups, opsgroups, condition_params)
 
     templates = []
     for opsgroup in opsgroups.keys():
