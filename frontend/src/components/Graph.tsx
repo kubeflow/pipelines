@@ -19,6 +19,7 @@ import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, color, fonts, zIndex } from '../Css';
 import { Constants } from '../lib/Constants';
+import { Tooltip } from '@material-ui/core';
 
 interface Segment {
   angle: number;
@@ -55,8 +56,8 @@ const css = stylesheet({
     fontSize: 13,
     fontWeight: 500,
     lineHeight: '16px',
-    margin: 10,
     overflow: 'hidden',
+    padding: 10,
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
@@ -256,7 +257,11 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
               transition: 'left 0.5s, top 0.5s',
               width: node.width,
             }}>
-            {!node.isPlaceholder && (<div className={css.label}>{node.label}</div>)}
+            {!node.isPlaceholder && (
+              <Tooltip title={node.label} enterDelay={300}>
+                <div className={css.label}>{node.label}</div>
+              </Tooltip>
+            )}
             <div className={css.icon} style={{ background: node.statusColoring }}>{node.icon}</div>
           </div>
         ))}
