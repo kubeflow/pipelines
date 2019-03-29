@@ -133,6 +133,7 @@ class Compiler(object):
     For example, op1's ancestor groups are [root, G1, G2, G3, op1], op2's ancestor groups are
     [root, G1, G4, op2], then it returns a tuple ([G2, G3, op1], [G4, op2]).
     """
+    #TODO: extract a function for the following two code module
     if op1.name in op_groups:
       op1_groups = op_groups[op1.name]
     elif op1.name in opsgroup_groups:
