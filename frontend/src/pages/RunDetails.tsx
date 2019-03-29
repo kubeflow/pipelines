@@ -304,6 +304,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     this._stopAutoRefresh();
     window.removeEventListener('focus', this._onFocus);
     window.removeEventListener('blur', this._onBlur);
+    this.clearBanner();
   }
 
   public async refresh(): Promise<void> {
