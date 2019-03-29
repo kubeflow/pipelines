@@ -416,7 +416,7 @@ class Compiler(object):
             # Special handling for recursive subgroup: argument name comes from the existing opsgroup
             if is_recursive_subgroup:
               for index, input in enumerate(sub_group.inputs):
-                if param_name == input.name:
+                if param_name == self._pipelineparam_full_name(input):
                   break
               referenced_input = sub_group.recursive_ref.inputs[index]
               full_name = self._pipelineparam_full_name(referenced_input)
@@ -434,7 +434,7 @@ class Compiler(object):
             # Special handling for recursive subgroup: argument name comes from the existing opsgroup
             if is_recursive_subgroup:
               for index, input in enumerate(sub_group.inputs):
-                if param_name == input.name:
+                if param_name == self._pipelineparam_full_name(input):
                   break
               referenced_input = sub_group.recursive_ref.inputs[index]
               full_name = self._pipelineparam_full_name(referenced_input)
