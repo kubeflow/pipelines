@@ -103,15 +103,15 @@ func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 			return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file.")
 		}
 		tarReader = tar.NewReader(gzipReader)
+		header, err := tarReader.Next()
+		if err != nil {
+			return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file.")
+		}
+		if !isYamlFile(header.Name) {
+			return nil, util.NewInvalidInputError("Error extracting pipeline from the tarball file. Expecting a pipeline.yaml file inside the tarball. Got: %v", header.Name)
+		}
 	}
 
-	header, err := tarReader.Next()
-	if err != nil {
-		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file.")
-	}
-	if !isYamlFile(header.Name) {
-		return nil, util.NewInvalidInputError("Error extracting pipeline from the tarball file. Expecting a pipeline.yaml file inside the tarball. Got: %v", header.Name)
-	}
 	decompressedFile, err := ioutil.ReadAll(tarReader)
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the tarball file.")
