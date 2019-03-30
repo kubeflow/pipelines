@@ -26,10 +26,9 @@ matrix:
         - npm i
         - npm run test:coveralls
     - language: generic
-    - env:
+      env:
         - BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/0.23.0/bazel-0.23.0-installer-linux-x86_64.sh"
-    - before_install:
-        - npm i -g npm@latest
+      before_install:
         # Install Bazel
         - |
           wget -O install.sh "${BAZEL_URL}"
