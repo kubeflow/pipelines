@@ -26,10 +26,26 @@ matrix:
         - npm i
         - npm run test:coveralls
     - language: generic
+      env:
+        - BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/0.23.0/bazel-0.23.0-installer-linux-x86_64.sh"
+      before_install:
+        # Install Bazel
+        - |
+          wget -O install.sh "${BAZEL_URL}"
+          chmod +x install.sh
+          ./install.sh --user
+          rm -f install.sh
+
       script:
         # Backend unit tests
         - cd $TRAVIS_BUILD_DIR/backend/src
         - gimme -f 1.11.4
+        - |
+          bazel --host_jvm_args=-Xmx500m --host_jvm_args=-Xms500m \
+           build --noshow_progress --noshow_loading_progress --define=grpc_no_ares=true //backend/...
+        - |
+          bazel --host_jvm_args=-Xmx500m --host_jvm_args=-Xms500m \
+           test --noshow_progress --noshow_loading_progress --define=grpc_no_ares=true //backend/...
         - source ~/.gimme/envs/go1.11.4.env
         - go vet -all -shadow ./agent/...
         - go vet -all -shadow ./cmd/...
