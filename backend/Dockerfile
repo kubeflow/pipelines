@@ -5,10 +5,6 @@ FROM l.gcr.io/google/bazel:0.23.0 as builder
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY . .
-# COPY backend/src backend/src
-# COPY backend/api backend/api
-
-# COPY tools
 
 ARG google_application_credentials
 ARG use_remote_build=false
@@ -16,7 +12,7 @@ ARG use_remote_build=false
 # RUN bazel build -c opt --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver:apiserver
 RUN if [ "$use_remote_build" = "true" ]; then \
     echo "Using remote build execution ..." && \
-    echo "$google_application_credentials"  > /credentials.json && \
+    printf "%s" "$google_application_credentials"  > /credentials.json && \
     bazel --bazelrc=tools/bazel_builder/bazelrc \
       build -c opt backend/src/apiserver:apiserver --config=remote \
       --google_credentials=/credentials.json; \

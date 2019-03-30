@@ -18,7 +18,7 @@
 # build/test infrastructure that uses Remote Build Execution. Since access to
 # RBE requires authentication credentials, this script lets you pass those
 # credentials to the docker builder to be used by Bazel.
-set -ex
+set -e
 
 usage() {
   cat <<EOM
@@ -30,7 +30,6 @@ usage() {
 EOM
 }
 
-
 OPTS=i:
 LONGOPTS=use_remote_build,gcp_credentials_file:
 
@@ -38,7 +37,7 @@ PARSED=$(getopt --longoptions=$LONGOPTS --options=$OPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
 
 USE_REMOTE_BUILD=true
-GCP_CREDENTIALS_FILE=${GOOGLE_APPLICATION_CREDENTIALS}
+GCP_CREDENTIALS_FILE=$GOOGLE_APPLICATION_CREDENTIALS
 
 while true; do
   case $1 in
