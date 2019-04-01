@@ -37,7 +37,8 @@ PARSED=$(getopt --longoptions=$LONGOPTS --options=$OPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
 
 USE_REMOTE_BUILD=true
-GCP_CREDENTIALS_FILE=$GOOGLE_APPLICATION_CREDENTIALS
+# GCP_CREDENTIALS_FILE=$GOOGLE_APPLICATION_CREDENTIALS
+GCP_CREDENTIALS_FILE="gs://ml-pipeline-test-bazel/ml-pipeline-test-bazel-builder-credentials.json"
 
 while true; do
   case $1 in
@@ -75,7 +76,7 @@ if [[ ${USE_REMOTE_BUILD} == true ]]; then
     exit 1
   fi
 
-  GCP_CREDENTIALS="$(cat ${GCP_CREDENTIALS_FILE})"
+  GCP_CREDENTIALS="$(gsutil cat ${GCP_CREDENTIALS_FILE})"
   docker build \
     -t "${IMAGE_TAG}" \
     -f backend/Dockerfile \
