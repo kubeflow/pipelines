@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<title>1467x1007px Bird 73.51 KB #192166</title>
+
+<meta name="author" content="unisci24.com" />
+<link rel="canonical" href="http://unisci24.com/192166.html" />
+
+<link rel="stylesheet" type="text/css" href="/tpl/css/style.css">
+<link rel="stylesheet" type="text/css" href="/tpl/css/style.fonts.css">
+
+<link rel="stylesheet" href="/tpl/css/imgareaselect-animated.css" type="text/css" />
+
+<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+<script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+<script src="/tpl/js/jquery.imgareaselect.pack.js"></script>
+
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+<script src='https://www.google.com/recaptcha/api.js?hl=en'></script>
+</head>
+<body>
+	<div class="topbar">
+	<div class="title"></div>
+</div>
+
+<div id="main">
+	<table class="top">
+	<tr>
+		<td style="vertical-align:top; width:450px;">
+			<div class="logo">
+				<a href="/">
+					<img src="/tpl/images/fotonin_logo.png">
+				</a>
+			</div>
+		</td>
+		<td style="vertical-align:top;">
+			<div id="menu">
+				<ul>
+					<li><a href="/"><span>Home</span></a></li>
+					<li><a href="/top/"><span>Top Wallpapers</span></a></li>
+					<li><a href="/random/"><span>Random</span></a></li>
+					
+					
+					<li><a href="/submit/"><span>Submit Wallpapers</span></a></li>
+					<li><a href="/signup/"><span>Sign Up</span></a></li>
+				</ul>
+
+				<div class="reset"></div>
+
+				<div style="padding:0px 0px 0px 50px;">
+					<form class="searchform" method="POST">
+						<input type="hidden" name="post_type" value="search">
+						<input id="s" type="text" placeholder="Search wallpapers ..." name="search">
+						<input type="submit" value="Search">
+						<span class="fa fa-search"></span>
+					</form>
+				</div>
+			</div>
+		</td>
+	</tr>
+	</table>
+</div>
+
+<div id="main">
+	<table class="top">
+	<tr>
+		<td class="sd_l">
+			<ul class="left_menu">
+				<li class="first">Categories</li>
+
+									<li style="padding-left:0px;">
+						<span class="bdg">4469</span>
+						<a href="/categories/animals/">Animals</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">5801</span>
+						<a href="/categories/cars/">Cars</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">1401</span>
+						<a href="/categories/cartoons/">Cartoons</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">1585</span>
+						<a href="/categories/celebrities/">Celebrities</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">3264</span>
+						<a href="/categories/games/">Games</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">2839</span>
+						<a href="/categories/girls/">Girls</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">1340</span>
+						<a href="/categories/food-and-drink/">Food</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">4518</span>
+						<a href="/categories/nature/">Nature</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">2533</span>
+						<a href="/categories/movie/">Movie</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">1963</span>
+						<a href="/categories/sport/">Sport</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">3885</span>
+						<a href="/categories/travelling/">Travelling</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">3114</span>
+						<a href="/categories/others/">Others</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">1148</span>
+						<a href="/categories/music/">Music</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">1692</span>
+						<a href="/categories/holidays/">Holidays</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">1507</span>
+						<a href="/categories/anime/">Anime</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">584</span>
+						<a href="/categories/3d-graphics/">3D-graphics</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">1316</span>
+						<a href="/categories/photography/">Photography</a>
+					</li>
+								</ul>
+
+							<ul class="left_menu">
+					<li class="first">Login</li>
+
+					<li style="padding-left:0px;">
+						<div style="padding:10px;">
+						<form method="post">
+							<input type="hidden" name="post_type" value="login">
+							<table style="width:100%;">
+							<tr>					
+								<td colspan="2" style="padding:0px 0px 10px 0px;">
+									<input class="text_fields" type="text" name="username" placeholder="Username">
+								</td>
+							</tr>
+							<tr>
+								<td colspan="2" style="padding:0px 0px 10px 0px;">
+									<input class="text_fields" type="password" name="password" placeholder="Password">
+								</td>
+							</tr>
+							<tr>
+								<td style="padding:5px 0px 0px 0px; width:110px;">
+									<div style="float:left;">
+										<input type="checkbox" name="remember_me" checked="checked" value="1">
+									</div>
+									<div class="rem_label">Remember Me</div>
+								</td>
+								<td>
+									<button class="button" value="Go" name="submit" type="submit">Login</button>
+								</td>
+							</tr>
+							</table>
+							
+						</form>
+						</div>
+					</li>
+				</ul>
+					</td>
+		<td style="vertical-align:top;">
+			<div class="m_title">
+				<h1 class="phq">Bird 192166 73.51 KB</h1>
+			</div>
+			<center> <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- #2 -->
+<ins class="adsbygoogle"
+     style="display:inline-block;width:728px;height:90px"
+     data-ad-client="ca-pub-6244650790225716"
+     data-ad-slot="1641248385"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script></center>
+
+			<div id="details">
+				<a href="/data_images/wlls/6/192166-bird.jpg" title="Bird" target="_blank">
+					<img src="/data_images/wlls/6/192166-bird.jpg" alt="Bird">
+				</a>
+			</div>
+			
+			<div class="meta-links">
+				<span class="meta-link">
+					<i class="fa fa-clock-o"></i>&nbsp; 
+					<a href="/date/1428572996/">09 April 2015</a>
+				</span>
+				<span class="meta-link">
+					Category:&nbsp; 
+					<a href="/categories/animals/">Animals</a>
+				</span>
+				<span class="meta-link">
+					<i class="fa fa-user"></i>&nbsp; 
+					<a href="/users/18/">Daniel Bruno</a>
+				</span>
+				<span class="meta-link">
+					<i class="fa fa-picture-o"></i>&nbsp; 
+					1467x1007px				</span>
+				<span class="meta-link">
+					73.51 KB				</span>
+				<span class="meta-link">
+					Bird				</span>
+			</div>
+
+			<div class="reset"></div>
+
+			<center> <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- #2 -->
+<ins class="adsbygoogle"
+     style="display:inline-block;width:728px;height:90px"
+     data-ad-client="ca-pub-6244650790225716"
+     data-ad-slot="1641248385"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script> </center>
+			<p style="margin:10px;">"Bird 192166" is an awesome wallpapers presented here by Daniel Bruno at the top resolution of 1467x1007px and size of 73.51 KB. More of such great image you always can find at the Animals category or with our "Related walls" widget. Upload date - 09 April 2015</p>
+			
+
+			
+			<table style="margin:10px 15px; width:728px;">
+			<tr>
+				<td>
+
+<script type="text/javascript">
+eval(function(p,a,c,k,e,d){e=function(c){return c.toString(36)};if(!''.replace(/^/,String)){while(c--){d[c.toString(a)]=k[c]||c.toString(a)}k=[function(e){return d[e]}];e=function(){return'\\w+'};c=1};while(c--){if(k[c]){p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c])}}return p}('5 4(0,2,1){3.6(\'/a/7/\'+0+\'/\'+2+\'-\'+1+\'.8\',\'9\')}',11,11,'fold|url|hex|window|gSet|function|open|wlls|jpg|_newtab|data_images'.split('|'),0,{}))
+</script>
+
+					<div class="hrf" onclick="gSet('6', '192166', 'bird');">
+						<span class="shsp">Download in Original Size (1467x1007px)</span>
+					</div>
+
+					<div style="padding:0px 0px 10px 0px;">
+						<span class="shsp">Download:</span>
+
+						<form action="download.php" method="POST">
+							<input type="hidden" name="s_fold" value="6">
+							<input type="hidden" name="s_name" value="192166-bird">
+
+							<select name="s_size" class="pfile_select_item" onselect="submit();">
+															<option value="1280x720">HD 16:9: 1280x720</option>
+																<option value="1600x900">HD 16:9: 1600x900</option>
+																<option value="1920x1080">HD 16:9: 1920x1080</option>
+																<option value="2400x1350">HD 16:9: 2400x1350</option>
+																<option value="2560x1440">HD 16:9: 2560x1440</option>
+																<option value="2880x1620">HD 16:9: 2880x1620</option>
+																<option value="800x600">Standard 4:3: 800x600</option>
+																<option value="1024x768">Standard 4:3: 1024x768</option>
+																<option value="1280x960">Standard 4:3: 1280x960</option>
+																<option value="1600x1200">Standard 4:3: 1600x1200</option>
+																<option value="1680x1260">Standard 4:3: 1680x1260</option>
+																<option value="2800x2100">Standard 4:3: 2800x2100</option>
+																<option value="960x600">Wide 16:10: 960x600</option>
+																<option value="1280x800">Wide 16:10: 1280x800</option>
+																<option value="1440x900">Wide 16:10: 1440x900</option>
+																<option value="1680x1050">Wide 16:10: 1680x1050</option>
+																<option value="1920x1200">Wide 16:10: 1920x1200</option>
+																<option value="2560x1600">Wide 16:10: 2560x1600</option>
+																<option value="2880x1800">Wide 16:10: 2880x1800</option>
+															</select>
+							<button class="dload_button" value="Go" name="submit" type="submit"><i class="fa fa-download"></i></button>
+						</form>
+					</div>
+
+					<div style="padding:0px 0px 10px 0px;">
+						<span class="shsp">Code for Website (HTML):</span>
+						<input class="input-code" value="<a href='http://unisci24.com/192166.html'>Bird 1467x1007px</a>" onclick="select();">
+					</div>
+
+					<div style="padding:0px 0px 10px 0px;">
+						<span class="shsp">Code for Forum (BB-code):</span>
+						<input class="input-code" value="[URL=http://unisci24.com/192166.html]Bird 1467x1007px[/URL]" onclick="select();">
+					</div>
+					
+				</td>
+				
+				<td style="width:300px;">
+				<div style="padding:0px 10px;">
+							<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!— #6 —>
+<ins class="adsbygoogle"
+style="display:inline-block;width:336px;height:280px"
+data-ad-client="ca-pub-6244650790225716"
+data-ad-slot="8757229180"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+						</div>
+						</td>
+				
+			</tr>
+			</table>
+			
+
+			<div class="m_title">
+								<table width="100%">
+				<tr>
+					<td><h2>Related Wallpapers for Bird</h2></td>
+					
+				</tr>
+				</table>
+			</div>
+			<ul id="wallpapers">
+								<li class="wall">
+						<a class="thumbimg" href="/192153.html">
+							<img src="/data_images/wlls/6/192153-bird.jpg" 
+							     alt="Bird" title="Bird 192153 700x700px" width="230" height="170">
+
+							<h3>Bird</h3>
+						</a>
+					</li>
+										<li class="wall">
+						<a class="thumbimg" href="/192146.html">
+							<img src="/data_images/wlls/6/192146-bird.jpg" 
+							     alt="Bird" title="Bird 192146 1600x1200px" width="230" height="170">
+
+							<h3>Bird</h3>
+						</a>
+					</li>
+										<li class="wall">
+						<a class="thumbimg" href="/192161.html">
+							<img src="/data_images/wlls/6/192161-bird.jpg" 
+							     alt="Bird" title="Bird 192161 500x425px" width="230" height="170">
+
+							<h3>Bird</h3>
+						</a>
+					</li>
+										<li class="wall">
+						<a class="thumbimg" href="/192542.html">
+							<img src="/data_images/wlls/7/192542-black-bird.jpg" 
+							     alt="Black Bird" title="Black Bird 192542 750x500px" width="230" height="170">
+
+							<h3>Black Bird</h3>
+						</a>
+					</li>
+										<li class="wall">
+						<a class="thumbimg" href="/192540.html">
+							<img src="/data_images/wlls/7/192540-black-bird.jpg" 
+							     alt="Black Bird" title="Black Bird 192540 549x433px" width="230" height="170">
+
+							<h3>Black Bird</h3>
+						</a>
+					</li>
+										<li class="wall">
+						<a class="thumbimg" href="/192141.html">
+							<img src="/data_images/wlls/6/192141-bird.jpg" 
+							     alt="Bird" title="Bird 192141 1920x1080px" width="230" height="170">
+
+							<h3>Bird</h3>
+						</a>
+					</li>
+								</ul>
+			
+
+
+			<div class="m_title">
+				<p>Popular Wallpapers</p>
+			</div>
+
+			<ul id="wallpapers">
+								<li class="wall">
+						<a class="thumbimg" href="/326016.html">
+							<img src="/data_images/wlls/45/326016-shin-min-ah.jpg" 
+							     alt="Shin Min Ah" title="Shin Min Ah 326016 640x853px" width="230" height="170">
+
+							<span>Shin Min Ah</span>
+						</a>
+					</li>
+										<li class="wall">
+						<a class="thumbimg" href="/264527.html">
+							<img src="/data_images/wlls/27/264527-jude-law.jpg" 
+							     alt="Jude Law" title="Jude Law 264527 1536x2265px" width="230" height="170">
+
+							<span>Jude Law</span>
+						</a>
+					</li>
+										<li class="wall">
+						<a class="thumbimg" href="/177477.html">
+							<img src="/data_images/wlls/2/177477-all-is-lost.jpg" 
+							     alt="All Is Lost" title="All Is Lost 177477 1042x1500px" width="230" height="170">
+
+							<span>All Is Lost</span>
+						</a>
+					</li>
+										<li class="wall">
+						<a class="thumbimg" href="/340662.html">
+							<img src="/data_images/wlls/49/340662-texture.jpg" 
+							     alt="Texture" title="Texture 340662 2560x1440px" width="230" height="170">
+
+							<span>Texture</span>
+						</a>
+					</li>
+										<li class="wall">
+						<a class="thumbimg" href="/244489.html">
+							<img src="/data_images/wlls/21/244489-gravity-falls.jpg" 
+							     alt="Gravity Falls" title="Gravity Falls 244489 500x343px" width="230" height="170">
+
+							<span>Gravity Falls</span>
+						</a>
+					</li>
+										<li class="wall">
+						<a class="thumbimg" href="/347049.html">
+							<img src="/data_images/wlls/51/347049-the-second-best-exotic-marigold-hotel.jpg" 
+							     alt="The Second Best Exotic Marigold Hotel" title="The Second Best Exotic Marigold Hotel 347049 612x380px" width="230" height="170">
+
+							<span>The Second Best Exotic Marigold Hotel</span>
+						</a>
+					</li>
+								</ul>
+
+
+		</td>
+		<td class="sd_r">
+			<ul class="left_menu">
+				<li class="first">Top Resolutions</li>
+
+									<li style="padding-left:0px;">
+						<span class="bdg">1972</span>
+						<a href="/sizes/1024x768/"><i class="fa fa-desktop"></i> 1024x768</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">619</span>
+						<a href="/sizes/1280x1024/"><i class="fa fa-desktop"></i> 1280x1024</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">599</span>
+						<a href="/sizes/1280x720/"><i class="fa fa-desktop"></i> 1280x720</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">300</span>
+						<a href="/sizes/1280x960/"><i class="fa fa-desktop"></i> 1280x960</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">1022</span>
+						<a href="/sizes/1366x768/"><i class="fa fa-desktop"></i> 1366x768</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">5092</span>
+						<a href="/sizes/1600x1200/"><i class="fa fa-desktop"></i> 1600x1200</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">1286</span>
+						<a href="/sizes/1680x1050/"><i class="fa fa-desktop"></i> 1680x1050</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">6842</span>
+						<a href="/sizes/1920x1080/"><i class="fa fa-desktop"></i> 1920x1080</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">8583</span>
+						<a href="/sizes/1920x1200/"><i class="fa fa-desktop"></i> 1920x1200</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">361</span>
+						<a href="/sizes/1920x1440/"><i class="fa fa-desktop"></i> 1920x1440</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">389</span>
+						<a href="/sizes/2048x1536/"><i class="fa fa-desktop"></i> 2048x1536</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">566</span>
+						<a href="/sizes/2560x1440/"><i class="fa fa-desktop"></i> 2560x1440</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">3037</span>
+						<a href="/sizes/2560x1600/"><i class="fa fa-desktop"></i> 2560x1600</a>
+					</li>
+										<li style="padding-left:0px;">
+						<span class="bdg">329</span>
+						<a href="/sizes/800x600/"><i class="fa fa-desktop"></i> 800x600</a>
+					</li>
+								</ul>
+		</td>
+	</tr>
+	</table>
+
+	<div id="footer">
+		<table class="top">
+		<tr>
+			<td style="vertical-align:top; padding:0px 0px 0px 10px; text-align:left; width:950px;">
+				<p>Copyright © 2015 Unisci24.com</p>
+
+				<div style="padding:0px 10px; font-size:11px;">
+					<a href="/terms-of-service.html" style="text-decoration:none; color:#868686;">Terms of Service</a> &nbsp;|&nbsp; 
+					
+					<a href="/privacy-policy.html" style="text-decoration:none; color:#868686;">Privacy Policy</a> &nbsp;|&nbsp; 
+					<a href="/copyright-policy.html" style="text-decoration:none; color:#868686;">Copyright Policy</a> &nbsp;|&nbsp; 
+					<a href="/disclaimer.html" style="text-decoration:none; color:#868686;">Disclaimer</a> &nbsp;|&nbsp; 
+					<a href="/contribute.html" style="text-decoration:none; color:#868686;">Contribute</a> &nbsp;|&nbsp; 
+					<a href="/contact.html" style="text-decoration:none; color:#868686;">Contact</a> 
+				</div>
+			</td>
+			<td style="vertical-align:top; padding:15px 0px 0px 0px;">
+				
+				<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-76525328-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+			</td>
+		</tr>
+		</table>
+	</div>
+</div>
+</body>
+</html>
