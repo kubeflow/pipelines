@@ -126,23 +126,6 @@ exports[`SideNav populates the display build information using the response from
   <div
     className="infoVisible"
   >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
@@ -292,25 +275,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -439,25 +404,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -586,25 +533,7 @@ exports[`SideNav renders collapsed state 1`] = `
   </div>
   <div
     className="infoHidden"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -733,25 +662,7 @@ exports[`SideNav renders expanded state 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -880,25 +791,7 @@ exports[`SideNav renders experiments as active page 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1027,25 +920,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1174,25 +1049,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1321,25 +1178,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1468,25 +1307,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1615,25 +1436,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1762,25 +1565,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1909,25 +1694,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -2092,24 +1859,6 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
