@@ -120,7 +120,7 @@ def extract_pipelineparams_from_any(payload) -> List['PipelineParam']:
     pipeline_params = []
     for item in payload.values():
       pipeline_params += extract_pipelineparams_from_any(item)
-      return list(set(pipeline_params))
+    return list(set(pipeline_params))
 
   # k8s object
   if hasattr(payload, 'swagger_types') and isinstance(payload.swagger_types, dict):
