@@ -38,9 +38,11 @@ export const color = {
   strong: '#202124', // Google grey 900
   success: '#34a853',
   successWeak: '#e6f4ea', // Google green 50
+  terminated: '#80868b',
   theme: '#1a73e8',
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
+  warningText: '#ee8100',
   weak: '#9aa0a6',
 };
 
