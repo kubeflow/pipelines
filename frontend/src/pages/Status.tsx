@@ -20,6 +20,7 @@ import PendingIcon from '@material-ui/icons/Schedule';
 import RunningIcon from '../icons/statusRunning';
 import SkippedIcon from '@material-ui/icons/SkipNext';
 import SuccessIcon from '@material-ui/icons/CheckCircle';
+import TerminatedIcon from '../icons/statusTerminated';
 import Tooltip from '@material-ui/core/Tooltip';
 import UnknownIcon from '@material-ui/icons/Help';
 import { color } from '../Css';
@@ -29,8 +30,8 @@ export const statusBgColors = {
   error: '#fce8e6',
   notStarted: '#f7f7f7',
   running: '#e8f0fe',
-  stopOrSkip: '#f1f3f4',
   succeeded: '#e6f4ea',
+  terminatedOrSkipped: '#f1f3f4',
   warning: '#fef7f0',
 };
 
@@ -41,6 +42,8 @@ export enum NodePhase {
   RUNNING = 'Running',
   SKIPPED = 'Skipped',
   SUCCEEDED = 'Succeeded',
+  TERMINATING = 'Terminating',
+  TERMINATED = 'Terminated',
   UNKNOWN = 'Unknown',
 }
 
@@ -49,10 +52,12 @@ export function hasFinished(status?: NodePhase): boolean {
     case NodePhase.SUCCEEDED: // Fall through
     case NodePhase.FAILED: // Fall through
     case NodePhase.ERROR: // Fall through
-    case NodePhase.SKIPPED:
+    case NodePhase.SKIPPED: // Fall through
+    case NodePhase.TERMINATED:
       return true;
     case NodePhase.PENDING: // Fall through
     case NodePhase.RUNNING: // Fall through
+    case NodePhase.TERMINATING: // Fall through
     case NodePhase.UNKNOWN:
       return false;
     default:
@@ -60,7 +65,8 @@ export function hasFinished(status?: NodePhase): boolean {
   }
 }
 
-export function statusToBgColor(status?: NodePhase): string {
+export function statusToBgColor(status?: NodePhase, nodeMessage?: string): string {
+  status = checkIfTerminated(status, nodeMessage);
   switch (status) {
     case NodePhase.ERROR:
       // fall through
@@ -68,12 +74,16 @@ export function statusToBgColor(status?: NodePhase): string {
       return statusBgColors.error;
     case NodePhase.PENDING:
       return statusBgColors.notStarted;
+    case NodePhase.TERMINATING:
+      // fall through
     case NodePhase.RUNNING:
       return statusBgColors.running;
-    case NodePhase.SKIPPED:
-      return statusBgColors.stopOrSkip;
     case NodePhase.SUCCEEDED:
       return statusBgColors.succeeded;
+    case NodePhase.SKIPPED:
+      // fall through
+    case NodePhase.TERMINATED:
+      return statusBgColors.terminatedOrSkipped;
     case NodePhase.UNKNOWN:
       // fall through
     default:
@@ -82,7 +92,17 @@ export function statusToBgColor(status?: NodePhase): string {
   }
 }
 
-export function statusToIcon(status?: NodePhase, startDate?: Date | string, endDate?: Date | string): JSX.Element {
+export function checkIfTerminated(status?: NodePhase, nodeMessage?: string): NodePhase | undefined {
+  // Argo considers terminated runs as having "Failed", so we have to examine the failure message to
+  // determine why the run failed.
+  if (status === NodePhase.FAILED && nodeMessage === 'terminated') {
+    status = NodePhase.TERMINATED;
+  }
+  return status;
+}
+
+export function statusToIcon(status?: NodePhase, startDate?: Date | string, endDate?: Date | string, nodeMessage?: string): JSX.Element {
+  status = checkIfTerminated(status, nodeMessage);
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
@@ -108,6 +128,11 @@ export function statusToIcon(status?: NodePhase, startDate?: Date | string, endD
       iconColor = color.blue;
       title = 'Running';
       break;
+    case NodePhase.TERMINATING:
+      IconComponent = RunningIcon;
+      iconColor = color.blue;
+      title = 'Run is terminating';
+      break;
     case NodePhase.SKIPPED:
       IconComponent = SkippedIcon;
       title = 'Execution has been skipped for this resource';
@@ -116,6 +141,11 @@ export function statusToIcon(status?: NodePhase, startDate?: Date | string, endD
       IconComponent = SuccessIcon;
       iconColor = color.success;
       title = 'Executed successfully';
+      break;
+    case NodePhase.TERMINATED:
+      IconComponent = TerminatedIcon;
+      iconColor = color.terminated;
+      title = 'Run was manually terminated';
       break;
     case NodePhase.UNKNOWN:
       break;

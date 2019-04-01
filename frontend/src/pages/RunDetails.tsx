@@ -135,7 +135,11 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     return {
       actions: [
         buttons.cloneRun(() => this.state.runMetadata ? [this.state.runMetadata!.id!] : [], true),
-        buttons.refresh(this.refresh.bind(this)),
+        buttons.terminateRun(
+          () => this.state.runMetadata ? [this.state.runMetadata!.id!] : [],
+          true,
+          () => this.refresh()
+        ),
       ],
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: this.props.runId!,
@@ -300,6 +304,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     this._stopAutoRefresh();
     window.removeEventListener('focus', this._onFocus);
     window.removeEventListener('blur', this._onBlur);
+    this.clearBanner();
   }
 
   public async refresh(): Promise<void> {
@@ -312,11 +317,13 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     try {
       const runDetail = await Apis.runServiceApi.getRun(runId);
+
       const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
       let experiment: ApiExperiment | undefined;
       if (relatedExperimentId) {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
       }
+
       const runMetadata = runDetail.run!;
 
       let runFinished = this.state.runFinished;
@@ -332,10 +339,19 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       // Show workflow errors
       const workflowError = WorkflowParser.getWorkflowError(workflow);
       if (workflowError) {
-        this.showPageError(
-          `Error: found errors when executing run: ${runId}.`,
-          new Error(workflowError),
-        );
+        if (workflowError === 'terminated') {
+          this.props.updateBanner({
+            additionalInfo: `This run's workflow included the following message: ${workflowError}`,
+            message: 'This run was terminated',
+            mode: 'warning',
+            refresh: undefined,
+          });
+        } else {
+          this.showPageError(
+            `Error: found errors when executing run: ${runId}.`,
+            new Error(workflowError),
+          );
+        }
       }
 
       // Build runtime graph
@@ -374,6 +390,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         buttons.restore(idGetter, true, () => this.refresh()) :
         buttons.archive(idGetter, true, () => this.refresh());
       actions.splice(2, 1, newButton);
+      actions[1].disabled = runMetadata.status as NodePhase === NodePhase.TERMINATING || runFinished;
       this.props.updateToolbar({ actions, breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
       this.setStateSafe({
