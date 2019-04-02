@@ -49,10 +49,6 @@ def flip_component(flip_result):
     # as the input whereas the flip_result in the current graph component
     # comes from the flipA.output in the flipcoin function.
     flip_component(flipA.output)
-  # Return a dictionary of string to arguments
-  # such that the downstream components that depend
-  # on this graph component can access the output.
-  return {'flip_result': flipA.output}
 
 @dsl.pipeline(
     name='pipeline flip coin',
@@ -63,7 +59,7 @@ def flipcoin():
   flip_loop = flip_component(flipA.output)
   # flip_loop is a graph_component with the outputs field
   # filled with the returned dictionary.
-  PrintOp('cool, it is over. %s' % flip_loop.outputs['flip_result'])
+  PrintOp('cool, it is over. %s' % flipA.output).after(flip_loop)
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
