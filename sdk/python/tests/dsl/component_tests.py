@@ -433,7 +433,6 @@ class TestGraphComponent(unittest.TestCase):
     def flip_component(flip_result):
       with dsl.Condition(flip_result == 'heads'):
         flip_component(flip_result)
-      return {'flip_result': flip_result}
 
     with Pipeline('pipeline') as p:
       param = PipelineParam(name='param')
@@ -447,6 +446,3 @@ class TestGraphComponent(unittest.TestCase):
       self.assertTrue(recursive_group.recursive_ref is not None)
       self.assertEqual(1, len(recursive_group.inputs))
       self.assertEqual('param', recursive_group.inputs[0].name)
-      original_group = p.groups[0].groups[0]
-      self.assertTrue('flip_result' in original_group.outputs)
-      self.assertEqual('param', original_group.outputs['flip_result'])
