@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+import yaml
 from typing import Union, List, Any, Callable, TypeVar, Dict
 
 from ._k8s_helper import K8sHelper
@@ -128,7 +129,10 @@ def _outputs_to_json(op: BaseOp,
                      param_outputs: Dict[str, str],
                      output_artifacts: List[dict]):
     """Creates an argo `outputs` JSON obj."""
-    value_from_key = "path"
+    if isinstance(op, dsl.ResourceOp):
+        value_from_key = "jsonPath"
+    else:
+        value_from_key = "path"
     output_parameters = []
     for param in outputs.values():
         output_parameters.append({
@@ -186,8 +190,25 @@ def _op_to_template(op: BaseOp):
 
         # workflow template
         template = {
-            'name': op.name,
-            'container': K8sHelper.convert_k8s_obj_to_json(op.container)
+            'name': processed_op.name,
+            'container': K8sHelper.convert_k8s_obj_to_json(
+                processed_op.container
+            )
+        }
+    elif isinstance(op, dsl.ResourceOp):
+        # no output artifacts
+        output_artifacts = []
+
+        # workflow template
+        processed_op.resource["manifest"] = yaml.dump(
+            K8sHelper.convert_k8s_obj_to_json(processed_op.k8s_resource),
+            default_flow_style=False
+        )
+        template = {
+            'name': processed_op.name,
+            'resource': K8sHelper.convert_k8s_obj_to_json(
+                processed_op.resource
+            )
         }
 
     # inputs
@@ -197,9 +218,11 @@ def _op_to_template(op: BaseOp):
 
     # outputs
     if isinstance(op, dsl.ContainerOp):
-        param_outputs = op.file_outputs
-    template['outputs'] = _outputs_to_json(op, op.outputs, param_outputs,
-                                           output_artifacts)
+        param_outputs = processed_op.file_outputs
+    elif isinstance(op, dsl.ResourceOp):
+        param_outputs = processed_op.attribute_outputs
+    template['outputs'] = _outputs_to_json(op, processed_op.outputs,
+                                           param_outputs, output_artifacts)
 
     # node selector
     if processed_op.node_selector:
