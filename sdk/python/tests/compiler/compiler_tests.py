@@ -365,6 +365,14 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline volumeop_dag."""
     self._test_py_compile_yaml('volumeop_dag')
 
+  def test_py_volume_snapshotop_sequential(self):
+    """Test pipeline volume_snapshotop_sequential."""
+    self._test_py_compile_yaml('volume_snapshotop_sequential')
+
+  def test_py_volume_snapshotop_rokurl(self):
+    """Test pipeline volumeop_sequential."""
+    self._test_py_compile_yaml('volume_snapshotop_rokurl')
+
   def test_py_volumeop_sequential(self):
     """Test pipeline volumeop_sequential."""
     self._test_py_compile_yaml('volumeop_sequential')
