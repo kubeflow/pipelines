@@ -149,12 +149,7 @@ def graph_component(func):
     with graph_ops_group:
       # Call the function
       if not graph_ops_group.recursive_ref:
-        graph_ops_group.outputs = func(*args, **kargs)
-        if not isinstance(graph_ops_group.outputs, dict):
-          raise ValueError(func.__name__ + ' needs to return a dictionary of string to PipelineParam.')
-        for output in graph_ops_group.outputs:
-          if not (isinstance(output, str) and isinstance(graph_ops_group.outputs[output], PipelineParam)):
-            raise ValueError(func.__name__ + ' needs to return a dictionary of string to PipelineParam.')
+        func(*args, **kargs)
 
     return graph_ops_group
   return _graph_component
