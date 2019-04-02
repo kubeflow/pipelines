@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 import * as dagre from 'dagre';
 import IconWithTooltip from '../atoms/IconWithTooltip';
 import MoreIcon from '@material-ui/icons/MoreHoriz';
-import { Workflow, NodeStatus, Parameter } from '../../third_party/argo-ui/argo_template';
+import { Workflow, NodeStatus, Parameter, Template } from '../../third_party/argo-ui/argo_template';
 import { statusToIcon, NodePhase, hasFinished, statusToBgColor } from '../pages/Status';
 import { color } from '../Css';
 import { Constants } from './Constants';
@@ -42,12 +42,22 @@ export default class WorkflowParser {
     const PLACEHOLDER_NODE_DIMENSION = 28;
 
     if (!workflow || !workflow.status || !workflow.status.nodes ||
-      !workflow.metadata || !workflow.metadata.name) {
+        !workflow.metadata || !workflow.metadata.name ||
+        !workflow.spec || !workflow.spec.templates) {
       return g;
     }
 
     const workflowNodes = workflow.status.nodes;
     const workflowName = workflow.metadata.name || '';
+    const workflowTemplates = workflow.spec.templates || [];
+
+    // Create map for container & resource templates
+    const templates = new Map<string, Template>();
+    for (const template of workflowTemplates.filter(t => !!t && !!t.name)) {
+      if (template.container || template.resource) {
+        templates.set(template.name, template);
+      }
+    }
 
     // Ensure that the exit handler nodes are appended to the graph.
     // Uses the root node, so this needs to happen before we remove the root
@@ -75,7 +85,19 @@ export default class WorkflowParser {
         if (node.name === `${workflowName}.onExit`) {
           nodeLabel = `onExit - ${node.templateName}`;
         }
+        let nodeColor;
+        const template = templates.get(node.templateName);
+        if (template && template.resource) {
+          const isSnapshotIf = /apiVersion: snapshot.storage.k8s.io/;
+          const isPVCIf = /apiVersion: v1\nkind: PersistentVolumeClaim/;
+          if ((template.resource.manifest).search(isSnapshotIf) > -1) {
+            nodeColor = 'honeydew';
+          } else if ((template.resource.manifest).search(isPVCIf) > -1) {
+            nodeColor = 'mistyrose';
+          }
+        }
         g.setNode(node.id, {
+          bgColor: nodeColor,
           height: Constants.NODE_HEIGHT,
           icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message),
           label: nodeLabel,
@@ -164,6 +186,50 @@ export default class WorkflowParser {
       inputsOutputs[1] = node.outputs.parameters.map(p => [p.name, p.value || '']);
     }
     return inputsOutputs;
+  }
+
+  // Makes sure the workflow object contains the node and returns its
+  // volume mounts if any.
+  public static getNodeVolumeMounts(workflow: Workflow, nodeId: string): string[][] {
+    type volumeInfo = string[][];
+    if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId] || !workflow.spec || !workflow.spec.templates) {
+      return [];
+    }
+
+    const node = workflow.status.nodes[nodeId];
+    let tmpl;
+    for (const template of workflow.spec.templates.filter(t => !!t && !!t.name)) {
+      if (node.templateName === template.name) {
+        tmpl = template;
+      }
+    }
+    let volumeMounts: volumeInfo = [];
+    if (tmpl && tmpl.container && tmpl.container.volumeMounts) {
+      volumeMounts = tmpl.container.volumeMounts.map(v => [v.mountPath, v.name]);
+    }
+    return volumeMounts;
+  }
+
+  // Makes sure the workflow object contains the node and returns its
+  // action and manifest.
+  public static getNodeManifest(workflow: Workflow, nodeId: string): string[][] {
+    type manifestInfo = string[][];
+    if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId] || !workflow.spec || !workflow.spec.templates) {
+      return [];
+    }
+
+    const node = workflow.status.nodes[nodeId];
+    let tmpl;
+    for (const template of workflow.spec.templates.filter(t => !!t && !!t.name)) {
+      if (node.templateName === template.name) {
+        tmpl = template;
+      }
+    }
+    let manifest: manifestInfo = [];
+    if (tmpl && tmpl.resource && tmpl.resource.action && tmpl.resource.manifest) {
+      manifest = [[tmpl.resource.action, tmpl.resource.manifest]];
+    }
+    return manifest;
   }
 
   // Returns a list of output paths for the given workflow Node, by looking for
