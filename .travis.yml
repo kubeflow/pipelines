@@ -80,6 +80,9 @@ matrix:
         - python tests/compiler/main.py
         - python -m unittest discover --verbose --start-dir tests --top-level-directory=..
 
+        #Test loading all component.yaml definitions
+        - $TRAVIS_BUILD_DIR/components/test_load_all_components.sh
+
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/component_sdk/python
         - ./run_test.sh
