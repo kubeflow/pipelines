@@ -13,12 +13,28 @@ spec:
       - arguments:
           parameters:
           - name: flip-output
-            value: '{{inputs.parameters.flip-2-output}}'
+            value: '{{inputs.parameters.flip-output}}'
+        dependencies:
+        - print
+        name: flip-3
+        template: flip-3
+      - arguments:
+          parameters:
+          - name: flip-output
+            value: '{{tasks.flip-3.outputs.parameters.flip-3-output}}'
+        dependencies:
+        - flip-3
         name: graph-flip-component-1
         template: graph-flip-component-1
+      - arguments:
+          parameters:
+          - name: flip-output
+            value: '{{inputs.parameters.flip-output}}'
+        name: print
+        template: print
     inputs:
       parameters:
-      - name: flip-2-output
+      - name: flip-output
     name: condition-2
   - container:
       args:
@@ -102,53 +118,81 @@ spec:
       - name: flip-2-output
         valueFrom:
           path: /tmp/output
+  - container:
+      args:
+      - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else
+        'tails'; print(result)" | tee /tmp/output
+      command:
+      - sh
+      - -c
+      image: python:alpine3.6
+    name: flip-3
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      - name: mlpipeline-metrics
+        path: /mlpipeline-metrics.json
+        s3:
+          accessKeySecret:
+            key: accesskey
+            name: mlpipeline-minio-artifact
+          bucket: mlpipeline
+          endpoint: minio-service.kubeflow:9000
+          insecure: true
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          secretKeySecret:
+            key: secretkey
+            name: mlpipeline-minio-artifact
+      parameters:
+      - name: flip-3-output
+        valueFrom:
+          path: /tmp/output
   - dag:
       tasks:
-      - arguments:
-          parameters:
-          - name: flip-2-output
-            value: '{{tasks.flip-2.outputs.parameters.flip-2-output}}'
-        dependencies:
-        - flip-2
-        name: condition-2
-        template: condition-2
-        when: '{{tasks.flip-2.outputs.parameters.flip-2-output}} == heads'
-      - dependencies:
-        - print
-        name: flip-2
-        template: flip-2
       - arguments:
           parameters:
           - name: flip-output
             value: '{{inputs.parameters.flip-output}}'
-        name: print
-        template: print
+        name: condition-2
+        template: condition-2
+        when: '{{inputs.parameters.flip-output}} == heads'
     inputs:
       parameters:
       - name: flip-output
     name: graph-flip-component-1
-    outputs:
-      parameters:
-      - name: flip-2-output
-        valueFrom:
-          parameter: '{{tasks.flip-2.outputs.parameters.flip-2-output}}'
   - dag:
       tasks:
       - name: flip
         template: flip
+      - name: flip-2
+        template: flip-2
       - arguments:
           parameters:
           - name: flip-output
             value: '{{tasks.flip.outputs.parameters.flip-output}}'
         dependencies:
         - flip
+        - flip-2
         name: graph-flip-component-1
         template: graph-flip-component-1
       - arguments:
           parameters:
-          - name: flip-2-output
-            value: '{{tasks.graph-flip-component-1.outputs.parameters.flip-2-output}}'
+          - name: flip-output
+            value: '{{tasks.flip.outputs.parameters.flip-output}}'
         dependencies:
+        - flip
         - graph-flip-component-1
         name: print-2
         template: print-2
@@ -193,11 +237,11 @@ spec:
   - container:
       command:
       - echo
-      - cool, it is over. {{inputs.parameters.flip-2-output}}
+      - cool, it is over. {{inputs.parameters.flip-output}}
       image: alpine:3.6
     inputs:
       parameters:
-      - name: flip-2-output
+      - name: flip-output
     name: print-2
     outputs:
       artifacts:

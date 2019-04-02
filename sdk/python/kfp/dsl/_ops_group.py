@@ -36,6 +36,7 @@ class OpsGroup(object):
     self.ops = list()
     self.groups = list()
     self.name = name
+    self.dependencies = []
     # recursive_ref points to the opsgroups with the same name if exists.
     self.recursive_ref = None
 
@@ -80,6 +81,11 @@ class OpsGroup(object):
   def __exit__(self, *args):
     _pipeline.Pipeline.get_default_pipeline().pop_ops_group()
 
+  def after(self, dependency):
+    """Specify explicit dependency on another op."""
+    self.dependencies.append(dependency)
+    return self
+
 class ExitHandler(OpsGroup):
   """Represents an exit handler that is invoked upon exiting a group of ops.
 
@@ -101,7 +107,7 @@ class ExitHandler(OpsGroup):
       ValueError is the exit_op is invalid.
     """
     super(ExitHandler, self).__init__('exit_handler')
-    if exit_op.dependent_op_names:
+    if exit_op.dependent_names:
       raise ValueError('exit_op cannot depend on any other ops.')
 
     self.exit_op = exit_op
@@ -138,8 +144,3 @@ class Graph(OpsGroup):
     self.inputs = []
     self.outputs = {}
     self.dependencies = []
-
-  def after(self, dependency):
-    """Specify explicit dependency on another op."""
-    self.dependencies.append(dependency)
-    return self

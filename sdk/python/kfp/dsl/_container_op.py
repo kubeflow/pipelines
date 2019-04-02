@@ -757,7 +757,7 @@ class ContainerOp(object):
         # attributes specific to `ContainerOp`
         self._inputs = []
         self.file_outputs = file_outputs
-        self.dependent_op_names = []
+        self.dependent_names = []
         self.is_exit_handler = is_exit_handler
         self._metadata = None
 
@@ -851,7 +851,7 @@ class ContainerOp(object):
 
     def after(self, op):
         """Specify explicit dependency on another op."""
-        self.dependent_op_names.append(op.name)
+        self.dependent_names.append(op.name)
         return self
 
     def add_volume(self, volume):

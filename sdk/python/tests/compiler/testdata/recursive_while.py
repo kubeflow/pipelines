@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import kfp.dsl as dsl
-from kfp.dsl import graph_component
 
 class FlipCoinOp(dsl.ContainerOp):
   """Flip a coin and output heads or tails randomly."""
@@ -38,23 +36,24 @@ class PrintOp(dsl.ContainerOp):
         command=['echo', msg],
     )
 
-@graph_component
+@dsl._component.graph_component
 def flip_component(flip_result):
-  print_flip = PrintOp(flip_result)
-  flipA = FlipCoinOp().after(print_flip)
-  with dsl.Condition(flipA.output == 'heads'):
+  with dsl.Condition(flip_result == 'heads'):
+    print_flip = PrintOp(flip_result)
+    flipA = FlipCoinOp().after(print_flip)
     flip_component(flipA.output)
-  return {'flip_result': flipA.output}
 
 @dsl.pipeline(
     name='pipeline flip coin',
-    description='shows how to use graph_component.'
+    description='shows how to use dsl.Condition.'
 )
-def recursive():
+def flipcoin():
   flipA = FlipCoinOp()
+  flipB = FlipCoinOp()
   flip_loop = flip_component(flipA.output)
-  PrintOp('cool, it is over. %s' % flip_loop.outputs['flip_result'])
+  flip_loop.after(flipB)
+  PrintOp('cool, it is over. %s' % flipA.output).after(flip_loop)
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
-  compiler.Compiler().compile(recursive, __file__ + '.tar.gz')
+  compiler.Compiler().compile(flipcoin, __file__ + '.tar.gz')

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import kfp.dsl as dsl
+from kfp.dsl import graph_component
 
 class FlipCoinOp(dsl.ContainerOp):
   """Flip a coin and output heads or tails randomly."""
@@ -37,30 +38,24 @@ class PrintOp(dsl.ContainerOp):
         command=['echo', msg],
     )
 
-# Use the dsl.graph_component to decorate functions that are
-# recursively called.
-@dsl.graph_component
+@graph_component
 def flip_component(flip_result):
   print_flip = PrintOp(flip_result)
   flipA = FlipCoinOp().after(print_flip)
   with dsl.Condition(flipA.output == 'heads'):
-    # When the flip_component is called recursively, the flipA.output
-    # from inside the graph component will be passed to the next flip_component
-    # as the input whereas the flip_result in the current graph component
-    # comes from the flipA.output in the flipcoin function.
     flip_component(flipA.output)
 
 @dsl.pipeline(
     name='pipeline flip coin',
-    description='shows how to use dsl.Condition.'
+    description='shows how to use graph_component.'
 )
-def flipcoin():
+def recursive():
   flipA = FlipCoinOp()
+  flipB = FlipCoinOp()
   flip_loop = flip_component(flipA.output)
-  # flip_loop is a graph_component with the outputs field
-  # filled with the returned dictionary.
+  flip_loop.after(flipB)
   PrintOp('cool, it is over. %s' % flipA.output).after(flip_loop)
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
-  compiler.Compiler().compile(flipcoin, __file__ + '.tar.gz')
+  compiler.Compiler().compile(recursive, __file__ + '.tar.gz')
