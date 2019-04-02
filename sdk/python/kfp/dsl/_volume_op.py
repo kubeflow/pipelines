@@ -17,11 +17,12 @@ import re
 from typing import List, Dict
 from kubernetes.client.models import (
     V1ObjectMeta, V1ResourceRequirements, V1PersistentVolumeClaimSpec,
-    V1PersistentVolumeClaim, V1Volume, V1PersistentVolumeClaimVolumeSource
+    V1PersistentVolumeClaim
 )
 
 from ._resource_op import ResourceOp
 from ._pipeline_param import match_serialized_pipelineparam, sanitize_k8s_name
+from ._pipeline_volume import PipelineVolume
 
 
 VOLUME_MODE_RWO = ["ReadWriteOnce"]
@@ -69,11 +70,9 @@ class VolumeOp(ResourceOp):
                 raise ValueError("k8s_resource in VolumeOp must be an instance"
                                  " of V1PersistentVolumeClaim")
             super().__init__(**kwargs)
-            self.volume = V1Volume(
+            self.volume = PipelineVolume(
                 name=sanitize_k8s_name(self.name),
-                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                    claim_name=self.outputs["name"]
-                )
+                pvc=self.outputs["name"]
             )
             return
 
@@ -108,11 +107,9 @@ class VolumeOp(ResourceOp):
             k8s_resource=k8s_resource,
             **kwargs,
         )
-        self.volume = V1Volume(
+        self.volume = PipelineVolume(
             name=sanitize_k8s_name(self.name),
-            persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                claim_name=self.outputs["name"]
-            )
+            pvc=self.outputs["name"]
         )
 
     def _validate_memory_string(self, memory_string):
