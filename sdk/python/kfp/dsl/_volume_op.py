@@ -17,7 +17,7 @@ import re
 from typing import List, Dict
 from kubernetes.client.models import (
     V1ObjectMeta, V1ResourceRequirements, V1PersistentVolumeClaimSpec,
-    V1PersistentVolumeClaim
+    V1PersistentVolumeClaim, V1Volume, V1PersistentVolumeClaimVolumeSource
 )
 
 from ._resource_op import ResourceOp
@@ -69,6 +69,12 @@ class VolumeOp(ResourceOp):
                 raise ValueError("k8s_resource in VolumeOp must be an instance"
                                  " of V1PersistentVolumeClaim")
             super().__init__(**kwargs)
+            self.volume = V1Volume(
+                name=sanitize_k8s_name(self.name),
+                persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
+                    claim_name=self.outputs["name"]
+                )
+            )
             return
 
         if not size:
@@ -101,6 +107,12 @@ class VolumeOp(ResourceOp):
         super().__init__(
             k8s_resource=k8s_resource,
             **kwargs,
+        )
+        self.volume = V1Volume(
+            name=sanitize_k8s_name(self.name),
+            persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
+                claim_name=self.outputs["name"]
+            )
         )
 
     def _validate_memory_string(self, memory_string):
