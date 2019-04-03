@@ -1,5 +1,5 @@
 
-# CloudML - Deploy
+# Cloud ML Engine - Deploy
 
 ## Intended Use
 A Kubeflow Pipeline component to deploy a trained model from a Google Cloud Storage path to Google Cloud Machine Learning Engine service.
@@ -7,16 +7,16 @@ A Kubeflow Pipeline component to deploy a trained model from a Google Cloud Stor
 ## Runtime Parameters:
 Name | Description
 :--- | :----------
-model_uri | Required, the GCS URI which contains a model file. Common used TF model search path (export/exporter) will be used if exist. 
+model_uri | Required. The GCS URI which contains a model file. Commonly used TF model search paths (export/exporter) will be used if they exist. 
 project_id | Required. The ID of the parent project.
-model_id | Optional, the user provided name of the model.
-version_id | Optional, the user provided name of the version. If it is not provided, the operation uses a random name.
-runtime_version | Optinal, the Cloud ML Engine runtime version to use for this deployment. If not set, Cloud ML Engine uses the default stable version, 1.0. 
-python_version | optinal, the version of Python used in prediction. If not set, the default version is `2.7`. Python `3.5` is available when runtimeVersion is set to `1.4` and above. Python `2.7` works with all supported runtime versions.
-version | Optional, the payload of the new version.
-replace_existing_version | Boolean flag indicates whether to replace existing version in case of conflict. Defaults to false.
-set_default | boolean flag indicates whether to set the new version as default version in the model. Defaults to false.
-wait_interval | Optional interval to wait for a long running operation. Defaults to 30.
+model_id | Optional. The user provided name of the model.
+version_id | Optional. The user provided name of the version. If it is not provided, the operation uses a random name.
+runtime_version | Optional. The [Cloud ML Engine runtime version](https://cloud.google.com/ml-engine/docs/tensorflow/runtime-version-list) to use for this deployment. If not set, Cloud ML Engine uses the default stable version, 1.0. 
+python_version | Optional. The version of Python used in prediction. If not set, the default version is `2.7`. Python `3.5` is available when runtimeVersion is set to `1.4` and above. Python `2.7` works with all supported runtime versions.
+version | Optional. The payload of the new version.
+replace_existing_version | Boolean flag that indicates whether to replace existing version in case of conflict. Defaults to false.
+set_default | Boolean flag that indicates whether to set the new version as default version in the model. Defaults to false.
+wait_interval | Optional. The interval to wait for a long running operation. Defaults to 30.
 
 ## Output:
 Name | Description
@@ -26,7 +26,7 @@ version_name | The deployed version resource name.
 
 ## Sample Code
 
-Note: the sample code below works in both IPython notebook or python code directly.
+Note: the sample code below works in both IPython notebook or Python code directly.
 
 ### Set sample parameters
 
