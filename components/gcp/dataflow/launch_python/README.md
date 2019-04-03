@@ -27,9 +27,9 @@ To use the components, the following requirements must be met:
 ```
 component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
 ```
-The Kubeflow user service account is a member of `roles/dataflow.developer` role of the project.
-The Kubeflow user service account is a member of `roles/storage.objectViewer` role of the Cloud Storage Objects `python_file_path` and `requirements_file_path`.
-The Kubeflow user service account is a member of `roles/storage.objectCreator` role of the Cloud Storage Object `staging_dir`.
+* The Kubeflow user service account is a member of `roles/dataflow.developer` role of the project.
+* The Kubeflow user service account is a member of `roles/storage.objectViewer` role of the Cloud Storage Objects `python_file_path` and `requirements_file_path`.
+* The Kubeflow user service account is a member of `roles/storage.objectCreator` role of the Cloud Storage Object `staging_dir`.
 
 ## Detailed description
 Before using the component, make sure the following files are prepared in a Cloud Storage bucket.
@@ -49,7 +49,7 @@ The component does several things during the execution:
 
 Here are the steps to use the component in a pipeline:
 1. Install KFP SDK
-Install the SDK (Uncomment the code if the SDK is not installed before)
+
 
 
 ```python
@@ -59,14 +59,14 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 !pip3 install $KFP_PACKAGE --upgrade
 ```
 
-2. Load the component by DSL
+2. Load the component using KFP SDK
 
 
 ```python
 import kfp.components as comp
 
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataflow/launch_python/component.yaml'
-dataflow_python_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
+dataflow_python_op = comp.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataflow/launch_python/component.yaml')
 help(dataflow_python_op)
 ```
 

@@ -50,7 +50,7 @@ The component does:
 
 Here are the steps to use the component in a pipeline:
 1. Install KFP SDK
-Install the SDK (Uncomment the code if the SDK is not installed before)
+
 
 
 ```python
@@ -60,14 +60,14 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 !pip3 install $KFP_PACKAGE --upgrade
 ```
 
-2. Load the component by DSL
+2. Load the component using KFP SDK
 
 
 ```python
 import kfp.components as comp
 
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/ml_engine/deploy/component.yaml'
-mlengine_deploy_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
+mlengine_deploy_op = comp.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/ml_engine/deploy/component.yaml')
 help(mlengine_deploy_op)
 ```
 

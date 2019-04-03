@@ -16,12 +16,17 @@
 # Update README.md from sample.ipynb
 find ./ -type f -name "sample.ipynb" -exec jupyter nbconvert {} --to markdown --output README.md \;
 
-# Stage updated README.md.
+# Stage updated README.md and sample.ipynb.
 git add **/*.md
+git add **/*.ipynb
 
 # Generate pipeline zip file from notebook
 find ./ -type f -name "sample.ipynb" -exec jupyter nbconvert --execute {} --to notebook --output executed-sample.ipynb \;
 
 # Add component.yaml file to the pipeline zip file so it can 
 # it can work as both pipeline or component.
-for x in **/*.zip; do;dir=$(dirname "$x");zip -r -j $x $dir/component.yaml;done
+shopt -s nullglob
+for x in ./*/*/*.zip; do
+    dir=$(dirname "$x")
+    zip -r -j "$x" "$dir/component.yaml"
+done
