@@ -56,7 +56,7 @@ Here are the steps to use the component in a pipeline:
 
 
 ```python
-%%capture
+%%capture --no-stderr
 
 KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
 !pip3 install $KFP_PACKAGE --upgrade
@@ -106,7 +106,7 @@ OUTPUT_GCS_PATH = GCS_WORKING_DIR + '/train/output/'
 
 
 ```python
-%%capture
+%%capture --no-stderr
 !gsutil rm -r $GCS_WORKING_DIR
 ```
 
@@ -114,7 +114,7 @@ OUTPUT_GCS_PATH = GCS_WORKING_DIR + '/train/output/'
 
 
 ```python
-%%capture
+%%capture --no-stderr
 !wget https://github.com/GoogleCloudPlatform/cloudml-samples/archive/master.zip
 !unzip master.zip
 ```
@@ -123,7 +123,7 @@ OUTPUT_GCS_PATH = GCS_WORKING_DIR + '/train/output/'
 
 
 ```python
-%%capture
+%%capture --no-stderr
 %%bash -s "$TRAINER_GCS_PATH"
 pushd ./cloudml-samples-master/census/estimator/
 python setup.py sdist
