@@ -1,9 +1,9 @@
 
-# Submitting a Spark Job to Cloud Dataproc
-A Kubeflow Pipeline component to submit a Spark job to Google Cloud Dataproc service. 
+# Submitting a Hive Job to Cloud Dataproc
+A Kubeflow Pipeline component to submit a Hive job to Google Cloud Dataproc service. 
 
 ## Intended Use
-Use the component to run an Apache Spark job as one preprocessing step in a KFP pipeline. 
+Use the component to run an Apache Hive job as one preprocessing step in a KFP pipeline. 
 
 ## Runtime arguments
 Name | Description | Type | Optional | Default
@@ -34,7 +34,7 @@ component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
 * Grant Kubeflow user service account the `roles/dataproc.editor` role on the project.
 
 ## Detailed Description
-This component creates a Spark job from [Dataproc submit job REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs/submit).
+This component creates a Hive job from [Dataproc submit job REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs/submit).
 
 Here are the steps to use the component in a pipeline:
 1. Install KFP SDK
@@ -102,7 +102,7 @@ ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 LOCATION 'gs://public-datasets/natality/csv';
 
 SELECT * FROM natality_csv LIMIT 10;'''
-EXPERIMENT_NAME = 'Dataproc - Submit SparkSQL Job'
+EXPERIMENT_NAME = 'Dataproc - Submit Hive Job'
 ```
 
 #### Example pipeline that uses the component

@@ -49,7 +49,7 @@ Install the SDK (Uncomment the code if the SDK is not installed before)
 ```python
 %%capture
 
-KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.13/kfp.tar.gz'
+KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
 !pip3 install $KFP_PACKAGE --upgrade
 ```
 

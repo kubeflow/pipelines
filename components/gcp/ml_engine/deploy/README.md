@@ -14,7 +14,6 @@ model_id | The user-specified name of the model. If it is not provided, the oper
 version_id | The user-specified name of the version. If it is not provided, the operation uses a random name. | String | Yes | ` `
 runtime_version | The Cloud Machine Learning Engine's runtime version to use for this deployment. If it is not set, the Cloud ML Engine uses the default stable version, 1.0. | String | Yes | ` ` 
 python_version | The version of Python used in the prediction. If it is not set, the default version is `2.7`. Python `3.5` is available when the runtime_version is set to `1.4` and above. Python `2.7` works with all supported runtime versions. | String | Yes | ` `
-model | The JSON payload of the new [Model](https://cloud.google.com/ml-engine/reference/rest/v1/projects.models), if it does not exist. | Dict | Yes | ` `
 version | The JSON payload of the new [Version](https://cloud.google.com/ml-engine/reference/rest/v1/projects.models.versions). | Dict | Yes | ` `
 replace_existing_version | A Boolean flag indicates whether to replace existing version in case of conflict. | Bool | Yes | False
 set_default | A Boolean flag indicates whether to set the new version as default version in the model. | Bool | Yes | False
@@ -115,7 +114,6 @@ def pipeline(
     version_id = '',
     runtime_version = '1.10',
     python_version = '',
-    model = '',
     version = '',
     replace_existing_version = 'False',
     set_default = 'True',
@@ -126,8 +124,7 @@ def pipeline(
         model_id=model_id, 
         version_id=version_id, 
         runtime_version=runtime_version, 
-        python_version=python_version, 
-        model=model, 
+        python_version=python_version,
         version=version, 
         replace_existing_version=replace_existing_version, 
         set_default=set_default, 
