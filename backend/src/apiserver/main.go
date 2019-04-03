@@ -31,7 +31,10 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -59,6 +62,11 @@ func main() {
 	err := loadSamples(resourceManager)
 	if err != nil {
 		glog.Fatalf("Failed to load samples. Err: %v", err.Error())
+	}
+
+	err = createDefaultExperiment(resourceManager)
+	if err != nil {
+		glog.Fatalf("Failed to create default experiment. Err: %v", err.Error())
 	}
 
 	go startRpcServer(resourceManager)
@@ -128,6 +136,24 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 	if err := handler(ctx, mux, endpoint, opts); err != nil {
 		glog.Fatalf("Failed to register %v handler: %v", serviceName, err)
 	}
+}
+
+// Used to initialize the Experiment database with a default to be used for runs
+func createDefaultExperiment(resourceManager *resource.ResourceManager) error {
+	// First check that we don't already have a default experiment ID.
+	if storage.DefaultExperimentId != "" {
+		return util.NewCustomErrorf(util.CUSTOM_CODE_GENERIC, "Default experiment already exists! ID %v", storage.DefaultExperimentId)
+	}
+
+	defaultExperiment := &model.Experiment{Name: "Default", Description: "All runs created without specifying an experiment will be grouped here."}
+	experiment, err := resourceManager.CreateExperiment(defaultExperiment)
+	if err != nil {
+		return err
+	}
+
+	storage.DefaultExperimentId = experiment.UUID
+
+	return nil
 }
 
 // Preload a bunch of pipeline samples
