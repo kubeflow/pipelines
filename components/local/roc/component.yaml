@@ -11,7 +11,7 @@ inputs:
 #  - {name: Metrics,           type: Metrics}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:2c2445df83fa879387a200747cc20f72a7ee9727
+    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:a277f87ea1d4707bf860d080d06639b7caf9a1cf
     command: [python2, /ml/confusion_matrix.py]
     args: [
       --predictions,        {inputValue: Predictions dir},
