@@ -1,0 +1,27 @@
+name: Transform using TF on Dataflow
+description: Runs TensorFlow Transform on Google Cloud Dataflow
+inputs:
+  - {name: Training data file pattern,    type: GCPPath,    description: 'GCS path of train file patterns.'} #Also supports local CSV # type: {GCSPath: {data_type: CSV}}
+  - {name: Evaluation data file pattern,  type: GCPPath,    description: 'GCS path of eval file patterns.'} #Also supports local CSV # type: {GCSPath: {data_type: CSV}}
+  - {name: Schema,                        type: GCPPath,   description: 'GCS json schema file path.'} # type: {GCSPath: {data_type: JSON}}
+  - {name: GCP project,                   type: GcpProject,                     description: 'The GCP project to run the dataflow job.'}
+  - {name: Run mode,                      type: String, default: local,         description: 'Whether to run the job locally or in Cloud Dataflow. Valid values are "local" and "cloud".' }
+  - {name: Preprocessing module,          type: GCPPath, default: '', description: 'GCS path to a python file defining "preprocess" and "get_feature_columns" functions.'} # type: {GCSPath: {data_type: Python}}
+  - {name: Transformed data dir,          type: GCPPath, description: 'GCS or local directory'} #Also supports local paths # type: {GCSPath: {path_type: Directory}}
+outputs:
+  - {name: Transformed data dir,          type: GCPPath} # type: {GCSPath: {path_type: Directory}}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:2c2445df83fa879387a200747cc20f72a7ee9727
+    command: [python2, /ml/transform.py]
+    args: [
+      --train,   {inputValue: Training data file pattern},
+      --eval,    {inputValue: Evaluation data file pattern},
+      --schema,  {inputValue: Schema},
+      --project, {inputValue: GCP project},
+      --mode,    {inputValue: Run mode},
+      --preprocessing-module, {inputValue: Preprocessing module},
+      --output,  {inputValue: Transformed data dir},
+    ]
+    fileOutputs:
+      Transformed data dir: /output.txt

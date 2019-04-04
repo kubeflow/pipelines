@@ -17,6 +17,10 @@
 import kfp.dsl as dsl
 import kfp.gcp as gcp
 
+from kfp import components
+
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/local/confusion_matrix/component.yaml')
+roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/local/roc/component.yaml')
 
 # ================================================================
 # The following classes should be provided by components provider.
@@ -135,32 +139,6 @@ class PredictOp(dsl.ContainerOp):
       ],
       file_outputs={'output': '/output.txt'})
 
-
-class ConfusionMatrixOp(dsl.ContainerOp):
-
-  def __init__(self, name, predictions, output):
-    super(ConfusionMatrixOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:2c2445df83fa879387a200747cc20f72a7ee9727',
-      arguments=[
-        '--output', output,
-        '--predictions', predictions
-     ])
-
-
-class RocOp(dsl.ContainerOp):
-
-  def __init__(self, name, predictions, trueclass, output):
-    super(RocOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:2c2445df83fa879387a200747cc20f72a7ee9727',
-      arguments=[
-        '--output', output,
-        '--predictions', predictions,
-        '--trueclass', trueclass,
-        '--true_score_column', trueclass,
-     ])
-
 # =======================================================================
 
 @dsl.pipeline(
@@ -197,10 +175,10 @@ def xgb_train_pipeline(
     predict_op = PredictOp('predict', project, region, create_cluster_op.output, transform_op.outputs['eval'],
                            train_op.output, target, analyze_op.output, '%s/{{workflow.name}}/predict' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
-    confusion_matrix_op = ConfusionMatrixOp('confusion-matrix', predict_op.output,
+    confusion_matrix_task = confusion_matrix_op(predict_op.output,
                                             '%s/{{workflow.name}}/confusionmatrix' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
-    roc_op = RocOp('roc', predict_op.output, true_label, '%s/{{workflow.name}}/roc' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    roc_task = roc_op(predict_op.output, true_label, '%s/{{workflow.name}}/roc' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
   import kfp.compiler as compiler

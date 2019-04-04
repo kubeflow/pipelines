@@ -1,0 +1,21 @@
+name: Kubeflow - Serve TF model
+description: Serve TensorFlow model using Kubeflow TF-serving
+inputs:
+  - {name: Model dir,     type: GCPPath, description: 'Path of GCS directory containing exported Tensorflow model.'} # type: {GCSPath: {path_type: Directory}}
+  - {name: Cluster name,  type: String, default: '',              description: 'Kubernetes cluster name where the TS-serving service should be deployed. Uses the current cluster by default.'}
+  - {name: Namespace,     type: String, default: 'kubeflow',      description: 'Kubernetes namespace where the TS-serving service should be deployed.'}
+  - {name: Server name,   type: String, default: 'model-server',  description: 'TF-serving server name to use when deploying.'}
+  - {name: PVC name,      type: String, default: '' ,             description: 'Optional PersistentVolumeClaim to use.'}
+#outputs:
+#  - {name: Endppoint URI, type: Serving URI,                      description: 'URI of the deployed prediction service..'}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:2c2445df83fa879387a200747cc20f72a7ee9727
+    command: [/bin/deploy.sh]
+    args: [
+      --model-export-path,  {inputValue: Model dir},
+      --cluster-name,       {inputValue: Cluster name},
+      --namespace,          {inputValue: Namespace},
+      --server-name,        {inputValue: Server name},
+      --pvc-name,           {inputValue: PVC name},
+    ]
