@@ -13,6 +13,8 @@
 name: 'Seldon Core - Serve PyTorch Model'
 description: |
   Serve PyTorch Models remotely as web service using Seldon Core
+metadata:
+  labels: {platform: 'Open Source'}
 inputs:
   - {name: model_id,            description: 'Required. Model training_id from Fabric for Deep Learning'}
   - {name: deployment_name,     description: 'Required. Deployment name for the seldon service'}

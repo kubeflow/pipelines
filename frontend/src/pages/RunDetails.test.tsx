@@ -120,19 +120,6 @@ describe('RunDetails', () => {
     expect(lastCall.pageTitle).toMatchSnapshot();
   });
 
-  it('has a refresh button, clicking it calls get run API again', async () => {
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    const instance = tree.instance() as RunDetails;
-    const refreshBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Refresh');
-    expect(refreshBtn).toBeDefined();
-    expect(getRunSpy).toHaveBeenCalledTimes(1);
-    await refreshBtn!.action();
-    expect(getRunSpy).toHaveBeenCalledTimes(2);
-  });
-
   it('has a clone button, clicking it navigates to new run page', async () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
@@ -555,7 +542,7 @@ describe('RunDetails', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('keeps side pane open and on same tab when refresh is clicked', async () => {
+  it('keeps side pane open and on same tab when page is refreshed', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
     });
@@ -567,11 +554,8 @@ describe('RunDetails', () => {
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree.state('sidepanelSelectedTab')).toEqual(2);
 
-    const instance = tree.instance() as RunDetails;
-    const refreshBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Refresh');
-    await refreshBtn!.action();
-    expect(getRunSpy).toHaveBeenCalledTimes(2);
+    await (tree.instance() as RunDetails).refresh();
+    expect (getRunSpy).toHaveBeenCalledTimes(2);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree.state('sidepanelSelectedTab')).toEqual(2);
   });
@@ -593,10 +577,7 @@ describe('RunDetails', () => {
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree.state('sidepanelSelectedTab')).toEqual(2);
 
-    const instance = tree.instance() as RunDetails;
-    const refreshBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Refresh');
-    await refreshBtn!.action();
+    await (tree.instance() as RunDetails).refresh();
     expect(getRunSpy).toHaveBeenCalledTimes(2);
     expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
     expect(tree.state('sidepanelSelectedTab')).toEqual(2);
@@ -619,10 +600,7 @@ describe('RunDetails', () => {
     expect(thirdCall.pageTitle).toMatchSnapshot();
 
     testRun.run!.status = 'Failed';
-    const instance = tree.instance() as RunDetails;
-    const refreshBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Refresh');
-    await refreshBtn!.action();
+    await (tree.instance() as RunDetails).refresh();
     const fourthCall = updateToolbarSpy.mock.calls[3][0];
     expect(fourthCall.pageTitle).toMatchSnapshot();
   });
@@ -640,10 +618,7 @@ describe('RunDetails', () => {
     expect(tree.state('sidepanelSelectedTab')).toEqual(2);
 
     getPodLogsSpy.mockImplementationOnce(() => 'new test logs');
-    const instance = tree.instance() as RunDetails;
-    const refreshBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Refresh');
-    await refreshBtn!.action();
+    await (tree.instance() as RunDetails).refresh();
     expect(tree).toMatchSnapshot();
   });
 
@@ -666,10 +641,7 @@ describe('RunDetails', () => {
     });
 
     testRun.run!.status = 'Failed';
-    const instance = tree.instance() as RunDetails;
-    const refreshBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Refresh');
-    await refreshBtn!.action();
+    await (tree.instance() as RunDetails).refresh();
     expect(tree.state()).toMatchObject({
       logsBannerAdditionalInfo: '',
       logsBannerMessage: '',
@@ -690,10 +662,7 @@ describe('RunDetails', () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', phase: 'Succeeded', message: 'some node message' } } },
     });
-    const instance = tree.instance() as RunDetails;
-    const refreshBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Refresh');
-    await refreshBtn!.action();
+    await (tree.instance() as RunDetails).refresh();
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage',
       'This step is in Succeeded state with this message: some node message');
   });
@@ -713,10 +682,7 @@ describe('RunDetails', () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1' } } },
     });
-    const instance = tree.instance() as RunDetails;
-    const refreshBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Refresh');
-    await refreshBtn!.action();
+    await (tree.instance() as RunDetails).refresh();
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
   });
 

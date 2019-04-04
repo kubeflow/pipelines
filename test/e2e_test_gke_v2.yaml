@@ -155,6 +155,18 @@ spec:
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
             value: "paralleljoin"
+      - name: run-recursive-tests
+        template: run-basic-e2e-tests
+        arguments:
+          parameters:
+            - name: test-results-gcs-dir
+              value: "{{inputs.parameters.test-results-gcs-dir}}"
+            - name: sample-tests-image
+              value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+            - name: namespace
+              value: "{{inputs.parameters.namespace}}"
+            - name: test-name
+              value: "recursion"
 
   # Build and push image
   - name: build-image

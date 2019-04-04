@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from kfp.dsl._types import _instance_to_dict, check_types, GCSPath
+from kfp.dsl.types import _instance_to_dict, check_types, GCSPath
 import unittest
 
 class TestTypes(unittest.TestCase):

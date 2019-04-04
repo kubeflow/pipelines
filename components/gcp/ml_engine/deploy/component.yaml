@@ -19,8 +19,8 @@ description: |
 inputs:
   - name: model_uri
     description: >-
-      Required. The Cloud Storage URI which contains a model file. The commonly 
-      used TF model search path (export/exporter) will be used.
+      Required. The Cloud Storage URI which contains a model file. Commonly 
+      used TF model search paths (export/exporter) will be used if they exist.
     type: GCSPath
   - name: project_id
     description: 'Required.The ID of the parent project of the serving model.'
@@ -39,7 +39,7 @@ inputs:
     type: String
   - name: runtime_version
     description: >-
-      Optional. The Cloud Machine Learning Engine's runtime version to use for 
+      Optional. The [Cloud ML Engine runtime version](https://cloud.google.com/ml-engine/docs/tensorflow/runtime-version-list) to use for 
       this deployment. If it is not set, the Cloud ML Engine uses the default 
       stable version, 1.0.
     default: ''
@@ -66,12 +66,12 @@ inputs:
     type: Dict
   - name: replace_existing_version
     description: >-
-      A Boolean flag indicates whether to replace existing version in case of conflict.
+      A Boolean flag that indicates whether to replace existing version in case of conflict.
     default: 'Fasle'
     type: Bool
   - name: set_default
     description: >-
-      A Boolean flag indicates whether to set the new version as default version in the model.
+      A Boolean flag that indicates whether to set the new version as default version in the model.
     default: 'False'
     type: Bool
   - name: wait_interval
@@ -90,7 +90,7 @@ outputs:
     type: String
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:3b949b37aa2cefd3180398d59116f43ce965a2a6
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:2c2445df83fa879387a200747cc20f72a7ee9727
     args: [
       kfp_component.google.ml_engine, deploy,
       --model_uri, {inputValue: model_uri},
