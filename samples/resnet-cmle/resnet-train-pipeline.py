@@ -31,7 +31,8 @@ cloudml_deploy_op = comp.load_component_from_url(
 
 
 def resnet_preprocess_op(project_id: 'GcpProject', output: 'GcsUri', staging_dir: 'GcsUri', train_csv: 'GcsUri[text/csv]',
-                         validation_csv: 'GcsUri[text/csv]', labels, sample_size: 'Integer', step_name='preprocess'):
+                         validation_csv: 'GcsUri[text/csv]', labels, train_size: 'Integer', validation_size: 'Integer',
+                         step_name='preprocess'):
     return dataflow_python_op(
         python_file_path='gs://ml-pipeline-playground/samples/ml_engine/resnet-cmle/preprocess/preprocess.py',
         project_id=project_id,
@@ -42,7 +43,8 @@ def resnet_preprocess_op(project_id: 'GcpProject', output: 'GcsUri', staging_dir
             '--validation_csv', str(validation_csv),
             '--labels', str(labels),
             '--output_dir', str(output),
-            '--sample_size', str(sample_size)
+            '--train_size', str(train_size),
+            '--validation_size', str(validation_size)
         ])
     )
 
@@ -112,14 +114,13 @@ def resnet_train(
         train_steps=10000,
         num_train_images=218593,
         num_eval_images=54648,
-        num_label_classes=10,
-        sample_size=0):
+        num_label_classes=10):
     output_dir = os.path.join(str(output), '{{workflow.name}}')
     preprocess_staging = os.path.join(output_dir, 'staging')
     preprocess_output = os.path.join(output_dir, 'preprocessed_output')
     train_output = os.path.join(output_dir, 'model')
     preprocess = resnet_preprocess_op(project_id, preprocess_output, preprocess_staging, train_csv,
-                                      validation_csv, labels, sample_size).apply(gcp.use_gcp_secret())
+                                      validation_csv, labels, train_batch_size, eval_batch_size).apply(gcp.use_gcp_secret())
     train = resnet_train_op(project_id, preprocess_output, train_output, region, depth, train_batch_size,
                             eval_batch_size, steps_per_eval, train_steps, num_train_images, num_eval_images,
                             num_label_classes, tf_version).apply(gcp.use_gcp_secret())
@@ -131,4 +132,4 @@ def resnet_train(
 
 if __name__ == '__main__':
     import kfp.compiler as compiler
-    compiler.Compiler().compile(resnet_train, __file__ + '.tar.gz')
+    compiler.Compiler().compile(resnet_train, __file__ + '.zip')

@@ -190,8 +190,15 @@ if __name__ == '__main__':
     parser.add_argument(
         '--staging_location', help='Staging location to keep staging files of a dataflow job.')
     parser.add_argument(
-        '--sample_size',
-        help='The size of the samples selected from training and validation set. 0 means select'
+        '--train_size',
+        help='The size of the samples selected from training set. 0 means select'
+        ' all data. Defaults to 0. This option is for testing purpose.',
+        type=int,
+        default=0
+    )
+    parser.add_argument(
+        '--validation_size',
+        help='The size of the samples selected from validation set. 0 means select'
         ' all data. Defaults to 0. This option is for testing purpose.',
         type=int,
         default=0
@@ -202,7 +209,8 @@ if __name__ == '__main__':
 
     JOBNAME = arguments.get('job_name', (
         'preprocess-images-' + datetime.datetime.now().strftime('%y%m%d-%H%M%S')))
-    SAMPLE_SIZE = arguments['sample_size']
+    TRAIN_SIZE = arguments['train_size']
+    VALIDATION_SIZE = arguments['validation_size']
 
     PROJECT = arguments['project_id']
     OUTPUT_DIR = arguments['output_dir']
@@ -255,21 +263,23 @@ if __name__ == '__main__':
 
     with beam.Pipeline(RUNNER, options=opts) as p:
         # BEAM tasks
-        for step in ['train', 'validation']:
+        for step in [('train', TRAIN_SIZE), ('validation', VALIDATION_SIZE)]:
+            name = step[0]
+            size = step[1]
             csv_col = (
                 p
-                | '{}_read_csv'.format(step) >> beam.io.ReadFromText(
-                    arguments['{}_csv'.format(step)]))
-            if SAMPLE_SIZE > 0:
+                | '{}_read_csv'.format(name) >> beam.io.ReadFromText(
+                    arguments['{}_csv'.format(name)]))
+            if size > 0:
                 csv_col = (
                     csv_col
-                    | '{}_select_samples'.format(step) >>
+                    | '{}_select_samples'.format(name) >>
                     beam.transforms.combiners.Sample.FixedSizeGlobally(
-                      SAMPLE_SIZE)
-                    | '{}_flatten_samples'.format(step) >> beam.FlatMap(lambda x: x))
+                      size)
+                    | '{}_flatten_samples'.format(name) >> beam.FlatMap(lambda x: x))
             _ = (
                 csv_col
-                | '{}_convert'.format(step) >>
+                | '{}_convert'.format(name) >>
                 beam.FlatMap(lambda line: convert_to_example(line, LABELS))
-                | '{}_write_tfr'.format(step) >> beam.io.tfrecordio.WriteToTFRecord(
-                    os.path.join(OUTPUT_DIR, step)))
+                | '{}_write_tfr'.format(name) >> beam.io.tfrecordio.WriteToTFRecord(
+                    os.path.join(OUTPUT_DIR, name)))
