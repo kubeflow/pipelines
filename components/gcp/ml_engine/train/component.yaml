@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Train a model with Cloud ML Engine
+name: Submitting a Cloud ML training job as a pipeline step
 description: |
-  Submits a Cloud Machine Learning training job.
+  A Kubeflow Pipeline component to submit a Cloud Machine Learning (Cloud ML) 
+  Engine training job as a step in a pipeline.
 inputs:
   - name: project_id
     description: 'Required. The ID of the parent project of the job.'
@@ -25,24 +26,24 @@ inputs:
     type: String
   - name: package_uris
     description: >-
-      The Google Cloud Storage location of the packages with the training program
-      and any additional dependencies. The maximum number of package URIs is 100.
+      The Cloud Storage location of the packages (that contain the training program 
+      and any additional dependencies). The maximum number of package URIs is 100.
     default: ''
     type: List
   - name: region
-    description: 'The Google Compute Engine region to run the training job in.'
+    description: 'The Compute Engine region in which the training job is run.'
     default: ''
     type: GCPRegion
   - name: args
-    description: 'Command line arguments to pass to the program.'
+    description: 'The command line arguments to pass to the program.'
     default: ''
     type: List
   - name: job_dir
     description: >-
-      A Google Cloud Storage path in which to store training outputs and other
-      data needed for training. This path is passed to your TensorFlow program
-      as the `--job-dir` command-line argument. The benefit of specifying this
-      field is that Cloud ML validates the path for use in training.
+      A Cloud Storage path in which to store the training outputs and other data 
+      needed for training. This path is passed to your TensorFlow program as the 
+      `job-dir` command-line argument. The benefit of specifying this field is 
+      that Cloud ML validates the path for use in training.
     default: ''
     type: GCSPath
   - name: python_version
@@ -71,7 +72,9 @@ inputs:
     default: ''
     type: GCRPath
   - name: training_input
-    description: 'Input parameters to create a training job.'
+    description: >-
+      The input parameters to create a training job. It is the JSON payload 
+      of a [TrainingInput](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#TrainingInput)
     default: ''
     type: Dict
   - name: job_id_prefix
@@ -79,7 +82,9 @@ inputs:
     default: ''
     type: String
   - name: wait_interval
-    description: 'Optional wait interval between calls to get job status. Defaults to 30.'
+    description: >-
+      Optional. A time-interval to wait for between calls to get the job status. 
+      Defaults to 30.'
     default: '30'
     type: Integer
 outputs:
@@ -87,7 +92,9 @@ outputs:
     description: 'The ID of the created job.'
     type: String
   - name: job_dir
-    description: 'The output directory of the job'
+    description: >-
+      The output path in Cloud Storage of the trainning job, which contains 
+      the trained model files.
     type: GCSPath
 implementation:
   container:
