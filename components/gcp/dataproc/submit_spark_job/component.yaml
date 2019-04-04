@@ -71,7 +71,7 @@ outputs:
     type: String
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:2c2445df83fa879387a200747cc20f72a7ee9727
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:a277f87ea1d4707bf860d080d06639b7caf9a1cf
     args: [
       kfp_component.google.dataproc, submit_spark_job,
       --project_id, {inputValue: project_id},
