@@ -12,64 +12,75 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Deploy a model to Cloud ML Engine
+name: Deploying a trained model to Cloud Machine Learning Engine
 description: |
-  Creates a Cloud Machine Learning version and optionally a model if it does not exist.
+  A Kubeflow Pipeline component to deploy a trained model from a Cloud Storage
+  path to a Cloud Machine Learning Engine service.
 inputs:
   - name: model_uri
     description: >-
-      Required. The GCS URI which contains a model file.
-      Commonly used TF model search paths (export/exporter) will be used if they exist.
+      Required. The Cloud Storage URI which contains a model file. Commonly 
+      used TF model search paths (export/exporter) will be used if they exist.
     type: GCSPath
   - name: project_id
-    description: 'Required. The ID of the parent project.'
+    description: 'Required.The ID of the parent project of the serving model.'
     type: GCPProjectID
   - name: model_id
-    description: 'Optional. The user provided name of the model.'
+    description: >-
+      Optional. The user-specified name of the model. If it is not provided, 
+      the operation uses a random name.
     default: ''
     type: String
   - name: version_id
     description: >-
-      Optional. The user provided name of the version. If it is not provided,
+      Optional. The user-specified name of the version. If it is not provided, 
       the operation uses a random name.
     default: ''
     type: String
   - name: runtime_version
     description: >-
-      Optional. The [Cloud ML Engine runtime version](https://cloud.google.com/ml-engine/docs/tensorflow/runtime-version-list) to use for this deployment.
-      If not set, Cloud ML Engine uses the default stable version, 1.0.
+      Optional. The [Cloud ML Engine runtime version](https://cloud.google.com/ml-engine/docs/tensorflow/runtime-version-list) to use for 
+      this deployment. If it is not set, the Cloud ML Engine uses the default 
+      stable version, 1.0.
     default: ''
     type: String
   - name: python_version
     description: >-
-      Optional. The version of Python used in prediction. If not set, the default
-      version is `2.7`. Python `3.5` is available when runtimeVersion is set to
-      `1.4` and above. Python `2.7` works with all supported runtime versions.
+      Optional. The version of Python used in the prediction. If it is not set, 
+      the default version is `2.7`. Python `3.5` is available when the 
+      runtime_version is set to `1.4` and above. Python `2.7` works with all 
+      supported runtime versions.
     default: ''
     type: String
+  - name: model
+    description: >-
+      Optional. The JSON payload of the new 
+      [Model](https://cloud.google.com/ml-engine/reference/rest/v1/projects.models), if it does not exist.
+    default: ''
+    type: Dict
   - name: version
-    description: 'Optional. The payload of the new version.'
+    description: >-
+      Optional. The JSON payload of the new 
+      [Version](https://cloud.google.com/ml-engine/reference/rest/v1/projects.models.versions).
     default: ''
     type: Dict
   - name: replace_existing_version
     description: >-
-      Boolean flag that indicates whether to replace the existing version in case of
-      conflict.
-    default: 'False'
+      A Boolean flag that indicates whether to replace existing version in case of conflict.
+    default: 'Fasle'
     type: Bool
   - name: set_default
     description: >-
-      Boolean flag that indicates whether to set the new version as default
-      version in the model.
+      A Boolean flag that indicates whether to set the new version as default version in the model.
     default: 'False'
     type: Bool
   - name: wait_interval
-    description: 'Optional. The interval to wait for a long running operation.'
+    description: 'A time-interval to wait for in case the operation has a long run time.'
     default: '30'
     type: Integer
 outputs:
   - name: model_uri
-    description: 'The URI of the model.'
+    description: 'The Cloud Storage URI of the trained model.'
     type: GCSPath
   - name: model_name
     description: 'The name of the deployed model.'
