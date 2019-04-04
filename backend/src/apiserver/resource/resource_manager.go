@@ -214,6 +214,26 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
 
+	hasExperiment := false
+	for _, ref := range apiRun.ResourceReferences {
+		if ref.Key.Type == api.ResourceType_EXPERIMENT {
+			hasExperiment = true
+			break
+		}
+	}
+	if !hasExperiment {
+		defaultExperimentRef := &api.ResourceReference{
+			Key: api.ResourceKey{
+				Id: storage.DefaultExperimentId,
+				Type: api.ResourceType_EXPERIMENT,
+			},
+			Relationship: api.Relationship_OWNER,
+		}
+		ref = append(ref, defaultExperimentRef)
+	}
+
+	fmt.Printf("New run with references: %v", apiRun.ResourceReferences)
+
 	// Store run metadata into database
 	runDetail, err := ToModelRunDetail(apiRun, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
 	if err != nil {
@@ -521,6 +541,14 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 			"arifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
 	return r.objectStore.GetFile(artifactPath)
+}
+
+func (r *ResourceManager) IsDefaultExperimentPresent() (bool, error) {
+	return r.dBStatusStore.IsDefaultExperimentPresent()
+}
+
+func (r *ResourceManager) MarkDefaultExperimentPresent() error {
+	return r.dBStatusStore.MarkDefaultExperimentPresent()
 }
 
 func (r *ResourceManager) HaveSamplesLoaded() (bool, error) {
