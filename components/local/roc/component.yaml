@@ -1,0 +1,25 @@
+name: ROC curve
+description: Calculates Receiver Operating Characteristic curve. See https://en.wikipedia.org/wiki/Receiver_operating_characteristic
+inputs:
+  - {name: Predictions dir,   type: GCPPath,  description: 'GCS path of prediction file pattern.'}  #TODO: Replace dir data + schema files # type: {GCSPath: {path_type: Directory}}
+  - {name: True class,        type: String, default: 'true',            description: 'The true class label for the sample. Default is "true".'}
+  - {name: True score column, type: String, default: 'true',            description: 'The name of the column for positive probability.'}
+  - {name: Target lambda,     type: String, default: '',                description: 'Text of Python lambda function which returns boolean value indicating whether the classification result is correct.\nFor example, "lambda x: x[''a''] and x[''b'']". If missing, input must have a "target" column.'}
+  - {name: Output dir,        type: GCPPath,  description: 'GCS path of the output directory.'}     #TODO: Replace dir with single file # type: {GCSPath: {path_type: Directory}}
+#outputs:
+#  - {name: UI metadata,       type: UI metadata}
+#  - {name: Metrics,           type: Metrics}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:2c2445df83fa879387a200747cc20f72a7ee9727
+    command: [python2, /ml/confusion_matrix.py]
+    args: [
+      --predictions,        {inputValue: Predictions dir},
+      --trueclass,          {inputValue: True class},
+      --true_score_column,  {inputValue: True score column},
+      --target_lambda,      {inputValue: Target lambda},
+      --output,             {inputValue: Output dir},
+    ]
+#    fileOutputs:
+#      UI metadata:  /mlpipeline-ui-metadata.json
+#      Metrics:      /mlpipeline-metrics.json
