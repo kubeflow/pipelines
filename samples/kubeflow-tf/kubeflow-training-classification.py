@@ -16,16 +16,12 @@
 import kfp.dsl as dsl
 import kfp.gcp as gcp
 
-from kfp.components import ComponentStore
+from kfp import components
 
-cs = ComponentStore()
-cs.url_search_prefixes.append('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/')
-cs.url_search_prefixes.append('https://raw.githubusercontent.com/Ark-kun/pipelines/Added-component-definitions-to-our-components/components/')
-
-dataflow_tf_transform_op = cs.load_component('dataflow/tft')
-kubeflow_tf_training_op  = cs.load_component('kubeflow/dnntrainer')
-dataflow_tf_predict_op   = cs.load_component('dataflow/predict')
-confusion_matrix_op      = cs.load_component('local/confusion_matrix')
+dataflow_tf_transform_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/dataflow/tft/component.yaml')
+kubeflow_tf_training_op  = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/kubeflow/dnntrainer/component.yaml')
+dataflow_tf_predict_op   = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/dataflow/predict/component.yaml')
+confusion_matrix_op      = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/local/confusion_matrix/component.yaml')
 
 @dsl.pipeline(
   name='Pipeline TFJob',

@@ -17,15 +17,10 @@
 import kfp.dsl as dsl
 import kfp.gcp as gcp
 
-from kfp.components import ComponentStore
+from kfp import components
 
-cs = ComponentStore()
-cs.url_search_prefixes.append('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/')
-cs.url_search_prefixes.append('https://raw.githubusercontent.com/Ark-kun/pipelines/Added-component-definitions-to-our-components/components/')
-
-confusion_matrix_op = cs.load_component('local/confusion_matrix')
-roc_op = cs.load_component('local/roc')
-
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/local/confusion_matrix/component.yaml')
+roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/local/roc/component.yaml')
 
 # ================================================================
 # The following classes should be provided by components provider.
