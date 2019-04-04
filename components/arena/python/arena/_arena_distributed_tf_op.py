@@ -20,18 +20,14 @@ import logging
 
 # def DistributeTFOp(name, image, gpus: int, ):
 
-class DistributeTFOp(dsl.ContainerOp):
-  """Submit Distributed TFJob with Parameter Server mode."""
-
-  # arena Image is "cheyang/arena_launcher"
-  def __init__(self, name, image, workers, ps, gpus, worker_cpu, worker_memory, ps_cpu, ps_memory,
+def distributed_tf_op(name, image, workers, ps, gpus, worker_cpu, worker_memory, ps_cpu, ps_memory,
           rdma,
           tensorboard, tensorboard_image, command, chief=0, evaluator=0,
           data='None', output_data='None',
           arena_image='cheyang/arena_launcher'):
-
-    super(MPIOp, self).__init__(
-          name=name,
+          """Submit Distributed TFJob with Parameter Server mode."""
+          return dsl.ContainerOp(
+            name=name,
           image=arena_image,
           command=['python','arena_launcher.py'],
           arguments=[ "--name", '%s-{{workflow.name}}' % name,
@@ -46,6 +42,5 @@ class DistributeTFOp(dsl.ContainerOp):
                       "tfjob",
                       "--workers", workers,
                       "--", command],
-          file_outputs={'train': '/output.txt'})
-
-
+          file_outputs={'train': '/output.txt'}
+          )

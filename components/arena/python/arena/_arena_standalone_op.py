@@ -19,19 +19,16 @@ import datetime
 import logging
 
 
-# def arena_submit_standalone_job_op(name, image, gpus: int, ):
-
-class StandaloneOp(dsl.ContainerOp):
-  """Submit a standalone training Job """
-
-  # arena Image is "cheyang/arena_launcher"
-  def __init__(self, name, image, command, gpus='0', cpu='0', memory='0',
+def standalone_job_op(name, image, command, gpus='0', cpu='0', memory='0',
           tensorboard='False', tensorboard_image='', 
           data='None', output_data='None',
           arena_image='cheyang/arena_launcher',
           metric_name='Train-accuracy',
           metric_unit='PERCENTAGE'):
-    super(StandaloneOp, self).__init__(
+
+    """Submit a standalone training Job 
+    """
+    return dsl.ContainerOp(
           name=name,
           image=arena_image,
           command=['python','arena_launcher.py'],
@@ -47,6 +44,5 @@ class StandaloneOp(dsl.ContainerOp):
                       "--metric-unit", metric_unit,
                       "job",
                       "--", command],
-          file_outputs={'train': '/output.txt'})
-
-
+          file_outputs={'train': '/output.txt'}
+      )

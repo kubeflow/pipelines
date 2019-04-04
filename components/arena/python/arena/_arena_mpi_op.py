@@ -18,21 +18,14 @@ import kfp.dsl as dsl
 import datetime
 import logging
 
-
-# def arena_submit_standalone_job_op(name, image, gpus: int, ):
-
-class MPIOp(dsl.ContainerOp):
-  """Submit MPI Job, it can run Allreduce-style Distributed Training."""
-
-  # arena Image is "cheyang/arena_launcher"
-  def __init__(self, name, image, workers, gpus, cpu, memory, rdma,
+def mpi_job_op(name, image, workers, gpus, cpu, memory, rdma,
           tensorboard, tensorboard_image, command,
           data='None', output_data='None',
           arenaImage='cheyang/arena_launcher',
           metric_name='Train-accuracy',
           metric_unit='PERCENTAGE'):
-
-    super(MPIOp, self).__init__(
+    """Submit MPI Job, it can run Allreduce-style Distributed Training."""
+    return dsl.ContainerOp(
           name=name,
           image=arenaImage,
           command=['python','arena_launcher.py'],
@@ -50,6 +43,5 @@ class MPIOp(dsl.ContainerOp):
                       "mpijob",
                       "--workers", workers,
                       "--", command],
-          file_outputs={'train': '/output.txt'})
-
-
+          file_outputs={'train': '/output.txt'}
+    )
