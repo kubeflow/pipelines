@@ -17,6 +17,10 @@
 import kfp.dsl as dsl
 import kfp.gcp as gcp
 
+from kfp import components
+
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/local/confusion_matrix/component.yaml')
+roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/local/roc/component.yaml')
 
 # ================================================================
 # The following classes should be provided by components provider.
@@ -26,7 +30,7 @@ class CreateClusterOp(dsl.ContainerOp):
   def __init__(self, name, project, region, staging):
     super(CreateClusterOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:7775692adf28d6f79098e76e839986c9ee55dd61',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:2c2445df83fa879387a200747cc20f72a7ee9727',
       arguments=[
           '--project', project,
           '--region', region,
@@ -41,7 +45,7 @@ class DeleteClusterOp(dsl.ContainerOp):
   def __init__(self, name, project, region):
     super(DeleteClusterOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:7775692adf28d6f79098e76e839986c9ee55dd61',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:2c2445df83fa879387a200747cc20f72a7ee9727',
       arguments=[
           '--project', project,
           '--region', region,
@@ -55,7 +59,7 @@ class AnalyzeOp(dsl.ContainerOp):
   def __init__(self, name, project, region, cluster_name, schema, train_data, output):
     super(AnalyzeOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:7775692adf28d6f79098e76e839986c9ee55dd61',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:2c2445df83fa879387a200747cc20f72a7ee9727',
       arguments=[
           '--project', project,
           '--region', region,
@@ -73,7 +77,7 @@ class TransformOp(dsl.ContainerOp):
                target, analysis, output):
     super(TransformOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:7775692adf28d6f79098e76e839986c9ee55dd61',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:2c2445df83fa879387a200747cc20f72a7ee9727',
       arguments=[
           '--project', project,
           '--region', region,
@@ -98,7 +102,7 @@ class TrainerOp(dsl.ContainerOp):
 
     super(TrainerOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:7775692adf28d6f79098e76e839986c9ee55dd61',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:2c2445df83fa879387a200747cc20f72a7ee9727',
       arguments=[
           '--project', project,
           '--region', region,
@@ -121,7 +125,7 @@ class PredictOp(dsl.ContainerOp):
   def __init__(self, name, project, region, cluster_name, data, model, target, analysis, output):
     super(PredictOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:7775692adf28d6f79098e76e839986c9ee55dd61',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:2c2445df83fa879387a200747cc20f72a7ee9727',
       arguments=[
           '--project', project,
           '--region', region,
@@ -134,32 +138,6 @@ class PredictOp(dsl.ContainerOp):
           '--output', output,
       ],
       file_outputs={'output': '/output.txt'})
-
-
-class ConfusionMatrixOp(dsl.ContainerOp):
-
-  def __init__(self, name, predictions, output):
-    super(ConfusionMatrixOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:7775692adf28d6f79098e76e839986c9ee55dd61',
-      arguments=[
-        '--output', output,
-        '--predictions', predictions
-     ])
-
-
-class RocOp(dsl.ContainerOp):
-
-  def __init__(self, name, predictions, trueclass, output):
-    super(RocOp, self).__init__(
-      name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-local-roc:7775692adf28d6f79098e76e839986c9ee55dd61',
-      arguments=[
-        '--output', output,
-        '--predictions', predictions,
-        '--trueclass', trueclass,
-        '--true_score_column', trueclass,
-     ])
 
 # =======================================================================
 
@@ -197,11 +175,11 @@ def xgb_train_pipeline(
     predict_op = PredictOp('predict', project, region, create_cluster_op.output, transform_op.outputs['eval'],
                            train_op.output, target, analyze_op.output, '%s/{{workflow.name}}/predict' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
-    confusion_matrix_op = ConfusionMatrixOp('confusion-matrix', predict_op.output,
+    confusion_matrix_task = confusion_matrix_op(predict_op.output,
                                             '%s/{{workflow.name}}/confusionmatrix' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
-    roc_op = RocOp('roc', predict_op.output, true_label, '%s/{{workflow.name}}/roc' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    roc_task = roc_op(predict_op.output, true_label, '%s/{{workflow.name}}/roc' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
-  compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.tar.gz')
+  compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.zip')

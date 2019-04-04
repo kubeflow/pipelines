@@ -48,4 +48,4 @@ def download_and_join(
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
-  compiler.Compiler().compile(download_and_join, __file__ + '.tar.gz')
+  compiler.Compiler().compile(download_and_join, __file__ + '.zip')

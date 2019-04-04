@@ -26,7 +26,8 @@ KFP_OUTPUT_PATH = '/tmp/kfp/output/'
 
 def query(query, project_id, dataset_id=None, table_id=None, 
     output_gcs_path=None, dataset_location='US', job_config=None):
-    """Submit a query to Bigquery service and dump outputs to a GCS blob.
+    """Submit a query to Bigquery service and dump outputs to Bigquery table or 
+    a GCS blob.
     
     Args:
         query (str): The query used by Bigquery service to fetch the results.
@@ -45,8 +46,8 @@ def query(query, project_id, dataset_id=None, table_id=None,
     client = bigquery.Client(project=project_id)
     if not job_config:
         job_config = bigquery.QueryJobConfig()
-    job_config.create_disposition = bigquery.job.CreateDisposition.CREATE_IF_NEEDED
-    job_config.write_disposition = bigquery.job.WriteDisposition.WRITE_TRUNCATE
+        job_config.create_disposition = bigquery.job.CreateDisposition.CREATE_IF_NEEDED
+        job_config.write_disposition = bigquery.job.WriteDisposition.WRITE_TRUNCATE
     job_id = None
     def cancel():
         if job_id:
@@ -65,7 +66,7 @@ def query(query, project_id, dataset_id=None, table_id=None,
                 job_config.destination = table_ref
             query_job = client.query(query, job_config, job_id=job_id)
         _display_job_link(project_id, job_id)
-        query_result = query_job.result()
+        query_job.result() # Wait for query to finish
         if output_gcs_path:
             job_id = 'extract_' + ctx.context_id()
             extract_job = _get_job(client, job_id)
@@ -73,12 +74,7 @@ def query(query, project_id, dataset_id=None, table_id=None,
             if not extract_job:
                 extract_job = client.extract_table(table_ref, output_gcs_path)
             extract_job.result()  # Wait for export to finish
-        else:
-            result_path = KFP_OUTPUT_PATH + 'bigquery/query_output.csv'
-            logging.info('Dumping results to {}.'.format(result_path))
-            # Download results to local disk if no gcs output path.
-            gcp_common.dump_file(result_path, query_result.to_dataframe().to_csv())
-        _dump_outputs(query_job, output_gcs_path)
+        _dump_outputs(query_job, output_gcs_path, table_ref)
         return query_job.to_api_repr()
 
 def _get_job(client, job_id):
@@ -118,10 +114,15 @@ def _display_job_link(project_id, job_id):
         text='Query Details'
     ))
 
-def _dump_outputs(job, output_path):
+def _dump_outputs(job, output_path, table_ref):
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-job.json', 
         json.dumps(job.to_api_repr()))
     if not output_path:
         output_path = ''
     gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-output-path.txt', 
         output_path)
+    (dataset_id, table_id) = (table_ref.dataset_id, table_ref.table_id) if table_ref else ('', '')
+    gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-dataset-id.txt', 
+        dataset_id)
+    gcp_common.dump_file(KFP_OUTPUT_PATH + 'bigquery/query-table-id.txt', 
+        table_id)

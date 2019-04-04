@@ -17,7 +17,7 @@ def tf_slim_optimize(
 
     slim = dsl.ContainerOp(
      name='Create_model',
-     image='gcr.io/constant-cubist-173123/inference_server/ml_slim:4',
+     image='gcr.io/constant-cubist-173123/inference_server/ml_slim:6',
      command=['python', 'slim_model.py'],
      arguments=[
          '--model_name', model_name,

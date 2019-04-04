@@ -1,0 +1,20 @@
+name: Confusion matrix
+description: Calculates confusion matrix
+inputs:
+  - {name: Predictions,     type: GCPPath,        description: 'GCS path of prediction file pattern.'} # type: {GCSPath: {data_type: CSV}}
+  - {name: Output dir,      type: GCPPath,  description: 'GCS path of the output directory.'} # type: {GCSPath: {path_type: Directory}}
+#outputs:
+#  - {name: UI metadata,     type: UI metadata}
+#  - {name: Metrics,         type: Metrics}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:2c2445df83fa879387a200747cc20f72a7ee9727
+    command: [python2, /ml/confusion_matrix.py]
+    args: [
+      --predictions, {inputValue: Predictions},
+      --output,      {inputValue: Output dir},
+    ]
+#Argo deletes the source files as soon as it uploads them to the artifact store. Trying to output the same files as parameter outputs fails since the source files are already deleted.
+#    fileOutputs:
+#      UI metadata:  /mlpipeline-ui-metadata.json
+#      Metrics:      /mlpipeline-metrics.json

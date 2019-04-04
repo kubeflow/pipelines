@@ -35,15 +35,12 @@ git clone https://github.com/kubeflow/kubeflow.git ${KUBEFLOW_MASTER}
 KUBEFLOW_SRC=${DIR}/kubeflow_latest_release
 mkdir ${KUBEFLOW_SRC}
 cd ${KUBEFLOW_SRC}
-export KUBEFLOW_TAG=v0.3.1
+export KUBEFLOW_TAG=v0.5.0-rc.1
 curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash
 
 ## Override the pipeline config with code from master
 cp -r ${KUBEFLOW_MASTER}/kubeflow/pipeline ${KUBEFLOW_SRC}/kubeflow/pipeline
 cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
-
-# TODO temporarily set KUBEFLOW_SRC as KUBEFLOW_MASTER. This should be deleted when latest release have the pipeline entry
-KUBEFLOW_SRC=${KUBEFLOW_MASTER}
 
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}

@@ -121,7 +121,6 @@ def main():
 
     print("Loading input numpy")
     imgs = np.load(input_numpy_file, mmap_mode='r', allow_pickle=False)
-    print("div", args.scale_div,"sub",args.scale_sub)
     imgs = (imgs / args.scale_div) - args.scale_div
     lbs = np.load(label_numpy_file, mmap_mode='r', allow_pickle=False)
 

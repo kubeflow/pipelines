@@ -74,7 +74,7 @@ func TestDecompressPipelineTarball_NonYamlTarball(t *testing.T) {
 	tarballByte, _ := ioutil.ReadFile("test/non_yaml_tarball/non_yaml_tarball.tar.gz")
 	_, err := DecompressPipelineTarball(tarballByte)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Expecting a YAML file inside the tarball")
+	assert.Contains(t, err.Error(), "Expecting a pipeline.yaml file inside the tarball")
 }
 
 func TestDecompressPipelineTarball_EmptyTarball(t *testing.T) {
@@ -111,7 +111,7 @@ func TestDecompressPipelineZip_NonYamlZip(t *testing.T) {
 	zipByte, _ := ioutil.ReadFile("test/non_yaml_zip/non_yaml_file.zip")
 	_, err := DecompressPipelineZip(zipByte)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Expecting a YAML file inside the zip")
+	assert.Contains(t, err.Error(), "Expecting a pipeline.yaml file inside the zip")
 }
 
 func TestDecompressPipelineZip_EmptyZip(t *testing.T) {
@@ -148,6 +148,15 @@ func TestReadPipelineFile_Zip_AnyExtension(t *testing.T) {
 	assert.Equal(t, expectedPipelineFile, pipelineFile)
 }
 
+func TestReadPipelineFile_MultifileZip(t *testing.T) {
+	file, _ := os.Open("test/pipeline_plus_component/pipeline_plus_component.zip")
+	pipelineFile, err := ReadPipelineFile("pipeline_plus_component.ai-hub-package", file, MaxFileLength)
+	assert.Nil(t, err)
+
+	expectedPipelineFile, _ := ioutil.ReadFile("test/pipeline_plus_component/pipeline.yaml")
+	assert.Equal(t, expectedPipelineFile, pipelineFile)
+}
+
 func TestReadPipelineFile_Tarball(t *testing.T) {
 	file, _ := os.Open("test/arguments_tarball/arguments.tar.gz")
 	pipelineFile, err := ReadPipelineFile("arguments.tar.gz", file, MaxFileLength)
@@ -163,6 +172,15 @@ func TestReadPipelineFile_Tarball_AnyExtension(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedPipelineFile, _ := ioutil.ReadFile("test/arguments-parameters.yaml")
+	assert.Equal(t, expectedPipelineFile, pipelineFile)
+}
+
+func TestReadPipelineFile_MultifileTarball(t *testing.T) {
+	file, _ := os.Open("test/pipeline_plus_component/pipeline_plus_component.tar.gz")
+	pipelineFile, err := ReadPipelineFile("pipeline_plus_component.ai-hub-package", file, MaxFileLength)
+	assert.Nil(t, err)
+
+	expectedPipelineFile, _ := ioutil.ReadFile("test/pipeline_plus_component/pipeline.yaml")
 	assert.Equal(t, expectedPipelineFile, pipelineFile)
 }
 

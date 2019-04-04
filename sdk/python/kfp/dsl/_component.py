@@ -14,7 +14,8 @@
 
 from ._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 from ._pipeline_param import PipelineParam
-from ._types import check_types, InconsistentTypeException
+from .types import check_types, InconsistentTypeException
+from ._ops_group import Graph
 import kfp
 
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
@@ -54,7 +55,7 @@ def python_component(name, description=None, base_image=None, target_component_f
   return _python_component
 
 def component(func):
-  """Decorator for component functions that use ContainerOp.
+  """Decorator for component functions that returns a ContainerOp.
   This is useful to enable type checking in the DSL compiler
 
   Usage:
@@ -118,3 +119,37 @@ def component(func):
     return container_op
 
   return _component
+
+#TODO: combine the component and graph_component decorators into one
+def graph_component(func):
+  """Decorator for graph component functions.
+  This decorator returns an ops_group.
+
+  Usage:
+  ```python
+  import kfp.dsl as dsl
+  @dsl.graph_component
+  def flip_component(flip_result):
+    print_flip = PrintOp(flip_result)
+    flipA = FlipCoinOp().after(print_flip)
+    with dsl.Condition(flipA.output == 'heads'):
+      flip_component(flipA.output)
+    return {'flip_result': flipA.output}
+  """
+  from functools import wraps
+  @wraps(func)
+  def _graph_component(*args, **kargs):
+    graph_ops_group = Graph(func.__name__)
+    graph_ops_group.inputs = list(args) + list(kargs.values())
+    for input in graph_ops_group.inputs:
+      if not isinstance(input, PipelineParam):
+        raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')
+
+    # Entering the Graph Context
+    with graph_ops_group:
+      # Call the function
+      if not graph_ops_group.recursive_ref:
+        func(*args, **kargs)
+
+    return graph_ops_group
+  return _graph_component

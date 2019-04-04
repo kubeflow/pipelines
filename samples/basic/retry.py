@@ -39,4 +39,4 @@ def retry_sample_pipeline():
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
-  compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.tar.gz')
+  compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.zip')
