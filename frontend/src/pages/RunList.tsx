@@ -322,7 +322,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           request.filter,
         );
 
-        displayRuns = (response.runs || []).map(r => ({ metadata: r }));
+        displayRuns = (response.run_details || []).map(r => ({
+          metadata: r.run,
+          workflow: JSON.parse(r.pipeline_runtime!.workflow_manifest || '{}'),
+        }));
         nextPageToken = response.next_page_token || '';
       } catch (err) {
         const error = new Error(await errorToMessage(err));
@@ -332,7 +335,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       }
     }
 
-    await this._getAndSetMetadataAndWorkflows(displayRuns);
     await this._getAndSetPipelineNames(displayRuns);
     await this._getAndSetExperimentNames(displayRuns);
 
@@ -341,26 +343,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       runs: displayRuns,
     });
     return nextPageToken;
-  }
-
-  /**
-   * For each DisplayRun, get its workflow spec and parse it into an object
-   */
-  private _getAndSetMetadataAndWorkflows(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
-    // Fetch and set the workflow details
-    return Promise.all(displayRuns.map(async displayRun => {
-      let getRunResponse: ApiRunDetail;
-      try {
-        getRunResponse = await Apis.runServiceApi.getRun(displayRun.metadata!.id!);
-        displayRun.metadata = getRunResponse.run!;
-        displayRun.workflow =
-          JSON.parse(getRunResponse.pipeline_runtime!.workflow_manifest || '{}');
-      } catch (err) {
-        // This could be an API exception, or a JSON parse exception.
-        displayRun.error = await errorToMessage(err);
-      }
-      return displayRun;
-    }));
   }
 
   /**
