@@ -159,7 +159,7 @@ class K8sHelper(object):
               for sub_obj in k8s_obj]
     elif isinstance(k8s_obj, tuple):
       return tuple(K8sHelper.convert_k8s_obj_to_json(sub_obj)
-                   for sub_obj in obj)
+                   for sub_obj in k8s_obj)
     elif isinstance(k8s_obj, (datetime, date)):
       return k8s_obj.isoformat()
     elif isinstance(k8s_obj, dsl.PipelineParam): 
