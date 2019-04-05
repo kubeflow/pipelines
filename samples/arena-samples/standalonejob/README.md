@@ -72,7 +72,7 @@ spec:
 
 First, install the necessary Python Packages
 ```shell
-pip3 install http://kubeflow.oss-cn-beijing.aliyuncs.com/kfp/v0.5.0/kfp.tar.gz --upgrade
+pip3 install http://kubeflow.oss-cn-beijing.aliyuncs.com/kfp/0.1.14/kfp.tar.gz --upgrade
 pip3 install http://kubeflow.oss-cn-beijing.aliyuncs.com/kfp-arena/kfp-arena-0.2.tar.gz --upgrade
 ```
 
