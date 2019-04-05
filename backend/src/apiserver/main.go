@@ -138,27 +138,33 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 
 // Used to initialize the Experiment database with a default to be used for runs
 func createDefaultExperiment(resourceManager *resource.ResourceManager) error {
-	// First check that we don't already have a default experiment ID.
+	// First check that we don't already have a default experiment ID in the DB.
 	defaultExperimentId, err := resourceManager.GetDefaultExperimentId()
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("Failed to check if default experiment exists. Err: %v", err.Error()))
 	}
 	if defaultExperimentId != "" {
 		glog.Info("Default experiment already exists! ID: %v", defaultExperimentId)
 		return nil
 	}
 
-	defaultExperiment := &model.Experiment{Name: "Default", Description: "All runs created without specifying an experiment will be grouped here."}
+	// Create default experiment
+	defaultExperiment := &model.Experiment{
+		Name: "Default",
+		Description: "All runs created without specifying an experiment will be grouped here."
+	}
 	experiment, err := resourceManager.CreateExperiment(defaultExperiment)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("Failed to create default experiment. Err: %v", err.Error()))
 	}
 
+	// Set default experiment ID in the DB
 	err = resourceManager.SetDefaultExperimentId(experiment.UUID)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("Failed to set default experiment ID. Err: %v", err.Error()))
 	}
 
+	glog.Info("Default experiment is set. ID is: %v", experiment.UUID)
 	return nil
 }
 

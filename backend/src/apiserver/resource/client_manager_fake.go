@@ -76,8 +76,8 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		defaultExperimentStore:      storage.NewDefaultExperimentStore(db),
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
-		time: time,
-		uuid: uuid,
+		time:                        time,
+		uuid:                        uuid,
 	}, nil
 }
 

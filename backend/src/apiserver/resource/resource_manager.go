@@ -16,6 +16,7 @@ package resource
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -78,8 +79,8 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		time: clientManager.Time(),
-		uuid: clientManager.UUID(),
+		time:                    clientManager.Time(),
+		uuid:                    clientManager.UUID(),
 	}
 }
 
@@ -219,16 +220,18 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 
 	hasExperiment := false
 	for _, ref := range apiRun.ResourceReferences {
-		if ref.Key.Type == api.ResourceType_EXPERIMENT {
+		if ref.Key.Type == api.ResourceType_EXPERIMENT && ref.Relationship == api.Relationship_OWNER {
 			hasExperiment = true
 			break
 		}
 	}
 	if !hasExperiment {
-		// TODO: what should we do if defaultExperimentId is "" ?
 		defaultExperimentId, err := r.GetDefaultExperimentId()
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to retrieve default experiment")
+		}
+		if defaultExperimentId == "" {
+			return nil, util.NewInternalServerError(errors.New("Default experiment ID was empty"), "Default experiment was not set")
 		}
 		defaultExperimentRef := &api.ResourceReference{
 			Key: &api.ResourceKey{
@@ -239,8 +242,6 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 		apiRun.ResourceReferences = append(apiRun.ResourceReferences, defaultExperimentRef)
 	}
-
-	fmt.Printf("New run with references: %v", apiRun.ResourceReferences)
 
 	// Store run metadata into database
 	runDetail, err := ToModelRunDetail(apiRun, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))

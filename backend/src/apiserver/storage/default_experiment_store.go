@@ -29,8 +29,8 @@ type DefaultExperimentStoreInterface interface {
 	SetDefaultExperimentId(id string) error
 }
 
-// Implementation of a DefaultExperimentStoreInterface. This stores the default experiment's ID, if
-// there is one.
+// Implementation of a DefaultExperimentStoreInterface. This stores the default experiment's ID,
+// which is created as the API server is initialized.
 type DefaultExperimentStore struct {
 	db *DB
 }
