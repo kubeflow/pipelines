@@ -35,9 +35,6 @@ type APIListRunsResponse struct {
 	// next page token
 	NextPageToken string `json:"next_page_token,omitempty"`
 
-	// run details
-	RunDetails []*APIRunDetail `json:"run_details"`
-
 	// runs
 	Runs []*APIRun `json:"runs"`
 
@@ -49,10 +46,6 @@ type APIListRunsResponse struct {
 func (m *APIListRunsResponse) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateRunDetails(formats); err != nil {
-		res = append(res, err)
-	}
-
 	if err := m.validateRuns(formats); err != nil {
 		res = append(res, err)
 	}
@@ -60,31 +53,6 @@ func (m *APIListRunsResponse) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-func (m *APIListRunsResponse) validateRunDetails(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.RunDetails) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.RunDetails); i++ {
-		if swag.IsZero(m.RunDetails[i]) { // not required
-			continue
-		}
-
-		if m.RunDetails[i] != nil {
-			if err := m.RunDetails[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("run_details" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
-	}
-
 	return nil
 }
 
