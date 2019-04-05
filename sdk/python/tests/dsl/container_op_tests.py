@@ -49,7 +49,7 @@ class TestContainerOp(unittest.TestCase):
       op1 = ContainerOp(name='op1', image='image')
       op2 = ContainerOp(name='op2', image='image')
       op2.after(op1)
-    self.assertCountEqual(op2.dependent_op_names, [op1.name])
+    self.assertCountEqual(op2.dependent_names, [op1.name])
 
 
   def test_deprecation_warnings(self):

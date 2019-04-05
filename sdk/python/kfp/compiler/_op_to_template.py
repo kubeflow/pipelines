@@ -153,12 +153,12 @@ def _outputs_to_json(outputs: Dict[str, dsl.PipelineParam],
     return ret
 
 
-def _build_conventional_artifact(op, name):
+def _build_conventional_artifact(s3_artifactory, name, path):
     return {
         'name': name,
-        'path': '/' + name + '.json',
+        'path': path,
         's3': K8sHelper.convert_k8s_obj_to_json(
-                op.s3_artifactory.create('runs/{{workflow.uid}}/{{pod.name}}/%s.tgz' % name))
+                s3_artifactory.create('runs/{{workflow.uid}}/{{pod.name}}/%s.tgz' % name))
     }
 
 
@@ -172,9 +172,13 @@ def _op_to_template(op: dsl.ContainerOp):
     processed_op = _process_container_ops(op)
 
     # default output artifacts
+    output_artifact_paths = {}
+    output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
+    output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
+
     output_artifacts = [
-        _build_conventional_artifact(op, name)
-        for name in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']
+        _build_conventional_artifact(op.s3_artifactory, name, path)
+        for name, path in output_artifact_paths.items()
     ]
 
     # workflow template

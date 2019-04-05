@@ -74,7 +74,7 @@ func TestDecompressPipelineTarball_NonYamlTarball(t *testing.T) {
 	tarballByte, _ := ioutil.ReadFile("test/non_yaml_tarball/non_yaml_tarball.tar.gz")
 	_, err := DecompressPipelineTarball(tarballByte)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Expecting a YAML file inside the tarball")
+	assert.Contains(t, err.Error(), "Expecting a pipeline.yaml file inside the tarball")
 }
 
 func TestDecompressPipelineTarball_EmptyTarball(t *testing.T) {
@@ -111,7 +111,7 @@ func TestDecompressPipelineZip_NonYamlZip(t *testing.T) {
 	zipByte, _ := ioutil.ReadFile("test/non_yaml_zip/non_yaml_file.zip")
 	_, err := DecompressPipelineZip(zipByte)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Expecting a YAML file inside the zip")
+	assert.Contains(t, err.Error(), "Expecting a pipeline.yaml file inside the zip")
 }
 
 func TestDecompressPipelineZip_EmptyZip(t *testing.T) {

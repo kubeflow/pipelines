@@ -192,6 +192,18 @@ export default class Buttons {
     };
   }
 
+  public terminateRun(getSelectedIds: () => string[], useCurrentResource: boolean,
+      callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
+    return {
+      action: () => this._terminateRun(getSelectedIds(), useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select at least one run to terminate',
+      id: 'terminateRunBtn',
+      title: 'Terminate',
+      tooltip: 'Terminate execution of a run',
+    };
+  }
+
   public upload(action: () => void): ToolbarActionConfig {
     return {
       action,
@@ -263,6 +275,20 @@ export default class Buttons {
       callback,
       'Delete',
       'recurring run config',
+    );
+  }
+
+  private _terminateRun(ids: string[], useCurrentResource: boolean,
+    callback: (_: string[], success: boolean) => void): void {
+    this._dialogActionHandler(
+      ids,
+      'Do you want to terminate this run? This action cannot be undone. This will terminate any'
+      + ' running pods, but they will not be deleted.',
+      useCurrentResource,
+      id => Apis.runServiceApi.terminateRun(id),
+      callback,
+      'Terminate',
+      'run',
     );
   }
 
