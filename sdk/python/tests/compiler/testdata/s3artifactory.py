@@ -20,7 +20,7 @@ from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
 @dsl.pipeline(
     name='foo', description='A pipeline with parameterized output artifacts')
 def foo_pipeline(bucket: str = 'foobucket'):
-    """A pipeline with a single transport simulation operation."""
+    """A pipeline with parameterized output artifacts."""
 
     # parameterized s3 artifactory
     s3_artifactory = (S3Artifactory()

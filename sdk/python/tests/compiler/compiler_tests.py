@@ -220,7 +220,7 @@ class TestCompiler(unittest.TestCase):
 
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
         compiled = yaml.load(f)
-
+  
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:
@@ -241,6 +241,10 @@ class TestCompiler(unittest.TestCase):
   def test_py_compile_with_s3artifactory(self):
     """Test pipeline with parameterized s3artifactory."""
     self._test_py_compile_yaml('s3artifactory')
+
+  def test_py_compile_with_custom_output_artifacts(self):
+    """Test pipeline with custom output artifacts."""
+    self._test_py_compile_yaml('output_artifacts')
 
   def test_py_compile_condition(self):
     """Test a pipeline with conditions."""

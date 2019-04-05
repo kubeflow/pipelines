@@ -173,7 +173,7 @@ def _op_to_template(op: dsl.ContainerOp):
     processed_op = _process_container_ops(op)
 
     # default output artifacts
-    output_artifact_paths = {}
+    output_artifact_paths = op.output_artifacts
     output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
     output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
 

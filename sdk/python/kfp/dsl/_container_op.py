@@ -645,10 +645,17 @@ class ContainerOp(object):
                                 # pass in sidecars list
                                 sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
                                 # pass in k8s container kwargs
-                                container_kwargs={'env': [V1EnvVar('foo', 'bar')]})
+                                container_kwargs={'env': [V1EnvVar('foo', 'bar')]}
+                                # override metadata artifact location
+                                output_artifacts={'mlpipeline-metrics': '/metrics.json'})
 
             # set `imagePullPolicy` property for `container` with `PipelineParam` 
             op.container.set_pull_image_policy(pull_image_policy)
+
+            # add more artifact to upload to artifactory
+            op.add_output_artifact(name='results', path='/results.csv')
+            # add more artifacts to upload to artifactory
+            op.add_output_artifacts({'logs': 'logs.txt'})
 
             # add sidecar with parameterized image tag
             # sidecar follows the argo sidecar swagger spec
@@ -662,7 +669,8 @@ class ContainerOp(object):
     # in the compilation process to generate the DAGs and task io parameters.
     attrs_with_pipelineparams = [
         '_container', 'node_selector', 'volumes', 'pod_annotations',
-        'pod_labels', 'num_retries', 'sidecars', '_s3_artifactory'
+        'pod_labels', 'num_retries', 'sidecars', '_s3_artifactory',
+        'output_artifacts'
     ]
 
     def __init__(self,
@@ -673,6 +681,7 @@ class ContainerOp(object):
                  sidecars: List[Sidecar] = None,
                  container_kwargs: Dict = None,
                  s3_artifactory: S3Artifactory = None,
+                 output_artifacts: dict = None,
                  file_outputs: Dict[str, str] = None,
                  is_exit_handler=False):
         """Create a new instance of ContainerOp.
@@ -691,6 +700,7 @@ class ContainerOp(object):
           container_kwargs: the dict of additional keyword arguments to pass to the
                             op's `Container` definition.
           s3_artifactory: custom `S3Artifactory` object to generate output artifacts.
+          output_artifacts: custom dict (name->path) of output artifacts in addition to `ui-metadata` and `metrics`.
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
@@ -764,6 +774,7 @@ class ContainerOp(object):
         self.is_exit_handler = is_exit_handler
         self._metadata = None
         self._s3_artifactory = s3_artifactory
+        self.output_artifacts = output_artifacts or {}
 
         self.outputs = {}
         if file_outputs:
@@ -872,6 +883,24 @@ class ContainerOp(object):
         self._s3_artifactory = s3_artifactory
         return self
 
+    def add_output_artifact(self, name:str, path:str):
+        """Add a custom output artifact for argo to upload to the artifactory.
+        
+        Arguments:
+            name {str} -- name of the artifact.
+            path {str} -- where the artifact is located.
+        """
+        self.output_artifacts[name] = path
+        return self
+
+    def add_output_artifacts(self, artifacts: dict):
+        """Add multiple custom output artifacts for argo to upload to the artifactory.
+        
+        Arguments:
+            artifacts {dict} -- dict (name->path)
+        """
+        self.output_artifacts.update(artifacts)
+        return self        
 
     def apply(self, mod_func):
         """Applies a modifier function to self. The function should return the passed object.
