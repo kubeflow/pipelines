@@ -145,21 +145,18 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	}
 
 	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
-	if err != nil {
-		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
-	}
 
 	// If we're not just counting, then also add select columns and perform a left join
 	// to get resource reference information. Also add pagination.
 	if !selectCount {
+		sqlBuilder = opts.AddPaginationToSelect(filteredSelectBuilder)
 		sqlBuilder = s.addMetricsAndResourceReferences(sqlBuilder)
-		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
+		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
 	}
 	sql, args, err := sqlBuilder.ToSql()
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
-
 	return sql, args, err
 }
 

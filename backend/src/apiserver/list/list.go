@@ -164,16 +164,27 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 // Options o to the supplied SelectBuilder, and returns the new SelectBuilder
 // containing these.
 func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+	sqlBuilder = o.AddSortingToSelect(sqlBuilder)
+	// Add one more item than what is requested.
+	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
+
+	return sqlBuilder
+}
+
+// AddPaginationToSelect adds WHERE clauses with the sorting and pagination criteria in the
+// Options o to the supplied SelectBuilder, and returns the new SelectBuilder
+// containing these.
+func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	// If next row's value is specified, set those values in the clause.
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{sq.Lt{o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.LtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
+				sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.LtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
 		} else {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{sq.Gt{o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.GtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
+				sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.GtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
 		}
 	}
 
@@ -184,9 +195,6 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBu
 	sqlBuilder = sqlBuilder.
 		OrderBy(fmt.Sprintf("%v %v", o.SortByFieldName, order)).
 		OrderBy(fmt.Sprintf("%v %v", o.KeyFieldName, order))
-
-	// Add one more item than what is requested.
-	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
 
 	return sqlBuilder
 }
