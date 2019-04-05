@@ -112,6 +112,7 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	}
 
 	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
+	sqlBuilder = opts.AddPaginationToSelect(filteredSelectBuilder)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
@@ -120,7 +121,7 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	// to get resource reference information. Also add pagination.
 	if !selectCount {
 		sqlBuilder = s.addResourceReferences(sqlBuilder)
-		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
+		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
 	}
 	sql, args, err := sqlBuilder.ToSql()
 	if err != nil {

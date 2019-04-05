@@ -31,6 +31,7 @@ frontend/test/ui/visual-regression/screenshots/screen
 
 # IDE
 .idea/
+.ijwb/
 ml.iml
 
 # Merge files
