@@ -4,11 +4,11 @@ The `standalone_pipeline.py` sample creates a pipeline runs preparing dataset, M
 
 ## Requirements
 
-- Install arena
+- [Install arena](https://github.com/kubeflow/arena/blob/master/docs/installation/README.md)
 
 - This sample requires to create distributed storage. In this sample, we use NFS as example.
 
-1. You need to create `/data` in the NFS Server, and prepare `mnist data`
+1.You need to create `/data` in the NFS Server, and prepare `mnist data`
 
 ```
 # mkdir -p /nfs
@@ -18,7 +18,7 @@ The `standalone_pipeline.py` sample creates a pipeline runs preparing dataset, M
 # umount /nfs
 ```
 
-2\. Create Persistent Volume. Moidfy `NFS_SERVER_IP` to yours.
+2\.Create Persistent Volume. Moidfy `NFS_SERVER_IP` to yours.
 
 ```
 # cat nfs-pv.yaml
@@ -41,7 +41,7 @@ spec:
  # kubectl create -f nfs-pv.yaml
 ```
 
-3\. Create Persistent Volume Claim.
+3\.Create Persistent Volume Claim.
 
 ```
 # cat nfs-pvc.yaml
@@ -68,7 +68,7 @@ spec:
 
 ## Instructions
 
-### 1. With command line
+### 1.With command line
 
 First, install the necessary Python Packages
 ```shell
@@ -86,11 +86,11 @@ python3 standalone_pipeline.py --learning_rate 0.0001 --dropout 0.8 --model_vers
 python3 standalone_pipeline.py --learning_rate 0.0005 --dropout 0.8 --model_version 3
 ```
 
-### 2. With Jupyter Notebook
+### 2.With Jupyter Notebook
 Run `jupyter notebook` to start running your jupyter server and load the notebook `standalone_pipeline.ipynb`
 
 
-### 3. Compare the result in pipelines dashboard
+### 3.Compare the result in pipelines dashboard
 
 
 ![](demo.jpg)
