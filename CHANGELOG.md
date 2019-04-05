@@ -1,5 +1,46 @@
 # Change Log
 
+## [0.1.15](https://github.com/kubeflow/pipelines/tree/0.1.15) (2019-04-04)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.14...0.1.15)
+
+**Closed issues:**
+
+- usage reporting link broken  [\#1073](https://github.com/kubeflow/pipelines/issues/1073)
+- Exit handler task does not have proper name in the UX [\#1051](https://github.com/kubeflow/pipelines/issues/1051)
+- Invalid memory address or nil pointer dereference in metadata\_store.go [\#1024](https://github.com/kubeflow/pipelines/issues/1024)
+- KFP SDK: suggest retry if pipeline launch returns 500 error \('warmup' apparently required\) [\#1007](https://github.com/kubeflow/pipelines/issues/1007)
+- Refactor the test infra code [\#875](https://github.com/kubeflow/pipelines/issues/875)
+- Add image substitution feature to either DSL compiler or KFP client [\#487](https://github.com/kubeflow/pipelines/issues/487)
+- Ability to stop runs [\#413](https://github.com/kubeflow/pipelines/issues/413)
+- Surface the sample test results to github [\#361](https://github.com/kubeflow/pipelines/issues/361)
+- feature ask: support for loops [\#303](https://github.com/kubeflow/pipelines/issues/303)
+
+**Merged pull requests:**
+
+- Release component image version a277f87ea1d4707bf860d080d06639b7caf9a1cf [\#1082](https://github.com/kubeflow/pipelines/pull/1082) ([neuromage](https://github.com/neuromage))
+- Fix wrong indentation in extract\_pipelineparams\_from\_any\(\) [\#1076](https://github.com/kubeflow/pipelines/pull/1076) ([elikatsis](https://github.com/elikatsis))
+- Removes link to Kubeflow privacy links as KFP no longer runs Spartakus [\#1074](https://github.com/kubeflow/pipelines/pull/1074) ([rileyjbauer](https://github.com/rileyjbauer))
+- metadata tag for watson components [\#1072](https://github.com/kubeflow/pipelines/pull/1072) ([animeshsingh](https://github.com/animeshsingh))
+- metadata for ibm components targeting opensource [\#1071](https://github.com/kubeflow/pipelines/pull/1071) ([animeshsingh](https://github.com/animeshsingh))
+- Add Bazel build/test to Travis run. [\#1069](https://github.com/kubeflow/pipelines/pull/1069) ([neuromage](https://github.com/neuromage))
+- Fixed a bug in tarball handling [\#1068](https://github.com/kubeflow/pipelines/pull/1068) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Configure artifact name and path separately \(again\) [\#1067](https://github.com/kubeflow/pipelines/pull/1067) ([Ark-kun](https://github.com/Ark-kun))
+- Release 03/28/2019 [\#1063](https://github.com/kubeflow/pipelines/pull/1063) ([vicaire](https://github.com/vicaire))
+- Allow bigquery component to export to table only [\#1062](https://github.com/kubeflow/pipelines/pull/1062) ([hongye-sun](https://github.com/hongye-sun))
+- Recursion bug fix [\#1061](https://github.com/kubeflow/pipelines/pull/1061) ([gaoning777](https://github.com/gaoning777))
+- Improve runtime graph exit-handler node name [\#1059](https://github.com/kubeflow/pipelines/pull/1059) ([rileyjbauer](https://github.com/rileyjbauer))
+- SDK/Components - Handling public GCS URIs in load\_component\_from\_url [\#1057](https://github.com/kubeflow/pipelines/pull/1057) ([Ark-kun](https://github.com/Ark-kun))
+- Improve doc for gcp components. [\#1049](https://github.com/kubeflow/pipelines/pull/1049) ([hongye-sun](https://github.com/hongye-sun))
+- remove jupyter hub link from UI [\#1046](https://github.com/kubeflow/pipelines/pull/1046) ([IronPan](https://github.com/IronPan))
+- Test loading all component.yaml definitions [\#1045](https://github.com/kubeflow/pipelines/pull/1045) ([Ark-kun](https://github.com/Ark-kun))
+- Allow passing comma-delimited column names [\#1044](https://github.com/kubeflow/pipelines/pull/1044) ([Ark-kun](https://github.com/Ark-kun))
+- Add run termination controls to ui [\#1039](https://github.com/kubeflow/pipelines/pull/1039) ([rileyjbauer](https://github.com/rileyjbauer))
+- Fixed some typos [\#1038](https://github.com/kubeflow/pipelines/pull/1038) ([thedriftofwords](https://github.com/thedriftofwords))
+- Improved the "IBM - Create kubernetes secret" component [\#1027](https://github.com/kubeflow/pipelines/pull/1027) ([Ark-kun](https://github.com/Ark-kun))
+- add proxy agent image to cloud builder [\#996](https://github.com/kubeflow/pipelines/pull/996) ([IronPan](https://github.com/IronPan))
+- Pin specific version of kubeflow instead of using master [\#995](https://github.com/kubeflow/pipelines/pull/995) ([IronPan](https://github.com/IronPan))
+- Added component definition files for our components [\#539](https://github.com/kubeflow/pipelines/pull/539) ([Ark-kun](https://github.com/Ark-kun))
+
 ## [0.1.14](https://github.com/kubeflow/pipelines/tree/0.1.14) (2019-03-28)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.13...0.1.14)
 
@@ -84,7 +125,6 @@
 - Consider never deleting the runs [\#247](https://github.com/kubeflow/pipelines/issues/247)
 - Our ksonnet sometimes throws "SIGSEGV: segmentation violation" failing deployment [\#241](https://github.com/kubeflow/pipelines/issues/241)
 - Get experiment by name, create run in experiment by name [\#237](https://github.com/kubeflow/pipelines/issues/237)
-- Make run names unique [\#236](https://github.com/kubeflow/pipelines/issues/236)
 - UI should display documentations for the steps of a pipeline [\#227](https://github.com/kubeflow/pipelines/issues/227)
 - Missing dropoff latitudes [\#225](https://github.com/kubeflow/pipelines/issues/225)
 - Tensorboard not showing historical AUC / Accuracy [\#223](https://github.com/kubeflow/pipelines/issues/223)
@@ -137,7 +177,6 @@
 - Keras - Train classifier: Improved the README.md [\#934](https://github.com/kubeflow/pipelines/pull/934) ([Ark-kun](https://github.com/Ark-kun))
 - Feature: sidecar for ContainerOp [\#879](https://github.com/kubeflow/pipelines/pull/879) ([eterna2](https://github.com/eterna2))
 - dsl generate zip file [\#855](https://github.com/kubeflow/pipelines/pull/855) ([gaoning777](https://github.com/gaoning777))
-
 
 ## [0.1.13](https://github.com/kubeflow/pipelines/tree/0.1.13) (2019-03-22)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.12...0.1.13)
@@ -213,10 +252,6 @@
 ## [0.1.12](https://github.com/kubeflow/pipelines/tree/0.1.12) (2019-03-06)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.11...0.1.12)
 
-**Closed issues:**
-
-- Sample tests sometimes time out and do not delete the GKE cluster leaking it [\#193](https://github.com/kubeflow/pipelines/issues/193)
-
 **Merged pull requests:**
 
 - Fix bugs in bigquery component [\#921](https://github.com/kubeflow/pipelines/pull/921) ([hongye-sun](https://github.com/hongye-sun))
@@ -227,16 +262,16 @@
 - Create README.md [\#909](https://github.com/kubeflow/pipelines/pull/909) ([paveldournov](https://github.com/paveldournov))
 - Deflake frontend e2e test [\#904](https://github.com/kubeflow/pipelines/pull/904) ([yebrahim](https://github.com/yebrahim))
 - Support customized export TF model folder names. [\#903](https://github.com/kubeflow/pipelines/pull/903) ([hongye-sun](https://github.com/hongye-sun))
-- Configure artifact name and path separately [\#900](https://github.com/kubeflow/pipelines/pull/900) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Configure artifact name and path separately [\#900](https://github.com/kubeflow/pipelines/pull/900) ([Ark-kun](https://github.com/Ark-kun))
 - Add sample notebook and readme markdown for GCP components. [\#899](https://github.com/kubeflow/pipelines/pull/899) ([hongye-sun](https://github.com/hongye-sun))
 - Add markdown viewer [\#897](https://github.com/kubeflow/pipelines/pull/897) ([yebrahim](https://github.com/yebrahim))
-- Added license for google-cloud-bigtable [\#896](https://github.com/kubeflow/pipelines/pull/896) ([Ark-kun](https://github.com/Ark-kun))
+- Infra - Added license for google-cloud-bigtable [\#896](https://github.com/kubeflow/pipelines/pull/896) ([Ark-kun](https://github.com/Ark-kun))
 - Change viewer to markdown instead of html according to FE changes. [\#895](https://github.com/kubeflow/pipelines/pull/895) ([hongye-sun](https://github.com/hongye-sun))
 - Add python conf to the metadata [\#894](https://github.com/kubeflow/pipelines/pull/894) ([gaoning777](https://github.com/gaoning777))
 - Create experiment only if it's not exist. [\#892](https://github.com/kubeflow/pipelines/pull/892) ([hongye-sun](https://github.com/hongye-sun))
 - Add component metadata [\#891](https://github.com/kubeflow/pipelines/pull/891) ([gaoning777](https://github.com/gaoning777))
-- Added support for default values to Lightweight python components [\#890](https://github.com/kubeflow/pipelines/pull/890) ([Ark-kun](https://github.com/Ark-kun))
-- Added support for default values to load\_component [\#889](https://github.com/kubeflow/pipelines/pull/889) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Added support for default values to Lightweight python components [\#890](https://github.com/kubeflow/pipelines/pull/890) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Added support for default values to load\_component [\#889](https://github.com/kubeflow/pipelines/pull/889) ([Ark-kun](https://github.com/Ark-kun))
 - move integration test to sub dir [\#888](https://github.com/kubeflow/pipelines/pull/888) ([IronPan](https://github.com/IronPan))
 - GCPcomponents yaml spec [\#887](https://github.com/kubeflow/pipelines/pull/887) ([hongye-sun](https://github.com/hongye-sun))
 - add core types and type checking function [\#886](https://github.com/kubeflow/pipelines/pull/886) ([gaoning777](https://github.com/gaoning777))
@@ -244,7 +279,7 @@
 - Record TFX output artifacts in Metadata store [\#884](https://github.com/kubeflow/pipelines/pull/884) ([neuromage](https://github.com/neuromage))
 - add missing dependency in bazel BUILD [\#883](https://github.com/kubeflow/pipelines/pull/883) ([IronPan](https://github.com/IronPan))
 - Dump job id  and change output to /tmp/kfp/output [\#878](https://github.com/kubeflow/pipelines/pull/878) ([hongye-sun](https://github.com/hongye-sun))
-- Passing the environment variables to container op [\#877](https://github.com/kubeflow/pipelines/pull/877) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Passing the environment variables to container op [\#877](https://github.com/kubeflow/pipelines/pull/877) ([Ark-kun](https://github.com/Ark-kun))
 - Switch to python 2.7 and install beam for the gcp image. [\#876](https://github.com/kubeflow/pipelines/pull/876) ([hongye-sun](https://github.com/hongye-sun))
 - support .zip pipeline package [\#874](https://github.com/kubeflow/pipelines/pull/874) ([IronPan](https://github.com/IronPan))
 - sample test image build failure [\#871](https://github.com/kubeflow/pipelines/pull/871) ([gaoning777](https://github.com/gaoning777))
@@ -292,7 +327,7 @@
 - Update graph styling [\#829](https://github.com/kubeflow/pipelines/pull/829) ([rileyjbauer](https://github.com/rileyjbauer))
 - fix apache-beam and pandas versions in tfdv image [\#828](https://github.com/kubeflow/pipelines/pull/828) ([gaoning777](https://github.com/gaoning777))
 - Enhance hard code for export dir in deploy component [\#823](https://github.com/kubeflow/pipelines/pull/823) ([jinchihe](https://github.com/jinchihe))
-- Added the "Keras - Train classifier" component [\#809](https://github.com/kubeflow/pipelines/pull/809) ([Ark-kun](https://github.com/Ark-kun))
+- Components - Added the "Keras - Train classifier" component [\#809](https://github.com/kubeflow/pipelines/pull/809) ([Ark-kun](https://github.com/Ark-kun))
 - Training and Serving Pipeline leveraging WML [\#800](https://github.com/kubeflow/pipelines/pull/800) ([animeshsingh](https://github.com/animeshsingh))
 - MLEngine Commands Implementation [\#773](https://github.com/kubeflow/pipelines/pull/773) ([hongye-sun](https://github.com/hongye-sun))
 - Cleanup pipeline bootstrapper [\#770](https://github.com/kubeflow/pipelines/pull/770) ([ohmystack](https://github.com/ohmystack))
@@ -756,6 +791,7 @@
 - configurable namespaces in sample test and python SDK [\#306](https://github.com/kubeflow/pipelines/pull/306) ([gaoning777](https://github.com/gaoning777))
 - Allows copying of pipeline source from pipeline details page [\#302](https://github.com/kubeflow/pipelines/pull/302) ([rileyjbauer](https://github.com/rileyjbauer))
 - Add volume, volumemount and env to container op [\#300](https://github.com/kubeflow/pipelines/pull/300) ([IronPan](https://github.com/IronPan))
+- Update frontend handling of graphs [\#293](https://github.com/kubeflow/pipelines/pull/293) ([rileyjbauer](https://github.com/rileyjbauer))
 - configure logger such that it shows correct colors for the logs [\#292](https://github.com/kubeflow/pipelines/pull/292) ([gaoning777](https://github.com/gaoning777))
 - Update default pipeline version in ks package [\#291](https://github.com/kubeflow/pipelines/pull/291) ([IronPan](https://github.com/IronPan))
 - Update frontend tensorboard spec [\#283](https://github.com/kubeflow/pipelines/pull/283) ([IronPan](https://github.com/IronPan))
