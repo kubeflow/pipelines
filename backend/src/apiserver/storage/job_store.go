@@ -112,14 +112,11 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	}
 
 	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
-	sqlBuilder = opts.AddPaginationToSelect(filteredSelectBuilder)
-	if err != nil {
-		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
-	}
 
 	// If we're not just counting, then also add select columns and perform a left join
 	// to get resource reference information. Also add pagination.
 	if !selectCount {
+		sqlBuilder = opts.AddPaginationToSelect(filteredSelectBuilder)
 		sqlBuilder = s.addResourceReferences(sqlBuilder)
 		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
 	}
