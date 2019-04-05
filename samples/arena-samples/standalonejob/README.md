@@ -1,4 +1,4 @@
-# Simple Standalone Arena Job
+# Run a Standalone Job
 
 The `standalone_pipeline.py` sample creates a pipeline runs preparing dataset, ML code, training and exporting the model.
 
