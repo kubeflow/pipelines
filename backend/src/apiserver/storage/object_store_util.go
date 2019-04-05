@@ -20,9 +20,6 @@ const (
 	pipelineFolder = "pipelines"
 )
 
-// This variable holds the UUID of the default experiment.
-var DefaultExperimentId string
-
 // CreatePipelinePath creates object store path to a pipeline spec.
 func CreatePipelinePath(pipelineID string) string {
 	return path.Join(pipelineFolder, pipelineID)

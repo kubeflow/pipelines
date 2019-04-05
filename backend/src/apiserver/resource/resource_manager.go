@@ -43,6 +43,7 @@ type ClientManagerInterface interface {
 	RunStore() storage.RunStoreInterface
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
 	DBStatusStore() storage.DBStatusStoreInterface
+	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
@@ -57,6 +58,7 @@ type ResourceManager struct {
 	runStore                storage.RunStoreInterface
 	resourceReferenceStore  storage.ResourceReferenceStoreInterface
 	dBStatusStore           storage.DBStatusStoreInterface
+	defaultExperimentStore  storage.DefaultExperimentStoreInterface
 	objectStore             storage.ObjectStoreInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
@@ -72,11 +74,12 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		runStore:                clientManager.RunStore(),
 		resourceReferenceStore:  clientManager.ResourceReferenceStore(),
 		dBStatusStore:           clientManager.DBStatusStore(),
+		defaultExperimentStore:  clientManager.DefaultExperimentStore(),
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		time:                    clientManager.Time(),
-		uuid:                    clientManager.UUID(),
+		time: clientManager.Time(),
+		uuid: clientManager.UUID(),
 	}
 }
 
@@ -222,14 +225,19 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		}
 	}
 	if !hasExperiment {
+		// TODO: what should we do if defaultExperimentId is "" ?
+		defaultExperimentId, err := r.GetDefaultExperimentId()
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to retrieve default experiment")
+		}
 		defaultExperimentRef := &api.ResourceReference{
-			Key: api.ResourceKey{
-				Id: storage.DefaultExperimentId,
+			Key: &api.ResourceKey{
+				Id:   defaultExperimentId,
 				Type: api.ResourceType_EXPERIMENT,
 			},
 			Relationship: api.Relationship_OWNER,
 		}
-		ref = append(ref, defaultExperimentRef)
+		apiRun.ResourceReferences = append(apiRun.ResourceReferences, defaultExperimentRef)
 	}
 
 	fmt.Printf("New run with references: %v", apiRun.ResourceReferences)
@@ -287,8 +295,8 @@ func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 
 // TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
 func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) error {
-	patchObj := map[string]interface{} {
-		"spec": map[string]interface{} {
+	patchObj := map[string]interface{}{
+		"spec": map[string]interface{}{
 			"activeDeadlineSeconds": 0,
 		},
 	}
@@ -543,12 +551,12 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 	return r.objectStore.GetFile(artifactPath)
 }
 
-func (r *ResourceManager) IsDefaultExperimentPresent() (bool, error) {
-	return r.dBStatusStore.IsDefaultExperimentPresent()
+func (r *ResourceManager) GetDefaultExperimentId() (string, error) {
+	return r.defaultExperimentStore.GetDefaultExperimentId()
 }
 
-func (r *ResourceManager) MarkDefaultExperimentPresent() error {
-	return r.dBStatusStore.MarkDefaultExperimentPresent()
+func (r *ResourceManager) SetDefaultExperimentId(id string) error {
+	return r.defaultExperimentStore.SetDefaultExperimentId(id)
 }
 
 func (r *ResourceManager) HaveSamplesLoaded() (bool, error) {

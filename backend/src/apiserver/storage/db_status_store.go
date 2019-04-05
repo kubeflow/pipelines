@@ -21,11 +21,10 @@ import (
 )
 
 var (
-	defaultDBStatus = sq.Eq{"HaveSamplesLoaded": false, "IsDefaultExperimentPresent": false}
+	defaultDBStatus = sq.Eq{"HaveSamplesLoaded": false}
 )
 
 type DBStatusStoreInterface interface {
-	IsDefaultExperimentPresent() (bool, error)
 	HaveSamplesLoaded() (bool, error)
 	MarkSampleLoaded() error
 }
@@ -76,41 +75,6 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 		return util.NewInternalServerError(err, "Failed to initializing the database status table.")
 	}
 	return nil
-}
-
-func (s *DBStatusStore) MarkDefaultExperimentPresent() error {
-	sql, args, err := sq.
-		Update("db_statuses").
-		SetMap(sq.Eq{"IsDefaultExperimentPresent": true}).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err, "Error creating query to mark default experiment as present.")
-	}
-	_, err = s.db.Exec(sql, args...)
-	if err != nil {
-		return util.NewInternalServerError(err, "Error marking default experiment as present.")
-	}
-	return nil
-}
-
-func (s *DBStatusStore) IsDefaultExperimentPresent() (bool, error) {
-	var isDefaultExperimentPresent bool
-	sql, args, err := sq.Select("IsDefaultExperimentPresent").From("db_statuses").Where(sq.Eq{}).ToSql()
-	if err != nil {
-		return false, util.NewInternalServerError(err, "Error creating query to get default experiment status.")
-	}
-	rows, err := s.db.Query(sql, args...)
-	if err != nil {
-		return false, util.NewInternalServerError(err, "Error when getting default experiment status")
-	}
-	if rows.Next() {
-		err = rows.Scan(&isDefaultExperimentPresent)
-		if err != nil {
-			return false, util.NewInternalServerError(err, "Error when scanning row to find default experiment status")
-		}
-		return isDefaultExperimentPresent, nil
-	}
-	return false, nil
 }
 
 func (s *DBStatusStore) HaveSamplesLoaded() (bool, error) {

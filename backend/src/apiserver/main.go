@@ -30,11 +30,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -141,8 +139,12 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 // Used to initialize the Experiment database with a default to be used for runs
 func createDefaultExperiment(resourceManager *resource.ResourceManager) error {
 	// First check that we don't already have a default experiment ID.
-	if storage.DefaultExperimentId != "" || resourceManager.IsDefaultExperimentPresent() {
-		glog.Info("Default experiment already exists! ID: %v", storage.DefaultExperimentId)
+	defaultExperimentId, err := resourceManager.GetDefaultExperimentId()
+	if err != nil {
+		return err
+	}
+	if defaultExperimentId != "" {
+		glog.Info("Default experiment already exists! ID: %v", defaultExperimentId)
 		return nil
 	}
 
@@ -152,8 +154,10 @@ func createDefaultExperiment(resourceManager *resource.ResourceManager) error {
 		return err
 	}
 
-	resourceManager.MarkDefaultExperimentPresent()
-	storage.DefaultExperimentId = experiment.UUID
+	err = resourceManager.SetDefaultExperimentId(experiment.UUID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

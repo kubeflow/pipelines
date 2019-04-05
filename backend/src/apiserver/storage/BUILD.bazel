@@ -6,6 +6,7 @@ go_library(
         "db.go",
         "db_fake.go",
         "db_status_store.go",
+        "db_default_experiment_store.go",
         "experiment_store.go",
         "job_store.go",
         "minio_client.go",
