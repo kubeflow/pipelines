@@ -34,7 +34,7 @@ import (
 type RunStoreInterface interface {
 	GetRun(runId string) (*model.RunDetail, error)
 
-	ListRuns(filterContext *common.FilterContext, opts *list.Options) ([]*model.RunDetail, int, string, error)
+	ListRuns(filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error)
 
 	// Create a run entry in the database
 	CreateRun(run *model.RunDetail) (*model.RunDetail, error)
@@ -72,8 +72,8 @@ type RunStore struct {
 // total_size. The total_size does not reflect the page size, but it does reflect the number of runs
 // matching the supplied filters and resource references.
 func (s *RunStore) ListRuns(
-	filterContext *common.FilterContext, opts *list.Options) ([]*model.RunDetail, int, string, error) {
-	errorF := func(err error) ([]*model.RunDetail, int, string, error) {
+	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
+	errorF := func(err error) ([]*model.Run, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
 
@@ -123,12 +123,18 @@ func (s *RunStore) ListRuns(
 		return errorF(err)
 	}
 
-	if len(runDetails) <= opts.PageSize {
-		return runDetails, total_size, "", nil
+	var runs []*model.Run
+	for _, rd := range runDetails {
+		r := rd.Run
+		runs = append(runs, &r)
 	}
 
-	npt, err := opts.NextPageToken(runDetails[opts.PageSize])
-	return runDetails[:opts.PageSize], total_size, npt, err
+	if len(runs) <= opts.PageSize {
+		return runs, total_size, "", nil
+	}
+
+	npt, err := opts.NextPageToken(runs[opts.PageSize])
+	return runs[:opts.PageSize], total_size, npt, err
 }
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,

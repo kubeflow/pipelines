@@ -131,18 +131,10 @@ func toApiRun(run *model.Run) *api.Run {
 	}
 }
 
-func ToApiRuns(runs []*model.RunDetail) []*api.Run {
+func ToApiRuns(runs []*model.Run) []*api.Run {
 	apiRuns := make([]*api.Run, 0)
 	for _, run := range runs {
-		apiRuns = append(apiRuns, toApiRun(&run.Run))
-	}
-	return apiRuns
-}
-
-func ToApiRunDetails(runs []*model.RunDetail) []*api.RunDetail {
-	apiRuns := make([]*api.RunDetail, 0)
-	for _, run := range runs {
-		apiRuns = append(apiRuns, ToApiRunDetail(run))
+		apiRuns = append(apiRuns, toApiRun(run))
 	}
 	return apiRuns
 }
