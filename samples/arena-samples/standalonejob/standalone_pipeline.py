@@ -33,7 +33,7 @@ def sample_pipeline(learning_rate=dsl.PipelineParam(name='learning_rate',
   gpus="1"
 
   # 1. prepare data
-  prepare_data = arena.StandaloneOp(
+  prepare_data = arena.standalone_job_op(
     name="prepare-data",
 		image="byrnedo/alpine-curl",
     data=data,
@@ -44,7 +44,7 @@ def sample_pipeline(learning_rate=dsl.PipelineParam(name='learning_rate',
   curl -O https://code.aliyun.com/xiaozhou/tensorflow-sample-code/raw/master/data/train-images-idx3-ubyte.gz && \
   curl -O https://code.aliyun.com/xiaozhou/tensorflow-sample-code/raw/master/data/train-labels-idx1-ubyte.gz")
   # 2. prepare source code
-  prepare_code = arena.StandaloneOp(
+  prepare_code = arena.standalone_job_op(
     name="source-code",
     image="alpine/git",
     data=data,
@@ -53,7 +53,7 @@ def sample_pipeline(learning_rate=dsl.PipelineParam(name='learning_rate',
   if [ ! -d /training/models/tensorflow-sample-code ]; then git clone https://code.aliyun.com/xiaozhou/tensorflow-sample-code.git; else echo no need download;fi")
 
   # 3. train the models
-  train = arena.StandaloneOp(
+  train = arena.standalone_job_op(
     name="train",
     image="tensorflow/tensorflow:1.11.0-gpu-py3",
     gpus=gpus,
@@ -62,7 +62,7 @@ def sample_pipeline(learning_rate=dsl.PipelineParam(name='learning_rate',
     metric_name="Train-accuracy",
     metric_unit="PERCENTAGE",)
   # 4. export the model
-  export_model = arena.StandaloneOp(
+  export_model = arena.standalone_job_op(
     name="export-model",
     image="tensorflow/tensorflow:1.11.0-py3",
     data=data,
