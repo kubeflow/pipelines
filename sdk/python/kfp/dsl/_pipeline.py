@@ -70,7 +70,7 @@ class PipelineConf():
   """
   def __init__(self):
     self.image_pull_secrets = []
-    self.s3_artifactory = S3Artifactory()
+    self.s3_artifactory = None
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """ configure the pipeline level imagepullsecret

@@ -79,39 +79,11 @@ class TestCompiler(unittest.TestCase):
            'valueFrom': {'path': '/tmp/message.txt'}
           }],
         'artifacts': [{
-          'name': 'mlpipeline-ui-metadata',
-          'path': '/mlpipeline-ui-metadata.json',
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
-            }
-          }
-        },{
           'name': 'mlpipeline-metrics',
           'path': '/mlpipeline-metrics.json',
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
-            }
-          }
+        },{
+          'name': 'mlpipeline-ui-metadata',
+          'path': '/mlpipeline-ui-metadata.json',
         }]
       }
     }
@@ -249,10 +221,6 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
         compiled = yaml.load(f)
 
-      with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
-        with open('/pipelines/sdk/python/dist/%s.yaml' % file_base_name, 'w') as f2:
-          f2.write(f.read())
-  
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:

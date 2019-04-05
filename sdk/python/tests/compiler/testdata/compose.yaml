@@ -36,32 +36,11 @@ spec:
     name: download
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       - name: mlpipeline-metrics
         path: /mlpipeline-metrics.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+
       parameters:
       - name: download-downloaded
         valueFrom:
@@ -111,32 +90,11 @@ spec:
     name: get-frequent
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       - name: mlpipeline-metrics
         path: /mlpipeline-metrics.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+
       parameters:
       - name: get-frequent-word
         valueFrom:
@@ -156,29 +114,8 @@ spec:
     name: save
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       - name: mlpipeline-metrics
         path: /mlpipeline-metrics.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+

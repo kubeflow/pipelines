@@ -11,110 +11,66 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: sidecar-
-apiVersion: argoproj.io/v1alpha1
 spec:
   arguments:
     parameters: []
+  entrypoint: sidecar
+  serviceAccountName: pipeline-runner
   templates:
-  - outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: "/mlpipeline-ui-metadata.json"
-        s3:
-          endpoint: minio-service.kubeflow:9000
-          secretKeySecret:
-            name: mlpipeline-minio-artifact
-            key: secretkey
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          bucket: mlpipeline
-          accessKeySecret:
-            name: mlpipeline-minio-artifact
-            key: accesskey
-          insecure: true
-      - name: mlpipeline-metrics
-        path: "/mlpipeline-metrics.json"
-        s3:
-          endpoint: minio-service.kubeflow:9000
-          secretKeySecret:
-            name: mlpipeline-minio-artifact
-            key: secretkey
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          bucket: mlpipeline
-          accessKeySecret:
-            name: mlpipeline-minio-artifact
-            key: accesskey
-          insecure: true
-      parameters:
-      - name: download-downloaded
-        valueFrom:
-          path: "/tmp/results.txt"
-    name: download
-    sidecars:
-    - image: hashicorp/http-echo
-      name: echo
-      args:
-      - -text="hello world"
-    container:
-      image: busybox
+  - container:
       args:
       - sleep 10; wget localhost:5678 -O /tmp/results.txt
       command:
       - sh
-      - "-c"
-  - outputs:
+      - -c
+      image: busybox
+    name: download
+    outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: "/mlpipeline-ui-metadata.json"
-        s3:
-          endpoint: minio-service.kubeflow:9000
-          secretKeySecret:
-            name: mlpipeline-minio-artifact
-            key: secretkey
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          bucket: mlpipeline
-          accessKeySecret:
-            name: mlpipeline-minio-artifact
-            key: accesskey
-          insecure: true
       - name: mlpipeline-metrics
-        path: "/mlpipeline-metrics.json"
-        s3:
-          endpoint: minio-service.kubeflow:9000
-          secretKeySecret:
-            name: mlpipeline-minio-artifact
-            key: secretkey
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          bucket: mlpipeline
-          accessKeySecret:
-            name: mlpipeline-minio-artifact
-            key: accesskey
-          insecure: true
-    name: echo
-    inputs:
+        path: /mlpipeline-metrics.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
       parameters:
       - name: download-downloaded
-    container:
-      image: library/bash
+        valueFrom:
+          path: /tmp/results.txt
+    sidecars:
+    - args:
+      - -text="hello world"
+      image: hashicorp/http-echo
+      name: echo
+  - container:
       args:
       - echo {{inputs.parameters.download-downloaded}}
       command:
       - sh
-      - "-c"
-  - name: sidecar
-    dag:
+      - -c
+      image: library/bash
+    inputs:
+      parameters:
+      - name: download-downloaded
+    name: echo
+    outputs:
+      artifacts:
+      - name: mlpipeline-metrics
+        path: /mlpipeline-metrics.json
+      - name: mlpipeline-ui-metadata
+        path: /mlpipeline-ui-metadata.json
+  - dag:
       tasks:
       - name: download
         template: download
       - arguments:
           parameters:
           - name: download-downloaded
-            value: "{{tasks.download.outputs.parameters.download-downloaded}}"
-        name: echo
+            value: '{{tasks.download.outputs.parameters.download-downloaded}}'
         dependencies:
         - download
+        name: echo
         template: echo
-  serviceAccountName: pipeline-runner
-  entrypoint: sidecar
+    name: sidecar

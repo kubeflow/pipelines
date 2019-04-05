@@ -153,13 +153,14 @@ def _outputs_to_json(outputs: Dict[str, dsl.PipelineParam],
     return ret
 
 
-def _build_conventional_artifact(s3_artifactory, name, path):
-    return {
-        'name': name,
-        'path': path,
-        's3': K8sHelper.convert_k8s_obj_to_json(
-                s3_artifactory.create('runs/{{workflow.uid}}/{{pod.name}}/%s.tgz' % name))
-    }
+def _build_conventional_artifact(name: str, path: str, s3_artifactory: dsl.S3Artifactory = None):
+    s3_artifact = dict(name=name, path=path)
+
+    if s3_artifactory:
+        s3_artifact['s3'] = K8sHelper.convert_k8s_obj_to_json(
+                                s3_artifactory.create(
+                                    'runs/{{workflow.uid}}/{{pod.name}}/%s.tgz' % name))
+    return s3_artifact
 
 
 # TODO: generate argo python classes from swagger and use convert_k8s_obj_to_json??
@@ -173,13 +174,16 @@ def _op_to_template(op: dsl.ContainerOp):
 
     # default output artifacts
     output_artifact_paths = {}
-    output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
     output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
+    output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
 
     output_artifacts = [
-        _build_conventional_artifact(op.s3_artifactory, name, path)
+        # pass in `_s3_artifactory` because getter for `s3_artifactory` will
+        # create a new S3Artifactory
+        _build_conventional_artifact(name, path, op._s3_artifactory)
         for name, path in output_artifact_paths.items()
     ]
+    output_artifacts = sorted(output_artifacts, key=lambda artifact: artifact.get('name'))
 
     # workflow template
     template = {

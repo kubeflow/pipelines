@@ -14,6 +14,7 @@
 
 from kfp import dsl
 from kfp.dsl import get_pipeline_conf, S3Artifactory
+from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
 
 
 @dsl.pipeline(
@@ -38,4 +39,11 @@ def foo_pipeline(bucket: str = 'foobucket'):
     op2 = dsl.ContainerOp("bar",
                           image="busybox:latest",
                           command="echo '%s'" % op1.output,
-                          s3_artifactory=S3Artifactory(bucket="barbucket"))
+                          s3_artifactory=S3Artifactory(
+                              bucket="barbucket",
+                              endpoint="minio-service.kubeflow:9000",
+                              insecure=True,
+                              region=None,
+                              access_key_secret=V1SecretKeySelector(name='mlpipeline-minio-artifact', key='accesskey'),
+                              secret_key_secret=V1SecretKeySelector(name='mlpipeline-minio-artifact', key='secretkey')
+                              ))
