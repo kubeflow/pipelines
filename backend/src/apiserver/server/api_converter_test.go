@@ -124,43 +124,50 @@ func TestToApiRuns(t *testing.T) {
 		Value:  &api.RunMetric_NumberValue{NumberValue: metric2.NumberValue},
 		Format: api.RunMetric_PERCENTAGE,
 	}
-	modelRun1 := model.Run{
-		UUID:             "run1",
-		Name:             "name1",
-		StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-		DisplayName:      "displayName1",
-		Namespace:        "ns1",
-		CreatedAtInSec:   1,
-		ScheduledAtInSec: 1,
-		Conditions:       "running",
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: "manifest",
+	modelRun1 := model.RunDetail{
+		Run: model.Run{
+			UUID:             "run1",
+			Name:             "name1",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			DisplayName:      "displayName1",
+			Namespace:        "ns1",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			Conditions:       "running",
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: "manifest",
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{ResourceUUID: "run1", ResourceType: common.Run,
+					ReferenceUUID: "job1", ReferenceType: common.Job, Relationship: common.Creator},
+			},
+			Metrics: []*model.RunMetric{metric1, metric2},
 		},
-		ResourceReferences: []*model.ResourceReference{
-			{ResourceUUID: "run1", ResourceType: common.Run,
-				ReferenceUUID: "job1", ReferenceType: common.Job, Relationship: common.Creator},
-		},
-		Metrics: []*model.RunMetric{metric1, metric2},
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
 	}
-	modelRun2 := model.Run{
-		UUID:             "run2",
-		Name:             "name2",
-		StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-		DisplayName:      "displayName2",
-		Namespace:        "ns2",
-		CreatedAtInSec:   2,
-		ScheduledAtInSec: 2,
-		Conditions:       "done",
-		PipelineSpec: model.PipelineSpec{
-			WorkflowSpecManifest: "manifest",
+
+	modelRun2 := model.RunDetail{
+		Run: model.Run{
+			UUID:             "run2",
+			Name:             "name2",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			DisplayName:      "displayName2",
+			Namespace:        "ns2",
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "done",
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: "manifest",
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{ResourceUUID: "run2", ResourceType: common.Run,
+					ReferenceUUID: "job2", ReferenceType: common.Job, Relationship: common.Creator},
+			},
+			Metrics: []*model.RunMetric{metric2},
 		},
-		ResourceReferences: []*model.ResourceReference{
-			{ResourceUUID: "run2", ResourceType: common.Run,
-				ReferenceUUID: "job2", ReferenceType: common.Job, Relationship: common.Creator},
-		},
-		Metrics: []*model.RunMetric{metric2},
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
 	}
-	apiRuns := ToApiRuns([]*model.Run{&modelRun1, &modelRun2})
+	apiRuns := ToApiRuns([]*model.RunDetail{&modelRun1, &modelRun2})
 	expectedApiRun := []*api.Run{
 		{
 			Id:           "run1",

@@ -150,7 +150,8 @@ message TerminateRunRequest {
 }
 
 message ListRunsResponse {
-  repeated Run runs = 1;
+  repeated Run runs = 1 [deprecated=true];
+  repeated RunDetail run_details = 4;
   int32 total_size = 3;
   string next_page_token = 2;
 }
