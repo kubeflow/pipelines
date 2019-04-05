@@ -38,7 +38,7 @@ type DefaultExperimentStore struct {
 func (s *DefaultExperimentStore) InitializeDefaultExperimentTable() error {
 	getDefaultExperimentSql, getDefaultExperimentArgs, err := sq.Select("*").From("default_experiment").ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err, "Error creating query to get default experiment ID.")
+		return util.NewInternalServerError(err, "Error creating query to check default experiment.")
 	}
 	tx, err := s.db.Begin()
 	if err != nil {

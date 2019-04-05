@@ -200,7 +200,8 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.ResourceReference{},
 		&model.RunDetail{},
 		&model.RunMetric{},
-		&model.DBStatus{})
+		&model.DBStatus{},
+		&model.DefaultExperiment{})
 
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
