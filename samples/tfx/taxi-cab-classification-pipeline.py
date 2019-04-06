@@ -74,7 +74,7 @@ def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate
 def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', analyze_mode, analyze_slice_column, analysis_output: 'GcsUri', step_name='analysis'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:a277f87ea1d4707bf860d080d06639b7caf9a1cf',
+        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:2c2445df83fa879387a200747cc20f72a7ee9727',
         arguments = [
             '--model', model,
             '--eval', evaluation_data,
