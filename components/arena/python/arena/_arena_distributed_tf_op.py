@@ -24,7 +24,10 @@ def distributed_tf_op(name, image, workers, ps, gpus, worker_cpu, worker_memory,
           rdma,
           tensorboard, tensorboard_image, command, chief=0, evaluator=0,
           data='None', output_data='None',
-          arena_image='cheyang/arena_launcher'):
+          arena_image='cheyang/arena_launcher',
+          timeout_hours='240',
+          metric_name='Train-accuracy',
+          metric_unit='PERCENTAGE'):
           """Submit Distributed TFJob with Parameter Server mode."""
           return dsl.ContainerOp(
             name=name,
@@ -39,6 +42,9 @@ def distributed_tf_op(name, image, workers, ps, gpus, worker_cpu, worker_memory,
                       "--gpus", gpus,
                       "--cpu", cpu,
                       "--memory", memory,
+                      "--timeout-hours", timeout_hours,
+                      "--metric-name", metric_name,
+                      "--metric-unit", metric_unit,
                       "tfjob",
                       "--workers", workers,
                       "--", command],
