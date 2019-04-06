@@ -369,9 +369,9 @@ def main(argv=None):
           'format': metric_unit,   # The optional format of the metric. Supported values are "RAW" (displayed in raw format) and "PERCENTAGE" (displayed in percentage format).
         }]
       }
-      with open('/mlpipeline-metrics.json', 'w') as f:
+      with open('/mlpipeline-ui-metadata.json', 'w') as f:
         json.dump(metrics, f)
-    logging.info("write down metrics.json")
+        logging.info("write down /mlpipeline-ui-metadata.json")
   elif status == "FAILED":
     logging.error("Training Job {0} fail.".format(fullname))
     sys.exit(-1)

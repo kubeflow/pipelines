@@ -50,7 +50,7 @@ def sample_pipeline(learning_rate=dsl.PipelineParam(name='learning_rate',
     data=data,
     command="mkdir -p /training/models/ && \
   cd /training/models/ && \
-  if [ ! -d /training/models/tensorflow-sample-code ]; then git clone https://code.aliyun.com/xiaozhou/tensorflow-sample-code.git; else echo no need download;fi")
+  if [ ! -d /training/models/tensorflow-sample-code ]; then git clone https://github.com/cheyang/tensorflow-sample-code.git; else echo no need download;fi")
 
   # 3. train the models
   train = arena.standalone_job_op(
@@ -66,7 +66,7 @@ def sample_pipeline(learning_rate=dsl.PipelineParam(name='learning_rate',
     name="export-model",
     image="tensorflow/tensorflow:1.11.0-py3",
     data=data,
-    command="echo %s;python /training/models/tensorflow-sample-code/tfjob/docker/mnist/export_model.py --model_version=%s --checkpoint_path=/training/output/mnist /training/output/models" % (train.output, model_version))
+    command="echo %s;python /training/models/tensorflow-sample-code/tfjob/docker/mnist/export_model.py --model_version=%s --checkpoint_step=400 --checkpoint_path=/training/output/mnist /training/output/models" % (train.output, model_version))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
