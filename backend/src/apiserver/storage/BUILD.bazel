@@ -50,6 +50,7 @@ go_test(
     srcs = [
         "db_status_store_test.go",
         "db_test.go",
+        "default_experiment_store_test.go",
         "experiment_store_test.go",
         "job_store_test.go",
         "object_store_test.go",

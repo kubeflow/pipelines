@@ -48,7 +48,7 @@ func TestMarkSampleLoaded(t *testing.T) {
 	// Initialize for the first time
 	err := dBStatusStore.InitializeDBStatusTable()
 	assert.Nil(t, err)
-	// Initialize again should be no-op and no error
+	// Mark the samples as loaded
 	err = dBStatusStore.MarkSampleLoaded()
 	assert.Nil(t, err)
 	haveSamplesLoaded, err := dBStatusStore.HaveSamplesLoaded()

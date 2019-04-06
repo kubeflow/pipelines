@@ -36,6 +36,7 @@ type DefaultExperimentStore struct {
 }
 
 func (s *DefaultExperimentStore) InitializeDefaultExperimentTable() error {
+	// First check that the table is in fact empty
 	getDefaultExperimentSql, getDefaultExperimentArgs, err := sq.Select("*").From("default_experiments").ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error creating query to check default experiment.")
@@ -51,7 +52,7 @@ func (s *DefaultExperimentStore) InitializeDefaultExperimentTable() error {
 		return util.NewInternalServerError(err, "Failed to get default experiment.")
 	}
 
-	// The table is not initialized
+	// If the table is not initialized, then set the default value.
 	if !rows.Next() {
 		sql, args, queryErr := sq.
 			Insert("default_experiments").
@@ -94,7 +95,7 @@ func (s *DefaultExperimentStore) SetDefaultExperimentId(id string) error {
 
 func (s *DefaultExperimentStore) GetDefaultExperimentId() (string, error) {
 	var defaultExperimentId string
-	sql, args, err := sq.Select("DefaultExperimentId").From("default_experiments").Where(sq.Eq{}).ToSql()
+	sql, args, err := sq.Select("DefaultExperimentId").From("default_experiments").ToSql()
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Error creating query to get default experiment ID.")
 	}

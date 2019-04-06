@@ -16,7 +16,6 @@ package resource
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 

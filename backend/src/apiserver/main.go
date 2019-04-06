@@ -143,6 +143,7 @@ func createDefaultExperiment(resourceManager *resource.ResourceManager) error {
 	if err != nil {
 		return errors.New(fmt.Sprintf("Failed to check if default experiment exists. Err: %v", err.Error()))
 	}
+	// If default experiment ID is already present, don't fail, simply return.
 	if defaultExperimentId != "" {
 		glog.Info("Default experiment already exists! ID: %v", defaultExperimentId)
 		return nil
@@ -150,8 +151,8 @@ func createDefaultExperiment(resourceManager *resource.ResourceManager) error {
 
 	// Create default experiment
 	defaultExperiment := &model.Experiment{
-		Name: "Default",
-		Description: "All runs created without specifying an experiment will be grouped here."
+		Name:        "Default",
+		Description: "All runs created without specifying an experiment will be grouped here.",
 	}
 	experiment, err := resourceManager.CreateExperiment(defaultExperiment)
 	if err != nil {
