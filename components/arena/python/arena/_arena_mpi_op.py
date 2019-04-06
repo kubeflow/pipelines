@@ -25,7 +25,14 @@ def mpi_job_op(name, image, workers, gpus, cpu, memory, rdma,
           timeout_hours='240',
           metric_name='Train-accuracy',
           metric_unit='PERCENTAGE'):
-    """Submit MPI Job, it can run Allreduce-style Distributed Training."""
+    """This function submits MPI Job, it can run Allreduce-style Distributed Training.
+
+    Args:
+      name: the name of mpi_job_op
+      image: the docker image name of training job
+      data: specify the datasource to mount to the job, like <name_of_datasource>:<mount_point_on_job>
+      command: the command to run
+    """
     return dsl.ContainerOp(
           name=name,
           image=arenaImage,

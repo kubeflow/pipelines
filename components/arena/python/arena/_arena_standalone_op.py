@@ -27,7 +27,13 @@ def standalone_job_op(name, image, command, gpus='0', cpu='0', memory='0',
           metric_name='Train-accuracy',
           metric_unit='PERCENTAGE'):
 
-    """Submit a standalone training Job 
+    """This function submits a standalone training Job 
+
+        Args:
+          name: the name of standalone_job_op
+          image: the docker image name of training job
+          data: specify the datasource to mount to the job, like <name_of_datasource>:<mount_point_on_job>
+          command: the command to run
     """
     return dsl.ContainerOp(
           name=name,
