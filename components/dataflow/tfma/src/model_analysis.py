@@ -226,8 +226,8 @@ def main():
   args = parse_arguments()
   args.slice_columns = [
     column
-    for column in column_group.split(',')
     for column_group in args.slice_columns
+    for column in column_group.split(',')
   ]
   schema = json.loads(file_io.read_file_to_string(args.schema))
   eval_model_parent_dir = os.path.join(args.model, 'tfma_eval_model_dir')
