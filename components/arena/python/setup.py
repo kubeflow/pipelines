@@ -10,7 +10,8 @@ setup(
     name=NAME,
     version=VERSION,
     description='KubeFlow Pipelines Extended Arena SDK',
-    author='google',
+    author='cheyang',
+    author_email="cheyang@163.com",
     install_requires=REQUIRES,
     packages=[
       'arena',
