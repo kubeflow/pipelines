@@ -178,7 +178,12 @@ def xgb_train_pipeline(
     confusion_matrix_task = confusion_matrix_op(predict_op.output,
                                             '%s/{{workflow.name}}/confusionmatrix' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
-    roc_task = roc_op(predict_op.output, true_label, '%s/{{workflow.name}}/roc' % output).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    roc_task = roc_op(
+      predictions_dir=predict_op.output,
+      true_class=true_label,
+      true_score_column=true_label,
+      output_dir='%s/{{workflow.name}}/roc' % output
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
   import kfp.compiler as compiler
