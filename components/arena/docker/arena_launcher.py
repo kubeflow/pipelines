@@ -364,7 +364,7 @@ def main(argv=None):
     if value > 0:
       metrics = {
         'metrics': [{
-          'name': metric_name, # The name of the metric. Visualized as the column name in the runs table.
+          'name': metric_name.lower(), # The name of the metric. Visualized as the column name in the runs table.
           'numberValue':  value, # The value of the metric. Must be a numeric value.
           'format': metric_unit,   # The optional format of the metric. Supported values are "RAW" (displayed in raw format) and "PERCENTAGE" (displayed in percentage format).
         }]
