@@ -16,11 +16,13 @@ RUN wget https://storage.googleapis.com/kubernetes-helm/helm-v2.9.1-linux-amd64.
 ENV K8S_VERSION v1.11.2
 RUN curl -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/${K8S_VERSION}/bin/linux/amd64/kubectl && chmod +x /usr/local/bin/kubectl
 
-FROM python:3.6.8-stretch
+# FROM python:3.6.8-stretch
 
-RUN apt-get update -y
+FROM python:3.7-alpine3.9 
 
-RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip git
+RUN apk update && \
+    apk add --no-cache ca-certificates py-dev python-setuptools wget unzip git bash \
+    rm -rf /var/cache/apk/*
 
 RUN pip install --upgrade pip && \
     pip install pyyaml==3.12 six==1.11.0 requests==2.18.4
