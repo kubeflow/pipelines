@@ -48,7 +48,6 @@ type PipelineClient struct {
 }
 
 func NewPipelineClient(
-	namespace string,
 	initializeTimeout time.Duration,
 	timeout time.Duration,
 	basePath string,
