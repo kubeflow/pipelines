@@ -45,7 +45,6 @@ func (s *DefaultExperimentStore) InitializeDefaultExperimentTable() error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to initialize default experiment table.")
 	}
-
 	rows, err := tx.Query(getDefaultExperimentSql, getDefaultExperimentArgs...)
 	if err != nil {
 		tx.Rollback()
