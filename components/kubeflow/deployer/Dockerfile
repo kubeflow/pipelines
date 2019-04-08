@@ -46,7 +46,7 @@ RUN apt-get update -q && apt-get upgrade -y && \
     apt-get install -y -qq --no-install-recommends google-cloud-sdk && \
     gcloud config set component_manager/disable_update_check true
 
-ENV KUBEFLOW_VERSION v0.2.5
+ENV KUBEFLOW_VERSION v0.4.0
 
 # Checkout the kubeflow packages at image build time so that we do not
 # require calling in to the GitHub API at run time.
