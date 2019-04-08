@@ -19,6 +19,11 @@ type InitializationTest struct {
 
 // Check the namespace have ML job installed and ready
 func (s *InitializationTest) SetupTest() {
+	if !*runIntegrationTests {
+		s.T().SkipNow()
+		return
+	}
+
 	err := test.WaitForReady(*namespace, *initializeTimeout)
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
