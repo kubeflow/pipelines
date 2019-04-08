@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,18 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from setuptools import setup
-
-setup(name='trainer',
-      version='1.0',
-      description='Image Classification on TPUs',
-      url='http://github.com/GoogleCloudPlatform/training-data-analyst',
-      author='Google',
-      author_email='nobody@google.com',
-      license='Apache2',
-      packages=['trainer'],
-      install_requires=[
-          'tensorflow'
-      ],
-      zip_safe=False)
