@@ -106,3 +106,4 @@ def main():
       raise ValueError('--namespace is required for compiling packages.')
     compile_package(args.package, args.namespace, args.function, args.output, not args.disable_type_check)
   
+
