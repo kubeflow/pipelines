@@ -1,4 +1,4 @@
-# This image has the script to kick off the ML pipeline API integration test,
+# This image has the script to kick off the ML pipeline initialization test,
 # and upload the result to GCS
 
 FROM golang:1.11
