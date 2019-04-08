@@ -501,7 +501,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
     dependency (list): a list of VersionedDependency, which includes the package name and versions, default is empty
     python_version (str): choose python2 or python3, default is python3
   Raises:
-    ValueError: The function is not decorated with python_component decorator or the python_version is neither python2 nor python3
+     ValueError: The function is not decorated with python_component decorator or the python_version is neither python2 nor python3
   """
 
   _configure_logger(logging.getLogger())
