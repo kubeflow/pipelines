@@ -24,7 +24,7 @@ def random_num_op(low, high):
         name='Generate random number',
         image='python:alpine3.6',
         command=['sh', '-c'],
-        arguments=['python -c "import random; print(random.randint($0, $1))" | tee $2', low, high, '/tmp/output'],
+        arguments=['python -c "import random; print(random.randint($0, $1))" | tee $2', str(low), str(high), '/tmp/output'],
         file_outputs={'output': '/tmp/output'}
     )
 
