@@ -21,7 +21,7 @@ import logging
 
 def standalone_job_op(name, image, command, gpus=0, cpu=0, memory=0, envs=[],
           tensorboard=False, 
-          mounts=[], sync_source=None,
+          mounts=[], sync_source=None, annotations=[],
           metrics=['Train-accuracy:PERCENTAGE'],
           arena_image='cheyang/arena_launcher',
           timeout_hours=240):

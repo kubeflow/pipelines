@@ -25,7 +25,7 @@ def esitmator_op(name, image, command,
                       parameter_servers, ps_image, ps_cpu, ps_memory, ps_port, 
                       gpus, rdma, 
                       tensorboard, 
-                      worker_image, worker_port, 
+                      worker_image, worker_port, annotations=[],
                       evaluator=False, evaluator_cpu=0, evaluator_memory=0, 
                       envs=[], mounts=[], sync_source=None,
                       metrics=['Train-accuracy:PERCENTAGE'],
@@ -55,7 +55,7 @@ def esitmator_op(name, image, command,
 
 # def DistributeTFOp(name, image, gpus: int, ):
 
-def parameter_servers_op(name, image, command, envs=[], mounts=[], sync_source=None,
+def parameter_servers_op(name, image, command, envs=[], mounts=[], sync_source=None, annotations=[],
                       workers, worker_image, worker_cpu, worker_memory,
                       parameter_servers, ps_image, ps_cpu, ps_memory,
                       gpus, rdma, 
