@@ -26,8 +26,6 @@ __all__ = [
     'ContainerSpec',
     'ContainerImplementation',
 
-    'SourceSpec',
-
     'ComponentSpec',
 
     'ComponentReference',
@@ -217,14 +215,6 @@ class ContainerImplementation(ModelBase):
 ImplementationType = Union[ContainerImplementation, 'GraphImplementation']
 
 
-class SourceSpec(ModelBase):
-    '''Specifies the location of the component source code.'''
-    def __init__(self,
-        url: str = None
-    ):
-        super().__init__(locals())
-
-
 class MetadataSpec(ModelBase):
     def __init__(self,
         annotations: Optional[Dict[str, str]] = None,
@@ -234,13 +224,12 @@ class MetadataSpec(ModelBase):
 
 
 class ComponentSpec(ModelBase):
-    '''Component specification. Describes the metadata (name, description, source), the interface (inputs and outputs) and the implementation of the component.'''
+    '''Component specification. Describes the metadata (name, description, annotations and labels), the interface (inputs and outputs) and the implementation of the component.'''
     def __init__(
         self,
         implementation: ImplementationType,
         name: Optional[str] = None, #? Move to metadata?
         description: Optional[str] = None, #? Move to metadata?
-        source: Optional[SourceSpec] = None, #? Move to metadata?
         metadata: Optional[MetadataSpec] = None,
         inputs: Optional[List[InputSpec]] = None,
         outputs: Optional[List[OutputSpec]] = None,
