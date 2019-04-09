@@ -170,7 +170,13 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         from kubernetes import client as k8s_client
         for name, value in env.items():
             task.container.add_env_variable(k8s_client.V1EnvVar(name=name, value=value))
-  
+
+    if component_spec.metadata:
+        for key, value in (component_spec.metadata.annotations or {}).items():
+            task.add_pod_annotation(key, value)
+        for key, value in (component_spec.metadata.labels or {}).items():
+            task.add_pod_label(key, value)
+
     if need_dummy:
         _dummy_pipeline.__exit__()
 
