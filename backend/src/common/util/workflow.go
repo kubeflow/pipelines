@@ -136,6 +136,10 @@ func (w *Workflow) ScheduledAtInSecOr0() int64 {
 }
 
 func (w *Workflow) FinishedAt() int64 {
+	if w.Status.FinishedAt.IsZero(){
+		// If workflow is not finished
+		return 0
+	}
 	return w.Status.FinishedAt.Unix()
 }
 

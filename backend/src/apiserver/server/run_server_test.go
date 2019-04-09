@@ -37,6 +37,7 @@ func TestCreateRun(t *testing.T) {
 			StorageState: api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:  &timestamp.Timestamp{},
+			FinishedAt:   &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
@@ -76,6 +77,7 @@ func TestListRun(t *testing.T) {
 		StorageState: api.Run_STORAGESTATE_AVAILABLE,
 		CreatedAt:    &timestamp.Timestamp{Seconds: 2},
 		ScheduledAt:  &timestamp.Timestamp{},
+		FinishedAt:   &timestamp.Timestamp{},
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
