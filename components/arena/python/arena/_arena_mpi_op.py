@@ -18,8 +18,8 @@ import kfp.dsl as dsl
 import datetime
 import logging
 
-def mpi_job_op(name, image, command, workers=0, gpus=0, cpu=0, memory=0, envs=[],annotations=[],
-          mounts=[],
+def mpi_job_op(name, image, command, workers=0, gpus=0, cpu=0, memory=0, env=[],annotations=[],
+          data=[],
           rdma=False,
           tensorboard=False, 
           metrics=['Train-accuracy:PERCENTAGE'],

@@ -27,7 +27,7 @@ def esitmator_op(name, image, command,
                       tensorboard, 
                       worker_image, worker_port, annotations=[],
                       evaluator=False, evaluator_cpu=0, evaluator_memory=0, 
-                      envs=[], mounts=[], sync_source=None,
+                      env=[], data=[], sync_source=None,
                       metrics=['Train-accuracy:PERCENTAGE'],
                       arena_image='cheyang/arena_launcher',
                       timeout_hours=240):
@@ -40,7 +40,7 @@ def esitmator_op(name, image, command,
             data: specify the datasource to mount to the job, like <name_of_datasource>:<mount_point_on_job>
             command: the command to run
           """
-    return distributed_tf_op(name=name, image=image, command=command, envs=envs, mounts=mounts, sync_source=sync_source,
+    return distributed_tf_op(name=name, image=image, command=command, envs=envs, data=data, sync_source=sync_source,
                       workers=workers, worker_image=worker_image, worker_cpu=worker_cpu, worker_memory=worker_memory,
                       parameter_servers=parameter_servers, ps_image=ps_image, ps_cpu=ps_cpu, ps_memory=ps_memory,
                       gpus=gpus, rdma=rdma,
@@ -55,7 +55,7 @@ def esitmator_op(name, image, command,
 
 # def DistributeTFOp(name, image, gpus: int, ):
 
-def parameter_servers_op(name, image, command, envs=[], mounts=[], sync_source=None, annotations=[],
+def parameter_servers_op(name, image, command, env=[], data=[], sync_source=None, annotations=[],
                       workers, worker_image, worker_cpu, worker_memory,
                       parameter_servers, ps_image, ps_cpu, ps_memory,
                       gpus, rdma, 
@@ -73,7 +73,7 @@ def parameter_servers_op(name, image, command, envs=[], mounts=[], sync_source=N
             data: specify the datasource to mount to the job, like <name_of_datasource>:<mount_point_on_job>
             command: the command to run
           """
-    return distributed_tf_op(name=name, image=image, command=command, envs=envs, mounts=mounts, sync_source=sync_source,
+    return distributed_tf_op(name=name, image=image, command=command, envs=envs, data=data, sync_source=sync_source,
                       workers=workers, worker_image=worker_image, worker_cpu=worker_cpu, worker_memory=worker_memory,
                       parameter_servers=parameter_servers, ps_image=ps_image, ps_cpu=ps_cpu, ps_memory=ps_memory,
                       gpus=gpus, rdma=rdma, 
@@ -86,7 +86,7 @@ def parameter_servers_op(name, image, command, envs=[], mounts=[], sync_source=N
 
 
 
-def distributed_tf_op(name, image, command, envs=[], mounts=[], sync_source=None,
+def distributed_tf_op(name, image, command, env=[], data=[], sync_source=None,
                       chief=False, chief_cpu=0, chief_memory=0, 
                       workers=0, worker_image=None, worker_cpu=0, worker_memory=0,
                       parameter_servers=0, ps_image=None, ps_cpu=0, ps_memory=0,
