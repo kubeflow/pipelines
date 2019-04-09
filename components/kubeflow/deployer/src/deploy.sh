@@ -93,7 +93,7 @@ fi
 
 echo "Installing Kubeflow packages..."
 ks registry add kubeflow /src/github.com/kubeflow/kubeflow/kubeflow
-ks pkg install kubeflow/core@${KUBEFLOW_VERSION}
+ks pkg install kubeflow/common@${KUBEFLOW_VERSION}
 ks pkg install kubeflow/tf-serving@${KUBEFLOW_VERSION}
 
 echo "Generating the TF Serving config..."
