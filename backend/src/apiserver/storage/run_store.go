@@ -202,7 +202,7 @@ func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.Sele
 	return sq.
 		Select("subq.*", resourceRefConcatQuery+" AS refs").
 		FromSelect(subQ, "subq").
-	// Append all the resource references for the run as a json column
+	  // Append all the resource references for the run as a json column
 		LeftJoin("(select * from resource_references where ResourceType='Run') AS r ON subq.UUID=r.ResourceUUID").
 		GroupBy("subq.UUID")
 }
