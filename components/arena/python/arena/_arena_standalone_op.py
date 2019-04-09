@@ -19,20 +19,19 @@ import datetime
 import logging
 
 
-def standalone_job_op(name, image, command, gpus='0', cpu='0', memory='0',
-          tensorboard='False', tensorboard_image='', 
-          data='None', output_data='None',
+def standalone_job_op(name, image, command, gpus=0, cpu=0, memory=0, envs=[],
+          tensorboard=False, 
+          mounts=[], sync_source=None,
+          metrics=['Train-accuracy:PERCENTAGE'],
           arena_image='cheyang/arena_launcher',
-          timeout_hours='240',
-          metric_name='Train-accuracy',
-          metric_unit='PERCENTAGE'):
+          timeout_hours=240):
 
     """This function submits a standalone training Job 
 
         Args:
           name: the name of standalone_job_op
           image: the docker image name of training job
-          data: specify the datasource to mount to the job, like <name_of_datasource>:<mount_point_on_job>
+          mount: specify the datasource to mount to the job, like <name_of_datasource>:<mount_point_on_job>
           command: the command to run
     """
     return dsl.ContainerOp(
@@ -42,7 +41,6 @@ def standalone_job_op(name, image, command, gpus='0', cpu='0', memory='0',
           arguments=[ "--name", '%s-{{workflow.name}}' % name,
                       "--tensorboard", tensorboard,
                       "--data", data,
-                      "--output-data", output_data,
                       "--image", image,
                       "--gpus", gpus,
                       "--cpu", cpu,
