@@ -135,6 +135,10 @@ func (w *Workflow) ScheduledAtInSecOr0() int64 {
 	return 0
 }
 
+func (w *Workflow) FinishedAt() int64 {
+	return w.Status.FinishedAt.Unix()
+}
+
 func (w *Workflow) Condition() string {
 	return string(w.Status.Phase)
 }

@@ -420,6 +420,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 			Namespace:        workflow.Namespace,
 			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
 			ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
+			FinishedAtInSec:  workflow.FinishedAt(),
 			Conditions:       workflow.Condition(),
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
