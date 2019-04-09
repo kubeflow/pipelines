@@ -39,6 +39,14 @@ def yamlOrJsonStr(str):
 def strToList(str):
     return str.split(",")
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Unsupported value encountered.')
+
 def _update_or_pop(spec, name, value):
     if value:
         spec[name] = value
@@ -121,6 +129,9 @@ def main(argv=None):
   parser.add_argument('--outputfile', type=str,
                       default='/output.txt',
                       help='The file which stores the best trial of the studyJob.')
+  parser.add_argument('--deleteafterdone', type=str2bool,
+                      default=True,
+                      help='When studyjob done, delete the studyjob automatically if it is True.')
   parser.add_argument('--studyjobtimeoutminutes', type=int,
                       default=10,
                       help='Time in minutes to wait for the StudyJob to complete')
@@ -128,7 +139,6 @@ def main(argv=None):
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
-
 
   logging.info('Generating studyjob template.')
   template_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'hp.template.yaml')
@@ -157,8 +167,8 @@ def main(argv=None):
       f.write(json.dumps(ps_dict))
   if succ:
     logging.info('Study success.')
-
-  study_job_client.delete_study_job(api_client, job_name, job_namespace)
+  if args.deleteafterdone:
+    study_job_client.delete_study_job(api_client, job_name, job_namespace)
 
 if __name__== "__main__":
   main()
