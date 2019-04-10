@@ -31,6 +31,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
+var runColumns = []string{"UUID", "DisplayName", "Name", "StorageState", "Namespace", "Description",
+	"CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineSpecManifest",
+	"WorkflowSpecManifest", "Parameters", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
+}
+
 type RunStoreInterface interface {
 	GetRun(runId string) (*model.RunDetail, error)
 
@@ -40,7 +45,7 @@ type RunStoreInterface interface {
 	CreateRun(run *model.RunDetail) (*model.RunDetail, error)
 
 	// Update run table. Only condition and runtime manifest is allowed to be updated.
-	UpdateRun(id string, condition string, workflowRuntimeManifest string) (err error)
+	UpdateRun(id string, condition string, finishedAtInSec int64, workflowRuntimeManifest string) (err error)
 
 	// Archive a run
 	ArchiveRun(id string) error
@@ -139,7 +144,8 @@ func (s *RunStore) ListRuns(
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	filterContext *common.FilterContext) (string, []interface{}, error) {
-	filteredSelectBuilder, err := list.FilterOnResourceReference("run_details", common.Run, selectCount, filterContext)
+	filteredSelectBuilder, err := list.FilterOnResourceReference("run_details", runColumns,
+		common.Run, selectCount, filterContext)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
@@ -162,7 +168,7 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 
 // GetRun Get the run manifest from Workflow CRD
 func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
-	sql, args, err := s.addMetricsAndResourceReferences(sq.Select("*").From("run_details")).
+	sql, args, err := s.addMetricsAndResourceReferences(sq.Select(runColumns...).From("run_details")).
 		Where(sq.Eq{"UUID": runId}).
 		Limit(1).
 		ToSql()
@@ -223,6 +229,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			&description,
 			&createdAtInSec,
 			&scheduledAtInSec,
+			&finishedAtInSec,
 			&conditions,
 			&pipelineId,
 			&pipelineSpecManifest,
@@ -232,7 +239,6 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			&workflowRuntimeManifest,
 			&metricsInString,
 			&resourceReferencesInString,
-			&finishedAtInSec,
 		)
 		if err != nil {
 			glog.Errorf("Failed to scan row: %v", err)
@@ -356,7 +362,7 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 	return r, nil
 }
 
-func (s *RunStore) UpdateRun(runID string, condition string, workflowRuntimeManifest string) (err error) {
+func (s *RunStore) UpdateRun(runID string, condition string, finishedAtInSec int64, workflowRuntimeManifest string) (err error) {
 	tx, err := s.db.DB.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "transaction creation failed")
@@ -389,6 +395,7 @@ func (s *RunStore) UpdateRun(runID string, condition string, workflowRuntimeMani
 		Update("run_details").
 		SetMap(sq.Eq{
 			"Conditions":              condition,
+			"FinishedAtInSec":         finishedAtInSec,
 			"WorkflowRuntimeManifest": workflowRuntimeManifest}).
 		Where(sq.Eq{"UUID": runID}).
 		ToSql()
@@ -419,7 +426,7 @@ func (s *RunStore) CreateOrUpdateRun(runDetail *model.RunDetail) error {
 		return nil
 	}
 
-	updateError := s.UpdateRun(runDetail.UUID, runDetail.Conditions, runDetail.WorkflowRuntimeManifest)
+	updateError := s.UpdateRun(runDetail.UUID, runDetail.Conditions, runDetail.FinishedAtInSec, runDetail.WorkflowRuntimeManifest)
 	if updateError != nil {
 		return util.Wrap(updateError, fmt.Sprintf(
 			"Error while creating or updating run for workflow: '%v/%v'. Create error: '%v'. Update error: '%v'",
