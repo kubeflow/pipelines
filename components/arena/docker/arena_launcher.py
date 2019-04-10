@@ -265,12 +265,17 @@ def main(argv=None):
   parser.add_argument('--output-dir', type=str, default='')
   parser.add_argument('--output-data', type=str, default='None')
   parser.add_argument('--log-dir', type=str, default='')
-  parser.add_argument('--data', type=str, default='None')
+  
   parser.add_argument('--image', type=str)
   parser.add_argument('--gpus', type=int, default=0)
   parser.add_argument('--cpu', type=int, default=0)
   parser.add_argument('--memory', type=int, default=0)
   parser.add_argument('--workers', type=int, default=2)
+
+  parser.add_argument('--env', action='append', type=str, default=[])
+  parser.add_argument('--data', action='append', type=str, default=[])
+  parser.add_argument('--metric', action='append', type=str, default=[])
+
   parser.add_argument('--metric-name', type=str, default='Train-accuracy')
   parser.add_argument('--metric-unit', type=str, default='PERCENTAGE')
   subparsers = parser.add_subparsers(help='arena sub-command help')
@@ -305,9 +310,6 @@ def main(argv=None):
   fullname = name + datetime.datetime.now().strftime("%Y%M%d%H%M%S")
   timeout_hours = args_dict.pop('timeout_hours')
   logging.info("timeout_hours: {0}".format(timeout_hours))
-  metric_name = args_dict.pop('metric_name')
-  metric_unit = args_dict.pop('metric_unit')
-
 
   enableTensorboard = str2bool(args.tensorboard)
 
@@ -360,17 +362,28 @@ def main(argv=None):
 
   if status == "SUCCEEDED":
     logging.info("Training Job {0} success.".format(fullname))
-    value = _collect_metrics(fullname, job_type, metric_name)
-    if value > 0:
-      metrics = {
-        'metrics': [{
+    if len(args.metrics) > 0:
+      metrics_data = {
+        'metrics': []
+      }
+      metric_unit="RAW"
+      for m in args.metrics:
+        mArray = m.split(":")
+        metric_name = mArray[0]
+        if len(mArray) > 1:
+          metric_unit = mArray[1]
+        value = _collect_metrics(fullname, job_type, metric_name)
+        if value > 0:
+          metric_list = metrics_data['metrics']
+          metric_data = {
           'name': metric_name.lower(), # The name of the metric. Visualized as the column name in the runs table.
           'numberValue':  value, # The value of the metric. Must be a numeric value.
           'format': metric_unit,   # The optional format of the metric. Supported values are "RAW" (displayed in raw format) and "PERCENTAGE" (displayed in percentage format).
-        }]
-      }
+          }
+          metrics_data['metrics'] = metric_list.append(metric_data)
+          logging.info("metrics: {0}".metrics_data)
       with open('/mlpipeline-metrics.json', 'w') as f:
-        json.dump(metrics, f)
+        json.dump(metrics_data, f)
         logging.info("write down /mlpipeline-metrics.json")
   elif status == "FAILED":
     logging.error("Training Job {0} fail.".format(fullname))

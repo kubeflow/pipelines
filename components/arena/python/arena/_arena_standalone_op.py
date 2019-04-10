@@ -20,7 +20,7 @@ import logging
 
 
 def standalone_job_op(name, image, command, gpus=0, cpu=0, memory=0, env=[],
-          tensorboard=False, 
+          tensorboard=False, tensorboard_image=None,
           data=[], sync_source=None, annotations=[],
           metrics=['Train-accuracy:PERCENTAGE'],
           arena_image='cheyang/arena_launcher',
@@ -34,20 +34,49 @@ def standalone_job_op(name, image, command, gpus=0, cpu=0, memory=0, env=[],
           mount: specify the datasource to mount to the job, like <name_of_datasource>:<mount_point_on_job>
           command: the command to run
     """
+    if not name:
+      raise ValueError("name must be specified")
+    if not image:
+      raise ValueError("image must be specified")
+    if not command:
+      raise ValueError("command must be specified")
+
+    options = []
+    if sync_source:
+       if not sync_source.startswith("http"):
+          raise ValueError("sync_source must be an http git url")
+       options.append('--sync-source')
+       options.append(sync_source)
+
+    for e in env:
+      options.append('--env')
+      options.append(e)
+
+    for d in data:
+      options.append('--data')
+      options.append(d)
+
+    for m in metrics:
+      options.append('--metric')
+      options.append(m)
+
+    if tensorboard_image:
+      options.append('--tensorboard-image')
+      options.append(tensorboard_image)
+
     return dsl.ContainerOp(
           name=name,
           image=arena_image,
           command=['python','arena_launcher.py'],
           arguments=[ "--name", '%s-{{workflow.name}}' % name,
                       "--tensorboard", tensorboard,
-                      "--data", data,
                       "--image", image,
                       "--gpus", gpus,
                       "--cpu", cpu,
                       "--memory", memory,
                       "--timeout-hours", timeout_hours,
-                      "--metric-name", metric_name,
-                      "--metric-unit", metric_unit,
+                      ] + options +
+                      [
                       "job",
                       "--", command],
           file_outputs={'train': '/output.txt'}
