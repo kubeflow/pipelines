@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from typing import Mapping
-from ._structures import ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
+from ._structures import ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, ComponentSpec, TaskSpec
 from ._components import _generate_output_file_name, _default_component_name
 from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 
@@ -126,12 +126,13 @@ def create_container_op_from_task(task_spec: TaskSpec):
         output_paths=output_paths,
         env=container_spec.env,
         component_spec=component_spec,
+        task_spec=task_spec,
     )
 
 
 _dummy_pipeline=None
 
-def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, output_paths=None, env : Mapping[str, str]=None, component_spec=None):
+def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, output_paths=None, env : Mapping[str, str]=None, component_spec: ComponentSpec=None, task_spec: TaskSpec=None):
     from .. import dsl
     global _dummy_pipeline
     need_dummy = dsl.Pipeline._default_pipeline is None
@@ -165,6 +166,8 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
     )
 
     task._set_metadata(component_meta)
+    task._component_spec = component_spec
+    task._task_spec = task_spec
 
     if env:
         from kubernetes import client as k8s_client
