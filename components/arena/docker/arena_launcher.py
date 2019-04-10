@@ -145,6 +145,7 @@ def generate_job_command(args):
     image = args.image
     output_data = args.output_data
     data = args.data
+    env = args.env
     tensorboard_image = args.tensorboard_image
     tensorboard = str2bool(args.tensorboard)
     log_dir = args.log_dir
@@ -175,14 +176,11 @@ def generate_job_command(args):
     else:
         logging.info("skip log dir :{0}".format(args.log_dir))
 
-    if len(data) > 0 and data != 'None':
-      dataList = data.split(",")
-      if len(output_data) > 0 and data != 'None':
-        dataList = dataList + list(set([output_data]) - set(dataList))
+    if len(data) > 0:
+      commandArray.append("--data={0}".format(data[i]))
 
-        for i in range(len(dataList)):
-          if dataList[i] != "None":
-            commandArray.append("--data={0}".format(dataList[i]))
+    if len(env) > 0:
+      commandArray.append("--env={0}".format(env[i]))
 
     return commandArray, "tfjob"
 
@@ -322,29 +320,8 @@ def main(argv=None):
   
   _submit_job(command)
   
-  tensorboardUrl = "N/A"
-  if enableTensorboard:
-      tensorboardUrl = _get_tensorboard_url(fullname, job_type)
-  output = "N/A"
-
-  if args.output_dir:
-    # Create metadata.json file for visualization.
-    output = args.output_dir
-    
-
-  if args.output_data:
-    output = args.output_data
-
-  metadata = {
-      'outputs' : [{
-        'jobname': fullname, 
-        'tensorboard': tensorboardUrl,
-        'output': output,
-      }]
-    }
-
-  with open('/mlpipeline-ui-metadata.json', 'w') as f:
-      json.dump(metadata, f)
+  #with open('/mlpipeline-ui-metadata.json', 'w') as f:
+  #    json.dump(metadata, f)
 
   
   succ = True
@@ -392,8 +369,9 @@ def main(argv=None):
     logging.error("Training Job {0}'s status {1}".format(fullname, status))
     sys.exit(-1)
 
-  with open('/output.txt', 'w') as f:
-    f.write(output)
+  # TODO(cheyang): copy the output.txt from training job
+  #with open('/output.txt', 'w') as f:
+  #  f.write(output)
 
 
 if __name__== "__main__":
