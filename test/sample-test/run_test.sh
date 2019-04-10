@@ -339,4 +339,20 @@ elif [ "$TEST_NAME" == "notebook-lightweight" ]; then
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT
+elif [ "$TEST_NAME" == "notebook-typecheck" ]; then
+  SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT=junit_SampleNotebookTypecheckOutput.xml
+  SAMPLE_NOTEBOOK_TYPECHECK_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  cd ${BASE_DIR}/samples/notebooks
+  export LC_ALL=C.UTF-8
+  export LANG=C.UTF-8
+  papermill --prepare-only -p EXPERIMENT_NAME notebook-typecheck -p PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  DSL\ Static\ Type\ Checking.ipynb notebook-typecheck.ipynb
+  jupyter nbconvert --to python notebook-typecheck.ipynb
+  pip3 install tensorflow==1.8.0
+  ipython notebook-typecheck.py
+  cd "${TEST_DIR}"
+  python3 check_notebook_results.py --experiment notebook-typecheck --testname notebooktypecheck --result $SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT --namespace ${NAMESPACE}
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp $SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT
 fi
