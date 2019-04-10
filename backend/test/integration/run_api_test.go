@@ -299,6 +299,7 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,
 		ScheduledAt: runDetail.Run.ScheduledAt,
+		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
