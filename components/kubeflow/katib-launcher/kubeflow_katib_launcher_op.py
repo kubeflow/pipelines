@@ -34,7 +34,7 @@ def kubeflow_studyjob_launcher_op(name, namespace, optimizationtype, objectiveva
             "--mcollectortemplatepath", mcollectortemplatepath,
             "--suggestionspec", suggestionspec,
             "--outputfile", output_file,
-            "--deleteafterdone", delete,
+            "--deleteAfterDone", delete,
             '--studyjobtimeoutminutes', studyjob_timeout_minutes,
         ],
         file_outputs = {'hyperparameter': output_file}
