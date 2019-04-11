@@ -49,12 +49,13 @@ KFAPP=${TEST_CLUSTER}
 function clean_up {
   echo "Clean up..."
   cd ${DIR}/${KFAPP}
-  ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all
+  ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all >kubeflow_uninstall.log 2>&1 || { error_code ="$?"; cat kubeflow_uninstall.log; } #Not exiting here, so thet the deployment is always deleted
   # delete the storage
   gcloud deployment-manager --project=${PROJECT} deployments delete ${KFAPP}-storage --quiet
 }
 trap clean_up EXIT SIGINT SIGTERM
 
+(
 cd ${DIR}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform ${PLATFORM} --project ${PROJECT} --skipInitProject
 
@@ -63,5 +64,6 @@ ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
+) >kubeflow_install.log 2>&1 || { error_code ="$?"; cat kubeflow_install.log; exit "$error_code"; }
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
