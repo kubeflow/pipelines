@@ -26,6 +26,12 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
+var jobColumns = []string{"UUID", "DisplayName", "Name", "Namespace", "Description", "MaxConcurrency",
+	"CreatedAtInSec", "UpdatedAtInSec", "Enabled", "CronScheduleStartTimeInSec", "CronScheduleEndTimeInSec",
+	"Schedule", "PeriodicScheduleStartTimeInSec", "PeriodicScheduleEndTimeInSec", "IntervalSecond",
+	"PipelineId", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "Conditions",
+}
+
 type JobStoreInterface interface {
 	ListJobs(filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error)
 	GetJob(id string) (*model.Job, error)
@@ -106,7 +112,8 @@ func (s *JobStore) ListJobs(
 
 func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	filterContext *common.FilterContext) (string, []interface{}, error) {
-	filteredSelectBuilder, err := list.FilterOnResourceReference("jobs", common.Job, selectCount, filterContext)
+	filteredSelectBuilder, err := list.FilterOnResourceReference("jobs", jobColumns,
+		common.Job, selectCount, filterContext)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
@@ -129,7 +136,7 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 }
 
 func (s *JobStore) GetJob(id string) (*model.Job, error) {
-	sql, args, err := s.addResourceReferences(sq.Select("*").From("jobs")).
+	sql, args, err := s.addResourceReferences(sq.Select(jobColumns...).From("jobs")).
 		Where(sq.Eq{"uuid": id}).
 		Limit(1).
 		ToSql()

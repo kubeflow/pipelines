@@ -201,6 +201,9 @@ message Run {
   // v.s. created_at is the current time.
   google.protobuf.Timestamp scheduled_at = 7;
 
+  // Output. The time this run is finished.
+  google.protobuf.Timestamp finished_at = 13;
+
   // Output. The status of the run.
   // One of [Pending, Running, Succeeded, Skipped, Failed, Error]
   string status = 8;
