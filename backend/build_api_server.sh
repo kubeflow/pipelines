@@ -26,7 +26,7 @@ usage() {
     $0 [ --use_remote_build ] [ --gcp_credentials_file <FILE> ] -i IMAGE_TAG
 
       --use_remote_build       Use Remote Build Execution (RBE). Defaults to true.
-      --gcp_credentials_file   Path to JSON file with credentials for RBE. Defaults to \$GOOGLE_APPLICATION_CREDENTIALS
+      --gcp_credentials_file   Path to JSON file with credentials for RBE.
 EOM
 }
 
@@ -37,7 +37,6 @@ PARSED=$(getopt --longoptions=$LONGOPTS --options=$OPTS --name "$0" -- "$@")
 eval set -- "$PARSED"
 
 USE_REMOTE_BUILD=true
-# GCP_CREDENTIALS_FILE=$GOOGLE_APPLICATION_CREDENTIALS
 GCP_CREDENTIALS_FILE="gs://ml-pipeline-test-bazel/ml-pipeline-test-bazel-builder-credentials.json"
 
 while true; do
