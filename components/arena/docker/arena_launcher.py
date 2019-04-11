@@ -177,10 +177,12 @@ def generate_job_command(args):
         logging.info("skip log dir :{0}".format(args.log_dir))
 
     if len(data) > 0:
-      commandArray.append("--data={0}".format(data[i]))
+      for d in data:
+        commandArray.append("--data={0}".format(d))
 
     if len(env) > 0:
-      commandArray.append("--env={0}".format(env[i]))
+      for e in env:
+        commandArray.append("--env={0}".format(e))
 
     return commandArray, "tfjob"
 
@@ -195,6 +197,7 @@ def generate_mpjob_command(args):
     image = args.image
     output_data = args.output_data
     data = args.data
+    env = args.env
     tensorboard_image = args.tensorboard_image
     tensorboard = str2bool(args.tensorboard)
     rdma = str2bool(args.rdma)
@@ -230,14 +233,13 @@ def generate_mpjob_command(args):
     else:
         logging.info("skip log dir :{0}".format(args.log_dir))
 
-    if len(data) > 0 and data != 'None':
-      dataList = data.split(",")
-      if len(output_data) > 0 and data != 'None':
-        dataList = dataList + list(set([output_data]) - set(dataList))
+    if len(data) > 0:
+      for d in data:
+        commandArray.append("--data={0}".format(d))
 
-        for i in range(len(dataList)):
-          if len(output_data) > 0 and data != 'None':
-            commandArray.append("--data={0}".format(dataList[i]))
+    if len(env) > 0:
+      for e in env:
+        commandArray.append("--env={0}".format(e))
 
     return commandArray, "mpijob"
 

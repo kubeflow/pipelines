@@ -55,7 +55,7 @@ def estimator_op(name, image, command,
 
 # def DistributeTFOp(name, image, gpus: int, ):
 
-def parameter_servers_op(name, image, command, env=[], data=[], sync_source=None, annotations=[],
+def parameter_servers_op(name, image, command, env, data, sync_source, annotations,
                       workers, worker_image, worker_cpu, worker_memory,
                       parameter_servers, ps_image, ps_cpu, ps_memory,
                       gpus, rdma, 

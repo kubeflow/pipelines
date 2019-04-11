@@ -23,7 +23,7 @@ def standalone_job_op(name, image, command, gpus=0, cpu=0, memory=0, env=[],
           tensorboard=False, tensorboard_image=None,
           data=[], sync_source=None, annotations=[],
           metrics=['Train-accuracy:PERCENTAGE'],
-          arena_image='cheyang/arena_launcher',
+          arena_image='cheyang/arena_launcher:v0.2',
           timeout_hours=240):
 
     """This function submits a standalone training Job 
@@ -46,38 +46,38 @@ def standalone_job_op(name, image, command, gpus=0, cpu=0, memory=0, env=[],
        if not sync_source.startswith("http"):
           raise ValueError("sync_source must be an http git url")
        options.append('--sync-source')
-       options.append(sync_source)
+       options.append(str(sync_source))
 
     for e in env:
       options.append('--env')
-      options.append(e)
+      options.append(str(e))
 
     for d in data:
       options.append('--data')
-      options.append(d)
+      options.append(str(d))
 
     for m in metrics:
       options.append('--metric')
-      options.append(m)
+      options.append(str(m))
 
     if tensorboard_image:
       options.append('--tensorboard-image')
-      options.append(tensorboard_image)
+      options.append(str(tensorboard_image))
 
     return dsl.ContainerOp(
           name=name,
           image=arena_image,
           command=['python','arena_launcher.py'],
           arguments=[ "--name", '%s-{{workflow.name}}' % name,
-                      "--tensorboard", tensorboard,
-                      "--image", image,
-                      "--gpus", gpus,
-                      "--cpu", cpu,
-                      "--memory", memory,
-                      "--timeout-hours", timeout_hours,
+                      "--tensorboard", str(tensorboard),
+                      "--image", str(image),
+                      "--gpus", str(gpus),
+                      "--cpu", str(cpu),
+                      "--memory", str(memory),
+                      "--timeout-hours", str(timeout_hours),
                       ] + options +
                       [
                       "job",
-                      "--", command],
+                      "--", str(command)],
           file_outputs={'train': '/output.txt'}
       )
