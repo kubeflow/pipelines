@@ -19,13 +19,13 @@ import datetime
 import logging
 
 
-def esitmator_op(name, image, command, 
+def estimator_op(name, image, command, 
                       chief_cpu, chief_memory, chief_port,
                       workers, worker_image, worker_cpu, worker_memory,
                       parameter_servers, ps_image, ps_cpu, ps_memory, ps_port, 
                       gpus, rdma, 
                       tensorboard, 
-                      worker_image, worker_port, annotations=[],
+                      worker_port, annotations=[],
                       evaluator=False, evaluator_cpu=0, evaluator_memory=0, 
                       env=[], data=[], sync_source=None,
                       metrics=['Train-accuracy:PERCENTAGE'],
@@ -60,7 +60,7 @@ def parameter_servers_op(name, image, command, env=[], data=[], sync_source=None
                       parameter_servers, ps_image, ps_cpu, ps_memory,
                       gpus, rdma, 
                       tensorboard, 
-                      worker_image, worker_port, ps_port, 
+                      worker_port, ps_port, 
                       metrics=['Train-accuracy:PERCENTAGE'],
                       arena_image='cheyang/arena_launcher',
                       timeout_hours=240):

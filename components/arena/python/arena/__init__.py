@@ -14,4 +14,4 @@
 
 from ._arena_mpi_op import mpi_job_op
 from ._arena_standalone_op import standalone_job_op
-from ._arena_distributed_tf_op import distributed_tf_op
+from ._arena_distributed_tf_op import estimator_op, parameter_servers_op
