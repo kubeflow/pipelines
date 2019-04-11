@@ -10,28 +10,23 @@
     "file":"/samples/tfx/taxi-cab-classification-pipeline.py.tar.gz"
   },
   {
-    "name":"[Sample] Basic - Sequential",
+    "name":"[Sample] Basic - Sequential execution",
     "description":"A pipeline with two sequential steps. For source code, refer to https://github.com/kubeflow/pipelines/blob/master/samples/basic/sequential.py",
     "file":"/samples/basic/sequential.py.tar.gz"
   },
   {
-    "name":"[Sample] Basic - Parallel Join",
-    "description":"A pipeline that downloads two messages in parallel and print the concatenated result. For source code, refer to https://github.com/kubeflow/pipelines/blob/master/samples/basic/parallel_join.py",
+    "name":"[Sample] Basic - Parallel execution",
+    "description":"A pipeline that downloads two messages in parallel and prints the concatenated result. For source code, refer to https://github.com/kubeflow/pipelines/blob/master/samples/basic/parallel_join.py",
     "file":"/samples/basic/parallel_join.py.tar.gz"
   },
   {
-    "name":"[Sample] Basic - Immediate Value",
-    "description":"A pipeline with parameter values hard coded. For source code, refer to https://github.com/kubeflow/pipelines/blob/master/samples/basic/immediate_value.py",
-    "file":"/samples/basic/immediate_value.py.tar.gz"
+    "name":"[Sample] Basic - Conditional execution",
+    "description":"A pipeline shows how to use dsl.Condition. For source code, refer to https://github.com/kubeflow/pipelines/blob/master/samples/basic/condition.py",
+    "file":"/samples/basic/condition.py.tar.gz"
   },
   {
     "name":"[Sample] Basic - Exit Handler",
-    "description":"A pipeline that downloads a message and print it out. Exit Handler will run at the end. For source code, refer to https://github.com/kubeflow/pipelines/blob/master/samples/basic/exit_handler.py",
+    "description":"A pipeline that downloads a message and prints it out. Exit Handler will run at the end. For source code, refer to https://github.com/kubeflow/pipelines/blob/master/samples/basic/exit_handler.py",
     "file":"/samples/basic/exit_handler.py.tar.gz"
-  },
-  {
-    "name":"[Sample] Basic - Condition",
-    "description":"A pipeline shows how to use dsl.Condition. For source code, refer to https://github.com/kubeflow/pipelines/blob/master/samples/basic/condition.py",
-    "file":"/samples/basic/condition.py.tar.gz"
   }
 ]
