@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	defaultDBValue = sq.Eq{"DefaultExperimentId": ""}
+	defaultExperimentDBValue = sq.Eq{"DefaultExperimentId": ""}
 )
 
 type DefaultExperimentStoreInterface interface {
@@ -37,15 +37,11 @@ type DefaultExperimentStore struct {
 
 func (s *DefaultExperimentStore) InitializeDefaultExperimentTable() error {
 	// First check that the table is in fact empty
-	getDefaultExperimentSql, getDefaultExperimentArgs, err := sq.Select("*").From("default_experiments").ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err, "Error creating query to check default experiment.")
-	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to initialize default experiment table.")
 	}
-	rows, err := tx.Query(getDefaultExperimentSql, getDefaultExperimentArgs...)
+	rows, err := tx.Query("SELECT * FROM default_experiments")
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to get default experiment.")
@@ -55,7 +51,7 @@ func (s *DefaultExperimentStore) InitializeDefaultExperimentTable() error {
 	if !rows.Next() {
 		sql, args, queryErr := sq.
 			Insert("default_experiments").
-			SetMap(defaultDBValue).
+			SetMap(defaultExperimentDBValue).
 			ToSql()
 
 		if queryErr != nil {
