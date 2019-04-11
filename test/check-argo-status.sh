@@ -21,12 +21,19 @@ WORKFLOW_COMPLETE_KEYWORD="completed=true"
 WORKFLOW_FAILED_KEYWORD="phase=Failed"
 PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
 
-echo "check status of argo workflow $ARGO_WORKFLOW...."
-# probing the argo workflow status until it completed. Timeout after 30 minutes
+echo "Waiting for Argo workflow $ARGO_WORKFLOW to complete (time-out after $(expr $TIMEOUT_SECONDS / 60 ) minutes)..."
+(set +x
 for i in $(seq 1 ${PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT})
 do
-  WORKFLOW_STATUS=`kubectl get workflow $ARGO_WORKFLOW -n ${NAMESPACE} --show-labels`
-  echo $WORKFLOW_STATUS | grep ${WORKFLOW_COMPLETE_KEYWORD} && s=0 && break || s=$? && printf "Workflow ${ARGO_WORKFLOW} is not finished.\n${WORKFLOW_STATUS}\nSleep for 20 seconds...\n" && sleep 20
+  WORKFLOW_STATUS=`kubectl get workflow $ARGO_WORKFLOW -n ${NAMESPACE} --show-labels --no-headers=true`
+  echo $WORKFLOW_STATUS
+  if echo $WORKFLOW_STATUS | grep ${WORKFLOW_COMPLETE_KEYWORD}; then
+    s=0
+    break
+  else
+    s=1
+    sleep 20
+  fi
 done
 
 # Check whether the argo workflow finished or not and exit if not.
@@ -35,6 +42,7 @@ if [[ $s != 0 ]]; then
  argo logs -w ${ARGO_WORKFLOW} -n ${NAMESPACE}
  exit $s
 fi
+)
 
 echo "Argo workflow finished."
 
