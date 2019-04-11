@@ -131,6 +131,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
     />
     <RunList
       experimentIdMask="some-mock-experiment-id"
+      hideExperimentColumn={true}
       history={
         Object {
           "push": [MockFunction],
@@ -484,6 +485,7 @@ exports[`ExperimentDetails removes all description text after second newline and
     />
     <RunList
       experimentIdMask="some-mock-experiment-id"
+      hideExperimentColumn={true}
       history={
         Object {
           "push": [MockFunction],
@@ -824,6 +826,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
     />
     <RunList
       experimentIdMask="some-mock-experiment-id"
+      hideExperimentColumn={true}
       history={
         Object {
           "push": [MockFunction],
@@ -1162,6 +1165,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
     />
     <RunList
       experimentIdMask="some-mock-experiment-id"
+      hideExperimentColumn={true}
       history={
         Object {
           "push": [MockFunction],

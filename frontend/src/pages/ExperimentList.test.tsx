@@ -31,6 +31,8 @@ import { range } from 'lodash';
 describe('ExperimentList', () => {
   let tree: ShallowWrapper | ReactWrapper;
 
+  jest.spyOn(console, 'log').mockImplementation(() => null);
+
   const updateBannerSpy = jest.fn();
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
@@ -229,9 +231,9 @@ describe('ExperimentList', () => {
 
   it('renders a list of runs for given experiment', async () => {
     tree = shallow(<ExperimentList {...generateProps()} />);
-    tree.setState({ displayExperiments: [{ last5Runs: [{ id: 'run1id' }, { id: 'run2id' }] }] });
+    tree.setState({ displayExperiments: [{ id: 'experiment1', last5Runs: [{ id: 'run1id' }, { id: 'run2id' }] }] });
     const runListTree = (tree.instance() as any)._getExpandedExperimentComponent(0);
-    expect(runListTree.props.runIdListMask).toEqual(['run1id', 'run2id']);
+    expect(runListTree.props.experimentIdMask).toEqual('experiment1');
   });
 
   it('navigates to new experiment page when Create experiment button is clicked', async () => {
