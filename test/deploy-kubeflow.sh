@@ -36,7 +36,7 @@ KUBEFLOW_SRC=${DIR}/kubeflow_latest_release
 mkdir ${KUBEFLOW_SRC}
 cd ${KUBEFLOW_SRC}
 export KUBEFLOW_TAG=v0.5.0-rc.1
-curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash
+curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash >kubeflow_download.log 2>&1 || { error_code ="$?"; cat kubeflow_download.log; exit "$error_code"; }
 
 ## Override the pipeline config with code from master
 cp -r ${KUBEFLOW_MASTER}/kubeflow/pipeline ${KUBEFLOW_SRC}/kubeflow/pipeline
