@@ -180,11 +180,11 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{sq.Lt{o.SortByFieldName: o.SortByFieldValue},
-				sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.LtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
+					sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.LtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
 		} else {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{sq.Gt{o.SortByFieldName: o.SortByFieldValue},
-				sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.GtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
+					sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.GtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
 		}
 	}
 
@@ -212,9 +212,9 @@ func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilde
 
 // FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
 // table that match an optional given filter, and returns the rebuilt SelectBuilder
-func FilterOnResourceReference(tableName string, resourceType common.ResourceType, selectCount bool,
-	filterContext *common.FilterContext) (sq.SelectBuilder, error) {
-	selectBuilder := sq.Select("*")
+func FilterOnResourceReference(tableName string, columns []string, resourceType common.ResourceType,
+	selectCount bool, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+	selectBuilder := sq.Select(columns...)
 	if selectCount {
 		selectBuilder = sq.Select("count(*)")
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-  "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/go-cmp/cmp"
@@ -664,7 +664,7 @@ func TestFilterOnResourceReference(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		sqlBuilder, gotErr := FilterOnResourceReference(test.in.table, test.in.resourceType, test.in.count, test.in.filter)
+		sqlBuilder, gotErr := FilterOnResourceReference(test.in.table, []string{"*"}, test.in.resourceType, test.in.count, test.in.filter)
 		gotSql, _, err := sqlBuilder.ToSql()
 		assert.Nil(t, err)
 

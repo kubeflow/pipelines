@@ -241,6 +241,7 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,
 		ScheduledAt: runDetail.Run.ScheduledAt,
+		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
@@ -267,6 +268,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,
 		ScheduledAt: runDetail.Run.ScheduledAt,
+		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
@@ -297,6 +299,7 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,
 		ScheduledAt: runDetail.Run.ScheduledAt,
+		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 	assert.Equal(t, expectedRun, runDetail.Run)
 }

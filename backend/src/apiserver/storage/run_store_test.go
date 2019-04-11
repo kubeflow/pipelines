@@ -579,7 +579,7 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	err := runStore.UpdateRun("not-exist", "done", "workflow_done")
+	err := runStore.UpdateRun("not-exist", "done", 1, "workflow_done")
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Row not found")
 }
