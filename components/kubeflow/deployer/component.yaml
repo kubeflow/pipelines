@@ -18,4 +18,5 @@ implementation:
       --namespace,          {inputValue: Namespace},
       --server-name,        {inputValue: Server name},
       --pvc-name,           {inputValue: PVC name},
+      --service-type,       {inputValue: Service type},
     ]
