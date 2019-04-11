@@ -127,3 +127,35 @@ export function getPodLogs(podName: string): Promise<string> {
       (error: any) => { throw new Error(JSON.stringify(error.body)); }
     );
 }
+
+/**
+* Creates a CRD (Customer Resource Definition) file. CRD can be used later by
+* CRD controller to create new Tensorboard Pod.
+*/
+export async function newTensorboardCRD(logdir: string): Promise<void> {
+  const crd = {
+    apiVersion: 'apiextensions.k8s.io/v1beta1',
+    kind: 'CustomResourceDefinition',
+    metadata: {
+      name: 'viewers.kubeflow.org',
+    },
+    spec: {
+      group: 'kubeflow.org',
+      version: 'v1beta1',
+      scope: 'Namespaced',
+      names: {
+        kind: 'Viewer',
+        listKind: 'ViewerList',
+        plural: 'viewers',
+        singular: 'viewer',
+        shortNames: '- vi',
+      },
+    }
+  };
+  // Puts crd specs to logdir
+  fs.WriteFileSync(logdir, JSON.stringify(crd), (err) => {
+    if (err) {    
+      throw new Error(JSON.stringify(err.body));
+    }
+  });
+ } 
