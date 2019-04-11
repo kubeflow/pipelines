@@ -23,6 +23,7 @@ type Run struct {
 	Description        string `gorm:"column:Description; not null"`
 	CreatedAtInSec     int64  `gorm:"column:CreatedAtInSec; not null"`
 	ScheduledAtInSec   int64  `gorm:"column:ScheduledAtInSec;"`
+	FinishedAtInSec    int64  `gorm:"column:FinishedAtInSec;"`
 	Conditions         string `gorm:"column:Conditions; not null"`
 	Metrics            []*RunMetric
 	ResourceReferences []*ResourceReference
