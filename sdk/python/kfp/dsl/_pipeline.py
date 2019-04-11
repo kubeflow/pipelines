@@ -59,7 +59,7 @@ def pipeline(name, description):
     #docstring parser:
     #  https://github.com/rr-/docstring_parser
     #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
-    Pipeline.add_pipeline(pipeline_meta, func)
+    Pipeline.add_pipeline_with_meta(pipeline_meta, func)
     return func
 
   return _pipeline
@@ -121,9 +121,15 @@ class Pipeline():
     return Pipeline._pipeline_functions
 
   @staticmethod
-  def add_pipeline(pipeline_meta, func):
+  def add_pipeline_with_meta(pipeline_meta, func):
     """Add a pipeline function (decorated with @pipeline)."""
     Pipeline._pipeline_functions[func] = pipeline_meta
+
+  @staticmethod
+  def add_pipeline(name, description, func):
+    """Add a pipeline function with the specified name and description."""
+    pipeline_meta = PipelineMeta(name=name, description=description)
+    Pipeline.add_pipeline_with_meta(pipeline_meta, func)
 
   def __init__(self, name: str):
     """Create a new instance of Pipeline.
@@ -148,7 +154,7 @@ class Pipeline():
 
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
-        
+
   def add_op(self, op: _container_op.ContainerOp, define_only: bool):
     """Add a new operator.
 
