@@ -32,7 +32,7 @@ KUBEFLOW_SRC=${DIR}/kubeflow_latest_release
 mkdir ${KUBEFLOW_SRC}
 cd ${KUBEFLOW_SRC}
 export KUBEFLOW_TAG=pipelines
-curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash
+curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash >kubeflow_download.log 2>&1 || { error_code ="$?"; cat kubeflow_download.log; exit "$error_code"; }
 
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
