@@ -24,7 +24,7 @@ from .. import dsl
 from ._k8s_helper import K8sHelper
 from ._op_to_template import _op_to_template
 
-from ..dsl._metadata import TypeMeta, _create_pipeline_metadata_from_pipeline_func
+from ..dsl._metadata import TypeMeta, _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
 class Compiler(object):
@@ -575,7 +575,7 @@ class Compiler(object):
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
-    pipeline_meta = _create_pipeline_metadata_from_pipeline_func(pipeline_func)
+    pipeline_meta = _extract_pipeline_metadata(pipeline_func)
     pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_meta.name)
 
     args_list = []

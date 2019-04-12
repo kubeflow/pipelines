@@ -153,7 +153,9 @@ def _annotation_to_typemeta(annotation):
     return TypeMeta()
   return arg_type
 
-def _create_pipeline_metadata_from_pipeline_func(func):
+def _extract_pipeline_metadata(func):
+  '''Creates pipeline metadata structure instance based on the function signature.'''
+
   import inspect
   fullargspec = inspect.getfullargspec(func)
   args = fullargspec.args
