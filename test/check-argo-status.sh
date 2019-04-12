@@ -50,7 +50,7 @@ if [[ ! -z "$TEST_RESULT_FOLDER" ]]
 then
   echo "Copy test result"
   mkdir -p $ARTIFACT_DIR
-  gsutil cp -r "${TEST_RESULTS_GCS_DIR}"/* "${ARTIFACT_DIR}" || true
+  gsutil cp -r -q "${TEST_RESULTS_GCS_DIR}"/* "${ARTIFACT_DIR}" || true
 fi
 
 if [[ $WORKFLOW_STATUS = *"${WORKFLOW_FAILED_KEYWORD}"* ]]; then
