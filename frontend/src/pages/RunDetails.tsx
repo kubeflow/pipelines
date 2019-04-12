@@ -43,7 +43,7 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, color, fonts, fontsize } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { flatten } from 'lodash';
-import { formatDateString, getRunTime, logger, errorToMessage } from '../lib/Utils';
+import { formatDateString, getRunDurationFromWorkflow, logger, errorToMessage } from '../lib/Utils';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -464,7 +464,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       ['Created at', workflow.metadata ? formatDateString(workflow.metadata.creationTimestamp) : '-'],
       ['Started at', formatDateString(workflow.status.startedAt)],
       ['Finished at', formatDateString(workflow.status.finishedAt)],
-      ['Duration', getRunTime(workflow)],
+      ['Duration', getRunDurationFromWorkflow(workflow)],
     ];
   }
 
