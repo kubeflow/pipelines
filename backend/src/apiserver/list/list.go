@@ -290,6 +290,7 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 		KeyFieldName:     listable.PrimaryKeyColumnName(),
 		KeyFieldValue:    keyField.Interface(),
 		IsDesc:           o.IsDesc,
+		Filter:           o.Filter,
 	}, nil
 }
 
