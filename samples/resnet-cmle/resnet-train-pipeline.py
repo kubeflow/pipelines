@@ -124,7 +124,7 @@ def resnet_train(
                             eval_batch_size, steps_per_eval, train_steps, num_train_images, num_eval_images,
                             num_label_classes, tf_version).apply(gcp.use_gcp_secret())
     train.after(preprocess)
-    export_output = os.path.join(str(train.outputs['job-dir']), 'export')
+    export_output = os.path.join(str(train.outputs['job_dir']), 'export')
     deploy = resnet_deploy_op(export_output, model, version, project_id, region,
                               tf_version).apply(gcp.use_gcp_secret())
 
