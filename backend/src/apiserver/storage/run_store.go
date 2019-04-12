@@ -155,7 +155,7 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	// If we're not just counting, then also add select columns and perform a left join
 	// to get resource reference information. Also add pagination.
 	if !selectCount {
-		sqlBuilder = opts.AddPaginationToSelect(filteredSelectBuilder)
+		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
 		sqlBuilder = s.addMetricsAndResourceReferences(sqlBuilder)
 		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
 	}
