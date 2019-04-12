@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//backend/api:go_default_library",
         "//backend/src/common/util:go_default_library",
+        "@com_github_golang_protobuf//jsonpb:go_default_library_gen",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
         "@com_github_masterminds_squirrel//:go_default_library",
     ],
