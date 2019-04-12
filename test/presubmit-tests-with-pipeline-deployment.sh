@@ -64,7 +64,8 @@ done
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-echo "presubmit test starts"
+echo "Deploying prerequisites"
+(
 source "${DIR}/test-prep.sh"
 
 # Deploy Kubeflow
@@ -72,6 +73,7 @@ source "${DIR}/deploy-kubeflow.sh"
 
 # Install Argo CLI and test-runner service account
 source "${DIR}/install-argo.sh"
+) >deploy_prerequisites.log 2>&1 || { error_code ="$?"; cat deploy_prerequisites.log; exit "$error_code"; }
 
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
@@ -90,7 +92,7 @@ source "${DIR}/check-argo-status.sh"
 echo "build docker images workflow completed"
 
 # Deploy the pipeline
-source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} >deploy_pipelines.log 2>&1 || { error_code ="$?"; cat deploy_pipelines.log; exit "$error_code"; }
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
