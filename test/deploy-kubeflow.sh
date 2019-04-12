@@ -47,7 +47,7 @@ function clean_up {
 }
 trap clean_up EXIT SIGINT SIGTERM
 
-(
+{
 cd ${DIR}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform ${PLATFORM} --project ${PROJECT} --skipInitProject
 
@@ -56,6 +56,6 @@ ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
-) >kubeflow_install.log 2>&1 || { error_code ="$?"; cat kubeflow_install.log; exit "$error_code"; }
+} >kubeflow_install.log 2>&1 || { error_code ="$?"; cat kubeflow_install.log; exit "$error_code"; }
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}

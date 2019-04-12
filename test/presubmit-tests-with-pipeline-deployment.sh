@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+set -e
 
 usage()
 {
@@ -64,16 +64,17 @@ done
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-echo "Deploying prerequisites"
-(
+{
+echo "Preparing the code for test images"
 source "${DIR}/test-prep.sh"
 
-# Deploy Kubeflow
+echo "Deploying Kubeflow"
 source "${DIR}/deploy-kubeflow.sh"
 
-# Install Argo CLI and test-runner service account
+# Install Argo
+echo "Installing Argo"
 source "${DIR}/install-argo.sh"
-) >deploy_prerequisites.log 2>&1 || { error_code ="$?"; cat deploy_prerequisites.log; exit "$error_code"; }
+} >deploy_prerequisites.log 2>&1 || { error_code ="$?"; cat deploy_prerequisites.log; exit "$error_code"; }
 
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
