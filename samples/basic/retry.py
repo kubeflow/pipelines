@@ -14,29 +14,28 @@
 # limitations under the License.
 
 
-import kfp.dsl as dsl
+import kfp
+from kfp import dsl
 
 
-class RandomFailure1Op(dsl.ContainerOp):
-  """A component that fails randomly."""
-
-  def __init__(self, exit_codes):
-    super(RandomFailure1Op, self).__init__(
-      name='random_failure',
-      image='python:alpine3.6',
-      command=['python', '-c'],
-      arguments=["import random; import sys; exit_code = random.choice([%s]); print(exit_code); sys.exit(exit_code)" % exit_codes])
+def random_failure_op(exit_codes):
+    """A component that fails randomly."""
+    return dsl.ContainerOp(
+        name='random_failure',
+        image='python:alpine3.6',
+        command=['python', '-c'],
+        arguments=['import random; import sys; exit_code = random.choice(sys.argv[1].split(",")); print(exit_code); sys.exit(exit_code)', exit_codes]
+    )
 
 
 @dsl.pipeline(
-  name='pipeline includes two steps which fail randomly.',
-  description='shows how to use ContainerOp set_retry().'
+    name='Retry radom failures',
+    description='The pipeline includes two steps which fail randomly. It shows how to use ContainerOp(...).set_retry(...).'
 )
 def retry_sample_pipeline():
-  op1 = RandomFailure1Op('0,1,2,3').set_retry(10)
-  op2 = RandomFailure1Op('0,1').set_retry(5)
+    op1 = random_failure_op('0,1,2,3').set_retry(10)
+    op2 = random_failure_op('0,1').set_retry(5)
 
 
 if __name__ == '__main__':
-  import kfp.compiler as compiler
-  compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.zip')
