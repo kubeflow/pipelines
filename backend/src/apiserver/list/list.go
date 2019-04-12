@@ -76,6 +76,7 @@ func (t *token) marshal() (string, error) {
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to serialize page token.")
 	}
+	// return string(b), nil
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 

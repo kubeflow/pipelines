@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/Masterminds/squirrel"
@@ -233,5 +234,48 @@ func TestAddToSelect(t *testing.T) {
 		if !cmp.Equal(gotSQL, test.wantSQL) || !cmp.Equal(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("Filter.AddToSelect(%+v).ToSql() =\nGot: %+v, %v, %v\nWant: %+v, %+v, <nil>", filter, gotSQL, gotArgs, err, test.wantSQL, test.wantArgs)
 		}
+	}
+}
+
+func TestMarshalJSON(t *testing.T) {
+	f := &Filter{
+		filterProto: &api.Filter{
+			Predicates: []*api.Predicate{
+				&api.Predicate{
+					Key: "Name", Op: api.Predicate_EQUALS,
+					Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+				},
+			},
+		},
+		eq: map[string]interface{}{"name": "SomeName"},
+	}
+
+	want := `{"FilterProto":"{\"predicates\":[{\"op\":\"EQUALS\",\"key\":\"Name\",\"stringValue\":\"SomeName\"}]}","EQ":{"name":"SomeName"},"NEQ":null,"GT":null,"GTE":null,"LT":null,"LTE":null,"IN":null,"SUBSTRING":null}`
+
+	got, err := json.Marshal(f)
+	if err != nil || string(got) != want {
+		t.Errorf("json.Marshal(%+v):\n%s, %v\nWant:%s, nil error\n", f, got, err, want)
+	}
+}
+
+func TestUnmarshalJSON(t *testing.T) {
+	in := `{"FilterProto":"{\"predicates\":[{\"op\":\"EQUALS\",\"key\":\"Name\",\"stringValue\":\"SomeName\"}]}","EQ":{"name":"SomeName"},"NEQ":null,"GT":null,"GTE":null,"LT":null,"LTE":null,"IN":null,"SUBSTRING":null}`
+
+	want := &Filter{
+		filterProto: &api.Filter{
+			Predicates: []*api.Predicate{
+				&api.Predicate{
+					Key: "Name", Op: api.Predicate_EQUALS,
+					Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+				},
+			},
+		},
+		eq: map[string]interface{}{"name": "SomeName"},
+	}
+
+	got := &Filter{}
+	err := json.Unmarshal([]byte(in), got)
+	if err != nil || !cmp.Equal(got, want, cmp.AllowUnexported(Filter{})) {
+		t.Errorf("json.Unmarshal(%+v):\nGot: %v, Error: %v\nWant:\n%+v, Error: nil\nDiff:%s\n", in, got, err, want, cmp.Diff(want, got, cmp.AllowUnexported(Filter{})))
 	}
 }

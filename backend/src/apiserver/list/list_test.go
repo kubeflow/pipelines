@@ -512,6 +512,17 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 }
 
 func TestTokenSerialization(t *testing.T) {
+	protoFilter := &api.Filter{Predicates: []*api.Predicate{
+		&api.Predicate{
+			Key:   "name",
+			Op:    api.Predicate_EQUALS,
+			Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+		}}}
+	testFilter, err := filter.New(protoFilter)
+	if err != nil {
+		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
+	}
+
 	tests := []struct {
 		in   *token
 		want *token
@@ -546,6 +557,25 @@ func TestTokenSerialization(t *testing.T) {
 				KeyFieldValue:    float64(200),
 				IsDesc:           true},
 		},
+		// has a filter.
+		{
+			in: &token{
+				SortByFieldName:  "SortField",
+				SortByFieldValue: 100,
+				KeyFieldName:     "KeyField",
+				KeyFieldValue:    200,
+				IsDesc:           true,
+				Filter:           testFilter,
+			},
+			want: &token{
+				SortByFieldName:  "SortField",
+				SortByFieldValue: float64(100),
+				KeyFieldName:     "KeyField",
+				KeyFieldValue:    float64(200),
+				IsDesc:           true,
+				Filter:           testFilter,
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -558,9 +588,9 @@ func TestTokenSerialization(t *testing.T) {
 
 		got := &token{}
 		got.unmarshal(s)
-		if !cmp.Equal(got, test.want) {
+		if !cmp.Equal(got, test.want, cmp.AllowUnexported(filter.Filter{})) {
 			t.Errorf("token.unmarshal(%q) =\nGot: %+v\nWant: %+v\nDiff:\n%s",
-				s, got, test.want, cmp.Diff(test.want, got))
+				s, got, test.want, cmp.Diff(test.want, got, cmp.AllowUnexported(filter.Filter{})))
 		}
 	}
 }
