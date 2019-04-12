@@ -172,12 +172,12 @@ func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	opts, _ := list.NewOptions(&model.Run{}, 1, "", nil)
+	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
 
 	// No filter
 	runs, total_size, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 3, len(runs))
 	assert.Equal(t, 3, total_size)
 }
 
@@ -186,9 +186,9 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 	defer db.Close()
 
 	// Add a filter
-	opts, _ := list.NewOptions(&model.Run{}, 1, "", &api.Filter{
+	opts, _ := list.NewOptions(&model.Run{}, 4, "", &api.Filter{
 		Predicates: []*api.Predicate{
-			&api.Predicate{
+			{
 				Key: "name",
 				Op:  api.Predicate_IN,
 				Value: &api.Predicate_StringValues{
@@ -201,7 +201,7 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 	})
 	runs, total_size, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(runs))
+	assert.Equal(t, 2, len(runs))
 	assert.Equal(t, 2, total_size)
 }
 
