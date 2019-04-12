@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { Workflow } from '../../third_party/argo-ui/argo_template';
+import { ApiRun } from '../apis/run';
 import { ApiTrigger } from '../apis/job';
+import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { isFunction } from 'lodash';
 
 export const logger = {
@@ -57,17 +58,8 @@ export function enabledDisplayString(trigger: ApiTrigger | undefined, enabled: b
   return '-';
 }
 
-export function getRunTime(workflow?: Workflow): string {
-  if (!workflow
-    || !workflow.status
-    || !workflow.status.phase
-    || !workflow.status.startedAt
-    || !workflow.status.finishedAt) {
-    return '-';
-  }
-
-  let diff = new Date(workflow.status.finishedAt).getTime()
-    - new Date(workflow.status.startedAt).getTime();
+function getDuration(start: Date, end: Date): string {
+  let diff = end.getTime() - start.getTime();
   const sign = diff < 0 ? '-' : '';
   if (diff < 0) {
     diff *= -1;
@@ -80,6 +72,28 @@ export function getRunTime(workflow?: Workflow): string {
   // Hours are the largest denomination, so we don't pad them
   const hours = Math.floor((diff / HOUR) % 24).toString();
   return `${sign}${hours}:${minutes}:${seconds}`;
+}
+
+export function getRunDuration(run?: ApiRun): string {
+  if (!run || !run.created_at || !run.finished_at) {
+    return '-';
+  }
+
+  // A bug in swagger-codegen causes the API to indicate that created_at and finished_at are Dates,
+  // as they should be, when in reality they are transferred as strings.
+  // See: https://github.com/swagger-api/swagger-codegen/issues/2776
+  return getDuration(new Date(run.created_at), new Date(run.finished_at));
+}
+
+export function getRunDurationFromWorkflow(workflow?: Workflow): string {
+  if (!workflow
+    || !workflow.status
+    || !workflow.status.startedAt
+    || !workflow.status.finishedAt) {
+    return '-';
+  }
+
+  return getDuration(new Date(workflow.status.startedAt), new Date(workflow.status.finishedAt));
 }
 
 export function s(items: any[] | number): string {

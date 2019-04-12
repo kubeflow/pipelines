@@ -63,7 +63,7 @@ exports[`RunList adds metrics columns 1`] = `
           "id": "testrun1",
           "otherFields": Array [
             "run with id: testrun1",
-            "-",
+            "Succeeded",
             "-",
             undefined,
             undefined,
@@ -100,7 +100,7 @@ exports[`RunList adds metrics columns 1`] = `
           "id": "testrun2",
           "otherFields": Array [
             "run with id: testrun2",
-            "-",
+            "Succeeded",
             "-",
             undefined,
             undefined,
@@ -243,10 +243,10 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
     rows={
       Array [
         Object {
-          "error": "Unexpected token b in JSON at position 0",
+          "error": "bad stuff happened",
           "id": "testrun1",
           "otherFields": Array [
-            "run with id: testrun1",
+            undefined,
             "-",
             "-",
             undefined,
@@ -255,71 +255,10 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
           ],
         },
         Object {
-          "error": "Unexpected token b in JSON at position 0",
+          "error": "Cannot read property 'run' of undefined",
           "id": "testrun2",
           "otherFields": Array [
-            "run with id: testrun2",
-            "-",
-            "-",
             undefined,
-            undefined,
-            "-",
-          ],
-        },
-      ]
-    }
-  />
-</div>
-`;
-
-exports[`RunList displays error in run row if it failed to parse 1`] = `
-<div>
-  <CustomTable
-    columns={
-      Array [
-        Object {
-          "customRenderer": [Function],
-          "flex": 2,
-          "label": "Run name",
-          "sortKey": "name",
-        },
-        Object {
-          "customRenderer": [Function],
-          "flex": 0.5,
-          "label": "Status",
-        },
-        Object {
-          "flex": 0.5,
-          "label": "Duration",
-        },
-        Object {
-          "customRenderer": [Function],
-          "flex": 1,
-          "label": "Experiment",
-        },
-        Object {
-          "customRenderer": [Function],
-          "flex": 1,
-          "label": "Pipeline",
-        },
-        Object {
-          "flex": 1,
-          "label": "Start time",
-          "sortKey": "created_at",
-        },
-      ]
-    }
-    emptyMessage="No available runs found."
-    filterLabel="Filter runs"
-    initialSortColumn="created_at"
-    reload={[Function]}
-    rows={
-      Array [
-        Object {
-          "error": "Unexpected token b in JSON at position 0",
-          "id": "testrun1",
-          "otherFields": Array [
-            "run with id: testrun1",
             "-",
             "-",
             undefined,
@@ -409,6 +348,61 @@ exports[`RunList handles no pipeline name 1`] = `
 >
   [View pipeline]
 </Link>
+`;
+
+exports[`RunList hides experiment name if instructed 1`] = `
+<div>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 2,
+          "label": "Run name",
+          "sortKey": "name",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 0.5,
+          "label": "Status",
+        },
+        Object {
+          "flex": 0.5,
+          "label": "Duration",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline",
+        },
+        Object {
+          "flex": 1,
+          "label": "Start time",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No available runs found."
+    filterLabel="Filter runs"
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "error": undefined,
+          "id": "testrun1",
+          "otherFields": Array [
+            "run with id: testrun1",
+            "-",
+            "-",
+            undefined,
+            "-",
+          ],
+        },
+      ]
+    }
+  />
+</div>
 `;
 
 exports[`RunList in archived state renders the empty experience 1`] = `
@@ -7333,11 +7327,11 @@ exports[`RunList shows run time for each run 1`] = `
           "id": "testrun1",
           "otherFields": Array [
             "run with id: testrun1",
-            "-",
+            "Succeeded",
             "1:01:01",
             undefined,
             undefined,
-            "-",
+            "1/2/2019, 12:34:56 PM",
           ],
         },
       ]
