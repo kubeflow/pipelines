@@ -1,3 +1,4 @@
+import kfp
 import arena
 import kfp.dsl as dsl
 import argparse

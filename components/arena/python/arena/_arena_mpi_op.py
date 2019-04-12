@@ -18,10 +18,10 @@ import kfp.dsl as dsl
 import datetime
 import logging
 
-def mpi_job_op(name, image, command, workers=0, gpus=0, cpu=0, memory=0, env=[],annotations=[],
-          data=[],
+def mpi_job_op(name, image, command, workers=1, gpus=0, cpu=0, memory=0, env=[],annotations=[],
+          data=[], sync_source=None,
           rdma=False,
-          tensorboard=False, 
+          tensorboard=False,  tensorboard_image=None, 
           metrics=['Train-accuracy:PERCENTAGE'],
           arenaImage='cheyang/arena_launcher:v0.2',
           timeout_hours=240):
@@ -33,24 +33,52 @@ def mpi_job_op(name, image, command, workers=0, gpus=0, cpu=0, memory=0, env=[],
       data: specify the datasource to mount to the job, like <name_of_datasource>:<mount_point_on_job>
       command: the command to run
     """
+    if not name:
+      raise ValueError("name must be specified")
+    if not image:
+      raise ValueError("image must be specified")
+    if not command:
+      raise ValueError("command must be specified")
+
+    options = []
+    if sync_source:
+       if not sync_source.startswith("http"):
+          raise ValueError("sync_source must be an http git url")
+       options.append('--sync-source')
+       options.append(str(sync_source))
+
+    for e in env:
+      options.append('--env')
+      options.append(str(e))
+
+    for d in data:
+      options.append('--data')
+      options.append(str(d))
+
+    for m in metrics:
+      options.append('--metric')
+      options.append(str(m))
+
+    if tensorboard_image:
+      options.append('--tensorboard-image')
+      options.append(str(tensorboard_image))
+
     return dsl.ContainerOp(
           name=name,
           image=arenaImage,
           command=['python','arena_launcher.py'],
-          arguments=[ "--name", '%s-{{workflow.name}}' % name,
-                      "--tensorboard", tensorboard,
-                      "--rdma", rdma,
-                      "--data", data,
-                      "--output-data", output_data,
-                      "--image", image,
-                      "--gpus", gpus,
-                      "--cpu", cpu,
-                      "--memory", memory,
-                      "--timeout-hours", timeout_hours,
-                      "--metric-name", metric_name,
-                      "--metric-unit", metric_unit,
+          arguments=[ "--name", name,
+                      "--tensorboard", str(tensorboard),
+                      "--rdma", str(rdma),
+                      "--image", str(image),
+                      "--gpus", str(gpus),
+                      "--cpu", str(cpu),
+                      "--memory", str(memory),
+                      "--workers", str(workers),
+                      "--timeout-hours", str(timeout_hours),
+                      ] + options + 
+                      [
                       "mpijob",
-                      "--workers", workers,
-                      "--", command],
+                      "--", str(command)],
           file_outputs={'train': '/output.txt'}
     )

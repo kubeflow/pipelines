@@ -276,8 +276,6 @@ def main(argv=None):
   parser.add_argument('--data', action='append', type=str, default=[])
   parser.add_argument('--metric', action='append', type=str, default=[])
 
-  parser.add_argument('--metric-name', type=str, default='Train-accuracy')
-  parser.add_argument('--metric-unit', type=str, default='PERCENTAGE')
   subparsers = parser.add_subparsers(help='arena sub-command help')
 
   #create the parser for the 'mpijob' command
