@@ -355,7 +355,7 @@ def main(argv=None):
         metric_name = mArray[0]
         if len(mArray) > 1:
           metric_unit = mArray[1]
-        log.info("determine metric name {0} with metric unit {1}".format(metric_name, metric_unit))
+        logging.info("determine metric name {0} with metric unit {1}".format(metric_name, metric_unit))
         value = _collect_metrics(fullname, job_type, metric_name)
         if value > 0:
           metric_list = metrics_data['metrics']
