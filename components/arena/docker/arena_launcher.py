@@ -89,7 +89,7 @@ def _job_logging(name, job_type):
   return rc
 
 def _collect_metrics(name, job_type, metric_name):
-  metrics_cmd = "arena logs --tail=50 %s | grep %s= | tail -1" % (name, metric_name)
+  metrics_cmd = "arena logs --tail=50 %s | grep -e '%s=' -e '%s:' | tail -1" % (name, metric_name, metric_name)
   metric = 0
   logging.info("search metric_name %s" % (metric_name))
   try:
