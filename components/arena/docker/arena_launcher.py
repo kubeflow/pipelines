@@ -366,7 +366,7 @@ def main(argv=None):
             logging.info("Failed to parse metric_name {0},skip".format(metric_name))
             continue
           else:
-            metric_name=result.group[0]
+            metric_name=result.group(0)
 
           metric_data = {
           'name': metric_name.lower(), # The name of the metric. Visualized as the column name in the runs table.
