@@ -339,12 +339,12 @@ def main(argv=None):
 
   if status == "SUCCEEDED":
     logging.info("Training Job {0} success.".format(fullname))
-    if len(args.metrics) > 0:
+    if len(args.metric) > 0:
       metrics_data = {
         'metrics': []
       }
       metric_unit="RAW"
-      for m in args.metrics:
+      for m in args.metric:
         mArray = m.split(":")
         metric_name = mArray[0]
         if len(mArray) > 1:
