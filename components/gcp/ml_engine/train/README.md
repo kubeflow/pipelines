@@ -13,8 +13,8 @@ python_module | The Python module name to run after installing the packages. | S
 package_uris | The Cloud Storage location of the packages (that contain the training program and any additional dependencies). The maximum number of package URIs is 100. | List<GCSPath> | Yes | ``
 region | The Compute Engine region in which the training job is run. | GCPRegion | Yes | ``
 args | The command line arguments to pass to the program. | List<String> | Yes | ``
-job_dir |  The list of arguments to pass to the Python file. | GCSPath | Yes | ``
-python_version | A Cloud Storage path in which to store the training outputs and other data needed for training. This path is passed to your TensorFlow program as the `job-dir` command-line argument. The benefit of specifying this field is that Cloud ML validates the path for use in training. | String | Yes | ``
+job_dir | A Cloud Storage path in which to store the training outputs and other data needed for training. This path is passed to your TensorFlow program as the `job-dir` command-line argument. The benefit of specifying this field is that Cloud ML validates the path for use in training. | GCSPath | Yes | ``
+python_version | The Cloud ML Engine Python version to use for training. If not set, Cloud ML Engine uses the default version, 2.7. | String | Yes | ``
 runtime_version | The Cloud ML Engine runtime version to use for training. If not set, Cloud ML Engine uses the default stable version, 1.0. | String | Yes | ``
 master_image_uri | The Docker image to run on the master replica. This image must be in Container Registry. | GCRPath | Yes | ``
 worker_image_uri | The Docker image to run on the worker replica. This image must be in Container Registry. | GCRPath | Yes | ``
