@@ -14,7 +14,7 @@ package_uris | The Cloud Storage location of the packages (that contain the trai
 region | The Compute Engine region in which the training job is run. | GCPRegion | Yes | ``
 args | The command line arguments to pass to the program. | List<String> | Yes | ``
 job_dir | A Cloud Storage path in which to store the training outputs and other data needed for training. This path is passed to your TensorFlow program as the `job-dir` command-line argument. The benefit of specifying this field is that Cloud ML validates the path for use in training. | GCSPath | Yes | ``
-python_version | The Cloud ML Engine Python version to use for training. If not set, Cloud ML Engine uses the default version, 2.7. | String | Yes | ``
+python_version | The version of Python used in the prediction. If it is not set, the default version is `2.7`. Python `3.5` is available when the runtime_version is set to `1.4` and above. Python `2.7` works with all supported runtime versions. | String | Yes | ` `
 runtime_version | The Cloud ML Engine runtime version to use for training. If not set, Cloud ML Engine uses the default stable version, 1.0. | String | Yes | ``
 master_image_uri | The Docker image to run on the master replica. This image must be in Container Registry. | GCRPath | Yes | ``
 worker_image_uri | The Docker image to run on the worker replica. This image must be in Container Registry. | GCRPath | Yes | ``
