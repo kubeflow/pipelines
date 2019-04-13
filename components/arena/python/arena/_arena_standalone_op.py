@@ -23,7 +23,7 @@ def standalone_job_op(name, image, command, gpus=0, cpu=0, memory=0, env=[],
           tensorboard=False, tensorboard_image=None,
           data=[], sync_source=None, annotations=[],
           metrics=['Train-accuracy:PERCENTAGE'],
-          arena_image='cheyang/arena_launcher:v0.2',
+          arena_image='cheyang/arena_launcher:v0.3',
           timeout_hours=240):
 
     """This function submits a standalone training Job 
