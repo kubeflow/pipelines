@@ -6,6 +6,7 @@ inputs:
   - {name: Namespace,     type: String, default: 'kubeflow',      description: 'Kubernetes namespace where the TS-serving service should be deployed.'}
   - {name: Server name,   type: String, default: 'model-server',  description: 'TF-serving server name to use when deploying.'}
   - {name: PVC name,      type: String, default: '' ,             description: 'Optional PersistentVolumeClaim to use.'}
+  - {name: Service type,  type: String, default: 'ClusterIP' ,             description: 'Optional Service type to use, two options: "ClusterIP" (default if not set) and "NodePort".'}
 #outputs:
 #  - {name: Endppoint URI, type: Serving URI,                      description: 'URI of the deployed prediction service..'}
 implementation:
@@ -18,4 +19,5 @@ implementation:
       --namespace,          {inputValue: Namespace},
       --server-name,        {inputValue: Server name},
       --pvc-name,           {inputValue: PVC name},
+      --service-type,       {inputValue: Service type},
     ]
