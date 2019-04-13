@@ -349,6 +349,7 @@ def main(argv=None):
       metrics_data = {
         'metrics': []
       }
+      metric_list = []
       metric_unit="RAW"
       for m in args.metric:
         mArray = m.split(":")
@@ -358,14 +359,15 @@ def main(argv=None):
         logging.info("determine metric name {0} with metric unit {1}".format(metric_name, metric_unit))
         value = _collect_metrics(fullname, job_type, metric_name)
         if value > 0:
-          metric_list = metrics_data['metrics']
           metric_data = {
           'name': metric_name.lower(), # The name of the metric. Visualized as the column name in the runs table.
           'numberValue':  value, # The value of the metric. Must be a numeric value.
           'format': metric_unit,   # The optional format of the metric. Supported values are "RAW" (displayed in raw format) and "PERCENTAGE" (displayed in percentage format).
           }
-          metrics_data['metrics'] = metric_list.append(metric_data)
+          logging.info("metric data: {0}".format(metric_data))
+          metric_list.append(metric_data)
           logging.info("metrics: {0}".format(metrics_data))
+      metrics_data['metrics'] = metric_list
       with open('/mlpipeline-metrics.json', 'w') as f:
         json.dump(metrics_data, f)
         logging.info("write down /mlpipeline-metrics.json")
