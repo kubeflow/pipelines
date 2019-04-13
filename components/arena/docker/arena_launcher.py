@@ -95,9 +95,14 @@ def _collect_metrics(name, job_type, metric_name):
     import re
     output = subprocess.check_output(metrics_cmd, stderr=subprocess.STDOUT, shell=True)
     result = output.decode().strip()
-    if metric_name+"=" not in result:
+    split_unit=''
+    if metric_name+"=" in result:
+        split_unit="="
+    elif metric_name+":" in result:
+        split_unit=":"
+    else:
         return 0
-    array = result.split("%s=" % (metric_name))
+    array = result.split("%s%s" % (metric_name, split_unit))
     if len(array) > 0:
       logging.info(array)
       result = re.findall(r'\d+\.*\d*',array[-1])
@@ -370,8 +375,9 @@ def main(argv=None):
     sys.exit(-1)
 
   # TODO(cheyang): copy the output.txt from training job
-  #with open('/output.txt', 'w') as f:
-  #  f.write(output)
+  output=""
+  with open('/output.txt', 'w') as f:
+    f.write(output)
 
 
 if __name__== "__main__":
