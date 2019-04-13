@@ -267,8 +267,8 @@ func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 
 // TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
 func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) error {
-	patchObj := map[string]interface{} {
-		"spec": map[string]interface{} {
+	patchObj := map[string]interface{}{
+		"spec": map[string]interface{}{
 			"activeDeadlineSeconds": 0,
 		},
 	}
@@ -403,7 +403,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	if jobId == "" {
 		// If a run doesn't have owner UID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CRD is created.
-		return r.runStore.UpdateRun(runId, workflow.Condition(), workflow.ToStringForStore())
+		return r.runStore.UpdateRun(runId, workflow.Condition(), workflow.FinishedAt(), workflow.ToStringForStore())
 	}
 
 	// Get the experiment resource reference for job.
@@ -420,6 +420,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 			Namespace:        workflow.Namespace,
 			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
 			ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
+			FinishedAtInSec:  workflow.FinishedAt(),
 			Conditions:       workflow.Condition(),
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
