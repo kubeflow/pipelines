@@ -35,7 +35,7 @@ def pipeline(name, description):
   def _pipeline(func):
     func._pipeline_name = name
     func._pipeline_description = description
-    Pipeline.add_pipeline(func)
+    Pipeline._add_pipeline_to_global_list(func)
     return func
 
   return _pipeline
@@ -97,9 +97,16 @@ class Pipeline():
     return Pipeline._pipeline_functions
 
   @staticmethod
-  def add_pipeline(func):
+  def _add_pipeline_to_global_list(func):
     """Add a pipeline function (decorated with @pipeline)."""
     Pipeline._pipeline_functions.append(func)
+
+  @staticmethod
+  def add_pipeline(name, description, func):
+    """Add a pipeline function with the specified name and description."""
+    # Applying the @pipeline decorator to the pipeline function
+    func = pipeline(name=name, description=description)(func)
+    Pipeline._add_pipeline_to_global_list(pipeline_meta, func)
 
   def __init__(self, name: str):
     """Create a new instance of Pipeline.
@@ -124,7 +131,7 @@ class Pipeline():
 
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
-        
+
   def add_op(self, op: _container_op.ContainerOp, define_only: bool):
     """Add a new operator.
 
