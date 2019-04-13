@@ -95,7 +95,7 @@ class K8sHelper(object):
   def _delete_k8s_job(self, pod_name, yaml_spec):
     """ _delete_k8s_job deletes a pod """
     try:
-      api_response = self._corev1.delete_namespaced_pod(pod_name, yaml_spec['metadata']['namespace'], k8s_client.V1DeleteOptions())
+      api_response = self._corev1.delete_namespaced_pod(pod_name, yaml_spec['metadata']['namespace'], body=k8s_client.V1DeleteOptions())
     except k8s_client.rest.ApiException as e:
       logging.exception('Exception when calling CoreV1Api->delete_namespaced_pod: {}\n'.format(str(e)))
 
