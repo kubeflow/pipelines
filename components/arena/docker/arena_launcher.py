@@ -359,6 +359,15 @@ def main(argv=None):
         logging.info("determine metric name {0} with metric unit {1}".format(metric_name, metric_unit))
         value = _collect_metrics(fullname, job_type, metric_name)
         if value > 0:
+          import re
+          p = re.compile('^[a-z]([-a-z0-9]{0,62}[a-z0-9])?')
+          result = p.search(metric_name.lower())
+          if result is None:
+            logging.info("Failed to parse metric_name {0},skip".format(metric_name))
+            continue
+          else:
+            metric_name=result.group[0]
+
           metric_data = {
           'name': metric_name.lower(), # The name of the metric. Visualized as the column name in the runs table.
           'numberValue':  value, # The value of the metric. Must be a numeric value.
@@ -366,9 +375,9 @@ def main(argv=None):
           }
           logging.info("metric data: {0}".format(metric_data))
           metric_list.append(metric_data)
-          logging.info("metrics: {0}".format(metrics_data))
-      metrics_data['metrics'] = metric_list
+          metrics_data['metrics'] = metric_list
       with open('/mlpipeline-metrics.json', 'w') as f:
+        logging.info("metrics: {0}".format(metrics_data))
         json.dump(metrics_data, f)
         logging.info("write down /mlpipeline-metrics.json")
   elif status == "FAILED":
