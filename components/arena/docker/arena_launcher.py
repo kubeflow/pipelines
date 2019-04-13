@@ -365,7 +365,7 @@ def main(argv=None):
           'format': metric_unit,   # The optional format of the metric. Supported values are "RAW" (displayed in raw format) and "PERCENTAGE" (displayed in percentage format).
           }
           metrics_data['metrics'] = metric_list.append(metric_data)
-          logging.info("metrics: {0}".metrics_data)
+          logging.info("metrics: {0}".format(metrics_data))
       with open('/mlpipeline-metrics.json', 'w') as f:
         json.dump(metrics_data, f)
         logging.info("write down /mlpipeline-metrics.json")
