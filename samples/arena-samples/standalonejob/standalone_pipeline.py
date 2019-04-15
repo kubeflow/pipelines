@@ -9,11 +9,9 @@ FLAGS = None
   name='pipeline to run jobs',
   description='shows how to run pipeline jobs.'
 )
-def sample_pipeline(learning_rate=dsl.PipelineParam(name='learning_rate',
-                            value='0.01'),
-    dropout=dsl.PipelineParam(name='dropout',
-                                  value='0.9'),
-    model_version=dsl.PipelineParam(name='model_version', value='1')):
+def sample_pipeline(learning_rate='0.01',
+    dropout='0.9',
+    model_version='1'):
   """A pipeline for end to end machine learning workflow."""
   data=["user-susan:/training"]
   gpus=1
