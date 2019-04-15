@@ -127,10 +127,16 @@ class Pipeline():
       raise Exception('Nested pipelines are not allowed.')
 
     Pipeline._default_pipeline = self
+
+    def register_op_and_generate_id(op):
+      return self.add_op(op, op.is_exit_handler)
+
+    _container_op._register_container_op_handlers.append(register_op_and_generate_id)
     return self
 
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
+    _container_op._register_container_op_handlers.pop()
 
   def add_op(self, op: _container_op.ContainerOp, define_only: bool):
     """Add a new operator.
