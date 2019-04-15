@@ -8,7 +8,7 @@ The `standalone_pipeline.py` sample creates a pipeline runs preparing dataset, M
 
 - This sample requires to create distributed storage. In this sample, we use NFS as example.
 
-1.You need to create `/data` in the NFS Server, and prepare `mnist data`
+1.You need to create `/data` in the NFS Server
 
 ```
 # mkdir -p /nfs
@@ -27,7 +27,7 @@ kind: PersistentVolume
 metadata:
   name: user-susan
   labels:
-    user-susan: nas-mnist
+    user-susan: pipelines
 spec:
   persistentVolumeReclaimPolicy: Retain
   capacity:
@@ -60,7 +60,7 @@ spec:
        storage: 5Gi
   selector:
     matchLabels:
-      user-susan: nas-mnist
+      user-susan: pipelines
 # kubectl create -f nfs-pvc.yaml
 ```
 
