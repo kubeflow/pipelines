@@ -174,7 +174,7 @@ class ContainerOp(BaseOp):
 
         self.volumes = volumes
         if volumes:
-            for mount_path, volume in volumes:
+            for mount_path, volume in volumes.items():
                 self.add_volume(volume)
                 self._container.add_volume_mount(V1VolumeMount(
                     name=volume.name,
