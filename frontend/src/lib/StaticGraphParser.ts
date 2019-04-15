@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import { Workflow, Template } from '../../third_party/argo-ui/argo_template';
 import { color } from '../Css';
 import { logger } from './Utils';
 
-export type nodeType = 'container' | 'dag' | 'unknown';
+export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
 export class SelectedNodeInfo {
   public args: string[];
@@ -30,6 +30,8 @@ export class SelectedNodeInfo {
   public inputs: string[][];
   public nodeType: nodeType;
   public outputs: string[][];
+  public volumeMounts: string[][];
+  public resource: string[][];
 
   constructor() {
     this.args = [];
@@ -39,18 +41,30 @@ export class SelectedNodeInfo {
     this.inputs = [[]];
     this.nodeType = 'unknown';
     this.outputs = [[]];
+    this.volumeMounts = [[]];
+    this.resource = [[]];
   }
 }
 
 export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Template): SelectedNodeInfo {
-  if (!template || !template.container) {
+  if (!template || (!template.container && !template.resource)) {
     return info;
   }
 
-  info.nodeType = 'container';
-  info.args = template.container.args || [],
-  info.command = template.container.command || [],
-  info.image = template.container.image || '';
+  if (template.container) {
+    info.nodeType = 'container';
+    info.args = template.container.args || [],
+    info.command = template.container.command || [],
+    info.image = template.container.image || '';
+    info.volumeMounts = (template.container.volumeMounts || []).map(v => [v.mountPath, v.name]);
+  } else {
+    info.nodeType = 'resource';
+    if (template.resource && template.resource.action && template.resource.manifest) {
+      info.resource = [[template.resource.action, template.resource.manifest]];
+    } else {
+    info.resource = [[]];
+    }
+  }
 
   if (template.inputs) {
     info.inputs =
@@ -67,6 +81,7 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
       return [p.name, value];
     });
   }
+
   return info;
 }
 
@@ -143,12 +158,13 @@ function buildDag(
       }
 
       // "Child" here is the template that this task points to. This template should either be a
-      // DAG, in which case we recurse, or a container which can be thought of as a leaf node
+      // DAG, in which case we recurse, or a container/resource which can be thought of as a
+      // leaf node
       const child = templates.get(task.template);
       if (child) {
         if (child.nodeType === 'dag') {
           buildDag(graph, task.template, templates, alreadyVisited, nodeId);
-        } else if (child.nodeType === 'container' ) {
+        } else if (child.nodeType === 'container' || child.nodeType === 'resource') {
           _populateInfoFromTemplate(info, child.template);
         } else {
           throw new Error(`Unknown nodetype: ${child.nodeType} on workflow template: ${child.template}`);
@@ -204,10 +220,12 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
 
     if (template.container) {
       templates.set(template.name, { nodeType: 'container', template });
+    } else if (template.resource) {
+      templates.set(template.name, { nodeType: 'resource', template });
     } else if (template.dag) {
       templates.set(template.name, { nodeType: 'dag', template });
     } else {
-      logger.verbose(`Template: ${template.name} was neither a Container nor a DAG`);
+      logger.verbose(`Template: ${template.name} was neither a Container/Resource nor a DAG`);
     }
   }
 

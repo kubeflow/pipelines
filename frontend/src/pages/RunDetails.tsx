@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,8 @@ import { formatDateString, getRunDurationFromWorkflow, logger, errorToMessage } 
 enum SidePaneTab {
   ARTIFACTS,
   INPUT_OUTPUT,
+  VOLUMES,
+  MANIFEST,
   LOGS,
 }
 
@@ -174,7 +176,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                         <Banner mode='warning' message={selectedNodeDetails.phaseMessage} />
                       )}
                       <div className={commonCss.page}>
-                        <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Logs']}
+                        <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Volumes', 'Manifest', 'Logs']}
                           selectedTab={sidepanelSelectedTab}
                           onSwitch={this._loadSidePaneTab.bind(this)} />
 
@@ -205,6 +207,22 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                               <DetailsTable title='Output parameters'
                                 fields={WorkflowParser.getNodeInputOutputParams(
                                   workflow, selectedNodeId)[1]} />
+                            </div>
+                          )}
+
+                          {sidepanelSelectedTab === SidePaneTab.VOLUMES && (
+                            <div className={padding(20)}>
+                              <DetailsTable title='Volume Mounts'
+                                fields={WorkflowParser.getNodeVolumeMounts(
+                                  workflow, selectedNodeId)} />
+                            </div>
+                          )}
+
+                          {sidepanelSelectedTab === SidePaneTab.MANIFEST && (
+                            <div className={padding(20)}>
+                              <DetailsTable title='Resource Manifest'
+                                fields={WorkflowParser.getNodeManifest(
+                                  workflow, selectedNodeId)} />
                             </div>
                           )}
 
