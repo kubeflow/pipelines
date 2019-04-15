@@ -189,11 +189,6 @@ images:
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-transform:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-train:$COMMIT_SHA'
 
-# Images for the ResNet CMLE sample  pipeline components
-- 'gcr.io/$PROJECT_ID/resnet-deploy:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/resnet-preprocess:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/resnet-train:$COMMIT_SHA'
-
 # Images for the GCP generic pipeline components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-gcp:$COMMIT_SHA'
 
