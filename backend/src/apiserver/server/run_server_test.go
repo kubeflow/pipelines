@@ -98,6 +98,12 @@ func TestListRun(t *testing.T) {
 			WorkflowManifest: testWorkflow2.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
 	}
 	_, err = server.CreateRun(nil, &api.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
