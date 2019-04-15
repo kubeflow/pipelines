@@ -14,10 +14,13 @@
 
 
 from kubernetes.client.models import (
-    V1Volume, V1PersistentVolumeClaimVolumeSource
+    V1Volume, V1PersistentVolumeClaimVolumeSource,
+    V1ObjectMeta, V1TypedLocalObjectReference
 )
 
 from . import _pipeline
+from ._pipeline_param import sanitize_k8s_name, match_serialized_pipelineparam
+from ._volume_snapshot_op import VolumeSnapshotOp
 
 
 class PipelineVolume(V1Volume):
@@ -99,3 +102,46 @@ class PipelineVolume(V1Volume):
                 ret.deps.append(olddep)
 
         return ret
+
+    def snapshot(self,
+                 resource_name: str = None,
+                 name: str = None):
+        """Create a VolumeSnapshot out of this PipelineVolume"""
+        if not hasattr(self, "persistent_volume_claim"):
+            raise ValueError("The volume must be referencing a PVC.")
+
+        # Generate VolumeSnapshotOp name
+        if not name:
+            name = "%s-snapshot" % self.name
+        # Generate VolumeSnapshot name
+        if not resource_name:
+            tmp_name = self.persistent_volume_claim.claim_name
+            if self.deps:
+                tmp_name = "%s-after" % tmp_name
+                for dep in sorted(self.deps):
+                    tmp_name = "%s-%s" % (tmp_name, sanitize_k8s_name(dep))
+            resource_name = "%s-snapshot" % tmp_name
+
+        # Create the k8s_resource
+        if not match_serialized_pipelineparam(str(resource_name)):
+            resource_name = sanitize_k8s_name(resource_name)
+        snapshot_metadata = V1ObjectMeta(
+            name=resource_name,
+        )
+        source = V1TypedLocalObjectReference(
+            kind="PersistentVolumeClaim",
+            name=self.persistent_volume_claim.claim_name
+        )
+        k8s_resource = {
+            "apiVersion": "snapshot.storage.k8s.io/v1alpha1",
+            "kind": "VolumeSnapshot",
+            "metadata": snapshot_metadata,
+            "spec": {"source": source}
+        }
+        VSOp = VolumeSnapshotOp(
+            name=name,
+            k8s_resource=k8s_resource
+        )
+        VSOp.deps.extend(self.deps)
+
+        return VSOp
