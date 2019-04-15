@@ -18,6 +18,7 @@ from typing import Union, List, Any, Callable, TypeVar, Dict
 
 from ._k8s_helper import K8sHelper
 from .. import dsl
+from ..dsl._base_op import BaseOp
 
 # generics
 T = TypeVar('T')
@@ -76,21 +77,21 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     return obj
 
 
-def _process_container_ops(op: dsl.ContainerOp):
-    """Recursively go through the attrs listed in `attrs_with_pipelineparams` 
-    and sanitize and replace pipeline params with template var string.   
-    
-    Returns a processed `ContainerOp`.
+def _process_base_ops(op: BaseOp):
+    """Recursively go through the attrs listed in `attrs_with_pipelineparams`
+    and sanitize and replace pipeline params with template var string.
 
-    NOTE this is an in-place update to `ContainerOp`'s attributes (i.e. other than
-    `file_outputs`, and `outputs`, all `PipelineParam` are replaced with the 
-    corresponding template variable strings).
+    Returns a processed `BaseOp`.
+
+    NOTE this is an in-place update to `BaseOp`'s attributes (i.e. the ones
+    specified in `attrs_with_pipelineparams`, all `PipelineParam` are replaced
+    with the corresponding template variable strings).
 
     Args:
-        op {dsl.ContainerOp}: class that inherits from ds.ContainerOp
-    
+        op {BaseOp}: class that inherits from BaseOp
+
     Returns:
-        dsl.ContainerOp
+        BaseOp
     """
 
     # map param's (unsanitized pattern or serialized str pattern) -> input param var str
@@ -168,13 +169,12 @@ def _build_conventional_artifact(name, path):
 
 
 # TODO: generate argo python classes from swagger and use convert_k8s_obj_to_json??
-def _op_to_template(op: dsl.ContainerOp):
-    """Generate template given an operator inherited from dsl.ContainerOp."""
+def _op_to_template(op: BaseOp):
+    """Generate template given an operator inherited from BaseOp."""
 
-    # NOTE in-place update to ContainerOp
-    # replace all PipelineParams (except in `file_outputs`, `outputs`, `inputs`)
-    # with template var strings
-    processed_op = _process_container_ops(op)
+    # NOTE in-place update to BaseOp
+    # replace all PipelineParams with template var strings
+    processed_op = _process_base_ops(op)
 
     # default output artifacts
     output_artifact_paths = OrderedDict()
