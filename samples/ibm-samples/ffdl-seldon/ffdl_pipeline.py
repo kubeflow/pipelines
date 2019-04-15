@@ -1,4 +1,6 @@
-import kfp.dsl as dsl
+import kfp
+from kfp import components
+from kfp import dsl
 import ai_pipeline_params as params
 
 # generate default secret name
@@ -27,34 +29,30 @@ def ffdlPipeline(
                                        value='gender_classification.py')
 ):
     """A pipeline for end to end machine learning workflow."""
-    config_op = dsl.ContainerOp(
-        name="config",
-        image="aipipeline/wml-config",
-        command=['python3'],
-        arguments=['/app/config.py',
-                   '--token', GITHUB_TOKEN,
-                   '--url', CONFIG_FILE_URL,
-                   '--name', secret_name],
-        file_outputs={'secret-name': '/tmp/' + secret_name}
+    
+    configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/commons/config/component.yaml')
+    train_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/ffdl/train/component.yaml')
+    serve_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/ffdl/serve/component.yaml')
+    
+    get_configuration = configuration_op(
+                   token = GITHUB_TOKEN,
+                   url = CONFIG_FILE_URL,
+                   name = secret_name
     )
 
-    train = dsl.ContainerOp(
-     name='train',
-     image='aipipeline/ffdl-train:0.6',
-     command=['sh', '-c'],
-     arguments=['echo %s > /tmp/logs.txt; python -u train.py --model_def_file_path %s --manifest_file_path %s;'
-                % (config_op.output, model_def_file_path, manifest_file_path)],
-     file_outputs={'output': '/tmp/training_id.txt'}).apply(params.use_ai_pipeline_params(secret_name))
+    train = train_op(
+                   model_def_file_path,
+                   manifest_file_path
+    ).apply(params.use_ai_pipeline_params(secret_name))
 
-    serve = dsl.ContainerOp(
-     name='serve',
-     image='aipipeline/ffdl-serve:0.11',
-     command=['sh', '-c'],
-     arguments=['python -u serve.py --model_id %s --deployment_name %s --model_class_name %s --model_class_file %s;'
-                % (train.output, model_deployment_name, model_class_name, model_class_file)],
-     file_outputs={'output': '/tmp/deployment_result.txt'}).apply(params.use_ai_pipeline_params(secret_name))
+    serve = serve_op(
+                   train.output, 
+                   model_deployment_name, 
+                   model_class_name, 
+                   model_class_file
+    ).apply(params.use_ai_pipeline_params(secret_name))
 
 
 if __name__ == '__main__':
     import kfp.compiler as compiler
-    compiler.Compiler().compile(ffdlPipeline, __file__ + '.zip')
+    compiler.Compiler().compile(ffdlPipeline, __file__ + '.tar.gz')
