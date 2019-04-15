@@ -26,7 +26,7 @@ wait_interval |  A time-interval to wait for between calls to get the job status
 Name | Description | Type
 :--- | :---------- | :---
 job_id | The ID of the created job. | String
-job_dir | The output path in Cloud Storage of the trainning job, which contains the trained model files. | GCSPath
+job_dir | The output path in Cloud Storage of the training job, which contains the trained model files. | GCSPath
 
 ## Cautions & requirements
 
