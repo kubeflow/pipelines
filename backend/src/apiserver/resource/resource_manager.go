@@ -78,8 +78,8 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		time:                    clientManager.Time(),
-		uuid:                    clientManager.UUID(),
+		time: clientManager.Time(),
+		uuid: clientManager.UUID(),
 	}
 }
 
@@ -217,29 +217,10 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
 
-	hasExperiment := false
-	for _, ref := range apiRun.ResourceReferences {
-		if ref.Key.Type == api.ResourceType_EXPERIMENT && ref.Relationship == api.Relationship_OWNER {
-			hasExperiment = true
-			break
-		}
-	}
-	if !hasExperiment {
-		defaultExperimentId, err := r.GetDefaultExperimentId()
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to retrieve default experiment")
-		}
-		if defaultExperimentId == "" {
-			return nil, util.NewInternalServerError(errors.New("Default experiment ID was empty"), "Default experiment was not set")
-		}
-		defaultExperimentRef := &api.ResourceReference{
-			Key: &api.ResourceKey{
-				Id:   defaultExperimentId,
-				Type: api.ResourceType_EXPERIMENT,
-			},
-			Relationship: api.Relationship_OWNER,
-		}
-		apiRun.ResourceReferences = append(apiRun.ResourceReferences, defaultExperimentRef)
+	// Add a reference to the default experiment if run does not already have a containing experiment
+	err = r.setExperimentIfNotPresent(apiRun)
+	if err != nil {
+		return nil, err
 	}
 
 	// Store run metadata into database
@@ -522,6 +503,36 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 		return []byte(spec.GetWorkflowManifest()), nil
 	}
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
+}
+
+// setDefaultExperimentIfNotPresent If the provided run does not include a reference to a containing
+// experiment, then we fetch the default experiment's ID and create a reference to that.
+func (r *ResourceManager) setExperimentIfNotPresent(apiRun *api.Run) error {
+	// First check if there is already a referenced experiment
+	for _, ref := range apiRun.ResourceReferences {
+		if ref.Key.Type == api.ResourceType_EXPERIMENT && ref.Relationship == api.Relationship_OWNER {
+			return nil
+		}
+	}
+
+	// Create reference to the default experiment
+	defaultExperimentId, err := r.GetDefaultExperimentId()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to retrieve default experiment")
+	}
+	if defaultExperimentId == "" {
+		return util.NewInternalServerError(errors.New("Default experiment ID was empty"), "Default experiment was not set")
+	}
+	defaultExperimentRef := &api.ResourceReference{
+		Key: &api.ResourceKey{
+			Id:   defaultExperimentId,
+			Type: api.ResourceType_EXPERIMENT,
+		},
+		Relationship: api.Relationship_OWNER,
+	}
+	apiRun.ResourceReferences = append(apiRun.ResourceReferences, defaultExperimentRef)
+
+	return nil
 }
 
 func (r *ResourceManager) ReportMetric(metric *api.RunMetric, runUUID string) error {

@@ -25,10 +25,10 @@ func TestInitializeDefaultExperimentTable(t *testing.T) {
 	defaultExperimentStore := NewDefaultExperimentStore(db)
 
 	// Initialize for the first time
-	err := defaultExperimentStore.InitializeDefaultExperimentTable()
+	err := defaultExperimentStore.initializeDefaultExperimentTable()
 	assert.Nil(t, err)
 	// Initialize again should be no-op and no error
-	err = defaultExperimentStore.InitializeDefaultExperimentTable()
+	err = defaultExperimentStore.initializeDefaultExperimentTable()
 	assert.Nil(t, err)
 	// Default experiment ID is empty after table initialization
 	defaultExperimentId, err := defaultExperimentStore.GetDefaultExperimentId()
@@ -37,7 +37,7 @@ func TestInitializeDefaultExperimentTable(t *testing.T) {
 
 	// Initializing the table with an invalid DB is an error
 	db.Close()
-	err = defaultExperimentStore.InitializeDefaultExperimentTable()
+	err = defaultExperimentStore.initializeDefaultExperimentTable()
 	assert.NotNil(t, err)
 }
 
@@ -46,7 +46,7 @@ func TestGetAndSetDefaultExperimentId(t *testing.T) {
 	defaultExperimentStore := NewDefaultExperimentStore(db)
 
 	// Initialize for the first time
-	err := defaultExperimentStore.InitializeDefaultExperimentTable()
+	err := defaultExperimentStore.initializeDefaultExperimentTable()
 	assert.Nil(t, err)
 	// Set the default experiment ID
 	err = defaultExperimentStore.SetDefaultExperimentId("test-ID")

@@ -30,12 +30,12 @@ type DefaultExperimentStoreInterface interface {
 }
 
 // Implementation of a DefaultExperimentStoreInterface. This stores the default experiment's ID,
-// which is created as the API server is initialized.
+// which is created the first time the API server is initialized.
 type DefaultExperimentStore struct {
 	db *DB
 }
 
-func (s *DefaultExperimentStore) InitializeDefaultExperimentTable() error {
+func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
 	// First check that the table is in fact empty
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -112,6 +112,6 @@ func (s *DefaultExperimentStore) GetDefaultExperimentId() (string, error) {
 func NewDefaultExperimentStore(db *DB) *DefaultExperimentStore {
 	s := &DefaultExperimentStore{db: db}
 	// Initialize default experiment table
-	s.InitializeDefaultExperimentTable()
+	s.initializeDefaultExperimentTable()
 	return s
 }
