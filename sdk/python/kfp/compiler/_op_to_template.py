@@ -124,16 +124,18 @@ def _inputs_to_json(inputs_params: List[dsl.PipelineParam], _artifacts=None):
     return {'parameters': parameters} if parameters else None
 
 
-def _outputs_to_json(outputs: Dict[str, dsl.PipelineParam],
-                     file_outputs: Dict[str, str],
+def _outputs_to_json(op: BaseOp,
+                     outputs: Dict[str, dsl.PipelineParam],
+                     param_outputs: Dict[str, str],
                      output_artifacts: List[dict]):
     """Creates an argo `outputs` JSON obj."""
+    value_from_key = "path"
     output_parameters = []
     for param in outputs.values():
         output_parameters.append({
             'name': param.full_name,
             'valueFrom': {
-                'path': file_outputs[param.name]
+                value_from_key: param_outputs[param.name]
             }
         })
     output_parameters.sort(key=lambda x: x['name'])
@@ -176,21 +178,22 @@ def _op_to_template(op: BaseOp):
     # replace all PipelineParams with template var strings
     processed_op = _process_base_ops(op)
 
-    # default output artifacts
-    output_artifact_paths = OrderedDict()
-    output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
-    output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
+    if isinstance(op, dsl.ContainerOp):
+        # default output artifacts
+        output_artifact_paths = OrderedDict()
+        output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
+        output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
 
-    output_artifacts = [
-        _build_conventional_artifact(name, path)
-        for name, path in output_artifact_paths.items()
-    ]
+        output_artifacts = [
+            _build_conventional_artifact(name, path)
+            for name, path in output_artifact_paths.items()
+        ]
 
-    # workflow template
-    template = {
-        'name': op.name,
-        'container': K8sHelper.convert_k8s_obj_to_json(op.container)
-    }
+        # workflow template
+        template = {
+            'name': op.name,
+            'container': K8sHelper.convert_k8s_obj_to_json(op.container)
+        }
 
     # inputs
     inputs = _inputs_to_json(processed_op.inputs)
@@ -198,7 +201,9 @@ def _op_to_template(op: BaseOp):
         template['inputs'] = inputs
 
     # outputs
-    template['outputs'] = _outputs_to_json(op.outputs, op.file_outputs,
+    if isinstance(op, dsl.ContainerOp):
+        param_outputs = op.file_outputs
+    template['outputs'] = _outputs_to_json(op, op.outputs, param_outputs,
                                            output_artifacts)
 
     # node selector

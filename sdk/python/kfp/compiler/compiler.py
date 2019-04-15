@@ -489,8 +489,8 @@ class Compiler(object):
     volumes = []
     volume_name_set = set()
     for op in pipeline.ops.values():
-      if op.volumes:
-        for v in op.volumes:
+      if op.k8s_volumes:
+        for v in op.k8s_volumes:
           # Remove volume duplicates which have the same name
           #TODO: check for duplicity based on the serialized volumes instead of just name.
           if v['name'] not in volume_name_set:
@@ -601,8 +601,8 @@ class Compiler(object):
         arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
 
     # Sanitize operator names and param names
-    sanitized_ops = {}
-    for op in p.ops.values():
+    sanitized_cops = {}
+    for op in p.cops.values():
       sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
       op.name = sanitized_name
       for param in op.outputs.values():
@@ -619,8 +619,9 @@ class Compiler(object):
         for key in op.file_outputs.keys():
           sanitized_file_outputs[K8sHelper.sanitize_k8s_name(key)] = op.file_outputs[key]
         op.file_outputs = sanitized_file_outputs
-      sanitized_ops[sanitized_name] = op
-    p.ops = sanitized_ops
+      sanitized_cops[sanitized_name] = op
+    p.cops = sanitized_cops
+    p.ops = dict(sanitized_cops)
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
 
