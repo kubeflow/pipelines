@@ -35,7 +35,7 @@ def yamlOrJsonStr(str):
     try:
         return json.loads(str)
     except:
-        return yaml.load(str)
+        return yaml.safe_load(str)
 
 def strToList(str):
     return str.split(",")
@@ -50,7 +50,7 @@ def _generate_studyjob_yaml(src_filename, name, namespace, optimizationtype, obj
                             metricsnames, parameterconfigs, nasConfig, workertemplatepath, mcollectortemplatepath, suggestionspec):
   """_generate_studyjob_yaml generates studyjob yaml file based on hp.template.yaml"""
   with open(src_filename, 'r') as f:
-    content = yaml.load(f)
+    content = yaml.safe_load(f)
 
   content['metadata']['name'] = name
   content['metadata']['namespace'] = namespace
