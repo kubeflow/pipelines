@@ -38,6 +38,7 @@ type FakeClientManager struct {
 	runStore                    storage.RunStoreInterface
 	resourceReferenceStore      storage.ResourceReferenceStoreInterface
 	dBStatusStore               storage.DBStatusStoreInterface
+	defaultExperimentStore      storage.DefaultExperimentStoreInterface
 	objectStore                 storage.ObjectStoreInterface
 	workflowClientFake          *FakeWorkflowClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
@@ -72,6 +73,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		workflowClientFake:          NewWorkflowClientFake(),
 		resourceReferenceStore:      storage.NewResourceReferenceStore(db),
 		dBStatusStore:               storage.NewDBStatusStore(db),
+		defaultExperimentStore:      storage.NewDefaultExperimentStore(db),
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
 		time:                        time,
@@ -142,6 +144,10 @@ func (f *FakeClientManager) ResourceReferenceStore() storage.ResourceReferenceSt
 
 func (f *FakeClientManager) DBStatusStore() storage.DBStatusStoreInterface {
 	return f.dBStatusStore
+}
+
+func (f *FakeClientManager) DefaultExperimentStore() storage.DefaultExperimentStoreInterface {
+	return f.defaultExperimentStore
 }
 
 func (f *FakeClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
