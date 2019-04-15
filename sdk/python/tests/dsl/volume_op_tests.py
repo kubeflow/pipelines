@@ -17,7 +17,7 @@ from kubernetes.client.models import (
     V1Volume, V1PersistentVolumeClaimVolumeSource
 )
 
-from kfp.dsl import Pipeline, PipelineParam, VolumeOp
+from kfp.dsl import Pipeline, PipelineParam, VolumeOp, PipelineVolume
 import unittest
 
 
@@ -59,7 +59,7 @@ class TestVolumeOp(unittest.TestCase):
             PipelineParam(name="name", op_name=vol.name)
         )
         self.assertEqual(vol.deps, [])
-        expected_volume = V1Volume(
+        expected_volume = PipelineVolume(
             name="myvol-creation",
             persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
                 claim_name=PipelineParam(name="name", op_name=vol.name)

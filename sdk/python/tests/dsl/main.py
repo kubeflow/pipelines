@@ -25,6 +25,7 @@ import component_tests
 import metadata_tests
 import resource_op_tests
 import volume_op_tests
+import pipeline_volume_tests
 
 if __name__ == '__main__':
   suite = unittest.TestSuite()
@@ -40,6 +41,9 @@ if __name__ == '__main__':
   )
   suite.addTests(
     unittest.defaultTestLoader.loadTestsFromModule(volume_op_tests)
+  )
+  suite.addTests(
+    unittest.defaultTestLoader.loadTestsFromModule(pipeline_volume_tests)
   )
   runner = unittest.TextTestRunner()
   if not runner.run(suite).wasSuccessful():
