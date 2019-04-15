@@ -131,7 +131,7 @@ export default class Buttons {
       icon: AddIcon,
       id: 'newExperimentBtn',
       outlined: true,
-      title: 'Create an experiment',
+      title: 'Create experiment',
       tooltip: 'Create a new experiment',
     };
   }
