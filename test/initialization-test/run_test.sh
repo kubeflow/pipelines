@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ NAMESPACE=kubeflow
 usage()
 {
     echo "usage: run_test.sh
-    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/e2e_test
+    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/initialization_test
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
     [-h help]"
 }
@@ -49,37 +49,30 @@ if [ -z "$RESULTS_GCS_DIR" ]; then
     exit 1
 fi
 
-# Setup Google Cloud SDK, and use it to install kubectl so it gets the right context
-wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip
-unzip -qq google-cloud-sdk.zip -d tools
-rm google-cloud-sdk.zip
-tools/google-cloud-sdk/install.sh --usage-reporting=false \
-  --path-update=false --bash-completion=false \
-  --disable-installation-options
-tools/google-cloud-sdk/bin/gcloud -q components install kubectl
-
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
-  tools/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
 
-npm install
+GITHUB_REPO=kubeflow/pipelines
+BASE_DIR=/go/src/github.com/${GITHUB_REPO}
+JUNIT_TEST_RESULT=junit_InitializationTestOutput.xml
+TEST_DIR=backend/test/initialization
 
-# Port forward the UI so tests can work against localhost
-POD=`/src/tools/google-cloud-sdk/bin/kubectl get pods -n ${NAMESPACE} -l app=ml-pipeline-ui -o jsonpath='{.items[0].metadata.name}'`
-/src/tools/google-cloud-sdk/bin/kubectl port-forward -n ${NAMESPACE} ${POD} 3000:3000 &
+cd "${BASE_DIR}/${TEST_DIR}"
 
-# Run Selenium server
-/opt/bin/entry_point.sh &
-./node_modules/.bin/wait-port 127.0.0.1:4444 -t 20000
-./node_modules/.bin/wait-port 127.0.0.1:3000 -t 20000
+# turn on go module
+export GO111MODULE=on
 
-export PIPELINE_OUTPUT=${RESULTS_GCS_DIR}/pipeline_output
-npm test
+echo "Run Initialization test..."
+TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true 2>&1`
 TEST_EXIT_CODE=$?
 
-JUNIT_TEST_RESULT=junit_FrontendIntegrationTestOutput.xml
+# Log the test result
+printf '%s\n' "$TEST_RESULT"
+# Convert test result to junit.xml
+printf '%s\n' "$TEST_RESULT" | go-junit-report > ${JUNIT_TEST_RESULT}
 
 echo "Copy test result to GCS ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}"
-tools/google-cloud-sdk/bin/gsutil cp ${JUNIT_TEST_RESULT} ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}
+gsutil cp ${JUNIT_TEST_RESULT} ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}
 
 exit $TEST_EXIT_CODE
