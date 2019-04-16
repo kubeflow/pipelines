@@ -76,7 +76,7 @@ source "${DIR}/deploy-kubeflow.sh"
 # Install Argo
 echo "Installing Argo"
 NAMESPACE=$NAMESPACE "${DIR}/install-argo.sh"
-) >deploy_prerequisites.log 2>&1 || { error_code ="$?"; cat deploy_prerequisites.log; exit "$error_code"; }
+) >deploy_prerequisites.log 2>&1 || { error_code="$?"; cat deploy_prerequisites.log; exit "$error_code"; }
 
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
@@ -95,7 +95,7 @@ source "${DIR}/check-argo-status.sh"
 echo "build docker images workflow completed"
 
 # Deploy the pipeline
-source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} >deploy_pipelines.log 2>&1 || { error_code ="$?"; cat deploy_pipelines.log; exit "$error_code"; }
+source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} >deploy_pipelines.log 2>&1 || { error_code="$?"; cat deploy_pipelines.log; exit "$error_code"; }
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
