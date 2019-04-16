@@ -54,7 +54,7 @@ outputs:
     type: GCSPath
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:a277f87ea1d4707bf860d080d06639b7caf9a1cf
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:e20fad3e161e88226c83437271adb063221459b9
     args: [
       kfp_component.google.bigquery, query,
       --query, {inputValue: query},
