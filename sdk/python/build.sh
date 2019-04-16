@@ -88,7 +88,6 @@ OUTPUT_FILE=${OUTPUT_FILE:-kfp.tar.gz}
 OUTPUT_FILE=$(get_abs_filename "$OUTPUT_FILE")
 
 if $DO_INSTALL ; then
-
   for SWAGGER_PACKAGE in kfp_experiment kfp_run kfp_pipeline kfp_uploadpipeline kfp_job
   do
       TARGET_DIR=${THIS_DIR}/${SWAGGER_PACKAGE}
