@@ -51,3 +51,6 @@ bazel-*
 
 # VSCode
 .vscode
+
+# swagger generated source files
+sdk/python/kfp_*
