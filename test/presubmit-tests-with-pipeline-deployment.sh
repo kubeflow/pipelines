@@ -64,7 +64,9 @@ done
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-{
+export PATH=~/bin/:$PATH
+
+(
 echo "Preparing the code for test images"
 source "${DIR}/test-prep.sh"
 
@@ -73,8 +75,8 @@ source "${DIR}/deploy-kubeflow.sh"
 
 # Install Argo
 echo "Installing Argo"
-source "${DIR}/install-argo.sh"
-} >deploy_prerequisites.log 2>&1 || { error_code ="$?"; cat deploy_prerequisites.log; exit "$error_code"; }
+NAMESPACE=$NAMESPACE "${DIR}/install-argo.sh"
+) >deploy_prerequisites.log 2>&1 || { error_code ="$?"; cat deploy_prerequisites.log; exit "$error_code"; }
 
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
