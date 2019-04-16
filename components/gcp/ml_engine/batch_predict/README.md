@@ -1,35 +1,49 @@
 
 # Name
+
 Batch prediction using Cloud Machine Learning Engine
 
-# Labels
+
+# Label
+
 Cloud Storage, Cloud ML Engine, Kubeflow, Pipeline, Component
 
+
 # Summary
+
 A Kubeflow Pipeline component to submit a batch prediction job against a deployed model on Cloud ML Engine.
 
+
 # Details
+
+
 ## Intended use
+
 Use the component to run a batch prediction job against a deployed model on Cloud ML Engine. The prediction output is stored in a Cloud Storage bucket.
 
+
 ## Runtime arguments
-Name | Description | Type | Optional | Default
-:--- | :---------- | :--- | :------- | :------
-project_id | The ID of the Google Cloud Project (GCP) of the job. | GCPProjectID | No |
-model_path | The path to the model. It can be one of the following:<ul><li>`projects/[PROJECT_ID]/models/[MODEL_ID]`</li><li>`projects/[PROJECT_ID]/models/[MODEL_ID]/versions/[VERSION_ID]`</li><li>The path to a Cloud Storage location containing a model file.</li></ul> | String | No |
-input_paths |The path to the Cloud Storage location containing the input data files. It can contain wildcards, for example, `gs://foo/*.csv` | List | No |
-input_data_format | The format of the input data files. See [REST Resource: projects.jobs](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#DataFormat) for more details. | String | No |
-output_path | The path to the Cloud Storage location for the output data. | GCSPath | No |
-region | TThe Compute Engine region where the prediction job is run. | GCPRegion | No |
-output_data_format | The format of the output data files. See [REST Resource: projects.jobs](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#DataFormat) for more details. | String | Yes | `JSON`
-prediction_input | The JSON input parameters to create a prediction job. See [PredictionInput](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#PredictionInput) for more information. | Dict | Yes | ` `
-job_id_prefix | The prefix of the generated job id. | String | Yes | ` `
-wait_interval | The number of seconds to wait in case the operation has a long run time. | Integer | Yes | `30`
+
+| Argument | Description | Optional | Data type | Accepted values | Default |
+|--------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|--------------|-----------------|---------|
+| project_id | The ID of the Google Cloud Platform (GCP) project of the job. | No | GCPProjectID |  |  |
+| model_path | The path to the model. It can be one of the following:<br/> <ul>   <li>projects/[PROJECT_ID]/models/[MODEL_ID]</li>  <li>projects/[PROJECT_ID]/models/[MODEL_ID]/versions/[VERSION_ID]</li> <li>The path to a Cloud Storage location containing a model file.</li>  </ul> | No | GCSPath |  |  |
+| input_paths | The path to the Cloud Storage location containing the input data files. It can contain wildcards, for example, `gs://foo/*.csv` | No | List | GCSPath |  |
+| input_data_format | The format of the input data files. See [REST Resource: projects.jobs](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#DataFormat)  for more details. | No | String | DataFormat |  |
+| output_path | The path to the Cloud Storage location for the output data. | No | GCSPath |  |  |
+| region | The Compute Engine region where the prediction job is run. | No | GCPRegion |  |  |
+| output_data_format | The format of the output data files. See [REST Resource: projects.jobs](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#DataFormat) for more details. | Yes | String | DataFormat | JSON |
+| prediction_input | The JSON input parameters to create a prediction job. See [PredictionInput](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#PredictionInput) for more information. | Yes | Dict |  | None |
+| job_id_prefix | The prefix of the generated job id. | Yes | String |  | None |
+| wait_interval | The number of seconds to wait in case the operation has a long run time. | Yes |  |  | 30 |
+
 
 ## Input data schema
+
 The component accepts the following as input:
-* A trained model: It can be a model file in Cloud Storage, a deployed model, or a version in Cloud ML Engine. Specify the path to the model in the `model_path` runtime argument.
-* Input data: The data used to make predictions against the trained model. The data can be in [multiple formats](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#DataFormat). The data path is specified by `input_paths` and the format is specified by `input_data_format`.
+
+*   A trained model: It can be a model file in Cloud Storage, a deployed model, or a version in Cloud ML Engine. Specify the path to the model in the `model_path `runtime argument.
+*   Input data: The data used to make predictions against the trained model. The data can be in [multiple formats](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#DataFormat). The data path is specified by `input_paths` and the format is specified by `input_data_format`.
 
 ## Output
 Name | Description | Type
@@ -39,23 +53,30 @@ output_path | The output path of the batch prediction job | GCSPath
 
 
 ## Cautions & requirements
+
 To use the component, you must:
-* Setup cloud environment by following the [guide](https://cloud.google.com/ml-engine/docs/tensorflow/getting-started-training-prediction#setup).
-* The component is running under a secret of [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
 
-```python
-mlengine_predict_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
+*   Set up a cloud environment by following this [guide](https://cloud.google.com/ml-engine/docs/tensorflow/getting-started-training-prediction#setup).
+*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
 
-```
-* Grant the following types of access to the Kubeflow user service account:
-  * Read access to the Cloud Storage buckets which contains the input data.
-  * Write access to the Cloud Storage bucket of the output directory.
+    ```python
+    mlengine_predict_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    ```
 
 
-## Detailed Description
+*   Grant the following types of access to the Kubeflow user service account:
+    *   Read access to the Cloud Storage buckets which contains the input data.
+    *   Write access to the Cloud Storage bucket of the output directory.
 
-Here are the steps to use the component in a pipeline:
-1. Install KFP SDK
+
+## Detailed description
+
+Follow these steps to use the component in a pipeline:
+
+
+
+1.  Install the Kubeflow Pipeline SDK:
+
 
 
 
@@ -81,7 +102,7 @@ help(mlengine_batch_predict_op)
 ### Sample Code
 Note: The following sample code works in an IPython notebook or directly in Python code. 
 
-In this sample, you batch predict against a pre-built trained model from  `gs://ml-pipeline-playground/samples/ml_engine/census/trained_model/` and use the test data from `gs://ml-pipeline-playground/samples/ml_engine/census/test.json`. 
+In this sample, you batch predict against a pre-built trained model from `gs://ml-pipeline-playground/samples/ml_engine/census/trained_model/` and use the test data from `gs://ml-pipeline-playground/samples/ml_engine/census/test.json`.
 
 #### Inspect the test data
 
@@ -183,3 +204,6 @@ OUTPUT_FILES_PATTERN = OUTPUT_GCS_PATH + '*'
 * [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
 * [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/ml_engine/batch_predict/sample.ipynb)
 * [Cloud Machine Learning Engine job REST API](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs)
+
+## License
+By deploying or using this software you agree to comply with the [AI Hub Terms of Service](https://aihub.cloud.google.com/u/0/aihub-tos) and the [Google APIs Terms of Service](https://developers.google.com/terms/). To the extent of a direct conflict of terms, the AI Hub Terms of Service will control.
