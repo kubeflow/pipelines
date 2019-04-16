@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+set -e
 
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
@@ -22,7 +22,6 @@ WORKFLOW_FAILED_KEYWORD="phase=Failed"
 PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
 
 echo "Waiting for Argo workflow $ARGO_WORKFLOW to complete (time-out after $(expr $TIMEOUT_SECONDS / 60 ) minutes)..."
-(set +x
 for i in $(seq 1 ${PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT})
 do
   WORKFLOW_STATUS=`kubectl get workflow $ARGO_WORKFLOW -n ${NAMESPACE} --show-labels --no-headers=true`
@@ -42,7 +41,6 @@ if [[ $s != 0 ]]; then
  argo logs -w ${ARGO_WORKFLOW} -n ${NAMESPACE}
  exit $s
 fi
-)
 
 echo "Argo workflow finished."
 
