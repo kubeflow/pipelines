@@ -32,7 +32,7 @@ KUBEFLOW_SRC=${DIR}/kubeflow_latest_release
 mkdir ${KUBEFLOW_SRC}
 cd ${KUBEFLOW_SRC}
 export KUBEFLOW_TAG=pipelines
-curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash >kubeflow_download.log 2>&1 || { error_code ="$?"; cat kubeflow_download.log; exit "$error_code"; }
+curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash >kubeflow_download.log 2>&1 || { error_code="$?"; cat kubeflow_download.log; exit "$error_code"; }
 
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
@@ -41,7 +41,7 @@ KFAPP=${TEST_CLUSTER}
 function clean_up {
   echo "Clean up..."
   cd ${DIR}/${KFAPP}
-  ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all >kubeflow_uninstall.log 2>&1 || { error_code ="$?"; cat kubeflow_uninstall.log; } #Not exiting here, so thet the deployment is always deleted
+  ${KUBEFLOW_SRC}/scripts/kfctl.sh delete all >kubeflow_uninstall.log 2>&1 || { error_code="$?"; cat kubeflow_uninstall.log; } #Not exiting here, so thet the deployment is always deleted
   # delete the storage
   gcloud deployment-manager --project=${PROJECT} deployments delete ${KFAPP}-storage --quiet
 }
@@ -56,6 +56,6 @@ ${KUBEFLOW_SRC}/scripts/kfctl.sh generate platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
-} >kubeflow_install.log 2>&1 || { error_code ="$?"; cat kubeflow_install.log; exit "$error_code"; }
+} >kubeflow_install.log 2>&1 || { error_code="$?"; cat kubeflow_install.log; exit "$error_code"; }
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
