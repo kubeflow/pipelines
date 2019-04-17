@@ -29,7 +29,7 @@ def sample_pipeline(learning_rate='0.01',
   curl -O https://code.aliyun.com/xiaozhou/tensorflow-sample-code/raw/master/data/train-images-idx3-ubyte.gz && \
   curl -O https://code.aliyun.com/xiaozhou/tensorflow-sample-code/raw/master/data/train-labels-idx1-ubyte.gz")
 
-  # 2. downalod source code and train the models
+  # 2. download source code and train the models
   train = arena.standalone_job_op(
     name="train",
     image="tensorflow/tensorflow:1.11.0-gpu-py3",
