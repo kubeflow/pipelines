@@ -193,8 +193,9 @@ def generate_job_command(args):
 
     if len(sync_source) > 0:
       if not sync_source.endswith(".git"):
-        commandArray.append('--syncMode=git')
-        commandArray.append('--syncSource='+sync_source)
+        raise ValueError("sync_source must be an http git url")
+      commandArray.append('--syncMode=git')
+      commandArray.append('--syncSource='+sync_source)
 
     return commandArray, "tfjob"
 
@@ -256,8 +257,9 @@ def generate_mpjob_command(args):
 
     if len(sync_source) > 0:
       if not sync_source.endswith(".git"):
-        commandArray.append('--syncMode=git')
-        commandArray.append('--syncSource='+sync_source)
+        raise ValueError("sync_source must be an http git url")
+      commandArray.append('--syncMode=git')
+      commandArray.append('--syncSource='+sync_source)
 
     return commandArray, "mpijob"
 
