@@ -18,7 +18,7 @@ import kfp.dsl as dsl
 import kfp.gcp as gcp
 import datetime
 
-def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'GcsUri', column_names: 'GcsUri[text/json]', key_columns, project: 'GcpProject', mode, validation_output: 'GcsUri[Directory]', step_name='validation'):
+def dataflow_tf_data_validation_op(inference_data: dsl.types.GCSPath, validation_data: dsl.types.GCSPath, column_names: dsl.types.GCSPath, key_columns, project: dsl.types.GCPProjectID, mode, validation_output: dsl.types.GCSPath, step_name='validation'):
     return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:e20fad3e161e88226c83437271adb063221459b9',
@@ -37,7 +37,7 @@ def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'G
         }
     )
 
-def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
+def dataflow_tf_transform_op(train_data: dsl.types.GCSPath, evaluation_data: dsl.types.GCSPath, schema: dsl.types.GCSPath, project: dsl.types.GCPProjectID, preprocess_mode, preprocess_module: dsl.types.GCSPath, transform_output: dsl.types.GCSPath, step_name='preprocess'):
     return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:e20fad3e161e88226c83437271adb063221459b9',
@@ -54,7 +54,7 @@ def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', sc
     )
 
 
-def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target: str, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training'):
+def tf_train_op(transformed_data_dir, schema: dsl.types.GCSPath, learning_rate: float, hidden_layer_size: int, steps: int, target: str, preprocess_module: dsl.types.GCSPath, training_output: dsl.types.GCSPath, step_name='training'):
     return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:e20fad3e161e88226c83437271adb063221459b9',
@@ -71,7 +71,7 @@ def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate
         file_outputs = {'train': '/output.txt'}
     )
 
-def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', analyze_mode, analyze_slice_column, analysis_output: 'GcsUri', step_name='analysis'):
+def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: dsl.types.GCSPath, schema: dsl.types.GCSPath, project: dsl.types.GCPProjectID, analyze_mode, analyze_slice_column, analysis_output: dsl.types.GCSPath, step_name='analysis'):
     return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:e20fad3e161e88226c83437271adb063221459b9',
@@ -88,7 +88,7 @@ def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'Gc
     )
 
 
-def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
+def dataflow_tf_predict_op(evaluation_data: dsl.types.GCSPath, schema: dsl.types.GCSPath, target: str, model: 'TensorFlow model', predict_mode, project: dsl.types.GCPProjectID, prediction_output: dsl.types.GCSPath, step_name='prediction'):
     return dsl.ContainerOp(
         name = step_name,
         image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:e20fad3e161e88226c83437271adb063221459b9',
@@ -105,7 +105,7 @@ def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]
     )
 
 
-def confusion_matrix_op(predictions: 'GcsUri', output: 'GcsUri', step_name='confusion_matrix'):
+def confusion_matrix_op(predictions: dsl.types.GCSPath, output: dsl.types.GCSPath, step_name='confusion_matrix'):
   return dsl.ContainerOp(
       name=step_name,
       image='gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:e20fad3e161e88226c83437271adb063221459b9',
@@ -116,7 +116,7 @@ def confusion_matrix_op(predictions: 'GcsUri', output: 'GcsUri', step_name='conf
      ])
 
 
-def roc_op(predictions: 'GcsUri', output: 'GcsUri', step_name='roc'):
+def roc_op(predictions: dsl.types.GCSPath, output: dsl.types.GCSPath, step_name='roc'):
   return dsl.ContainerOp(
       name=step_name,
       image='gcr.io/ml-pipeline/ml-pipeline-local-roc:e20fad3e161e88226c83437271adb063221459b9',
