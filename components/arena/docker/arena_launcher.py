@@ -155,6 +155,7 @@ def generate_job_command(args):
     tensorboard_image = args.tensorboard_image
     tensorboard = str2bool(args.tensorboard)
     log_dir = args.log_dir
+    sync_source = args.sync_source
 
     commandArray = [
     'arena', 'submit', 'tfjob',
@@ -190,6 +191,11 @@ def generate_job_command(args):
       for e in env:
         commandArray.append("--env={0}".format(e))
 
+    if len(sync_source) > 0:
+      if not sync_source.endswith(".git"):
+        commandArray.append('--syncMode=git')
+        commandArray.append('--syncSource='+sync_source)
+
     return commandArray, "tfjob"
 
 # Generate mpi job
@@ -208,6 +214,7 @@ def generate_mpjob_command(args):
     tensorboard = str2bool(args.tensorboard)
     rdma = str2bool(args.rdma)
     log_dir = args.log_dir
+    sync_source = args.sync_source
 
     commandArray = [
     'arena', 'submit', 'mpijob',
@@ -247,6 +254,11 @@ def generate_mpjob_command(args):
       for e in env:
         commandArray.append("--env={0}".format(e))
 
+    if len(sync_source) > 0:
+      if not sync_source.endswith(".git"):
+        commandArray.append('--syncMode=git')
+        commandArray.append('--syncSource='+sync_source)
+
     return commandArray, "mpijob"
 
 def str2bool(v):
@@ -281,6 +293,7 @@ def main(argv=None):
   parser.add_argument('--env', action='append', type=str, default=[])
   parser.add_argument('--data', action='append', type=str, default=[])
   parser.add_argument('--metric', action='append', type=str, default=[])
+  parser.add_argument('--sync-source', type=str, default='')
 
   subparsers = parser.add_subparsers(help='arena sub-command help')
 
