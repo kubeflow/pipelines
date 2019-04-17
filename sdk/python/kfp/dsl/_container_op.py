@@ -14,7 +14,7 @@
 
 import re
 import warnings
-from typing import Any, Dict, List, TypeVar, Union, Callable
+from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
 from kubernetes.client.models import (
     V1Container, V1EnvVar, V1EnvFromSource, V1SecurityContext, V1Probe,
     V1ResourceRequirements, V1VolumeDevice, V1VolumeMount, V1ContainerPort,
@@ -72,11 +72,15 @@ def _proxy_container_op_props(cls: "ContainerOp"):
     return cls
 
 
-def as_list(value: Any, if_none: Union[None, List] = None) -> List:
+def as_string_list(list_or_str: Union[Any, Sequence[Any]], if_none: Optional[List] = None) -> List[str]:
     """Convert any value except None to a list if not already a list."""
-    if value is None:
+    if list_or_str is None:
         return if_none
-    return value if isinstance(value, list) else [value]
+    if isinstance(list_or_str, Sequence) and not isinstance(list_or_str, str):
+        list_value = list_or_str
+    else:
+        list_value = [list_or_str]
+    return [str(item) for item in list_value]
 
 
 def create_and_append(current_list: Union[List[T], None], item: T) -> List[T]:
@@ -596,8 +600,8 @@ class Sidecar(Container):
         super().__init__(
             name=name,
             image=image,
-            command=as_list(command),
-            args=as_list(args),
+            command=as_string_list(command),
+            args=as_string_list(args),
             **kwargs)
 
         self.mirror_volume_mounts = mirror_volume_mounts
@@ -703,8 +707,8 @@ class ContainerOp(object):
                 % (name))
 
         # convert to list if not a list
-        command = as_list(command)
-        arguments = as_list(arguments)
+        command = as_string_list(command)
+        arguments = as_string_list(arguments)
 
         # human_name must exist to construct containerOps name
         self.human_name = name
@@ -778,7 +782,7 @@ class ContainerOp(object):
 
     @command.setter
     def command(self, value):
-        self._container.command = as_list(value)
+        self._container.command = as_string_list(value)
 
     @property
     def arguments(self):
@@ -786,7 +790,7 @@ class ContainerOp(object):
 
     @arguments.setter
     def arguments(self, value):
-        self._container.args = as_list(value)
+        self._container.args = as_string_list(value)
 
     @property
     def inputs(self):
