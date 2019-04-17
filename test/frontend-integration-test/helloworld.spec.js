@@ -229,9 +229,18 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('displays both runs in all runs page', () => {
-    $('.tableRow').waitForVisible();
-    const rows = $$('.tableRow').length;
-    assert(rows === 2, 'there should now be two runs in the table, instead there are: ' + rows);
+    let attempts = 30;
+
+    // Wait for a reasonable amount of time until the run starts
+    while (attempts && $$('.tableRow').length !== 2) {
+      browser.pause(1000);
+      if (browser.isVisible('#refreshBtn')) {
+        $('#refreshBtn').click();
+      }
+      --attempts;
+    }
+
+    assert(attempts, `waited for 30 seconds but table had ${$$('.tableRow').length} entries. URL was: ${browser.getUrl()}`);
   });
 
   it('navigates back to the experiment list', () => {
