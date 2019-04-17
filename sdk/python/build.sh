@@ -34,14 +34,14 @@ set -o pipefail
 usage()
 {
     echo "Usage: build.sh
-     ( [-o, --output OUTPUT_PKG_FILE] | [-i, --install ] )
+     ( [OUTPUT_PKG_FILE] | [-i, --install ] )
      [-h help]
 
     The -o flag and -i flag should not both be set at the same time.  No flags is equivalent to -o ./kfp.tar.gz
 
     Examples:
     build.sh                               # build and output a package, kfp.tar.gz, in this directory
-    build.sh --output ~/my_kfp_pgk.tar.gz  # build and output a package, my_kfp_pkg.tar.gz in your home dir
+    build.sh ~/my_kfp_pgk.tar.gz           # build and output a package, my_kfp_pkg.tar.gz in your home dir
     build.sh --install                     # install an editable copy of this kfp package in this directory
     "
 }
@@ -56,17 +56,15 @@ DO_INSTALL=false
 while (($#)); do
     arg=$1; shift
     case "$arg" in
-        -o | --output )
-                                OUTPUT_FILE=$1; shift
-                                ;;
         -i | --install )
                                 DO_INSTALL=true
                                 ;;
         -h | --help )           usage
                                 exit
                                 ;;
-        * )                     usage
-                                exit 1
+        * )
+                                OUTPUT_FILE=$arg
+                                ;;
     esac
 done
 

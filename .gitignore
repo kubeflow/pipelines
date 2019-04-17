@@ -54,3 +54,5 @@ bazel-*
 
 # swagger generated source files
 sdk/python/kfp_*
+
+*.tar.gz
