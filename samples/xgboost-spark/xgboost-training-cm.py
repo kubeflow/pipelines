@@ -19,8 +19,8 @@ import kfp.gcp as gcp
 
 from kfp import components
 
-confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/local/confusion_matrix/component.yaml')
-roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/deb4d0ed41662055031832f4ba03e324dd609143/components/local/roc/component.yaml')
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/local/confusion_matrix/component.yaml')
+roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/local/roc/component.yaml')
 
 # ================================================================
 # The following classes should be provided by components provider.
