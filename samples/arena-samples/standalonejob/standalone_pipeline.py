@@ -28,31 +28,25 @@ def sample_pipeline(learning_rate='0.01',
   curl -O https://code.aliyun.com/xiaozhou/tensorflow-sample-code/raw/master/data/t10k-labels-idx1-ubyte.gz && \
   curl -O https://code.aliyun.com/xiaozhou/tensorflow-sample-code/raw/master/data/train-images-idx3-ubyte.gz && \
   curl -O https://code.aliyun.com/xiaozhou/tensorflow-sample-code/raw/master/data/train-labels-idx1-ubyte.gz")
-  # 2. prepare source code
-  prepare_code = arena.standalone_job_op(
-    name="source-code",
-    image="alpine/git",
-    sync_source="https://code.aliyun.com/xiaozhou/tensorflow-sample-code.git",
-    env=["GIT_SYNC_REV=%s" % (commit)],
-    data=data,
-    command="mkdir -p /training/models/ && \
-    rm -rf /training/models/tensorflow-sample-code && \
-    cp -r code/tensorflow-sample-code /training/models/")
 
-  # 3. train the models
+  # 2. downalod source code and train the models
   train = arena.standalone_job_op(
     name="train",
     image="tensorflow/tensorflow:1.11.0-gpu-py3",
+    sync_source="https://code.aliyun.com/xiaozhou/tensorflow-sample-code.git",
+    env=["GIT_SYNC_REV=%s" % (commit)],
     gpus=gpus,
     data=data,
-    command="echo %s;echo %s;python /training/models/tensorflow-sample-code/tfjob/docker/mnist/main.py --max_steps 500 --data_dir /training/dataset/mnist --log_dir /training/output/mnist  --learning_rate %s --dropout %s" % (prepare_data.output, prepare_code.output, learning_rate, dropout),
+    command="echo %s;python code/tensorflow-sample-code/tfjob/docker/mnist/main.py --max_steps 500 --data_dir /training/dataset/mnist --log_dir /training/output/mnist  --learning_rate %s --dropout %s" % (prepare_data.output, learning_rate, dropout),
     metrics=["Train-accuracy:PERCENTAGE"])
-  # 4. export the model
+  # 3. export the model
   export_model = arena.standalone_job_op(
     name="export-model",
     image="tensorflow/tensorflow:1.11.0-py3",
+    sync_source="https://code.aliyun.com/xiaozhou/tensorflow-sample-code.git",
+    env=["GIT_SYNC_REV=%s" % (commit)],
     data=data,
-    command="echo %s;python /training/models/tensorflow-sample-code/tfjob/docker/mnist/export_model.py --model_version=%s --checkpoint_path=/training/output/mnist /training/output/models" % (train.output, model_version))
+    command="echo %s;python code/tensorflow-sample-code/tfjob/docker/mnist/export_model.py --model_version=%s --checkpoint_path=/training/output/mnist /training/output/models" % (train.output, model_version))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
