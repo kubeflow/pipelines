@@ -11,7 +11,8 @@ FLAGS = None
 )
 def sample_pipeline(learning_rate='0.01',
     dropout='0.9',
-    model_version='1'):
+    model_version='1',
+    commit='f097575656f927d86d99dd64931042e1a9003cb2'):
   """A pipeline for end to end machine learning workflow."""
   data=["user-susan:/training"]
   gpus=1
@@ -31,10 +32,11 @@ def sample_pipeline(learning_rate='0.01',
   prepare_code = arena.standalone_job_op(
     name="source-code",
     image="alpine/git",
+    sync_source="https://code.aliyun.com/xiaozhou/tensorflow-sample-code.git",
+    env=["GIT_SYNC_REV=%s" % (commit)],
     data=data,
     command="mkdir -p /training/models/ && \
-  cd /training/models/ && \
-  if [ ! -d /training/models/tensorflow-sample-code ]; then git clone https://code.aliyun.com/xiaozhou/tensorflow-sample-code.git; else echo no need download;fi")
+    mv code/tensorflow-sample-code /training/models/")
 
   # 3. train the models
   train = arena.standalone_job_op(
@@ -60,11 +62,14 @@ if __name__ == '__main__':
                       help='Keep probability for training dropout.')
   parser.add_argument('--learning_rate', type=str, default="0.001",
                       help='Initial learning rate.')
+  parser.add_argument('--commit', type=str, default="f097575656f927d86d99dd64931042e1a9003cb2",
+                      help='commit id.')
   FLAGS, unparsed = parser.parse_known_args()
 
   model_version = FLAGS.model_version
   dropout = FLAGS.dropout
   learning_rate = FLAGS.learning_rate
+  commit = FLAGS.commit
 
   EXPERIMENT_NAME="mnist"
   RUN_ID="run"
@@ -79,4 +84,5 @@ if __name__ == '__main__':
   run = client.run_pipeline(experiment_id, RUN_ID, __file__ + '.tar.gz',
                             params={'learning_rate':learning_rate,
                                      'dropout':dropout,
-                                    'model_version':model_version})
+                                    'model_version':model_version,
+                                    'commit':commit})
