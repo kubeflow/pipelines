@@ -36,7 +36,8 @@ def sample_pipeline(learning_rate='0.01',
     env=["GIT_SYNC_REV=%s" % (commit)],
     data=data,
     command="mkdir -p /training/models/ && \
-    mv code/tensorflow-sample-code /training/models/")
+    rm -rf /training/models/tensorflow-sample-code && \
+    cp -r code/tensorflow-sample-code /training/models/")
 
   # 3. train the models
   train = arena.standalone_job_op(
