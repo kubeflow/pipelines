@@ -7,13 +7,13 @@ There are a series of examples about how to build deeplearning models with [Aren
 1. Install the arena
 
 ```
-kubectl create -f https://raw.githubusercontent.com/kubeflow/pipelines/master/samples/arena-samples/arena.yaml
+kubectl create -f https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/samples/arena-samples/arena.yaml
 ```
 
 2. Add addtional RBAC role to service account `pipeline-runner`
 
 ```
-kubectl create -f https://raw.githubusercontent.com/kubeflow/pipelines/master/samples/arena-samples/arena_launcher_rbac.yaml
+kubectl create -f https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/samples/arena-samples/arena_launcher_rbac.yaml
 ```
 
 ## Demos
