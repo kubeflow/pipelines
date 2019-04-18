@@ -237,13 +237,13 @@ class ComponentSpec(ModelBase):
     '''Component specification. Describes the metadata (name, description, source), the interface (inputs and outputs) and the implementation of the component.'''
     def __init__(
         self,
-        implementation: ImplementationType,
         name: Optional[str] = None, #? Move to metadata?
         description: Optional[str] = None, #? Move to metadata?
         source: Optional[SourceSpec] = None, #? Move to metadata?
         metadata: Optional[MetadataSpec] = None,
         inputs: Optional[List[InputSpec]] = None,
         outputs: Optional[List[OutputSpec]] = None,
+        implementation: Optional[ImplementationType] = None,
         version: Optional[str] = 'google.com/cloud/pipelines/component/v1',
         #tags: Optional[Set[str]] = None,
     ):
