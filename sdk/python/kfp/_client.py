@@ -86,7 +86,7 @@ class Client(object):
       import IPython
       ipy = IPython.get_ipython()
       if ipy is None:
-        raise ImportError("IPython installed but not running")
+        return False
     except ImportError:
       return False
 
