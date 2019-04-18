@@ -48,7 +48,8 @@ usage()
 
 SWAGGER_CODEGEN_CLI_FILE=/tmp/swagger-codegen-cli.jar
 if [[ ! -f ${SWAGGER_CODEGEN_CLI_FILE} ]]; then
-    echo "You don't have swagger codegen installed.  See the comments on this file for install instructions."
+    echo "Downloading swagger-codegen-cli.jar to /tmp."
+    wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar
 fi
 
 
@@ -115,11 +116,6 @@ if $DO_INSTALL ; then
   # copy the generated python packages back into this directory
   for SWAGGER_PACKAGE in kfp_experiment kfp_run kfp_pipeline kfp_uploadpipeline kfp_job
   do
-      TARGET_DIR=${THIS_DIR}/${SWAGGER_PACKAGE}
-      if [ -d  $TARGET_DIR ]; then
-          echo "$TARGET_DIR already exists.  Aborting."
-          exit 1
-      fi
       mv ${TMP_DIR}/${SWAGGER_PACKAGE} ${THIS_DIR}
   done
 
