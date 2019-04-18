@@ -19,9 +19,9 @@ from ..components._naming import _make_name_unique_by_adding_index
 import sys
 
 
-# Contains a stack of handler functions.
-# The last handler in the list is called whenever the @pipeline decorator is used
-_pipeline_decorator_handlers = []
+# This handler is called whenever the @pipeline decorator is applied.
+# It can be used by command-line DSL compiler to inject code that runs for every pipeline definition.
+_pipeline_decorator_handler = None
 
 
 def pipeline(name, description):
@@ -41,8 +41,8 @@ def pipeline(name, description):
     func._pipeline_name = name
     func._pipeline_description = description
 
-    if _pipeline_decorator_handlers:
-      return _pipeline_decorator_handlers[-1](func) or func
+    if _pipeline_decorator_handler:
+      return _pipeline_decorator_handler(func) or func
     else:
       return func 
 

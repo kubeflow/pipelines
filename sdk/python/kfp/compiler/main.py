@@ -76,11 +76,12 @@ class PipelineCollectorContext():
     def add_pipeline(func):
       pipeline_funcs.append(func)
       return func
-    dsl._pipeline._pipeline_decorator_handlers.append(add_pipeline)
+    self.old_handler = dsl._pipeline._pipeline_decorator_handler
+    dsl._pipeline._pipeline_decorator_handler = add_pipeline
     return pipeline_funcs
   
   def __exit__(self, *args):
-    dsl._pipeline._pipeline_decorator_handlers.pop()
+    dsl._pipeline._pipeline_decorator_handler = self.old_handler
 
 
 def compile_package(package_path, namespace, function_name, output_path, type_check):
