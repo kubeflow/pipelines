@@ -1,54 +1,65 @@
 
-# Executing an Apache Beam Python job in Cloud Dataflow
-A Kubeflow Pipeline component that submits an Apache Beam job (authored in Python) to Cloud Dataflow for execution. The Python Beam code is run with the Cloud Dataflow Runner.
+# Name
+Data preparation by executing an Apache Beam job in Cloud Dataflow
 
-## Intended Use
-Use this component to run a Python Beam code to submit a Dataflow job as a step of a KFP pipeline. The component will wait until the job finishes.
+# Labels
+GCP, Cloud Dataflow, Apache Beam, Python, Kubeflow
+
+# Summary
+A Kubeflow Pipeline component that prepares data by submitting an Apache Beam job (authored in Python) to Cloud Dataflow for execution. The Python Beam code is run with Cloud Dataflow Runner.
+
+# Details
+## Intended use
+
+Use this component to run a Python Beam code to submit a Cloud Dataflow job as a step of a Kubeflow pipeline. 
 
 ## Runtime arguments
-Name | Description | Type | Optional | Default
-:--- | :---------- | :--- | :------- | :------
-python_file_path |  The Cloud Storage or the local path to the python file being run. | String | No |
-project_id |  The ID of the parent project of the Dataflow job. | GCPProjectID | No |
-staging_dir | The Cloud Storage directory for keeping staging files. A random subdirectory will be created under the directory to keep job info for resuming the job in case of failure and it will be passed as `staging_location` and `temp_location` command line args of the beam code. | GCSPath | Yes | ` `
-requirements_file_path |  The Cloud Storageor the local path to the pip requirements file. | String | Yes | ` `
-args |  The list of arguments to pass to the python file. | List | Yes | `[]`
-wait_interval |  The seconds to wait between calls to get the job status. | Integer | Yes | `30`
+Name | Description | Optional |  Data type| Accepted values | Default |
+:--- | :----------| :----------| :----------| :----------| :---------- |
+python_file_path |  The path to the Cloud Storage bucket or local directory containing the Python file to be run. |  |  GCSPath |  |  |
+project_id |  The ID of the Google Cloud Platform (GCP) project  containing the Cloud Dataflow job.| | GCPProjectID | | |
+staging_dir  |   The path to the Cloud Storage directory where the staging files are stored. A random subdirectory will be created under the staging directory to keep the  job information.This is done so that you can resume the job in case of failure. `staging_dir` is passed as the command line arguments (`staging_location` and `temp_location`) of the Beam code. |   Yes  |   GCPPath  |   |   None  |
+requirements_file_path |   The path to the Cloud Storage bucket or local directory containing the pip requirements file. | Yes | GCSPath |  | None |
+args |  The list of arguments to pass to the Python file. | No |  List | A list of string arguments | None |
+wait_interval |  The number of seconds to wait between calls to get the status of the job. | Yes | Integer  |  | 30 |
 
-## Output:
-Name | Description | Type
-:--- | :---------- | :---
-job_id | The id of the created dataflow job. | String
+## Input data schema
 
-## Cautions and requirements
+Before you use the component, the following files must be ready in a Cloud Storage bucket:
+- A Beam Python code file.
+- A  `requirements.txt` file which includes a list of dependent packages.
+
+The Beam Python code should follow the [Beam programming guide](https://beam.apache.org/documentation/programming-guide/) as well as the following additional requirements to be compatible with this component:
+- It accepts the command line arguments `--project`, `--temp_location`, `--staging_location`, which are [standard Dataflow Runner options](https://cloud.google.com/dataflow/docs/guides/specifying-exec-params#setting-other-cloud-pipeline-options).
+- It enables `info logging` before the start of a Cloud Dataflow job in the Python code. This is important to allow the component to track the status and ID of the job that is created. For example, calling `logging.getLogger().setLevel(logging.INFO)` before any other code.
+
+
+## Output
+Name | Description
+:--- | :----------
+job_id | The id of the Cloud Dataflow job that is created.
+
+## Cautions & requirements
 To use the components, the following requirements must be met:
-* Dataflow API is enabled.
-* The component is running under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a KFP cluster. For example:
+- Cloud Dataflow API is enabled.
+- The component is running under a secret Kubeflow user service account in a Kubeflow Pipeline cluster.  For example:
 ```
 component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
 ```
-* The Kubeflow user service account is a member of `roles/dataflow.developer` role of the project.
-* The Kubeflow user service account is a member of `roles/storage.objectViewer` role of the Cloud Storage Objects `python_file_path` and `requirements_file_path`.
-* The Kubeflow user service account is a member of `roles/storage.objectCreator` role of the Cloud Storage Object `staging_dir`.
+The Kubeflow user service account is a member of:
+- `roles/dataflow.developer` role of the project.
+- `roles/storage.objectViewer` role of the Cloud Storage Objects `python_file_path` and `requirements_file_path`.
+- `roles/storage.objectCreator` role of the Cloud Storage Object `staging_dir`. 
 
 ## Detailed description
-Before using the component, make sure the following files are prepared in a Cloud Storage bucket.
-* A Beam Python code file.
-* A `requirements.txt` file which includes a list of dependent packages.
-
-The Beam Python code should follow [Beam programing model](https://beam.apache.org/documentation/programming-guide/) and the following additional requirements to be compatible with this component:
-* It accepts command line arguments: `--project`, `--temp_location`, `--staging_location`, which are [standard Dataflow Runner options](https://cloud.google.com/dataflow/docs/guides/specifying-exec-params#setting-other-cloud-pipeline-options).
-* Enable info logging before the start of a Dataflow job in the Python code. This is important to allow the component to track the status and ID of create job. For example: calling `logging.getLogger().setLevel(logging.INFO)` before any other code.
-
 The component does several things during the execution:
-* Download `python_file_path` and `requirements_file_path` to local files.
-* Start a subprocess to launch the Python program.
-* Monitor the logs produced from the subprocess to extract Dataflow job information.
-* Store Dataflow job information in `staging_dir` so the job can be resumed in case of failure.
-* Wait for the job to finish.
-
-Here are the steps to use the component in a pipeline:
-1. Install KFP SDK
+- Downloads `python_file_path` and `requirements_file_path` to local files.
+- Starts a subprocess to launch the Python program.
+- Monitors the logs produced from the subprocess to extract the Cloud Dataflow job information.
+- Stores the Cloud Dataflow job information in `staging_dir` so the job can be resumed in case of failure.
+- Waits for the job to finish.
+The steps to use the component in a pipeline are:
+1. Install the Kubeflow Pipelines SDK:
 
 
 
@@ -70,17 +81,9 @@ dataflow_python_op = comp.load_component_from_url(
 help(dataflow_python_op)
 ```
 
-For more information about the component, please checkout:
-* [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/dataflow/_launch_python.py)
-* [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
-* [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataflow/launch_python/sample.ipynb)
-* [Dataflow Python Quickstart](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python)
-
 ### Sample
-
-Note: the sample code below works in both IPython notebook or python code directly.
-
-In this sample, we run a wordcount sample code in a KFP pipeline. The output will be stored in a Cloud Storage bucket. Here is the sample code:
+Note: The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
+In this sample, we run a wordcount sample code in a Kubeflow Pipeline. The output will be stored in a Cloud Storage bucket. Here is the sample code:
 
 
 ```python
@@ -292,3 +295,12 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 ```python
 !gsutil cat $OUTPUT_FILE
 ```
+
+## References
+* [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/dataflow/_launch_python.py)
+* [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
+* [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataflow/launch_python/sample.ipynb)
+* [Dataflow Python Quickstart](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python)
+
+## License
+By deploying or using this software you agree to comply with the [AI Hub Terms of Service](https://aihub.cloud.google.com/u/0/aihub-tos) and the [Google APIs Terms of Service](https://developers.google.com/terms/). To the extent of a direct conflict of terms, the AI Hub Terms of Service will control.
