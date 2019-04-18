@@ -224,8 +224,8 @@ describe('deploy helloworld sample run', () => {
 
   it('redirects back to all runs page', () => {
     browser.waitUntil(() => {
-      return new URL(browser.getUrl()).hash === '#/runs';
-    }, waitTimeout);
+      return (new URL(browser.getUrl())).hash === '#/runs';
+    }, waitTimeout, `URL was: ${new URL(browser.getUrl())}`);
   });
 
   it('displays both runs in all runs page', () => {
