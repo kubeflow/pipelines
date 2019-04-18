@@ -136,6 +136,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           'pipeline',
           this._deleteCallback.bind(this),
           true, /* useCurrentResource */
+          // There's no reason to refresh this page if we delete its resource
           false, /* refreshOnComplete */
         ),
       ]);
