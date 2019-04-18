@@ -847,7 +847,7 @@ class ContainerOp(object):
               .set_memory_limit('2GB')
           )
         """
-        return mod_func(self)
+        return mod_func(self) or self
 
     def after(self, op):
         """Specify explicit dependency on another op."""
