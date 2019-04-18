@@ -17,16 +17,15 @@
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
-import { ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric, RunStorageState } from '../../src/apis/run';
+import { ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase, statusToIcon } from './Status';
 import { PredicateOp, ApiFilter } from '../apis/filter';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { URLParser } from '../lib/URLParser';
-import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { commonCss, color } from '../Css';
-import { getRunTime, formatDateString, logger, errorToMessage } from '../lib/Utils';
+import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
 import { stylesheet } from 'typestyle';
 
 const css = stylesheet({
@@ -59,9 +58,8 @@ interface PipelineInfo {
 
 interface DisplayRun {
   experiment?: ExperimentInfo;
-  metadata: ApiRun;
+  run: ApiRun;
   pipeline?: PipelineInfo;
-  workflow?: Workflow;
   error?: string;
 }
 
@@ -75,6 +73,7 @@ export interface RunListProps extends RouteComponentProps {
   disableSelection?: boolean;
   disableSorting?: boolean;
   experimentIdMask?: string;
+  hideExperimentColumn?: boolean;
   noFilterBox?: boolean;
   onError: (message: string, error: Error) => void;
   onSelectionChange?: (selectedRunIds: string[]) => void;
@@ -112,10 +111,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       },
       { customRenderer: this._statusCustomRenderer, flex: 0.5, label: 'Status' },
       { label: 'Duration', flex: 0.5 },
-      { customRenderer: this._experimentCustomRenderer, label: 'Experiment', flex: 1 },
       { customRenderer: this._pipelineCustomRenderer, label: 'Pipeline', flex: 1 },
       { label: 'Start time', flex: 1, sortKey: RunSortKeys.CREATED_AT },
     ];
+
+    if (!this.props.hideExperimentColumn) {
+      columns.splice(3, 0, { customRenderer: this._experimentCustomRenderer, label: 'Experiment', flex: 1 });
+    }
 
     if (metricMetadata.length) {
       // This is a column of empty cells with a left border to separate the metrics from the other
@@ -138,8 +140,8 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     const rows: Row[] = this.state.runs.map(r => {
       const displayMetrics = metricMetadata.map(metadata => {
         const displayMetric: DisplayMetric = { metadata };
-        if (r.metadata.metrics) {
-          const foundMetric = r.metadata.metrics.find(m => m.name === metadata.name);
+        if (r.run.metrics) {
+          const foundMetric = r.run.metrics.find(m => m.name === metadata.name);
           if (foundMetric && foundMetric.number_value !== undefined) {
             displayMetric.metric = foundMetric;
           }
@@ -148,16 +150,18 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       });
       const row = {
         error: r.error,
-        id: r.metadata.id!,
+        id: r.run.id!,
         otherFields: [
-          r.metadata!.name,
-          r.metadata.status || '-',
-          getRunTime(r.workflow),
-          r.experiment,
+          r.run!.name,
+          r.run.status || '-',
+          getRunDuration(r.run),
           r.pipeline,
-          formatDateString(r.metadata.created_at),
-        ]
+          formatDateString(r.run.created_at),
+        ] as any,
       };
+      if (!this.props.hideExperimentColumn) {
+        row.otherFields.splice(3, 0, r.experiment);
+      }
       if (displayMetrics.length) {
         row.otherFields.push(''); // Metric buffer column
         row.otherFields.push(...displayMetrics as any);
@@ -292,7 +296,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     let nextPageToken = '';
 
     if (Array.isArray(this.props.runIdListMask)) {
-      displayRuns = this.props.runIdListMask.map(id => ({ metadata: { id } }));
+      displayRuns = this.props.runIdListMask.map(id => ({ run: { id } }));
+      // listRuns doesn't currently support batching by IDs, so in this case we retrieve each run
+      // individually.
+      await this._getAndSetRuns(displayRuns);
     } else {
       // Load all runs
       if (this.props.storageState) {
@@ -322,8 +329,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           request.filter,
         );
 
-        displayRuns = (response.runs || []).map(r => ({ metadata: r }));
+        displayRuns = (response.runs || []).map(r => ({ run: r }));
         nextPageToken = response.next_page_token || '';
+
       } catch (err) {
         const error = new Error(await errorToMessage(err));
         this.props.onError('Error: failed to fetch runs.', error);
@@ -332,31 +340,28 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       }
     }
 
-    await this._getAndSetMetadataAndWorkflows(displayRuns);
     await this._getAndSetPipelineNames(displayRuns);
-    await this._getAndSetExperimentNames(displayRuns);
+    if (!this.props.hideExperimentColumn) {
+      await this._getAndSetExperimentNames(displayRuns);
+    }
 
     this.setState({
-      metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.metadata)),
+      metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.run)),
       runs: displayRuns,
     });
     return nextPageToken;
   }
 
   /**
-   * For each DisplayRun, get its workflow spec and parse it into an object
+   * For each run ID, fetch its corresponding run, and set it in DisplayRuns
    */
-  private _getAndSetMetadataAndWorkflows(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
-    // Fetch and set the workflow details
+  private _getAndSetRuns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
     return Promise.all(displayRuns.map(async displayRun => {
       let getRunResponse: ApiRunDetail;
       try {
-        getRunResponse = await Apis.runServiceApi.getRun(displayRun.metadata!.id!);
-        displayRun.metadata = getRunResponse.run!;
-        displayRun.workflow =
-          JSON.parse(getRunResponse.pipeline_runtime!.workflow_manifest || '{}');
+        getRunResponse = await Apis.runServiceApi.getRun(displayRun.run!.id!);
+        displayRun.run = getRunResponse.run!;
       } catch (err) {
-        // This could be an API exception, or a JSON parse exception.
         displayRun.error = await errorToMessage(err);
       }
       return displayRun;
@@ -371,7 +376,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   private _getAndSetPipelineNames(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
     return Promise.all(
       displayRuns.map(async (displayRun) => {
-        const pipelineId = RunUtils.getPipelineId(displayRun.metadata);
+        const pipelineId = RunUtils.getPipelineId(displayRun.run);
         if (pipelineId) {
           try {
             const pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
@@ -380,7 +385,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
             // This could be an API exception, or a JSON parse exception.
             displayRun.error = 'Failed to get associated pipeline: ' + await errorToMessage(err);
           }
-        } else if (!!RunUtils.getPipelineSpec(displayRun.metadata)) {
+        } else if (!!RunUtils.getPipelineSpec(displayRun.run)) {
           displayRun.pipeline = { showLink: true };
         }
         return displayRun;
@@ -397,7 +402,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   private _getAndSetExperimentNames(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
     return Promise.all(
       displayRuns.map(async (displayRun) => {
-        const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.metadata);
+        const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.run);
         if (experimentId) {
           try {
             // TODO: Experiment could be an optional field in state since whenever the RunList is

@@ -24,7 +24,7 @@ from .. import dsl
 from ._k8s_helper import K8sHelper
 from ._op_to_template import _op_to_template
 
-from ..dsl._metadata import TypeMeta
+from ..dsl._metadata import TypeMeta, _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
 class Compiler(object):
@@ -573,16 +573,11 @@ class Compiler(object):
 
     argspec = inspect.getfullargspec(pipeline_func)
 
-    registered_pipeline_functions = dsl.Pipeline.get_pipeline_functions()
-    if pipeline_func not in registered_pipeline_functions:
-      raise ValueError('Please use a function with @dsl.pipeline decorator.')
-
-    pipeline_name = dsl.Pipeline.get_pipeline_functions()[pipeline_func].name
-    pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_name)
-
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
-    pipeline_meta = dsl.Pipeline.get_pipeline_functions()[pipeline_func]
+    pipeline_meta = _extract_pipeline_metadata(pipeline_func)
+    pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_meta.name)
+
     args_list = []
     for arg_name in argspec.args:
       arg_type = TypeMeta()

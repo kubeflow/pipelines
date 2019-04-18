@@ -19,8 +19,8 @@ import kfp.gcp as gcp
 
 from kfp import components
 
-confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/local/confusion_matrix/component.yaml')
-roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/deb4d0ed41662055031832f4ba03e324dd609143/components/local/roc/component.yaml')
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/local/confusion_matrix/component.yaml')
+roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/local/roc/component.yaml')
 
 # ================================================================
 # The following classes should be provided by components provider.
@@ -30,7 +30,7 @@ class CreateClusterOp(dsl.ContainerOp):
   def __init__(self, name, project, region, staging):
     super(CreateClusterOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:a277f87ea1d4707bf860d080d06639b7caf9a1cf',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:e20fad3e161e88226c83437271adb063221459b9',
       arguments=[
           '--project', project,
           '--region', region,
@@ -45,7 +45,7 @@ class DeleteClusterOp(dsl.ContainerOp):
   def __init__(self, name, project, region):
     super(DeleteClusterOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:a277f87ea1d4707bf860d080d06639b7caf9a1cf',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:e20fad3e161e88226c83437271adb063221459b9',
       arguments=[
           '--project', project,
           '--region', region,
@@ -59,7 +59,7 @@ class AnalyzeOp(dsl.ContainerOp):
   def __init__(self, name, project, region, cluster_name, schema, train_data, output):
     super(AnalyzeOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:a277f87ea1d4707bf860d080d06639b7caf9a1cf',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:e20fad3e161e88226c83437271adb063221459b9',
       arguments=[
           '--project', project,
           '--region', region,
@@ -77,7 +77,7 @@ class TransformOp(dsl.ContainerOp):
                target, analysis, output):
     super(TransformOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:a277f87ea1d4707bf860d080d06639b7caf9a1cf',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:e20fad3e161e88226c83437271adb063221459b9',
       arguments=[
           '--project', project,
           '--region', region,
@@ -102,7 +102,7 @@ class TrainerOp(dsl.ContainerOp):
 
     super(TrainerOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:a277f87ea1d4707bf860d080d06639b7caf9a1cf',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:e20fad3e161e88226c83437271adb063221459b9',
       arguments=[
           '--project', project,
           '--region', region,
@@ -125,7 +125,7 @@ class PredictOp(dsl.ContainerOp):
   def __init__(self, name, project, region, cluster_name, data, model, target, analysis, output):
     super(PredictOp, self).__init__(
       name=name,
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:a277f87ea1d4707bf860d080d06639b7caf9a1cf',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:e20fad3e161e88226c83437271adb063221459b9',
       arguments=[
           '--project', project,
           '--region', region,

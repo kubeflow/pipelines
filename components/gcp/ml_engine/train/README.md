@@ -1,57 +1,74 @@
 
-# Submitting a Cloud ML training job as a pipeline step
-A Kubeflow Pipeline component to submit a Cloud Machine Learning (Cloud ML) Engine training job as a step in a pipeline.
+# Name
+Submitting a Cloud Machine Learning Engine training job as a pipeline step
 
-## Intended Use
-This component is intended to submit a training job to Cloud Machine Learning (ML) Engine from a Kubeflow Pipelines workflow.
+# Label
+GCP, Cloud ML Engine, Machine Learning, pipeline, component, Kubeflow, Kubeflow Pipeline
+
+# Summary
+A Kubeflow Pipeline component to submit a Cloud ML Engine training job as a step in a pipeline.
+
+# Details
+## Intended use
+Use this component to submit a training job to Cloud ML Engine from a Kubeflow Pipeline. 
 
 ## Runtime arguments
-Name | Description | Type | Optional | Default
-:--- | :---------- | :--- | :------- | :------
-project_id | The ID of the parent project of the job. | GCPProjectID | No |
-python_module | The Python module name to run after installing the packages. | String | Yes | ``
-package_uris | The Cloud Storage location of the packages (that contain the training program and any additional dependencies). The maximum number of package URIs is 100. | List<GCSPath> | Yes | ``
-region | The Compute Engine region in which the training job is run. | GCPRegion | Yes | ``
-args | The command line arguments to pass to the program. | List<String> | Yes | ``
-job_dir |  The list of arguments to pass to the Python file. | GCSPath | Yes | ``
-python_version | A Cloud Storage path in which to store the training outputs and other data needed for training. This path is passed to your TensorFlow program as the `job-dir` command-line argument. The benefit of specifying this field is that Cloud ML validates the path for use in training. | String | Yes | ``
-runtime_version | The Cloud ML Engine runtime version to use for training. If not set, Cloud ML Engine uses the default stable version, 1.0. | String | Yes | ``
-master_image_uri | The Docker image to run on the master replica. This image must be in Container Registry. | GCRPath | Yes | ``
-worker_image_uri | The Docker image to run on the worker replica. This image must be in Container Registry. | GCRPath | Yes | ``
-training_input | The input parameters to create a training job. It is the JSON payload of a [TrainingInput](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#TrainingInput) | Dict | Yes | ``
-job_id_prefix | The prefix of the generated job id. | String | Yes | ``
-wait_interval |  A time-interval to wait for between calls to get the job status. | Integer | Yes | `30`
+| Argument | Description | Optional | Data type | Accepted values | Default |
+|:------------------|:------------------|:----------|:--------------|:-----------------|:-------------|
+| project_id | The ID of the Google Cloud Platform (GCP) project of the job. | No | GCPProjectID |  |  |
+| python_module | The name of the Python module to run after installing the training program. | Yes | String |  | None |
+| package_uris | The Cloud Storage location of the packages that contain the training program and any additional dependencies. The maximum number of package URIs is 100. | Yes | List |  | None |
+| region | The Compute Engine region in which the training job is run. | Yes | GCPRegion |  | us-central1 |
+| args | The command line arguments to pass to the training program. | Yes | List |  | None |
+| job_dir | A Cloud Storage path in which to store the training outputs and other data needed for training. This path is passed to your TensorFlow program as the `job-dir` command-line argument. The benefit of specifying this field is that Cloud ML validates the path for use in training. | Yes | GCSPath |  | None |
+| python_version | The version of Python used in training. If it is not set, the default version is 2.7. Python 3.5 is available when the runtime version is set to 1.4 and above. | Yes | String |  | None |
+| runtime_version | The runtime version of Cloud ML Engine to use for training. If it is not set, Cloud ML Engine uses the default. | Yes | String |  | 1 |
+| master_image_uri | The Docker image to run on the master replica. This image must be in Container Registry. | Yes | GCRPath |  | None |
+| worker_image_uri | The Docker image to run on the worker replica. This image must be in Container Registry. | Yes | GCRPath |  | None |
+| training_input | The input parameters to create a training job. | Yes | Dict | [TrainingInput](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#TrainingInput) | None |
+| job_id_prefix | The prefix of the job ID that is generated. | Yes | String |  | None |
+| wait_interval | The number of seconds to wait between API calls to get the status of the job. | Yes | Integer |  | 30 |
 
-## Outputs
-Name | Description | Type
-:--- | :---------- | :---
-job_id | The ID of the created job. | String
-job_dir | The output path in Cloud Storage of the trainning job, which contains the trained model files. | GCSPath
+
+
+## Input data schema
+
+The component accepts two types of inputs:
+*   A list of Python packages from Cloud Storage.
+    * You can manually build a Python package and upload it to Cloud Storage by following this [guide](https://cloud.google.com/ml-engine/docs/tensorflow/packaging-trainer#manual-build).
+*   A Docker container from Container Registry. 
+    * Follow this [guide](https://cloud.google.com/ml-engine/docs/using-containers) to publish and use a Docker container with this component.
+
+## Output
+| Name    | Description                 | Type      |
+|:------- |:----                        | :---      |
+| job_id  | The ID of the created job.  |  String   |
+| job_dir | The Cloud Storage path that contains the trained model output files. |  GCSPath  |
+
 
 ## Cautions & requirements
 
 To use the component, you must:
-* Setup cloud environment by following the [guide](https://cloud.google.com/ml-engine/docs/tensorflow/getting-started-training-prediction#setup).
-* The component is running under a secret of [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
 
-```python
-mlengine_train_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
+*   Set up a cloud environment by following this [guide](https://cloud.google.com/ml-engine/docs/tensorflow/getting-started-training-prediction#setup).
+*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
 
-```
-* Grant Kubeflow user service account the read access to the Cloud Storage buckets which contains the input data, packages or docker images.
-* Grant Kubeflow user service account the write access to the Cloud Storage bucket of the output directory.
+    ```
+    mlengine_train_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    ```
+
+*   Grant the following access to the Kubeflow user service account: 
+    *   Read access to the Cloud Storage buckets which contain the input data, packages, or Docker images.
+    *   Write access to the Cloud Storage bucket of the output directory.
+
+## Detailed description
+
+The component builds the [TrainingInput](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#TrainingInput) payload and submits a job via the [Cloud ML Engine REST API](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs).
+
+The steps to use the component in a pipeline are:
 
 
-## Detailed Description
-
-The component accepts one of the two types of executable inputs:
-* A list of Python packages from Cloud Storage. You may manually build a Python package by following the [guide](https://cloud.google.com/ml-engine/docs/tensorflow/packaging-trainer#manual-build) and [upload it to Cloud Storage](https://cloud.google.com/ml-engine/docs/tensorflow/packaging-trainer#uploading_packages_manually).
-* Docker container from Google Container Registry (GCR). Follow the [guide](https://cloud.google.com/ml-engine/docs/using-containers) to publish and use a Docker container with this component. 
-
-The component builds the payload of a [TrainingInput](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#TrainingInput) and submit a job by Cloud Machine Learning Engine REST API.
-
-Here are the steps to use the component in a pipeline:
-1. Install KFP SDK
+1.  Install the Kubeflow Pipeline SDK:
 
 
 
@@ -73,18 +90,12 @@ mlengine_train_op = comp.load_component_from_url(
 help(mlengine_train_op)
 ```
 
-For more information about the component, please checkout:
-* [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/ml_engine/_train.py)
-* [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
-* [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/ml_engine/train/sample.ipynb)
-* [Cloud Machine Learning Engine job REST API](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs)
-
-
 ### Sample
-Note: The following sample code works in IPython notebook or directly in Python code.
+Note: The following sample code works in an IPython notebook or directly in Python code.
 
-In this sample, we use the code from [census estimator sample](https://github.com/GoogleCloudPlatform/cloudml-samples/tree/master/census/estimator) to train a model in Cloud Machine Learning Engine service. In order to pass the code to the service, we need to package the python code and upload it in a Cloud Storage bucket. Make sure that you have read and write permissions on the bucket that you use as the working directory. 
+In this sample, you use the code from the [census estimator sample](https://github.com/GoogleCloudPlatform/cloudml-samples/tree/master/census/estimator) to train a model in Cloud ML Engine. To upload the code to Cloud ML Engine, package the Python code and upload it to a Cloud Storage bucket. 
 
+Note: You must have read and write permissions on the bucket that you use as the working directory.
 #### Set sample parameters
 
 
@@ -208,13 +219,18 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 
 #### Inspect the results
 
-Follow the `Run` link to open the KFP UI. In the step logs, you should be able to click on the links to:
-* Job dashboard
-* And realtime logs on Stackdriver
-
 Use the following command to inspect the contents in the output directory:
 
 
 ```python
 !gsutil ls $OUTPUT_GCS_PATH
 ```
+
+## References
+* [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/ml_engine/_train.py)
+* [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
+* [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/ml_engine/train/sample.ipynb)
+* [Cloud Machine Learning Engine job REST API](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs)
+
+## License
+By deploying or using this software you agree to comply with the [AI Hub Terms of Service](https://aihub.cloud.google.com/u/0/aihub-tos) and the [Google APIs Terms of Service](https://developers.google.com/terms/). To the extent of a direct conflict of terms, the AI Hub Terms of Service will control.

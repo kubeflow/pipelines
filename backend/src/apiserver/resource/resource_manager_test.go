@@ -32,7 +32,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -784,6 +784,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			Namespace:        "MY_NAMESPACE",
 			CreatedAtInSec:   11,
 			ScheduledAtInSec: 0,
+			FinishedAtInSec:  0,
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
 			},

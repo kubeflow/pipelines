@@ -314,8 +314,9 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   jupyter nbconvert --to python notebook-tfx.ipynb
   pip3 install tensorflow==1.8.0
   ipython notebook-tfx.py
+  EXIT_CODE=$?
   cd "${TEST_DIR}"
-  python3 check_notebook_results.py --experiment notebook-tfx-test --testname notebooktfx --result $SAMPLE_NOTEBOOK_TFX_TEST_RESULT --namespace ${NAMESPACE}
+  python3 check_notebook_results.py --experiment notebook-tfx-test --testname notebooktfx --result $SAMPLE_NOTEBOOK_TFX_TEST_RESULT --namespace ${NAMESPACE} --exit-code ${EXIT_CODE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp $SAMPLE_NOTEBOOK_TFX_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_TFX_TEST_RESULT
@@ -334,9 +335,26 @@ elif [ "$TEST_NAME" == "notebook-lightweight" ]; then
   jupyter nbconvert --to python notebook-lightweight.ipynb
   pip3 install tensorflow==1.8.0
   ipython notebook-lightweight.py
+  EXIT_CODE=$?
   cd "${TEST_DIR}"
-  python3 check_notebook_results.py --experiment notebook-lightweight --testname notebooklightweight --result $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT --namespace ${NAMESPACE}
+  python3 check_notebook_results.py --experiment notebook-lightweight --testname notebooklightweight --result $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT --namespace ${NAMESPACE} --exit-code ${EXIT_CODE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT
+elif [ "$TEST_NAME" == "notebook-typecheck" ]; then
+  SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT=junit_SampleNotebookTypecheckOutput.xml
+  SAMPLE_NOTEBOOK_TYPECHECK_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  cd ${BASE_DIR}/samples/notebooks
+  export LC_ALL=C.UTF-8
+  export LANG=C.UTF-8
+  papermill --prepare-only -p KFP_PACKAGE /tmp/kfp.tar.gz  DSL\ Static\ Type\ Checking.ipynb notebook-typecheck.ipynb
+  jupyter nbconvert --to python notebook-typecheck.ipynb
+  ipython notebook-typecheck.py
+  EXIT_CODE=$?
+  cd "${TEST_DIR}"
+  python3 check_notebook_results.py --testname notebooktypecheck --result $SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT --exit-code ${EXIT_CODE}
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp $SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT
 fi

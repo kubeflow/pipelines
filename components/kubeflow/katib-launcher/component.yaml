@@ -5,7 +5,7 @@ inputs:
 - {name: Namespace,                 type: String,   default: kubeflow,  description: 'Namespace.'}
 - {name: Optimization type,         type: String,   default: minimize,  description: 'Direction of optimization. minimize or maximize.'}
 - {name: Objective value name,      type: String,                       description: 'Objective value name which trainer optimizes.'}
-- {name: Optimization goal,         type: Float,                        description: 'Stop studying once objectivevaluename value exceeds optimizationgoal'}
+- {name: Optimization goal,         type: Float,                        description: 'Stop studying once objectivevaluename value exceeds optimizationgoal.'}
 - {name: Request count,             type: Integer,  default: 1,         description: 'Number of requests to the suggestion service.'}
 - {name: Metrics names,             type: String,                       description: 'List of metric names (comma-delimited).'}
 - {name: Parameter configs,         type: YAML,     default: '',        description: 'Parameter configs (YAML/JSON format).'}
@@ -13,7 +13,8 @@ inputs:
 - {name: Worker template path,      type: String,   default: '',        description: 'Worker spec.'}
 - {name: Metrics collector template path, type: String, default: '',    description: 'Metrics collector spec.'}
 - {name: Suggestion spec,           type: YAML,     default: '',        description: 'Suggestion spec (YAML/JSON format).'}
-- {name: StudyJob timeout minutes,  type: Integer,  default: '10',      description: 'Time in minutes to wait for the StudyJob to complete'}
+- {name: StudyJob timeout minutes,  type: Integer,  default: '10',      description: 'Time in minutes to wait for the StudyJob to complete.'}
+- {name: Delete finished job,       type: Boolean,  default: 'True',    description: 'Whether to delete the job after it is finished.'}
 outputs:
 - {name: Best parameter set,        type: JSON,                         description: 'The parameter set of the best StudyJob trial.'}
 implementation:
@@ -34,5 +35,6 @@ implementation:
       --mcollectortemplatepath, {inputValue: Metrics collector template path},
       --suggestionspec,         {inputValue: Suggestion spec},
       --studyjobtimeoutminutes, {inputValue: StudyJob timeout minutes},
+      --deleteAfterDone,        {inputValue: Delete finished job},
       --outputfile,             {outputPath: Best parameter set},
     ]
