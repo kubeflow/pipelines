@@ -357,6 +357,18 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline volumeop_basic."""
     self._test_py_compile_yaml('volumeop_basic')
 
+  def test_py_volumeop_parallel(self):
+    """Test pipeline volumeop_parallel."""
+    self._test_py_compile_yaml('volumeop_parallel')
+
+  def test_py_volumeop_dag(self):
+    """Test pipeline volumeop_dag."""
+    self._test_py_compile_yaml('volumeop_dag')
+
+  def test_py_volumeop_sequential(self):
+    """Test pipeline volumeop_sequential."""
+    self._test_py_compile_yaml('volumeop_sequential')
+
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
     @component
