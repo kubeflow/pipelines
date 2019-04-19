@@ -80,12 +80,11 @@ export default class Buttons {
   }
 
   public delete(getSelectedIds: () => string[], resourceName: 'pipeline' | 'recurring run config',
-    callback: (selectedIds: string[], success: boolean) => void, useCurrentResource: boolean,
-    refreshOnComplete: boolean): ToolbarActionConfig {
+    callback: (selectedIds: string[], success: boolean) => void, useCurrentResource: boolean): ToolbarActionConfig {
     return {
       action: () => resourceName === 'pipeline' ?
-        this._deletePipeline(getSelectedIds(), useCurrentResource, refreshOnComplete, callback) :
-        this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, refreshOnComplete, callback),
+        this._deletePipeline(getSelectedIds(), useCurrentResource, callback) :
+        this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : `Select at least one ${resourceName} to delete`,
       id: 'deleteBtn',
@@ -237,7 +236,6 @@ export default class Buttons {
       callback,
       'Archive',
       'run',
-      true,
     );
   }
 
@@ -251,12 +249,11 @@ export default class Buttons {
       callback,
       'Restore',
       'run',
-      true,
     );
   }
 
   private _deletePipeline(selectedIds: string[], useCurrentResource: boolean,
-    refreshOnComplete: boolean, callback: (selectedIds: string[], success: boolean) => void): void {
+    callback: (selectedIds: string[], success: boolean) => void): void {
     this._dialogActionHandler(
       selectedIds,
       'Do you want to delete this Pipeline? This action cannot be undone.',
@@ -265,11 +262,10 @@ export default class Buttons {
       callback,
       'Delete',
       'pipeline',
-      refreshOnComplete,
     );
   }
 
-  private _deleteRecurringRun(id: string, useCurrentResource: boolean, refreshOnComplete: boolean,
+  private _deleteRecurringRun(id: string, useCurrentResource: boolean,
     callback: (_: string[], success: boolean) => void): void {
     this._dialogActionHandler(
       [id],
@@ -279,7 +275,6 @@ export default class Buttons {
       callback,
       'Delete',
       'recurring run config',
-      refreshOnComplete,
     );
   }
 
@@ -294,16 +289,15 @@ export default class Buttons {
       callback,
       'Terminate',
       'run',
-      true,
     );
   }
 
   private _dialogActionHandler(selectedIds: string[], content: string, useCurrentResource: boolean,
     api: (id: string) => Promise<void>, callback: (selectedIds: string[], success: boolean) => void,
-    actionName: string, resourceName: string, refreshOnComplete: boolean): void {
+    actionName: string, resourceName: string): void {
 
     const dialogClosedHandler = (confirmed: boolean) =>
-      this._dialogClosed(confirmed, selectedIds, actionName, resourceName, useCurrentResource, refreshOnComplete, api, callback);
+      this._dialogClosed(confirmed, selectedIds, actionName, resourceName, useCurrentResource, api, callback);
 
     this._props.updateDialog({
       buttons: [{
@@ -320,7 +314,7 @@ export default class Buttons {
   }
 
   private async _dialogClosed(confirmed: boolean, selectedIds: string[], actionName: string,
-    resourceName: string, useCurrentResource: boolean, refreshOnComplete: boolean, api: (id: string) => Promise<void>,
+    resourceName: string, useCurrentResource: boolean, api: (id: string) => Promise<void>,
     callback: (selectedIds: string[], success: boolean) => void): Promise<void> {
     if (confirmed) {
       const unsuccessfulIds: string[] = [];
@@ -341,7 +335,7 @@ export default class Buttons {
           message: `${actionName} succeeded for ${useCurrentResource ? 'this' : successfulOps} ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
           open: true,
         });
-        if (refreshOnComplete) {
+        if (!useCurrentResource) {
           this._refresh();
         }
       }

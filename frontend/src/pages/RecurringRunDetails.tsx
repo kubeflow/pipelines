@@ -55,8 +55,6 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
           'recurring run config',
           this._deleteCallback.bind(this),
           true, /* useCurrentResource */
-          // There's no reason to refresh this page if we delete its resource
-          false, /* refreshOnComplete */
         ),
       ],
       breadcrumbs: [],

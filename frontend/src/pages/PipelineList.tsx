@@ -59,7 +59,6 @@ class PipelineList extends Page<{}, PipelineListState> {
           'pipeline',
           ids => this._selectionChanged(ids),
           false, /* useCurrentResource */
-          true, /* refreshOnComplete */
         ),
       ],
       breadcrumbs: [],
