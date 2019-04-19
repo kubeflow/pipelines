@@ -77,6 +77,8 @@ class AllRunsList extends Page<{}, AllRunsListState> {
 
   private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = [...this.props.toolbarProps.actions];
+    // TODO: keeping track of indices in the toolbarActions array is not ideal. This should be
+    // refactored so that individual buttons can be referenced with something other than indices.
     // Compare runs button
     toolbarActions[2].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
     // Clone run button

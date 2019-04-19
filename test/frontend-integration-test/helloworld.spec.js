@@ -250,7 +250,7 @@ describe('deploy helloworld sample run', () => {
     }, waitTimeout);
   });
 
-  it('displays both custom and default experiment experiment list page', () => {
+  it('displays both custom and default experiment in the list', () => {
     $('.tableRow').waitForVisible();
     const rows = $$('.tableRow').length;
     assert(rows === 2, 'there should now be two experiments in the table, instead there are: ' + rows);
