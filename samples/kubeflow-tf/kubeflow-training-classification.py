@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.dsl as dsl
-import kfp.gcp as gcp
 
+import kfp
 from kfp import components
+from kfp import dsl
+from kfp import gcp
 
 dataflow_tf_transform_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/dataflow/tft/component.yaml')
 kubeflow_tf_training_op  = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/kubeflow/dnntrainer/component.yaml')
@@ -24,67 +25,67 @@ dataflow_tf_predict_op   = components.load_component_from_url('https://raw.githu
 confusion_matrix_op      = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/local/confusion_matrix/component.yaml')
 
 @dsl.pipeline(
-  name='Pipeline TFJob',
-  description='Demonstrate the DSL for TFJob'
+    name='TF training and prediction pipeline',
+    description=''
 )
 def kubeflow_training(output, project,
-  evaluation='gs://ml-pipeline-playground/flower/eval100.csv',
-  train='gs://ml-pipeline-playground/flower/train200.csv',
-  schema='gs://ml-pipeline-playground/flower/schema.json',
-  learning_rate=0.1,
-  hidden_layer_size='100,50',
-  steps=2000,
-  target='label',
-  workers=0,
-  pss=0,
-  preprocess_mode='local',
-  predict_mode='local'):
-  # TODO: use the argo job name as the workflow
-  workflow = '{{workflow.name}}'
-  # set the flag to use GPU trainer
-  use_gpu = False
+    evaluation='gs://ml-pipeline-playground/flower/eval100.csv',
+    train='gs://ml-pipeline-playground/flower/train200.csv',
+    schema='gs://ml-pipeline-playground/flower/schema.json',
+    learning_rate=0.1,
+    hidden_layer_size='100,50',
+    steps=2000,
+    target='label',
+    workers=0,
+    pss=0,
+    preprocess_mode='local',
+    predict_mode='local',
+):
+    output_template = str(output) + '/{{workflow.uid}}/{{pod.name}}/data'
 
-  preprocess = dataflow_tf_transform_op(
-      training_data_file_pattern=train,
-      evaluation_data_file_pattern=evaluation,
-      schema=schema,
-      gcp_project=project,
-      run_mode=preprocess_mode,
-      preprocessing_module='',
-      transformed_data_dir='%s/%s/transformed' % (output, workflow)
-  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    # set the flag to use GPU trainer
+    use_gpu = False
 
-  training = kubeflow_tf_training_op(
-      transformed_data_dir=preprocess.output,
-      schema=schema,
-      learning_rate=learning_rate,
-      hidden_layer_size=hidden_layer_size,
-      steps=steps,
-      target=target,
-      preprocessing_module='',
-      training_output_dir='%s/%s/train' % (output, workflow)
-  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    preprocess = dataflow_tf_transform_op(
+        training_data_file_pattern=train,
+        evaluation_data_file_pattern=evaluation,
+        schema=schema,
+        gcp_project=project,
+        run_mode=preprocess_mode,
+        preprocessing_module='',
+        transformed_data_dir=output_template
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
-  if use_gpu:
-    training.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:e20fad3e161e88226c83437271adb063221459b9',
-    training.set_gpu_limit(1)
+    training = kubeflow_tf_training_op(
+        transformed_data_dir=preprocess.output,
+        schema=schema,
+        learning_rate=learning_rate,
+        hidden_layer_size=hidden_layer_size,
+        steps=steps,
+        target=target,
+        preprocessing_module='',
+        training_output_dir=output_template
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
-  prediction = dataflow_tf_predict_op(
-      data_file_pattern=evaluation,
-      schema=schema,
-      target_column=target,
-      model=training.output,
-      run_mode=predict_mode,
-      gcp_project=project,
-      predictions_dir='%s/%s/predict' % (output, workflow)
-  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    if use_gpu:
+        training.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:e20fad3e161e88226c83437271adb063221459b9',
+        training.set_gpu_limit(1)
 
-  confusion_matrix = confusion_matrix_op(
-      predictions=prediction.output,
-      output_dir='%s/%s/confusionmatrix' % (output, workflow)
-  ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    prediction = dataflow_tf_predict_op(
+        data_file_pattern=evaluation,
+        schema=schema,
+        target_column=target,
+        model=training.output,
+        run_mode=predict_mode,
+        gcp_project=project,
+        predictions_dir=output_template
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+    confusion_matrix = confusion_matrix_op(
+        predictions=prediction.output,
+        output_dir=output_template
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 
 if __name__ == '__main__':
-  import kfp.compiler as compiler
-  compiler.Compiler().compile(kubeflow_training, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(kubeflow_training, __file__ + '.zip')
