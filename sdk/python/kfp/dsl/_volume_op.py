@@ -17,11 +17,13 @@ import re
 from typing import List, Dict
 from kubernetes.client.models import (
     V1ObjectMeta, V1ResourceRequirements, V1PersistentVolumeClaimSpec,
-    V1PersistentVolumeClaim
+    V1PersistentVolumeClaim, V1TypedLocalObjectReference
 )
 
 from ._resource_op import ResourceOp
-from ._pipeline_param import match_serialized_pipelineparam, sanitize_k8s_name
+from ._pipeline_param import (
+    PipelineParam, match_serialized_pipelineparam, sanitize_k8s_name
+)
 from ._pipeline_volume import PipelineVolume
 
 
@@ -41,6 +43,7 @@ class VolumeOp(ResourceOp):
                  storage_class: str = None,
                  modes: List[str] = VOLUME_MODE_RWM,
                  annotations: Dict[str, str] = None,
+                 data_source=None,
                  **kwargs):
         """Create a new instance of VolumeOp.
 
@@ -51,6 +54,10 @@ class VolumeOp(ResourceOp):
                 PVC
             modes: The access modes for the PVC
             annotations: Annotations to be patched in the PVC
+            data_source: May be a V1TypedLocalObjectReference, and then it is
+                used in the data_source field of the PVC as is. Can also be a
+                string/PipelineParam, and in that case it will be used as a
+                VolumeSnapshot name (Alpha feature)
             kwargs: See ResourceOp definition
         Raises:
             ValueError: if k8s_resource is provided along with other arguments
@@ -58,6 +65,8 @@ class VolumeOp(ResourceOp):
                         if size is None
                         if size is an invalid memory string (when not a
                             PipelineParam)
+                        if data_source is not one of (str, PipelineParam,
+                            V1TypedLocalObjectReference)
         """
         # Add size to attribute outputs
         self.attribute_outputs = {"size": "{.status.capacity.storage}"}
@@ -81,6 +90,17 @@ class VolumeOp(ResourceOp):
         elif not match_serialized_pipelineparam(str(size)):
             self._validate_memory_string(size)
 
+        if data_source and not isinstance(
+           data_source, (str, PipelineParam, V1TypedLocalObjectReference)):
+            raise ValueError("data_source can be one of (str, PipelineParam, "
+                             "V1TypedLocalObjectReference).")
+        if data_source and isinstance(data_source, (str, PipelineParam)):
+            data_source = V1TypedLocalObjectReference(
+                api_group="snapshot.storage.k8s.io",
+                kind="VolumeSnapshot",
+                name=data_source
+            )
+
         # Set the k8s_resource
         if not match_serialized_pipelineparam(str(resource_name)):
             resource_name = sanitize_k8s_name(resource_name)
@@ -94,7 +114,8 @@ class VolumeOp(ResourceOp):
         pvc_spec = V1PersistentVolumeClaimSpec(
             access_modes=modes,
             resources=requested_resources,
-            storage_class_name=storage_class
+            storage_class_name=storage_class,
+            data_source=data_source
         )
         k8s_resource = V1PersistentVolumeClaim(
             api_version="v1",

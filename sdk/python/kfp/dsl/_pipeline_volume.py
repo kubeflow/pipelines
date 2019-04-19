@@ -14,10 +14,13 @@
 
 
 from kubernetes.client.models import (
-    V1Volume, V1PersistentVolumeClaimVolumeSource
+    V1Volume, V1PersistentVolumeClaimVolumeSource,
+    V1ObjectMeta, V1TypedLocalObjectReference
 )
 
 from . import _pipeline
+from ._pipeline_param import sanitize_k8s_name, match_serialized_pipelineparam
+from ._volume_snapshot_op import VolumeSnapshotOp
 
 
 class PipelineVolume(V1Volume):
