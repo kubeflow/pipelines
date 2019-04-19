@@ -19,6 +19,11 @@ from ..components._naming import _make_name_unique_by_adding_index
 import sys
 
 
+# This handler is called whenever the @pipeline decorator is applied.
+# It can be used by command-line DSL compiler to inject code that runs for every pipeline definition.
+_pipeline_decorator_handler = None
+
+
 def pipeline(name, description):
   """Decorator of pipeline functions.
 
@@ -35,8 +40,11 @@ def pipeline(name, description):
   def _pipeline(func):
     func._pipeline_name = name
     func._pipeline_description = description
-    Pipeline._add_pipeline_to_global_list(func)
-    return func
+
+    if _pipeline_decorator_handler:
+      return _pipeline_decorator_handler(func) or func
+    else:
+      return func 
 
   return _pipeline
 
@@ -82,31 +90,16 @@ class Pipeline():
   # _default_pipeline is set when it (usually a compiler) runs "with Pipeline()"
   _default_pipeline = None
 
-  # All pipeline functions with @pipeline decorator that are imported.
-  # Each key is a pipeline function. Each value is a (name, description).
-  _pipeline_functions = []
-
   @staticmethod
   def get_default_pipeline():
     """Get default pipeline. """
     return Pipeline._default_pipeline
 
   @staticmethod
-  def get_pipeline_functions():
-    """Get all imported pipeline functions (decorated with @pipeline)."""
-    return Pipeline._pipeline_functions
-
-  @staticmethod
-  def _add_pipeline_to_global_list(func):
-    """Add a pipeline function (decorated with @pipeline)."""
-    Pipeline._pipeline_functions.append(func)
-
-  @staticmethod
   def add_pipeline(name, description, func):
     """Add a pipeline function with the specified name and description."""
     # Applying the @pipeline decorator to the pipeline function
     func = pipeline(name=name, description=description)(func)
-    Pipeline._add_pipeline_to_global_list(pipeline_meta, func)
 
   def __init__(self, name: str):
     """Create a new instance of Pipeline.
