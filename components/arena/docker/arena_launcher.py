@@ -181,6 +181,12 @@ def generate_options(args):
       for e in env:
         options.append("--env={0}".format(e))
 
+    if len(args.step_id) > 0:
+        options.append("--env=STEP_ID={0}".format(args.step_id))
+
+    if len(args.step_name) > 0:
+        options.append("--env=STEP_NAME={0}".format(args.step_name))
+
     if len(sync_source) > 0:
       if not sync_source.endswith(".git"):
         raise ValueError("sync_source must be an http git url")
