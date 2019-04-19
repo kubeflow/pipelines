@@ -84,6 +84,9 @@ class Client(object):
     """Returns whether we are running in notebook."""
     try:
       import IPython
+      ipy = IPython.get_ipython()
+      if ipy is None:
+        return False
     except ImportError:
       return False
 
