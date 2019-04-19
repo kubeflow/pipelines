@@ -353,6 +353,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline resourceop_basic."""
     self._test_py_compile_yaml('resourceop_basic')
 
+  def test_py_volumeop_basic(self):
+    """Test pipeline volumeop_basic."""
+    self._test_py_compile_yaml('volumeop_basic')
+
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
     @component
