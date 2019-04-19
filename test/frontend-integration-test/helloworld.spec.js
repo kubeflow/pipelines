@@ -225,16 +225,16 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('redirects back to all runs page', () => {
+    browser.saveScreenshot('./redirect-screenshot.png');
+
     browser.waitUntil(() => {
       return (new URL(browser.getUrl())).hash === '#/runs';
     }, waitTimeout, `URL was: ${new URL(browser.getUrl())}`);
-
-    browser.saveScreenshot('./redirect-screenshot.png');
   });
 
   it('displays both runs in all runs page', () => {
     let attempts = 30;
-
+    
     // Wait for a reasonable amount of time until the run starts
     while (attempts && $$('.tableRow').length !== 2) {
       browser.pause(1000);
@@ -243,10 +243,11 @@ describe('deploy helloworld sample run', () => {
       }
       --attempts;
     }
-
+    browser.saveScreenshot('./table-screenshot.png');
+    
     assert(attempts, `waited for 30 seconds but table had ${$$('.tableRow').length} entries. URL was: ${browser.getUrl()}`);
   });
-
+  
   it('navigates back to the experiment list', () => {
     $('button=Experiments').click();
     browser.waitUntil(() => {
