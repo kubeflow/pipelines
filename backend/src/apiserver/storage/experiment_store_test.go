@@ -369,5 +369,5 @@ func TestListExperiments_Filtering(t *testing.T) {
 	// No more pages.
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, expected, experiments)
-	assert.Equal(t, 4, total_size)
+	assert.Equal(t, 3, total_size)
 }

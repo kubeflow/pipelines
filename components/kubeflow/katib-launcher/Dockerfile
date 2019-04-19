@@ -19,7 +19,7 @@ RUN apt-get update -y && \
     pip install pyyaml==3.12 six==1.11.0 requests==2.18.4 grpcio gcloud google-api-python-client protobuf kubernetes && \
     wget https://github.com/kubeflow/katib/archive/master.zip && unzip master.zip
 
-ENV PYTHONPATH $PYTHONPATH:/katib-master/pkg/api/python:/katib-master/py
+ENV PYTHONPATH $PYTHONPATH:/katib-master/pkg/api/v1alpha1/python:/katib-master/py
 
 ADD build /ml
 

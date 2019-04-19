@@ -57,6 +57,7 @@ type ClientManager struct {
 	runStore               storage.RunStoreInterface
 	resourceReferenceStore storage.ResourceReferenceStoreInterface
 	dBStatusStore          storage.DBStatusStoreInterface
+	defaultExperimentStore storage.DefaultExperimentStoreInterface
 	objectStore            storage.ObjectStoreInterface
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
@@ -88,6 +89,10 @@ func (c *ClientManager) ResourceReferenceStore() storage.ResourceReferenceStoreI
 
 func (c *ClientManager) DBStatusStore() storage.DBStatusStoreInterface {
 	return c.dBStatusStore
+}
+
+func (c *ClientManager) DefaultExperimentStore() storage.DefaultExperimentStoreInterface {
+	return c.defaultExperimentStore
 }
 
 func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
@@ -127,6 +132,7 @@ func (c *ClientManager) init() {
 	c.jobStore = storage.NewJobStore(db, c.time)
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
+	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
 
 	c.wfClient = client.CreateWorkflowClientOrFatal(
@@ -194,7 +200,8 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.ResourceReference{},
 		&model.RunDetail{},
 		&model.RunMetric{},
-		&model.DBStatus{})
+		&model.DBStatus{},
+		&model.DefaultExperiment{})
 
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
