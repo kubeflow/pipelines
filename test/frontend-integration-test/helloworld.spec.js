@@ -17,11 +17,11 @@ const URL = require('url').URL;
 
 const experimentName = 'helloworld-experiment-' + Date.now();
 const experimentDescription = 'hello world experiment description';
+const secondExperimentName = 'different-experiment-name-' + Date.now();
+const secondExperimentNameDescription = 'second experiment description';
 const pipelineName = 'helloworld-pipeline-' + Date.now();
 const runName = 'helloworld-' + Date.now();
 const runDescription = 'test run description ' + runName;
-const runWithoutExperimentName = 'helloworld-2-' + Date.now();
-const runWithoutExperimentDescription = 'test run without experiment description ' + runWithoutExperimentName;
 const waitTimeout = 5000;
 const outputParameterValue = 'Hello world in test'
 
@@ -192,62 +192,18 @@ describe('deploy helloworld sample run', () => {
     }, waitTimeout);
   });
 
-  it('creates a new run without selecting an experiment', () => {
-    $('#createNewRunBtn').waitForVisible();
-    $('#createNewRunBtn').click();
-
-    $('#choosePipelineBtn').waitForVisible();
-    $('#choosePipelineBtn').click();
-
-    $('.tableRow').waitForVisible();
-    $('.tableRow').click();
-
-    $('#usePipelineBtn').click();
-
-    $('#pipelineSelectorDialog').waitForVisible(waitTimeout, true);
-
-    browser.keys('Tab');
-    browser.keys(runWithoutExperimentName);
-
-    browser.keys('Tab');
-    browser.keys(runWithoutExperimentDescription);
-
-    // Skip over "choose experiment" button
-    browser.keys('Tab');
-
-    browser.keys('Tab');
-    browser.keys(outputParameterValue);
-
-    // Deploy
-    $('#startNewRunBtn').click();
-
-    browser.saveScreenshot('./new-run-screenshot.png');
-  });
-
-  it('redirects back to all runs page', () => {
-    browser.saveScreenshot('./redirect-screenshot.png');
-
+  it('creates a new experiment', () => {
+    $('#newExperimentBtn').click();
     browser.waitUntil(() => {
-      return (new URL(browser.getUrl())).hash === '#/runs';
-    }, waitTimeout, `URL was: ${new URL(browser.getUrl())}`);
+      return new URL(browser.getUrl()).hash.startsWith('#/experiments/new');
+    }, waitTimeout);
+
+    $('#experimentName').setValue(secondExperimentName);
+    $('#experimentDescription').setValue(secondExperimentNameDescription);
+
+    $('#createExperimentBtn').click();
   });
 
-  it('displays both runs in all runs page', () => {
-    let attempts = 30;
-    
-    // Wait for a reasonable amount of time until the run starts
-    while (attempts && $$('.tableRow').length !== 2) {
-      browser.pause(1000);
-      if (browser.isVisible('#refreshBtn')) {
-        $('#refreshBtn').click();
-      }
-      --attempts;
-    }
-    browser.saveScreenshot('./table-screenshot.png');
-    
-    assert(attempts, `waited for 30 seconds but table had ${$$('.tableRow').length} entries. URL was: ${browser.getUrl()}`);
-  });
-  
   it('navigates back to the experiment list', () => {
     $('button=Experiments').click();
     browser.waitUntil(() => {
@@ -255,7 +211,7 @@ describe('deploy helloworld sample run', () => {
     }, waitTimeout);
   });
 
-  it('displays both custom and default experiment in the list', () => {
+  it('displays both experiments in the list', () => {
     $('.tableRow').waitForVisible();
     const rows = $$('.tableRow').length;
     assert(rows === 2, 'there should now be two experiments in the table, instead there are: ' + rows);
@@ -272,6 +228,11 @@ describe('deploy helloworld sample run', () => {
     const rows = $$('.tableRow').length;
     assert(rows === 1, 'there should now be one experiment in the table, instead there are: ' + rows);
   });
+
+  // TODO: Add test for creating a run without an experiment. This will require changing the API
+  // initialization and integration tests to stop deleting the default experiment at the end of the
+  // suites. Otherwise, run creation here will fail with:
+  // 'Failed to store resource references to table for run [ID] : ResourceNotFoundError: [Default Experiment ID]'
 
   //TODO: enable this after we change the pipeline to a unique name such that deleting this
   // pipeline will not jeopardize the concurrent basic e2e tests.

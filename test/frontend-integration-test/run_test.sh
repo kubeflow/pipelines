@@ -78,28 +78,6 @@ export PIPELINE_OUTPUT=${RESULTS_GCS_DIR}/pipeline_output
 set +e
 npm test
 TEST_EXIT_CODE=$?
-
-
-NEW_RUN_SCREENSHOT=new-run-screenshot.png
-REDIRECT_SCREENSHOT=redirect-screenshot.png
-TABLE_SCREENSHOT=table-screenshot.png
-
-echo 'new-run-screenshot'
-base64 ${NEW_RUN_SCREENSHOT}
-echo \"-----\"
-
-echo 'redirect-screenshot'
-base64 ${REDIRECT_SCREENSHOT}
-echo \"-----\"
-
-echo 'table-screenshot'
-base64 ${TABLE_SCREENSHOT}
-echo \"-----\"
-
-tools/google-cloud-sdk/bin/gsutil cp ${NEW_RUN_SCREENSHOT} ${RESULTS_GCS_DIR}/${NEW_RUN_SCREENSHOT}
-tools/google-cloud-sdk/bin/gsutil cp ${REDIRECT_SCREENSHOT} ${RESULTS_GCS_DIR}/${REDIRECT_SCREENSHOT}
-tools/google-cloud-sdk/bin/gsutil cp ${TABLE_SCREENSHOT} ${RESULTS_GCS_DIR}/${TABLE_SCREENSHOT}
-
 set -e
 
 JUNIT_TEST_RESULT=junit_FrontendIntegrationTestOutput.xml
