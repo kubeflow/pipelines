@@ -614,7 +614,7 @@ class BaseOp(object):
     # Excludes `file_outputs` and `outputs` as they are handled separately
     # in the compilation process to generate the DAGs and task io parameters.
     attrs_with_pipelineparams = [
-        'node_selector', 'volumes', 'pod_annotations', 'pod_labels',
+        'node_selector', 'k8s_volumes', 'pod_annotations', 'pod_labels',
         'num_retries', 'sidecars'
     ]
 
@@ -646,13 +646,12 @@ class BaseOp(object):
         # actual name for argo workflow
         self.name = _pipeline.Pipeline.get_default_pipeline().add_op(
             self, is_exit_handler)
-
         self.is_exit_handler = is_exit_handler
 
         # TODO: proper k8s definitions so that `convert_k8s_obj_to_json` can be
         # used? `io.argoproj.workflow.v1alpha1.Template` properties
         self.node_selector = {}
-        self.volumes = []
+        self.k8s_volumes = []
         self.pod_annotations = {}
         self.pod_labels = {}
         self.num_retries = 0
@@ -718,7 +717,7 @@ class BaseOp(object):
           For detailed spec, check volume definition
           https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume.py
         """
-        self.volumes.append(volume)
+        self.k8s_volumes.append(volume)
         return self
 
     def add_node_selector_constraint(self, label_name, value):

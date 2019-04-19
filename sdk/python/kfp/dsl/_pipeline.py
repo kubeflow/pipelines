@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+from . import _base_op
 from . import _container_op
 from . import _ops_group
 from ..components._naming import _make_name_unique_by_adding_index
@@ -109,6 +110,7 @@ class Pipeline():
     """
     self.name = name
     self.ops = {}
+    self.cops = {}
     # Add the root group.
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
     self.group_id = 0
@@ -125,7 +127,7 @@ class Pipeline():
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
 
-  def add_op(self, op: _container_op.ContainerOp, define_only: bool):
+  def add_op(self, op: _base_op.BaseOp, define_only: bool):
     """Add a new operator.
 
     Args:
@@ -139,6 +141,8 @@ class Pipeline():
     op_name = _make_name_unique_by_adding_index(op.human_name, list(self.ops.keys()), ' ')
 
     self.ops[op_name] = op
+    if isinstance(op, _container_op.ContainerOp):
+      self.cops[op_name] = op
     if not define_only:
       self.groups[-1].ops.append(op)
 

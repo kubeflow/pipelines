@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-import warnings
 import unittest
 from kubernetes.client.models import V1EnvVar, V1VolumeMount
 
