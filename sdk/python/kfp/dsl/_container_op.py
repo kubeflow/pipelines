@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Dict
+from kubernetes.client.models import V1Volume, V1VolumeMount
 
 from ._base_op import (
     StringOrStringList, deprecation_warning, as_list, Container, BaseOp
@@ -93,6 +94,7 @@ class ContainerOp(BaseOp):
                  arguments: StringOrStringList = None,
                  container_kwargs: Dict = None,
                  file_outputs: Dict[str, str] = None,
+                 volumes: Dict[str, V1Volume] = None,
                  **kwargs):
         """Create a new instance of ContainerOp.
 
@@ -108,6 +110,9 @@ class ContainerOp(BaseOp):
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
+          volumes: Dictionary for the user to match a path on the op's fs with a
+              V1Volume or it inherited type.
+              E.g {"/my/path": vol, "/mnt": other_op.volumes["/output"]}.
           kwargs: name, sidecars & is_exit_hander. See BaseOp definition
         """
 
@@ -166,6 +171,19 @@ class ContainerOp(BaseOp):
         self.output = None
         if len(self.outputs) == 1:
             self.output = list(self.outputs.values())[0]
+
+        self.volumes = volumes
+        if volumes:
+            for mount_path, volume in volumes:
+                self.add_volume(volume)
+                self._container.add_volume_mount(V1VolumeMount(
+                    name=volume.name,
+                    mount_path=mount_path
+                ))
+
+        self.volume = None
+        if self.volumes and len(self.volumes) == 1:
+            self.volume = list(self.volumes.values())[0]
 
     @property
     def command(self):
