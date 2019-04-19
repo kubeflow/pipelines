@@ -373,6 +373,12 @@ def main(argv=None):
   with open('/output.txt', 'w') as f:
     f.write(output)
 
+  with open('/step-id.txt', 'w') as f:
+    f.write(args.step_id)
+
+  with open('/step-name.txt', 'w') as f:
+    f.write(args.step_name)
+
 
 if __name__== "__main__":
   main()

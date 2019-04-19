@@ -62,7 +62,7 @@ def parameter_servers_op(name, image, command, env, data, sync_source, annotatio
                       tensorboard, 
                       worker_port, ps_port, 
                       metrics=['Train-accuracy:PERCENTAGE'],
-                      arena_image='cheyang/arena_launcher:v0.3',
+                      arena_image='cheyang/arena_launcher:v0.5',
                       timeout_hours=240):
 
     """This function submits Distributed TFJob in Parameter Servers mode.
@@ -126,5 +126,7 @@ def distributed_tf_op(name, image, command, env=[], data=[], sync_source=None,
                       "tfjob",
                       "--workers", workers,
                       "--", command],
-          file_outputs={'train': '/output.txt'}
+          file_outputs={'train': '/output.txt',
+                        'id':'/step-id.txt',
+                        'name':'/step-name.txt'}
           )
