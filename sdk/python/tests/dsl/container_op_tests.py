@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ class TestContainerOp(unittest.TestCase):
       op1 = ContainerOp(name='op1', image='image')
       op2 = ContainerOp(name='op2', image='image')
       op2.after(op1)
-    self.assertCountEqual(op2.dependent_names, [op1.name])
+    self.assertCountEqual(op2.deps, [op1.name])
 
 
   def test_deprecation_warnings(self):
