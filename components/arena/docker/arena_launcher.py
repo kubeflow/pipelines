@@ -155,6 +155,7 @@ def generate_job_command(args):
     tensorboard_image = args.tensorboard_image
     tensorboard = str2bool(args.tensorboard)
     log_dir = args.log_dir
+    sync_source = args.sync_source
 
     commandArray = [
     'arena', 'submit', 'tfjob',
@@ -163,22 +164,22 @@ def generate_job_command(args):
     ]
 
     if gpus > 0:
-        commandArray.append("--gpus={0}".format(gpus))
+        commandArray.extend(['--gpus', str(gpus)])
 
     if cpu > 0:
-        commandArray.append("--cpu={0}".format(cpu))
+        commandArray.extend(['--cpu', str(cpu)])
 
     if memory >0:
-        commandArray.append("--memory={0}".format(memory))
+        commandArray.extend(['--memory', str(memory)])
 
     if tensorboard_image != "tensorflow/tensorflow:1.12.0":
-        commandArray.append("--tensorboardImage={0}".format(tensorboard_image))    
+        commandArray.extend(['--tensorboardImage', tensorboard_image])    
 
     if tensorboard:
         commandArray.append("--tensorboard")
 
     if os.path.isdir(args.log_dir):  
-        commandArray.append("--logdir={0}".format(args.log_dir))
+        commandArray.append(['--logdir', args.log_dir])
     else:
         logging.info("skip log dir :{0}".format(args.log_dir))
 
@@ -189,6 +190,12 @@ def generate_job_command(args):
     if len(env) > 0:
       for e in env:
         commandArray.append("--env={0}".format(e))
+
+    if len(sync_source) > 0:
+      if not sync_source.endswith(".git"):
+        raise ValueError("sync_source must be an http git url")
+      commandArray.extend(['--sync-mode','git'])
+      commandArray.extend(['--sync-source',sync_source])
 
     return commandArray, "tfjob"
 
@@ -208,6 +215,7 @@ def generate_mpjob_command(args):
     tensorboard = str2bool(args.tensorboard)
     rdma = str2bool(args.rdma)
     log_dir = args.log_dir
+    sync_source = args.sync_source
 
     commandArray = [
     'arena', 'submit', 'mpijob',
@@ -216,17 +224,17 @@ def generate_mpjob_command(args):
     '--image={0}'.format(image),
     ]
 
-    if gpus > 0:
-        commandArray.append("--gpus={0}".format(gpus))
+    if gpus >  0:
+        commandArray.extend(['--gpus', str(gpus)])
 
     if cpu > 0:
-        commandArray.append("--cpu={0}".format(cpu))
+        commandArray.extend(['--cpu', str(cpu)])
 
     if memory >0:
-        commandArray.append("--memory={0}".format(memory))
+        commandArray.extend(['--memory', str(memory)])
 
     if tensorboard_image != "tensorflow/tensorflow:1.12.0":
-        commandArray.append("--tensorboardImage={0}".format(tensorboard_image))    
+        commandArray.extend(['--tensorboardImage', tensorboard_image])    
 
     if tensorboard:
         commandArray.append("--tensorboard")
@@ -235,7 +243,7 @@ def generate_mpjob_command(args):
         commandArray.append("--rdma")
 
     if os.path.isdir(args.log_dir):  
-        commandArray.append("--logdir={0}".format(args.log_dir))
+        commandArray.append(['--logdir', args.log_dir])
     else:
         logging.info("skip log dir :{0}".format(args.log_dir))
 
@@ -246,6 +254,12 @@ def generate_mpjob_command(args):
     if len(env) > 0:
       for e in env:
         commandArray.append("--env={0}".format(e))
+
+    if len(sync_source) > 0:
+      if not sync_source.endswith(".git"):
+        raise ValueError("sync_source must be an http git url")
+      commandArray.extend(['--sync-mode','git'])
+      commandArray.extend(['--sync-source',sync_source])
 
     return commandArray, "mpijob"
 
@@ -281,6 +295,7 @@ def main(argv=None):
   parser.add_argument('--env', action='append', type=str, default=[])
   parser.add_argument('--data', action='append', type=str, default=[])
   parser.add_argument('--metric', action='append', type=str, default=[])
+  parser.add_argument('--sync-source', type=str, default='')
 
   subparsers = parser.add_subparsers(help='arena sub-command help')
 
