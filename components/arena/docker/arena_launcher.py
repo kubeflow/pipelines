@@ -169,7 +169,7 @@ def generate_options(args):
         options.append("--tensorboard")
 
     if os.path.isdir(args.log_dir):  
-        options.append(['--logdir', args.log_dir])
+        options.extend(['--logdir', args.log_dir])
     else:
         logging.info("skip log dir :{0}".format(args.log_dir))
 
