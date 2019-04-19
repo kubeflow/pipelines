@@ -29,7 +29,6 @@ REQUIRES = [
     'cryptography>=2.4.2',
     'google-auth>=1.6.1',
     'requests_toolbelt>=0.8.0',
-    'yaml>=0.1.7',
 ]
 
 setup(
