@@ -37,11 +37,15 @@ def sample_pipeline(learning_rate='0.01',
     env=["GIT_SYNC_REV=%s" % (commit)],
     gpus=gpus,
     data=data,
-    command="echo prepare_step_id=%s and %s prepare_step_name=%s && \
+    command='''echo prepare_step_id=%s and prepare_step_name=%s && \
     python code/tensorflow-sample-code/tfjob/docker/mnist/main.py --max_steps 500 \
     --data_dir /training/dataset/mnist \
-    --log_dir /training/output/mnist  \
-    --learning_rate %s --dropout %s" % (prepare_data.output['id'], prepare_data.output['name'], learning_rate, dropout),
+    --log_dir /training/output/mnist \
+    --learning_rate %s --dropout %s''' % (
+      prepare_data.outputs['id'], 
+      prepare_data.outputs['name'], 
+      learning_rate, 
+      dropout),
     metrics=["Train-accuracy:PERCENTAGE"])
   # 3. export the model
   export_model = arena.standalone_job_op(
@@ -54,7 +58,7 @@ def sample_pipeline(learning_rate='0.01',
     python code/tensorflow-sample-code/tfjob/docker/mnist/export_model.py \
     --model_version=%s \
     --checkpoint_path=/training/output/mnist \
-    /training/output/models" % (train.output['id'], train.output['name'], model_version))
+    /training/output/models" % (train.outputs['id'], train.outputs['name'], model_version))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
