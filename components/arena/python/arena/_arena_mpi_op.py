@@ -63,7 +63,7 @@ def mpi_job_op(name, image, command, workers=1, gpus=0, cpu=0, memory=0, env=[],
       options.append('--tensorboard-image')
       options.append(str(tensorboard_image))
 
-    return dsl.ContainerOp(
+    op = dsl.ContainerOp(
           name=name,
           image=arenaImage,
           command=['python','arena_launcher.py'],
@@ -82,3 +82,5 @@ def mpi_job_op(name, image, command, workers=1, gpus=0, cpu=0, memory=0, env=[],
                       "--", str(command)],
           file_outputs={'train': '/output.txt'}
     )
+    op.set_image_pull_policy('Always')
+    return op

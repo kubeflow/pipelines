@@ -11,7 +11,8 @@ FLAGS = None
 )
 def sample_pipeline(learning_rate='0.01',
     dropout='0.9',
-    model_version='1'):
+    model_version='1',
+    commit='f097575656f927d86d99dd64931042e1a9003cb2'):
   """A pipeline for end to end machine learning workflow."""
   data=["user-susan:/training"]
   gpus=1
@@ -27,29 +28,25 @@ def sample_pipeline(learning_rate='0.01',
   curl -O https://code.aliyun.com/xiaozhou/tensorflow-sample-code/raw/master/data/t10k-labels-idx1-ubyte.gz && \
   curl -O https://code.aliyun.com/xiaozhou/tensorflow-sample-code/raw/master/data/train-images-idx3-ubyte.gz && \
   curl -O https://code.aliyun.com/xiaozhou/tensorflow-sample-code/raw/master/data/train-labels-idx1-ubyte.gz")
-  # 2. prepare source code
-  prepare_code = arena.standalone_job_op(
-    name="source-code",
-    image="alpine/git",
-    data=data,
-    command="mkdir -p /training/models/ && \
-  cd /training/models/ && \
-  if [ ! -d /training/models/tensorflow-sample-code ]; then git clone https://code.aliyun.com/xiaozhou/tensorflow-sample-code.git; else echo no need download;fi")
 
-  # 3. train the models
+  # 2. download source code and train the models
   train = arena.standalone_job_op(
     name="train",
     image="tensorflow/tensorflow:1.11.0-gpu-py3",
+    sync_source="https://code.aliyun.com/xiaozhou/tensorflow-sample-code.git",
+    env=["GIT_SYNC_REV=%s" % (commit)],
     gpus=gpus,
     data=data,
-    command="echo %s;echo %s;python /training/models/tensorflow-sample-code/tfjob/docker/mnist/main.py --max_steps 500 --data_dir /training/dataset/mnist --log_dir /training/output/mnist  --learning_rate %s --dropout %s" % (prepare_data.output, prepare_code.output, learning_rate, dropout),
+    command="echo %s;python code/tensorflow-sample-code/tfjob/docker/mnist/main.py --max_steps 500 --data_dir /training/dataset/mnist --log_dir /training/output/mnist  --learning_rate %s --dropout %s" % (prepare_data.output, learning_rate, dropout),
     metrics=["Train-accuracy:PERCENTAGE"])
-  # 4. export the model
+  # 3. export the model
   export_model = arena.standalone_job_op(
     name="export-model",
     image="tensorflow/tensorflow:1.11.0-py3",
+    sync_source="https://code.aliyun.com/xiaozhou/tensorflow-sample-code.git",
+    env=["GIT_SYNC_REV=%s" % (commit)],
     data=data,
-    command="echo %s;python /training/models/tensorflow-sample-code/tfjob/docker/mnist/export_model.py --model_version=%s --checkpoint_path=/training/output/mnist /training/output/models" % (train.output, model_version))
+    command="echo %s;python code/tensorflow-sample-code/tfjob/docker/mnist/export_model.py --model_version=%s --checkpoint_path=/training/output/mnist /training/output/models" % (train.output, model_version))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -60,11 +57,14 @@ if __name__ == '__main__':
                       help='Keep probability for training dropout.')
   parser.add_argument('--learning_rate', type=str, default="0.001",
                       help='Initial learning rate.')
+  parser.add_argument('--commit', type=str, default="f097575656f927d86d99dd64931042e1a9003cb2",
+                      help='commit id.')
   FLAGS, unparsed = parser.parse_known_args()
 
   model_version = FLAGS.model_version
   dropout = FLAGS.dropout
   learning_rate = FLAGS.learning_rate
+  commit = FLAGS.commit
 
   EXPERIMENT_NAME="mnist"
   RUN_ID="run"
@@ -79,4 +79,5 @@ if __name__ == '__main__':
   run = client.run_pipeline(experiment_id, RUN_ID, __file__ + '.tar.gz',
                             params={'learning_rate':learning_rate,
                                      'dropout':dropout,
-                                    'model_version':model_version})
+                                    'model_version':model_version,
+                                    'commit':commit})
