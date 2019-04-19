@@ -454,7 +454,7 @@ class Compiler(object):
     template['dag'] = {'tasks': tasks}
     return template
 
-  def _create_templates(self, pipeline):
+  def _create_templates(self, pipeline, op_transformers=None, template_transformers=None):
     """Create all groups and ops templates in the pipeline."""
 
     new_root_group = pipeline.groups[0]
@@ -478,10 +478,18 @@ class Compiler(object):
 
     templates = []
     for opsgroup in opsgroups.keys():
-      templates.append(self._group_to_template(opsgroups[opsgroup], inputs, outputs, dependencies))
+      template = self._group_to_template(opsgroups[opsgroup], inputs, outputs, dependencies)
+      for transformer in template_transformers or []:
+        template = transformer(template) or template
+      templates.append(template)
 
     for op in pipeline.ops.values():
-      templates.append(_op_to_template(op))
+      for transformer in op_transformers or []:
+        op = transformer(op) or op
+      template = _op_to_template(op)
+      for transformer in template_transformers or []:
+        template = transformer(template) or template
+      templates.append(template)
     return templates
 
   def _create_volumes(self, pipeline):
@@ -499,7 +507,7 @@ class Compiler(object):
     volumes.sort(key=lambda x: x['name'])
     return volumes
 
-  def _create_pipeline_workflow(self, args, pipeline):
+  def _create_pipeline_workflow(self, args, pipeline, op_transformers=None, template_transformers=None):
     """Create workflow for the pipeline."""
 
     # Input Parameters
@@ -511,7 +519,7 @@ class Compiler(object):
       input_params.append(param)
 
     # Templates
-    templates = self._create_templates(pipeline)
+    templates = self._create_templates(pipeline, op_transformers, template_transformers)
     templates.sort(key=lambda x: x['name'])
 
     # Exit Handler
@@ -568,7 +576,7 @@ class Compiler(object):
 
     return _validate_exit_handler_helper(pipeline.groups[0], [], False)
 
-  def _compile(self, pipeline_func):
+  def _compile(self, pipeline_func, op_transformers=None, template_transformers=None):
     """Compile the given pipeline function into workflow."""
 
     argspec = inspect.getfullargspec(pipeline_func)
@@ -621,22 +629,24 @@ class Compiler(object):
         op.file_outputs = sanitized_file_outputs
       sanitized_ops[sanitized_name] = op
     p.ops = sanitized_ops
-    workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
+    workflow = self._create_pipeline_workflow(args_list_with_defaults, p, op_transformers, template_transformers)
     return workflow
 
-  def compile(self, pipeline_func, package_path, type_check=True):
+  def compile(self, pipeline_func, package_path, type_check=True, op_transformers=None, template_transformers=None):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
       pipeline_func: pipeline functions with @dsl.pipeline decorator.
       package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
       type_check: whether to enable the type check or not, default: False.
+      op_transformers: A list of functions that are applied to all ContainerOp instances that are being processed.
+      template_transformers: A list of functions that are applied to all templates that are being produced.
     """
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
     try:
       kfp.TYPE_CHECK = type_check
-      workflow = self._compile(pipeline_func)
+      workflow = self._compile(pipeline_func, op_transformers, template_transformers)
       yaml.Dumper.ignore_aliases = lambda *args : True
       yaml_text = yaml.dump(workflow, default_flow_style=False)
 
