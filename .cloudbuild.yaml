@@ -134,20 +134,6 @@ steps:
   args: ['-c', 'cd /workspace/components/dataproc/train && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocTrain'
 
-# Build the ResNet-CMLE sample pipeline component images
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/resnet-cmle/containers/deploy && ./build.sh $PROJECT_ID $COMMIT_SHA']
-  id: 'buildResnetCMLEDeployComponent'
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/resnet-cmle/containers/preprocess && ./build.sh $PROJECT_ID $COMMIT_SHA']
-  id: 'buildResnetCMLEPreprocessComponent'
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/resnet-cmle/containers/train && ./build.sh $PROJECT_ID $COMMIT_SHA']
-  id: 'buildResnetCMLETrainComponent'
-
 # Build the Generic GCP component image
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
@@ -202,11 +188,6 @@ images:
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-predict:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-transform:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataproc-train:$COMMIT_SHA'
-
-# Images for the ResNet CMLE sample  pipeline components
-- 'gcr.io/$PROJECT_ID/resnet-deploy:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/resnet-preprocess:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/resnet-train:$COMMIT_SHA'
 
 # Images for the GCP generic pipeline components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-gcp:$COMMIT_SHA'

@@ -547,6 +547,23 @@ implementation:
         task2 = task_factory1('456')
         self.assertEqual(task2.arguments, ['456'])
 
+    def test_passing_component_metadata_to_container_op(self):
+        component_text = '''\
+metadata:
+  annotations:
+    key1: value1
+  labels:
+    key1: value1
+implementation:
+  container:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(text=component_text)
+
+        task1 = task_factory1()
+        self.assertEqual(task1.pod_annotations['key1'], 'value1')
+        self.assertEqual(task1.pod_labels['key1'], 'value1')
+
     def test_type_compatibility_check_for_simple_types(self):
         component_a = '''\
 outputs:

@@ -84,6 +84,9 @@ class Client(object):
     """Returns whether we are running in notebook."""
     try:
       import IPython
+      ipy = IPython.get_ipython()
+      if ipy is None:
+        return False
     except ImportError:
       return False
 
@@ -189,8 +192,7 @@ class Client(object):
         if len(all_yaml_files) > 1:
           raise ValueError('Invalid package. Multiple yaml files in the package.')
 
-        filename = zip.extract(all_yaml_files[0])
-        with open(filename, 'r') as f:
+        with zip.open(all_yaml_files[0]) as f:
           return yaml.load(f)
     elif package_file.endswith('.yaml') or package_file.endswith('.yml'):
       with open(package_file, 'r') as f:

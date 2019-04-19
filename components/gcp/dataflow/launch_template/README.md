@@ -1,43 +1,55 @@
 
-# Submitting a job to Cloud Dataflow service using a template
-A Kubeflow Pipeline component to submit a job from a dataflow template to Cloud Dataflow service.
+# Name
+Data preparation by using a template to submit a job to Cloud Dataflow
 
-## Intended Use
+# Labels
+GCP, Cloud Dataflow, Kubeflow, Pipeline
 
-A Kubeflow Pipeline component to submit a job from a dataflow template to Google Cloud Dataflow service.
+# Summary
+A Kubeflow Pipeline component to prepare data by using a template to submit a job to Cloud Dataflow.
+
+# Details
+
+## Intended use
+Use this component when you have a pre-built Cloud Dataflow template and want to launch it as a step in a Kubeflow Pipeline.
 
 ## Runtime arguments
-Name | Description | Type | Optional | Default
-:--- | :---------- | :--- | :------- | :------
-project_id | The ID of the Cloud Platform project to which the job belongs. | GCPProjectID | No |
-gcs_path | A Cloud Storage path to the job creation template. It must be a valid Cloud Storage URL beginning with `gs://`. | GCSPath | No |
-launch_parameters | The parameters that are required for  the template being launched. The Schema is defined in  [LaunchTemplateParameters Parameters](https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters). | Dict | Yes | `{}`
-location | The regional endpoint to which the job request is directed. | GCPRegion | Yes | ``
-validate_only | If true, the request is validated but not actually executed. | Bool | Yes | `False`
-staging_dir | The Cloud Storage path for keeping staging files. A random subdirectory will be created under the directory to keep job info for resuming the job in case of failure. | GCSPath | Yes | ``
-wait_interval | The seconds to wait between calls to get the job status. | Integer | Yes |`30`
+Argument        | Description                 | Optional   | Data type  | Accepted values | Default    |
+:---            | :----------                 | :----------| :----------| :----------     | :----------|
+project_id | The ID of the Google Cloud Platform (GCP) project to which the job belongs. | No | GCPProjectID |  |  |
+gcs_path | The path to a Cloud Storage bucket containing the job creation template. It must be a valid Cloud Storage URL beginning with 'gs://'. | No  | GCSPath  |  |  |
+launch_parameters | The parameters that are required to launch the template. The schema is defined in [LaunchTemplateParameters](https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters). The parameter `jobName` is replaced by a generated name. | Yes  |  Dict | A JSON object which has the same structure as [LaunchTemplateParameters](https://cloud.google.com/dataflow/docs/reference/rest/v1b3/LaunchTemplateParameters) | None |
+location | The regional endpoint to which the job request is directed.| Yes  |  GCPRegion |    |  None |
+staging_dir |  The path to the Cloud Storage directory where the staging files are stored. A random subdirectory will be created under the staging directory to keep the job information. This is done so that you can resume the job in case of failure.|  Yes |  GCSPath |   |  None |
+validate_only | If True, the request is validated but not executed.   |  Yes  |  Boolean |  |  False |
+wait_interval | The number of seconds to wait between calls to get the status of the job. |  Yes  | Integer  |   |  30 |
 
-## Output:
-Name | Description | Type
-:--- | :---------- | :---
-job_id | The id of the created dataflow job. | String
+## Input data schema
 
-## Cautions and requirements
-To use the components, the following requirements must be met:
-* Dataflow API is enabled.
-* The component is running under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a KFP cluster. For example:
-```
-component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-```
-* The Kubeflow user service account is a member of `roles/dataflow.developer` role of the project.
-* The Kubeflow user service account is a member of `roles/storage.objectViewer` role of the Cloud Storage Object `gcs_path`.
-* The Kubeflow user service account is a member of `roles/storage.objectCreator` role of the Cloud Storage Object `staging_dir`.
+The input `gcs_path` must contain a valid Cloud Dataflow template. The template can be created by following the instructions in [Creating Templates](https://cloud.google.com/dataflow/docs/guides/templates/creating-templates). You can also use [Google-provided templates](https://cloud.google.com/dataflow/docs/guides/templates/provided-templates).
+
+## Output
+Name | Description
+:--- | :----------
+job_id | The id of the Cloud Dataflow job that is created.
+
+## Caution & requirements
+
+To use the component, the following requirements must be met:
+- Cloud Dataflow API is enabled.
+- The component is running under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow Pipeline cluster.  For example:
+   ```
+   component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
+   ```
+* The Kubeflow user service account is a member of:
+    - `roles/dataflow.developer` role of the project.
+    - `roles/storage.objectViewer` role of the Cloud Storage Object `gcs_path.`
+    - `roles/storage.objectCreator` role of the Cloud Storage Object `staging_dir.` 
 
 ## Detailed description
-The input `gcs_path` must contain a valid Dataflow template. The template can be created by following the guide [Creating Templates](https://cloud.google.com/dataflow/docs/guides/templates/creating-templates). Or, you can use [Google-provided templates](https://cloud.google.com/dataflow/docs/guides/templates/provided-templates).
-
-Here are the steps to use the component in a pipeline:
-1. Install KFP SDK
+You can execute the template locally by following the instructions in [Executing Templates](https://cloud.google.com/dataflow/docs/guides/templates/executing-templates). See the sample code below to learn how to execute the template.
+Follow these steps to use the component in a pipeline:
+1. Install the Kubeflow Pipeline SDK:
 
 
 
@@ -59,17 +71,10 @@ dataflow_template_op = comp.load_component_from_url(
 help(dataflow_template_op)
 ```
 
-For more information about the component, please checkout:
-* [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/dataflow/_launch_template.py)
-* [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
-* [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataflow/launch_template/sample.ipynb)
-* [Cloud Dataflow Templates overview](https://cloud.google.com/dataflow/docs/guides/templates/overview)
-
 ### Sample
 
-Note: the sample code below works in both IPython notebook or python code directly.
-
-In this sample, we run a Google provided word count template from `gs://dataflow-templates/latest/Word_Count`. The template takes a text file as input and output word counts to a Cloud Storage bucket. Here is the sample input:
+Note: The following sample code works in an IPython notebook or directly in Python code.
+In this sample, we run a Google-provided word count template from `gs://dataflow-templates/latest/Word_Count`. The template takes a text file as input and outputs word counts to a Cloud Storage bucket. Here is the sample input:
 
 
 ```python
@@ -159,3 +164,14 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 ```python
 !gsutil cat $OUTPUT_PATH*
 ```
+
+## References
+
+* [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/dataflow/_launch_template.py)
+* [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
+* [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataflow/launch_template/sample.ipynb)
+* [Cloud Dataflow Templates overview](https://cloud.google.com/dataflow/docs/guides/templates/overview)
+
+## License
+By deploying or using this software you agree to comply with the [AI Hub Terms of Service](https://aihub.cloud.google.com/u/0/aihub-tos) and the [Google APIs Terms of Service](https://developers.google.com/terms/). To the extent of a direct conflict of terms, the AI Hub Terms of Service will control.
+

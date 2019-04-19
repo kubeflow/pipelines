@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+from collections import OrderedDict
 from typing import Union, List, Any, Callable, TypeVar, Dict
 
 from ._k8s_helper import K8sHelper
@@ -176,7 +177,7 @@ def _op_to_template(op: dsl.ContainerOp):
     processed_op = _process_container_ops(op)
 
     # default output artifacts
-    output_artifact_paths = {}
+    output_artifact_paths = OrderedDict()
     output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
     output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
 

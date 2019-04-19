@@ -27,6 +27,8 @@ spec:
     - name: image-build-context-gcs-uri
     - name: target-image-prefix
     - name: test-results-gcs-dir
+    - name: initialization-test-image-suffix
+      value: initialization_test
     - name: api-integration-test-image-suffix
       value: api_integration_test
     - name: frontend-integration-tests-image-suffix
@@ -43,12 +45,23 @@ spec:
       parameters:
       - name: target-image-prefix
       - name: test-results-gcs-dir
+      - name: initialization-test-image-suffix
       - name: api-integration-test-image-suffix
       - name: frontend-integration-tests-image-suffix
       - name: basic-e2e-tests-image-suffix
       - name: namespace
     steps:
-    - - name: build-api-integration-test-image
+    - - name: build-initialization-test-image
+        template: build-image
+        arguments:
+          parameters:
+          - name: docker-path
+            value: .
+          - name: docker-file
+            value: test/initialization-test/Dockerfile
+          - name: image-name
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.initialization-test-image-suffix}}"
+      - name: build-api-integration-test-image
         template: build-image
         arguments:
           parameters:
@@ -76,6 +89,14 @@ spec:
             value: test/sample-test/Dockerfile
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
+    - - name: run-initialization-tests
+        template: run-initialization-tests
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: initialization-test-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.initialization-test-image-suffix}}"
     - - name: run-api-integration-tests
         template: run-api-integration-tests
         arguments:
@@ -209,6 +230,23 @@ spec:
       securityContext:
         privileged: true
       mirrorVolumeMounts: true
+
+  - name: run-initialization-tests
+    inputs:
+      parameters:
+      - name: test-results-gcs-dir
+      - name: initialization-test-image
+    container:
+      image: "{{inputs.parameters.initialization-test-image}}"
+      args: [
+        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+      ]
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      volumeMounts:
+      - name: gcp-credentials
+        mountPath: /secret/gcp-credentials
 
   - name: run-api-integration-tests
     inputs:
