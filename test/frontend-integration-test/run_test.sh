@@ -74,17 +74,21 @@ POD=`/src/tools/google-cloud-sdk/bin/kubectl get pods -n ${NAMESPACE} -l app=ml-
 ./node_modules/.bin/wait-port 127.0.0.1:3000 -t 20000
 
 export PIPELINE_OUTPUT=${RESULTS_GCS_DIR}/pipeline_output
+# Don't exit early if 'npm test' fails
+set +e
+npm test
+TEST_EXIT_CODE=$?
+set -e
+
+echo 'new-run-screenshot'
+base64 'new-run-screenshot.png'
+echo \"-----\"
+
+echo 'redirect-screenshot'
+base64 'redirect-screenshot.png'
+echo \"-----\"
 
 JUNIT_TEST_RESULT=junit_FrontendIntegrationTestOutput.xml
-
-# Don't exit early if 'npm test' fails
-TEST_RESULT=`npm test 2>&1`
-TEST_EXIT_CODE=$?
-
-# Log the test result
-printf '%s\n' "$TEST_RESULT"
-# Convert test result to junit.xml
-printf '%s\n' "$TEST_RESULT" | go-junit-report > ${JUNIT_TEST_RESULT}
 
 echo "Copy test result to GCS ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}"
 tools/google-cloud-sdk/bin/gsutil cp ${JUNIT_TEST_RESULT} ${RESULTS_GCS_DIR}/${JUNIT_TEST_RESULT}

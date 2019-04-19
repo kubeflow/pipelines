@@ -220,12 +220,16 @@ describe('deploy helloworld sample run', () => {
 
     // Deploy
     $('#startNewRunBtn').click();
+
+    browser.saveScreenshot('./new-run-screenshot.png');
   });
 
   it('redirects back to all runs page', () => {
     browser.waitUntil(() => {
       return (new URL(browser.getUrl())).hash === '#/runs';
     }, waitTimeout, `URL was: ${new URL(browser.getUrl())}`);
+
+    browser.saveScreenshot('./redirect-screenshot.png');
   });
 
   it('displays both runs in all runs page', () => {
