@@ -17,6 +17,8 @@ const URL = require('url').URL;
 
 const experimentName = 'helloworld-experiment-' + Date.now();
 const experimentDescription = 'hello world experiment description';
+const secondExperimentName = 'different-experiment-name-' + Date.now();
+const secondExperimentNameDescription = 'second experiment description';
 const pipelineName = 'helloworld-pipeline-' + Date.now();
 const runName = 'helloworld-' + Date.now();
 const runDescription = 'test run description ' + runName;
@@ -182,6 +184,56 @@ describe('deploy helloworld sample run', () => {
       return logs.indexOf(outputParameterValue + ' from node: ') > -1;
     }, waitTimeout);
   });
+
+  it('navigates back to the experiment list', () => {
+    $('button=Experiments').click();
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/experiments');
+    }, waitTimeout);
+  });
+
+  it('creates a new experiment', () => {
+    $('#newExperimentBtn').click();
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/experiments/new');
+    }, waitTimeout);
+
+    $('#experimentName').setValue(secondExperimentName);
+    $('#experimentDescription').setValue(secondExperimentNameDescription);
+
+    $('#createExperimentBtn').click();
+  });
+
+  it('navigates back to the experiment list', () => {
+    $('button=Experiments').click();
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/experiments');
+    }, waitTimeout);
+  });
+
+  it('displays both experiments in the list', () => {
+    $('.tableRow').waitForVisible();
+    const rows = $$('.tableRow').length;
+    assert(rows === 2, 'there should now be two experiments in the table, instead there are: ' + rows);
+  });
+
+  it('filters the experiment list', () => {
+    // Enter "hello" into filter bar
+    browser.click('#tableFilterBox');
+    browser.keys(experimentName.substring(0, 5));
+    // Wait for the list to refresh
+    browser.pause(2000);
+
+    $('.tableRow').waitForVisible();
+    const rows = $$('.tableRow').length;
+    assert(rows === 1, 'there should now be one experiment in the table, instead there are: ' + rows);
+  });
+
+  // TODO: Add test for creating a run without an experiment. This will require changing the API
+  // initialization and integration tests to stop deleting the default experiment at the end of the
+  // suites. Otherwise, run creation here will fail with:
+  // 'Failed to store resource references to table for run [ID] : ResourceNotFoundError: [Default Experiment ID]'
+
   //TODO: enable this after we change the pipeline to a unique name such that deleting this
   // pipeline will not jeopardize the concurrent basic e2e tests.
   // it('deletes the uploaded pipeline', () => {
