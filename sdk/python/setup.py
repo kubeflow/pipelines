@@ -18,7 +18,7 @@ NAME = 'kfp'
 VERSION = '0.1.16'
 
 REQUIRES = [
-    'urllib3>=1.15',
+    'urllib3>=1.15,<1.25', #Fixing the version conflict with the "requests" package
     'six >= 1.10',
     'certifi',
     'python-dateutil',
