@@ -71,6 +71,8 @@ matrix:
             - default-jdk
             - wget
       script:
+        - python pip uninstall urllib3
+
         # DSL tests
         - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar
         - cd $TRAVIS_BUILD_DIR/sdk/python
