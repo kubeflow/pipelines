@@ -708,6 +708,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
             }
             className="filterBox"
             height={48}
+            id="tableFilterBox"
             label="Filter runs"
             maxWidth="100%"
             onChange={[Function]}
@@ -743,6 +744,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 }
               }
               className="filterBox"
+              id="tableFilterBox"
               label="Filter runs"
               onChange={[Function]}
               required={false}
@@ -814,6 +816,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           "root": "noMargin",
                         }
                       }
+                      htmlFor="tableFilterBox"
                     >
                       <WithFormControlContext(InputLabel)
                         classes={
@@ -831,6 +834,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             "shrink": "MuiInputLabel-shrink-12",
                           }
                         }
+                        htmlFor="tableFilterBox"
                       >
                         <InputLabel
                           classes={
@@ -849,6 +853,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             }
                           }
                           disableAnimation={false}
+                          htmlFor="tableFilterBox"
                           muiFormControl={
                             Object {
                               "adornedStart": true,
@@ -877,6 +882,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                               }
                             }
                             data-shrink={true}
+                            htmlFor="tableFilterBox"
                           >
                             <WithFormControlContext(FormLabel)
                               className="MuiInputLabel-root-5 noMargin MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
@@ -892,6 +898,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                 }
                               }
                               data-shrink={true}
+                              htmlFor="tableFilterBox"
                             >
                               <FormLabel
                                 className="MuiInputLabel-root-5 noMargin MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
@@ -908,6 +915,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                 }
                                 component="label"
                                 data-shrink={true}
+                                htmlFor="tableFilterBox"
                                 muiFormControl={
                                   Object {
                                     "adornedStart": true,
@@ -928,6 +936,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                 <label
                                   className="MuiFormLabel-root-16 MuiInputLabel-root-5 noMargin MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
                                   data-shrink={true}
+                                  htmlFor="tableFilterBox"
                                 >
                                   Filter runs
                                 </label>
@@ -944,6 +953,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           "root": "noLeftPadding",
                         }
                       }
+                      id="tableFilterBox"
                       labelWidth={0}
                       onChange={[Function]}
                       startAdornment={
@@ -980,6 +990,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             "root": "MuiOutlinedInput-root-23 noLeftPadding",
                           }
                         }
+                        id="tableFilterBox"
                         labelWidth={0}
                         onChange={[Function]}
                         startAdornment={
@@ -1017,6 +1028,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             }
                           }
                           fullWidth={false}
+                          id="tableFilterBox"
                           inputComponent="input"
                           multiline={false}
                           onChange={[Function]}
@@ -1061,6 +1073,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                               }
                             }
                             fullWidth={false}
+                            id="tableFilterBox"
                             inputComponent="input"
                             multiline={false}
                             onChange={[Function]}
@@ -1105,6 +1118,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                 }
                               }
                               fullWidth={false}
+                              id="tableFilterBox"
                               inputComponent="input"
                               muiFormControl={
                                 Object {
@@ -1652,6 +1666,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                   aria-invalid={false}
                                   className="MuiInputBase-input-46 MuiOutlinedInput-input-31 MuiInputBase-inputAdornedStart-51 MuiOutlinedInput-inputAdornedStart-34"
                                   disabled={false}
+                                  id="tableFilterBox"
                                   onBlur={[Function]}
                                   onChange={[Function]}
                                   onFocus={[Function]}
