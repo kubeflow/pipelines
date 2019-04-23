@@ -1,11 +1,11 @@
 name: ROC curve
 description: Calculates Receiver Operating Characteristic curve. See https://en.wikipedia.org/wiki/Receiver_operating_characteristic
 inputs:
-  - {name: Predictions dir,   type: GCPPath,  description: 'GCS path of prediction file pattern.'}  #TODO: Replace dir data + schema files # type: {GCSPath: {path_type: Directory}}
+  - {name: Predictions dir,   type: GCSPath,  description: 'GCS path of prediction file pattern.'}  #TODO: Replace dir data + schema files # type: {GCSPath: {path_type: Directory}}
   - {name: True class,        type: String, default: 'true',            description: 'The true class label for the sample. Default is "true".'}
   - {name: True score column, type: String, default: 'true',            description: 'The name of the column for positive probability.'}
   - {name: Target lambda,     type: String, default: '',                description: 'Text of Python lambda function which returns boolean value indicating whether the classification result is correct.\nFor example, "lambda x: x[''a''] and x[''b'']". If missing, input must have a "target" column.'}
-  - {name: Output dir,        type: GCPPath,  description: 'GCS path of the output directory.'}     #TODO: Replace dir with single file # type: {GCSPath: {path_type: Directory}}
+  - {name: Output dir,        type: GCSPath,  description: 'GCS path of the output directory.'}     #TODO: Replace dir with single file # type: {GCSPath: {path_type: Directory}}
 #outputs:
 #  - {name: UI metadata,       type: UI metadata}
 #  - {name: Metrics,           type: Metrics}
