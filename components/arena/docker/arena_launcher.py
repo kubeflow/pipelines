@@ -385,6 +385,8 @@ def main(argv=None):
   with open('/step-name.txt', 'w') as f:
     f.write(args.step_name)
 
+  with open('/name.txt', 'w') as f:
+    f.write(args.name)
 
 if __name__== "__main__":
   main()

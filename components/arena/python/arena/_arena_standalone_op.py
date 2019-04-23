@@ -83,7 +83,8 @@ def standalone_job_op(name, image, command, gpus=0, cpu=0, memory=0, env=[],
                       "--", str(command)],
           file_outputs={'train': '/output.txt',
                         'id':'/step-id.txt',
-                        'name':'/step-name.txt'}
+                        'step':'/step-name.txt',
+                        'name':'/name.txt'}
       )
     op.set_image_pull_policy('Always')
     return op
