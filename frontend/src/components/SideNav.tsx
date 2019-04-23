@@ -255,7 +255,8 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
             <Tooltip title={'Open Jupyter Notebook'} enterDelay={300} placement={'right-start'}
               disableFocusListener={!collapsed} disableHoverListener={!collapsed}
               disableTouchListener={!collapsed}>
-              <a id='jupyterhubBtn' href={this._HUB_ADDRESS} className={commonCss.unstyled} target='_blank'>
+              <a id='jupyterhubBtn' href={this._HUB_ADDRESS} className={commonCss.unstyled}
+                target='_blank' rel='noopener noreferrer'>
                 <Button className={
                   classes(css.button, collapsed && css.collapsedButton)}>
                   <JupyterhubIcon style={{ height: 20, width: 20 }} />
@@ -291,7 +292,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
               <div className={css.buildInfo}>
                 <span>Build commit: </span>
                 <a href={displayBuildInfo.commitUrl} className={classes(css.link, commonCss.unstyled)}
-                  target='_blank'>
+                  target='_blank' rel='noopener noreferrer'>
                   {displayBuildInfo.commitHash}
                 </a>
               </div>

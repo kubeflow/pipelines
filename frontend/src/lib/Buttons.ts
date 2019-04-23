@@ -54,7 +54,7 @@ export default class Buttons {
       disabledTitle: useCurrentResource ? undefined : 'Select a run to clone',
       id: 'cloneBtn',
       title: 'Clone run',
-      tooltip: 'Create a copy from this run\s initial state',
+      tooltip: 'Create a copy from this run\'s initial state',
     };
   }
 

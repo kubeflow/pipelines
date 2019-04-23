@@ -48,8 +48,8 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
   }
 
   info.nodeType = 'container';
-  info.args = template.container.args || [],
-  info.command = template.container.command || [],
+  info.args = template.container.args || [];
+  info.command = template.container.command || [];
   info.image = template.container.image || '';
 
   if (template.inputs) {

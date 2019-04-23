@@ -155,8 +155,8 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
           <Separator />
           <Input required={true} select={true} onChange={this.handleChange('intervalCategory')}
             value={intervalCategory} height={30} width={95} variant='outlined' >
-            {Object.keys(PeriodicInterval).map((interval: PeriodicInterval, i) => (
-              <MenuItem key={i} value={PeriodicInterval[interval]}>
+            {Object.keys(PeriodicInterval).map((interval: string, i) => (
+              <MenuItem key={i} value={PeriodicInterval[interval] }>
                 {PeriodicInterval[interval] + (type === TriggerType.INTERVALED ? 's' : '')}
               </MenuItem>
             ))}

@@ -36,18 +36,18 @@ function getPipelineSpec(run?: ApiRun | ApiJob): string | null {
 function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {
   if (run) {
     const reference = getAllExperimentReferences(run)[0];
-    return reference && reference.key && reference.key.id || null;
+    return (reference && reference.key && reference.key.id) || null;
   }
   return null;
 }
 
 function getFirstExperimentReference(run?: ApiRun | ApiJob): ApiResourceReference | null {
-  return run && getAllExperimentReferences(run)[0] || null;
+  return (run && getAllExperimentReferences(run)[0]) || null;
 }
 
 function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference[] {
-  return (run && run.resource_references || [])
-    .filter((ref) => ref.key && ref.key.type && ref.key.type === ApiResourceType.EXPERIMENT || false);
+  return ((run && run.resource_references) || [])
+    .filter((ref) => (ref.key && ref.key.type && ref.key.type === ApiResourceType.EXPERIMENT) || false);
 }
 
 function extractMetricMetadata(runs: ApiRun[]): MetricMetadata[] {

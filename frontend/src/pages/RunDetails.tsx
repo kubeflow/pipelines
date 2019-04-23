@@ -496,6 +496,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
             // Clear logs
             this.setStateSafe({ logsBannerAdditionalInfo: '', logsBannerMessage: '' });
           }
+          break;
+        default:
+          this.showPageError(`Unknown side pane tab selected: ${tab}`);
       }
     }
   }

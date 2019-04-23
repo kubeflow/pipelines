@@ -137,7 +137,7 @@ class LogViewer extends React.Component<LogViewerProps> {
       // Append all text before URL match
       nodes.push(<span>{line.substr(lastMatch, match.index)}</span>);
       // Append URL via an anchor element
-      nodes.push(<a href={match[0]} target='_blank' className={css.a}>{match[0]}</a>);
+      nodes.push(<a href={match[0]} target='_blank' rel='noopener noreferrer' className={css.a}>{match[0]}</a>);
 
       lastMatch = match.index + match[0].length;
       match = urlPattern.exec(line);

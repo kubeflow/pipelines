@@ -48,7 +48,7 @@ export interface Column {
   flex?: number;
   label: string;
   sortKey?: string;
-  customRenderer?: React.FC<CustomRendererProps<{} | undefined>>;
+  customRenderer?: React.FC<CustomRendererProps<any | undefined>>;
 }
 
 export interface CustomRendererProps<T> {
@@ -364,7 +364,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             }
             return (<div className={classes(css.expandableContainer,
               row.expandState === ExpandState.EXPANDED && css.expandedContainer)} key={i}>
-              <div role='checkbox' tabIndex={-1} className={
+              <div role='checkbox' aria-checked='false' tabIndex={-1} className={
                 classes(
                   'tableRow',
                   css.row,

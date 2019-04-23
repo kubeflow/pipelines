@@ -16,7 +16,7 @@
 
 import { ApiRunDetail } from '../apis/run';
 import { CompareTableProps } from '../components/CompareTable';
-import { Workflow } from 'third_party/argo-ui/argo_template';
+import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { chain, flatten } from 'lodash';
 import WorkflowParser from './WorkflowParser';
 import { logger } from './Utils';

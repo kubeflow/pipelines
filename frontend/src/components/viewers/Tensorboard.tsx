@@ -64,7 +64,8 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     return <div>
       {this.state.podAddress && <div>
         <div className={padding(20, 'b')}>Tensorboard is running for this output.</div>
-        <a href={'apis/v1beta1/_proxy/' + podAddress} target='_blank' className={commonCss.unstyled}>
+        <a href={'apis/v1beta1/_proxy/' + podAddress} target='_blank' rel='noopener noreferrer'
+          className={commonCss.unstyled}>
           <Button className={commonCss.buttonAction} disabled={this.state.busy}>Open Tensorboard</Button>
         </a>
       </div>}

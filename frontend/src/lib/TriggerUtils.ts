@@ -29,9 +29,10 @@ export enum PeriodicInterval {
   MONTH = 'Month',
 }
 
-export const triggers = new Map<TriggerType, { displayName: string }>([
-  [TriggerType.INTERVALED, { displayName: 'Periodic', }],
-  [TriggerType.CRON, { displayName: 'Cron', }],
+export const triggers: Map<TriggerType, { displayName: string }> =
+  new Map<TriggerType, { displayName: string }>([
+    [TriggerType.INTERVALED, { displayName: 'Periodic', }],
+    [TriggerType.CRON, { displayName: 'Cron', }],
 ]);
 
 export function getPeriodInSeconds(interval: PeriodicInterval, count: number): number {

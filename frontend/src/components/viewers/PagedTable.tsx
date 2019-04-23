@@ -43,7 +43,7 @@ function desc(a: string[], b: string[], orderBy: number): number {
 }
 
 function stableSort(array: string[][], cmp: any): string[][] {
-  const stabilizedThis = array.map((row: string[], index: number) => [row, index]);
+  const stabilizedThis = array.map((row: string[], index: number): [string[], number] => [row, index]);
   stabilizedThis.sort((a: [string[], number], b: [string[], number]) => {
     const order = cmp(a[0], b[0]);
     if (order !== 0) {
