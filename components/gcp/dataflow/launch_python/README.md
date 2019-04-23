@@ -18,7 +18,7 @@ Name | Description | Optional |  Data type| Accepted values | Default |
 :--- | :----------| :----------| :----------| :----------| :---------- |
 python_file_path |  The path to the Cloud Storage bucket or local directory containing the Python file to be run. |  |  GCSPath |  |  |
 project_id |  The ID of the Google Cloud Platform (GCP) project  containing the Cloud Dataflow job.| | GCPProjectID | | |
-staging_dir  |   The path to the Cloud Storage directory where the staging files are stored. A random subdirectory will be created under the staging directory to keep the  job information.This is done so that you can resume the job in case of failure. `staging_dir` is passed as the command line arguments (`staging_location` and `temp_location`) of the Beam code. |   Yes  |   GCPPath  |   |   None  |
+staging_dir  |   The path to the Cloud Storage directory where the staging files are stored. A random subdirectory will be created under the staging directory to keep the  job information.This is done so that you can resume the job in case of failure. `staging_dir` is passed as the command line arguments (`staging_location` and `temp_location`) of the Beam code. |   Yes  |   GCSPath  |   |   None  |
 requirements_file_path |   The path to the Cloud Storage bucket or local directory containing the pip requirements file. | Yes | GCSPath |  | None |
 args |  The list of arguments to pass to the Python file. | No |  List | A list of string arguments | None |
 wait_interval |  The number of seconds to wait between calls to get the status of the job. | Yes | Integer  |  | 30 |
