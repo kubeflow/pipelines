@@ -174,8 +174,12 @@ class Client(object):
         if len(all_yaml_files) == 0:
           raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
         
-        if len(all_yaml_files) > 1:
-          raise ValueError('Invalid package. Multiple yaml files in the package.')
+        pipeline_file = all_yaml_files[0]
+        if 'pipeline.yaml' in all_yaml_files:
+          pipeline_file = 'pipeline.yaml'
+        else:
+          if len(all_yaml_files) > 1:
+            raise ValueError('Invalid package. There is no pipeline.yaml file and there are multiple yaml files.')
         
         with tar.extractfile(all_yaml_files[0]) as f:
           return yaml.load(f)
@@ -186,8 +190,12 @@ class Client(object):
         if len(all_yaml_files) == 0:
           raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
 
-        if len(all_yaml_files) > 1:
-          raise ValueError('Invalid package. Multiple yaml files in the package.')
+        pipeline_file = all_yaml_files[0]
+        if 'pipeline.yaml' in all_yaml_files:
+          pipeline_file = 'pipeline.yaml'
+        else:
+          if len(all_yaml_files) > 1:
+            raise ValueError('Invalid package. There is no pipeline.yaml file and there are multiple yaml files.')
 
         filename = zip.extract(all_yaml_files[0])
         with open(filename, 'r') as f:
