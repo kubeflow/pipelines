@@ -14,6 +14,7 @@
 
 import argparse
 import os
+import io
 import json
 import tarfile
 from datetime import datetime
@@ -113,7 +114,7 @@ def main():
     assert len(file_handles) == 1
 
     with tar_handle.extractfile(file_handles[0]) as f:
-      cm_data = json.load(f)
+      cm_data = json.load(io.TextIOWrapper(f))
       utils.add_junit_test(test_cases, 'confusion matrix format', (len(cm_data['outputs'][0]['schema']) == 3), 'the column number of the confusion matrix output is not equal to three')
 
   ###### Delete Job ######
