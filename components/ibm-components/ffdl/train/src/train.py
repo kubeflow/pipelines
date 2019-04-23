@@ -78,7 +78,7 @@ if __name__ == "__main__":
     ''' Update FfDL manifest with the corresponding object storage credentials '''
 
     f = open('manifest.yml', 'r')
-    manifest = yaml.load(f.read())
+    manifest = yaml.safe_load(f.read())
     f.close()
 
     manifest['data_stores'][0]['connection']['auth_url'] = s3_url
