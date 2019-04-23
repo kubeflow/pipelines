@@ -313,7 +313,7 @@ class TestImageBuild(unittest.TestCase):
     generated_yaml = builder._generate_kaniko_spec(namespace='default', arc_dockerfile_name='dockerfile',
                                                    gcs_path='gs://mlpipeline/kaniko_build.tar.gz', target_image='gcr.io/mlpipeline/kaniko_image:latest')
     with open(os.path.join(test_data_dir, 'kaniko.basic.yaml'), 'r') as f:
-      golden = yaml.load(f)
+      golden = yaml.safe_load(f)
 
     self.assertEqual(golden, generated_yaml)
 

@@ -49,7 +49,7 @@ from kubernetes import config
 def _generate_train_yaml(src_filename, tfjob_ns, workers, pss, trainer_image, command):
   """_generate_train_yaml  generates train yaml files based on train.template.yaml"""
   with open(src_filename, 'r') as f:
-    content = yaml.load(f)
+    content = yaml.safe_load(f)
 
   content['metadata']['generateName'] = 'trainer-'
   content['metadata']['namespace'] = tfjob_ns

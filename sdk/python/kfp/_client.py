@@ -181,7 +181,7 @@ class Client(object):
           raise ValueError('Invalid package. Multiple yaml files in the package.')
         
         with tar.extractfile(all_yaml_files[0]) as f:
-          return yaml.load(f)
+          return yaml.safe_load(f)
     elif package_file.endswith('.zip'):
       with zipfile.ZipFile(package_file, 'r') as zip:
         all_yaml_files = [m for m in zip.namelist() if
@@ -193,10 +193,10 @@ class Client(object):
           raise ValueError('Invalid package. Multiple yaml files in the package.')
 
         with zip.open(all_yaml_files[0]) as f:
-          return yaml.load(f)
+          return yaml.safe_load(f)
     elif package_file.endswith('.yaml') or package_file.endswith('.yml'):
       with open(package_file, 'r') as f:
-        return yaml.load(f)
+        return yaml.safe_load(f)
     else:
       raise ValueError('The package_file '+ package_file + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
 

@@ -122,11 +122,11 @@ class TestCompiler(unittest.TestCase):
   def _get_yaml_from_zip(self, zip_file):
     with zipfile.ZipFile(zip_file, 'r') as zip:
       with open(zip.extract(zip.namelist()[0]), 'r') as yaml_file:
-        return yaml.load(yaml_file)
+        return yaml.safe_load(yaml_file)
 
   def _get_yaml_from_tar(self, tar_file):
     with tarfile.open(tar_file, 'r:gz') as tar:
-      return yaml.load(tar.extractfile(tar.getmembers()[0]))
+      return yaml.safe_load(tar.extractfile(tar.getmembers()[0]))
 
   def test_basic_workflow(self):
     """Test compiling a basic workflow."""
@@ -139,7 +139,7 @@ class TestCompiler(unittest.TestCase):
     try:
       compiler.Compiler().compile(basic.save_most_frequent_word, package_path)
       with open(os.path.join(test_data_dir, 'basic.yaml'), 'r') as f:
-        golden = yaml.load(f)
+        golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(package_path)
 
       self.maxDiff = None
@@ -166,7 +166,7 @@ class TestCompiler(unittest.TestCase):
       compose_package_path = os.path.join(tmpdir, 'compose.zip')
       compiler.Compiler().compile(compose.download_save_most_frequent_word, compose_package_path)
       with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
-        golden = yaml.load(f)
+        golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(compose_package_path)
 
       self.maxDiff = None
@@ -193,7 +193,7 @@ class TestCompiler(unittest.TestCase):
           'dsl-compile', '--package', package_path, '--namespace', 'mypipeline',
           '--output', target_zip, '--function', 'download_save_most_frequent_word'])
       with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
-        golden = yaml.load(f)
+        golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(target_zip)
 
       self.maxDiff = None
@@ -211,7 +211,7 @@ class TestCompiler(unittest.TestCase):
       subprocess.check_call([
           'dsl-compile', '--py', py_file, '--output', target_zip])
       with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
-        golden = yaml.load(f)
+        golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(target_zip)
 
       self.maxDiff = None
@@ -228,7 +228,7 @@ class TestCompiler(unittest.TestCase):
       subprocess.check_call([
           'dsl-compile', '--py', py_file, '--output', target_tar])
       with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
-        golden = yaml.load(f)
+        golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_tar(target_tar)
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -244,10 +244,10 @@ class TestCompiler(unittest.TestCase):
       subprocess.check_call([
           'dsl-compile', '--py', py_file, '--output', target_yaml])
       with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
-        golden = yaml.load(f)
+        golden = yaml.safe_load(f)
 
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
-        compiled = yaml.load(f)
+        compiled = yaml.safe_load(f)
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
