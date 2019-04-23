@@ -72,10 +72,10 @@ def _proxy_container_op_props(cls: "ContainerOp"):
     return cls
 
 
-def as_string_list(list_or_str: Union[Any, Sequence[Any]], if_none: Optional[List] = None) -> List[str]:
+def as_string_list(list_or_str: Union[Any, Sequence[Any]]) -> List[str]:
     """Convert any value except None to a list if not already a list."""
     if list_or_str is None:
-        return if_none
+        return None
     if isinstance(list_or_str, Sequence) and not isinstance(list_or_str, str):
         list_value = list_or_str
     else:
