@@ -1,9 +1,9 @@
 name: Confusion matrix
 description: Calculates confusion matrix
 inputs:
-  - {name: Predictions,     type: GCPPath,        description: 'GCS path of prediction file pattern.'} # type: {GCSPath: {data_type: CSV}}
+  - {name: Predictions,     type: GCSPath,        description: 'GCS path of prediction file pattern.'} # type: {GCSPath: {data_type: CSV}}
   - {name: Target lambda,   type: String, default: '', description: 'Text of Python lambda function which computes target value. For example, "lambda x: x[''a''] + x[''b'']". If not set, the input must include a "target" column.'}
-  - {name: Output dir,      type: GCPPath,  description: 'GCS path of the output directory.'} # type: {GCSPath: {path_type: Directory}}
+  - {name: Output dir,      type: GCSPath,  description: 'GCS path of the output directory.'} # type: {GCSPath: {path_type: Directory}}
 #outputs:
 #  - {name: UI metadata,     type: UI metadata}
 #  - {name: Metrics,         type: Metrics}

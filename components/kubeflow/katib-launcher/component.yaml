@@ -14,7 +14,7 @@ inputs:
 - {name: Metrics collector template path, type: String, default: '',    description: 'Metrics collector spec.'}
 - {name: Suggestion spec,           type: YAML,     default: '',        description: 'Suggestion spec (YAML/JSON format).'}
 - {name: StudyJob timeout minutes,  type: Integer,  default: '10',      description: 'Time in minutes to wait for the StudyJob to complete.'}
-- {name: Delete finished job,       type: Boolean,  default: 'True',    description: 'Whether to delete the job after it is finished.'}
+- {name: Delete finished job,       type: Bool,  default: 'True',    description: 'Whether to delete the job after it is finished.'}
 outputs:
 - {name: Best parameter set,        type: JSON,                         description: 'The parameter set of the best StudyJob trial.'}
 implementation:
