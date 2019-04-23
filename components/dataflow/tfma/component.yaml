@@ -6,15 +6,15 @@ description: |
   * tracking metrics over time
   * model quality performance on different feature slices
 inputs:
-- {name: Model,           type: GCPPath, description: GCS path to the model which will be evaluated.} # type: {GCSPath: {path_type: Directory, data_type: Exported TensorFlow models dir}}
-- {name: Evaluation data, type: GCPPath,              description: GCS path of eval files.} # type: {GCSPath: {data_type: CSV}}
-- {name: Schema,          type: GCPPath, description: GCS json schema file path.} # type: {GCSPath: {data_type: TFDV schema JSON}}
+- {name: Model,           type: GCSPath, description: GCS path to the model which will be evaluated.} # type: {GCSPath: {path_type: Directory, data_type: Exported TensorFlow models dir}}
+- {name: Evaluation data, type: GCSPath,              description: GCS path of eval files.} # type: {GCSPath: {data_type: CSV}}
+- {name: Schema,          type: GCSPath, description: GCS json schema file path.} # type: {GCSPath: {data_type: TFDV schema JSON}}
 - {name: Run mode,        type: String,     default: local,               description: whether to run the job locally or in Cloud Dataflow.}
-- {name: GCP project,     type: GcpProject, default: '',                  description: 'The GCP project to run the dataflow job, if running in the `cloud` mode.'}
+- {name: GCP project,     type: GCPProjectID, default: '',                  description: 'The GCP project to run the dataflow job, if running in the `cloud` mode.'}
 - {name: Slice columns,   type: String,                                   description: Comma-separated list of columns on which to slice for analysis.}
-- {name: Analysis results dir, type: GCPPath,   description: GCS or local directory where the analysis results should be written.} # type: {GCSPath: {path_type: Directory}}
+- {name: Analysis results dir, type: GCSPath,   description: GCS or local directory where the analysis results should be written.} # type: {GCSPath: {path_type: Directory}}
 outputs:
-- {name: Analysis results dir, type: GCPPath,   description: GCS or local directory where the analysis results should were written.} # type: {GCSPath: {path_type: Directory}}
+- {name: Analysis results dir, type: GCSPath,   description: GCS or local directory where the analysis results should were written.} # type: {GCSPath: {path_type: Directory}}
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:e20fad3e161e88226c83437271adb063221459b9
