@@ -655,7 +655,7 @@ class BaseOp(object):
 
         # attributes specific to `BaseOp`
         self._inputs = []
-        self.deps = []
+        self.dependent_names = []
 
     @property
     def inputs(self):
@@ -699,7 +699,7 @@ class BaseOp(object):
 
     def after(self, op):
         """Specify explicit dependency on another op."""
-        self.deps.append(op.name)
+        self.dependent_names.append(op.name)
         return self
 
     def add_volume(self, volume):

@@ -58,7 +58,7 @@ class TestVolumeOp(unittest.TestCase):
             vol.output,
             PipelineParam(name="name", op_name=vol.name)
         )
-        self.assertEqual(vol.deps, [])
+        self.assertEqual(vol.dependent_names, [])
         expected_volume = PipelineVolume(
             name="myvol-creation",
             persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(

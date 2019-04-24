@@ -282,7 +282,7 @@ class Compiler(object):
       for param in op.inputs + list(condition_params[op.name]):
         if param.op_name:
           upstream_op_names.add(param.op_name)
-      upstream_op_names |= set(op.deps)
+      upstream_op_names |= set(op.dependent_names)
 
       for op_name in upstream_op_names:
         # the dependent op could be either a BaseOp or an opsgroup
@@ -612,8 +612,8 @@ class Compiler(object):
       if op.output is not None:
         op.output.name = K8sHelper.sanitize_k8s_name(op.output.name)
         op.output.op_name = K8sHelper.sanitize_k8s_name(op.output.op_name)
-      if op.deps:
-        op.deps = [K8sHelper.sanitize_k8s_name(name) for name in op.deps]
+      if op.dependent_names:
+        op.dependent_names = [K8sHelper.sanitize_k8s_name(name) for name in op.dependent_names]
       if op.file_outputs is not None:
         sanitized_file_outputs = {}
         for key in op.file_outputs.keys():
@@ -635,8 +635,8 @@ class Compiler(object):
       if rop.output is not None:
         rop.output.name = K8sHelper.sanitize_k8s_name(rop.output.name)
         rop.output.op_name = K8sHelper.sanitize_k8s_name(rop.output.op_name)
-      if rop.deps:
-        rop.deps = [K8sHelper.sanitize_k8s_name(name) for name in rop.deps]
+      if rop.dependent_names:
+        rop.dependent_names = [K8sHelper.sanitize_k8s_name(name) for name in rop.dependent_names]
       if rop.attribute_outputs is not None:
         sanitized_attribute_outputs = {}
         for key in rop.attribute_outputs.keys():

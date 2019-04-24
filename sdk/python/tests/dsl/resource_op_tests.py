@@ -66,4 +66,4 @@ class TestResourceOp(unittest.TestCase):
             res.output,
             PipelineParam(name="test", op_name=res.name)
         )
-        self.assertEqual(res.deps, [])
+        self.assertEqual(res.dependent_names, [])

@@ -81,8 +81,8 @@ class TestVolumeSnapshotOp(unittest.TestCase):
             snap2.output,
             PipelineParam(name="size", op_name=snap2.name)
         )
-        self.assertEqual(snap1.deps, [])
-        self.assertEqual(snap2.deps, [])
+        self.assertEqual(snap1.dependent_names, [])
+        self.assertEqual(snap2.dependent_names, [])
         expected_snapshot_1 = k8s_client.V1TypedLocalObjectReference(
             api_group="snapshot.storage.k8s.io",
             kind="VolumeSnapshot",
