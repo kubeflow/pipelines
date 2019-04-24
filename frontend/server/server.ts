@@ -115,7 +115,7 @@ const artifactsHandler = async (req, res) => {
         // of the pattern until the first wildcard, then we create a regular
         // expression out of the pattern, escaping all non-wildcard characters,
         // and we use it to match all enumerated paths.
-        const storage = Storage();
+        const storage = new Storage();
         const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
         const files = await storage.bucket(bucket).getFiles({ prefix });
         const matchingFiles = files[0].filter((f) => {
