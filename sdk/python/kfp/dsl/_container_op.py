@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict
+from typing import Dict, List
 from kubernetes.client.models import V1Volume, V1VolumeMount
 
 from ._base_op import (
-    StringOrStringList, deprecation_warning, as_list, Container, BaseOp
+    StringOrStringList, deprecation_warning, as_list, Container, BaseOp, Sidecar
 )
 from . import _pipeline_param
 from ._pipeline_volume import PipelineVolume
@@ -55,7 +55,7 @@ def _proxy_container_op_props(cls: "ContainerOp"):
 class ContainerOp(BaseOp):
     """
     Represents an op implemented by a container image.
-
+    
     Example
 
         from kfp import dsl
@@ -90,36 +90,42 @@ class ContainerOp(BaseOp):
     # in the compilation process to generate the DAGs and task io parameters.
 
     def __init__(self,
+                 name: str,
                  image: str,
                  command: StringOrStringList = None,
                  arguments: StringOrStringList = None,
+                 sidecars: List[Sidecar] = None,
                  container_kwargs: Dict = None,
                  file_outputs: Dict[str, str] = None,
+                 is_exit_handler=False,
                  pvolumes: Dict[str, V1Volume] = None,
-                 **kwargs):
+        ):
         """Create a new instance of ContainerOp.
 
         Args:
+          name: the name of the op. It does not have to be unique within a pipeline
+              because the pipeline will generates a unique new name in case of conflicts.
           image: the container image name, such as 'python:3.5-jessie'
           command: the command to run in the container.
               If None, uses default CMD in defined in container.
           arguments: the arguments of the command. The command can include "%s" and supply
               a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
               At container run time the argument will be 'echo param_value'.
+          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy 
+                    together with the `main` container.
           container_kwargs: the dict of additional keyword arguments to pass to the
                             op's `Container` definition.
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
+          is_exit_handler: Whether it is used as an exit handler.
           pvolumes: Dictionary for the user to match a path on the op's fs with a
               V1Volume or it inherited type.
               E.g {"/my/path": vol, "/mnt": other_op.volumes["/output"]}.
-          kwargs: name, sidecars & is_exit_hander. See BaseOp definition
         """
 
-        super().__init__(**kwargs)
-        self.attrs_with_pipelineparams = list(self.attrs_with_pipelineparams)
-        self.attrs_with_pipelineparams.append('_container')
+        super().__init__(name=name, sidecars=sidecars, is_exit_handler=is_exit_handler)
+        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container'] #Copying the BaseOp class variable!
 
         # convert to list if not a list
         command = as_list(command)

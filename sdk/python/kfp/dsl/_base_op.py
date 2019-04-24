@@ -60,33 +60,32 @@ def create_and_append(current_list: Union[List[T], None], item: T) -> List[T]:
 
 class Container(V1Container):
     """
-    A wrapper over k8s container definition object
-    (io.k8s.api.core.v1.Container),
-    which is used to represent the `container` property in argo's workflow
+    A wrapper over k8s container definition object (io.k8s.api.core.v1.Container),
+    which is used to represent the `container` property in argo's workflow 
     template (io.argoproj.workflow.v1alpha1.Template).
-
-    `Container` class also comes with utility functions to set and update the
+    
+    `Container` class also comes with utility functions to set and update the 
     the various properties for a k8s container definition.
 
-    NOTE: A notable difference is that `name` is not required and will not be
+    NOTE: A notable difference is that `name` is not required and will not be 
     processed for `Container` (in contrast to `V1Container` where `name` is a
-    required property).
+    required property). 
 
-    See:
+    See: 
     - https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_container.py
     - https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
 
-
+    
     Example:
 
       from kfp.dsl import ContainerOp
       from kubernetes.client.models import V1EnvVar
-
+      
 
       # creates a operation
-      op = ContainerOp(name='bash-ops',
-                       image='busybox:latest',
-                       command=['echo'],
+      op = ContainerOp(name='bash-ops', 
+                       image='busybox:latest', 
+                       command=['echo'], 
                        arguments=['$MSG'])
 
       # returns a `Container` object from `ContainerOp`
@@ -114,10 +113,10 @@ class Container(V1Container):
     def __init__(self, image: str, command: List[str], args: List[str],
                  **kwargs):
         """Creates a new instance of `Container`.
-
+        
         Args:
             image {str}: image to use, e.g. busybox:latest
-            command {List[str]}: entrypoint array. Not executed within a shell.
+            command {List[str]}: entrypoint array.  Not executed within a shell.
             args {List[str]}: arguments to entrypoint.
             **kwargs: keyword arguments for `V1Container`
         """
@@ -142,8 +141,8 @@ class Container(V1Container):
         if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
                     memory_string) is None:
             raise ValueError(
-                'Invalid memory string. Should be an integer, or integer '
-                'followed by one of "E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki"')
+                'Invalid memory string. Should be an integer, or integer followed '
+                'by one of "E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki"')
 
     def _validate_cpu_string(self, cpu_string):
         "Validate a given string is valid for cpu request or limit."
@@ -161,8 +160,8 @@ class Container(V1Container):
             float(cpu_string)
         except ValueError:
             raise ValueError(
-                'Invalid cpu string. Should be float or integer, or integer '
-                'followed by "m".')
+                'Invalid cpu string. Should be float or integer, or integer followed '
+                'by "m".')
 
     def _validate_positive_number(self, str_value, param_name):
         "Validate a given string is in positive integer format."
@@ -233,8 +232,7 @@ class Container(V1Container):
         """Set cpu request (minimum) for this operator.
 
         Args:
-          cpu: A string which can be a number or a number followed by "m",
-               which means 1/1000.
+          cpu: A string which can be a number or a number followed by "m", which means 1/1000.
         """
 
         self._validate_cpu_string(cpu)
@@ -244,25 +242,21 @@ class Container(V1Container):
         """Set cpu limit (maximum) for this operator.
 
         Args:
-          cpu: A string which can be a number or a number followed by "m",
-               which means 1/1000.
+          cpu: A string which can be a number or a number followed by "m", which means 1/1000.
         """
 
         self._validate_cpu_string(cpu)
         return self.add_resource_limit("cpu", cpu)
 
     def set_gpu_limit(self, gpu, vendor="nvidia"):
-        """
-        Set gpu limit for the operator. This function add '<vendor>.com/gpu'
-        into resource limit.
-        Note that there is no need to add GPU request. GPUs are only supposed
-        to be specified in the limits section.
-        See https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/.
+        """Set gpu limit for the operator. This function add '<vendor>.com/gpu' into resource limit. 
+        Note that there is no need to add GPU request. GPUs are only supposed to be specified in 
+        the limits section. See https://kubernetes.io/docs/tasks/manage-gpus/scheduling-gpus/.
 
         Args:
           gpu: A string which must be a positive number.
-          vendor: Optional. A string which is the vendor of the requested gpu.
-                  The supported values are: 'nvidia' (default), and 'amd'.
+          vendor: Optional. A string which is the vendor of the requested gpu. The supported values 
+            are: 'nvidia' (default), and 'amd'. 
         """
 
         self._validate_positive_number(gpu, 'gpu')
@@ -342,12 +336,11 @@ class Container(V1Container):
         """Set image pull policy for the container.
 
         Args:
-          image_pull_policy: One of `Always`, `Never`, `IfNotPresent`.
+          image_pull_policy: One of `Always`, `Never`, `IfNotPresent`. 
         """
         if image_pull_policy not in ['Always', 'Never', 'IfNotPresent']:
             raise ValueError(
-                'Invalid imagePullPolicy. Must be one of `Always`, `Never`, '
-                '`IfNotPresent`.'
+                'Invalid imagePullPolicy. Must be one of `Always`, `Never`, `IfNotPresent`.'
             )
 
         self.image_pull_policy = image_pull_policy
@@ -370,7 +363,7 @@ class Container(V1Container):
         return self
 
     def set_security_context(self, security_context):
-        """Set security configuration to be applied on the container.
+        """Set security configuration to be applied on the container.  
 
         Args:
           security_context: Kubernetes security context
@@ -387,9 +380,9 @@ class Container(V1Container):
 
     def set_stdin(self, stdin=True):
         """
-        Whether this container should allocate a buffer for stdin in the
-        container runtime. If this is not set, reads from stdin in the
-        container will always result in EOF.
+        Whether this container should allocate a buffer for stdin in the container 
+        runtime. If this is not set, reads from stdin in the container will always 
+        result in EOF.
 
         Args:
           stdin: boolean flag
@@ -400,14 +393,14 @@ class Container(V1Container):
 
     def set_stdin_once(self, stdin_once=True):
         """
-        Whether the container runtime should close the stdin channel after it
-        has been opened by a single attach. When stdin is true the stdin
-        stream will remain open across multiple attach sessions. If stdinOnce
-        is set to true, stdin is opened on container start, is empty until the
-        first client attaches to stdin, and then remains open and accepts data
-        until the client disconnects, at which time stdin is closed and remains
-        closed until the container is restarted. If this flag is false, a
-        container processes that reads from stdin will never receive an EOF.
+        Whether the container runtime should close the stdin channel after it has 
+        been opened by a single attach. When stdin is true the stdin stream will 
+        remain open across multiple attach sessions. If stdinOnce is set to true, 
+        stdin is opened on container start, is empty until the first client attaches 
+        to stdin, and then remains open and accepts data until the client 
+        disconnects, at which time stdin is closed and remains closed until the 
+        container is restarted. If this flag is false, a container processes that 
+        reads from stdin will never receive an EOF. 
 
         Args:
           stdin_once: boolean flag
@@ -418,12 +411,11 @@ class Container(V1Container):
 
     def set_termination_message_path(self, termination_message_path):
         """
-        Path at which the file to which the container's termination message
-        will be written is mounted into the container's filesystem. Message
-        written is intended to be brief final status, such as an assertion
-        failure message. Will be truncated by the node if greater than 4096
-        bytes. The total message length across all containers will be limited
-        to 12kb.
+        Path at which the file to which the container's termination message will be 
+        written is mounted into the container's filesystem. Message written is 
+        intended to be brief final status, such as an assertion failure message. 
+        Will be truncated by the node if greater than 4096 bytes. The total message 
+        length across all containers will be limited to 12kb. 
 
         Args:
           termination_message_path: path for the termination message
@@ -433,27 +425,26 @@ class Container(V1Container):
 
     def set_termination_message_policy(self, termination_message_policy):
         """
-        Indicate how the termination message should be populated. File will use
-        the contents of terminationMessagePath to populate the container status
-        message on both success and failure. FallbackToLogsOnError will use the
-        last chunk of container log output if the termination message file is
-        empty and the container exited with an error. The log output is limited
-        to 2048 bytes or 80 lines, whichever is smaller.
+        Indicate how the termination message should be populated. File will use the 
+        contents of terminationMessagePath to populate the container status message 
+        on both success and failure. FallbackToLogsOnError will use the last chunk 
+        of container log output if the termination message file is empty and the 
+        container exited with an error. The log output is limited to 2048 bytes or 
+        80 lines, whichever is smaller.
 
         Args:
           termination_message_policy: `File` or `FallbackToLogsOnError`
         """
         if termination_message_policy not in ['File', 'FallbackToLogsOnError']:
             raise ValueError(
-                'terminationMessagePolicy must be `File` or '
-                '`FallbackToLogsOnError`'
+                'terminationMessagePolicy must be `File` or `FallbackToLogsOnError`'
             )
         self.termination_message_policy = termination_message_policy
         return self
 
     def set_tty(self, tty=True):
         """
-        Whether this container should allocate a TTY for itself, also requires
+        Whether this container should allocate a TTY for itself, also requires 
         'stdin' to be true.
 
         Args:
@@ -517,12 +508,12 @@ class Container(V1Container):
 
 class Sidecar(Container):
     """
-    Represents an argo workflow sidecar (io.argoproj.workflow.v1alpha1.Sidecar)
-    to be used in `sidecars` property in argo's workflow template
-    (io.argoproj.workflow.v1alpha1.Template).
+    Represents an argo workflow sidecar (io.argoproj.workflow.v1alpha1.Sidecar) 
+    to be used in `sidecars` property in argo's workflow template 
+    (io.argoproj.workflow.v1alpha1.Template). 
 
-    `Sidecar` inherits from `Container` class with an addition of
-    `mirror_volume_mounts` attribute (`mirrorVolumeMounts` property).
+    `Sidecar` inherits from `Container` class with an addition of `mirror_volume_mounts`
+    attribute (`mirrorVolumeMounts` property).
 
     See https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
 
@@ -560,21 +551,18 @@ class Sidecar(Container):
                  mirror_volume_mounts: bool = None,
                  **kwargs):
         """Creates a new instance of `Sidecar`.
-
+        
         Args:
             name {str}: unique name for the sidecar container
-            image {str}: image to use for the sidecar container,
-                         e.g. redis:alpine
-            command {StringOrStringList}: entrypoint array. Not executed within
-                                          a shell.
-            args {StringOrStringList}: arguments to the entrypoint.
-            mirror_volume_mounts {bool}: MirrorVolumeMounts will mount the same
-                volumes specified in the main container to the sidecar
-                (including artifacts), at the same mountPaths. This enables
-                dind daemon to partially see the same filesystem as the main
-                container in order to use features such as docker volume
-                binding
-            **kwargs: keyword arguments available for `Container`
+            image {str}: image to use for the sidecar container, e.g. redis:alpine
+            command {StringOrStringList}: entrypoint array.  Not executed within a shell.
+            args {StringOrStringList}: arguments to the entrypoint. 
+            mirror_volume_mounts {bool}: MirrorVolumeMounts will mount the same 
+                volumes specified in the main container to the sidecar (including artifacts), 
+                at the same mountPaths. This enables dind daemon to partially see the same 
+                filesystem as the main container in order to use features such as docker 
+                volume binding
+            **kwargs: keyword arguments available for `Container` 
 
         """
         super().__init__(
@@ -588,12 +576,12 @@ class Sidecar(Container):
 
     def set_mirror_volume_mounts(self, mirror_volume_mounts=True):
         """
-        Setting mirrorVolumeMounts to true will mount the same volumes
-        specified in the main container to the sidecar (including artifacts),
-        at the same mountPaths. This enables dind daemon to partially see the
-        same filesystem as the main container in order to use features such as
-        docker volume binding.
-
+        Setting mirrorVolumeMounts to true will mount the same volumes specified 
+        in the main container to the sidecar (including artifacts), at the same 
+        mountPaths. This enables dind daemon to partially see the same filesystem 
+        as the main container in order to use features such as docker volume 
+        binding.
+        
         Args:
             mirror_volume_mounts: boolean flag
         """
@@ -608,13 +596,11 @@ class Sidecar(Container):
 
 
 def _make_hash_based_id_for_op(op):
-    # Generating a unique ID for Op. For class instances, the hash is the
-    # object's memory address which is unique.
+    # Generating a unique ID for Op. For class instances, the hash is the object's memory address which is unique.
     return op.human_name + ' ' + hex(2**63 + hash(op))[2:]
 
 
-# Pointer to a function that generates a unique ID for the BaseOp instance
-# (Possibly by registering the BaseOp instance in some system).
+# Pointer to a function that generates a unique ID for the Op instance (Possibly by registering the Op instance in some system).
 _register_op_handler = _make_hash_based_id_for_op
 
 
@@ -635,35 +621,31 @@ class BaseOp(object):
                  is_exit_handler: bool = False):
         """Create a new instance of BaseOp
 
-        name: the name of the op. It does not have to be unique within a
-              pipeline because the pipeline will generates a unique new name in
-              case of conflicts.
-        sidecars: the list of `Sidecar` objects describing the sidecar
-                  containers to deploy together with the `main` container.
-        is_exit_handler: Whether it is used as an exit handler.
+        Args:
+          name: the name of the op. It does not have to be unique within a pipeline
+              because the pipeline will generates a unique new name in case of conflicts.
+          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy 
+                    together with the `main` container.
+          is_exit_handler: Whether it is used as an exit handler.
         """
-
-        if not _pipeline.Pipeline.get_default_pipeline():
-            raise ValueError('Default pipeline not defined.')
 
         valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
         if not re.match(valid_name_regex, name):
-            raise ValueError('Only letters, numbers, spaces, "_", and "-" are '
-                             'allowed in name. Must begin with letter: %s'
-                             % (name))
+            raise ValueError(
+                'Only letters, numbers, spaces, "_", and "-"  are allowed in name. Must begin with letter: %s'
+                % (name))
 
         self.is_exit_handler = is_exit_handler
 
         # human_name must exist to construct operator's name
         self.human_name = name
-        # ID of the current BaseOp. Ideally, it should be generated by the
-        # compiler that sees the bigger context. However, the ID is used in the
-        # task output references (PipelineParams) which can be serialized to
-        # strings. Because of this we must obtain a unique ID right now.
+        # ID of the current Op. Ideally, it should be generated by the compiler that sees the bigger context.
+        # However, the ID is used in the task output references (PipelineParams) which can be serialized to strings.
+        # Because of this we must obtain a unique ID right now.
         self.name = _register_op_handler(self)
 
-        # TODO: proper k8s definitions so that `convert_k8s_obj_to_json` can be
-        # used? `io.argoproj.workflow.v1alpha1.Template` properties
+        # TODO: proper k8s definitions so that `convert_k8s_obj_to_json` can be used?
+        # `io.argoproj.workflow.v1alpha1.Template` properties
         self.node_selector = {}
         self.volumes = []
         self.pod_annotations = {}
@@ -680,10 +662,9 @@ class BaseOp(object):
         """List of PipelineParams that will be converted into input parameters
         (io.argoproj.workflow.v1alpha1.Inputs) for the argo workflow.
         """
-        # iterate through and extract all the `PipelineParam` in `BaseOp`
-        # when called the 1st time (because there are in-place updates to
-        # `PipelineParam` during compilation - remove in-place updates for
-        # easier debugging?)
+        # Iterate through and extract all the `PipelineParam` in Op when
+        # called the 1st time (because there are in-place updates to `PipelineParam`
+        # during compilation - remove in-place updates for easier debugging?)
         if not self._inputs:
             self._inputs = []
             # TODO replace with proper k8s obj?
@@ -702,10 +683,8 @@ class BaseOp(object):
         self._inputs = value
 
     def apply(self, mod_func):
-        """
-        Applies a modifier function to self. The function should return the
-        passed object. This is needed to chain "extention methods" to this
-        class.
+        """Applies a modifier function to self. The function should return the passed object.
+        This is needed to chain "extention methods" to this class.
 
         Example:
           from kfp.gcp import use_gcp_secret
@@ -735,10 +714,9 @@ class BaseOp(object):
         return self
 
     def add_node_selector_constraint(self, label_name, value):
-        """
-        Add a constraint for nodeSelector. Each constraint is a key-value pair
-        label. For the container to be eligible to run on a node, the node must
-        have each of the constraints appeared as labels.
+        """Add a constraint for nodeSelector. Each constraint is a key-value pair label. For the 
+        container to be eligible to run on a node, the node must have each of the constraints appeared
+        as labels.
 
         Args:
           label_name: The name of the constraint label.
@@ -771,8 +749,7 @@ class BaseOp(object):
         return self
 
     def set_retry(self, num_retries: int):
-        """
-        Sets the number of times the task is retried until it's declared failed
+        """Sets the number of times the task is retried until it's declared failed.
 
         Args:
           num_retries: Number of times to retry on failures.
@@ -782,7 +759,7 @@ class BaseOp(object):
         return self
 
     def add_sidecar(self, sidecar: Sidecar):
-        """Add a sidecar to the BaseOp.
+        """Add a sidecar to the Op.
 
         Args:
           sidecar: SideCar object.
