@@ -67,7 +67,7 @@ class PipelineVolume(V1Volume):
                 )
                 init_volume["persistent_volume_claim"] = pvc_volume_source
         super().__init__(**init_volume, **kwargs)
-        self.deps = []
+        self.dependent_names = []
 
     def after(self, *ops):
         """Creates a duplicate of self with the required dependecies excluding
@@ -78,7 +78,7 @@ class PipelineVolume(V1Volume):
         def implies(newdep, olddep):
             if newdep.name == olddep:
                 return True
-            for parentdep_name in newdep.deps:
+            for parentdep_name in newdep.dependent_names:
                 if parentdep_name == olddep:
                     return True
                 else:
@@ -90,15 +90,15 @@ class PipelineVolume(V1Volume):
             return False
 
         ret = self.__class__(volume=self)
-        ret.deps = [op.name for op in ops]
+        ret.dependent_names = [op.name for op in ops]
 
-        for olddep in self.deps:
+        for olddep in self.dependent_names:
             implied = False
             for newdep in ops:
                 implied = implies(newdep, olddep)
                 if implied:
                     break
             if not implied:
-                ret.deps.append(olddep)
+                ret.dependent_names.append(olddep)
 
         return ret

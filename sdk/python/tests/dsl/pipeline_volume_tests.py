@@ -38,9 +38,9 @@ class TestPipelineVolume(unittest.TestCase):
                 pvolumes={"/data": op1.pvolume}
             )
 
-        self.assertEqual(vol.volume.deps, [])
-        self.assertEqual(op1.pvolume.deps, [op1.name])
-        self.assertEqual(op2.deps, [op1.name])
+        self.assertEqual(vol.volume.dependent_names, [])
+        self.assertEqual(op1.pvolume.dependent_names, [op1.name])
+        self.assertEqual(op2.dependent_names, [op1.name])
 
     def test_after_method(self):
         """Test the after method."""
@@ -54,8 +54,8 @@ class TestPipelineVolume(unittest.TestCase):
             vol4 = vol3.after(op1, op2)
             vol5 = vol4.after(op3)
 
-        self.assertEqual(vol1.deps, [])
-        self.assertEqual(vol2.deps, [op1.name])
-        self.assertEqual(vol3.deps, [op2.name])
-        self.assertEqual(sorted(vol4.deps), [op1.name, op2.name])
-        self.assertEqual(sorted(vol5.deps), [op1.name, op2.name, op3.name])
+        self.assertEqual(vol1.dependent_names, [])
+        self.assertEqual(vol2.dependent_names, [op1.name])
+        self.assertEqual(vol3.dependent_names, [op2.name])
+        self.assertEqual(sorted(vol4.dependent_names), [op1.name, op2.name])
+        self.assertEqual(sorted(vol5.dependent_names), [op1.name, op2.name, op3.name])

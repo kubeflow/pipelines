@@ -107,7 +107,7 @@ class ExitHandler(OpsGroup):
       ValueError is the exit_op is invalid.
     """
     super(ExitHandler, self).__init__('exit_handler')
-    if exit_op.deps:
+    if exit_op.dependent_names:
       raise ValueError('exit_op cannot depend on any other ops.')
 
     self.exit_op = exit_op
