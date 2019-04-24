@@ -11,6 +11,25 @@ Subpackages
     kfp.dsl
     kfp.notebook
 
+Module contents
+---------------
+
+.. Empty
+
+    .. automodule:: kfp
+        :members:
+        :undoc-members:
+        :show-inheritance:
+
+kfp._client module
+---------------
+
+.. automodule:: kfp._client
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 Submodules
 ----------
 
@@ -34,15 +53,6 @@ kfp.onprem module
 -----------------
 
 .. automodule:: kfp.onprem
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: kfp
     :members:
     :undoc-members:
     :show-inheritance:
