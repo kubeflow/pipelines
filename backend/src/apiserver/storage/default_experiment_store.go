@@ -48,6 +48,7 @@ func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to get default experiment.")
 	}
+	defer rows.Close()
 
 	// If the table is not initialized, then set the default value.
 	if !rows.Next() {
@@ -79,6 +80,7 @@ func (s *DefaultExperimentStore) SetDefaultExperimentId(id string) error {
 	sql, args, err := sq.
 		Update("default_experiments").
 		SetMap(sq.Eq{"DefaultExperimentId": id}).
+		Where(sq.Eq{"DefaultExperimentId": ""}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error creating query to set default experiment ID.")
@@ -96,10 +98,13 @@ func (s *DefaultExperimentStore) GetDefaultExperimentId() (string, error) {
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Error creating query to get default experiment ID.")
 	}
+
 	rows, err := s.db.Query(sql, args...)
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Error when getting default experiment ID")
 	}
+	defer rows.Close()
+
 	if rows.Next() {
 		err = rows.Scan(&defaultExperimentId)
 		if err != nil {

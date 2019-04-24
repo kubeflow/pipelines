@@ -46,6 +46,7 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to load database status.")
 	}
+	defer rows.Close()
 
 	// The table is not initialized
 	if !rows.Next() {
@@ -83,6 +84,7 @@ func (s *DBStatusStore) HaveSamplesLoaded() (bool, error) {
 	if err != nil {
 		return false, util.NewInternalServerError(err, "Error when getting load sample status")
 	}
+	defer rows.Close()
 	if rows.Next() {
 		err = rows.Scan(&haveSamplesLoaded)
 		if err != nil {

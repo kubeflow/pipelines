@@ -77,12 +77,12 @@ func (s *JobStore) ListJobs(
 	if err != nil {
 		return errorF(err)
 	}
+	defer rows.Close()
 	jobs, err := s.scanRows(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
@@ -204,7 +204,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: NullInt64ToPointer(cronScheduleStartTimeInSec),
 					CronScheduleEndTimeInSec:   NullInt64ToPointer(cronScheduleEndTimeInSec),
-					Cron:                       NullStringToPointer(cron),
+					Cron: NullStringToPointer(cron),
 				},
 				PeriodicSchedule: model.PeriodicSchedule{
 					PeriodicScheduleStartTimeInSec: NullInt64ToPointer(periodicScheduleStartTimeInSec),
@@ -384,8 +384,8 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 // factory function for job store
 func NewJobStore(db *DB, time util.TimeInterface) *JobStore {
 	return &JobStore{
-		db:                     db,
+		db: db,
 		resourceReferenceStore: NewResourceReferenceStore(db),
-		time:                   time,
+		time: time,
 	}
 }

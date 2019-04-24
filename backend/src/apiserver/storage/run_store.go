@@ -103,24 +103,24 @@ func (s *RunStore) ListRuns(
 	if err != nil {
 		return errorF(err)
 	}
+	defer rows.Close()
 	runDetails, err := s.scanRowsToRunDetails(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	defer sizeRow.Close()
 	total_size, err := list.ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
@@ -562,10 +562,10 @@ func (s *RunStore) toRunMetadatas(models []model.ListableDataModel) []model.Run 
 // used to record artifact metadata.
 func NewRunStore(db *DB, time util.TimeInterface, metadataStore *metadata.Store) *RunStore {
 	return &RunStore{
-		db:                     db,
+		db: db,
 		resourceReferenceStore: NewResourceReferenceStore(db),
-		time:                   time,
-		metadataStore:          metadataStore,
+		time:          time,
+		metadataStore: metadataStore,
 	}
 }
 
