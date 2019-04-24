@@ -14,7 +14,6 @@
 
 
 import kfp.dsl as dsl
-from kubernetes import client as k8s_client
 
 
 @dsl.pipeline(
@@ -29,20 +28,12 @@ def volumeop_basic(size):
         size=size
     )
 
-    pvc_source = k8s_client.V1PersistentVolumeClaimVolumeSource(
-        claim_name=vop.outputs["name"]
-    )
-    volume = k8s_client.V1Volume(
-        name="create-pvc",
-        persistent_volume_claim=pvc_source
-    )
-
     cop = dsl.ContainerOp(
         name="cop",
         image="library/bash:4.4.23",
         command=["sh", "-c"],
         arguments=["echo foo > /mnt/file1"],
-        pvolumes={"/mnt": volume}
+        pvolumes={"/mnt": vop.volume}
     )
 
 
