@@ -189,7 +189,7 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete experiment %s from table", id)
 	}
-	err = s.defaultExperimentStore.ClearDefaultExperimentId(tx, id)
+	err = s.defaultExperimentStore.UnsetDefaultExperimentIdIfIdMatches(tx, id)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to clear default experiment ID for experiment %v ", id)

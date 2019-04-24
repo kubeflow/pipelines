@@ -70,7 +70,7 @@ func TestGetAndSetDefaultExperimentId(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestClearDefaultExperimentId(t *testing.T) {
+func TestUnsetDefaultExperimentIdIfIdMatches(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defaultExperimentStore := NewDefaultExperimentStore(db)
 
@@ -82,7 +82,7 @@ func TestClearDefaultExperimentId(t *testing.T) {
 	assert.Nil(t, err)
 	// Clear the default experiment ID. This requires a transaction.
 	tx, _ := db.Begin()
-	err = defaultExperimentStore.ClearDefaultExperimentId(tx, "test-ID")
+	err = defaultExperimentStore.UnsetDefaultExperimentIdIfIdMatches(tx, "test-ID")
 	assert.Nil(t, err)
 	err = tx.Commit()
 	assert.Nil(t, err)

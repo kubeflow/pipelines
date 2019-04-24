@@ -122,7 +122,7 @@ func (s *DefaultExperimentStore) GetDefaultExperimentId() (string, error) {
 // needed as input.
 // Update is used instead of delete so that we don't need to first check that the experiment ID is
 // there.
-func (s *DefaultExperimentStore) ClearDefaultExperimentId(tx *sql.Tx, id string) error {
+func (s *DefaultExperimentStore) UnsetDefaultExperimentIdIfIdMatches(tx *sql.Tx, id string) error {
 	sql, args, err := sq.
 		Update("default_experiments").
 		SetMap(sq.Eq{"DefaultExperimentId": ""}).
