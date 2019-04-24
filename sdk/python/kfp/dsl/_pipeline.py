@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from . import _container_op
+from . import _base_op
 from . import _ops_group
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
@@ -124,15 +124,15 @@ class Pipeline():
     def register_op_and_generate_id(op):
       return self.add_op(op, op.is_exit_handler)
 
-    self._old__register_container_op_handler = _container_op._register_container_op_handler
-    _container_op._register_container_op_handler = register_op_and_generate_id
+    self._old__register_op_handler = _base_op._register_op_handler
+    _base_op._register_op_handler = register_op_and_generate_id
     return self
 
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
-    _container_op._register_container_op_handler = self._old__register_container_op_handler
+    _base_op._register_op_handler = self._old__register_op_handler
 
-  def add_op(self, op: _container_op.ContainerOp, define_only: bool):
+  def add_op(self, op: _base_op.BaseOp, define_only: bool):
     """Add a new operator.
 
     Args:

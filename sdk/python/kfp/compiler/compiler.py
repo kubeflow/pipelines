@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -282,10 +282,10 @@ class Compiler(object):
       for param in op.inputs + list(condition_params[op.name]):
         if param.op_name:
           upstream_op_names.add(param.op_name)
-      upstream_op_names |= set(op.dependent_names)
+      upstream_op_names |= set(op.deps)
 
       for op_name in upstream_op_names:
-        # the dependent op could be either a ContainerOp or an opsgroup
+        # the dependent op could be either a BaseOp or an opsgroup
         if op_name in pipeline.ops:
           upstream_op = pipeline.ops[op_name]
         elif op_name in opsgroups:
@@ -612,8 +612,8 @@ class Compiler(object):
       if op.output is not None:
         op.output.name = K8sHelper.sanitize_k8s_name(op.output.name)
         op.output.op_name = K8sHelper.sanitize_k8s_name(op.output.op_name)
-      if op.dependent_names:
-        op.dependent_names = [K8sHelper.sanitize_k8s_name(name) for name in op.dependent_names]
+      if op.deps:
+        op.deps = [K8sHelper.sanitize_k8s_name(name) for name in op.deps]
       if op.file_outputs is not None:
         sanitized_file_outputs = {}
         for key in op.file_outputs.keys():

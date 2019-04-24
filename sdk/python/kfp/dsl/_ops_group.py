@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ class ExitHandler(OpsGroup):
       ValueError is the exit_op is invalid.
     """
     super(ExitHandler, self).__init__('exit_handler')
-    if exit_op.dependent_names:
+    if exit_op.deps:
       raise ValueError('exit_op cannot depend on any other ops.')
 
     self.exit_op = exit_op
