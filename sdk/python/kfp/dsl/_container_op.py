@@ -19,6 +19,7 @@ from ._base_op import (
     StringOrStringList, deprecation_warning, as_list, Container, BaseOp
 )
 from . import _pipeline_param
+from ._pipeline_volume import PipelineVolume
 from ._metadata import ComponentMeta
 
 
@@ -172,9 +173,14 @@ class ContainerOp(BaseOp):
         if len(self.outputs) == 1:
             self.output = list(self.outputs.values())[0]
 
-        self.pvolumes = pvolumes
+        self.pvolumes = {}
         if pvolumes:
             for mount_path, pvolume in pvolumes.items():
+                if hasattr(pvolume, "deps"):
+                    self.deps.extend(pvolume.deps)
+                else:
+                    pvolume = PipelineVolume(volume=pvolume)
+                self.pvolumes[mount_path] = pvolume.after(self)
                 self.add_volume(pvolume)
                 self._container.add_volume_mount(V1VolumeMount(
                     name=pvolume.name,
