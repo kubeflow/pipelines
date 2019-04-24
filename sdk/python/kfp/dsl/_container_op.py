@@ -174,7 +174,7 @@ class ContainerOp(BaseOp):
 
         self.pvolumes = pvolumes
         if pvolumes:
-            for mount_path, pvolume in pvolumes:
+            for mount_path, pvolume in pvolumes.items():
                 self.add_volume(pvolume)
                 self._container.add_volume_mount(V1VolumeMount(
                     name=pvolume.name,

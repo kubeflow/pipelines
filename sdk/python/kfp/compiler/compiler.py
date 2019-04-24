@@ -622,6 +622,31 @@ class Compiler(object):
       sanitized_cops[sanitized_name] = op
     p.cops = sanitized_cops
     p.ops = dict(sanitized_cops)
+
+    # Sanitize operator names and param names of ResourceOps
+    sanitized_rops = {}
+    for rop in p.rops.values():
+      sanitized_name = K8sHelper.sanitize_k8s_name(rop.name)
+      rop.name = sanitized_name
+      for param in rop.outputs.values():
+        param.name = K8sHelper.sanitize_k8s_name(param.name)
+        if param.op_name:
+          param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
+      if rop.output is not None:
+        rop.output.name = K8sHelper.sanitize_k8s_name(rop.output.name)
+        rop.output.op_name = K8sHelper.sanitize_k8s_name(rop.output.op_name)
+      if rop.deps:
+        rop.deps = [K8sHelper.sanitize_k8s_name(name) for name in rop.deps]
+      if rop.attribute_outputs is not None:
+        sanitized_attribute_outputs = {}
+        for key in rop.attribute_outputs.keys():
+          sanitized_attribute_outputs[K8sHelper.sanitize_k8s_name(key)] = \
+            rop.attribute_outputs[key]
+        rop.attribute_outputs = sanitized_attribute_outputs
+      sanitized_rops[sanitized_name] = rop
+    p.rops = sanitized_rops
+    p.ops.update(dict(sanitized_rops))
+
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
 
