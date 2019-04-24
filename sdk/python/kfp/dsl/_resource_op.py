@@ -15,7 +15,7 @@
 
 from typing import Dict
 
-from ._base_op import BaseOp
+from ._container_op import BaseOp
 from . import _pipeline_param
 
 

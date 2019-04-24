@@ -19,7 +19,7 @@ from typing import Union, List, Any, Callable, TypeVar, Dict
 
 from ._k8s_helper import K8sHelper
 from .. import dsl
-from ..dsl._base_op import BaseOp
+from ..dsl._container_op import BaseOp
 
 # generics
 T = TypeVar('T')
