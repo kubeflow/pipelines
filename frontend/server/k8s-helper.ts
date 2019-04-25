@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // @ts-ignore
-import { Config, Core_v1Api } from '@kubernetes/client-node';
+import { Config, Core_v1Api, Custom_objectsApi, KubeConfig } from '@kubernetes/client-node';
 import * as fs from 'fs';
 import * as Utils from './utils';
 
@@ -22,12 +22,16 @@ import * as Utils from './utils';
 const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
 let namespace = '';
 let k8sV1Client: Core_v1Api | null = null;
+let k8sV1CustomObjectClient: Custom_objectsApi | null = null;
 
 export const isInCluster = fs.existsSync(namespaceFilePath);
 
 if (isInCluster) {
   namespace = fs.readFileSync(namespaceFilePath, 'utf-8');
   k8sV1Client = Config.defaultClient();
+  const kc = new KubeConfig();
+  kc.loadFromDefault();
+  k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
 }
 
 /**
@@ -127,3 +131,30 @@ export function getPodLogs(podName: string): Promise<string> {
       (error: any) => { throw new Error(JSON.stringify(error.body)); }
     );
 }
+
+export async function newTensorboardInstance(logdir: string): Promise<void> {
+  if (!k8sV1CustomObjectClient) {
+    throw new Error('Cannot access kubernetes Custom Object API');
+  }
+  // TODO: take the configuration below to a separate file
+  const group = 'kubeflow.org';
+  const version = 'v1beta1';
+  const namespace = 'kubeflow';
+  const plural = 'tensorboard';
+  const body = {
+    apiVersion: 'kubeflow.org/v1beta1',
+    kind: 'Viewer',
+    metadata: {
+      generateName: 'viewer-',
+      namespace: 'kubeflow',
+    },
+    spec: {
+      type: 'tensorboard',
+      tensorboardSpec: {
+        logDir: logdir,
+      }
+    }
+  };
+  const pretty = null;
+  await k8sV1CustomObjectClient.createNamespacedCustomObject(group, version, namespace, plural, body, pretty);
+ } 
