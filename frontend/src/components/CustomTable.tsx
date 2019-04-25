@@ -290,7 +290,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {/* Filter/Search bar */}
         {!this.props.noFilterBox && (
           <div>
-            <Input label={this.props.filterLabel || 'Filter'} height={48} maxWidth={'100%'}
+            <Input id='tableFilterBox' label={this.props.filterLabel || 'Filter'} height={48} maxWidth={'100%'}
               className={css.filterBox} InputLabelProps={{ classes: { root: css.noMargin }}}
               onChange={this.handleFilterChange} value={filterString}
               variant='outlined'

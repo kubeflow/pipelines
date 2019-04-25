@@ -12,35 +12,9 @@ exports[`SideNav populates the display build information using the response from
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -59,7 +33,7 @@ exports[`SideNav populates the display build information using the response from
           className="button active"
         >
           <PipelinesIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -69,6 +43,9 @@ exports[`SideNav populates the display build information using the response from
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -87,7 +64,7 @@ exports[`SideNav populates the display build information using the response from
           className="button"
         >
           <ExperimentsIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -97,44 +74,11 @@ exports[`SideNav populates the display build information using the response from
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right-start"
-      title="Open Jupyter Notebook"
-    >
-      <a
-        className="unstyled"
-        href="/hub/"
-        id="jupyterhubBtn"
-        target="_blank"
-      >
-        <WithStyles(Button)
-          className="button"
-        >
-          <pure(CodeIcon)
-            style={
-              Object {
-                "height": 20,
-                "width": 20,
-              }
-            }
-          />
-          <span
-            className="label"
-          >
-            Notebooks
-          </span>
-          <pure(OpenInNewIcon)
-            className="openInNewTabIcon"
-          />
-        </WithStyles(Button)>
-      </a>
-    </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -182,23 +126,6 @@ exports[`SideNav populates the display build information using the response from
   <div
     className="infoVisible"
   >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
     <WithStyles(Tooltip)
       enterDelay={300}
       placement="top-start"
@@ -235,35 +162,9 @@ exports[`SideNav renders Pipelines as active page 1`] = `
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -282,7 +183,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
           className="button active"
         >
           <PipelinesIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -292,6 +193,9 @@ exports[`SideNav renders Pipelines as active page 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -310,7 +214,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
           className="button"
         >
           <ExperimentsIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -322,6 +226,9 @@ exports[`SideNav renders Pipelines as active page 1`] = `
     </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -368,25 +275,7 @@ exports[`SideNav renders Pipelines as active page 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -402,35 +291,9 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -449,7 +312,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
           className="button active"
         >
           <PipelinesIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -459,6 +322,9 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -477,7 +343,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
           className="button"
         >
           <ExperimentsIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -489,6 +355,9 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
     </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -535,25 +404,7 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -569,35 +420,9 @@ exports[`SideNav renders collapsed state 1`] = `
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={false}
-      disableHoverListener={false}
-      disableTouchListener={false}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button collapsedButton logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="collapsedLabel label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={false}
       disableHoverListener={false}
@@ -616,7 +441,7 @@ exports[`SideNav renders collapsed state 1`] = `
           className="button active collapsedButton"
         >
           <PipelinesIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="collapsedLabel label"
@@ -626,6 +451,9 @@ exports[`SideNav renders collapsed state 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={false}
       disableHoverListener={false}
@@ -644,7 +472,7 @@ exports[`SideNav renders collapsed state 1`] = `
           className="button collapsedButton"
         >
           <ExperimentsIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="collapsedLabel label"
@@ -656,6 +484,9 @@ exports[`SideNav renders collapsed state 1`] = `
     </WithStyles(Tooltip)>
     <hr
       className="separator collapsedSeparator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={false}
@@ -702,25 +533,7 @@ exports[`SideNav renders collapsed state 1`] = `
   </div>
   <div
     className="infoHidden"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -736,35 +549,9 @@ exports[`SideNav renders expanded state 1`] = `
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -783,7 +570,7 @@ exports[`SideNav renders expanded state 1`] = `
           className="button active"
         >
           <PipelinesIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -793,6 +580,9 @@ exports[`SideNav renders expanded state 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -811,7 +601,7 @@ exports[`SideNav renders expanded state 1`] = `
           className="button"
         >
           <ExperimentsIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -823,6 +613,9 @@ exports[`SideNav renders expanded state 1`] = `
     </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -869,25 +662,7 @@ exports[`SideNav renders expanded state 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -903,35 +678,9 @@ exports[`SideNav renders experiments as active page 1`] = `
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -950,7 +699,7 @@ exports[`SideNav renders experiments as active page 1`] = `
           className="button"
         >
           <PipelinesIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -960,6 +709,9 @@ exports[`SideNav renders experiments as active page 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -978,7 +730,7 @@ exports[`SideNav renders experiments as active page 1`] = `
           className="button active"
         >
           <ExperimentsIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -990,6 +742,9 @@ exports[`SideNav renders experiments as active page 1`] = `
     </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -1036,25 +791,7 @@ exports[`SideNav renders experiments as active page 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1070,35 +807,9 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1117,7 +828,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
           className="button"
         >
           <PipelinesIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -1127,6 +838,9 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1145,7 +859,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
           className="button active"
         >
           <ExperimentsIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -1157,6 +871,9 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
     </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -1203,25 +920,7 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1237,35 +936,9 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1284,7 +957,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
           className="button"
         >
           <PipelinesIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -1294,6 +967,9 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1312,7 +988,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
           className="button active"
         >
           <ExperimentsIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -1324,6 +1000,9 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
     </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -1370,25 +1049,7 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1404,35 +1065,9 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1451,7 +1086,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
           className="button"
         >
           <PipelinesIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -1461,6 +1096,9 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1479,7 +1117,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
           className="button active"
         >
           <ExperimentsIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -1491,6 +1129,9 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
     </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -1537,25 +1178,7 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1571,35 +1194,9 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1618,7 +1215,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
           className="button"
         >
           <PipelinesIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -1628,6 +1225,9 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1646,7 +1246,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
           className="button active"
         >
           <ExperimentsIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -1658,6 +1258,9 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
     </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -1704,25 +1307,7 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1738,35 +1323,9 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1785,7 +1344,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
           className="button"
         >
           <PipelinesIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -1795,6 +1354,9 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1813,7 +1375,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
           className="button active"
         >
           <ExperimentsIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -1825,6 +1387,9 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
     </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -1871,25 +1436,7 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -1905,35 +1452,9 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1952,7 +1473,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
           className="button"
         >
           <PipelinesIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -1962,6 +1483,9 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -1980,7 +1504,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
           className="button active"
         >
           <ExperimentsIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -1992,6 +1516,9 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
     </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -2038,25 +1565,7 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -2072,35 +1581,9 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -2119,7 +1602,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
           className="button"
         >
           <PipelinesIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -2129,6 +1612,9 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -2147,7 +1633,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
           className="button active"
         >
           <ExperimentsIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -2159,6 +1645,9 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
     </WithStyles(Tooltip)>
     <hr
       className="separator"
+    />
+    <div
+      className="indicator indicatorHidden"
     />
     <WithStyles(Tooltip)
       disableFocusListener={true}
@@ -2205,25 +1694,7 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;
 
@@ -2239,35 +1710,9 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
       }
     }
   >
-    <WithStyles(Tooltip)
-      disableFocusListener={true}
-      disableHoverListener={true}
-      disableTouchListener={true}
-      enterDelay={300}
-      placement="right"
-      title="Kubeflow Pipelines"
-    >
-      <Link
-        className="button logo unstyled"
-        id="kfpLogoBtn"
-        replace={false}
-        to="/pipelines"
-      >
-        <KubeflowLogo
-          color="#fff"
-          style={
-            Object {
-              "flexShrink": 0,
-            }
-          }
-        />
-        <span
-          className="label logoLabel"
-        >
-          Kubeflow
-        </span>
-      </Link>
-    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -2286,7 +1731,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           className="button"
         >
           <PipelinesIcon
-            color="#87a1b8"
+            color="#9aa0a6"
           />
           <span
             className="label"
@@ -2296,6 +1741,9 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -2314,7 +1762,7 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
           className="button active"
         >
           <ExperimentsIcon
-            color="#fff"
+            color="#0d6de7"
           />
           <span
             className="label"
@@ -2363,6 +1811,9 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
     <hr
       className="separator"
     />
+    <div
+      className="indicator indicatorHidden"
+    />
     <WithStyles(Tooltip)
       disableFocusListener={true}
       disableHoverListener={true}
@@ -2408,24 +1859,6 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
   </div>
   <div
     className="infoVisible"
-  >
-    <div
-      className="privacyInfo"
-    >
-      <span>
-        Privacy
-      </span>
-      <span
-        className="privacySeparator"
-      />
-      <a
-        className="link unstyled"
-        href="https://www.kubeflow.org/docs/guides/usage-reporting/"
-        target="_blank"
-      >
-        Usage reporting
-      </a>
-    </div>
-  </div>
+  />
 </div>
 `;

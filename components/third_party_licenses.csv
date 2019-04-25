@@ -187,3 +187,8 @@ pyrsistent,https://raw.githubusercontent.com/tobgu/pyrsistent/master/LICENCE.mit
 fire,https://raw.githubusercontent.com/google/python-fire/master/LICENSE,Apache 2.0
 kfp-component,https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE,Apache 2.0
 google-cloud-storage,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
+gcloud,https://raw.githubusercontent.com/googleapis/google-cloud-python/master/LICENSE,Apache 2.0
+gax-google-logging-v2,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
+gax-google-pubsub-v1,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
+grpc-google-logging-v2,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
+grpc-google-pubsub-v1,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0

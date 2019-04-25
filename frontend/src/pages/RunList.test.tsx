@@ -57,7 +57,6 @@ describe('RunList', () => {
   function mockNRuns(n: number, runTemplate: Partial<ApiRunDetail>): void {
     getRunSpy.mockImplementation(id => Promise.resolve(
       produce(runTemplate, draft => {
-        draft.pipeline_runtime = draft.pipeline_runtime || { workflow_manifest: '' };
         draft.run = draft.run || {};
         draft.run.id = id;
         draft.run.name = 'run with id: ' + id;
@@ -65,10 +64,19 @@ describe('RunList', () => {
     ));
 
     listRunsSpy.mockImplementation(() => Promise.resolve({
-      runs: range(1, n + 1).map(i => ({
-        id: 'testrun' + i,
-        name: 'run with id: testrun' + i,
-      } as ApiRun)),
+      runs: range(1, n + 1).map(i => {
+        if (runTemplate.run) {
+          return produce(runTemplate.run as Partial<ApiRun>, draft => {
+            draft.id = 'testrun' + i;
+            draft.name = 'run with id: testrun' + i;
+          });
+        }
+        return {
+          id: 'testrun' + i,
+          name: 'run with id: testrun' + i,
+        } as ApiRun;
+      }
+      )
     }));
 
     getPipelineSpy.mockImplementation(() => ({ name: 'some pipeline' }));
@@ -212,14 +220,6 @@ describe('RunList', () => {
     expect(props.onError).toHaveBeenLastCalledWith('Error: failed to fetch runs.', new Error('bad stuff happened'));
   });
 
-  it('displays error in run row if it failed to parse', async () => {
-    mockNRuns(1, { pipeline_runtime: { workflow_manifest: 'bad json' } });
-    const props = generateProps();
-    tree = shallow(<RunList {...props} />);
-    await (tree.instance() as RunListTest)._loadRuns({});
-    expect(tree).toMatchSnapshot();
-  });
-
   it('displays error in run row if pipeline could not be fetched', async () => {
     mockNRuns(1, { run: { pipeline_spec: { pipeline_id: 'test-pipeline-id' } } });
     TestUtils.makeErrorResponseOnce(getPipelineSpy, 'bad stuff happened');
@@ -245,7 +245,7 @@ describe('RunList', () => {
   });
 
   it('displays error in run row if it failed to parse (run list mask)', async () => {
-    mockNRuns(2, { pipeline_runtime: { workflow_manifest: 'bad json' } });
+    TestUtils.makeErrorResponseOnce(jest.spyOn(Apis.runServiceApi, 'getRun'), 'bad stuff happened');
     const props = generateProps();
     props.runIdListMask = ['testrun1', 'testrun2'];
     tree = shallow(<RunList {...props} />);
@@ -255,14 +255,10 @@ describe('RunList', () => {
 
   it('shows run time for each run', async () => {
     mockNRuns(1, {
-      pipeline_runtime: {
-        workflow_manifest: JSON.stringify({
-          status: {
-            finishedAt: new Date(2018, 10, 10, 11, 11, 11),
-            phase: 'Succeeded',
-            startedAt: new Date(2018, 10, 10, 10, 10, 10),
-          }
-        }),
+      run: {
+        created_at: new Date(2018, 10, 10, 10, 10, 10),
+        finished_at: new Date(2018, 10, 10, 11, 11, 11),
+        status: 'Succeeded',
       },
     });
     const props = generateProps();
@@ -298,18 +294,12 @@ describe('RunList', () => {
 
   it('adds metrics columns', async () => {
     mockNRuns(2, {
-      pipeline_runtime: {
-        workflow_manifest: JSON.stringify({
-          status: {
-            phase: 'Succeeded',
-          }
-        }),
-      },
       run: {
         metrics: [
           { name: 'metric1', number_value: 5 },
           { name: 'metric2', number_value: 10 },
         ],
+        status: 'Succeeded',
       }
     });
     const props = generateProps();
@@ -339,6 +329,23 @@ describe('RunList', () => {
     });
     getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
     const props = generateProps();
+    tree = shallow(<RunList {...props} />);
+    await (tree.instance() as RunListTest)._loadRuns({});
+    expect(props.onError).not.toHaveBeenCalled();
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('hides experiment name if instructed', async () => {
+    mockNRuns(1, {
+      run: {
+        resource_references: [{
+          key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT }
+        }]
+      }
+    });
+    getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
+    const props = generateProps();
+    props.hideExperimentColumn = true;
     tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();

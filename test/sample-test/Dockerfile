@@ -11,7 +11,7 @@ RUN wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/sw
 
 RUN pip3 install wheel
 RUN pip3 install junit-xml
-RUN pip3 install kubernetes
+RUN pip3 install kubernetes==9.0.0
 RUN pip3 install minio
 RUN pip3 install setuptools==40.5.0
 RUN pip3 install papermill==0.16.1

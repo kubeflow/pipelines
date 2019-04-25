@@ -14,7 +14,7 @@ def download_optimize_and_upload(
 
     dsl.ContainerOp(
         name='mo',
-        image='<image name>',
+        image='gcr.io/constant-cubist-173123/inference_server/ml_mo:12',
         command=['convert_model.py'],
         arguments=[
          '--input_path', input_path,

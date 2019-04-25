@@ -21,6 +21,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -42,6 +43,7 @@ type ClientManagerInterface interface {
 	RunStore() storage.RunStoreInterface
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
 	DBStatusStore() storage.DBStatusStoreInterface
+	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
@@ -56,6 +58,7 @@ type ResourceManager struct {
 	runStore                storage.RunStoreInterface
 	resourceReferenceStore  storage.ResourceReferenceStoreInterface
 	dBStatusStore           storage.DBStatusStoreInterface
+	defaultExperimentStore  storage.DefaultExperimentStoreInterface
 	objectStore             storage.ObjectStoreInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
@@ -71,11 +74,12 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		runStore:                clientManager.RunStore(),
 		resourceReferenceStore:  clientManager.ResourceReferenceStore(),
 		dBStatusStore:           clientManager.DBStatusStore(),
+		defaultExperimentStore:  clientManager.DefaultExperimentStore(),
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		time:                    clientManager.Time(),
-		uuid:                    clientManager.UUID(),
+		time: clientManager.Time(),
+		uuid: clientManager.UUID(),
 	}
 }
 
@@ -213,6 +217,12 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
 
+	// Add a reference to the default experiment if run does not already have a containing experiment
+	err = r.setExperimentIfNotPresent(apiRun)
+	if err != nil {
+		return nil, err
+	}
+
 	// Store run metadata into database
 	runDetail, err := ToModelRunDetail(apiRun, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
 	if err != nil {
@@ -262,6 +272,43 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
 	return r.jobStore.ListJobs(filterContext, opts)
+}
+
+// TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
+func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) error {
+	patchObj := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"activeDeadlineSeconds": 0,
+		},
+	}
+
+	patch, err := json.Marshal(patchObj)
+	if err != nil {
+		return util.NewInternalServerError(err, "Unexpected error while marshalling a patch object.")
+	}
+
+	var operation = func() error {
+		_, err = wfClient.Patch(name, types.MergePatchType, patch)
+		return err
+	}
+	var backoffPolicy = backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
+	err = backoff.Retry(operation, backoffPolicy)
+	return err
+}
+
+func (r *ResourceManager) TerminateRun(runId string) error {
+	runDetail, err := r.checkRunExist(runId)
+	if err != nil {
+		return util.Wrap(err, "Delete run failed")
+	}
+
+	err = r.runStore.TerminateRun(runId)
+	if err != nil {
+		return util.Wrap(err, "Terminate run failed")
+	}
+
+	err = TerminateWorkflow(r.workflowClient, runDetail.Run.Name)
+	return util.Wrap(err, "Terminate run failed")
 }
 
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
@@ -365,7 +412,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	if jobId == "" {
 		// If a run doesn't have owner UID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CRD is created.
-		return r.runStore.UpdateRun(runId, workflow.Condition(), workflow.ToStringForStore())
+		return r.runStore.UpdateRun(runId, workflow.Condition(), workflow.FinishedAt(), workflow.ToStringForStore())
 	}
 
 	// Get the experiment resource reference for job.
@@ -382,6 +429,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 			Namespace:        workflow.Namespace,
 			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
 			ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
+			FinishedAtInSec:  workflow.FinishedAt(),
 			Conditions:       workflow.Condition(),
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
@@ -458,6 +506,36 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
 }
 
+// setDefaultExperimentIfNotPresent If the provided run does not include a reference to a containing
+// experiment, then we fetch the default experiment's ID and create a reference to that.
+func (r *ResourceManager) setExperimentIfNotPresent(apiRun *api.Run) error {
+	// First check if there is already a referenced experiment
+	for _, ref := range apiRun.ResourceReferences {
+		if ref.Key.Type == api.ResourceType_EXPERIMENT && ref.Relationship == api.Relationship_OWNER {
+			return nil
+		}
+	}
+
+	// Create reference to the default experiment
+	defaultExperimentId, err := r.GetDefaultExperimentId()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to retrieve default experiment")
+	}
+	if defaultExperimentId == "" {
+		return util.NewInternalServerError(errors.New("Default experiment ID was empty"), "Default experiment was not set")
+	}
+	defaultExperimentRef := &api.ResourceReference{
+		Key: &api.ResourceKey{
+			Id:   defaultExperimentId,
+			Type: api.ResourceType_EXPERIMENT,
+		},
+		Relationship: api.Relationship_OWNER,
+	}
+	apiRun.ResourceReferences = append(apiRun.ResourceReferences, defaultExperimentRef)
+
+	return nil
+}
+
 func (r *ResourceManager) ReportMetric(metric *api.RunMetric, runUUID string) error {
 	return r.runStore.ReportMetric(ToModelRunMetric(metric, runUUID))
 }
@@ -483,6 +561,14 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 			"arifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
 	return r.objectStore.GetFile(artifactPath)
+}
+
+func (r *ResourceManager) GetDefaultExperimentId() (string, error) {
+	return r.defaultExperimentStore.GetDefaultExperimentId()
+}
+
+func (r *ResourceManager) SetDefaultExperimentId(id string) error {
+	return r.defaultExperimentStore.SetDefaultExperimentId(id)
 }
 
 func (r *ResourceManager) HaveSamplesLoaded() (bool, error) {

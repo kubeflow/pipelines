@@ -36,16 +36,12 @@ type DBStatusStore struct {
 }
 
 func (s *DBStatusStore) InitializeDBStatusTable() error {
-	getDBStatusSql, getDBStatusArgs, err := sq.Select("*").From("db_statuses").ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err, "Error creating query to get database status.")
-	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to initialize database status.")
 	}
 
-	rows, err := tx.Query(getDBStatusSql, getDBStatusArgs...)
+	rows, err := tx.Query("SELECT * FROM db_statuses")
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to load database status.")

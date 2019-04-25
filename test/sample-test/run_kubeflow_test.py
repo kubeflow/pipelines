@@ -108,7 +108,7 @@ def main():
   #     target, predicted, count
   cm_tar_path = './confusion_matrix.tar.gz'
   cm_filename = 'mlpipeline-ui-metadata.json'
-  utils.get_artifact_in_minio(workflow_json, 'confusionmatrix', cm_tar_path)
+  utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path)
   tar_handler = tarfile.open(cm_tar_path)
   tar_handler.extractall()
 

@@ -18,6 +18,8 @@ go_library(
         "report_run_metrics_parameters.go",
         "report_run_metrics_responses.go",
         "run_service_client.go",
+        "terminate_run_parameters.go",
+        "terminate_run_responses.go",
         "unarchive_run_parameters.go",
         "unarchive_run_responses.go",
     ],

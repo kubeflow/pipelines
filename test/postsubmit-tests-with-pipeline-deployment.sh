@@ -30,6 +30,7 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
+CLOUDBUILD_PROJECT=ml-pipeline-staging
 GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-staging/
 TARGET_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_BASE_SHA}
 TIMEOUT_SECONDS=1800
@@ -81,7 +82,7 @@ CLOUDBUILD_STARTED=TIMEOUT
 
 for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
 do
-  output=`gcloud builds list --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
+  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
   if [[ ${output} != "" ]]; then
     CLOUDBUILD_STARTED=True
     break
@@ -98,7 +99,7 @@ fi
 CLOUDBUILD_FINISHED=TIMEOUT
 for i in $(seq 1 ${PULL_CLOUDBUILD_STATUS_MAX_ATTEMPT})
 do
-  output=`gcloud builds list --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
+  output=`gcloud builds list --project="$CLOUDBUILD_PROJECT" --filter="sourceProvenance.resolvedRepoSource.commitSha:${PULL_BASE_SHA}"`
   if [[ ${output} == *"SUCCESS"* ]]; then
     CLOUDBUILD_FINISHED=SUCCESS
     break

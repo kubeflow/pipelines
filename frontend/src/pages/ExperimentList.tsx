@@ -61,6 +61,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: [
+        buttons.newRun(),
         buttons.newExperiment(),
         buttons.compareRuns(() => this.state.selectedIds),
         buttons.cloneRun(() => this.state.selectedIds, false),
@@ -187,11 +188,11 @@ class ExperimentList extends Page<{}, ExperimentListState> {
   private _selectionChanged(selectedIds: string[]): void {
     const actions = produce(this.props.toolbarProps.actions, draft => {
       // Enable/Disable Run compare button
-      draft[1].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
+      draft[2].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
       // Enable/Disable Clone button
-      draft[2].disabled = selectedIds.length !== 1;
+      draft[3].disabled = selectedIds.length !== 1;
       // Archive run button
-      draft[3].disabled = !selectedIds.length;
+      draft[4].disabled = !selectedIds.length;
     });
     this.props.updateToolbar({ actions });
     this.setState({ selectedIds });
@@ -210,8 +211,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
 
   private _getExpandedExperimentComponent(experimentIndex: number): JSX.Element {
     const experiment = this.state.displayExperiments[experimentIndex];
-    const runIds = (experiment.last5Runs || []).map((r) => r.id!);
-    return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
+    return <RunList hideExperimentColumn={true} experimentIdMask={experiment.id} onError={() => null} {...this.props}
       disablePaging={true} selectedIds={this.state.selectedIds} noFilterBox={true}
       storageState={RunStorageState.AVAILABLE}
       onSelectionChange={this._selectionChanged.bind(this)} disableSorting={true} />;

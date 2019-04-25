@@ -15,26 +15,55 @@
 
 import re
 from collections import namedtuple
+from typing import List
 from ._metadata import TypeMeta
 
 
 # TODO: Move this to a separate class
 # For now, this identifies a condition with only "==" operator supported.
 ConditionOperator = namedtuple('ConditionOperator', 'operator operand1 operand2')
+PipelineParamTuple = namedtuple('PipelineParamTuple', 'name op value type pattern')
 
-def _match_serialized_pipelineparam(payload: str):
-  """_match_serialized_pipelineparam matches the serialized pipelineparam.
+
+def sanitize_k8s_name(name):
+    """From _make_kubernetes_name
+      sanitize_k8s_name cleans and converts the names in the workflow.
+    """
+    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
+
+
+def match_serialized_pipelineparam(payload: str):
+  """match_serialized_pipelineparam matches the serialized pipelineparam.
   Args:
     payloads (str): a string that contains the serialized pipelineparam.
 
   Returns:
-    List(tuple())"""
-  match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?);}}', payload)
-  if len(match) == 0:
-    match = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
-  return match
+    PipelineParamTuple
+  """
+  matches = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?);}}', payload)
+  if len(matches) == 0:
+    matches = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
+  param_tuples = []
+  for match in matches:
+    if len(match) == 3:
+      pattern = '{{pipelineparam:op=%s;name=%s;value=%s}}' % (match[0], match[1], match[2])
+      param_tuples.append(PipelineParamTuple(
+                            name=sanitize_k8s_name(match[1]), 
+                            op=sanitize_k8s_name(match[0]), 
+                            value=match[2],
+                            type='', 
+                            pattern=pattern))
+    elif len(match) == 4:
+      pattern = '{{pipelineparam:op=%s;name=%s;value=%s;type=%s;}}' %  (match[0], match[1], match[2], match[3])
+      param_tuples.append(PipelineParamTuple(
+                            name=sanitize_k8s_name(match[1]), 
+                            op=sanitize_k8s_name(match[0]), 
+                            value=match[2], 
+                            type=match[3], 
+                            pattern=pattern))
+  return param_tuples
 
-def _extract_pipelineparams(payloads: str or list[str]):
+def _extract_pipelineparams(payloads: str or List[str]):
   """_extract_pipelineparam extract a list of PipelineParam instances from the payload string.
   Note: this function removes all duplicate matches.
 
@@ -45,16 +74,65 @@ def _extract_pipelineparams(payloads: str or list[str]):
   """
   if isinstance(payloads, str):
     payloads = [payloads]
-  matches = []
+  param_tuples = []
   for payload in payloads:
-    matches += _match_serialized_pipelineparam(payload)
+    param_tuples += match_serialized_pipelineparam(payload)
   pipeline_params = []
-  for x in list(set(matches)):
-    if len(x) == 3 or (len(x) == 4 and x[3] == ''):
-      pipeline_params.append(PipelineParam(x[1], x[0], x[2]))
-    elif len(x) == 4:
-      pipeline_params.append(PipelineParam(x[1], x[0], x[2], TypeMeta.from_dict_or_str(x[3])))
+  for param_tuple in list(set(param_tuples)):
+    pipeline_params.append(PipelineParam(param_tuple.name, 
+                                         param_tuple.op, 
+                                         param_tuple.value, 
+                                         TypeMeta.deserialize(param_tuple.type), 
+                                         pattern=param_tuple.pattern))
   return pipeline_params
+
+
+def extract_pipelineparams_from_any(payload) -> List['PipelineParam']:
+  """Recursively extract PipelineParam instances or serialized string from any object or list of objects.
+
+  Args:
+    payload (str or k8_obj or list[str or k8_obj]): a string/a list 
+        of strings that contains serialized pipelineparams or a k8 definition 
+        object.
+  Return:
+    List[PipelineParam]
+  """
+  if not payload:
+    return []
+
+  # PipelineParam
+  if isinstance(payload, PipelineParam):
+    return [payload]
+ 
+  # str
+  if isinstance(payload, str):
+    return list(set(_extract_pipelineparams(payload)))
+  
+  # list or tuple
+  if isinstance(payload, list) or isinstance(payload, tuple):
+    pipeline_params = []
+    for item in payload:
+      pipeline_params += extract_pipelineparams_from_any(item)
+    return list(set(pipeline_params))
+
+  # dict
+  if isinstance(payload, dict):
+    pipeline_params = []
+    for item in payload.values():
+      pipeline_params += extract_pipelineparams_from_any(item)
+    return list(set(pipeline_params))
+
+  # k8s object
+  if hasattr(payload, 'swagger_types') and isinstance(payload.swagger_types, dict):
+    pipeline_params = []
+    for key in payload.swagger_types.keys():
+      pipeline_params += extract_pipelineparams_from_any(getattr(payload, key))
+
+    return list(set(pipeline_params))
+
+  # return empty list  
+  return []
+
 
 class PipelineParam(object):
   """Representing a future value that is passed between pipeline components.
@@ -64,7 +142,7 @@ class PipelineParam(object):
   value passed between components.
   """
   
-  def __init__(self, name: str, op_name: str=None, value: str=None, param_type: TypeMeta=TypeMeta()):
+  def __init__(self, name: str, op_name: str=None, value: str=None, param_type: TypeMeta=TypeMeta(), pattern: str=None):
     """Create a new instance of PipelineParam.
     Args:
       name: name of the pipeline parameter.
@@ -75,6 +153,7 @@ class PipelineParam(object):
       value: The actual value of the PipelineParam. If provided, the PipelineParam is
              "resolved" immediately. For now, we support string only.
       param_type: the type of the PipelineParam.
+      pattern: the serialized string regex pattern this pipeline parameter created from. 
     Raises: ValueError in name or op_name contains invalid characters, or both op_name
             and value are set.
     """
@@ -86,10 +165,21 @@ class PipelineParam(object):
     if op_name and value:
       raise ValueError('op_name and value cannot be both set.')
 
-    self.op_name = op_name
     self.name = name
-    self.value = value
+    # ensure value is None even if empty string or empty list
+    # so that serialization and unserialization remain consistent
+    # (i.e. None => '' => None)
+    self.op_name = op_name if op_name else None
+    self.value = value if value else None
     self.param_type = param_type
+    self.pattern = pattern
+
+  @property
+  def full_name(self):
+    """Unique name in the argo yaml for the PipelineParam"""
+    if self.op_name:
+        return self.op_name + '-' + self.name
+    return self.name
 
   def __str__(self):
     """String representation.
@@ -135,4 +225,9 @@ class PipelineParam(object):
 
   def __hash__(self):
     return hash((self.op_name, self.name))
+
+  def ignore_type(self):
+    """ignore_type ignores the type information such that type checking would also pass"""
+    self.param_type = TypeMeta()
+    return self
 

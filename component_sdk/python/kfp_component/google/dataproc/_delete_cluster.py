@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+from googleapiclient import errors
 from ._client import DataprocClient
 from kfp_component.core import KfpExecutionContext
 
@@ -32,8 +34,14 @@ def delete_cluster(project_id, region, name, wait_interval=30):
     operation_name = None
     with KfpExecutionContext(
         on_cancel=lambda: client.cancel_operation(operation_name)) as ctx:
-        operation = client.delete_cluster(project_id, region, name, 
-            request_id=ctx.context_id())
+        try:
+            operation = client.delete_cluster(project_id, region, name, 
+                request_id=ctx.context_id())
+        except errors.HttpError as e:
+            if e.resp.status == 404:
+                logging.info('Cluster {} is not found.'.format(name))
+                return
+            raise e
         operation_name = operation.get('name')
         return client.wait_for_operation_done(operation_name, 
             wait_interval)

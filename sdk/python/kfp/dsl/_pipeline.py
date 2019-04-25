@@ -14,10 +14,14 @@
 
 
 from . import _container_op
-from ._metadata import  PipelineMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 from . import _ops_group
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
+
+
+# This handler is called whenever the @pipeline decorator is applied.
+# It can be used by command-line DSL compiler to inject code that runs for every pipeline definition.
+_pipeline_decorator_handler = None
 
 
 def pipeline(name, description):
@@ -34,33 +38,13 @@ def pipeline(name, description):
   ```
   """
   def _pipeline(func):
-    import inspect
-    fullargspec = inspect.getfullargspec(func)
-    args = fullargspec.args
-    annotations = fullargspec.annotations
+    func._pipeline_name = name
+    func._pipeline_description = description
 
-    # defaults
-    arg_defaults = {}
-    if fullargspec.defaults:
-      for arg, default in zip(reversed(fullargspec.args), reversed(fullargspec.defaults)):
-        arg_defaults[arg] = default
-
-    # Construct the PipelineMeta
-    pipeline_meta = PipelineMeta(name=name, description=description)
-    # Inputs
-    for arg in args:
-      arg_type = TypeMeta()
-      arg_default = arg_defaults[arg] if arg in arg_defaults else None
-      if arg in annotations:
-        arg_type = _annotation_to_typemeta(annotations[arg])
-      pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
-
-    #TODO: add descriptions to the metadata
-    #docstring parser:
-    #  https://github.com/rr-/docstring_parser
-    #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
-    Pipeline.add_pipeline(pipeline_meta, func)
-    return func
+    if _pipeline_decorator_handler:
+      return _pipeline_decorator_handler(func) or func
+    else:
+      return func 
 
   return _pipeline
 
@@ -86,6 +70,7 @@ def get_pipeline_conf():
   """
   return Pipeline.get_default_pipeline().conf
 
+#TODO: Pipeline is in fact an opsgroup, refactor the code.
 class Pipeline():
   """A pipeline contains a list of operators.
 
@@ -105,24 +90,16 @@ class Pipeline():
   # _default_pipeline is set when it (usually a compiler) runs "with Pipeline()"
   _default_pipeline = None
 
-  # All pipeline functions with @pipeline decorator that are imported.
-  # Each key is a pipeline function. Each value is a (name, description).
-  _pipeline_functions = {}
-
   @staticmethod
   def get_default_pipeline():
     """Get default pipeline. """
     return Pipeline._default_pipeline
 
   @staticmethod
-  def get_pipeline_functions():
-    """Get all imported pipeline functions (decorated with @pipeline)."""
-    return Pipeline._pipeline_functions
-
-  @staticmethod
-  def add_pipeline(pipeline_meta, func):
-    """Add a pipeline function (decorated with @pipeline)."""
-    Pipeline._pipeline_functions[func] = pipeline_meta
+  def add_pipeline(name, description, func):
+    """Add a pipeline function with the specified name and description."""
+    # Applying the @pipeline decorator to the pipeline function
+    func = pipeline(name=name, description=description)(func)
 
   def __init__(self, name: str):
     """Create a new instance of Pipeline.
@@ -143,11 +120,18 @@ class Pipeline():
       raise Exception('Nested pipelines are not allowed.')
 
     Pipeline._default_pipeline = self
+
+    def register_op_and_generate_id(op):
+      return self.add_op(op, op.is_exit_handler)
+
+    self._old__register_container_op_handler = _container_op._register_container_op_handler
+    _container_op._register_container_op_handler = register_op_and_generate_id
     return self
 
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
-        
+    _container_op._register_container_op_handler = self._old__register_container_op_handler
+
   def add_op(self, op: _container_op.ContainerOp, define_only: bool):
     """Add a new operator.
 

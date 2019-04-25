@@ -82,3 +82,14 @@ func (c *RunClientFake) Archive(params *runparams.ArchiveRunParams) error {
 func (c *RunClientFake) Unarchive(params *runparams.UnarchiveRunParams) error {
 	return nil
 }
+
+func (c *RunClientFake) Terminate(params *runparams.TerminateRunParams) error {
+	switch params.RunID {
+	case RunForClientErrorTest:
+		return fmt.Errorf(ClientErrorString)
+	case RunForDefaultTest:
+		return nil
+	default:
+		return fmt.Errorf(InvalidFakeRequest, params.RunID)
+	}
+}

@@ -1,40 +1,89 @@
 
-# Dataproc - Submit Hive Job
+# Name
+Data preparation using Apache Hive on YARN with Cloud Dataproc
 
-## Intended Use
-A Kubeflow Pipeline component to submit a Hive job on YARN in Google Cloud Dataproc service. 
+# Label
+Cloud Dataproc, GCP, Cloud Storage, YARN, Hive, Apache
 
-## Run-Time Parameters:
-Name | Description
-:--- | :----------
-project_id | Required. The ID of the Google Cloud Platform project that the cluster belongs to.
-region | Required. The Cloud Dataproc region in which to handle the request.
-cluster_name | Required. The cluster to run the job.
-queries | Required. The queries to execute. You do not need to terminate a query with a semicolon. Multiple queries can be specified in one string by separating each with a semicolon. 
-query_file_uri | The HCFS URI of the script that contains Hive queries.
-script_variables | Optional. Mapping of query variable names to values (equivalent to the Hive command: SET name="value";).
-hive_job | Optional. The full payload of a [HiveJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/HiveJob)
-job | Optional. The full payload of a [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs).
-wait_interval | Optional. The wait seconds between polling the operation. Defaults to 30s.
+# Summary
+A Kubeflow Pipeline component to prepare data by submitting an Apache Hive job on YARN to Cloud Dataproc.
 
-## Output:
-Name | Description
-:--- | :----------
-job_id | The ID of the created job.
+# Details
+## Intended use
+Use the component to run an Apache Hive job as one preprocessing step in a Kubeflow Pipeline.
 
-## Sample
+## Runtime arguments
+| Argument | Description | Optional | Data type | Accepted values | Default |
+|----------|-------------|----------|-----------|-----------------|---------|
+| project_id | The Google Cloud Platform (GCP) project ID that the cluster belongs to. | No | GCPProjectId |   |   |
+| region | The Cloud Dataproc region to handle the request. | No | GCPRegion |  |  |
+| cluster_name | The name of the cluster to run the job. | No | String |  |  |
+| queries | The queries to execute the Hive job. Specify multiple queries in one string by separating them with semicolons. You do not need to terminate queries with semicolons. | Yes | List |  | None |
+| query_file_uri | The HCFS URI of the script that contains the Hive queries. | Yes | GCSPath |  | None |
+| script_variables | Mapping of the query’s variable names to their values (equivalent to the Hive command: SET name="value";). | Yes | Dict |  | None |
+| hive_job | The payload of a [HiveJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/HiveJob) | Yes | Dict |  | None |
+| job | The payload of a [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs). | Yes | Dict |  | None |
+| wait_interval | The number of seconds to pause between polling the operation. | Yes | Integer |  | 30 |
 
-Note: the sample code below works in both IPython notebook or python code directly.
+## Output
+Name | Description | Type
+:--- | :---------- | :---
+job_id | The ID of the created job. | String
 
-### Setup a Dataproc cluster
-Follow the [guide](https://cloud.google.com/dataproc/docs/guides/create-cluster) to create a new Dataproc cluster or reuse an existing one.
+## Cautions & requirements
+To use the component, you must:
+*   Set up a GCP project by following this [guide](https://cloud.google.com/dataproc/docs/guides/setup-project).
+*   [Create a new cluster](https://cloud.google.com/dataproc/docs/guides/create-cluster).
+*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
 
-### Prepare Hive query
-Directly put your Hive queries in the `queries` list or upload your Hive queries into a file to a Google Cloud Storage (GCS) bucket and place the path in `query_file_uri`. In this sample, we will use a hard coded query in the `queries` list to select data from a public CSV file from GCS.
+    ```
+    component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    ```
+*   Grant the Kubeflow user service account the role `roles/dataproc.editor` on the project.
 
-For more details, please checkout [Hive language manual](https://cwiki.apache.org/confluence/display/Hive/LanguageManual)
+## Detailed description
+This component creates a Hive job from [Dataproc submit job REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs/submit).
 
-### Set sample parameters
+Follow these steps to use the component in a pipeline:
+1.  Install the Kubeflow Pipeline SDK:
+
+
+
+```python
+%%capture --no-stderr
+
+KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
+!pip3 install $KFP_PACKAGE --upgrade
+```
+
+2. Load the component using KFP SDK
+
+
+```python
+import kfp.components as comp
+
+dataproc_submit_hive_job_op = comp.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataproc/submit_hive_job/component.yaml')
+help(dataproc_submit_hive_job_op)
+```
+
+### Sample
+
+Note: The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
+
+
+#### Setup a Dataproc cluster
+
+[Create a new Dataproc cluster](https://cloud.google.com/dataproc/docs/guides/create-cluster) (or reuse an existing one) before running the sample code.
+
+#### Prepare a Hive query
+
+Put your Hive queries in the queries list, or upload your Hive queries into a file saved in a Cloud Storage bucket and then enter the Cloud Storage bucket’s path  in `query_file_uri.` In this sample, we will use a hard coded query in the queries list to select data from a public CSV file from Cloud Storage.
+
+For more details, see the [Hive language manual.](https://cwiki.apache.org/confluence/display/Hive/LanguageManual)
+
+
+#### Set sample parameters
 
 
 ```python
@@ -59,30 +108,10 @@ ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 LOCATION 'gs://public-datasets/natality/csv';
 
 SELECT * FROM natality_csv LIMIT 10;'''
-EXPERIMENT_NAME = 'Dataproc - Submit SparkSQL Job'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/gcp/dataproc/submit_hive_job/component.yaml'
+EXPERIMENT_NAME = 'Dataproc - Submit Hive Job'
 ```
 
-### Install KFP SDK
-Install the SDK (Uncomment the code if the SDK is not installed before)
-
-
-```python
-# KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.12/kfp.tar.gz'
-# !pip3 install $KFP_PACKAGE --upgrade
-```
-
-### Load component definitions
-
-
-```python
-import kfp.components as comp
-
-dataproc_submit_hive_job_op = comp.load_component_from_url(COMPONENT_SPEC_URI)
-display(dataproc_submit_hive_job_op)
-```
-
-### Here is an illustrative pipeline that uses the component
+#### Example pipeline that uses the component
 
 
 ```python
@@ -100,26 +129,34 @@ def dataproc_submit_hive_job_pipeline(
     queries = json.dumps([QUERY]),
     query_file_uri = '',
     script_variables = '', 
-    sparksql_job='', 
+    hive_job='', 
     job='', 
     wait_interval='30'
 ):
-    dataproc_submit_hive_job_op(project_id, region, cluster_name, queries, query_file_uri,
-        script_variables, sparksql_job, job, wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    dataproc_submit_hive_job_op(
+        project_id=project_id, 
+        region=region, 
+        cluster_name=cluster_name, 
+        queries=queries, 
+        query_file_uri=query_file_uri,
+        script_variables=script_variables, 
+        hive_job=hive_job, 
+        job=job, 
+        wait_interval=wait_interval).apply(gcp.use_gcp_secret('user-gcp-sa'))
     
 ```
 
-### Compile the pipeline
+#### Compile the pipeline
 
 
 ```python
 pipeline_func = dataproc_submit_hive_job_pipeline
-pipeline_filename = pipeline_func.__name__ + '.pipeline.tar.gz'
+pipeline_filename = pipeline_func.__name__ + '.zip'
 import kfp.compiler as compiler
 compiler.Compiler().compile(pipeline_func, pipeline_filename)
 ```
 
-### Submit the pipeline for execution
+#### Submit the pipeline for execution
 
 
 ```python
@@ -135,3 +172,12 @@ experiment = client.create_experiment(EXPERIMENT_NAME)
 run_name = pipeline_func.__name__ + ' run'
 run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arguments)
 ```
+
+## References
+*   [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/dataproc/_submit_hive_job.py)
+*   [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
+*   [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataproc/submit_hive_job/sample.ipynb)
+*   [Dataproc HiveJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/HiveJob)
+
+## License
+By deploying or using this software you agree to comply with the [AI Hub Terms of Service](https://aihub.cloud.google.com/u/0/aihub-tos) and the [Google APIs Terms of Service](https://developers.google.com/terms/). To the extent of a direct conflict of terms, the AI Hub Terms of Service will control.

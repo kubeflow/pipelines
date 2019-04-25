@@ -30,13 +30,13 @@ func (s *ExperimentApiTest) SetupTest() {
 
 	err := test.WaitForReady(*namespace, *initializeTimeout)
 	if err != nil {
-		glog.Exitf("Failed to initialize test. Error: %s", err.Error())
+		glog.Exitf("Failed to initialize test. Error: %v", err)
 	}
 	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
 	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
 	if err != nil {
-		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
+		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
 }
 

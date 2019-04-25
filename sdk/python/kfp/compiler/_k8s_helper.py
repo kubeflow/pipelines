@@ -19,6 +19,9 @@ import time
 import logging
 import re
 
+from .. import dsl
+
+
 class K8sHelper(object):
   """ Kubernetes Helper """
 
@@ -92,7 +95,7 @@ class K8sHelper(object):
   def _delete_k8s_job(self, pod_name, yaml_spec):
     """ _delete_k8s_job deletes a pod """
     try:
-      api_response = self._corev1.delete_namespaced_pod(pod_name, yaml_spec['metadata']['namespace'], k8s_client.V1DeleteOptions())
+      api_response = self._corev1.delete_namespaced_pod(pod_name, yaml_spec['metadata']['namespace'], body=k8s_client.V1DeleteOptions())
     except k8s_client.rest.ApiException as e:
       logging.exception('Exception when calling CoreV1Api->delete_namespaced_pod: {}\n'.format(str(e)))
 
@@ -156,10 +159,14 @@ class K8sHelper(object):
               for sub_obj in k8s_obj]
     elif isinstance(k8s_obj, tuple):
       return tuple(K8sHelper.convert_k8s_obj_to_json(sub_obj)
-                   for sub_obj in obj)
+                   for sub_obj in k8s_obj)
     elif isinstance(k8s_obj, (datetime, date)):
       return k8s_obj.isoformat()
-
+    elif isinstance(k8s_obj, dsl.PipelineParam): 
+      if isinstance(k8s_obj.value, str):
+        return k8s_obj.value
+      return '{{inputs.parameters.%s}}' % k8s_obj.full_name
+    
     if isinstance(k8s_obj, dict):
       obj_dict = k8s_obj
     else:
