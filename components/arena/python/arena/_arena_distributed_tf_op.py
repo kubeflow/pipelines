@@ -123,10 +123,13 @@ def distributed_tf_op(name, image, command, env=[], data=[], sync_source=None,
                       "--timeout-hours", timeout_hours,
                       "--metric-name", metric_name,
                       "--metric-unit", metric_unit,
+                      "--step-name", '{{pod.name}}',
+                      "--workflow-name", '{{workflow.name}}',
                       "tfjob",
                       "--workers", workers,
                       "--", command],
           file_outputs={'train': '/output.txt',
-                        'id':'/step-id.txt',
-                        'name':'/step-name.txt'}
+                        'workflow':'/workflow-name.txt',
+                        'step':'/step-name.txt',
+                        'name':'/name.txt'}
           )

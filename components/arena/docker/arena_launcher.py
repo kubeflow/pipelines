@@ -181,8 +181,8 @@ def generate_options(args):
       for e in env:
         options.append("--env={0}".format(e))
 
-    if len(args.step_id) > 0:
-        options.append("--env=STEP_ID={0}".format(args.step_id))
+    if len(args.workflow_name) > 0:
+        options.append("--env=WORKFLOW_NAME={0}".format(args.workflow_name))
 
     if len(args.step_name) > 0:
         options.append("--env=STEP_NAME={0}".format(args.step_name))
@@ -266,7 +266,7 @@ def main(argv=None):
   parser.add_argument('--metric', action='append', type=str, default=[])
   parser.add_argument('--sync-source', type=str, default='')
 
-  parser.add_argument('--step-id', type=str, default='')
+  parser.add_argument('--workflow-name', type=str, default='')
   parser.add_argument('--step-name', type=str, default='')
 
   subparsers = parser.add_subparsers(help='arena sub-command help')
@@ -379,8 +379,8 @@ def main(argv=None):
   with open('/output.txt', 'w') as f:
     f.write(output)
 
-  with open('/step-id.txt', 'w') as f:
-    f.write(args.step_id)
+  with open('/workflow-name.txt', 'w') as f:
+    f.write(args.workflow_name)
 
   with open('/step-name.txt', 'w') as f:
     f.write(args.step_name)
