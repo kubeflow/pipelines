@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Watson OpenScale - Monitor Fairness'
+name: 'Monitor Fairness - Watson OpenScale'
 description: |
   Enable model fairness monitoring on Watson OpenScale.
 metadata:
