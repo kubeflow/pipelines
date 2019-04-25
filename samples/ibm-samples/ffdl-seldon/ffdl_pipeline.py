@@ -6,12 +6,16 @@ import ai_pipeline_params as params
 # generate default secret name
 secret_name = 'kfp-creds'
 
-
+configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/commons/config/component.yaml')
+train_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/ffdl/train/component.yaml')
+serve_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/ffdl/serve/component.yaml')
+    
 # create pipeline
 @dsl.pipeline(
   name='FfDL pipeline',
   description='A pipeline for machine learning workflow using Fabric for Deep Learning and Seldon.'
 )
+
 def ffdlPipeline(
     GITHUB_TOKEN=dsl.PipelineParam(name='github-token',
                                    value=''),
@@ -29,10 +33,6 @@ def ffdlPipeline(
                                        value='gender_classification.py')
 ):
     """A pipeline for end to end machine learning workflow."""
-    
-    configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/ibm-components/commons/config/component.yaml')
-    train_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/ibm-components/ffdl/train/component.yaml')
-    serve_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/ibm-components/ffdl/serve/component.yaml')
     
     get_configuration = configuration_op(
                    token = GITHUB_TOKEN,
