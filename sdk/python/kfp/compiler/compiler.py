@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -285,7 +285,7 @@ class Compiler(object):
       upstream_op_names |= set(op.dependent_names)
 
       for op_name in upstream_op_names:
-        # the dependent op could be either a ContainerOp or an opsgroup
+        # the dependent op could be either a BaseOp or an opsgroup
         if op_name in pipeline.ops:
           upstream_op = pipeline.ops[op_name]
         elif op_name in opsgroups:
@@ -601,8 +601,8 @@ class Compiler(object):
         arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
 
     # Sanitize operator names and param names
-    sanitized_ops = {}
-    for op in p.ops.values():
+    sanitized_cops = {}
+    for op in p.cops.values():
       sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
       op.name = sanitized_name
       for param in op.outputs.values():
@@ -619,8 +619,34 @@ class Compiler(object):
         for key in op.file_outputs.keys():
           sanitized_file_outputs[K8sHelper.sanitize_k8s_name(key)] = op.file_outputs[key]
         op.file_outputs = sanitized_file_outputs
-      sanitized_ops[sanitized_name] = op
-    p.ops = sanitized_ops
+      sanitized_cops[sanitized_name] = op
+    p.cops = sanitized_cops
+    p.ops = dict(sanitized_cops)
+
+    # Sanitize operator names and param names of ResourceOps
+    sanitized_rops = {}
+    for rop in p.rops.values():
+      sanitized_name = K8sHelper.sanitize_k8s_name(rop.name)
+      rop.name = sanitized_name
+      for param in rop.outputs.values():
+        param.name = K8sHelper.sanitize_k8s_name(param.name)
+        if param.op_name:
+          param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
+      if rop.output is not None:
+        rop.output.name = K8sHelper.sanitize_k8s_name(rop.output.name)
+        rop.output.op_name = K8sHelper.sanitize_k8s_name(rop.output.op_name)
+      if rop.dependent_names:
+        rop.dependent_names = [K8sHelper.sanitize_k8s_name(name) for name in rop.dependent_names]
+      if rop.attribute_outputs is not None:
+        sanitized_attribute_outputs = {}
+        for key in rop.attribute_outputs.keys():
+          sanitized_attribute_outputs[K8sHelper.sanitize_k8s_name(key)] = \
+            rop.attribute_outputs[key]
+        rop.attribute_outputs = sanitized_attribute_outputs
+      sanitized_rops[sanitized_name] = rop
+    p.rops = sanitized_rops
+    p.ops.update(dict(sanitized_rops))
+
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
 
