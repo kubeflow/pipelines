@@ -40,7 +40,7 @@ var (
 	mlPipelineAPIServerBasePath string
 	mlPipelineServiceHttpPort   string
 	mlPipelineServiceGRPCPort   string
-	informerNamespace           string
+	namespace                   string
 )
 
 const (
@@ -52,7 +52,7 @@ const (
 	mlPipelineAPIServerNameFlagName     = "mlPipelineAPIServerName"
 	mlPipelineAPIServerHttpPortFlagName = "mlPipelineServiceHttpPort"
 	mlPipelineAPIServerGRPCPortFlagName = "mlPipelineServiceGRPCPort"
-	informerNamespaceFlagName           = "informerNamespace"
+	namespaceFlagName                   = "namespace"
 )
 
 func main() {
@@ -78,7 +78,7 @@ func main() {
 
 	var swfInformerFactory swfinformers.SharedInformerFactory
 	var workflowInformerFactory workflowinformers.SharedInformerFactory
-	if informerNamespace == "" {
+	if namespace == "" {
 		swfInformerFactory = swfinformers.NewSharedInformerFactory(swfClient, time.Second*30)
 		workflowInformerFactory = workflowinformers.NewSharedInformerFactory(workflowClient, time.Second*30)
 	} else {
@@ -121,5 +121,5 @@ func init() {
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
 		"/apis/v1beta1", "The base path for the ML pipeline API server.")
-	flag.StringVar(&informerNamespace, informerNamespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")
+	flag.StringVar(&namespace, namespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")
 }
