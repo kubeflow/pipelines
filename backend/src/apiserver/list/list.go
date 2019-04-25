@@ -76,6 +76,7 @@ func (t *token) marshal() (string, error) {
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to serialize page token.")
 	}
+	// return string(b), nil
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
@@ -164,6 +165,17 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 // Options o to the supplied SelectBuilder, and returns the new SelectBuilder
 // containing these.
 func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+	sqlBuilder = o.AddSortingToSelect(sqlBuilder)
+	// Add one more item than what is requested.
+	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
+
+	return sqlBuilder
+}
+
+// AddPaginationToSelect adds WHERE clauses with the sorting and pagination criteria in the
+// Options o to the supplied SelectBuilder, and returns the new SelectBuilder
+// containing these.
+func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	// If next row's value is specified, set those values in the clause.
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
@@ -185,9 +197,6 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBu
 		OrderBy(fmt.Sprintf("%v %v", o.SortByFieldName, order)).
 		OrderBy(fmt.Sprintf("%v %v", o.KeyFieldName, order))
 
-	// Add one more item than what is requested.
-	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
-
 	return sqlBuilder
 }
 
@@ -204,9 +213,9 @@ func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilde
 
 // FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
 // table that match an optional given filter, and returns the rebuilt SelectBuilder
-func FilterOnResourceReference(tableName string, resourceType common.ResourceType, selectCount bool,
-	filterContext *common.FilterContext) (sq.SelectBuilder, error) {
-	selectBuilder := sq.Select("*")
+func FilterOnResourceReference(tableName string, columns []string, resourceType common.ResourceType,
+	selectCount bool, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+	selectBuilder := sq.Select(columns...)
 	if selectCount {
 		selectBuilder = sq.Select("count(*)")
 	}
@@ -282,6 +291,7 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 		KeyFieldName:     listable.PrimaryKeyColumnName(),
 		KeyFieldValue:    keyField.Interface(),
 		IsDesc:           o.IsDesc,
+		Filter:           o.Filter,
 	}, nil
 }
 

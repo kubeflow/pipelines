@@ -15,7 +15,13 @@
 
 from . import _container_op
 from . import _ops_group
+from ..components._naming import _make_name_unique_by_adding_index
 import sys
+
+
+# This handler is called whenever the @pipeline decorator is applied.
+# It can be used by command-line DSL compiler to inject code that runs for every pipeline definition.
+_pipeline_decorator_handler = None
 
 
 def pipeline(name, description):
@@ -32,8 +38,13 @@ def pipeline(name, description):
   ```
   """
   def _pipeline(func):
-    Pipeline.add_pipeline(name, description, func)
-    return func
+    func._pipeline_name = name
+    func._pipeline_description = description
+
+    if _pipeline_decorator_handler:
+      return _pipeline_decorator_handler(func) or func
+    else:
+      return func 
 
   return _pipeline
 
@@ -59,6 +70,7 @@ def get_pipeline_conf():
   """
   return Pipeline.get_default_pipeline().conf
 
+#TODO: Pipeline is in fact an opsgroup, refactor the code.
 class Pipeline():
   """A pipeline contains a list of operators.
 
@@ -78,24 +90,16 @@ class Pipeline():
   # _default_pipeline is set when it (usually a compiler) runs "with Pipeline()"
   _default_pipeline = None
 
-  # All pipeline functions with @pipeline decorator that are imported.
-  # Each key is a pipeline function. Each value is a (name, description).
-  _pipeline_functions = {}
-
   @staticmethod
   def get_default_pipeline():
     """Get default pipeline. """
     return Pipeline._default_pipeline
 
   @staticmethod
-  def get_pipeline_functions():
-    """Get all imported pipeline functions (decorated with @pipeline)."""
-    return Pipeline._pipeline_functions
-
-  @staticmethod
   def add_pipeline(name, description, func):
-    """Add a pipeline function (decorated with @pipeline)."""
-    Pipeline._pipeline_functions[func] = (name, description)
+    """Add a pipeline function with the specified name and description."""
+    # Applying the @pipeline decorator to the pipeline function
+    func = pipeline(name=name, description=description)(func)
 
   def __init__(self, name: str):
     """Create a new instance of Pipeline.
@@ -109,17 +113,25 @@ class Pipeline():
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
     self.group_id = 0
     self.conf = PipelineConf()
+    self._metadata = None
 
   def __enter__(self):
     if Pipeline._default_pipeline:
       raise Exception('Nested pipelines are not allowed.')
 
     Pipeline._default_pipeline = self
+
+    def register_op_and_generate_id(op):
+      return self.add_op(op, op.is_exit_handler)
+
+    self._old__register_container_op_handler = _container_op._register_container_op_handler
+    _container_op._register_container_op_handler = register_op_and_generate_id
     return self
 
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
-        
+    _container_op._register_container_op_handler = self._old__register_container_op_handler
+
   def add_op(self, op: _container_op.ContainerOp, define_only: bool):
     """Add a new operator.
 
@@ -130,13 +142,8 @@ class Pipeline():
       op_name: a unique op name.
     """
 
-    op_name = op.human_name
     #If there is an existing op with this name then generate a new name.
-    if op_name in self.ops:
-      for i in range(2, sys.maxsize**10):
-        op_name = op_name + '-' + str(i)
-        if op_name not in self.ops:
-          break
+    op_name = _make_name_unique_by_adding_index(op.human_name, list(self.ops.keys()), ' ')
 
     self.ops[op_name] = op
     if not define_only:
@@ -162,5 +169,14 @@ class Pipeline():
 
     self.group_id += 1
     return self.group_id
+
+  def _set_metadata(self, metadata):
+    '''_set_metadata passes the containerop the metadata information
+    Args:
+      metadata (ComponentMeta): component metadata
+    '''
+    if not isinstance(metadata, PipelineMeta):
+      raise ValueError('_set_medata is expecting PipelineMeta.')
+    self._metadata = metadata
 
 

@@ -35,6 +35,10 @@ def create_job(project_id, job, job_id_prefix=None, wait_interval=30):
         wait_interval: optional wait interval between calls
             to get job status. Defaults to 30.
 
+    Outputs:
+        /tmp/kfp/output/ml_engine/job.json: The json payload of the create job.
+        /tmp/kfp/output/ml_engine/job_id.txt: The ID of the created job.
+        /tmp/kfp/output/ml_engine/job_dir.txt: The `jobDir` of the training job.
     """
     return CreateJobOp(project_id, job, job_id_prefix,
         wait_interval).execute_and_wait()
@@ -129,3 +133,6 @@ class CreateJobOp:
         logging.info('Dumping job: {}'.format(job))
         gcp_common.dump_file('/tmp/kfp/output/ml_engine/job.json', json.dumps(job))
         gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_id.txt', job['jobId'])
+        if 'trainingInput' in job and 'jobDir' in job['trainingInput']:
+            gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_dir.txt', 
+                job['trainingInput']['jobDir'])

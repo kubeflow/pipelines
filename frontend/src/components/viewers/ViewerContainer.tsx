@@ -17,6 +17,7 @@
 import * as React from 'react';
 import ConfusionMatrix from './ConfusionMatrix';
 import HTMLViewer from './HTMLViewer';
+import MarkdownViewer from './MarkdownViewer';
 import PagedTable from './PagedTable';
 import ROCCurve from './ROCCurve';
 import TensorboardViewer from './Tensorboard';
@@ -24,6 +25,7 @@ import { PlotType, ViewerConfig } from './Viewer';
 
 export const componentMap = {
   [PlotType.CONFUSION_MATRIX]: ConfusionMatrix,
+  [PlotType.MARKDOWN]: MarkdownViewer,
   [PlotType.ROC]: ROCCurve,
   [PlotType.TABLE]: PagedTable,
   [PlotType.TENSORBOARD]: TensorboardViewer,

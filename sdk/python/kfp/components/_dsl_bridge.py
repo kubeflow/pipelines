@@ -14,16 +14,16 @@
 
 from collections import OrderedDict
 from typing import Mapping
-from ._structures import ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
+from ._structures import ContainerImplementation, ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
 from ._components import _generate_output_file_name, _default_component_name
-
+from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 
 def create_container_op_from_task(task_spec: TaskSpec):
     argument_values = task_spec.arguments
     component_spec = task_spec.component_ref._component_spec
 
-    if hasattr(component_spec.implementation, 'graph'):
-        raise TypeError('Cannot convert graph component to ContainerOp')
+    if not isinstance(component_spec.implementation, ContainerImplementation):
+        raise TypeError('Only container component tasks can be converted to ContainerOp')
 
     inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
     container_spec = component_spec.implementation.container
@@ -125,12 +125,13 @@ def create_container_op_from_task(task_spec: TaskSpec):
         arguments=expanded_args,
         output_paths=output_paths,
         env=container_spec.env,
+        component_spec=component_spec,
     )
 
 
 _dummy_pipeline=None
 
-def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, output_paths=None, env : Mapping[str, str]=None):
+def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, output_paths=None, env : Mapping[str, str]=None, component_spec=None):
     from .. import dsl
     global _dummy_pipeline
     need_dummy = dsl.Pipeline._default_pipeline is None
@@ -139,16 +140,21 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
             _dummy_pipeline = dsl.Pipeline('dummy pipeline')
         _dummy_pipeline.__enter__()
 
-    from ._naming import _sanitize_kubernetes_resource_name, _make_name_unique_by_adding_index
-    output_name_to_kubernetes = {}
-    kubernetes_name_to_output_name = {}
-    for output_name in (output_paths or {}).keys():
-        kubernetes_name = _sanitize_kubernetes_resource_name(output_name)
-        kubernetes_name = _make_name_unique_by_adding_index(kubernetes_name, kubernetes_name_to_output_name, '-')
-        output_name_to_kubernetes[output_name] = kubernetes_name
-        kubernetes_name_to_output_name[kubernetes_name] = output_name
-    
+    #Renaming outputs to conform with ContainerOp/Argo
+    from ._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
+    output_names = (output_paths or {}).keys()
+    output_name_to_kubernetes = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
     output_paths_for_container_op = {output_name_to_kubernetes[name]: path for name, path in output_paths.items()}
+
+    # Construct the ComponentMeta
+    component_meta = ComponentMeta(name=component_spec.name, description=component_spec.description)
+    # Inputs
+    if component_spec.inputs is not None:
+        for input in component_spec.inputs:
+            component_meta.inputs.append(ParameterMeta(name=input.name, description=input.description, param_type=_annotation_to_typemeta(input.type), default=input.default))
+    if component_spec.outputs is not None:
+        for output in component_spec.outputs:
+            component_meta.outputs.append(ParameterMeta(name=output.name, description=output.description, param_type=_annotation_to_typemeta(output.type)))
 
     task = dsl.ContainerOp(
         name=name,
@@ -157,11 +163,20 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         arguments=arguments,
         file_outputs=output_paths_for_container_op,
     )
+
+    task._set_metadata(component_meta)
+
     if env:
         from kubernetes import client as k8s_client
         for name, value in env.items():
-            task.add_env_variable(k8s_client.V1EnvVar(name=name, value=value))
- 
+            task.container.add_env_variable(k8s_client.V1EnvVar(name=name, value=value))
+
+    if component_spec.metadata:
+        for key, value in (component_spec.metadata.annotations or {}).items():
+            task.add_pod_annotation(key, value)
+        for key, value in (component_spec.metadata.labels or {}).items():
+            task.add_pod_label(key, value)
+
     if need_dummy:
         _dummy_pipeline.__exit__()
 

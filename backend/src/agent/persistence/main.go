@@ -16,7 +16,6 @@ package main
 
 import (
 	"flag"
-	"os"
 	"time"
 
 	workflowclientSet "github.com/argoproj/argo/pkg/client/clientset/versioned"
@@ -34,7 +33,6 @@ import (
 var (
 	masterURL                   string
 	kubeconfig                  string
-	namespace                   string
 	initializeTimeout           time.Duration
 	timeout                     time.Duration
 	mlPipelineAPIServerName     string
@@ -48,7 +46,6 @@ var (
 const (
 	kubeconfigFlagName                  = "kubeconfig"
 	masterFlagName                      = "master"
-	namespaceFlagName                   = "namespace"
 	initializationTimeoutFlagName       = "initializeTimeout"
 	timeoutFlagName                     = "timeout"
 	mlPipelineAPIServerBasePathFlagName = "mlPipelineAPIServerBasePath"
@@ -90,7 +87,6 @@ func main() {
 	}
 
 	pipelineClient, err := client.NewPipelineClient(
-		namespace,
 		initializeTimeout,
 		timeout,
 		mlPipelineAPIServerBasePath,
@@ -118,7 +114,6 @@ func main() {
 func init() {
 	flag.StringVar(&kubeconfig, kubeconfigFlagName, "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, masterFlagName, "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
-	flag.StringVar(&namespace, namespaceFlagName, os.Getenv("POD_NAMESPACE"), "The namespace the ML pipeline API server is deployed to")
 	flag.DurationVar(&initializeTimeout, initializationTimeoutFlagName, 2*time.Minute, "Duration to wait for initialization of the ML pipeline API server.")
 	flag.DurationVar(&timeout, timeoutFlagName, 1*time.Minute, "Duration to wait for calls to complete.")
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")

@@ -25,13 +25,14 @@ require (
 	github.com/go-openapi/swag v0.17.0
 	github.com/go-openapi/validate v0.17.2
 	github.com/go-sql-driver/mysql v1.4.0
-	github.com/gogo/protobuf v1.1.1
+	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
 	github.com/golang/protobuf v1.2.0
 	github.com/google/btree v0.0.0-20180124185431-e89373fe6b4a // indirect
 	github.com/google/go-cmp v0.2.0
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
+	github.com/google/ml-metadata v0.0.0-20190214221617-0fb82dc56ff7
 	github.com/google/pprof v0.0.0-20181206194817-3ea8567a2e57 // indirect
 	github.com/google/uuid v1.0.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
@@ -85,7 +86,7 @@ require (
 	k8s.io/api v0.0.0-20180712090710-2d6f90ab1293
 	k8s.io/apiextensions-apiserver v0.0.0-20190103235604-e7617803aceb // indirect
 	k8s.io/apimachinery v0.0.0-20180621070125-103fd098999d
-	k8s.io/apiserver v0.0.0-20190112184317-d55c9aeff1eb
+	k8s.io/apiserver v0.0.0-20190112184317-d55c9aeff1eb // indirect
 	k8s.io/client-go v0.0.0-20180718001006-59698c7d9724
 	k8s.io/klog v0.1.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20180719232738-d8ea2fe547a4 // indirect

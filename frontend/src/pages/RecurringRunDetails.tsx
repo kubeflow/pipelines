@@ -54,7 +54,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
           () => this.state.run ? [this.state.run!.id!] : [],
           'recurring run config',
           this._deleteCallback.bind(this),
-          true,
+          true, /* useCurrentResource */
         ),
       ],
       breadcrumbs: [],

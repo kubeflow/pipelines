@@ -68,7 +68,7 @@ class CreateVersionOp:
         replace_existing, wait_interval):
         self._ml = MLEngineClient()
         self._model_name = model_name
-        self._project_id, self._model_short_name = self._parse_model_name(model_name)
+        self._project_id, self._model_id = self._parse_model_name(model_name)
         # The name of the version resource, which is in the format 
         # of projects/*/models/*/versions/*
         self._version_name = None
@@ -164,9 +164,28 @@ class CreateVersionOp:
     def _dump_metadata(self):
         display.display(display.Link(
             'https://console.cloud.google.com/mlengine/models/{}/versions/{}?project={}'.format(
-                self._model_short_name, self._version_id, self._project_id),
+                self._model_id, self._version_id, self._project_id),
             'Version Details'
         ))
+        display.display(display.Markdown('''
+## Online Prediction
+
+### REST endpoint
+The REST endpoint for online prediction is as follows:
+```
+POST https://ml.googleapis.com/v1/{}:predict
+```
+Try the REST endpoint in [Google OAuth 2.0 Playgound](https://developers.google.com/oauthplayground/#step3\
+&apisSelect=https://www.googleapis.com/auth/cloud-platform&postData={{"instances":[]}}\
+&url=https://ml.googleapis.com/v1/{}:predict&content_type=application/json&http_method=POST).
+
+### GCloud command
+```bash
+gcloud ml-engine predict --model {}  \
+                   --version {} \
+                   --json-instances instances.json
+```
+        '''.format(self._version_name, self._version_name, self._model_id, self._version_id)))
 
     def _dump_version(self, version):
         logging.info('Dumping version: {}'.format(version))

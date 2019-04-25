@@ -85,6 +85,6 @@ class ComponentStore:
             except:
                 continue
             if response.content:
-                return comp._create_task_factory_from_component_text(response.content, url)
+                return comp._load_component_from_yaml_or_zip_bytes(response.content, url)
 
         raise RuntimeError('Component {} was not found. Tried the following locations:\n{}'.format(name, '\n'.join(tried_locations)))

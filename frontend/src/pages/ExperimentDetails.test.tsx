@@ -335,7 +335,7 @@ describe('ExperimentDetails', () => {
       { id: 'run-1-id', name: 'run-1' },
       { id: 'run-2-id', name: 'run-2' },
     ];
-    listRunsSpy.mockImplementationOnce(() => ({ runs }));
+    listRunsSpy.mockImplementation(() => ({ runs }));
     await listRunsSpy;
 
     tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);
@@ -383,7 +383,7 @@ describe('ExperimentDetails', () => {
 
   it('supports cloning a selected run', async () => {
     const runs = [{ id: 'run-1-id', name: 'run-1' }];
-    listRunsSpy.mockImplementationOnce(() => ({ runs }));
+    listRunsSpy.mockImplementation(() => ({ runs }));
     await listRunsSpy;
 
     tree = TestUtils.mountWithRouter(<ExperimentDetails {...generateProps()} />);

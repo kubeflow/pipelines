@@ -31,23 +31,23 @@ pipeline run results. Note that each pipeline run will create a unique directory
 ## Components source
 
 Create Cluster:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/create_cluster/src) 
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/create_cluster/src) 
   [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/create_cluster)
 
 Analyze (step one for preprocessing):
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/analyze/src) 
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/analyze/src) 
   [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/analyze)
 
 Transform (step two for preprocessing):
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/transform/src) 
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/transform/src) 
   [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/transform)
 
 Distributed Training:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/train/src) 
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/train/src) 
   [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/train)
 
 Distributed Predictions:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/predict/src) 
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/predict/src) 
   [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/predict)
 
 Confusion Matrix:
@@ -61,7 +61,7 @@ ROC:
 
 
 Delete Cluster:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/xgboost/delete_cluster/src) 
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/delete_cluster/src) 
   [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/delete_cluster)
 
 
