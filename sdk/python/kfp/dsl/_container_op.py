@@ -848,6 +848,7 @@ class ContainerOp(BaseOp):
                  sidecars: List[Sidecar] = None,
                  container_kwargs: Dict = None,
                  file_outputs: Dict[str, str] = None,
+                 output_artifact_paths : Dict[str, str]=None,
                  is_exit_handler=False,
                  pvolumes: Dict[str, V1Volume] = None,
         ):
@@ -869,6 +870,10 @@ class ContainerOp(BaseOp):
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
+          output_artifact_paths: Maps output artifact labels to local artifact file paths.
+              It has the following default artifact paths during compile time.
+              {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
+               'mlpipeline-metrics': '/mlpipeline-metrics.json'}
           is_exit_handler: Whether it is used as an exit handler.
           pvolumes: Dictionary for the user to match a path on the op's fs with a
               V1Volume or it inherited type.
@@ -917,6 +922,8 @@ class ContainerOp(BaseOp):
 
         # attributes specific to `ContainerOp`
         self.file_outputs = file_outputs
+        self.output_artifact_paths = output_artifact_paths or {}
+
         self._metadata = None
 
         self.outputs = {}
