@@ -25,8 +25,7 @@ import { Constants } from './Constants';
 export enum StorageService {
   GCS = 'gcs',
   MINIO = 'minio',
-  S3 = 's3',
-  LOCAL = 'local'
+  S3 = 's3'
 }
 
 export interface StoragePath {
@@ -207,13 +206,19 @@ export default class WorkflowParser {
     if (selectedWorkflowNode && selectedWorkflowNode.outputs) {
       (selectedWorkflowNode.outputs.artifacts || [])
         .filter((a) => a.name === 'mlpipeline-ui-metadata' && !!a.s3)
-        .forEach((a) =>
+        .forEach((a) => {
+          let source = StorageService.MINIO;
+          if (a.s3!.endpoint.indexOf('s3.amazonaws.com') >= 0){
+            source = StorageService.S3;
+          } else if (a.s3!.endpoint.indexOf('storage.googleapis.com') >= 0) {
+            source = StorageService.GCS;
+          }
           outputPaths.push({
             bucket: a.s3!.bucket,
             key: a.s3!.key,
-            source: StorageService.MINIO,
+            source: source!,
           })
-        );
+        });
     }
 
     return outputPaths;
@@ -261,12 +266,6 @@ export default class WorkflowParser {
         bucket: pathParts[0],
         key: pathParts.slice(1).join('/'),
         source: StorageService.S3,
-      };
-    } else if (strPath.startsWith('/')) {
-      return {
-        bucket: 'local',
-        key: strPath,
-        source: StorageService.LOCAL,
       };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);

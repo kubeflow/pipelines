@@ -710,30 +710,6 @@ describe('WorkflowParser', () => {
         source: StorageService.S3,
       });
     });
-
-    it('handles local file without directory', () => {
-      expect(WorkflowParser.parseStoragePath('/testbucket')).toEqual({
-        bucket: 'local',
-        key: '/testbucket',
-        source: StorageService.LOCAL,
-      });
-    });
-
-    it('handles local file with directory', () => {
-      expect(WorkflowParser.parseStoragePath('/testbucket/testkey')).toEqual({
-        bucket: 'local',
-        key: '/testbucket/testkey',
-        source: StorageService.LOCAL,
-      });
-    });
-
-    it('handles local file with multi-level directory', () => {
-      expect(WorkflowParser.parseStoragePath('/testbucket/test/key/path')).toEqual({
-        bucket: 'local',
-        key: '/testbucket/test/key/path',
-        source: StorageService.LOCAL,
-      });
-    });
   });
 
   describe('getOutboundNodes', () => {

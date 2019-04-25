@@ -186,8 +186,8 @@ const artifactsHandler = async (req, res) => {
 
         try {
           let contents = '';
-          stream.pipe(new tar.Parse()).on('entry', (entry: Stream) => {
-            entry.on('data', (buffer) => contents += buffer.toString());
+          stream.on('data', (chunk) => {
+            contents = chunk.toString();
           });
 
           stream.on('end', () => {
@@ -197,10 +197,6 @@ const artifactsHandler = async (req, res) => {
           res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
         }
       });
-      break;
-    case 'local':
-      let contents = fs.readFileSync(key, 'utf-8')
-      res.send(contents)
       break;
 
     default:
