@@ -18,6 +18,7 @@ import * as React from 'react';
 
 export enum PlotType {
   CONFUSION_MATRIX = 'confusion_matrix',
+  MARKDOWN = 'markdown',
   ROC = 'roc',
   TABLE = 'table',
   TENSORBOARD = 'tensorboard',
@@ -31,7 +32,7 @@ export interface ViewerConfig {
 }
 
 abstract class Viewer<P, S> extends React.Component<P, S> {
-  public isAggregatable() {
+  public isAggregatable(): boolean {
     return false;
   }
 

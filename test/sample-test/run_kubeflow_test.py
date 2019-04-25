@@ -14,6 +14,7 @@
 
 import argparse
 import os
+import io
 import json
 import tarfile
 from datetime import datetime
@@ -42,6 +43,10 @@ def parse_arguments():
                       type=str,
                       required=True,
                       help='The path of the test output')
+  parser.add_argument('--namespace',
+                      type=str,
+                      default='kubeflow',
+                      help="namespace of the deployed pipeline system. Default: kubeflow")
   args = parser.parse_args()
   return args
 
@@ -51,13 +56,15 @@ def main():
   test_name = 'Kubeflow Sample Test'
 
   ###### Initialization ######
-  client = Client()
+  host = 'ml-pipeline.%s.svc.cluster.local:8888' % args.namespace
+  client = Client(host=host)
 
   ###### Check Input File ######
   utils.add_junit_test(test_cases, 'input generated yaml file', os.path.exists(args.input), 'yaml file is not generated')
   if not os.path.exists(args.input):
     utils.write_junit_xml(test_name, args.result, test_cases)
-    exit()
+    print('Error: job not found.')
+    exit(1)
 
   ###### Create Experiment ######
   experiment_name = 'kubeflow sample experiment'
@@ -69,8 +76,8 @@ def main():
   job_name = 'kubeflow_sample'
   params = {'output': args.output,
             'project': 'ml-pipeline-test',
-            'evaluation': 'gs://ml-pipeline-playground/IntegTest/flower/eval15.csv',
-            'train': 'gs://ml-pipeline-playground/IntegTest/flower/train30.csv',
+            'evaluation': 'gs://ml-pipeline-dataset/sample-test/flower/eval15.csv',
+            'train': 'gs://ml-pipeline-dataset/sample-test/flower/train30.csv',
             'hidden-layer-size': '10,5',
             'steps': '5'}
   response = client.run_pipeline(experiment_id, job_name, args.input, params)
@@ -78,36 +85,37 @@ def main():
   utils.add_junit_test(test_cases, 'create pipeline run', True)
 
   ###### Monitor Job ######
-  start_time = datetime.now()
-  response = client.wait_for_run_completion(run_id, 1200)
-  succ = (response.run.status.lower()=='succeeded')
-  end_time = datetime.now()
-  elapsed_time = (end_time - start_time).seconds
-  utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure', elapsed_time)
+  try:
+    start_time = datetime.now()
+    response = client.wait_for_run_completion(run_id, 1200)
+    succ = (response.run.status.lower()=='succeeded')
+    end_time = datetime.now()
+    elapsed_time = (end_time - start_time).seconds
+    utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure', elapsed_time)
+  finally:
+    ###### Output Argo Log for Debugging ######
+    workflow_json = client._get_workflow_json(run_id)
+    workflow_id = workflow_json['metadata']['name']
+    argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(args.namespace, workflow_id))
+    print("=========Argo Workflow Log=========")
+    print(argo_log)
+
   if not succ:
     utils.write_junit_xml(test_name, args.result, test_cases)
-    exit()
-
-  ###### Output Argo Log for Debugging ######
-  workflow_json = client._get_workflow_json(run_id)
-  workflow_id = workflow_json['metadata']['name']
-  #TODO: remove the namespace dependency or make is configurable.
-  argo_log, _ = utils.run_bash_command('argo logs -n kubeflow -w {}'.format(workflow_id))
-  print("=========Argo Workflow Log=========")
-  print(argo_log)
+    exit(1)
 
   ###### Validate the results ######
   #   confusion matrix should show three columns for the flower data
   #     target, predicted, count
   cm_tar_path = './confusion_matrix.tar.gz'
-  cm_filename = 'mlpipeline-ui-metadata.json'
-  utils.get_artifact_in_minio(workflow_json, 'confusionmatrix', cm_tar_path)
-  tar_handler = tarfile.open(cm_tar_path)
-  tar_handler.extractall()
+  utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path, 'mlpipeline-ui-metadata')
+  with tarfile.open(cm_tar_path) as tar_handle:
+    file_handles = tar_handle.getmembers()
+    assert len(file_handles) == 1
 
-  with open(cm_filename, 'r') as f:
-    cm_data = json.load(f)
-    utils.add_junit_test(test_cases, 'confusion matrix format', (len(cm_data['outputs'][0]['schema']) == 3), 'the column number of the confusion matrix output is not equal to three')
+    with tar_handle.extractfile(file_handles[0]) as f:
+      cm_data = json.load(io.TextIOWrapper(f))
+      utils.add_junit_test(test_cases, 'confusion matrix format', (len(cm_data['outputs'][0]['schema']) == 3), 'the column number of the confusion matrix output is not equal to three')
 
   ###### Delete Job ######
   #TODO: add deletion when the backend API offers the interface.

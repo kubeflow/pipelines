@@ -30,13 +30,14 @@ func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 		Id:          experiment.UUID,
 		Name:        experiment.Name,
 		Description: experiment.Description,
+		CreatedAt:   &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
 	}
 }
 
-func ToApiExperiments(experiments []model.Experiment) []*api.Experiment {
+func ToApiExperiments(experiments []*model.Experiment) []*api.Experiment {
 	apiExperiments := make([]*api.Experiment, 0)
 	for _, experiment := range experiments {
-		apiExperiments = append(apiExperiments, ToApiExperiment(&experiment))
+		apiExperiments = append(apiExperiments, ToApiExperiment(experiment))
 	}
 	return apiExperiments
 }
@@ -65,10 +66,10 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 	}
 }
 
-func ToApiPipelines(pipelines []model.Pipeline) []*api.Pipeline {
+func ToApiPipelines(pipelines []*model.Pipeline) []*api.Pipeline {
 	apiPipelines := make([]*api.Pipeline, 0)
 	for _, pipeline := range pipelines {
-		apiPipelines = append(apiPipelines, ToApiPipeline(&pipeline))
+		apiPipelines = append(apiPipelines, ToApiPipeline(pipeline))
 	}
 	return apiPipelines
 }
@@ -112,13 +113,15 @@ func toApiRun(run *model.Run) *api.Run {
 		}
 	}
 	return &api.Run{
-		CreatedAt:   &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
-		Id:          run.UUID,
-		Metrics:     metrics,
-		Name:        run.DisplayName,
-		Description: run.Description,
-		ScheduledAt: &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
-		Status:      run.Conditions,
+		CreatedAt:    &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
+		Id:           run.UUID,
+		Metrics:      metrics,
+		Name:         run.DisplayName,
+		StorageState: api.Run_StorageState(api.Run_StorageState_value[run.StorageState]),
+		Description:  run.Description,
+		ScheduledAt:  &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
+		FinishedAt:   &timestamp.Timestamp{Seconds: run.FinishedAtInSec},
+		Status:       run.Conditions,
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId:       run.PipelineId,
 			WorkflowManifest: run.WorkflowSpecManifest,
@@ -129,10 +132,10 @@ func toApiRun(run *model.Run) *api.Run {
 	}
 }
 
-func ToApiRuns(runs []model.Run) []*api.Run {
+func ToApiRuns(runs []*model.Run) []*api.Run {
 	apiRuns := make([]*api.Run, 0)
 	for _, run := range runs {
-		apiRuns = append(apiRuns, toApiRun(&run))
+		apiRuns = append(apiRuns, toApiRun(run))
 	}
 	return apiRuns
 }
@@ -175,10 +178,10 @@ func ToApiJob(job *model.Job) *api.Job {
 	}
 }
 
-func ToApiJobs(jobs []model.Job) []*api.Job {
+func ToApiJobs(jobs []*model.Job) []*api.Job {
 	apiJobs := make([]*api.Job, 0)
 	for _, job := range jobs {
-		apiJobs = append(apiJobs, ToApiJob(&job))
+		apiJobs = append(apiJobs, ToApiJob(job))
 	}
 	return apiJobs
 }

@@ -12,38 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import subprocess
-import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 
 import kfp.components as comp
-from kfp.components._yaml_utils import load_yaml
-
-_this_file = Path(__file__).resolve()
-_this_dir = _this_file.parent
-_test_data_dir = _this_dir.joinpath('test_data')
-_tests_root_dir = _this_dir.parent.parent
-_sdk_root_dir = _tests_root_dir.parent
-
-sys.path.insert(0, _sdk_root_dir)
 
 def add_two_numbers(a: float, b: float) -> float:
     '''Returns sum of two arguments'''
     return a + b
 
-@comp.python_op
-def add_two_numbers_decorated(a: float, b: float) -> float:
-    '''Returns sum of two arguments'''
-    return a + b
 
-@comp.python_op(base_image='ark7/python-fire')
-def add_two_numbers_decorated_with_parameters(a: float, b: float) -> float:
-    '''Returns sum of two arguments'''
-    return a + b
-
+@contextmanager
+def components_local_output_dir_context(output_dir: str):
+    old_dir = comp._components._outputs_dir
+    try:
+        comp._components._outputs_dir = output_dir
+        yield output_dir
+    finally:
+        comp._components._outputs_dir = old_dir
 
 class PythonOpTestCase(unittest.TestCase):
     def helper_test_2_in_1_out_component_using_local_call(self, func, op):
@@ -56,19 +45,18 @@ class PythonOpTestCase(unittest.TestCase):
         expected_str = str(expected)
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
-            output_path = Path(temp_dir_name).joinpath('output1')
-
-            task = op(arg1, arg2, str(output_path))
+            with components_local_output_dir_context(temp_dir_name):
+                task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
-
             process = subprocess.run(full_command)
 
-            actual_str = output_path.read_text()
+            output_path = list(task.file_outputs.values())[0]
+            actual_str = Path(output_path).read_text()
 
         self.assertEqual(float(actual_str), float(expected_str))
 
-    def helper_test_2_in_2_out_component_using_local_call(self, func, op):
+    def helper_test_2_in_2_out_component_using_local_call(self, func, op, output_names):
         arg1 = float(3)
         arg2 = float(5)
 
@@ -77,17 +65,16 @@ class PythonOpTestCase(unittest.TestCase):
         expected2_str = str(expected_tuple[1])
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
-            output_path1 = Path(temp_dir_name).joinpath('output1')
-            output_path2 = Path(temp_dir_name).joinpath('output2')
-
-            task = op(arg1, arg2, str(output_path1), str(output_path2))
+            with components_local_output_dir_context(temp_dir_name):
+                task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
 
             process = subprocess.run(full_command)
 
-            actual1_str = output_path1.read_text()
-            actual2_str = output_path2.read_text()
+            (output_path1, output_path2) = (task.file_outputs[output_names[0]], task.file_outputs[output_names[1]])
+            actual1_str = Path(output_path1).read_text()
+            actual2_str = Path(output_path2).read_text()
 
         self.assertEqual(float(actual1_str), float(expected1_str))
         self.assertEqual(float(actual2_str), float(expected2_str))
@@ -98,37 +85,15 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
-    def test_decorated_func_to_container_op_local_call(self):
-        self.helper_test_2_in_1_out_component_using_local_call(add_two_numbers, add_two_numbers_decorated)
-
-    def test_decorated_with_parameters_func_to_container_op_local_call(self):
-        self.helper_test_2_in_1_out_component_using_local_call(add_two_numbers, add_two_numbers_decorated_with_parameters)
-
     def test_indented_func_to_container_op_local_call(self):
         def add_two_numbers_indented(a: float, b: float) -> float:
             '''Returns sum of two arguments'''
             return a + b
 
         func = add_two_numbers_indented
-        op = comp.func_to_container_op(func,output_component_file='add_two_numbers_indented.component.yaml')
+        op = comp.func_to_container_op(func)
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
-
-    def test_indented_decorated_func_to_container_op_local_call(self):
-        @comp.python_op
-        def add_two_numbers_indented_decorated(a: float, b: float) -> float:
-            '''Returns sum of two arguments'''
-            return a + b
-
-        self.helper_test_2_in_1_out_component_using_local_call(add_two_numbers, add_two_numbers_indented_decorated)
-
-    def test_indented_decorated_with_parameters_func_to_container_op_local_call(self):
-        @comp.python_op(base_image='ark7/python-fire')
-        def add_two_numbers_indented_decorated_with_parameters(a: float, b: float) -> float:
-            '''Returns sum of two arguments'''
-            return a + b
-
-        self.helper_test_2_in_1_out_component_using_local_call(add_two_numbers, add_two_numbers_indented_decorated_with_parameters)
 
     def test_func_to_container_op_multiple_named_typed_outputs(self):
         from typing import NamedTuple
@@ -139,7 +104,7 @@ class PythonOpTestCase(unittest.TestCase):
         func = add_multiply_two_numbers
         op = comp.func_to_container_op(func)
 
-        self.helper_test_2_in_2_out_component_using_local_call(func, op)
+        self.helper_test_2_in_2_out_component_using_local_call(func, op, output_names=['sum', 'product'])
 
     @unittest.skip #TODO: #Simplified multi-output syntax is not implemented yet
     def test_func_to_container_op_multiple_named_typed_outputs_using_list_syntax(self):
@@ -150,7 +115,7 @@ class PythonOpTestCase(unittest.TestCase):
         func = add_multiply_two_numbers
         op = comp.func_to_container_op(func)
 
-        self.helper_test_2_in_2_out_component_using_local_call(func, op)
+        self.helper_test_2_in_2_out_component_using_local_call(func, op, output_names=['sum', 'product'])
 
     def test_func_to_container_op_named_typed_outputs_with_underscores(self):
         from typing import NamedTuple
@@ -184,7 +149,7 @@ class PythonOpTestCase(unittest.TestCase):
         func = add_multiply_two_numbers
         op = comp.func_to_container_op(func)
 
-        self.helper_test_2_in_2_out_component_using_local_call(func, op)
+        self.helper_test_2_in_2_out_component_using_local_call(func, op, output_names=['a', 'b'])
 
     def test_handling_same_input_default_output_names(self):
         def add_two_numbers_indented(a: float, Output: float) -> float:
@@ -196,10 +161,39 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
+    def test_python_component_decorator(self):
+        from kfp.dsl import python_component
+        import kfp.components._python_op as _python_op
+
+        expected_name = 'Sum component name'
+        expected_description = 'Sum component description'
+        expected_image = 'org/image'
+
+        @python_component(name=expected_name, description=expected_description, base_image=expected_image)
+        def add_two_numbers_decorated(a: float, b: float) -> float:
+            '''Returns sum of two arguments'''
+            return a + b
+
+        component_spec = _python_op._func_to_component_spec(add_two_numbers_decorated)
+
+        self.assertEqual(component_spec.name, expected_name)
+        self.assertEqual(component_spec.description.strip(), expected_description.strip())
+        self.assertEqual(component_spec.implementation.container.image, expected_image)
+
+    def test_saving_default_values(self):
+        from typing import NamedTuple
+        def add_multiply_two_numbers(a: float = 3, b: float = 5) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
+            '''Returns sum and product of two arguments'''
+            return (a + b, a * b)
+
+        func = add_multiply_two_numbers
+        component_spec = comp._python_op._func_to_component_spec(func)
+
+        self.assertEqual(component_spec.inputs[0].default, '3')
+        self.assertEqual(component_spec.inputs[1].default, '5')
 
     def test_end_to_end_python_component_pipeline_compilation(self):
         import kfp.components as comp
-        from kfp.components import python_op
 
         #Defining the Python function
         def add(a: float, b: float) -> float:
@@ -208,22 +202,12 @@ class PythonOpTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
             add_component_file = str(Path(temp_dir_name).joinpath('add.component.yaml'))
-            subtract_component_file = str(Path(temp_dir_name).joinpath('subtract.component.yaml'))
 
             #Converting the function to a component. Instantiate it to create a pipeline task (ContaineOp instance)
-            add_op = comp.func_to_container_op(add, base_image='ark7/python-fire', output_component_file=add_component_file)
+            add_op = comp.func_to_container_op(add, base_image='python:3.5', output_component_file=add_component_file)
 
             #Checking that the component artifact is usable:
             add_op2 = comp.load_component_from_file(add_component_file)
-
-            #Using decorator to perform the same thing (convert function to a component):
-            @python_op(base_image='ark7/python-fire', output_component_file=subtract_component_file)
-            def subtract_op(a: float, b: float) -> float:
-                '''Returns difference between two arguments'''
-                return a - b
-
-            #Checking that the component artifact is usable:
-            subtract_op2 = comp.load_component_from_file(subtract_component_file)
 
             #Building the pipeline
             import kfp.dsl as dsl
@@ -236,14 +220,13 @@ class PythonOpTestCase(unittest.TestCase):
                 a2=dsl.PipelineParam('a2', value='7'),
                 a3=dsl.PipelineParam('a3', value='17'),
             ):
-                task_11 = add_op(a1, a2)
-                task_12 = subtract_op(task_11.output, a3)
-                task_21 = add_op2(a1, a2)
-                task_22 = subtract_op2(task_21.output, a3)
-                task_3 = subtract_op(task_12.output, task_22.output)
+                task_1 = add_op(a1, a2)
+                task_2 = add_op2(a1, a2)
+                task_3 = add_op(task_1.output, task_2.output)
+                task_4 = add_op2(task_3.output, a3)
 
             #Compiling the pipleine:
-            pipeline_filename = Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz')
+            pipeline_filename = str(Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz'))
             import kfp.compiler as compiler
             compiler.Compiler().compile(calc_pipeline, pipeline_filename)
 

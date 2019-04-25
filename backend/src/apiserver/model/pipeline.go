@@ -14,9 +14,7 @@
 
 package model
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // PipelineStatus a label for the status of the Pipeline.
 // This is intend to make pipeline creation and deletion atomic.
@@ -44,4 +42,27 @@ func (p Pipeline) GetValueOfPrimaryKey() string {
 
 func GetPipelineTablePrimaryKeyColumn() string {
 	return "UUID"
+}
+
+// PrimaryKeyColumnName returns the primary key for model Pipeline.
+func (p *Pipeline) PrimaryKeyColumnName() string {
+	return "UUID"
+}
+
+// DefaultSortField returns the default sorting field for model Pipeline.
+func (p *Pipeline) DefaultSortField() string {
+	return "CreatedAtInSec"
+}
+
+var pipelineAPIToModelFieldMap = map[string]string{
+	"id":          "UUID",
+	"name":        "Name",
+	"created_at":  "CreatedAtInSec",
+	"description": "Description",
+}
+
+// APIToModelFieldMap returns a map from API names to field names for model
+// Pipeline.
+func (p *Pipeline) APIToModelFieldMap() map[string]string {
+	return pipelineAPIToModelFieldMap
 }

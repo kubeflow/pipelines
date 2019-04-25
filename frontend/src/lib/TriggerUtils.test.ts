@@ -105,7 +105,7 @@ describe('TriggerUtils', () => {
       expect(buildCron(date, PeriodicInterval.MONTH, [])).toBe('0 53 8 13 * ?');
     });
 
-    function setToSelectedDays(selected: Set<number>) {
+    function setToSelectedDays(selected: Set<number>): boolean[] {
       return new Array(7).fill(false).map((_, i) => selected.has(i) ? true : false);
     }
 
@@ -209,7 +209,7 @@ describe('TriggerUtils', () => {
       expect(() =>
         buildTrigger(
           PeriodicInterval.DAY, 1, undefined, undefined, 'not a trigger type' as any, '')
-        ).toThrowError('Invalid TriggerType: ' + 'not a trigger type');
+      ).toThrowError('Invalid TriggerType: ' + 'not a trigger type');
     });
   });
 
@@ -275,7 +275,7 @@ describe('TriggerUtils', () => {
     });
 
     it('uses minutes for less than an hour', () => {
-      const trigger: ApiTrigger = { periodic_schedule: { interval_second: (60 * 60 -1).toString() } };
+      const trigger: ApiTrigger = { periodic_schedule: { interval_second: (60 * 60 - 1).toString() } };
       expect(triggerDisplayString(trigger)).toBe('Every 59 minutes, and 59 seconds');
     });
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 #
 # Copyright 2018 Google LLC
 #
@@ -23,8 +23,15 @@
 # Setup:
 #   apt-get update -y
 #   apt-get install --no-install-recommends -y -q default-jdk
-#   wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.3.1/swagger-codegen-cli-2.3.1.jar -O /tmp/swagger-codegen-cli.jar
+#   wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar
 
+get_abs_filename() {
+  # $1 : relative filename
+  echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+}
+
+target_archive_file=${1:-kfp.tar.gz}
+target_archive_file=$(get_abs_filename "$target_archive_file")
 
 DIR=$(mktemp -d)
 
@@ -33,6 +40,12 @@ echo "{\"packageName\": \"kfp_experiment\"}" > /tmp/config.json
 java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../../backend/api/swagger/experiment.swagger.json -o $DIR -c /tmp/config.json
 echo "{\"packageName\": \"kfp_run\"}" > /tmp/config.json
 java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../../backend/api/swagger/run.swagger.json -o $DIR -c /tmp/config.json
+echo "{\"packageName\": \"kfp_pipeline\"}" > /tmp/config.json
+java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../../backend/api/swagger/pipeline.swagger.json -o $DIR -c /tmp/config.json
+echo "{\"packageName\": \"kfp_uploadpipeline\"}" > /tmp/config.json
+java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../../backend/api/swagger/pipeline.upload.swagger.json -o $DIR -c /tmp/config.json
+echo "{\"packageName\": \"kfp_job\"}" > /tmp/config.json
+java -jar /tmp/swagger-codegen-cli.jar generate -l python -i ../../backend/api/swagger/job.swagger.json -o $DIR -c /tmp/config.json
 rm /tmp/config.json
 
 # Merge generated code with the rest code (setup.py, seira_client, etc).
@@ -42,5 +55,5 @@ cp ./setup.py $DIR
 # Build tarball package.
 cd $DIR
 python setup.py sdist --format=gztar
-cp $DIR/dist/*.tar.gz $1
+cp $DIR/dist/*.tar.gz "$target_archive_file"
 rm -rf $DIR

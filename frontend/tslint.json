@@ -1,5 +1,9 @@
 {
-  "extends": ["tslint:recommended", "tslint-react", "tslint-config-prettier"],
+  "extends": [
+    "tslint:recommended",
+    "tslint-react",
+    "tslint-config-prettier"
+  ],
   "linterOptions": {
     "exclude": [
       "config/**/*.js",
@@ -11,13 +15,27 @@
     ]
   },
   "rules": {
-    "interface-name": [true, "never-prefix"],
+    "interface-name": [
+      true,
+      "never-prefix"
+    ],
     "jsx-no-bind": false,
     "jsx-no-lambda": false,
     "max-classes-per-file": false,
     "ordered-imports": false,
-    "quotemark": [true, "single"],
-    "semicolon": [true, "always", "ignore-bound-class-methods"],
+    "quotemark": [
+      true,
+      "single"
+    ],
+    "semicolon": [
+      true,
+      "always",
+      "ignore-bound-class-methods"
+    ],
+    "typedef": [
+      true,
+      "call-signature"
+    ],
     "variable-name": [
       true,
       "check-format",

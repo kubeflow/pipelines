@@ -14,6 +14,7 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noImplicitAny": true,
+    "strictBindCallApply": true,
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
     "noUnusedLocals": true
@@ -32,7 +33,7 @@
     "node_modules",
     "scripts",
     "server",
-    "src/api",
+    "src/apis",
     "src/setupTests.ts",
     "third_party",
     "webpack"

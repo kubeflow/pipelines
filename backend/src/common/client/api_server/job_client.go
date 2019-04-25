@@ -19,7 +19,7 @@ type JobInterface interface {
 	Delete(params *params.DeleteJobParams) error
 	Enable(params *params.EnableJobParams) error
 	Disable(params *params.DisableJobParams) error
-	List(params *params.ListJobsParams) ([]*model.APIJob, string, error)
+	List(params *params.ListJobsParams) ([]*model.APIJob, int, string, error)
 	ListAll(params *params.ListJobsParams, maxResultSize int) ([]*model.APIJob, error)
 }
 
@@ -49,7 +49,7 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.JobService.CreateJob(parameters, PassThroughAuth)
 	if err != nil {
@@ -73,7 +73,7 @@ func (c *JobClient) Get(parameters *params.GetJobParams) (*model.APIJob,
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.JobService.GetJob(parameters, PassThroughAuth)
 	if err != nil {
@@ -96,7 +96,7 @@ func (c *JobClient) Delete(parameters *params.DeleteJobParams) error {
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	_, err := c.apiClient.JobService.DeleteJob(parameters, PassThroughAuth)
 	if err != nil {
@@ -119,7 +119,7 @@ func (c *JobClient) Enable(parameters *params.EnableJobParams) error {
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	_, err := c.apiClient.JobService.EnableJob(parameters, PassThroughAuth)
 	if err != nil {
@@ -142,7 +142,7 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	_, err := c.apiClient.JobService.DisableJob(parameters, PassThroughAuth)
 	if err != nil {
@@ -161,12 +161,12 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 }
 
 func (c *JobClient) List(parameters *params.ListJobsParams) (
-	[]*model.APIJob, string, error) {
+	[]*model.APIJob, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
-	// Make service all
+	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.JobService.ListJobs(parameters, PassThroughAuth)
 	if err != nil {
@@ -176,12 +176,12 @@ func (c *JobClient) List(parameters *params.ListJobsParams) (
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
-		return nil, "", util.NewUserError(err,
+		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list jobs. Params: '%+v'", parameters),
 			fmt.Sprintf("Failed to list jobs"))
 	}
 
-	return response.Payload.Jobs, response.Payload.NextPageToken, nil
+	return response.Payload.Jobs, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
 func (c *JobClient) ListAll(parameters *params.ListJobsParams, maxResultSize int) (
@@ -199,7 +199,7 @@ func listAllForJob(client JobInterface, parameters *params.ListJobsParams,
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {
-		results, pageToken, err := client.List(parameters)
+		results, _, pageToken, err := client.List(parameters)
 		if err != nil {
 			return nil, err
 		}

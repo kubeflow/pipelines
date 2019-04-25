@@ -1,5 +1,31 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`DetailsTable shows a row with a title 1`] = `
+Array [
+  <div
+    className="header"
+  >
+    some title
+  </div>,
+  <div
+    className="root"
+  >
+    <div
+      className="row"
+    >
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <span>
+        value
+      </span>
+    </div>
+  </div>,
+]
+`;
+
 exports[`DetailsTable shows key and value for large values 1`] = `
 <div
   className="root"

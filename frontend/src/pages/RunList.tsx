@@ -15,46 +15,57 @@
  */
 
 import * as React from 'react';
-import CustomTable, { Column, Row } from '../components/CustomTable';
-import RunUtils from '../../src/lib/RunUtils';
+import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
+import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
+import { ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
-import { ApiListRunsResponse, ApiRunDetail, ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric } from '../../src/apis/run';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase, statusToIcon } from './Status';
-import { RoutePage, RouteParams } from '../components/Router';
-import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
+import { PredicateOp, ApiFilter } from '../apis/filter';
+import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { URLParser } from '../lib/URLParser';
 import { commonCss, color } from '../Css';
-import { getRunTime, formatDateString, logger, errorToMessage } from '../lib/Utils';
-import { orderBy } from 'lodash';
+import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
+import { stylesheet } from 'typestyle';
+
+const css = stylesheet({
+  metricContainer: {
+    background: '#f6f7f9',
+    marginLeft: 6,
+    marginRight: 10,
+  },
+  metricFill: {
+    background: '#cbf0f8',
+    boxSizing: 'border-box',
+    color: '#202124',
+    fontFamily: 'Roboto',
+    fontSize: 13,
+    textIndent: 6,
+  },
+});
 
 interface ExperimentInfo {
-  displayName: string;
+  displayName?: string;
   id: string;
 }
 
 interface PipelineInfo {
-  displayName: string;
-  id: string;
+  displayName?: string;
+  id?: string;
+  runId?: string;
+  showLink: boolean;
 }
 
 interface DisplayRun {
   experiment?: ExperimentInfo;
-  metadata: ApiRun;
+  run: ApiRun;
   pipeline?: PipelineInfo;
-  workflow?: Workflow;
   error?: string;
 }
 
 interface DisplayMetric {
-  metadata: MetricMetadata;
+  metadata?: MetricMetadata;
   metric?: ApiRunMetric;
-}
-
-interface MetricMetadata {
-  count: number;
-  maxValue: number;
-  minValue: number;
-  name: string;
 }
 
 export interface RunListProps extends RouteComponentProps {
@@ -62,19 +73,21 @@ export interface RunListProps extends RouteComponentProps {
   disableSelection?: boolean;
   disableSorting?: boolean;
   experimentIdMask?: string;
-  runIdListMask?: string[];
+  hideExperimentColumn?: boolean;
+  noFilterBox?: boolean;
   onError: (message: string, error: Error) => void;
-  selectedIds?: string[];
   onSelectionChange?: (selectedRunIds: string[]) => void;
+  runIdListMask?: string[];
+  selectedIds?: string[];
+  storageState?: RunStorageState;
 }
 
 interface RunListState {
   metrics: MetricMetadata[];
   runs: DisplayRun[];
-  sortBy: string;
 }
 
-class RunList extends React.Component<RunListProps, RunListState> {
+class RunList extends React.PureComponent<RunListProps, RunListState> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -83,39 +96,41 @@ class RunList extends React.Component<RunListProps, RunListState> {
     this.state = {
       metrics: [],
       runs: [],
-      sortBy: RunSortKeys.CREATED_AT,
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     // Only show the two most prevalent metrics
     const metricMetadata: MetricMetadata[] = this.state.metrics.slice(0, 2);
     const columns: Column[] = [
       {
-        customRenderer: this._nameCustomRenderer.bind(this),
+        customRenderer: this._nameCustomRenderer,
         flex: 2,
         label: 'Run name',
         sortKey: RunSortKeys.NAME,
       },
-      { customRenderer: this._statusCustomRenderer.bind(this), flex: 0.5, label: 'Status' },
+      { customRenderer: this._statusCustomRenderer, flex: 0.5, label: 'Status' },
       { label: 'Duration', flex: 0.5 },
-      { customRenderer: this._experimentCustomRenderer.bind(this), label: 'Experiment', flex: 1 },
-      { customRenderer: this._pipelineCustomRenderer.bind(this), label: 'Pipeline', flex: 1 },
+      { customRenderer: this._pipelineCustomRenderer, label: 'Pipeline', flex: 1 },
       { label: 'Start time', flex: 1, sortKey: RunSortKeys.CREATED_AT },
     ];
+
+    if (!this.props.hideExperimentColumn) {
+      columns.splice(3, 0, { customRenderer: this._experimentCustomRenderer, label: 'Experiment', flex: 1 });
+    }
 
     if (metricMetadata.length) {
       // This is a column of empty cells with a left border to separate the metrics from the other
       // columns.
       columns.push({
-        customRenderer: this._metricBufferCustomRenderer.bind(this),
+        customRenderer: this._metricBufferCustomRenderer,
         flex: 0.1,
         label: '',
       });
 
       columns.push(...metricMetadata.map((metadata) => {
         return {
-          customRenderer: this._metricCustomRenderer.bind(this),
+          customRenderer: this._metricCustomRenderer,
           flex: 1,
           label: metadata.name!
         };
@@ -125,8 +140,8 @@ class RunList extends React.Component<RunListProps, RunListState> {
     const rows: Row[] = this.state.runs.map(r => {
       const displayMetrics = metricMetadata.map(metadata => {
         const displayMetric: DisplayMetric = { metadata };
-        if (r.metadata.metrics) {
-          const foundMetric = r.metadata.metrics.find(m => m.name === metadata.name);
+        if (r.run.metrics) {
+          const foundMetric = r.run.metrics.find(m => m.name === metadata.name);
           if (foundMetric && foundMetric.number_value !== undefined) {
             displayMetric.metric = foundMetric;
           }
@@ -135,16 +150,18 @@ class RunList extends React.Component<RunListProps, RunListState> {
       });
       const row = {
         error: r.error,
-        id: r.metadata.id!,
+        id: r.run.id!,
         otherFields: [
-          r.metadata!.name,
-          r.metadata.status || '-',
-          getRunTime(r.workflow),
-          r.experiment,
+          r.run!.name,
+          r.run.status || '-',
+          getRunDuration(r.run),
           r.pipeline,
-          formatDateString(r.metadata.created_at),
-        ]
+          formatDateString(r.run.created_at),
+        ] as any,
       };
+      if (!this.props.hideExperimentColumn) {
+        row.otherFields.splice(3, 0, r.experiment);
+      }
       if (displayMetrics.length) {
         row.otherFields.push(''); // Metric buffer column
         row.otherFields.push(...displayMetrics as any);
@@ -154,27 +171,73 @@ class RunList extends React.Component<RunListProps, RunListState> {
 
     return (<div>
       <CustomTable columns={columns} rows={rows} selectedIds={this.props.selectedIds}
-        initialSortColumn={this.state.sortBy} ref={this._tableRef}
+        initialSortColumn={RunSortKeys.CREATED_AT} ref={this._tableRef} filterLabel='Filter runs'
         updateSelection={this.props.onSelectionChange} reload={this._loadRuns.bind(this)}
         disablePaging={this.props.disablePaging} disableSorting={this.props.disableSorting}
-        disableSelection={this.props.disableSelection}
-        emptyMessage={`No runs found${this.props.experimentIdMask ? ' for this experiment' : ''}.`}
+        disableSelection={this.props.disableSelection} noFilterBox={this.props.noFilterBox}
+        emptyMessage={
+          `No` +
+          `${this.props.storageState === RunStorageState.ARCHIVED ? ' archived' : ' available'}` +
+          ` runs found` +
+          `${this.props.experimentIdMask ? ' for this experiment' : ''}.`
+        }
       />
     </div>);
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     if (this._tableRef.current) {
-      this._tableRef.current.reload();
+      await this._tableRef.current.reload();
     }
   }
 
-  private _metricBufferCustomRenderer() {
+  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (props: CustomRendererProps<string>) => {
+    return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
+      to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}>{props.value}</Link>;
+  }
+
+  public _pipelineCustomRenderer: React.FC<CustomRendererProps<PipelineInfo>> = (props: CustomRendererProps<PipelineInfo>) => {
+    // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
+    if (!props.value || (!props.value.showLink && !props.value.id)) {
+      return <div>-</div>;
+    }
+    const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: props.id });
+    const url = props.value.showLink ?
+      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') + search :
+      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, props.value.id || '');
+    return (
+      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
+        to={url}>
+        {props.value.showLink ? '[View pipeline]' : props.value.displayName}
+      </Link>
+    );
+  }
+
+  public _experimentCustomRenderer: React.FC<CustomRendererProps<ExperimentInfo>> = (props: CustomRendererProps<ExperimentInfo>) => {
+    // If the getExperiment call failed or a run has no experiment, we display a placeholder.
+    if (!props.value || !props.value.id) {
+      return <div>-</div>;
+    }
+    return (
+      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
+        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.value.id)}>
+        {props.value.displayName}
+      </Link>
+    );
+  }
+
+  public _statusCustomRenderer: React.FC<CustomRendererProps<NodePhase>> = (props: CustomRendererProps<NodePhase>) => {
+    return statusToIcon(props.value);
+  }
+
+  public _metricBufferCustomRenderer: React.FC<CustomRendererProps<{}>> = (props: CustomRendererProps<{}>) => {
     return <div style={{ borderLeft: `1px solid ${color.divider}`, padding: '20px 0' }} />;
   }
 
-  private _metricCustomRenderer(displayMetric: DisplayMetric) {
-    if (!displayMetric.metric || !displayMetric.metric.number_value) {
+  public _metricCustomRenderer: React.FC<CustomRendererProps<DisplayMetric>> = (props: CustomRendererProps<DisplayMetric>) => {
+    const displayMetric = props.value;
+    if (!displayMetric || !displayMetric.metric ||
+      displayMetric.metric.number_value === undefined) {
       return <div />;
     }
 
@@ -186,6 +249,12 @@ class RunList extends React.Component<RunListProps, RunListState> {
       displayString = (displayMetric.metric.number_value * 100).toFixed(3) + '%';
       width = `calc(${displayString})`;
     } else {
+
+      // Non-percentage metrics must contain metadata
+      if (!displayMetric.metadata) {
+        return <div />;
+      }
+
       displayString = displayMetric.metric.number_value.toFixed(3);
 
       if (displayMetric.metadata.maxValue === 0 && displayMetric.metadata.minValue === 0) {
@@ -193,16 +262,16 @@ class RunList extends React.Component<RunListProps, RunListState> {
       }
 
       if (displayMetric.metric.number_value - displayMetric.metadata.minValue < 0) {
-        logger.error(`Run ${arguments[1]}'s metric ${displayMetric.metadata.name}'s value:`
-          + ` ${displayMetric.metric.number_value}) was lower than the supposed minimum of`
-          + ` ${displayMetric.metadata.minValue})`);
+        logger.error(`Run ${props.id}'s metric ${displayMetric.metadata.name}'s value:`
+          + ` (${displayMetric.metric.number_value}) was lower than the supposed minimum of`
+          + ` (${displayMetric.metadata.minValue})`);
         return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
       }
 
       if (displayMetric.metadata.maxValue - displayMetric.metric.number_value < 0) {
-        logger.error(`Run ${arguments[1]}'s metric ${displayMetric.metadata.name}'s value:`
-          + ` ${displayMetric.metric.number_value}) was greater than the supposed maximum of`
-          + ` ${displayMetric.metadata.maxValue})`);
+        logger.error(`Run ${props.id}'s metric ${displayMetric.metadata.name}'s value:`
+          + ` (${displayMetric.metric.number_value}) was greater than the supposed maximum of`
+          + ` (${displayMetric.metadata.maxValue})`);
         return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
       }
 
@@ -214,82 +283,89 @@ class RunList extends React.Component<RunListProps, RunListState> {
       width = `calc(${barWidth}%)`;
     }
     return (
-      <div style={{ background: '#f6f7f9', marginLeft: leftSpace, marginRight: 10 }}>
-        <div style={{ background: '#cbf0f8', paddingLeft: leftSpace, width }}>
+      <div className={css.metricContainer}>
+        <div className={css.metricFill} style={{ width }}>
           {displayString}
         </div>
       </div>
     );
   }
 
-  private async _loadRuns(loadRequest: ListRequest): Promise<string> {
+  protected async _loadRuns(request: ListRequest): Promise<string> {
+    let displayRuns: DisplayRun[] = [];
+    let nextPageToken = '';
+
     if (Array.isArray(this.props.runIdListMask)) {
-      return await this._loadSpecificRuns(this.props.runIdListMask);
-    }
-    return await this._loadAllRuns(loadRequest);
-  }
-
-  private async _loadSpecificRuns(runIdListMask: string[]): Promise<string> {
-    await Promise.all(runIdListMask.map(async id => await Apis.runServiceApi.getRun(id)))
-      .then(async (result) => {
-        const displayRuns: DisplayRun[] = result.map(r => ({
-          metadata: r.run!,
-          workflow: JSON.parse(r.pipeline_runtime!.workflow_manifest || '{}'),
-        }));
-
-        await this._getAndSetPipelineNames(displayRuns);
-        await this._getAndSetExperimentNames(displayRuns);
-
-        this.setState({
-          metrics: this._extractMetricMetadata(displayRuns),
-          runs: displayRuns,
-        });
-      })
-      .catch((err) => this.props.onError('Error: failed to fetch runs.', err));
-    return '';
-  }
-
-  private async _loadAllRuns(request: ListRequest): Promise<string> {
-    let response: ApiListRunsResponse;
-    try {
-      response = await Apis.runServiceApi.listRuns(
-        request.pageToken,
-        request.pageSize,
-        request.sortBy,
-        this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
-        this.props.experimentIdMask,
-      );
-    } catch (err) {
-      this.props.onError('Error: failed to fetch runs.', err);
-      // No point in continuing if we couldn't retrieve any runs.
-      return '';
-    }
-
-    const displayRuns: DisplayRun[] = (response.runs || []).map(r => ({ metadata: r }));
-
-    // Fetch and set the workflow details
-    await Promise.all(displayRuns.map(async displayRun => {
-      let getRunResponse: ApiRunDetail;
-      try {
-        getRunResponse = await Apis.runServiceApi.getRun(displayRun.metadata!.id!);
-        displayRun.workflow =
-          JSON.parse(getRunResponse.pipeline_runtime!.workflow_manifest || '{}');
-      } catch (err) {
-        // This could be an API exception, or a JSON parse exception.
-        displayRun.error = await errorToMessage(err);
+      displayRuns = this.props.runIdListMask.map(id => ({ run: { id } }));
+      // listRuns doesn't currently support batching by IDs, so in this case we retrieve each run
+      // individually.
+      await this._getAndSetRuns(displayRuns);
+    } else {
+      // Load all runs
+      if (this.props.storageState) {
+        try {
+          // Augment the request filter with the storage state predicate
+          const filter = JSON.parse(decodeURIComponent(request.filter || '{"predicates": []}')) as ApiFilter;
+          filter.predicates = (filter.predicates || []).concat([{
+            key: 'storage_state',
+            // Use EQUALS ARCHIVED or NOT EQUALS ARCHIVED to account for cases where the field
+            // is missing, in which case it should be counted as available.
+            op: this.props.storageState === RunStorageState.ARCHIVED ? PredicateOp.EQUALS : PredicateOp.NOTEQUALS,
+            string_value: RunStorageState.ARCHIVED.toString(),
+          }]);
+          request.filter = encodeURIComponent(JSON.stringify(filter));
+        } catch (err) {
+          logger.error('Could not parse request filter: ', request.filter);
+        }
       }
-    }));
+
+      try {
+        const response = await Apis.runServiceApi.listRuns(
+          request.pageToken,
+          request.pageSize,
+          request.sortBy,
+          this.props.experimentIdMask ? ApiResourceType.EXPERIMENT.toString() : undefined,
+          this.props.experimentIdMask,
+          request.filter,
+        );
+
+        displayRuns = (response.runs || []).map(r => ({ run: r }));
+        nextPageToken = response.next_page_token || '';
+
+      } catch (err) {
+        const error = new Error(await errorToMessage(err));
+        this.props.onError('Error: failed to fetch runs.', error);
+        // No point in continuing if we couldn't retrieve any runs.
+        return '';
+      }
+    }
 
     await this._getAndSetPipelineNames(displayRuns);
-    await this._getAndSetExperimentNames(displayRuns);
+    if (!this.props.hideExperimentColumn) {
+      await this._getAndSetExperimentNames(displayRuns);
+    }
 
     this.setState({
-      metrics: this._extractMetricMetadata(displayRuns),
+      metrics: RunUtils.extractMetricMetadata(displayRuns.map(r => r.run)),
       runs: displayRuns,
-      sortBy: request.sortBy!,
     });
+    return nextPageToken;
+  }
 
-    return response.next_page_token || '';
+  /**
+   * For each run ID, fetch its corresponding run, and set it in DisplayRuns
+   */
+  private _getAndSetRuns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
+    return Promise.all(displayRuns.map(async displayRun => {
+      let getRunResponse: ApiRunDetail;
+      try {
+        getRunResponse = await Apis.runServiceApi.getRun(displayRun.run!.id!);
+        displayRun.run = getRunResponse.run!;
+      } catch (err) {
+        displayRun.error = await errorToMessage(err);
+      }
+      return displayRun;
+    }));
   }
 
   /**
@@ -297,34 +373,23 @@ class RunList extends React.Component<RunListProps, RunListState> {
    * use that Pipeline ID to fetch its associated Pipeline and attach that Pipeline's name to the
    * DisplayRun. If the ApiRun has no Pipeline ID, then the corresponding DisplayRun will show '-'.
    */
-  private async _getAndSetPipelineNames(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
-    return await Promise.all(
+  private _getAndSetPipelineNames(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
+    return Promise.all(
       displayRuns.map(async (displayRun) => {
-        const pipelineId = RunUtils.getPipelineId(displayRun.metadata);
+        const pipelineId = RunUtils.getPipelineId(displayRun.run);
         if (pipelineId) {
           try {
             const pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
-            displayRun.pipeline = { displayName: pipeline.name || '', id: pipelineId };
+            displayRun.pipeline = { displayName: pipeline.name || '', id: pipelineId, showLink: false };
           } catch (err) {
             // This could be an API exception, or a JSON parse exception.
-            displayRun.error = await errorToMessage(err);
+            displayRun.error = 'Failed to get associated pipeline: ' + await errorToMessage(err);
           }
+        } else if (!!RunUtils.getPipelineSpec(displayRun.run)) {
+          displayRun.pipeline = { showLink: true };
         }
         return displayRun;
       })
-    );
-  }
-
-  private _pipelineCustomRenderer(pipelineInfo?: PipelineInfo) {
-    // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
-    if (!pipelineInfo || !pipelineInfo.id) {
-      return <div>-</div>;
-    }
-    return (
-      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-        to={RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, pipelineInfo.id)}>
-        {pipelineInfo.displayName}
-      </Link>
     );
   }
 
@@ -334,10 +399,10 @@ class RunList extends React.Component<RunListProps, RunListState> {
    * name to the DisplayRun. If the ApiRun has no Experiment ID, then the corresponding DisplayRun
    * will show '-'.
    */
-  private async _getAndSetExperimentNames(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
-    return await Promise.all(
+  private _getAndSetExperimentNames(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
+    return Promise.all(
       displayRuns.map(async (displayRun) => {
-        const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.metadata);
+        const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.run);
         if (experimentId) {
           try {
             // TODO: Experiment could be an optional field in state since whenever the RunList is
@@ -347,65 +412,12 @@ class RunList extends React.Component<RunListProps, RunListState> {
             displayRun.experiment = { displayName: experiment.name || '', id: experimentId };
           } catch (err) {
             // This could be an API exception, or a JSON parse exception.
-            displayRun.error = await errorToMessage(err);
+            displayRun.error = 'Failed to get associated experiment: ' + await errorToMessage(err);
           }
         }
         return displayRun;
       })
     );
-  }
-
-  private _experimentCustomRenderer(experimentInfo?: ExperimentInfo) {
-    // If the getExperiment call failed or a run has no experiment, we display a placeholder.
-    if (!experimentInfo || !experimentInfo.id) {
-      return <div>-</div>;
-    }
-    return (
-      <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-        to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experimentInfo.id)}>
-        {experimentInfo.displayName}
-      </Link>
-    );
-  }
-
-  private _nameCustomRenderer(value: string, id: string) {
-    return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-      to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, id)}>{value}</Link>;
-  }
-
-  private _statusCustomRenderer(status: NodePhase) {
-    return statusToIcon(status);
-  }
-
-  private _extractMetricMetadata(runs: DisplayRun[]) {
-    const metrics = Array.from(
-      runs.reduce((metricMetadatas, run) => {
-        if (!run.metadata || !run.metadata.metrics) {
-          return metricMetadatas;
-        }
-        run.metadata.metrics.forEach((metric) => {
-          if (!metric.name || metric.number_value === undefined || isNaN(metric.number_value)) {
-            return;
-          }
-
-          let metricMetadata = metricMetadatas.get(metric.name);
-          if (!metricMetadata) {
-            metricMetadata = {
-              count: 0,
-              maxValue: Number.MIN_VALUE,
-              minValue: Number.MAX_VALUE,
-              name: metric.name,
-            };
-            metricMetadatas.set(metricMetadata.name, metricMetadata);
-          }
-          metricMetadata.count++;
-          metricMetadata.minValue = Math.min(metricMetadata.minValue, metric.number_value);
-          metricMetadata.maxValue = Math.max(metricMetadata.maxValue, metric.number_value);
-        });
-        return metricMetadatas;
-      }, new Map<string, MetricMetadata>()).values()
-    );
-    return orderBy(metrics, ['count', 'name'], ['desc', 'asc']);
   }
 }
 

@@ -15,7 +15,9 @@
  */
 
 import * as React from 'react';
-import CustomTable, { Column, Row, css, ExpandState } from './CustomTable';
+import CustomTable, { Column, ExpandState, Row, css } from './CustomTable';
+import TestUtils from '../TestUtils';
+import { PredicateOp } from '../apis/filter';
 import { shallow } from 'enzyme';
 
 const props = {
@@ -53,6 +55,12 @@ const rows: Row[] = [
 const consoleErrorBackup = console.error;
 let consoleSpy: jest.Mock;
 
+class CustomTableTest extends CustomTable {
+  public _requestFilter(filterString?: string): Promise<void> {
+    return super._requestFilter(filterString);
+  }
+}
+
 describe('CustomTable', () => {
   beforeAll(() => {
     consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
@@ -63,34 +71,57 @@ describe('CustomTable', () => {
     console.error = consoleErrorBackup;
   });
 
-  it('renders without rows or columns', () => {
+  it('renders with default filter label', async () => {
     const tree = shallow(<CustomTable {...props} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders empty message on no rows', () => {
+  it('renders with provided filter label', async () => {
+    const tree = shallow(<CustomTable {...props} filterLabel='test filter label' />);
+    await TestUtils.flushPromises();
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders without filter box', async () => {
+    const tree = shallow(<CustomTable {...props} noFilterBox={true} />);
+    await TestUtils.flushPromises();
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders without rows or columns', async () => {
+    const tree = shallow(<CustomTable {...props} />);
+    await TestUtils.flushPromises();
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders empty message on no rows', async () => {
     const tree = shallow(<CustomTable {...props} emptyMessage='test empty message' />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders some columns with equal widths without rows', () => {
+  it('renders some columns with equal widths without rows', async () => {
     const tree = shallow(<CustomTable {...props} columns={[{ label: 'col1' }, { label: 'col2' }]} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders without the checkboxes if disableSelection is true', () => {
+  it('renders without the checkboxes if disableSelection is true', async () => {
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns}
       disableSelection={true} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders some columns with descending sort order on first column', () => {
+  it('renders some columns with descending sort order on first column', async () => {
     const tree = shallow(<CustomTable {...props} initialSortOrder='desc'
       columns={[{ label: 'col1', sortKey: 'col1sortkey' }, { label: 'col2' }]} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders columns with specified widths', () => {
+  it('renders columns with specified widths', async () => {
     const testcolumns = [{
       flex: 3,
       label: 'col1',
@@ -99,13 +130,20 @@ describe('CustomTable', () => {
       label: 'col2',
     }];
     const tree = shallow(<CustomTable {...props} columns={testcolumns} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
   it('calls reload function with an empty page token to get rows', () => {
     const reload = jest.fn();
     shallow(<CustomTable {...props} reload={reload} />);
-    expect(reload).toHaveBeenLastCalledWith({ pageToken: '', pageSize: 10, orderAscending: false, sortBy: '' });
+    expect(reload).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: '',
+    });
   });
 
   it('calls reload function with sort key of clicked column, while keeping same page', () => {
@@ -120,11 +158,21 @@ describe('CustomTable', () => {
     }];
     const reload = jest.fn();
     const tree = shallow(<CustomTable {...props} reload={reload} columns={testcolumns} />);
-    expect(reload).toHaveBeenLastCalledWith({ pageToken: '', pageSize: 10, sortBy: 'col1sortkey desc', orderAscending: false });
+    expect(reload).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: 'col1sortkey desc',
+    });
 
     tree.find('WithStyles(TableSortLabel)').at(1).simulate('click');
     expect(reload).toHaveBeenLastCalledWith({
-      orderAscending: true, pageSize: 10, pageToken: '', sortBy: 'col2sortkey',
+      filter: '',
+      orderAscending: true,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: 'col2sortkey',
     });
   });
 
@@ -140,16 +188,30 @@ describe('CustomTable', () => {
     }];
     const reload = jest.fn();
     const tree = shallow(<CustomTable {...props} reload={reload} columns={testcolumns} />);
-    expect(reload).toHaveBeenLastCalledWith({ pageToken: '', orderAscending: false, pageSize: 10, sortBy: 'col1sortkey desc' });
+    expect(reload).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: 'col1sortkey desc',
+    });
 
     tree.find('WithStyles(TableSortLabel)').at(1).simulate('click');
     expect(reload).toHaveBeenLastCalledWith({
-      orderAscending: true, pageSize: 10, pageToken: '', sortBy: 'col2sortkey',
+      filter: '',
+      orderAscending: true,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: 'col2sortkey',
     });
     tree.setProps({ sortBy: 'col1sortkey' });
     tree.find('WithStyles(TableSortLabel)').at(1).simulate('click');
     expect(reload).toHaveBeenLastCalledWith({
-      orderAscending: false, pageSize: 10, pageToken: '', sortBy: 'col2sortkey desc'
+      filter: '',
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: 'col2sortkey desc',
     });
   });
 
@@ -163,10 +225,22 @@ describe('CustomTable', () => {
     }];
     const reload = jest.fn();
     const tree = shallow(<CustomTable {...props} reload={reload} columns={testcolumns} />);
-    expect(reload).toHaveBeenLastCalledWith({ pageToken: '', pageSize: 10, orderAscending: false, sortBy: '' });
+    expect(reload).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: '',
+    });
 
     tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
-    expect(reload).toHaveBeenLastCalledWith({ pageToken: '', pageSize: 10, orderAscending: false, sortBy: '' });
+    expect(reload).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: '',
+    });
   });
 
   it('logs error if row has more cells than columns', () => {
@@ -182,21 +256,24 @@ describe('CustomTable', () => {
       'Rows must have the same number of cells defined in columns');
   });
 
-  it('renders some rows', () => {
+  it('renders some rows', async () => {
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders some rows using a custom renderer', () => {
+  it('renders some rows using a custom renderer', async () => {
     columns[0].customRenderer = () => (<span>this is custom output</span>) as any;
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
     columns[0].customRenderer = undefined;
   });
 
-  it('displays warning icon with tooltip if row has error', () => {
+  it('displays warning icon with tooltip if row has error', async () => {
     rows[0].error = 'dummy error';
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
     rows[0].error = undefined;
   });
@@ -214,13 +291,22 @@ describe('CustomTable', () => {
     expect(spy).toHaveBeenLastCalledWith(['row1']);
   });
 
-  it('does not add items to selection when multiple clicked', () => {
+  it('does not add items to selection when multiple rows are clicked', () => {
     // Keeping track of selection is the parent's job.
     const spy = jest.fn();
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} updateSelection={spy} />);
     tree.find('.row').at(0).simulate('click', { stopPropagation: () => null });
     tree.find('.row').at(1).simulate('click', { stopPropagation: () => null });
     expect(spy).toHaveBeenLastCalledWith(['row2']);
+  });
+
+  it('passes both selectedIds and the newly selected row to updateSelection when a row is clicked', () => {
+    // Keeping track of selection is the parent's job.
+    const selectedIds = ['previouslySelectedRow'];
+    const spy = jest.fn();
+    const tree = shallow(<CustomTable {...props} selectedIds={selectedIds} rows={rows} columns={columns} updateSelection={spy} />);
+    tree.find('.row').at(0).simulate('click', { stopPropagation: () => null });
+    expect(spy).toHaveBeenLastCalledWith(['previouslySelectedRow', 'row1']);
   });
 
   it('does not call selectionCallback if disableSelection is true', () => {
@@ -272,11 +358,21 @@ describe('CustomTable', () => {
     expect(spy).toHaveBeenLastCalledWith(['row1', 'row2']);
   });
 
+  it('deselects all other items if one item is selected in radio button mode', () => {
+    // Simulate that another row has already been selected. Just clicking another row first won't
+    // work here because the parent is where the selectedIds state is kept
+    const selectedIds = ['previouslySelectedRow'];
+    const spy = jest.fn();
+    const tree = shallow(<CustomTable {...props} useRadioButtons={true} selectedIds={selectedIds} rows={rows} columns={columns} updateSelection={spy} />);
+    tree.find('.row').at(0).simulate('click', { stopPropagation: () => null });
+    expect(spy).toHaveBeenLastCalledWith(['row1']);
+  });
+
   it('disables previous and next page buttons if no next page token given', async () => {
     const reloadResult = Promise.resolve('');
     const spy = () => reloadResult;
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
-    await reloadResult;
+    await TestUtils.flushPromises();
     expect(tree.state()).toHaveProperty('maxPageIndex', 0);
     expect(tree.find('WithStyles(IconButton)').at(0).prop('disabled')).toBeTruthy();
     expect(tree.find('WithStyles(IconButton)').at(1).prop('disabled')).toBeTruthy();
@@ -296,21 +392,33 @@ describe('CustomTable', () => {
     const reloadResult = Promise.resolve('some token');
     const spy = jest.fn(() => reloadResult);
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
-    await reloadResult;
+    await TestUtils.flushPromises();
 
     tree.find('WithStyles(IconButton)').at(1).simulate('click');
-    expect(spy).toHaveBeenLastCalledWith({ pageToken: 'some token', pageSize: 10, orderAscending: false, sortBy: '' });
+    expect(spy).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: 'some token',
+      sortBy: '',
+    });
   });
 
   it('renders new rows after clicking next page, and enables previous page button', async () => {
     const reloadResult = Promise.resolve('some token');
     const spy = jest.fn(() => reloadResult);
     const tree = shallow(<CustomTable {...props} rows={[]} columns={columns} reload={spy} />);
-    await reloadResult;
+    await TestUtils.flushPromises();
 
     tree.find('WithStyles(IconButton)').at(1).simulate('click');
-    await reloadResult;
-    expect(spy).toHaveBeenLastCalledWith({ pageToken: 'some token', pageSize: 10, sortBy: '', orderAscending: false });
+    await TestUtils.flushPromises();
+    expect(spy).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: 'some token',
+      sortBy: '',
+    });
     expect(tree.state()).toHaveProperty('currentPage', 1);
     tree.setProps({ rows: [rows[1]] });
     expect(tree).toMatchSnapshot();
@@ -327,11 +435,18 @@ describe('CustomTable', () => {
     await reloadResult;
 
     tree.find('WithStyles(IconButton)').at(0).simulate('click');
-    await reloadResult;
-    expect(spy).toHaveBeenLastCalledWith({ pageToken: '', orderAscending: false, sortBy: '', pageSize: 10 });
+    await TestUtils.flushPromises();
+    expect(spy).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: '',
+    });
 
     tree.setProps({ rows });
     expect(tree.find('WithStyles(IconButton)').at(0).prop('disabled')).toBeTruthy();
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
@@ -341,8 +456,14 @@ describe('CustomTable', () => {
     const tree = shallow(<CustomTable {...props} rows={[]} columns={columns} reload={spy} />);
 
     tree.find('.' + css.rowsPerPage).simulate('change', { target: { value: 1234 } });
-    await reloadResult;
-    expect(spy).toHaveBeenLastCalledWith({ pageSize: 1234, pageToken: '', orderAscending: false, sortBy: '' });
+    await TestUtils.flushPromises();
+    expect(spy).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 1234,
+      pageToken: '',
+      sortBy: '',
+    });
     expect(tree.state()).toHaveProperty('tokenList', ['', 'some token']);
   });
 
@@ -353,38 +474,48 @@ describe('CustomTable', () => {
 
     tree.find('.' + css.rowsPerPage).simulate('change', { target: { value: 1234 } });
     await reloadResult;
-    expect(spy).toHaveBeenLastCalledWith({ pageSize: 1234, pageToken: '', orderAscending: false, sortBy: '' });
+    expect(spy).toHaveBeenLastCalledWith({
+      filter: '',
+      orderAscending: false,
+      pageSize: 1234,
+      pageToken: '',
+      sortBy: '',
+    });
     expect(tree.state()).toHaveProperty('tokenList', ['']);
   });
 
-  it('renders a collapsed row', () => {
+  it('renders a collapsed row', async () => {
     const row = { ...rows[0] };
     row.expandState = ExpandState.COLLAPSED;
     const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns}
       getExpandComponent={() => null} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders a collapsed row when selection is disabled', () => {
+  it('renders a collapsed row when selection is disabled', async () => {
     const row = { ...rows[0] };
     row.expandState = ExpandState.COLLAPSED;
     const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns}
       getExpandComponent={() => null} disableSelection={true} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders an expanded row', () => {
+  it('renders an expanded row', async () => {
     const row = { ...rows[0] };
     row.expandState = ExpandState.EXPANDED;
     const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders an expanded row with expanded component below it', () => {
+  it('renders an expanded row with expanded component below it', async () => {
     const row = { ...rows[0] };
     row.expandState = ExpandState.EXPANDED;
     const tree = shallow(<CustomTable {...props} rows={[row]} columns={columns}
       getExpandComponent={() => <span>Hello World</span>} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });
 
@@ -400,8 +531,46 @@ describe('CustomTable', () => {
     expect(stopPropagationSpy).toHaveBeenCalledWith();
   });
 
-  it('renders a table with sorting disabled', () => {
+  it('renders a table with sorting disabled', async () => {
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} disableSorting={true} />);
+    await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
+  });
+
+  it('updates the filter string in state when the filter box input changes', async () => {
+    const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
+    (tree.instance() as CustomTable).handleFilterChange({ target: { value: 'test filter' } });
+    await TestUtils.flushPromises();
+    expect(tree.state('filterString')).toEqual('test filter');
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('reloads the table with the encoded filter object', async () => {
+    const reload = jest.fn();
+    const tree = shallow(<CustomTableTest {...props} reload={reload} rows={rows} columns={columns} />);
+    // lodash's debounce function doesn't play nice with Jest, so we skip the handleChange function
+    // and call _requestFilter directly.
+    (tree.instance() as CustomTableTest)._requestFilter('test filter');
+    const expectedEncodedFilter = encodeURIComponent(JSON.stringify({
+      predicates: [{
+        key: 'name',
+        op: PredicateOp.ISSUBSTRING,
+        string_value: 'test filter',
+      }]
+    }));
+    expect(tree.state('filterStringEncoded')).toEqual(expectedEncodedFilter);
+    expect(reload).toHaveBeenLastCalledWith({
+      filter: expectedEncodedFilter,
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: '',
+    });
+  });
+
+  it('uses an empty filter if requestFilter is called with no filter', async () => {
+    const tree = shallow(<CustomTableTest {...props} rows={rows} columns={columns} />);
+    (tree.instance() as CustomTableTest)._requestFilter();
+    expect(tree.state('filterStringEncoded')).toEqual('');
   });
 });

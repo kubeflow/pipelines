@@ -20,8 +20,9 @@ except ImportError:
   raise Exception('This module can only be loaded in Jupyter.')
 
 
-from kfp.compiler import build_docker_image
+import os
 import tempfile
+from ..compiler import build_docker_image
 
 
 @IPython.core.magic.register_cell_magic
@@ -35,8 +36,9 @@ def docker(line, cell):
 
   target, staging = line.split()
   
-  with tempfile.NamedTemporaryFile(mode='wt') as f:
-    f.write(cell)
-    build_docker_image(staging, target, f.name)
 
-  
+  with tempfile.NamedTemporaryFile(mode='wt', delete=False) as f:
+    f.write(cell)
+
+  build_docker_image(staging, target, f.name)
+  os.remove(f.name)

@@ -18,7 +18,7 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
-	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -133,6 +133,14 @@ func (w *Workflow) ScheduledAtInSecOr0() int64 {
 	}
 
 	return 0
+}
+
+func (w *Workflow) FinishedAt() int64 {
+	if w.Status.FinishedAt.IsZero(){
+		// If workflow is not finished
+		return 0
+	}
+	return w.Status.FinishedAt.Unix()
 }
 
 func (w *Workflow) Condition() string {

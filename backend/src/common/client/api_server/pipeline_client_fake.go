@@ -58,13 +58,11 @@ func NewPipelineClientFake() *PipelineClientFake {
 
 func (c *PipelineClientFake) Create(params *pipelineparams.CreatePipelineParams) (
 	*pipelinemodel.APIPipeline, error) {
-	switch params.Body.PipelineURL {
+	switch params.Body.URL.PipelineURL {
 	case PipelineInvalidURL:
 		return nil, fmt.Errorf(ClientErrorString)
-	case PipelineValidURL:
-		return getDefaultPipeline(path.Base(params.Body.PipelineURL)), nil
 	default:
-		return nil, fmt.Errorf(InvalidFakeRequest)
+		return getDefaultPipeline(path.Base(params.Body.URL.PipelineURL)), nil
 	}
 }
 
@@ -73,10 +71,8 @@ func (c *PipelineClientFake) Get(params *pipelineparams.GetPipelineParams) (
 	switch params.ID {
 	case PipelineForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
-	case PipelineForDefaultTest:
-		return getDefaultPipeline(params.ID), nil
 	default:
-		return nil, fmt.Errorf(InvalidFakeRequest)
+		return getDefaultPipeline(params.ID), nil
 	}
 }
 
@@ -84,10 +80,8 @@ func (c *PipelineClientFake) Delete(params *pipelineparams.DeletePipelineParams)
 	switch params.ID {
 	case PipelineForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)
-	case PipelineForDefaultTest:
-		return nil
 	default:
-		return fmt.Errorf(InvalidFakeRequest)
+		return nil
 	}
 }
 
@@ -96,15 +90,13 @@ func (c *PipelineClientFake) GetTemplate(params *pipelineparams.GetTemplateParam
 	switch params.ID {
 	case PipelineForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
-	case PipelineForDefaultTest:
-		return getDefaultWorkflow(), nil
 	default:
-		return nil, fmt.Errorf(InvalidFakeRequest)
+		return getDefaultWorkflow(), nil
 	}
 }
 
 func (c *PipelineClientFake) List(params *pipelineparams.ListPipelinesParams) (
-	[]*pipelinemodel.APIPipeline, string, error) {
+	[]*pipelinemodel.APIPipeline, int, string, error) {
 
 	const (
 		FirstToken  = ""
@@ -122,13 +114,13 @@ func (c *PipelineClientFake) List(params *pipelineparams.ListPipelinesParams) (
 		return []*pipelinemodel.APIPipeline{
 			getDefaultPipeline("PIPELINE_ID_100"),
 			getDefaultPipeline("PIPELINE_ID_101"),
-		}, SecondToken, nil
+		}, 2, SecondToken, nil
 	case SecondToken:
 		return []*pipelinemodel.APIPipeline{
 			getDefaultPipeline("PIPELINE_ID_102"),
-		}, FinalToken, nil
+		}, 1, FinalToken, nil
 	default:
-		return nil, "", fmt.Errorf(InvalidFakeRequest)
+		return nil, 0, "", fmt.Errorf(InvalidFakeRequest, token)
 	}
 }
 

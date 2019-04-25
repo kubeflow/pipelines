@@ -18,7 +18,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	v1beta1 "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -49,9 +49,9 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=scheduledworkflow.kubeflow.org, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithResource("scheduledworkflows"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Scheduledworkflow().V1alpha1().ScheduledWorkflows().Informer()}, nil
+	// Group=scheduledworkflow.kubeflow.org, Version=v1beta1
+	case v1beta1.SchemeGroupVersion.WithResource("scheduledworkflows"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Scheduledworkflow().V1beta1().ScheduledWorkflows().Informer()}, nil
 
 	}
 

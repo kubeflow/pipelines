@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "run.proto",
+    "title": "backend/api/run.proto",
     "version": "version not set"
   },
   "schemes": [
@@ -72,6 +72,13 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "filter",
+            "description": "A base-64 encoded, JSON-serialized Filter protocol buffer (see\nfilter.proto).",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -102,6 +109,96 @@
             "schema": {
               "$ref": "#/definitions/apiRun"
             }
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
+    "/apis/v1beta1/runs/{id}": {
+      "delete": {
+        "operationId": "DeleteRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
+    "/apis/v1beta1/runs/{id}:archive": {
+      "post": {
+        "operationId": "ArchiveRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
+    "/apis/v1beta1/runs/{id}:unarchive": {
+      "post": {
+        "operationId": "UnarchiveRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
           }
         ],
         "tags": [
@@ -174,6 +271,36 @@
           {
             "name": "artifact_name",
             "description": "The name of the artifact.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
+    "/apis/v1beta1/runs/{run_id}/terminate": {
+      "post": {
+        "operationId": "TerminateRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "run_id",
             "in": "path",
             "required": true,
             "type": "string"
@@ -269,6 +396,14 @@
       "default": "UNSPECIFIED",
       "description": " - UNSPECIFIED: Default value if not present.\n - RAW: Display value as its raw format.\n - PERCENTAGE: Display value in percentage format."
     },
+    "RunStorageState": {
+      "type": "string",
+      "enum": [
+        "STORAGESTATE_AVAILABLE",
+        "STORAGESTATE_ARCHIVED"
+      ],
+      "default": "STORAGESTATE_AVAILABLE"
+    },
     "apiListRunsResponse": {
       "type": "object",
       "properties": {
@@ -277,6 +412,10 @@
           "items": {
             "$ref": "#/definitions/apiRun"
           }
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32"
         },
         "next_page_token": {
           "type": "string"
@@ -422,6 +561,9 @@
           "type": "string",
           "description": "Required input field. Name provided by user,\nor auto generated if run is created by scheduled job. Not unique."
         },
+        "storage_state": {
+          "$ref": "#/definitions/RunStorageState"
+        },
         "description": {
           "type": "string",
           "title": "Optional input field. Describing the purpose of the run"
@@ -447,6 +589,11 @@
           "format": "date-time",
           "description": "Output. When this run is scheduled to run. This could be different from\ncreated_at. For example, if a run is from a backfilling job that was\nsupposed to run 2 month ago, the scheduled_at is 2 month ago,\nv.s. created_at is the current time."
         },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. When this run is finished."
+        },
         "status": {
           "type": "string",
           "title": "Output. The status of the run.\nOne of [Pending, Running, Succeeded, Skipped, Failed, Error]"
@@ -461,9 +608,6 @@
             "$ref": "#/definitions/apiRunMetric"
           },
           "description": "Output. The metrics of the run. The metrics are reported by ReportMetrics\nAPI."
-        },
-        "namespace": {
-          "type": "string"
         }
       }
     },

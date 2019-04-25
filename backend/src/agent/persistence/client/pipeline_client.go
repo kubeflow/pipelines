@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -23,6 +24,10 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	addressTemp = "%s:%s"
 )
 
 type PipelineClientInterface interface {
@@ -33,7 +38,6 @@ type PipelineClientInterface interface {
 }
 
 type PipelineClient struct {
-	namespace             string
 	initializeTimeout     time.Duration
 	timeout               time.Duration
 	basePath              string
@@ -44,38 +48,30 @@ type PipelineClient struct {
 }
 
 func NewPipelineClient(
-	namespace string,
 	initializeTimeout time.Duration,
 	timeout time.Duration,
 	basePath string,
 	mlPipelineServiceName string,
-	mlPipelineServicePort string,
-	masterurl string,
-	kubeconfig string) (*PipelineClient, error) {
-
-	err := util.WaitForGrpcClientAvailable(namespace, initializeTimeout, basePath, masterurl,
-		kubeconfig)
+	mlPipelineServiceHttpPort string,
+	mlPipelineServiceGRPCPort string) (*PipelineClient, error) {
+	httpAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, mlPipelineServiceHttpPort)
+	grpcAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, mlPipelineServiceGRPCPort)
+	err := util.WaitForAPIAvailable(initializeTimeout, basePath, httpAddress)
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"Failed to initialize pipeline client. Error: %s", err.Error())
 	}
-
-	connection, err := util.GetRpcConnection(namespace,
-		mlPipelineServiceName, mlPipelineServicePort, masterurl, kubeconfig)
+	connection, err := util.GetRpcConnection(grpcAddress)
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"Failed to get RPC connection. Error: %s", err.Error())
 	}
 
 	return &PipelineClient{
-		namespace:             namespace,
-		initializeTimeout:     initializeTimeout,
-		timeout:               timeout,
-		basePath:              basePath,
-		mlPipelineServiceName: mlPipelineServiceName,
-		mlPipelineServicePort: mlPipelineServicePort,
-		reportServiceClient:   api.NewReportServiceClient(connection),
-		runServiceClient:      api.NewRunServiceClient(connection),
+		initializeTimeout:   initializeTimeout,
+		timeout:             timeout,
+		reportServiceClient: api.NewReportServiceClient(connection),
+		runServiceClient:    api.NewRunServiceClient(connection),
 	}, nil
 }
 

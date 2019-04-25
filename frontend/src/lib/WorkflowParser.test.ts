@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 import WorkflowParser, { StorageService } from './WorkflowParser';
 import { NodePhase } from '../pages/Status';
+import { color } from '../Css';
+import { Constants } from './Constants';
 
 describe('WorkflowParser', () => {
   describe('createRuntimeGraph', () => {
@@ -79,37 +81,165 @@ describe('WorkflowParser', () => {
 
     it('creates graph with exit handler attached', () => {
       const workflow = {
-        metadata: { name: 'node1' },
+        metadata: { name: 'virtualRoot' },
         status: {
           nodes: {
             node1: {
               displayName: 'node1',
               id: 'node1',
               name: 'node1',
-              outboundNodes: ['node2'],
               phase: 'Succeeded',
-              type: 'Steps',
+              type: 'Pod',
             },
             node2: {
               displayName: 'node2',
               id: 'node2',
-              name: 'node2',
+              name: 'virtualRoot.onExit',
               phase: 'Succeeded',
               type: 'Pod',
             },
-            node3: {
-              displayName: 'node3',
-              id: 'node3',
-              name: 'node1.onExit',
+            virtualRoot: {
+              displayName: 'virtualRoot',
+              id: 'virtualRoot',
+              name: 'virtualRoot',
+              outboundNodes: ['node1'],
               phase: 'Succeeded',
-              type: 'Pod',
-            }
+              type: 'Steps',
+            },
           },
         }
       };
       const g = WorkflowParser.createRuntimeGraph(workflow as any);
-      expect(g.nodes()).toEqual(['node2', 'node3']);
-      expect(g.edges()).toEqual([{ v: 'node2', w: 'node3' }]);
+      expect(g.nodes()).toEqual(['node1', 'node2']);
+      expect(g.edges()).toEqual([{ v: 'node1', w: 'node2' }]);
+    });
+
+    it('creates a graph with placeholder nodes for steps that are not finished', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            finishedNode: {
+              displayName: 'finishedNode',
+              id: 'finishedNode',
+              name: 'finishedNode',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            pendingNode: {
+              displayName: 'pendingNode',
+              id: 'pendingNode',
+              name: 'pendingNode',
+              phase: 'Pending',
+              type: 'Pod',
+            },
+            root: {
+              children: ['pendingNode', 'runningNode', 'finishedNode'],
+              displayName: 'root',
+              id: 'root',
+              name: 'root',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            runningNode: {
+              displayName: 'runningNode',
+              id: 'runningNode',
+              name: 'runningNode',
+              phase: 'Running',
+              type: 'Pod',
+            },
+          },
+        }
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+      expect(g.nodes()).toEqual([
+        'finishedNode',
+        'pendingNode',
+        'pendingNode-running-placeholder',
+        'root',
+        'runningNode',
+        'runningNode-running-placeholder'
+      ]);
+      expect(g.edges()).toEqual(expect.arrayContaining([
+        { v: 'root', w: 'pendingNode' },
+        { v: 'root', w: 'runningNode' },
+        { v: 'root', w: 'finishedNode' },
+        { v: 'pendingNode', w: 'pendingNode-running-placeholder' },
+        { v: 'runningNode', w: 'runningNode-running-placeholder' },
+      ]));
+    });
+
+    it('sets specific properties for placeholder nodes', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            root: {
+              children: ['runningNode'],
+              displayName: 'root',
+              id: 'root',
+              name: 'root',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            runningNode: {
+              displayName: 'runningNode',
+              id: 'runningNode',
+              name: 'runningNode',
+              phase: 'Running',
+              type: 'Pod',
+            },
+          },
+        }
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+
+      const runningNode = g.node('runningNode');
+      expect(runningNode.height).toEqual(Constants.NODE_HEIGHT);
+      expect(runningNode.width).toEqual(Constants.NODE_WIDTH);
+      expect(runningNode.label).toEqual('runningNode');
+      expect(runningNode.isPlaceholder).toBeUndefined();
+
+      const placeholderNode = g.node('runningNode-running-placeholder');
+      expect(placeholderNode.height).toEqual(28);
+      expect(placeholderNode.width).toEqual(28);
+      expect(placeholderNode.label).toBeUndefined();
+      expect(placeholderNode.isPlaceholder).toBe(true);
+    });
+
+    it('sets extra properties for placeholder node edges', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            root: {
+              children: ['runningNode'],
+              displayName: 'root',
+              id: 'root',
+              name: 'root',
+              phase: 'Succeeded',
+              type: 'Pod',
+            },
+            runningNode: {
+              displayName: 'runningNode',
+              id: 'runningNode',
+              name: 'runningNode',
+              phase: 'Running',
+              type: 'Pod',
+            },
+          },
+        }
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+
+      g.edges().map(edgeInfo => g.edge(edgeInfo)).forEach(edge => {
+        if (edge.isPlaceholder) {
+          expect(edge.color).toEqual(color.weak);
+        } else {
+          expect(edge.color).toBeUndefined();
+        }
+      });
+
     });
 
     it('deletes virtual nodes', () => {
@@ -144,6 +274,34 @@ describe('WorkflowParser', () => {
       const g = WorkflowParser.createRuntimeGraph(workflow as any);
       expect(g.nodes()).toEqual(['node1', 'node3']);
       expect(g.edges()).toEqual([{ v: 'node1', w: 'node3' }]);
+    });
+
+    it('gives exit-handler nodes a special, more human-readable label based on template name', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        status: {
+          nodes: {
+            exitNode: {
+              id: 'exitNode',
+              name: 'testWorkflow.onExit',
+              phase: 'Succeeded',
+              templateName: 'clean',
+              type: 'Pod',
+            },
+            node1: {
+              id: 'node1',
+              name: 'node1',
+              phase: 'Succeeded',
+              templateName: 'some-template',
+              type: 'Pod',
+            },
+          },
+        }
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+      expect(g.nodes()).toEqual(['exitNode', 'node1']);
+      expect(g.node('node1').label).toEqual('node1');
+      expect(g.node('exitNode').label).toEqual('onExit - clean');
     });
   });
 
@@ -504,6 +662,30 @@ describe('WorkflowParser', () => {
         source: StorageService.GCS,
       });
     });
+
+    it('handles Minio bucket without key', () => {
+      expect(WorkflowParser.parseStoragePath('minio://testbucket/')).toEqual({
+        bucket: 'testbucket',
+        key: '',
+        source: StorageService.MINIO,
+      });
+    });
+
+    it('handles Minio bucket and key', () => {
+      expect(WorkflowParser.parseStoragePath('minio://testbucket/testkey')).toEqual({
+        bucket: 'testbucket',
+        key: 'testkey',
+        source: StorageService.MINIO,
+      });
+    });
+
+    it('handles Minio bucket and multi-part key', () => {
+      expect(WorkflowParser.parseStoragePath('minio://testbucket/test/key/path')).toEqual({
+        bucket: 'testbucket',
+        key: 'test/key/path',
+        source: StorageService.MINIO,
+      });
+    });
   });
 
   describe('getOutboundNodes', () => {
@@ -642,5 +824,342 @@ describe('WorkflowParser', () => {
       });
     });
 
+  });
+
+  describe('getNodeVolumeMounts', () => {
+    it('handles undefined workflow', () => {
+      expect(WorkflowParser.getNodeVolumeMounts(undefined as any, '')).toEqual([]);
+    });
+
+    it('handles empty workflow, without status', () => {
+      expect(WorkflowParser.getNodeVolumeMounts({} as any, '')).toEqual([]);
+    });
+
+    it('handles workflow without nodes', () => {
+      const workflow = { status: {} };
+      expect(WorkflowParser.getNodeVolumeMounts(workflow as any, '')).toEqual([]);
+    });
+
+    it('handles node not existing in graph', () => {
+      const workflow = { status: { nodes: { node1: {} } } };
+      expect(WorkflowParser.getNodeVolumeMounts(workflow as any, 'node2')).toEqual([]);
+    });
+
+    it('handles an empty node', () => {
+      const workflow = { status: { nodes: { node1: {} } } };
+      expect(WorkflowParser.getNodeVolumeMounts(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a workflow without spec', () => {
+      const workflow = {
+        spec: {},
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeVolumeMounts(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a workflow without templates', () => {
+      const workflow = {
+        spec: { templates: [] },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeVolumeMounts(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a node without a template', () => {
+      const workflow = {
+        spec: {
+          templates: [{
+            container: {},
+            name: 'template-2',
+	  }]
+        },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeVolumeMounts(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a node which is not a container template', () => {
+      const workflow = {
+        spec: {
+          templates: [{
+            name: 'template-1',
+            resource: {},
+	  }]
+        },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeVolumeMounts(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a node which is an empty container template', () => {
+      const workflow = {
+        spec: {
+          templates: [{
+            container: {},
+            name: 'template-1',
+	  }]
+        },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeVolumeMounts(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a node which is a container template without volumeMounts', () => {
+      const workflow = {
+        spec: {
+          templates: [{
+            container: {
+              image: 'image'
+	    },
+            name: 'template-1',
+	  }]
+        },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeVolumeMounts(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a node which is a container template with empty volumeMounts', () => {
+      const workflow = {
+        spec: {
+          templates: [{
+            container: {
+              volumeMounts: []
+	    },
+            name: 'template-1',
+	  }]
+        },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeVolumeMounts(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a node which is a container template with one entry in volumeMounts', () => {
+      const workflow = {
+        spec: {
+          templates: [{
+            container: {
+              volumeMounts: [{
+                mountPath: '/data',
+                name: 'vol1',
+              }]
+	    },
+            name: 'template-1',
+	  }]
+        },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+	    expect(WorkflowParser.getNodeVolumeMounts(workflow as any, 'node1')).toEqual([['/data', 'vol1']]);
+    });
+
+    it('handles a node which is a container template with multiple volumeMounts', () => {
+      const workflow = {
+        spec: {
+          templates: [{
+            container: {
+              volumeMounts: [
+	        {
+                  mountPath: '/data',
+                  name: 'vol1',
+	        },{
+                  mountPath: '/common',
+                  name: 'vol2',
+	        }
+	      ]
+	    },
+            name: 'template-1',
+	  }]
+        },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+	    expect(WorkflowParser.getNodeVolumeMounts(workflow as any, 'node1')).toEqual([['/data', 'vol1'], ['/common', 'vol2']]);
+    });
+  });
+
+  describe('getNodeManifest', () => {
+    it('handles undefined workflow', () => {
+      expect(WorkflowParser.getNodeManifest(undefined as any, '')).toEqual([]);
+    });
+
+    it('handles empty workflow, without status', () => {
+      expect(WorkflowParser.getNodeManifest({} as any, '')).toEqual([]);
+    });
+
+    it('handles workflow without nodes', () => {
+      const workflow = { status: {} };
+      expect(WorkflowParser.getNodeManifest(workflow as any, '')).toEqual([]);
+    });
+
+    it('handles node not existing in graph', () => {
+      const workflow = { status: { nodes: { node1: {} } } };
+      expect(WorkflowParser.getNodeManifest(workflow as any, 'node2')).toEqual([]);
+    });
+
+    it('handles an empty node', () => {
+      const workflow = { status: { nodes: { node1: {} } } };
+      expect(WorkflowParser.getNodeManifest(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a workflow without spec', () => {
+      const workflow = {
+        spec: {},
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeManifest(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a workflow without templates', () => {
+      const workflow = {
+        spec: { templates: [] },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeManifest(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a node without a template', () => {
+      const workflow = {
+        spec: {
+          templates: [{
+            container: {},
+            name: 'template-2',
+	  }]
+        },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeManifest(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a node which is not a resource template', () => {
+      const workflow = {
+        spec: {
+          templates: [{
+            container: {},
+            name: 'template-1',
+	  }]
+        },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeManifest(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a node which is an empty resource template', () => {
+      const workflow = {
+        spec: {
+          templates: [{
+            name: 'template-1',
+            resource: {},
+	  }]
+        },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeManifest(workflow as any, 'node1')).toEqual([]);
+    });
+
+    it('handles a node which is a complete resource template', () => {
+      const workflow = {
+        spec: {
+          templates: [{
+            name: 'template-1',
+            resource: {
+              action: 'create',
+              manifest: 'manifest'
+	    },
+	  }]
+        },
+        status: {
+          nodes: {
+            node1: {
+              templateName: 'template-1'
+            }
+          }
+        },
+      };
+      expect(WorkflowParser.getNodeManifest(workflow as any, 'node1')).toEqual([['create', 'manifest']]);
+    });
   });
 });

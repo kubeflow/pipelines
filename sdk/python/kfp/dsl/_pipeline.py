@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,9 +14,15 @@
 
 
 from . import _container_op
+from . import _resource_op
 from . import _ops_group
-import re
+from ..components._naming import _make_name_unique_by_adding_index
 import sys
+
+
+# This handler is called whenever the @pipeline decorator is applied.
+# It can be used by command-line DSL compiler to inject code that runs for every pipeline definition.
+_pipeline_decorator_handler = None
 
 
 def pipeline(name, description):
@@ -33,14 +39,39 @@ def pipeline(name, description):
   ```
   """
   def _pipeline(func):
-    Pipeline.add_pipeline(name, description, func)
-    return func
+    func._pipeline_name = name
+    func._pipeline_description = description
+
+    if _pipeline_decorator_handler:
+      return _pipeline_decorator_handler(func) or func
+    else:
+      return func 
 
   return _pipeline
 
-def _make_kubernetes_name(name):
-    return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
+class PipelineConf():
+  """PipelineConf contains pipeline level settings
+  """
+  def __init__(self):
+    self.image_pull_secrets = []
 
+  def set_image_pull_secrets(self, image_pull_secrets):
+    """ configure the pipeline level imagepullsecret
+
+    Args:
+      image_pull_secrets: a list of Kubernetes V1LocalObjectReference
+      For detailed description, check Kubernetes V1LocalObjectReference definition
+      https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
+    """
+    self.image_pull_secrets = image_pull_secrets
+
+def get_pipeline_conf():
+  """Configure the pipeline level setting to the current pipeline
+    Note: call the function inside the user defined pipeline function.
+  """
+  return Pipeline.get_default_pipeline().conf
+
+#TODO: Pipeline is in fact an opsgroup, refactor the code.
 class Pipeline():
   """A pipeline contains a list of operators.
 
@@ -60,24 +91,16 @@ class Pipeline():
   # _default_pipeline is set when it (usually a compiler) runs "with Pipeline()"
   _default_pipeline = None
 
-  # All pipeline functions with @pipeline decorator that are imported.
-  # Each key is a pipeline function. Each value is a (name, description).
-  _pipeline_functions = {}
-
   @staticmethod
   def get_default_pipeline():
     """Get default pipeline. """
     return Pipeline._default_pipeline
 
   @staticmethod
-  def get_pipeline_functions():
-    """Get all imported pipeline functions (decorated with @pipeline)."""
-    return Pipeline._pipeline_functions
-
-  @staticmethod
   def add_pipeline(name, description, func):
-    """Add a pipeline function (decorated with @pipeline)."""
-    Pipeline._pipeline_functions[func] = (name, description)
+    """Add a pipeline function with the specified name and description."""
+    # Applying the @pipeline decorator to the pipeline function
+    func = pipeline(name=name, description=description)(func)
 
   def __init__(self, name: str):
     """Create a new instance of Pipeline.
@@ -87,41 +110,52 @@ class Pipeline():
     """
     self.name = name
     self.ops = {}
+    self.cops = {}
+    self.rops = {}
     # Add the root group.
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
     self.group_id = 0
+    self.conf = PipelineConf()
+    self._metadata = None
 
   def __enter__(self):
     if Pipeline._default_pipeline:
       raise Exception('Nested pipelines are not allowed.')
 
     Pipeline._default_pipeline = self
+
+    def register_op_and_generate_id(op):
+      return self.add_op(op, op.is_exit_handler)
+
+    self._old__register_op_handler = _container_op._register_op_handler
+    _container_op._register_op_handler = register_op_and_generate_id
     return self
 
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
-        
-  def add_op(self, op: _container_op.ContainerOp, define_only: bool):
+    _container_op._register_op_handler = self._old__register_op_handler
+
+  def add_op(self, op: _container_op.BaseOp, define_only: bool):
     """Add a new operator.
 
     Args:
-      op: An operator of ContainerOp or its inherited type.
+      op: An operator of ContainerOp, ResourceOp or their inherited types.
+
+    Returns
+      op_name: a unique op name.
     """
-
-    kubernetes_name = _make_kubernetes_name(op.human_name)
-    step_id = kubernetes_name
     #If there is an existing op with this name then generate a new name.
-    if step_id in self.ops:
-      for i in range(2, sys.maxsize**10):
-        step_id = kubernetes_name + '-' + str(i)
-        if step_id not in self.ops:
-          break
+    op_name = _make_name_unique_by_adding_index(op.human_name, list(self.ops.keys()), ' ')
 
-    self.ops[step_id] = op
+    self.ops[op_name] = op
+    if isinstance(op, _container_op.ContainerOp):
+      self.cops[op_name] = op
+    elif isinstance(op, _resource_op.ResourceOp):
+      self.rops[op_name] = op
     if not define_only:
       self.groups[-1].ops.append(op)
 
-    return step_id
+    return op_name
 
   def push_ops_group(self, group: _ops_group.OpsGroup):
     """Push an OpsGroup into the stack.
@@ -141,3 +175,14 @@ class Pipeline():
 
     self.group_id += 1
     return self.group_id
+
+  def _set_metadata(self, metadata):
+    '''_set_metadata passes the containerop the metadata information
+    Args:
+      metadata (ComponentMeta): component metadata
+    '''
+    if not isinstance(metadata, PipelineMeta):
+      raise ValueError('_set_medata is expecting PipelineMeta.')
+    self._metadata = metadata
+
+

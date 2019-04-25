@@ -13,14 +13,13 @@
 # limitations under the License.
 
 __all__ = [
-    'python_op',
     'func_to_container_op',
     'func_to_component_text',
 ]
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
-from ._structures import InputSpec, OutputSpec, ImplementationSpec, DockerContainerSpec, ComponentSpec
+from ._structures import *
 
 from pathlib import Path
 from typing import TypeVar, Generic
@@ -47,6 +46,24 @@ def _python_function_name_to_component_name(name):
 
 
 def _func_to_component_spec(func, extra_code='', base_image=_default_base_image) -> ComponentSpec:
+    '''Takes a self-contained python function and converts it to component
+
+    Args:
+        func: Required. The function to be converted
+        base_image: Optional. Docker image to be used as a base image for the python component. Must have python 3.5+ installed. Default is tensorflow/tensorflow:1.11.0-py3
+                    Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
+        extra_code: Optional. Python source code that gets placed before the function code. Can be used as workaround to define types used in function signature.
+    '''
+    decorator_base_image = getattr(func, '_component_base_image', None)
+    if decorator_base_image is not None:
+        if base_image is not _default_base_image and decorator_base_image != base_image:
+            raise ValueError('base_image ({}) conflicts with the decorator-specified base image metadata ({})'.format(base_image, decorator_base_image))
+        else:
+            base_image = decorator_base_image
+    else:
+        if base_image is None:
+            raise ValueError('base_image cannot be None')
+
     import inspect
     import re
     from collections import OrderedDict
@@ -62,75 +79,59 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
     extra_output_names = []
     arguments = []
 
-    def annotation_to_argument_kind_and_type_name(annotation):
+    def annotation_to_type_struct(annotation):
         if not annotation or annotation == inspect.Parameter.empty:
-            return ('value', None)
-        if hasattr(annotation, '__origin__'): #Generic type
-            type_name = annotation.__origin__.__name__
-            type_args = annotation.__args__
-            #if len(type_args) != 1:
-            #    raise TypeError('Unsupported generic type {}'.format(type_name))
-            inner_type = type_args[0]
-            if type_name == InputFile.__name__:
-                return ('file', inner_type.__name__)
-            elif type_name == OutputFile.__name__:
-                return ('output', inner_type.__name__)
+            return None
         if isinstance(annotation, type):
-            return ('value', annotation.__name__)
+            return str(annotation.__name__)
         else:
-            #!!! It's important to preserve string anotations as strings. Annotations that are neither types nor strings are converted to strings.
-            #Materializer adds double quotes to the types it does not recognize. - fix it to not quote strings.
-            #We need two kind of strings: we can use any type name for component YAML, but for generated Python code we must use valid python type annotations.
-            return ('value', "'" + str(annotation) + "'") 
+            return str(annotation)
 
     for parameter in parameters:
-        annotation = parameter.annotation
-        
-        (argument_kind, parameter_type_name) = annotation_to_argument_kind_and_type_name(annotation)
-
-        parameter_to_type_name[parameter.name] = parameter_type_name
-
+        type_struct = annotation_to_type_struct(parameter.annotation)
+        parameter_to_type_name[parameter.name] = str(type_struct)
         #TODO: Humanize the input/output names
-        arguments.append({argument_kind: parameter.name})
+        arguments.append(InputValuePlaceholder(parameter.name))
 
-        parameter_spec = OrderedDict([('name', parameter.name)])
-        if parameter_type_name:
-            parameter_spec['type'] = parameter_type_name
-        if argument_kind == 'value' or argument_kind == 'file':
-            inputs.append(parameter_spec)
-        elif argument_kind == 'output':
-            outputs.append(parameter_spec)
-        else:
-            #Cannot happen
-            raise ValueError('Unrecognized argument kind {}.'.format(argument_kind))
+        input_spec = InputSpec(
+            name=parameter.name,
+            type=type_struct,
+            default=str(parameter.default) if parameter.default is not inspect.Parameter.empty else None,
+        )
+        inputs.append(input_spec)
 
     #Analyzing the return type annotations.
     return_ann = signature.return_annotation
     if hasattr(return_ann, '_fields'): #NamedTuple
         for field_name in return_ann._fields:
-            output_spec = OrderedDict([('name', field_name)])
+            type_struct = None
             if hasattr(return_ann, '_field_types'):
-                output_type = return_ann._field_types.get(field_name, None)
-                if isinstance(output_type, type):
-                    output_type_name = output_type.__name__
-                else:
-                    output_type_name = str(output_type)
-                
-                if output_type:
-                    output_spec['type'] = output_type_name
+                type_struct = annotation_to_type_struct(return_ann._field_types.get(field_name, None))
+
+            output_spec = OutputSpec(
+                name=field_name,
+                type=type_struct,
+            )
             outputs.append(output_spec)
             extra_output_names.append(field_name)
-            arguments.append({'output': field_name})
-    else:
-        output_spec = OrderedDict([('name', single_output_name_const)])
-        (_, output_type_name) = annotation_to_argument_kind_and_type_name(signature.return_annotation)
-        if output_type_name:
-            output_spec['type'] = output_type_name
+            arguments.append(OutputPathPlaceholder(field_name))
+    elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
+        type_struct = annotation_to_type_struct(signature.return_annotation)
+        output_spec = OutputSpec(
+            name=single_output_name_const,
+            type=type_struct,
+        )
         outputs.append(output_spec)
         extra_output_names.append(single_output_pythonic_name_const)
-        arguments.append({'output': single_output_name_const})
+        arguments.append(OutputPathPlaceholder(single_output_name_const))
 
     func_name=func.__name__
+
+    #TODO: Add support for copying the NamedTuple subclass declaration code
+    #Adding NamedTuple import if needed
+    func_type_declarations_code = ""
+    if hasattr(return_ann, '_fields'): #NamedTuple
+        func_type_declarations_code = func_type_declarations_code + '\n' + 'from typing import NamedTuple'
 
     #Source code can include decorators line @python_op. Remove them
     (func_code_lines, _) = inspect.getsourcelines(func) 
@@ -163,9 +164,9 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
 
     full_source = \
 '''\
-from typing import NamedTuple
-
 {extra_code}
+
+{func_type_declarations_code}
 
 {func_code}
 
@@ -179,8 +180,7 @@ _output_files = [
 
 _outputs = {func_name}(**_args)
 
-from collections.abc import Sequence
-if not isinstance(_outputs, Sequence) or isinstance(_outputs, str):
+if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
     _outputs = [_outputs]
 
 from pathlib import Path
@@ -191,6 +191,7 @@ for idx, filename in enumerate(_output_files):
 '''.format(
         func_name=func_name,
         func_code=func_code,
+        func_type_declarations_code=func_type_declarations_code,
         extra_code=extra_code,
         input_args_parsing_code='\n'.join(input_args_parsing_code_lines),
         output_files_parsing_code='\n'.join(output_files_parsing_code_lines),
@@ -199,19 +200,23 @@ for idx, filename in enumerate(_output_files):
     #Removing consecutive blank lines
     full_source = re.sub('\n\n\n+', '\n\n', full_source).strip('\n') + '\n'
 
-    component_name = _python_function_name_to_component_name(func_name)
-    description = func.__doc__.strip() + '\n' if func.__doc__ else None #Interesting: unlike ruamel.yaml, PyYaml cannot handle trailing spaces in the last line (' \n') and switches the style to double-quoted.
+    #Component name and description are derived from the function's name and docstribng, but can be overridden by @python_component function decorator
+    #The decorator can set the _component_human_name and _component_description attributes. getattr is needed to prevent error when these attributes do not exist.
+    component_name = getattr(func, '_component_human_name', None) or _python_function_name_to_component_name(func.__name__)
+    description = getattr(func, '_component_description', None) or func.__doc__
+    if description:
+        description = description.strip() + '\n' #Interesting: unlike ruamel.yaml, PyYaml cannot handle trailing spaces in the last line (' \n') and switches the style to double-quoted.
 
     component_spec = ComponentSpec(
         name=component_name,
         description=description,
-        inputs=[InputSpec.from_struct(input) for input in inputs],
-        outputs=[OutputSpec.from_struct(output) for output in outputs],
-        implementation=ImplementationSpec(
-            docker_container=DockerContainerSpec(
+        inputs=inputs,
+        outputs=outputs,
+        implementation=ContainerImplementation(
+            container=ContainerSpec(
                 image=base_image,
                 command=['python3', '-c', full_source],
-                arguments=arguments,
+                args=arguments,
             )
         )
     )
@@ -238,8 +243,9 @@ def func_to_component_text(func, extra_code='', base_image=_default_base_image):
 
     Args:
         func: The python function to convert
-        base_image: Optional. Specify a custom Docker containerimage to use in the component. For lightweight components, the image needs to have python and the fire package.
-        extra_code: Optional. Extra code to add before the function code. May contain imports and other functions.
+        base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.11.0-py3
+                    Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
+        extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
     
     Returns:
         Textual representation of a component definition
@@ -264,8 +270,9 @@ def func_to_component_file(func, output_component_file, base_image=_default_base
     Args:
         func: The python function to convert
         output_component_file: Write a component definition to a local file. Can be used for sharing.
-        base_image: Optional. Specify a custom Docker containerimage to use in the component. For lightweight components, the image needs to have python and the fire package.
-        extra_code: Optional. Extra code to add before the function code. May contain imports and other functions.
+        base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.11.0-py3
+                    Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
+        extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
     '''
 
     component_yaml = func_to_component_text(func, extra_code, base_image)
@@ -288,9 +295,10 @@ def func_to_container_op(func, output_component_file=None, base_image=_default_b
 
     Args:
         func: The python function to convert
-        base_image: Optional. Specify a custom Docker containerimage to use in the component. For lightweight components, the image needs to have python and the fire package.
+        base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.11.0-py3
+                    Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         output_component_file: Optional. Write a component definition to a local file. Can be used for sharing.
-        extra_code: Optional. Extra code to add before the function code. May contain imports and other functions.
+        extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
 
     Returns:
         A factory function with a strongly-typed signature taken from the python function.
@@ -299,6 +307,7 @@ def func_to_container_op(func, output_component_file=None, base_image=_default_b
 
     component_spec = _func_to_component_spec(func, extra_code, base_image)
 
+    output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:
         component_dict = component_spec.to_struct()
         component_yaml = dump_yaml(component_dict)
@@ -306,34 +315,3 @@ def func_to_container_op(func, output_component_file=None, base_image=_default_b
         #TODO: assert ComponentSpec.from_struct(load_yaml(output_component_file)) == component_spec
 
     return _create_task_factory_from_component_spec(component_spec)
-
-
-def python_op(func=None, base_image=_default_base_image, output_component_file=None, extra_code=''):
-    '''
-    Decorator that replaces a Python function with an equivalent task (ContainerOp) factory
-
-    Function docstring is used as component description.
-    Argument and return annotations are used as component input/output types.
-    To declare a function with multiple return values, use the NamedTuple return annotation syntax:
-
-        from typing import NamedTuple
-        @python_op(base_image='tensorflow/tensorflow:1.11.0-py3')
-        def add_multiply_two_numbers_op(a: float, b: float) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
-            """Returns sum and product of two arguments"""
-            return (a + b, a * b)
-
-    Args:
-        func: The python function to convert
-        base_image: Optional. Specify a custom Docker containerimage to use in the component. For lightweight components, the image needs to have python and the fire package.
-        output_component_file: Optional. Write a component definition to a local file. Can be used for sharing.
-        extra_code: Optional. Extra code to add before the function code. May contain imports and other functions.
-
-    Returns:
-        A factory function with a strongly-typed signature taken from the python function.
-        Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp) that can run the original function in a container.
-    '''
-
-    if func:
-        return func_to_container_op(func, output_component_file, base_image, extra_code)
-    else:
-        return lambda f: func_to_container_op(f, output_component_file, base_image, extra_code)

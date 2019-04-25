@@ -22,19 +22,18 @@ func NewRunCmd() *cobra.Command {
 func NewRunGetCmd(root *RootCommand) *cobra.Command {
 	var (
 		runID string
-		err   error
+	)
+	const (
+		flagNameID = "id"
 	)
 	var command = &cobra.Command{
-		Use:   "get ID",
+		Use:   "get",
 		Short: "Display a run",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			runID, err = ValidateSingleString(args, "ID")
-			if err != nil {
-				return err
-			}
-			return nil
+			_, err := ValidateArgumentCount(args, 0)
+			return err
 		},
 
 		// Execute
@@ -46,11 +45,14 @@ func NewRunGetCmd(root *RootCommand) *cobra.Command {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
 			pkg.PipelineRuntime.WorkflowManifest = ""
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), pkg,
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), pkg,
 				&WorkflowForDisplay{Workflow: workflow})
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVar(&runID, flagNameID,
+		"", "The ID of the run")
+	command.MarkPersistentFlagRequired(flagNameID)
 	command.SetOutput(root.Writer())
 	return command
 }
@@ -83,12 +85,43 @@ func NewRunListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), results)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), results)
 			return nil
 		},
 	}
 	command.PersistentFlags().IntVarP(&maxResultSize, "max-items", "m", math.MaxInt32,
 		"Maximum number of items to list")
+	command.SetOutput(root.Writer())
+	return command
+}
+
+func NewRunTerminateCmd(root *RootCommand) *cobra.Command {
+	var (
+		runID string
+		err   error
+	)
+	var command = &cobra.Command{
+		Use:   "terminate ID",
+		Short: "Terminate a run",
+
+		// Validation
+		Args: func(cmd *cobra.Command, args []string) error {
+			runID, err = ValidateSingleString(args, "ID")
+			return err
+		},
+
+		// Execute
+		RunE: func(cmd *cobra.Command, args []string) error {
+			params := params.NewTerminateRunParams()
+			params.RunID = runID
+			err := root.RunClient().Terminate(params)
+			if err != nil {
+				return util.ExtractErrorForCLI(err, root.Debug())
+			}
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), "Run has been scheduled for termination.")
+			return nil
+		},
+	}
 	command.SetOutput(root.Writer())
 	return command
 }

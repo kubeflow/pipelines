@@ -30,6 +30,11 @@ describe('DetailsTable', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('shows a row with a title', () => {
+    const tree = create(<DetailsTable title='some title' fields={[['key', 'value']]} />);
+    expect(tree).toMatchSnapshot();
+  });
+
   it('shows key and value for large values', () => {
     const tree = create(<DetailsTable fields={[
       ['key', `Lorem Ipsum is simply dummy text of the printing and typesetting

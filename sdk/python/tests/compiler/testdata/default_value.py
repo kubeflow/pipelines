@@ -20,8 +20,7 @@ import kfp.dsl as dsl
   name='Default Value',
   description='A pipeline with parameter and default value.'
 )
-def default_value_pipeline(
-    url=dsl.PipelineParam(name='url', value='gs://ml-pipeline/shakespeare1.txt')):
+def default_value_pipeline(url='gs://ml-pipeline/shakespeare1.txt'):
 
   # "url" is a pipeline parameter, meaning users can provide values when running the
   # pipeline using UI, CLI, or API to override the default value.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,104 +14,22 @@
 # limitations under the License.
 
 
-import kfp.dsl as dsl
-import datetime
-
-def dataflow_tf_data_validation_op(inference_data: 'GcsUri', validation_data: 'GcsUri', column_names: 'GcsUri[text/json]', key_columns, project: 'GcpProject', mode, validation_output: 'GcsUri[Directory]', step_name='validation'):
-    return dsl.ContainerOp(
-        name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:dev',
-        arguments = [
-            '--csv-data-for-inference', inference_data,
-            '--csv-data-to-validate', validation_data,
-            '--column-names', column_names,
-            '--key-columns', key_columns,
-            '--project', project,
-            '--mode', mode,
-            '--output', validation_output,
-        ],
-        file_outputs = {
-            'output': '/output.txt',
-            'schema': '/output_schema.json',
-        }
-    )
-
-def dataflow_tf_transform_op(train_data: 'GcsUri', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', preprocess_mode, preprocess_module: 'GcsUri[text/code/python]', transform_output: 'GcsUri[Directory]', step_name='preprocess'):
-    return dsl.ContainerOp(
-        name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:0.0.42',
-        arguments = [
-            '--train', train_data,
-            '--eval', evaluation_data,
-            '--schema', schema,
-            '--project', project,
-            '--mode', preprocess_mode,
-            '--preprocessing-module', preprocess_module,
-            '--output', transform_output,
-        ],
-        file_outputs = {'transformed': '/output.txt'}
-    )
+import kfp
+from kfp import components
+from kfp import dsl
+from kfp import gcp
 
 
-def tf_train_op(transformed_data_dir, schema: 'GcsUri[text/json]', learning_rate: float, hidden_layer_size: int, steps: int, target: str, preprocess_module: 'GcsUri[text/code/python]', training_output: 'GcsUri[Directory]', step_name='training'):
-    return dsl.ContainerOp(
-        name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:0.0.42',
-        arguments = [
-            '--transformed-data-dir', transformed_data_dir,
-            '--schema', schema,
-            '--learning-rate', learning_rate,
-            '--hidden-layer-size', hidden_layer_size,
-            '--steps', steps,
-            '--target', target,
-            '--preprocessing-module', preprocess_module,
-            '--job-dir', training_output,
-        ],
-        file_outputs = {'train': '/output.txt'}
-    )
+dataflow_tf_data_validation_op  = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/dataflow/tfdv/component.yaml')
+dataflow_tf_transform_op        = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/dataflow/tft/component.yaml')
+tf_train_op                     = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/kubeflow/dnntrainer/component.yaml')
+dataflow_tf_model_analyze_op    = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/dataflow/tfma/component.yaml')
+dataflow_tf_predict_op          = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/dataflow/predict/component.yaml')
 
-def dataflow_tf_model_analyze_op(model: 'TensorFlow model', evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', project: 'GcpProject', analyze_mode, analyze_slice_column, analysis_output: 'GcsUri', step_name='analysis'):
-    return dsl.ContainerOp(
-        name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0.0.42',
-        arguments = [
-            '--model', model,
-            '--eval', evaluation_data,
-            '--schema', schema,
-            '--project', project,
-            '--mode', analyze_mode,
-            '--slice-columns', analyze_slice_column,
-            '--output', analysis_output,
-        ],
-        file_outputs = {'analysis': '/output.txt'}
-    )
+confusion_matrix_op             = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/local/confusion_matrix/component.yaml')
+roc_op                          = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/local/roc/component.yaml')
 
-
-def dataflow_tf_predict_op(evaluation_data: 'GcsUri', schema: 'GcsUri[text/json]', target: str, model: 'TensorFlow model', predict_mode, project: 'GcpProject', prediction_output: 'GcsUri', step_name='prediction'):
-    return dsl.ContainerOp(
-        name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:0.0.42',
-        arguments = [
-            '--data', evaluation_data,
-            '--schema', schema,
-            '--target', target,
-            '--model',  model,
-            '--mode', predict_mode,
-            '--project', project,
-            '--output', prediction_output,
-        ],
-        file_outputs = {'prediction': '/output.txt'}
-    )
-
-def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='deploy'):
-    return dsl.ContainerOp(
-        name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:dev', #TODO: change the tag to the release versions when new releases are built with the updated image
-        arguments = [
-            '--model-path', model,
-            '--server-name', tf_server_name
-        ]
-    )
+kubeflow_deploy_op              = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/kubeflow/deployer/component.yaml')
 
 
 @dsl.pipeline(
@@ -119,53 +37,93 @@ def kubeflow_deploy_op(model: 'TensorFlow model', tf_server_name, step_name='dep
   description='Example pipeline that does classification with model analysis based on a public BigQuery dataset.'
 )
 def taxi_cab_classification(
-    output: dsl.PipelineParam,
-    project: dsl.PipelineParam,
+    output,
+    project,
+    column_names='gs://ml-pipeline-playground/tfx/taxi-cab-classification/column-names.json',
+    key_columns='trip_start_timestamp',
+    train='gs://ml-pipeline-playground/tfx/taxi-cab-classification/train.csv',
+    evaluation='gs://ml-pipeline-playground/tfx/taxi-cab-classification/eval.csv',
+    mode='local',
+    preprocess_module='gs://ml-pipeline-playground/tfx/taxi-cab-classification/preprocessing.py',
+    learning_rate=0.1,
+    hidden_layer_size='1500',
+    steps=3000,
+    analyze_slice_column='trip_start_hour'
+):
+    output_template = str(output) + '/{{workflow.uid}}/{{pod.name}}/data'
+    target_lambda = """lambda x: (x['target'] > x['fare'] * 0.2)"""
+    target_class_lambda = """lambda x: 1 if (x['target'] > x['fare'] * 0.2) else 0"""
 
-    column_names: dsl.PipelineParam=dsl.PipelineParam(
-        name='column-names',
-        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/column-names.json'),
-    key_columns: dsl.PipelineParam=dsl.PipelineParam(
-        name='key-columns',
-        value='trip_start_timestamp'),
-    train: dsl.PipelineParam=dsl.PipelineParam(
-        name='train',
-        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/train.csv'),
-    evaluation: dsl.PipelineParam=dsl.PipelineParam(
-        name='evaluation',
-        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/eval.csv'),
-    validation_mode: dsl.PipelineParam=dsl.PipelineParam(
-        name='validation-mode', value='local'),
-    preprocess_mode: dsl.PipelineParam=dsl.PipelineParam(
-        name='preprocess-mode', value='local'),
-    preprocess_module: dsl.PipelineParam=dsl.PipelineParam(
-        name='preprocess-module',
-        value='gs://ml-pipeline-playground/tfx/taxi-cab-classification/preprocessing.py'),
-    target: dsl.PipelineParam=dsl.PipelineParam(
-        name='target', value='tips'),
-    learning_rate: dsl.PipelineParam=dsl.PipelineParam(name='learning-rate', value=0.1),
-    hidden_layer_size: dsl.PipelineParam=dsl.PipelineParam(name='hidden-layer-size', value='1500'),
-    steps: dsl.PipelineParam=dsl.PipelineParam(name='steps', value=3000),
-    predict_mode: dsl.PipelineParam=dsl.PipelineParam(name='predict-mode', value='local'),
-    analyze_mode: dsl.PipelineParam=dsl.PipelineParam(name='analyze-mode', value='local'),
-    analyze_slice_column: dsl.PipelineParam=dsl.PipelineParam(
-        name='analyze-slice-column', value='trip_start_hour')):
-  validation_output = '%s/{{workflow.name}}/validation' % output
-  transform_output = '%s/{{workflow.name}}/transformed' % output
-  training_output = '%s/{{workflow.name}}/train' % output
-  analysis_output = '%s/{{workflow.name}}/analysis' % output
-  prediction_output = '%s/{{workflow.name}}/predict' % output
-  tf_server_name = 'taxi-cab-classification-model-{{workflow.name}}'
+    tf_server_name = 'taxi-cab-classification-model-{{workflow.uid}}'
 
-  validation = dataflow_tf_data_validation_op(train, evaluation, column_names, key_columns, project, validation_mode, validation_output)
-  schema = '%s/schema.json' % validation.outputs['output']
+    validation = dataflow_tf_data_validation_op(
+        inference_data=train,
+        validation_data=evaluation,
+        column_names=column_names,
+        key_columns=key_columns,
+        gcp_project=project,
+        run_mode=mode,
+        validation_output=output_template
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
-  preprocess = dataflow_tf_transform_op(train, evaluation, schema, project, preprocess_mode, preprocess_module, transform_output)
-  training = tf_train_op(preprocess.output, schema, learning_rate, hidden_layer_size, steps, target, preprocess_module, training_output)
-  analysis = dataflow_tf_model_analyze_op(training.output, evaluation, schema, project, analyze_mode, analyze_slice_column, analysis_output)
-  prediction = dataflow_tf_predict_op(evaluation, schema, target, training.output, predict_mode, project, prediction_output)
-  deploy = kubeflow_deploy_op(training.output, tf_server_name)
+    preprocess = dataflow_tf_transform_op(
+        training_data_file_pattern=train,
+        evaluation_data_file_pattern=evaluation,
+        schema=validation.outputs['schema'],
+        gcp_project=project,
+        run_mode=mode,
+        preprocessing_module=preprocess_module,
+        transformed_data_dir=output_template
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+    training = tf_train_op(
+        transformed_data_dir=preprocess.output,
+        schema=validation.outputs['schema'],
+        learning_rate=learning_rate,
+        hidden_layer_size=hidden_layer_size,
+        steps=steps,
+        target='tips',
+        preprocessing_module=preprocess_module,
+        training_output_dir=output_template
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+    analysis = dataflow_tf_model_analyze_op(
+        model=training.output,
+        evaluation_data=evaluation,
+        schema=validation.outputs['schema'],
+        gcp_project=project,
+        run_mode=mode,
+        slice_columns=analyze_slice_column,
+        analysis_results_dir=output_template
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+    prediction = dataflow_tf_predict_op(
+        data_file_pattern=evaluation,
+        schema=validation.outputs['schema'],
+        target_column='tips',
+        model=training.output,
+        run_mode=mode,
+        gcp_project=project,
+        predictions_dir=output_template
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+    cm = confusion_matrix_op(
+        predictions=prediction.output,
+        target_lambda=target_lambda,
+        output_dir=output_template
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+    roc = roc_op(
+        predictions_dir=prediction.output,
+        target_lambda=target_class_lambda,
+        output_dir=output_template
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+    deploy = kubeflow_deploy_op(
+        model_dir=str(training.output) + '/export/export',
+        server_name=tf_server_name
+    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
 
 if __name__ == '__main__':
-  import kfp.compiler as compiler
-  compiler.Compiler().compile(taxi_cab_classification, __file__ + '.tar.gz')
+    kfp.compiler.Compiler().compile(taxi_cab_classification, __file__ + '.zip')

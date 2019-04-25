@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "error.proto",
+    "title": "backend/api/error.proto",
     "version": "version not set"
   },
   "schemes": [

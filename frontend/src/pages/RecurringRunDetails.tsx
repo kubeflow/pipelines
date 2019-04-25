@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import Buttons from '../lib/Buttons';
 import DetailsTable from '../components/DetailsTable';
 import RunUtils from '../lib/RunUtils';
 import { ApiExperiment } from '../apis/experiment';
@@ -22,17 +23,17 @@ import { ApiJob } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { ToolbarActionConfig } from '../components/Toolbar';
+import { Breadcrumb, ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { formatDateString, enabledDisplayString, logger, errorToMessage } from '../lib/Utils';
+import { formatDateString, enabledDisplayString, errorToMessage } from '../lib/Utils';
 import { triggerDisplayString } from '../lib/TriggerUtils';
 
 interface RecurringRunConfigState {
   run: ApiJob | null;
 }
 
-class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
+class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
 
   constructor(props: any) {
     super(props);
@@ -42,45 +43,26 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [{
-        action: this.refresh.bind(this),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh',
-      }, {
-        action: () => this._setEnabledState(true),
-        disabled: true,
-        disabledTitle: 'Run schedule already enabled',
-        id: 'enableBtn',
-        title: 'Enable',
-        tooltip: 'Enable the run\'s trigger',
-      }, {
-        action: () => this._setEnabledState(false),
-        disabled: true,
-        disabledTitle: 'Run schedule already disabled',
-        id: 'disableBtn',
-        title: 'Disable',
-        tooltip: 'Disable the run\'s trigger',
-      }, {
-        action: () => this.props.updateDialog({
-          buttons: [
-            { onClick: () => this._deleteDialogClosed(true), text: 'Delete' },
-            { onClick: () => this._deleteDialogClosed(false), text: 'Cancel' },
-          ],
-          onClose: () => this._deleteDialogClosed(false),
-          title: 'Delete this recurring run?',
-        }),
-        id: 'deleteBtn',
-        title: 'Delete',
-        tooltip: 'Delete this recurring run',
-      }],
+      actions: [
+        buttons.refresh(this.refresh.bind(this)),
+        buttons.enableRecurringRun(() => this.state.run ? this.state.run.id! : ''),
+        buttons.disableRecurringRun(() => this.state.run ? this.state.run.id! : ''),
+        buttons.delete(
+          () => this.state.run ? [this.state.run!.id!] : [],
+          'recurring run config',
+          this._deleteCallback.bind(this),
+          true, /* useCurrentResource */
+        ),
+      ],
       breadcrumbs: [],
+      pageTitle: '',
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { run } = this.state;
     let runDetails: string[][] = [];
     let inputParameters: string[][] = [];
@@ -121,21 +103,14 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
 
         {run && (
           <div className={commonCss.page}>
-            <div className={commonCss.header}>Recurring run details</div>
-            <DetailsTable fields={runDetails} />
+            <DetailsTable title='Recurring run details' fields={runDetails} />
 
             {!!triggerDetails.length && (
-              <React.Fragment>
-                <div className={commonCss.header}>Run trigger</div>
-                <DetailsTable fields={triggerDetails} />
-              </React.Fragment>
+              <DetailsTable title='Run trigger' fields={triggerDetails} />
             )}
 
             {!!inputParameters.length && (
-              <React.Fragment>
-                <div className={commonCss.header}>Run parameters</div>
-                <DetailsTable fields={inputParameters} />
-              </React.Fragment>
+              <DetailsTable title='Run parameters' fields={inputParameters} />
             )}
           </div>
         )}
@@ -143,103 +118,74 @@ class RecurringRunConfig extends Page<{}, RecurringRunConfigState> {
     );
   }
 
-  public componentDidMount() {
-    this.load();
+  public componentDidMount(): Promise<void> {
+    return this.load();
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     await this.load();
   }
 
-  public async load() {
+  public async load(): Promise<void> {
     this.clearBanner();
     const runId = this.props.match.params[RouteParams.runId];
 
+    let run: ApiJob;
     try {
-      const run = await Apis.jobServiceApi.getJob(runId);
-      const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(run);
-      let experiment: ApiExperiment | undefined;
-      if (relatedExperimentId) {
+      run = await Apis.jobServiceApi.getJob(runId);
+    } catch (err) {
+      const errorMessage = await errorToMessage(err);
+      await this.showPageError(
+        `Error: failed to retrieve recurring run: ${runId}.`, new Error(errorMessage));
+      return;
+    }
+
+    const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(run);
+    let experiment: ApiExperiment | undefined;
+    if (relatedExperimentId) {
+      try {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
-      }
-      const breadcrumbs: Array<{ displayName: string, href: string }> = [];
-      if (experiment) {
-        breadcrumbs.push(
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          {
-            displayName: experiment.name!,
-            href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
-          });
-      } else {
-        breadcrumbs.push(
-          { displayName: 'All runs', href: RoutePage.RUNS }
+      } catch (err) {
+        const errorMessage = await errorToMessage(err);
+        await this.showPageError(
+          `Error: failed to retrieve this recurring run\'s experiment.`,
+          new Error(errorMessage),
+          'warning'
         );
       }
-      breadcrumbs.push({
-        displayName: run ? run.name! : runId,
-        href: '',
-      });
-
-      const toolbarActions = [...this.props.toolbarProps.actions];
-      toolbarActions[1].disabled = run.enabled === true;
-      toolbarActions[2].disabled = run.enabled === false;
-
-      this.props.updateToolbar({ actions: toolbarActions, breadcrumbs });
-
-      this.setState({ run });
-    } catch (err) {
-      await this.showPageError(`Error: failed to retrieve recurring run: ${runId}.`, err);
-      logger.error(`Error loading recurring run: ${runId}`, err);
     }
-  }
-
-  private async _setEnabledState(enabled: boolean) {
-    if (this.state.run) {
-      const toolbarActions = [...this.props.toolbarProps.actions];
-
-      const buttonIndex = enabled ? 1 : 2;
-      const id = this.state.run.id!;
-
-      toolbarActions[buttonIndex].busy = true;
-      this._updateToolbar(toolbarActions);
-      try {
-        await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
-        this.refresh();
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        this.showErrorDialog(
-          `Failed to ${enabled ? 'enable' : 'disable'} recurring schedule`, errorMessage);
-      } finally {
-        toolbarActions[buttonIndex].busy = false;
-        this._updateToolbar(toolbarActions);
-      }
-    }
-  }
-
-  private _updateToolbar(actions: ToolbarActionConfig[]): void {
-    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions });
-  }
-
-  private async _deleteDialogClosed(deleteConfirmed: boolean): Promise<void> {
-    if (deleteConfirmed) {
-      // TODO: Show spinner during wait.
-      try {
-        await Apis.jobServiceApi.deleteJob(this.state.run!.id!);
-        const breadcrumbs = this.props.toolbarProps.breadcrumbs;
-        const previousPage = breadcrumbs.length ?
-          breadcrumbs[breadcrumbs.length - 1].href : RoutePage.EXPERIMENTS;
-        this.props.history.push(previousPage);
-        this.props.updateSnackbar({
-          message: `Successfully deleted recurring run: ${this.state.run!.name}`,
-          open: true,
+    const breadcrumbs: Breadcrumb[] = [];
+    if (experiment) {
+      breadcrumbs.push(
+        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+        {
+          displayName: experiment.name!,
+          href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
         });
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        this.showErrorDialog('Failed to delete recurring run', errorMessage);
-        logger.error('Deleting recurring run failed with error:', err);
-      }
+    } else {
+      breadcrumbs.push(
+        { displayName: 'All runs', href: RoutePage.RUNS }
+      );
+    }
+    const pageTitle = run ? run.name! : runId;
+
+    const toolbarActions = [...this.props.toolbarProps.actions];
+    toolbarActions[1].disabled = !!run.enabled;
+    toolbarActions[2].disabled = !run.enabled;
+
+    this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
+
+    this.setState({ run });
+  }
+
+  private _deleteCallback(_: string[], success: boolean): void {
+    if (success) {
+      const breadcrumbs = this.props.toolbarProps.breadcrumbs;
+      const previousPage = breadcrumbs.length ?
+        breadcrumbs[breadcrumbs.length - 1].href : RoutePage.EXPERIMENTS;
+      this.props.history.push(previousPage);
     }
   }
 }
 
-export default RecurringRunConfig;
+export default RecurringRunDetails;

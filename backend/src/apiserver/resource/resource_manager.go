@@ -21,16 +21,18 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
-	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1alpha1"
+	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -40,6 +42,8 @@ type ClientManagerInterface interface {
 	JobStore() storage.JobStoreInterface
 	RunStore() storage.RunStoreInterface
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
+	DBStatusStore() storage.DBStatusStoreInterface
+	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
@@ -53,6 +57,8 @@ type ResourceManager struct {
 	jobStore                storage.JobStoreInterface
 	runStore                storage.RunStoreInterface
 	resourceReferenceStore  storage.ResourceReferenceStoreInterface
+	dBStatusStore           storage.DBStatusStoreInterface
+	defaultExperimentStore  storage.DefaultExperimentStoreInterface
 	objectStore             storage.ObjectStoreInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
@@ -67,11 +73,13 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		jobStore:                clientManager.JobStore(),
 		runStore:                clientManager.RunStore(),
 		resourceReferenceStore:  clientManager.ResourceReferenceStore(),
+		dBStatusStore:           clientManager.DBStatusStore(),
+		defaultExperimentStore:  clientManager.DefaultExperimentStore(),
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		time:                    clientManager.Time(),
-		uuid:                    clientManager.UUID(),
+		time: clientManager.Time(),
+		uuid: clientManager.UUID(),
 	}
 }
 
@@ -87,14 +95,22 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 	return r.experimentStore.GetExperiment(experimentId)
 }
 
-func (r *ResourceManager) ListExperiments(context *common.PaginationContext) (
-	experiments []model.Experiment, nextPageToken string, err error) {
-	return r.experimentStore.ListExperiments(context)
+func (r *ResourceManager) ListExperiments(opts *list.Options) (
+	experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
+	return r.experimentStore.ListExperiments(opts)
 }
 
-func (r *ResourceManager) ListPipelines(context *common.PaginationContext) (
-	pipelines []model.Pipeline, nextPageToken string, err error) {
-	return r.pipelineStore.ListPipelines(context)
+func (r *ResourceManager) DeleteExperiment(experimentID string) error {
+	_, err := r.experimentStore.GetExperiment(experimentID)
+	if err != nil {
+		return util.Wrap(err, "Delete experiment failed")
+	}
+	return r.experimentStore.DeleteExperiment(experimentID)
+}
+
+func (r *ResourceManager) ListPipelines(opts *list.Options) (
+	pipelines []*model.Pipeline, total_size int, nextPageToken string, err error) {
+	return r.pipelineStore.ListPipelines(opts)
 }
 
 func (r *ResourceManager) GetPipeline(pipelineId string) (*model.Pipeline, error) {
@@ -182,15 +198,14 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 	}
 	var workflow util.Workflow
-	err = json.Unmarshal(workflowSpecManifestBytes, &workflow)
-	if err != nil {
+	if err = json.Unmarshal(workflowSpecManifestBytes, &workflow); err != nil {
 		return nil, util.NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
 	}
 
 	parameters := toParametersMap(apiRun.GetPipelineSpec().GetParameters())
 	// Verify no additional parameter provided
-	if err := workflow.VerifyParameters(parameters); err != nil {
+	if err = workflow.VerifyParameters(parameters); err != nil {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 	// Append provided parameter
@@ -200,6 +215,12 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	newWorkflow, err := r.workflowClient.Create(workflow.Get())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
+	}
+
+	// Add a reference to the default experiment if run does not already have a containing experiment
+	err = r.setExperimentIfNotPresent(apiRun)
+	if err != nil {
+		return nil, err
 	}
 
 	// Store run metadata into database
@@ -217,12 +238,77 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 	return r.runStore.GetRun(runId)
 }
 
-func (r *ResourceManager) ListRuns(filterContext *common.FilterContext, paginationContext *common.PaginationContext) (runs []model.Run, nextPageToken string, err error) {
-	return r.runStore.ListRuns(filterContext, paginationContext)
+func (r *ResourceManager) ListRuns(filterContext *common.FilterContext,
+	opts *list.Options) (runs []*model.Run, total_size int, nextPageToken string, err error) {
+	return r.runStore.ListRuns(filterContext, opts)
 }
 
-func (r *ResourceManager) ListJobs(filterContext *common.FilterContext, context *common.PaginationContext) (jobs []model.Job, nextPageToken string, err error) {
-	return r.jobStore.ListJobs(filterContext, context)
+func (r *ResourceManager) ArchiveRun(runId string) error {
+	return r.runStore.ArchiveRun(runId)
+}
+
+func (r *ResourceManager) UnarchiveRun(runId string) error {
+	return r.runStore.UnarchiveRun(runId)
+}
+
+func (r *ResourceManager) DeleteRun(runID string) error {
+	runDetail, err := r.checkRunExist(runID)
+	if err != nil {
+		return util.Wrap(err, "Delete run failed")
+	}
+	err = r.workflowClient.Delete(runDetail.Name, &v1.DeleteOptions{})
+	if err != nil {
+		// API won't need to delete the workflow CRD
+		// once persistent agent sync the state to DB and set TTL for it.
+		glog.Warningf("Failed to delete run %v. Error: %v", runDetail.Name, err.Error())
+	}
+	err = r.runStore.DeleteRun(runID)
+	if err != nil {
+		return util.Wrap(err, "Delete run failed")
+	}
+	return nil
+}
+
+func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
+	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
+	return r.jobStore.ListJobs(filterContext, opts)
+}
+
+// TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
+func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) error {
+	patchObj := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"activeDeadlineSeconds": 0,
+		},
+	}
+
+	patch, err := json.Marshal(patchObj)
+	if err != nil {
+		return util.NewInternalServerError(err, "Unexpected error while marshalling a patch object.")
+	}
+
+	var operation = func() error {
+		_, err = wfClient.Patch(name, types.MergePatchType, patch)
+		return err
+	}
+	var backoffPolicy = backoff.WithMaxRetries(backoff.NewConstantBackOff(100), 10)
+	err = backoff.Retry(operation, backoffPolicy)
+	return err
+}
+
+func (r *ResourceManager) TerminateRun(runId string) error {
+	runDetail, err := r.checkRunExist(runId)
+	if err != nil {
+		return util.Wrap(err, "Delete run failed")
+	}
+
+	err = r.runStore.TerminateRun(runId)
+	if err != nil {
+		return util.Wrap(err, "Terminate run failed")
+	}
+
+	err = TerminateWorkflow(r.workflowClient, runDetail.Run.Name)
+	return util.Wrap(err, "Terminate run failed")
 }
 
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
@@ -322,10 +408,11 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
 	runId := string(workflow.UID)
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
+
 	if jobId == "" {
 		// If a run doesn't have owner UID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CRD is created.
-		return r.runStore.UpdateRun(runId, workflow.Condition(), workflow.ToStringForStore())
+		return r.runStore.UpdateRun(runId, workflow.Condition(), workflow.FinishedAt(), workflow.ToStringForStore())
 	}
 
 	// Get the experiment resource reference for job.
@@ -338,9 +425,11 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 			UUID:             runId,
 			DisplayName:      workflow.Name,
 			Name:             workflow.Name,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Namespace:        workflow.Namespace,
 			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
 			ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
+			FinishedAtInSec:  workflow.FinishedAt(),
 			Conditions:       workflow.Condition(),
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
@@ -391,6 +480,17 @@ func (r *ResourceManager) checkJobExist(jobID string) (*model.Job, error) {
 	return job, nil
 }
 
+// checkRunExist The Kubernetes API doesn't support CRUD by UID. This method
+// retrieve the run metadata from the database, then retrieve the CRD
+// using the run name, and compare the given run id is same as the CRD.
+func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) {
+	runDetail, err := r.runStore.GetRun(runID)
+	if err != nil {
+		return nil, util.Wrap(err, "Check run exist failed")
+	}
+	return runDetail, nil
+}
+
 func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, error) {
 	if spec.GetPipelineId() != "" {
 		var workflow util.Workflow
@@ -404,6 +504,36 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 		return []byte(spec.GetWorkflowManifest()), nil
 	}
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
+}
+
+// setDefaultExperimentIfNotPresent If the provided run does not include a reference to a containing
+// experiment, then we fetch the default experiment's ID and create a reference to that.
+func (r *ResourceManager) setExperimentIfNotPresent(apiRun *api.Run) error {
+	// First check if there is already a referenced experiment
+	for _, ref := range apiRun.ResourceReferences {
+		if ref.Key.Type == api.ResourceType_EXPERIMENT && ref.Relationship == api.Relationship_OWNER {
+			return nil
+		}
+	}
+
+	// Create reference to the default experiment
+	defaultExperimentId, err := r.GetDefaultExperimentId()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to retrieve default experiment")
+	}
+	if defaultExperimentId == "" {
+		return util.NewInternalServerError(errors.New("Default experiment ID was empty"), "Default experiment was not set")
+	}
+	defaultExperimentRef := &api.ResourceReference{
+		Key: &api.ResourceKey{
+			Id:   defaultExperimentId,
+			Type: api.ResourceType_EXPERIMENT,
+		},
+		Relationship: api.Relationship_OWNER,
+	}
+	apiRun.ResourceReferences = append(apiRun.ResourceReferences, defaultExperimentRef)
+
+	return nil
 }
 
 func (r *ResourceManager) ReportMetric(metric *api.RunMetric, runUUID string) error {
@@ -431,4 +561,20 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 			"arifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
 	return r.objectStore.GetFile(artifactPath)
+}
+
+func (r *ResourceManager) GetDefaultExperimentId() (string, error) {
+	return r.defaultExperimentStore.GetDefaultExperimentId()
+}
+
+func (r *ResourceManager) SetDefaultExperimentId(id string) error {
+	return r.defaultExperimentStore.SetDefaultExperimentId(id)
+}
+
+func (r *ResourceManager) HaveSamplesLoaded() (bool, error) {
+	return r.dBStatusStore.HaveSamplesLoaded()
+}
+
+func (r *ResourceManager) MarkSampleLoaded() error {
+	return r.dBStatusStore.MarkSampleLoaded()
 }

@@ -8,7 +8,7 @@ import (
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,7 +69,7 @@ func TestValidateReportWorkflowRequest(t *testing.T) {
 			Namespace: "MY_NAMESPACE",
 			UID:       "1",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID("1"),
@@ -96,7 +96,7 @@ func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 			Namespace: "MY_NAMESPACE",
 			UID:       "1",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID("1"),
@@ -114,7 +114,7 @@ func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 			Name: "MY_NAME",
 			UID:  "1",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID("1"),
@@ -133,7 +133,7 @@ func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID("1"),

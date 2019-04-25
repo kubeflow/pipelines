@@ -3,6 +3,7 @@ package server
 import (
 	"testing"
 
+	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -21,6 +22,7 @@ func TestCreateExperiment(t *testing.T) {
 		Id:          resource.DefaultFakeUUID,
 		Name:        "ex1",
 		Description: "first experiment",
+		CreatedAt:   &timestamp.Timestamp{Seconds: 1},
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -49,6 +51,7 @@ func TestGetExperiment(t *testing.T) {
 		Id:          createResult.Id,
 		Name:        "ex1",
 		Description: "first experiment",
+		CreatedAt:   &timestamp.Timestamp{Seconds: 1},
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -79,7 +82,9 @@ func TestListExperiment(t *testing.T) {
 	expectedExperiment := []*api.Experiment{{
 		Id:          createResult.Id,
 		Name:        "ex1",
-		Description: "first experiment"}}
+		Description: "first experiment",
+		CreatedAt:   &timestamp.Timestamp{Seconds: 1},
+	}}
 	assert.Equal(t, expectedExperiment, result.Experiments)
 }
 

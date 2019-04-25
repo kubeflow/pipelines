@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
-import { color, spacing } from '../Css';
+import { color, spacing, commonCss } from '../Css';
 
 export const css = stylesheet({
   key: {
@@ -36,10 +36,12 @@ export const css = stylesheet({
 
 interface DetailsTableProps {
   fields: string[][];
+  title?: string;
 }
 
 export default (props: DetailsTableProps) => {
-  return (
+  return (<React.Fragment>
+    {!!props.title && <div className={commonCss.header}>{props.title}</div>}
     <div className={css.root}>
       {props.fields.map((f, i) => (
         <div key={i} className={css.row}>
@@ -48,5 +50,6 @@ export default (props: DetailsTableProps) => {
         </div>
       ))}
     </div>
+  </React.Fragment>
   );
 };

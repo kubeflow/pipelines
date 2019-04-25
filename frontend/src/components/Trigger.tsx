@@ -28,6 +28,7 @@ import {
   pickersToDate, buildTrigger
 } from '../lib/TriggerUtils';
 import { ApiTrigger } from '../apis/job';
+import { stylesheet } from 'typestyle';
 
 interface TriggerProps {
   onChange?: (trigger?: ApiTrigger, maxConcurrentRuns?: string) => void;
@@ -48,6 +49,12 @@ interface TriggerState {
   startTime: string;
   type: TriggerType;
 }
+
+const css = stylesheet({
+  noMargin: {
+    margin: 0
+  },
+});
 
 export default class Trigger extends React.Component<TriggerProps, TriggerState> {
   constructor(props: any) {
@@ -76,12 +83,20 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     };
   }
 
-  public render() {
-    const { editCron, hasEndDate, hasStartDate, intervalCategory,
-      intervalValue, selectedDays, type } = this.state;
+  public componentDidMount(): void {
+    // TODO: This is called here because NewRun only updates its Trigger in state when onChange is
+    // called on the Trigger, which without this may never happen if a user doesn't interact with
+    // the Trigger. NewRun should probably keep the Trigger state and pass it down as a prop to this
+    this._updateTrigger();
+  }
+
+  public render(): JSX.Element {
+    const { cron, editCron, endDate, endTime, hasEndDate, hasStartDate, intervalCategory,
+      intervalValue, maxConcurrentRuns, selectedDays, startDate, startTime, type } = this.state;
 
     return <div>
-      <Input select={true} label='Trigger type' required={true} instance={this} field='type'>
+      <Input select={true} label='Trigger type' required={true} onChange={this.handleChange('type')}
+        value={type} variant='outlined'>
         {Array.from(triggers.entries()).map((trigger, i) => (
           <MenuItem key={i} value={trigger[0]}>
             {trigger[1].displayName}
@@ -90,17 +105,23 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       </Input>
 
       <div>
-        <Input label='Maximum concurrent runs' required={true} instance={this} field='maxConcurrentRuns' />
+        <Input label='Maximum concurrent runs' required={true}
+          onChange={this.handleChange('maxConcurrentRuns')} value={maxConcurrentRuns}
+          variant='outlined' />
 
         <div className={commonCss.flex}>
           <FormControlLabel control={
             <Checkbox checked={hasStartDate} color='primary'
               onClick={this.handleChange('hasStartDate')} />}
             label='Has start date' />
-          <Input label='Start date' type='date' instance={this} field='startDate' width={160}
+          <Input label='Start date' type='date' onChange={this.handleChange('startDate')}
+            value={startDate} width={160} variant='outlined'
+            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
             style={{ visibility: hasStartDate ? 'visible' : 'hidden' }} />
           <Separator />
-          <Input label='Start time' type='time' instance={this} field='startTime' width={120}
+          <Input label='Start time' type='time' onChange={this.handleChange('startTime')}
+            value={startTime} width={120} variant='outlined'
+            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
             style={{ visibility: hasStartDate ? 'visible' : 'hidden' }} />
         </div>
 
@@ -109,11 +130,15 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             <Checkbox checked={hasEndDate} color='primary'
               onClick={this.handleChange('hasEndDate')} />}
             label='Has end date' />
-          <Input label='End date' type='date' instance={this} field='endDate' width={160}
-            style={{ visibility: hasEndDate ? 'visible' : 'hidden' }} />
+          <Input label='End date' type='date' onChange={this.handleChange('endDate')}
+            value={endDate} width={160} style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
+            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
+            variant='outlined' />
           <Separator />
-          <Input label='End time' type='time' instance={this} field='endTime' width={120}
-            style={{ visibility: hasEndDate ? 'visible' : 'hidden' }} />
+          <Input label='End time' type='time' onChange={this.handleChange('endTime')}
+            value={endTime} width={120} style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
+            InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
+            variant='outlined' />
         </div>
 
         <span className={commonCss.flex}>
@@ -121,13 +146,15 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
           {type === TriggerType.INTERVALED && (
             <div className={commonCss.flex}>
               <Separator />
-              <Input required={true} type='number' instance={this} field='intervalValue'
-                height={30} width={65} error={intervalValue < 1} />
+              <Input required={true} type='number' onChange={this.handleChange('intervalValue')}
+                value={intervalValue} height={30} width={65} error={intervalValue < 1}
+                variant='outlined' />
             </div>
           )}
 
           <Separator />
-          <Input required={true} select={true} instance={this} field='intervalCategory' height={30} width={95}>
+          <Input required={true} select={true} onChange={this.handleChange('intervalCategory')}
+            value={intervalCategory} height={30} width={95} variant='outlined' >
             {Object.keys(PeriodicInterval).map((interval: PeriodicInterval, i) => (
               <MenuItem key={i} value={PeriodicInterval[interval]}>
                 {PeriodicInterval[interval] + (type === TriggerType.INTERVALED ? 's' : '')}
@@ -165,8 +192,8 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             } />
           </div>
 
-          <Input instance={this} label='cron expression' field='cron' width={300}
-            disabled={!editCron} onChange={this.handleChange('cron')} />
+          <Input label='cron expression' onChange={this.handleChange('cron')} value={cron}
+            width={300} disabled={!editCron} variant='outlined'/>
 
           <div>Note: Start and end dates/times are handled outside of cron.</div>
         </div>
@@ -191,6 +218,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
     const startDateTime = pickersToDate(hasStartDate, startDate, startTime);
     const endDateTime = pickersToDate(hasEndDate, endDate, endTime);
 
+    // TODO: Why build the cron string unless the TriggerType is not CRON?
     // Unless cron editing is enabled, calculate the new cron string, set it in state,
     // then use it to build new trigger object and notify the parent
     this.setState({

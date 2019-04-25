@@ -16,12 +16,12 @@ syntax = "proto3";
 
 package api;
 
-import "error.proto";
+import "backend/api/error.proto";
 import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
-import "pipeline_spec.proto";
-import "resource_reference.proto";
+import "backend/api/pipeline_spec.proto";
+import "backend/api/resource_reference.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
@@ -78,6 +78,24 @@ service RunService {
     };
   }
 
+  rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{id}:archive"
+    };
+  }
+
+  rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{id}:unarchive"
+    };
+  }
+
+  rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/apis/v1beta1/runs/{id}"
+    };
+  }
+
   // ReportRunMetrics reports metrics of a run. Each metric is reported in its
   // own transaction, so this API accepts partial failures. Metric can be uniquely
   // identified by (run_id, node_id, name). Duplicate reporting will be
@@ -94,17 +112,23 @@ service RunService {
       get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
     };
   }
+
+  rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{run_id}/terminate"
+    };
+  }
 }
 
-message CreateRunRequest{
+message CreateRunRequest {
   Run run = 1;
 }
 
-message GetRunRequest{
+message GetRunRequest {
   string run_id = 1;
 }
 
-message ListRunsRequest{
+message ListRunsRequest {
   string page_token = 1;
   int32 page_size = 2;
   // Can be format of "field_name", "field_name asc" or "field_name des"
@@ -115,11 +139,32 @@ message ListRunsRequest{
   // E.g. If listing run for an experiment, the query string would be
   // resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
   ResourceKey resource_reference_key = 4;
+
+  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
+  // filter.proto).
+  string filter = 5;
+}
+
+message TerminateRunRequest {
+  string run_id = 1;
 }
 
 message ListRunsResponse {
   repeated Run runs = 1;
+  int32 total_size = 3;
   string next_page_token = 2;
+}
+
+message ArchiveRunRequest {
+  string id = 1;
+}
+
+message UnarchiveRunRequest {
+  string id = 1;
+}
+
+message DeleteRunRequest {
+  string id = 1;
 }
 
 message Run {
@@ -129,6 +174,13 @@ message Run {
   // Required input field. Name provided by user,
   // or auto generated if run is created by scheduled job. Not unique.
   string name = 2;
+
+  enum StorageState {
+    STORAGESTATE_AVAILABLE = 0;
+    STORAGESTATE_ARCHIVED = 1;
+  }
+
+  StorageState storage_state = 10;
 
   // Optional input field. Describing the purpose of the run
   string description = 3;
@@ -148,6 +200,9 @@ message Run {
   // supposed to run 2 month ago, the scheduled_at is 2 month ago,
   // v.s. created_at is the current time.
   google.protobuf.Timestamp scheduled_at = 7;
+
+  // Output. The time this run is finished.
+  google.protobuf.Timestamp finished_at = 13;
 
   // Output. The status of the run.
   // One of [Pending, Running, Succeeded, Skipped, Failed, Error]

@@ -14,17 +14,8 @@
  * limitations under the License.
  */
 
+import { QUERY_PARAMS } from '../components/Router';
 import { RouteComponentProps } from 'react-router';
-
-export enum QUERY_PARAMS {
-  cloneFromRun = 'cloneFromRun',
-  experimentId = 'experimentId',
-  isRecurring = 'recurring',
-  firstRunInExperiment = 'firstRunInExperiment',
-  pipelineId = 'pipelineId',
-  runlist = 'runlist',
-  view = 'view',
-}
 
 export class URLParser {
 
@@ -71,9 +62,9 @@ export class URLParser {
 
   private _update(replace = true): void {
     if (replace) {
-      this._routeProps.history.replace({search: this._paramMap.toString()});
+      this._routeProps.history.replace({ search: this._paramMap.toString() });
     } else {
-      this._routeProps.history.push({search: this._paramMap.toString()});
+      this._routeProps.history.push({ search: this._paramMap.toString() });
     }
   }
 }

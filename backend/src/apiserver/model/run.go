@@ -18,10 +18,12 @@ type Run struct {
 	UUID               string `gorm:"column:UUID; not null; primary_key"`
 	DisplayName        string `gorm:"column:DisplayName; not null;"` /* The name that user provides. Can contain special characters*/
 	Name               string `gorm:"column:Name; not null;"`        /* The name of the K8s resource. Follow regex '[a-z0-9]([-a-z0-9]*[a-z0-9])?'*/
+	StorageState       string `gorm:"column:StorageState; not null;"`
 	Namespace          string `gorm:"column:Namespace; not null;"`
-	Description        string `gorm:"column:Description; not null"`
-	CreatedAtInSec     int64  `gorm:"column:CreatedAtInSec; not null"`
-	ScheduledAtInSec   int64  `gorm:"column:ScheduledAtInSec;"`
+	Description        string `gorm:"column:Description; not null;"`
+	CreatedAtInSec     int64  `gorm:"column:CreatedAtInSec; not null;"`
+	ScheduledAtInSec   int64  `gorm:"column:ScheduledAtInSec; default:0;"`
+	FinishedAtInSec    int64  `gorm:"column:FinishedAtInSec; default:0;"`
 	Conditions         string `gorm:"column:Conditions; not null"`
 	Metrics            []*RunMetric
 	ResourceReferences []*ResourceReference
@@ -54,4 +56,28 @@ func (r Run) GetValueOfPrimaryKey() string {
 
 func GetRunTablePrimaryKeyColumn() string {
 	return "UUID"
+}
+
+// PrimaryKeyColumnName returns the primary key for model Run.
+func (r *Run) PrimaryKeyColumnName() string {
+	return "UUID"
+}
+
+// DefaultSortField returns the default sorting field for model Run.
+func (r *Run) DefaultSortField() string {
+	return "CreatedAtInSec"
+}
+
+var runAPIToModelFieldMap = map[string]string{
+	"id":            "UUID",
+	"name":          "DisplayName",
+	"created_at":    "CreatedAtInSec",
+	"description":   "Description",
+	"scheduled_at":  "ScheduledAtInSec",
+	"storage_state": "StorageState",
+}
+
+// APIToModelFieldMap returns a map from API names to field names for model Run.
+func (r *Run) APIToModelFieldMap() map[string]string {
+	return runAPIToModelFieldMap
 }

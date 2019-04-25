@@ -44,21 +44,25 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
 
   public abstract refresh(): Promise<void>;
 
-  public componentWillUnmount() {
+  public componentWillUnmount(): void {
     this.clearBanner();
     this._isMounted = false;
   }
 
-  public async clearBanner() {
+  public componentDidMount(): void {
+    this.clearBanner();
+  }
+
+  public clearBanner(): void {
     this.props.updateBanner({});
   }
 
-  public async showPageError(message: string, error?: Error): Promise<void> {
+  public async showPageError(message: string, error?: Error, mode?: 'error' | 'warning'): Promise<void> {
     const errorMessage = await errorToMessage(error);
     this.props.updateBanner({
       additionalInfo: errorMessage ? errorMessage : undefined,
       message: message + (errorMessage ? ' Click Details for more information.' : ''),
-      mode: 'error',
+      mode: mode || 'error',
       refresh: this.refresh.bind(this),
     });
   }
@@ -71,7 +75,7 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
     });
   }
 
-  protected setStateSafe(newState: Partial<S>, cb?: () => void) {
+  protected setStateSafe(newState: Partial<S>, cb?: () => void): void {
     if (this._isMounted) {
       this.setState(newState as any, cb);
     }

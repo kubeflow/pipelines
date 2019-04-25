@@ -31,7 +31,7 @@ export default {
     },
     ownerReferences: [
       {
-        apiVersion: 'kubeflow.org/v1alpha1',
+        apiVersion: 'kubeflow.org/v1beta1',
         kind: 'ScheduledWorkflow',
         name: 'job-cloneofhelloworldls94q',
         uid: '4fac8e0f-d688-11e8-83db-42010a800093',

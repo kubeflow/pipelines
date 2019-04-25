@@ -33,10 +33,8 @@ func (c *JobClientFake) Create(params *jobparams.CreateJobParams) (
 	switch params.Body.Name {
 	case JobForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
-	case JobForDefaultTest:
-		return getDefaultJob("500", params.Body.Name), nil
 	default:
-		return nil, fmt.Errorf(InvalidFakeRequest)
+		return getDefaultJob("500", params.Body.Name), nil
 	}
 }
 
@@ -45,10 +43,8 @@ func (c *JobClientFake) Get(params *jobparams.GetJobParams) (
 	switch params.ID {
 	case JobForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
-	case JobForDefaultTest:
-		return getDefaultJob(params.ID, "JOB_NAME"), nil
 	default:
-		return nil, fmt.Errorf(InvalidFakeRequest)
+		return getDefaultJob(params.ID, "JOB_NAME"), nil
 	}
 }
 
@@ -56,10 +52,8 @@ func (c *JobClientFake) Delete(params *jobparams.DeleteJobParams) error {
 	switch params.ID {
 	case JobForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)
-	case JobForDefaultTest:
-		return nil
 	default:
-		return fmt.Errorf(InvalidFakeRequest)
+		return nil
 	}
 }
 
@@ -67,10 +61,8 @@ func (c *JobClientFake) Enable(params *jobparams.EnableJobParams) error {
 	switch params.ID {
 	case JobForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)
-	case JobForDefaultTest:
-		return nil
 	default:
-		return fmt.Errorf(InvalidFakeRequest)
+		return nil
 	}
 }
 
@@ -78,15 +70,13 @@ func (c *JobClientFake) Disable(params *jobparams.DisableJobParams) error {
 	switch params.ID {
 	case JobForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)
-	case JobForDefaultTest:
-		return nil
 	default:
-		return fmt.Errorf(InvalidFakeRequest)
+		return nil
 	}
 }
 
 func (c *JobClientFake) List(params *jobparams.ListJobsParams) (
-	[]*jobmodel.APIJob, string, error) {
+	[]*jobmodel.APIJob, int, string, error) {
 	const (
 		FirstToken  = ""
 		SecondToken = "SECOND_TOKEN"
@@ -103,13 +93,13 @@ func (c *JobClientFake) List(params *jobparams.ListJobsParams) (
 		return []*jobmodel.APIJob{
 			getDefaultJob("100", "MY_FIRST_JOB"),
 			getDefaultJob("101", "MY_SECOND_JOB"),
-		}, SecondToken, nil
+		}, 2, SecondToken, nil
 	case SecondToken:
 		return []*jobmodel.APIJob{
 			getDefaultJob("102", "MY_THIRD_JOB"),
-		}, FinalToken, nil
+		}, 1, FinalToken, nil
 	default:
-		return nil, "", fmt.Errorf(InvalidFakeRequest)
+		return nil, 0, "", fmt.Errorf(InvalidFakeRequest, token)
 	}
 }
 

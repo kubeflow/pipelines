@@ -4,6 +4,45 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -64,9 +103,14 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -79,6 +123,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -114,7 +159,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -127,6 +172,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -170,6 +216,11 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -208,7 +259,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -221,6 +272,45 @@ exports[`CustomTable renders a collapsed row 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -234,6 +324,10 @@ exports[`CustomTable renders a collapsed row 1`] = `
         onChange={[Function]}
       />
     </div>
+    <Component
+      orientation="horizontal"
+      units={40}
+    />
     <div
       className="columnName"
       key="0"
@@ -281,9 +375,14 @@ exports[`CustomTable renders a collapsed row 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -296,6 +395,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
           <WithStyles(IconButton)
@@ -345,6 +445,11 @@ exports[`CustomTable renders a collapsed row 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -383,7 +488,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -396,9 +501,52 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
+    <Component
+      orientation="horizontal"
+      units={40}
+    />
     <div
       className="columnName"
       key="0"
@@ -446,9 +594,14 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -507,6 +660,11 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -545,7 +703,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -558,6 +716,45 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -600,9 +797,14 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -615,6 +817,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -643,7 +846,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -656,6 +859,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -699,6 +903,11 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -737,7 +946,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -750,6 +959,45 @@ exports[`CustomTable renders an expanded row 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -810,9 +1058,14 @@ exports[`CustomTable renders an expanded row 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className="expandedContainer"
+      className="expandableContainer expandedContainer"
       key="0"
     >
       <div
@@ -825,6 +1078,7 @@ exports[`CustomTable renders an expanded row 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -868,6 +1122,11 @@ exports[`CustomTable renders an expanded row 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -906,7 +1165,7 @@ exports[`CustomTable renders an expanded row 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -919,6 +1178,45 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -932,6 +1230,10 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
         onChange={[Function]}
       />
     </div>
+    <Component
+      orientation="horizontal"
+      units={40}
+    />
     <div
       className="columnName"
       key="0"
@@ -979,9 +1281,14 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className="expandedContainer"
+      className="expandableContainer expandedContainer"
       key="0"
     >
       <div
@@ -994,6 +1301,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
           <WithStyles(IconButton)
@@ -1050,6 +1358,11 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1088,7 +1401,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -1101,6 +1414,45 @@ exports[`CustomTable renders columns with specified widths 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1161,6 +1513,11 @@ exports[`CustomTable renders columns with specified widths 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   />
   <div
     className="footer"
@@ -1177,6 +1534,11 @@ exports[`CustomTable renders columns with specified widths 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1215,7 +1577,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -1228,6 +1590,45 @@ exports[`CustomTable renders empty message on no rows 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1244,6 +1645,11 @@ exports[`CustomTable renders empty message on no rows 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
       className="emptyMessage"
@@ -1266,6 +1672,11 @@ exports[`CustomTable renders empty message on no rows 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1304,7 +1715,7 @@ exports[`CustomTable renders empty message on no rows 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -1317,6 +1728,45 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1377,9 +1827,14 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -1392,6 +1847,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -1435,6 +1891,11 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1486,6 +1947,45 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1546,9 +2046,14 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -1561,6 +2066,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -1589,7 +2095,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -1602,6 +2108,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -1645,6 +2152,11 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1696,6 +2208,45 @@ exports[`CustomTable renders some columns with descending sort order on first co
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1757,6 +2308,11 @@ exports[`CustomTable renders some columns with descending sort order on first co
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   />
   <div
     className="footer"
@@ -1773,6 +2329,11 @@ exports[`CustomTable renders some columns with descending sort order on first co
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1811,7 +2372,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -1824,6 +2385,45 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -1884,6 +2484,11 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   />
   <div
     className="footer"
@@ -1900,6 +2505,11 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -1938,7 +2548,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -1951,6 +2561,45 @@ exports[`CustomTable renders some rows 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -2011,9 +2660,14 @@ exports[`CustomTable renders some rows 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -2026,6 +2680,7 @@ exports[`CustomTable renders some rows 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -2054,7 +2709,7 @@ exports[`CustomTable renders some rows 1`] = `
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -2067,6 +2722,7 @@ exports[`CustomTable renders some rows 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -2110,6 +2766,11 @@ exports[`CustomTable renders some rows 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -2148,7 +2809,7 @@ exports[`CustomTable renders some rows 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -2161,6 +2822,45 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -2221,9 +2921,14 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -2236,6 +2941,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -2266,7 +2972,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -2279,6 +2985,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
           className="cell selectionToggle"
         >
           <WithStyles(Checkbox)
+            checked={false}
             color="primary"
           />
         </div>
@@ -2324,6 +3031,11 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -2362,7 +3074,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -2371,10 +3083,49 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
 </div>
 `;
 
-exports[`CustomTable renders without rows or columns 1`] = `
+exports[`CustomTable renders with default filter label 1`] = `
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -2391,6 +3142,11 @@ exports[`CustomTable renders without rows or columns 1`] = `
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   />
   <div
     className="footer"
@@ -2407,6 +3163,11 @@ exports[`CustomTable renders without rows or columns 1`] = `
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -2445,7 +3206,364 @@ exports[`CustomTable renders without rows or columns 1`] = `
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
+exports[`CustomTable renders with provided filter label 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="test filter label"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName cell selectionToggle"
+    >
+      <WithStyles(Checkbox)
+        checked={false}
+        color="primary"
+        indeterminate={false}
+        onChange={[Function]}
+      />
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
+  />
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
+      className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="standard"
+    >
+      <WithStyles(MenuItem)
+        key="0"
+        value={10}
+      >
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
+exports[`CustomTable renders without filter box 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName cell selectionToggle"
+    >
+      <WithStyles(Checkbox)
+        checked={false}
+        color="primary"
+        indeterminate={false}
+        onChange={[Function]}
+      />
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
+  />
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
+      className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="standard"
+    >
+      <WithStyles(MenuItem)
+        key="0"
+        value={10}
+      >
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
+exports[`CustomTable renders without rows or columns 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName cell selectionToggle"
+    >
+      <WithStyles(Checkbox)
+        checked={false}
+        color="primary"
+        indeterminate={false}
+        onChange={[Function]}
+      />
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
+  />
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
+      className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="standard"
+    >
+      <WithStyles(MenuItem)
+        key="0"
+        value={10}
+      >
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />
@@ -2458,6 +3576,45 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
 <div
   className="pageOverflowHidden"
 >
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+  </div>
   <div
     className="header"
   >
@@ -2508,9 +3665,14 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
   </div>
   <div
     className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
   >
     <div
-      className=""
+      className="expandableContainer"
       key="0"
     >
       <div
@@ -2544,7 +3706,7 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       </div>
     </div>
     <div
-      className=""
+      className="expandableContainer"
       key="1"
     >
       <div
@@ -2593,6 +3755,11 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
         }
       }
       className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
       onChange={[Function]}
       required={false}
       select={true}
@@ -2631,7 +3798,268 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       <pure(ChevronLeftIcon) />
     </WithStyles(IconButton)>
     <WithStyles(IconButton)
-      disabled={false}
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronRightIcon) />
+    </WithStyles(IconButton)>
+  </div>
+</div>
+`;
+
+exports[`CustomTable updates the filter string in state when the filter box input changes 1`] = `
+<div
+  className="pageOverflowHidden"
+>
+  <div>
+    <Component
+      InputLabelProps={
+        Object {
+          "classes": Object {
+            "root": "noMargin",
+          },
+        }
+      }
+      InputProps={
+        Object {
+          "classes": Object {
+            "notchedOutline": "filterBorderRadius",
+            "root": "noLeftPadding",
+          },
+          "startAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <pure(FilterListIcon)
+              style={
+                Object {
+                  "color": "#80868b",
+                  "paddingRight": 16,
+                }
+              }
+            />
+          </WithStyles(InputAdornment)>,
+        }
+      }
+      className="filterBox"
+      height={48}
+      id="tableFilterBox"
+      label="Filter"
+      maxWidth="100%"
+      onChange={[Function]}
+      value="test filter"
+      variant="outlined"
+    />
+  </div>
+  <div
+    className="header"
+  >
+    <div
+      className="columnName cell selectionToggle"
+    >
+      <WithStyles(Checkbox)
+        checked={false}
+        color="primary"
+        indeterminate={false}
+        onChange={[Function]}
+      />
+    </div>
+    <div
+      className="columnName"
+      key="0"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        enterDelay={300}
+        title="Cannot sort by this column"
+      >
+        <WithStyles(TableSortLabel)
+          active={false}
+          className="ellipsis"
+          onClick={[Function]}
+        >
+          col1
+        </WithStyles(TableSortLabel)>
+      </WithStyles(Tooltip)>
+    </div>
+    <div
+      className="columnName"
+      key="1"
+      style={
+        Object {
+          "width": "50%",
+        }
+      }
+    >
+      <WithStyles(Tooltip)
+        enterDelay={300}
+        title="Cannot sort by this column"
+      >
+        <WithStyles(TableSortLabel)
+          active={false}
+          className="ellipsis"
+          onClick={[Function]}
+        >
+          col2
+        </WithStyles(TableSortLabel)>
+      </WithStyles(Tooltip)>
+    </div>
+  </div>
+  <div
+    className="scrollContainer"
+    style={
+      Object {
+        "minHeight": 60,
+      }
+    }
+  >
+    <div
+      className="expandableContainer"
+      key="0"
+    >
+      <div
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
+      >
+        <div
+          className="cell selectionToggle"
+        >
+          <WithStyles(Checkbox)
+            checked={false}
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
+      </div>
+    </div>
+    <div
+      className="expandableContainer"
+      key="1"
+    >
+      <div
+        className="tableRow row"
+        onClick={[Function]}
+        role="checkbox"
+        tabIndex={-1}
+      >
+        <div
+          className="cell selectionToggle"
+        >
+          <WithStyles(Checkbox)
+            checked={false}
+            color="primary"
+          />
+        </div>
+        <div
+          className="cell"
+          key="0"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell1
+        </div>
+        <div
+          className="cell"
+          key="1"
+          style={
+            Object {
+              "width": "50%",
+            }
+          }
+        >
+          cell2
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    className="footer"
+  >
+    <span
+      className=""
+    >
+      Rows per page:
+    </span>
+    <TextField
+      InputProps={
+        Object {
+          "disableUnderline": true,
+        }
+      }
+      className="rowsPerPage"
+      classes={
+        Object {
+          "root": "verticalAlignInitial",
+        }
+      }
+      onChange={[Function]}
+      required={false}
+      select={true}
+      value={10}
+      variant="standard"
+    >
+      <WithStyles(MenuItem)
+        key="0"
+        value={10}
+      >
+        10
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="1"
+        value={20}
+      >
+        20
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="2"
+        value={50}
+      >
+        50
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="3"
+        value={100}
+      >
+        100
+      </WithStyles(MenuItem)>
+    </TextField>
+    <WithStyles(IconButton)
+      disabled={true}
+      onClick={[Function]}
+    >
+      <pure(ChevronLeftIcon) />
+    </WithStyles(IconButton)>
+    <WithStyles(IconButton)
+      disabled={true}
       onClick={[Function]}
     >
       <pure(ChevronRightIcon) />

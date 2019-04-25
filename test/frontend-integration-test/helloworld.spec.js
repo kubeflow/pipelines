@@ -17,6 +17,8 @@ const URL = require('url').URL;
 
 const experimentName = 'helloworld-experiment-' + Date.now();
 const experimentDescription = 'hello world experiment description';
+const secondExperimentName = 'different-experiment-name-' + Date.now();
+const secondExperimentNameDescription = 'second experiment description';
 const pipelineName = 'helloworld-pipeline-' + Date.now();
 const runName = 'helloworld-' + Date.now();
 const runDescription = 'test run description ' + runName;
@@ -63,7 +65,7 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('creates a new experiment out of this pipeline', () => {
-    $('#startNewExperimentBtn').click();
+    $('#newExperimentBtn').click();
     browser.waitUntil(() => {
       return new URL(browser.getUrl()).hash.startsWith('#/experiments/new');
     }, waitTimeout);
@@ -91,11 +93,14 @@ describe('deploy helloworld sample run', () => {
     browser.keys('Tab');
     browser.keys(runDescription);
 
+    // Skip over "choose experiment" button
+    browser.keys('Tab');
+
     browser.keys('Tab');
     browser.keys(outputParameterValue);
 
     // Deploy
-    $('#createBtn').click();
+    $('#startNewRunBtn').click();
   });
 
   it('redirects back to experiment page', () => {
@@ -105,11 +110,20 @@ describe('deploy helloworld sample run', () => {
   });
 
   it('finds the new run in the list of runs, navigates to it', () => {
-    $('.tableRow').waitForVisible(waitTimeout);
+    let attempts = 30;
+
+    // Wait for a reasonable amount of time until the run starts
+    while (attempts && !$('.tableRow a').isExisting()) {
+      browser.pause(1000);
+      $('#refreshBtn').click();
+      --attempts;
+    }
+
+    assert(attempts, 'waited for 30 seconds but run did not start.');
+
     assert.equal($$('.tableRow').length, 1, 'should only show one run');
 
     // Navigate to details of the deployed run by clicking its anchor element
-    $('.tableRow a').waitForVisible(waitTimeout);
     browser.execute('document.querySelector(".tableRow a").click()');
   });
 
@@ -127,7 +141,6 @@ describe('deploy helloworld sample run', () => {
     // Wait for a reasonable amount of time until the run is done
     while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
       browser.pause(1000);
-      $('#refreshBtn').click();
       status = getValueFromDetailsTable('Status');
       attempts++;
     }
@@ -159,24 +172,77 @@ describe('deploy helloworld sample run', () => {
 
   it('opens the side panel when graph node is clicked', () => {
     $('.graphNode').click();
+    browser.pause(1000);
     $('button=Logs').waitForVisible();
   });
 
   it('shows logs from node', () => {
     $('button=Logs').click();
     $('#logViewer').waitForVisible();
-    const logs = $('#logViewer').getText();
-    assert(logs.indexOf(outputParameterValue + ' from node: ') > -1,
-      'logs do not look right: ' + logs);
+    browser.waitUntil(() => {
+      const logs = $('#logViewer').getText();
+      return logs.indexOf(outputParameterValue + ' from node: ') > -1;
+    }, waitTimeout);
   });
 
-  it('deletes the uploaded pipeline', () => {
-    $('#pipelinesBtn').click();
-
-    browser.waitForVisible('.tableRow', waitTimeout);
-    $('.tableRow').click();
-    $('#deleteBtn').click();
-    $('.dialogButton').click();
-    $('.dialog').waitForVisible(waitTimeout, true);
+  it('navigates back to the experiment list', () => {
+    $('button=Experiments').click();
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/experiments');
+    }, waitTimeout);
   });
+
+  it('creates a new experiment', () => {
+    $('#newExperimentBtn').click();
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/experiments/new');
+    }, waitTimeout);
+
+    $('#experimentName').setValue(secondExperimentName);
+    $('#experimentDescription').setValue(secondExperimentNameDescription);
+
+    $('#createExperimentBtn').click();
+  });
+
+  it('navigates back to the experiment list', () => {
+    $('button=Experiments').click();
+    browser.waitUntil(() => {
+      return new URL(browser.getUrl()).hash.startsWith('#/experiments');
+    }, waitTimeout);
+  });
+
+  it('displays both experiments in the list', () => {
+    $('.tableRow').waitForVisible();
+    const rows = $$('.tableRow').length;
+    assert(rows === 2, 'there should now be two experiments in the table, instead there are: ' + rows);
+  });
+
+  it('filters the experiment list', () => {
+    // Enter "hello" into filter bar
+    browser.click('#tableFilterBox');
+    browser.keys(experimentName.substring(0, 5));
+    // Wait for the list to refresh
+    browser.pause(2000);
+
+    $('.tableRow').waitForVisible();
+    const rows = $$('.tableRow').length;
+    assert(rows === 1, 'there should now be one experiment in the table, instead there are: ' + rows);
+  });
+
+  // TODO: Add test for creating a run without an experiment. This will require changing the API
+  // initialization and integration tests to stop deleting the default experiment at the end of the
+  // suites. Otherwise, run creation here will fail with:
+  // 'Failed to store resource references to table for run [ID] : ResourceNotFoundError: [Default Experiment ID]'
+
+  //TODO: enable this after we change the pipeline to a unique name such that deleting this
+  // pipeline will not jeopardize the concurrent basic e2e tests.
+  // it('deletes the uploaded pipeline', () => {
+  //   $('#pipelinesBtn').click();
+  //
+  //   browser.waitForVisible('.tableRow', waitTimeout);
+  //   $('.tableRow').click();
+  //   $('#deleteBtn').click();
+  //   $('.dialogButton').click();
+  //   $('.dialog').waitForVisible(waitTimeout, true);
+  // });
 });

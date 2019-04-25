@@ -22,14 +22,23 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"time"
+
+	"fmt"
+	"os"
 
 	"github.com/golang/glog"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	_ "ml_metadata/metadata_store/mlmetadata"
+	_ "ml_metadata/proto/metadata_store_go_proto"
+	_ "ml_metadata/proto/metadata_store_service_go_proto"
 )
 
 var (
@@ -43,12 +52,20 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 
 func main() {
 	flag.Parse()
-	glog.Infof("starting API server")
 
 	initConfig()
 	clientManager := newClientManager()
 	resourceManager := resource.NewResourceManager(&clientManager)
-	loadSamples(resourceManager)
+	err := loadSamples(resourceManager)
+	if err != nil {
+		glog.Fatalf("Failed to load samples. Err: %v", err)
+	}
+
+	err = createDefaultExperiment(resourceManager)
+	if err != nil {
+		glog.Fatalf("Failed to create default experiment. Err: %v", err)
+	}
+
 	go startRpcServer(resourceManager)
 	startHttpProxy(resourceManager)
 
@@ -118,12 +135,56 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 	}
 }
 
+// Used to initialize the Experiment database with a default to be used for runs
+func createDefaultExperiment(resourceManager *resource.ResourceManager) error {
+	// First check that we don't already have a default experiment ID in the DB.
+	defaultExperimentId, err := resourceManager.GetDefaultExperimentId()
+	if err != nil {
+		return fmt.Errorf("Failed to check if default experiment exists. Err: %v", err)
+	}
+	// If default experiment ID is already present, don't fail, simply return.
+	if defaultExperimentId != "" {
+		glog.Info("Default experiment already exists! ID: %v", defaultExperimentId)
+		return nil
+	}
+
+	// Create default experiment
+	defaultExperiment := &model.Experiment{
+		Name:        "Default",
+		Description: "All runs created without specifying an experiment will be grouped here.",
+	}
+	experiment, err := resourceManager.CreateExperiment(defaultExperiment)
+	if err != nil {
+		return fmt.Errorf("Failed to create default experiment. Err: %v", err)
+	}
+
+	// Set default experiment ID in the DB
+	err = resourceManager.SetDefaultExperimentId(experiment.UUID)
+	if err != nil {
+		return fmt.Errorf("Failed to set default experiment ID. Err: %v", err)
+	}
+
+	glog.Info("Default experiment is set. ID is: %v", experiment.UUID)
+	return nil
+}
+
 // Preload a bunch of pipeline samples
-func loadSamples(resourceManager *resource.ResourceManager) {
+// Samples are only loaded once when the pipeline system is initially installed.
+// They won't be loaded when upgrade or pod restart, to prevent them reappear if user explicitly
+// delete the samples.
+func loadSamples(resourceManager *resource.ResourceManager) error {
+	// Check if sample has being loaded already and skip loading if true.
+	haveSamplesLoaded, err := resourceManager.HaveSamplesLoaded()
+	if err != nil {
+		return err
+	}
+	if haveSamplesLoaded {
+		glog.Infof("Samples already loaded in the past. Skip loading.")
+		return nil
+	}
 	configBytes, err := ioutil.ReadFile(*sampleConfigPath)
 	if err != nil {
-		glog.Warningf("Failed to read sample configurations. Err: %v", err.Error())
-		return
+		return fmt.Errorf("Failed to read sample configurations file. Err: %v", err)
 	}
 	type config struct {
 		Name        string
@@ -131,17 +192,35 @@ func loadSamples(resourceManager *resource.ResourceManager) {
 		File        string
 	}
 	var configs []config
-	if json.Unmarshal(configBytes, &configs) != nil {
-		glog.Warningf("Failed to read sample configurations. Err: %v", err.Error())
-		return
+	if err = json.Unmarshal(configBytes, &configs); err != nil {
+		return fmt.Errorf("Failed to read sample configurations. Err: %v", err)
 	}
 	for _, config := range configs {
-		sampleBytes, err := ioutil.ReadFile(config.File)
-		if err != nil {
-			glog.Warningf("Failed to load sample %s. Error: %v", config.Name, err.Error())
+		reader, configErr := os.Open(config.File)
+		if configErr != nil {
+			return fmt.Errorf("Failed to load sample %s. Error: %v", config.Name, configErr)
+		}
+		pipelineFile, configErr := server.ReadPipelineFile(config.File, reader, server.MaxFileLength)
+		if configErr != nil {
+			return fmt.Errorf("Failed to decompress the file %s. Error: %v", config.Name, configErr)
+		}
+		_, configErr = resourceManager.CreatePipeline(config.Name, config.Description, pipelineFile)
+		if configErr != nil {
+			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
+			// In the future, we might consider loading samples during deployment, instead of when API server starts.
+			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, configErr))
 			continue
 		}
-		resourceManager.CreatePipeline(config.Name, config.Description, sampleBytes)
+
+		// Since the default sorting is by create time,
+		// Sleep one second makes sure the samples are showing up in the same order as they are added.
+		time.Sleep(1 * time.Second)
+	}
+	// Mark sample as loaded
+	err = resourceManager.MarkSampleLoaded()
+	if err != nil {
+		return err
 	}
 	glog.Info("All samples are loaded.")
+	return nil
 }

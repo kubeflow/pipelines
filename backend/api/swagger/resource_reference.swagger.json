@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "resource_reference.proto",
+    "title": "backend/api/resource_reference.proto",
     "version": "version not set"
   },
   "schemes": [

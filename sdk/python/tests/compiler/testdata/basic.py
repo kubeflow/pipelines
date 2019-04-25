@@ -14,6 +14,7 @@
 
 
 import kfp.dsl as dsl
+import kfp.gcp as gcp
 
 
 class GetFrequentWordOp(dsl.ContainerOp):
@@ -70,7 +71,7 @@ class ExitHandlerOp(dsl.ContainerOp):
   name='Save Most Frequent',
   description='Get Most Frequent Word and Save to GCS'
 )
-def save_most_frequent_word(message: dsl.PipelineParam, outputpath: dsl.PipelineParam):
+def save_most_frequent_word(message: str, outputpath: str):
   """A pipeline function describing the orchestration of the workflow."""
 
   exit_op = ExitHandlerOp('exiting')
@@ -85,3 +86,6 @@ def save_most_frequent_word(message: dsl.PipelineParam, outputpath: dsl.Pipeline
           message=counter.output,
           output_path=outputpath)
     saver.set_cpu_limit('0.5')
+    saver.set_gpu_limit('2')
+    saver.add_node_selector_constraint('cloud.google.com/gke-accelerator', 'nvidia-tesla-k80')
+    saver.apply(gcp.use_tpu(tpu_cores = 8, tpu_resource = 'v2', tf_version = '1.12'))

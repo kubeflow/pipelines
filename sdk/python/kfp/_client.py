@@ -13,30 +13,37 @@
 # limitations under the License.
 
 
-import six
 import time
 import logging
 import json
 import os
 import tarfile
+import zipfile
 import yaml
 from datetime import datetime
 
-class RunPipelineResult:
-  def __init__(self, response):
-    self.response = response
-    self.run_id = response.run.id
+from .compiler import compiler
+from .compiler import _k8s_helper
 
+from ._auth import get_auth_token
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
 
-  def __init__(self, host='ml-pipeline.kubeflow.svc.cluster.local:8888'):
+  # in-cluster DNS name of the pipeline service
+  IN_CLUSTER_DNS_NAME = 'ml-pipeline.kubeflow.svc.cluster.local:8888'
+
+  def __init__(self, host=None, client_id=None):
     """Create a new instance of kfp client.
 
     Args:
-      host: the API host. If running inside the cluster as a Pod, default value should work.
+      host: the host name to use to talk to Kubeflow Pipelines. If not set, the in-cluster
+          service DNS name will be used, which only works if the current environment is a pod
+          in the same cluster (such as a Jupyter instance spawned by Kubeflow's
+          JupyterHub). If you have a different connection to cluster, such as a kubectl
+          proxy connection, then set it to something like "127.0.0.1:8080/pipeline".
+      client_id: The client ID used by Identity-Aware Proxy.
     """
 
     try:
@@ -49,25 +56,52 @@ class Client(object):
     except ImportError:
       raise Exception('This module requires installation of kfp_run')
 
+    self._host = host
+
+    token = None
+    if host and client_id:
+      token = get_auth_token(client_id)
+  
     config = kfp_run.configuration.Configuration()
-    config.host = host
+    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
+    self._configure_auth(config, token)
     api_client = kfp_run.api_client.ApiClient(config)
     self._run_api = kfp_run.api.run_service_api.RunServiceApi(api_client)
 
     config = kfp_experiment.configuration.Configuration()
-    config.host = host
+    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
+    self._configure_auth(config, token)
     api_client = kfp_experiment.api_client.ApiClient(config)
     self._experiment_api = \
         kfp_experiment.api.experiment_service_api.ExperimentServiceApi(api_client)
+
+  def _configure_auth(self, config, token):
+    if token:
+      config.api_key['authorization'] = token
+      config.api_key_prefix['authorization'] = 'Bearer'
 
   def _is_ipython(self):
     """Returns whether we are running in notebook."""
     try:
       import IPython
+      ipy = IPython.get_ipython()
+      if ipy is None:
+        return False
     except ImportError:
       return False
 
     return True
+
+  def _get_url_prefix(self):
+    if self._host:
+      # User's own connection.
+      if self._host.startswith('http://'):
+        return self._host
+      else:
+        return 'http://' + self._host
+
+    # In-cluster pod. We could use relative URL.
+    return '/pipeline'
 
   def create_experiment(self, name):
     """Create a new experiment.
@@ -78,16 +112,25 @@ class Client(object):
     """
     import kfp_experiment
 
-    exp = kfp_experiment.models.ApiExperiment(name=name)
-    response = self._experiment_api.create_experiment(body=exp)
+    experiment = None
+    try:
+      experiment = self.get_experiment(experiment_name=name)
+    except:
+      # Ignore error if the experiment does not exist.
+      pass
+
+    if not experiment:
+      logging.info('Creating experiment {}.'.format(name))
+      experiment = kfp_experiment.models.ApiExperiment(name=name)
+      experiment = self._experiment_api.create_experiment(body=experiment)
     
     if self._is_ipython():
       import IPython
       html = \
-          ('Experiment link <a href="/pipeline/#/experiments/details/%s" target="_blank" >here</a>'
-          % response.id)
+          ('Experiment link <a href="%s/#/experiments/details/%s" target="_blank" >here</a>'
+          % (self._get_url_prefix(), experiment.id))
       IPython.display.display(IPython.display.HTML(html))
-    return response
+    return experiment
 
   def list_experiments(self, page_token='', page_size=10, sort_by=''):
     """List experiments.
@@ -102,53 +145,89 @@ class Client(object):
         page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
-  def get_experiment(self, experiment_id):
+  def get_experiment(self, experiment_id=None, experiment_name=None):
     """Get details of an experiment
+    Either experiment_id or experiment_name is required
     Args:
-      id of the experiment.
+      experiment_id: id of the experiment. (Optional)
+      experiment_name: name of the experiment. (Optional)
     Returns:
       A response object including details of a experiment.
     Throws:
-      Exception if experiment is not found.        
+      Exception if experiment is not found or None of the arguments is provided
     """
-    return self._experiment_api.get_experiment(id=experiment_id)
+    if experiment_id is None and experiment_name is None:
+      raise ValueError('Either experiment_id or experiment_name is required')
+    if experiment_id is not None:
+      return self._experiment_api.get_experiment(id=experiment_id)
+    next_page_token = ''
+    while next_page_token is not None:
+      list_experiments_response = self.list_experiments(page_size=100, page_token=next_page_token)
+      next_page_token = list_experiments_response.next_page_token
+      for experiment in list_experiments_response.experiments:
+        if experiment.name == experiment_name:
+          return self._experiment_api.get_experiment(id=experiment.id)
+    raise ValueError('No experiment is found with name {}.'.format(experiment_name))
 
-  def _extract_pipeline_yaml(self, tar_file):
-    with tarfile.open(tar_file, "r:gz") as tar:
-      all_yaml_files = [m for m in tar if m.isfile() and 
-          (os.path.splitext(m.name)[-1] == '.yaml' or os.path.splitext(m.name)[-1] == '.yml')]
-      if len(all_yaml_files) == 0:
-        raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
+  def _extract_pipeline_yaml(self, package_file):
+    if package_file.endswith('.tar.gz') or package_file.endswith('.tgz'):
+      with tarfile.open(package_file, "r:gz") as tar:
+        all_yaml_files = [m for m in tar if m.isfile() and
+            (os.path.splitext(m.name)[-1] == '.yaml' or os.path.splitext(m.name)[-1] == '.yml')]
+        if len(all_yaml_files) == 0:
+          raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
         
-      if len(all_yaml_files) > 1:
-        raise ValueError('Invalid package. Multiple yaml files in the package.')
+        if len(all_yaml_files) > 1:
+          raise ValueError('Invalid package. Multiple yaml files in the package.')
         
-      with tar.extractfile(all_yaml_files[0]) as f:
-        return yaml.load(f)
+        with tar.extractfile(all_yaml_files[0]) as f:
+          return yaml.safe_load(f)
+    elif package_file.endswith('.zip'):
+      with zipfile.ZipFile(package_file, 'r') as zip:
+        all_yaml_files = [m for m in zip.namelist() if
+                          (os.path.splitext(m)[-1] == '.yaml' or os.path.splitext(m)[-1] == '.yml')]
+        if len(all_yaml_files) == 0:
+          raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
 
+        if len(all_yaml_files) > 1:
+          raise ValueError('Invalid package. Multiple yaml files in the package.')
 
-  def run_pipeline(self, experiment_id, job_name, pipeline_package_path, params={}):
+        with zip.open(all_yaml_files[0]) as f:
+          return yaml.safe_load(f)
+    elif package_file.endswith('.yaml') or package_file.endswith('.yml'):
+      with open(package_file, 'r') as f:
+        return yaml.safe_load(f)
+    else:
+      raise ValueError('The package_file '+ package_file + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
+
+  def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None):
     """Run a specified pipeline.
 
     Args:
       experiment_id: The string id of an experiment.
       job_name: name of the job.
-      pipeline_package_path: local path of the pipeline package(tar.gz file).
+      pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: a dictionary with key (string) as param name and value (string) as as param value.
+      pipeline_id: the string ID of a pipeline.
 
     Returns:
       A run object. Most important field is id.
     """
     import kfp_run
 
-    pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
-    pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_run.ApiParameter(name=k, value=str(v)) for k,v in six.iteritems(params)]
+    pipeline_json_string = None
+    if pipeline_package_path:
+      pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
+      pipeline_json_string = json.dumps(pipeline_obj)
+    api_params = [kfp_run.ApiParameter(name=_k8s_helper.K8sHelper.sanitize_k8s_name(k), value=str(v))
+                  for k,v in params.items()]
     key = kfp_run.models.ApiResourceKey(id=experiment_id,
                                         type=kfp_run.models.ApiResourceType.EXPERIMENT)
     reference = kfp_run.models.ApiResourceReference(key, kfp_run.models.ApiRelationship.OWNER)
     spec = kfp_run.models.ApiPipelineSpec(
-        workflow_manifest=pipeline_json_string, parameters=api_params)
+        pipeline_id=pipeline_id,
+        workflow_manifest=pipeline_json_string, 
+        parameters=api_params)
     run_body = kfp_run.models.ApiRun(
         pipeline_spec=spec, resource_references=[reference], name=job_name)
 
@@ -156,22 +235,32 @@ class Client(object):
     
     if self._is_ipython():
       import IPython
-      html = ('Job link <a href="/pipeline/#/runs/details/%s" target="_blank" >here</a>'
-              % response.run.id)
+      html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
+              % (self._get_url_prefix(), response.run.id))
       IPython.display.display(IPython.display.HTML(html))
-    
+
+    class RunPipelineResult:
+      def __init__(self, response):
+        self.response = response
+        self.run_id = response.run.id
+
     return RunPipelineResult(response)
 
-  def list_runs(self, page_token='', page_size=10, sort_by=''):
+  def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List runs.
     Args:
       page_token: token for starting of the page.
       page_size: size of the page.
       sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+      experiment_id: experiment id to filter upon
     Returns:
       A response object including a list of experiments and next page token.
     """
-    response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
+    if experiment_id is not None:
+      import kfp_run
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_run.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
+    else:
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
 
   def get_run(self, run_id):

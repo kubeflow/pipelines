@@ -17,7 +17,7 @@ package util
 import (
 	"math"
 
-	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	log "github.com/sirupsen/logrus"
 )
 

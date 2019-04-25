@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,12 @@
  */
 
 import * as dagre from 'dagre';
+import IconWithTooltip from '../atoms/IconWithTooltip';
+import MoreIcon from '@material-ui/icons/MoreHoriz';
 import { Workflow, NodeStatus, Parameter } from '../../third_party/argo-ui/argo_template';
-import { statusToIcon, NodePhase } from '../pages/Status';
+import { statusToIcon, NodePhase, hasFinished, statusToBgColor } from '../pages/Status';
+import { color } from '../Css';
+import { Constants } from './Constants';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -30,13 +34,12 @@ export interface StoragePath {
 }
 
 export default class WorkflowParser {
-  public static createRuntimeGraph(workflow: Workflow) {
+  public static createRuntimeGraph(workflow: Workflow): dagre.graphlib.Graph {
     const g = new dagre.graphlib.Graph();
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
 
-    const NODE_WIDTH = 180;
-    const NODE_HEIGHT = 70;
+    const PLACEHOLDER_NODE_DIMENSION = 28;
 
     if (!workflow || !workflow.status || !workflow.status.nodes ||
       !workflow.metadata || !workflow.metadata.name) {
@@ -50,8 +53,7 @@ export default class WorkflowParser {
     // Uses the root node, so this needs to happen before we remove the root
     // node below.
     const onExitHandlerNodeId =
-      Object.keys(workflowNodes).find((id) =>
-        workflowNodes[id].name === `${workflowName}.onExit`);
+      Object.keys(workflowNodes).find((id) => workflowNodes[id].name === `${workflowName}.onExit`);
     if (onExitHandlerNodeId) {
       this.getOutboundNodes(workflow, workflowName).forEach((nodeId) =>
         g.setEdge(nodeId, onExitHandlerNodeId));
@@ -64,16 +66,39 @@ export default class WorkflowParser {
       delete workflowNodes[workflowName];
     }
 
+    const runningNodeSuffix = '-running-placeholder';
+
     // Create dagre graph nodes from workflow nodes.
     (Object as any).values(workflowNodes)
       .forEach((node: NodeStatus) => {
+        let nodeLabel = node.displayName || node.id;
+        if (node.name === `${workflowName}.onExit`) {
+          nodeLabel = `onExit - ${node.templateName}`;
+        }
         g.setNode(node.id, {
-          height: NODE_HEIGHT,
-          icon: statusToIcon(workflowNodes[node.id].phase as NodePhase),
-          label: node.displayName || node.id,
-          width: NODE_WIDTH,
+          height: Constants.NODE_HEIGHT,
+          icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message),
+          label: nodeLabel,
+          statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
+          width: Constants.NODE_WIDTH,
           ...node,
         });
+
+        if (!hasFinished(node.phase as NodePhase) && !this.isVirtual(node)) {
+          g.setNode(node.id + runningNodeSuffix, {
+            height: PLACEHOLDER_NODE_DIMENSION,
+            icon: IconWithTooltip({
+              Icon: MoreIcon,
+              height: 24,
+              iconColor: color.weak,
+              tooltip: 'More nodes may appear here',
+              width: 24,
+            }),
+            isPlaceholder: true,
+            width: PLACEHOLDER_NODE_DIMENSION,
+          });
+          g.setEdge(node.id, node.id + runningNodeSuffix, { color: color.weak, isPlaceholder: true });
+        }
       });
 
     // Connect dagre graph nodes with edges.
@@ -124,7 +149,7 @@ export default class WorkflowParser {
   // Makes sure the workflow object contains the node and returns its
   // inputs/outputs if any, while looking out for any missing link in the chain to
   // the node's inputs/outputs.
-  public static getNodeInputOutputParams(workflow: Workflow, nodeId: string) {
+  public static getNodeInputOutputParams(workflow: Workflow, nodeId: string): [string[][], string[][]] {
     type paramList = string[][];
     if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
       return [[], []];
@@ -139,6 +164,38 @@ export default class WorkflowParser {
       inputsOutputs[1] = node.outputs.parameters.map(p => [p.name, p.value || '']);
     }
     return inputsOutputs;
+  }
+
+  // Makes sure the workflow object contains the node and returns its
+  // volume mounts if any.
+  public static getNodeVolumeMounts(workflow: Workflow, nodeId: string): string[][] {
+    if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId] || !workflow.spec || !workflow.spec.templates) {
+      return [];
+    }
+
+    const node = workflow.status.nodes[nodeId];
+    const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+    let volumeMounts: string[][] = [];
+    if (tmpl && tmpl.container && tmpl.container.volumeMounts) {
+      volumeMounts = tmpl.container.volumeMounts.map(v => [v.mountPath, v.name]);
+    }
+    return volumeMounts;
+  }
+
+  // Makes sure the workflow object contains the node and returns its
+  // action and manifest.
+  public static getNodeManifest(workflow: Workflow, nodeId: string): string[][] {
+    if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId] || !workflow.spec || !workflow.spec.templates) {
+      return [];
+    }
+
+    const node = workflow.status.nodes[nodeId];
+    const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+    let manifest: string[][] = [];
+    if (tmpl && tmpl.resource && tmpl.resource.action && tmpl.resource.manifest) {
+      manifest = [[tmpl.resource.action, tmpl.resource.manifest]];
+    }
+    return manifest;
   }
 
   // Returns a list of output paths for the given workflow Node, by looking for
@@ -162,11 +219,18 @@ export default class WorkflowParser {
 
   // Returns a list of output paths for the entire workflow, by searching all nodes in
   // the workflow, and parsing outputs for each.
-  public static loadAllOutputPaths(workflow: Workflow) {
-    let outputPaths: StoragePath[] = [];
+  public static loadAllOutputPaths(workflow: Workflow): StoragePath[] {
+    return this.loadAllOutputPathsWithStepNames(workflow).map(entry => entry.path);
+  }
+
+  // Returns a list of object mapping a step name to output path for the entire workflow,
+  // by searching all nodes in the workflow, and parsing outputs for each.
+  public static loadAllOutputPathsWithStepNames(workflow: Workflow): Array<{ stepName: string, path: StoragePath }> {
+    const outputPaths: Array<{ stepName: string, path: StoragePath }> = [];
     if (workflow && workflow.status && workflow.status.nodes) {
       Object.keys(workflow.status.nodes).forEach(n =>
-        outputPaths = outputPaths.concat(this.loadNodeOutputPaths(workflow.status.nodes[n])));
+        this.loadNodeOutputPaths(workflow.status.nodes[n]).map(path =>
+          outputPaths.push({ stepName: workflow.status.nodes[n].displayName, path })));
     }
 
     return outputPaths;
@@ -181,6 +245,13 @@ export default class WorkflowParser {
         bucket: pathParts[0],
         key: pathParts.slice(1).join('/'),
         source: StorageService.GCS,
+      };
+    } else if (strPath.startsWith('minio://')) {
+      const pathParts = strPath.substr('minio://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.MINIO,
       };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);
@@ -220,7 +291,7 @@ export default class WorkflowParser {
   // by Argo to orchestrate the workflow. Such nodes are not generally
   // meaningful from a user's perspective.
   public static isVirtual(node: NodeStatus): boolean {
-    return (node.type === 'StepGroup' || node.type === 'DAG') && !!node.boundaryID;
+    return (node.type === 'StepGroup' || node.type === 'DAG' || node.type === 'TaskGroup') && !!node.boundaryID;
   }
 
   // Returns a workflow-level error string if found, empty string if none

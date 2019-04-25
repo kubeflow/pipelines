@@ -28,7 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -62,6 +62,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1"},
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 })
 
 // Util function to create an initial state with pipeline uploaded
@@ -247,7 +248,9 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			UUID:           "workflow1",
 			DisplayName:    "run1",
 			Name:           "workflow-name",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 3,
+			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           p.UUID,
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
@@ -284,8 +287,9 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			UUID:           "workflow1",
 			DisplayName:    "run1",
 			Name:           "workflow-name",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
-			Conditions:     "",
+			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
@@ -363,11 +367,12 @@ func TestCreateRun_OverrideParametersError(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unrecognized input parameter")
 }
+
 func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	manager.workflowClient = &storage.FakeBadWorkflowClient{}
+	manager.workflowClient = &FakeBadWorkflowClient{}
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
@@ -398,6 +403,83 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	}
 	_, err := manager.CreateRun(apiRun)
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestDeleteRun(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+	err := manager.DeleteRun(runDetail.UUID)
+	assert.Nil(t, err)
+
+	_, err = manager.GetRun(runDetail.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteRun_RunNotExist(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	err := manager.DeleteRun("1")
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteRun_CrdFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+
+	manager.workflowClient = &FakeBadWorkflowClient{}
+	err := manager.DeleteRun(runDetail.UUID)
+	//assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	//assert.Contains(t, err.Error(), "some error")
+	// TODO(IronPan) This should return error if swf CRD doesn't cascade delete runs.
+	assert.Nil(t, err)
+}
+
+func TestDeleteRun_DbFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+
+	store.DB().Close()
+	err := manager.DeleteRun(runDetail.UUID)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestTerminateRun(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+
+	err := manager.TerminateRun(runDetail.UUID)
+	assert.Nil(t, err)
+
+	actualRunDetail, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, "Terminating", actualRunDetail.Conditions)
+
+	isTerminated, err := store.workflowClientFake.isTerminated(runDetail.Run.Name)
+	assert.Nil(t, err)
+	assert.True(t, isTerminated)
+}
+
+func TestTerminateRun_RunNotExist(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	err := manager.TerminateRun("1")
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestTerminateRun_DbFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+
+	store.DB().Close()
+	err := manager.TerminateRun(runDetail.UUID)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
 
@@ -648,6 +730,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		UUID:           "workflow1",
 		DisplayName:    "run1",
 		Name:           "workflow-name",
+		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 		CreatedAtInSec: 2,
 		Conditions:     "Running",
 		PipelineSpec: model.PipelineSpec{
@@ -678,7 +761,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			Namespace: "MY_NAMESPACE",
 			UID:       "WORKFLOW_1",
 			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID(job.UUID),
@@ -696,10 +779,12 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 		Run: model.Run{
 			UUID:             "WORKFLOW_1",
 			DisplayName:      "MY_NAME",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Name:             "MY_NAME",
 			Namespace:        "MY_NAMESPACE",
 			CreatedAtInSec:   11,
 			ScheduledAtInSec: 0,
+			FinishedAtInSec:  0,
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
 			},
@@ -707,16 +792,16 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 				{
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
-					ReferenceUUID: DefaultFakeUUID,
-					ReferenceType: common.Experiment,
-					Relationship:  common.Owner,
+					ReferenceUUID: job.UUID,
+					ReferenceType: common.Job,
+					Relationship:  common.Creator,
 				},
 				{
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
-					ReferenceUUID: job.UUID,
-					ReferenceType: common.Job,
-					Relationship:  common.Creator,
+					ReferenceUUID: DefaultFakeUUID,
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
 				},
 			},
 		},
@@ -744,7 +829,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t
 			Namespace: "MY_NAMESPACE",
 			UID:       "WORKFLOW_1",
 			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID(newJob.UUID),
@@ -931,7 +1016,7 @@ func TestReadArtifact_Succeed(t *testing.T) {
 			UID:               "run-1",
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID(job.UUID),
@@ -975,7 +1060,7 @@ func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
 			UID:               "run-1",
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1alpha1",
+				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
 				Name:       "SCHEDULE_NAME",
 				UID:        types.UID(job.UUID),

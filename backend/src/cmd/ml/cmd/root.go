@@ -15,12 +15,12 @@ type RootCommand struct {
 	command              *cobra.Command
 	outputFormat         string
 	debug                bool
-	noColor              bool
 	clientConfig         clientcmd.ClientConfig
 	pipelineUploadClient client.PipelineUploadInterface
 	pipelineClient       client.PipelineInterface
 	jobClient            client.JobInterface
 	runClient            client.RunInterface
+	experimentClient     client.ExperimentInterface
 	time                 util.TimeInterface
 	writer               io.Writer
 }
@@ -41,22 +41,28 @@ func NewRootCmd(factory ClientFactoryInterface) *RootCommand {
 
 			pipelineClient, err := factory.CreatePipelineClient(root.ClientConfig(), root.debug)
 			if err != nil {
-				fmt.Errorf("Could not create pipelineClient: %v", err)
+				return fmt.Errorf("Could not create pipelineClient: %v", err)
 			}
 
 			jobClient, err := factory.CreateJobClient(root.ClientConfig(), root.debug)
 			if err != nil {
-				fmt.Errorf("Could not create jobClient: %v", err)
+				return fmt.Errorf("Could not create jobClient: %v", err)
 			}
 
 			runClient, err := factory.CreateRunClient(root.ClientConfig(), root.debug)
 			if err != nil {
-				fmt.Errorf("Could not create runClient: %v", err)
+				return fmt.Errorf("Could not create runClient: %v", err)
+			}
+
+			experimentClient, err := factory.CreateExperimentClient(root.ClientConfig(), root.debug)
+			if err != nil {
+				return fmt.Errorf("Could not create experimentClient: %v", err)
 			}
 			root.pipelineUploadClient = pipelineUploadClient
 			root.pipelineClient = pipelineClient
 			root.jobClient = jobClient
 			root.runClient = runClient
+			root.experimentClient = experimentClient
 			return nil
 		},
 	}
@@ -64,17 +70,16 @@ func NewRootCmd(factory ClientFactoryInterface) *RootCommand {
 	root.command = command
 	root.command.SilenceErrors = true
 	root.command.SilenceUsage = true
-	addStandardFlagsToCmd(command, &root.outputFormat, &root.debug, &root.noColor)
+	addStandardFlagsToCmd(command, &root.outputFormat, &root.debug)
 	root.clientConfig = addKubectlFlagsToCmd(command)
 	return root
 }
 
-func addStandardFlagsToCmd(cmd *cobra.Command, outputFormat *string, debug *bool, noColor *bool) {
+func addStandardFlagsToCmd(cmd *cobra.Command, outputFormat *string, debug *bool) {
 	cmd.PersistentFlags().StringVarP(outputFormat, "output", "o", "yaml",
 		"Output format. One of: json|yaml|go")
 	cmd.PersistentFlags().BoolVarP(debug, "debug", "d", false,
 		"Enable debug mode")
-	cmd.PersistentFlags().BoolVar(noColor, "no-color", false, "Disable colorized output")
 }
 
 func addKubectlFlagsToCmd(cmd *cobra.Command) clientcmd.ClientConfig {
@@ -111,10 +116,6 @@ func (r *RootCommand) Debug() bool {
 	return r.debug
 }
 
-func (r *RootCommand) NoColor() bool {
-	return r.noColor
-}
-
 func (r *RootCommand) ClientConfig() clientcmd.ClientConfig {
 	return r.clientConfig
 }
@@ -135,6 +136,10 @@ func (r *RootCommand) RunClient() client.RunInterface {
 	return r.runClient
 }
 
+func (r *RootCommand) ExperimentClient() client.ExperimentInterface {
+	return r.experimentClient
+}
+
 func (r *RootCommand) Time() util.TimeInterface {
 	return r.time
 }
@@ -150,6 +155,8 @@ func (r *RootCommand) AddCommand(commands ...*cobra.Command) {
 func CreateSubCommands(rootCmd *RootCommand, pageSize int32) *RootCommand {
 
 	// Create commands
+
+	// Pipeline
 	pipelineCmd := NewPipelineCmd()
 	pipelineUploadCmd := NewPipelineUploadCmd(rootCmd)
 	pipelineCreateCmd := NewPipelineCreateCmd(rootCmd)
@@ -157,9 +164,13 @@ func CreateSubCommands(rootCmd *RootCommand, pageSize int32) *RootCommand {
 	pipelineDeleteCmd := NewPipelineDeleteCmd(rootCmd)
 	pipelineGetCmd := NewPipelineGetCmd(rootCmd)
 	pipelineGetTemplateCmd := NewPipelineGetTemplateCmd(rootCmd)
+
+	// Run
 	runCmd := NewRunCmd()
 	runGetCmd := NewRunGetCmd(rootCmd)
 	runListCmd := NewRunListCmd(rootCmd, pageSize)
+
+	// Job
 	jobCmd := NewJobCmd()
 	jobCreateCmd := NewJobCreateCmd(rootCmd)
 	jobGetCmd := NewJobGetCmd(rootCmd)
@@ -168,15 +179,26 @@ func CreateSubCommands(rootCmd *RootCommand, pageSize int32) *RootCommand {
 	jobDisableCmd := NewJobDisableCmd(rootCmd)
 	jobDeleteCmd := NewJobDeleteCmd(rootCmd)
 
+	// Experiment
+	experimentCmd := NewExperimentCmd()
+	experimentCreateCmd := NewExperimentCreateCmd(rootCmd)
+	experimentGetCmd := NewExperimentGetCmd(rootCmd)
+	experimentListCmd := NewExperimentListCmd(rootCmd, pageSize)
+
 	// Specify subcommands
 	rootCmd.AddCommand(pipelineCmd)
 	pipelineCmd.AddCommand(pipelineUploadCmd, pipelineCreateCmd, pipelineListCmd, pipelineDeleteCmd,
 		pipelineGetCmd, pipelineGetTemplateCmd)
+
 	rootCmd.AddCommand(runCmd)
 	runCmd.AddCommand(runGetCmd, runListCmd)
+
 	rootCmd.AddCommand(jobCmd)
 	jobCmd.AddCommand(jobCreateCmd, jobGetCmd, jobListCmd, jobEnableCmd,
 		jobDisableCmd, jobDeleteCmd)
+
+	rootCmd.AddCommand(experimentCmd)
+	experimentCmd.AddCommand(experimentCreateCmd, experimentGetCmd, experimentListCmd)
 
 	return rootCmd
 }

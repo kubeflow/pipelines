@@ -1,0 +1,197 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NewExperiment enables the 'Next' button when an experiment name is entered 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="header"
+    >
+      Experiment details
+    </div>
+    <div
+      className="explanation"
+    >
+      Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+    </div>
+    <Component
+      autoFocus={true}
+      id="experimentName"
+      inputRef={
+        Object {
+          "current": null,
+        }
+      }
+      label="Experiment name"
+      onChange={[Function]}
+      required={true}
+      value="experiment name"
+      variant="outlined"
+    />
+    <Component
+      id="experimentDescription"
+      label="Description (optional)"
+      multiline={true}
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={false}
+        id="createExperimentBtn"
+        onClick={[Function]}
+        title="Next"
+      />
+      <WithStyles(Button)
+        id="cancelNewExperimentBtn"
+        onClick={[Function]}
+      >
+        Cancel
+      </WithStyles(Button)>
+      <div
+        className="errorMessage"
+      />
+    </div>
+  </div>
+</div>
+`;
+
+exports[`NewExperiment re-disables the 'Next' button when an experiment name is cleared after having been entered 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="header"
+    >
+      Experiment details
+    </div>
+    <div
+      className="explanation"
+    >
+      Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+    </div>
+    <Component
+      autoFocus={true}
+      id="experimentName"
+      inputRef={
+        Object {
+          "current": null,
+        }
+      }
+      label="Experiment name"
+      onChange={[Function]}
+      required={true}
+      value=""
+      variant="outlined"
+    />
+    <Component
+      id="experimentDescription"
+      label="Description (optional)"
+      multiline={true}
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={true}
+        id="createExperimentBtn"
+        onClick={[Function]}
+        title="Next"
+      />
+      <WithStyles(Button)
+        id="cancelNewExperimentBtn"
+        onClick={[Function]}
+      >
+        Cancel
+      </WithStyles(Button)>
+      <div
+        className="errorMessage"
+      >
+        Experiment name is required
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`NewExperiment renders the new experiment page 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="header"
+    >
+      Experiment details
+    </div>
+    <div
+      className="explanation"
+    >
+      Think of an Experiment as a space that contains the history of all pipelines and their associated runs
+    </div>
+    <Component
+      autoFocus={true}
+      id="experimentName"
+      inputRef={
+        Object {
+          "current": null,
+        }
+      }
+      label="Experiment name"
+      onChange={[Function]}
+      required={true}
+      value=""
+      variant="outlined"
+    />
+    <Component
+      id="experimentDescription"
+      label="Description (optional)"
+      multiline={true}
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={true}
+        id="createExperimentBtn"
+        onClick={[Function]}
+        title="Next"
+      />
+      <WithStyles(Button)
+        id="cancelNewExperimentBtn"
+        onClick={[Function]}
+      >
+        Cancel
+      </WithStyles(Button)>
+      <div
+        className="errorMessage"
+      >
+        Experiment name is required
+      </div>
+    </div>
+  </div>
+</div>
+`;

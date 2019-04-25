@@ -15,6 +15,7 @@
  */
 
 import * as React from 'react';
+import Archive from '../pages/Archive';
 import Banner, { BannerProps } from '../components/Banner';
 import Button from '@material-ui/core/Button';
 import Compare from '../pages/Compare';
@@ -26,9 +27,10 @@ import ExperimentDetails from '../pages/ExperimentDetails';
 import ExperimentsAndRuns, { ExperimentsAndRunsTab } from '../pages/ExperimentsAndRuns';
 import NewExperiment from '../pages/NewExperiment';
 import NewRun from '../pages/NewRun';
+import Page404 from '../pages/404';
 import PipelineDetails from '../pages/PipelineDetails';
 import PipelineList from '../pages/PipelineList';
-import RecurringRunConfig from '../pages/RecurringRunDetails';
+import RecurringRunDetails from '../pages/RecurringRunDetails';
 import RunDetails from '../pages/RunDetails';
 import SideNav from './SideNav';
 import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
@@ -43,6 +45,17 @@ const css = stylesheet({
   },
 });
 
+export enum QUERY_PARAMS {
+  cloneFromRun = 'cloneFromRun',
+  experimentId = 'experimentId',
+  isRecurring = 'recurring',
+  firstRunInExperiment = 'firstRunInExperiment',
+  pipelineId = 'pipelineId',
+  fromRunId = 'fromRun',
+  runlist = 'runlist',
+  view = 'view',
+}
+
 export enum RouteParams {
   experimentId = 'eid',
   pipelineId = 'pid',
@@ -51,13 +64,14 @@ export enum RouteParams {
 
 // tslint:disable-next-line:variable-name
 export const RoutePage = {
+  ARCHIVE: '/archive',
   COMPARE: `/compare`,
   EXPERIMENTS: '/experiments',
   EXPERIMENT_DETAILS: `/experiments/details/:${RouteParams.experimentId}`,
   NEW_EXPERIMENT: '/experiments/new',
   NEW_RUN: '/runs/new',
   PIPELINES: '/pipelines',
-  PIPELINE_DETAILS: `/pipelines/details/:${RouteParams.pipelineId}`,
+  PIPELINE_DETAILS: `/pipelines/details/:${RouteParams.pipelineId}?`, // pipelineId is optional
   RECURRING_RUN: `/recurringrun/details/:${RouteParams.runId}`,
   RUNS: '/runs',
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
@@ -92,16 +106,17 @@ class Router extends React.Component<{}, RouteComponentState> {
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const childProps = {
       toolbarProps: this.state.toolbarProps,
       updateBanner: this._updateBanner.bind(this),
       updateDialog: this._updateDialog.bind(this),
       updateSnackbar: this._updateSnackbar.bind(this),
-      updateToolbar: this._setToolbarActions.bind(this),
+      updateToolbar: this._updateToolbar.bind(this),
     };
 
     const routes: Array<{ path: string, Component: React.ComponentClass, view?: any }> = [
+      { path: RoutePage.ARCHIVE, Component: Archive },
       { path: RoutePage.EXPERIMENTS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.EXPERIMENTS },
       { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
       { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
@@ -109,7 +124,7 @@ class Router extends React.Component<{}, RouteComponentState> {
       { path: RoutePage.PIPELINES, Component: PipelineList },
       { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
       { path: RoutePage.RUNS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.RUNS },
-      { path: RoutePage.RECURRING_RUN, Component: RecurringRunConfig },
+      { path: RoutePage.RECURRING_RUN, Component: RecurringRunDetails },
       { path: RoutePage.RUN_DETAILS, Component: RunDetails },
       { path: RoutePage.COMPARE, Component: Compare },
     ];
@@ -137,6 +152,9 @@ class Router extends React.Component<{}, RouteComponentState> {
                     <Component {...props} {...childProps} {...otherProps} />
                   )} />;
                 })}
+
+                {/* 404 */}
+                {<Route render={({ ...props }) => <Page404 {...props} {...childProps} />} />}
               </Switch>
 
               <Snackbar
@@ -191,7 +209,8 @@ class Router extends React.Component<{}, RouteComponentState> {
     }
   }
 
-  private _setToolbarActions(toolbarProps: ToolbarProps): void {
+  private _updateToolbar(newToolbarProps: Partial<ToolbarProps>): void {
+    const toolbarProps = Object.assign(this.state.toolbarProps, newToolbarProps);
     this.setState({ toolbarProps });
   }
 

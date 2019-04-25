@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,30 +15,184 @@
  */
 
 import * as dagre from 'dagre';
-import { Workflow, WorkflowStep } from '../../third_party/argo-ui/argo_template';
+import { Constants } from './Constants';
+import { Workflow, Template } from '../../third_party/argo-ui/argo_template';
+import { color } from '../Css';
+import { logger } from './Utils';
 
-export interface SelectedNodeInfo {
-  nodeType: 'container' | 'steps' | 'unknown';
-  containerInfo?: {
-    args: string[];
-    command: string[];
-    image: string;
-    inputs: string[][];
-    outputs: string[][];
-  };
-  stepsInfo?: {
-    conditional: string;
-    parameters: string[][];
-  };
+export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
+
+export class SelectedNodeInfo {
+  public args: string[];
+  public command: string[];
+  public condition: string;
+  public image: string;
+  public inputs: string[][];
+  public nodeType: nodeType;
+  public outputs: string[][];
+  public volumeMounts: string[][];
+  public resource: string[][];
+
+  constructor() {
+    this.args = [];
+    this.command = [];
+    this.condition = '';
+    this.image = '';
+    this.inputs = [[]];
+    this.nodeType = 'unknown';
+    this.outputs = [[]];
+    this.volumeMounts = [[]];
+    this.resource = [[]];
+  }
+}
+
+export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Template): SelectedNodeInfo {
+  if (!template || (!template.container && !template.resource)) {
+    return info;
+  }
+
+  if (template.container) {
+    info.nodeType = 'container';
+    info.args = template.container.args || [],
+    info.command = template.container.command || [],
+    info.image = template.container.image || '';
+    info.volumeMounts = (template.container.volumeMounts || []).map(v => [v.mountPath, v.name]);
+  } else {
+    info.nodeType = 'resource';
+    if (template.resource && template.resource.action && template.resource.manifest) {
+      info.resource = [[template.resource.action, template.resource.manifest]];
+    } else {
+    info.resource = [[]];
+    }
+  }
+
+  if (template.inputs) {
+    info.inputs =
+      (template.inputs.parameters || []).map(p => [p.name, p.value || '']);
+  }
+  if (template.outputs) {
+    info.outputs = (template.outputs.parameters || []).map(p => {
+      let value = '';
+      if (p.value) {
+        value = p.value;
+      } else if (p.valueFrom) {
+        value = p.valueFrom.jqFilter || p.valueFrom.jsonPath || p.valueFrom.parameter || p.valueFrom.path || '';
+      }
+      return [p.name, value];
+    });
+  }
+
+  return info;
+}
+
+/**
+ * Recursively construct the static graph of the Pipeline.
+ *
+ * @param graph The dagre graph object
+ * @param rootTemplateId The current template being explored at this level of recursion
+ * @param templates An unchanging map of template name to template and type
+ * @param parentFullPath The task that was being examined when the function recursed. This string
+ * includes all of the nodes above it. For example, with a graph such as:
+ *     A
+ *    / \
+ *   B   C
+ *      / \
+ *     D   E
+ * where A and C are DAGs, the parentFullPath when rootTemplateId is C would be: /A/C
+ */
+function buildDag(
+  graph: dagre.graphlib.Graph,
+  rootTemplateId: string,
+  templates: Map<string, { nodeType: nodeType, template: Template }>,
+  alreadyVisited: Map<string, string>,
+  parentFullPath: string): void {
+
+  const root = templates.get(rootTemplateId);
+
+  if (root && root.nodeType === 'dag') {
+    // Mark that we have visited this DAG, and save the original qualified path to it.
+    alreadyVisited.set(rootTemplateId, parentFullPath || '/' + rootTemplateId);
+    const template = root.template;
+
+    (template.dag.tasks || []).forEach((task) => {
+
+      const nodeId = parentFullPath + '/' + task.name;
+
+      // If the user specifies an exit handler, then the compiler will wrap the entire Pipeline
+      // within an additional DAG template prefixed with "exit-handler".
+      // If this is the case, we simply treat it as the root of the graph and work from there
+      if (task.name.startsWith('exit-handler')) {
+        buildDag(graph, task.template, templates, alreadyVisited, '');
+        return;
+      }
+
+      // If this task has already been visited, retrieve the qualified path name that was assigned
+      // to it, add an edge, and move on to the next task
+      if (alreadyVisited.has(task.name)) {
+        graph.setEdge(parentFullPath, alreadyVisited.get(task.name)!);
+        return;
+      }
+
+      // Parent here will be the task that pointed to this DAG template.
+      // Within a DAG template, tasks can have dependencies on one another, and long chains of
+      // dependencies can be present within a single DAG. In these cases, we choose not to draw an
+      // edge from the DAG node itself to these tasks with dependencies because such an edge would
+      // not be meaningful to the user. For example, consider a DAG A with two tasks, B and C, where
+      // task C depends on the output of task B. C is a task of A, but it's much more semantically
+      // important that C depends on B, so to avoid cluttering the graph, we simply omit the edge
+      // between A and C:
+      //      A                  A
+      //    /   \    becomes    /
+      //   B <-- C             B
+      //                      /
+      //                     C
+      if (parentFullPath && !task.dependencies) {
+        graph.setEdge(parentFullPath, nodeId);
+      }
+
+      // This object contains information about the node that we display to the user when they
+      // click on a node in the graph
+      const info = new SelectedNodeInfo();
+      if (task.when) {
+        info.condition = task.when;
+      }
+
+      // "Child" here is the template that this task points to. This template should either be a
+      // DAG, in which case we recurse, or a container/resource which can be thought of as a
+      // leaf node
+      const child = templates.get(task.template);
+      if (child) {
+        if (child.nodeType === 'dag') {
+          buildDag(graph, task.template, templates, alreadyVisited, nodeId);
+        } else if (child.nodeType === 'container' || child.nodeType === 'resource') {
+          _populateInfoFromTemplate(info, child.template);
+        } else {
+          throw new Error(`Unknown nodetype: ${child.nodeType} on workflow template: ${child.template}`);
+        }
+      }
+
+      graph.setNode(nodeId, {
+        bgColor: task.when ? 'cornsilk' : undefined,
+        height: Constants.NODE_HEIGHT,
+        info,
+        label: task.template,
+        width: Constants.NODE_WIDTH,
+      });
+
+      // DAG tasks can indicate dependencies which are graphically shown as parents with edges
+      // pointing to their children (the task(s)).
+      // TODO: The addition of the parent prefix to the dependency here is only valid if nodes only
+      // ever directly depend on their siblings. This is true now but may change in the future, and
+      // this will need to be updated.
+      (task.dependencies || []).forEach((dep) => graph.setEdge(parentFullPath + '/' + dep, nodeId));
+    });
+  }
 }
 
 export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
-  const g = new dagre.graphlib.Graph();
-  g.setGraph({});
-  g.setDefaultEdgeLabel(() => ({}));
-
-  const NODE_WIDTH = 180;
-  const NODE_HEIGHT = 70;
+  const graph = new dagre.graphlib.Graph();
+  graph.setGraph({});
+  graph.setDefaultEdgeLabel(() => ({}));
 
   if (!workflow.spec || !workflow.spec.templates) {
     throw new Error('Could not generate graph. Provided Pipeline had no components.');
@@ -46,165 +200,50 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
 
   const workflowTemplates = workflow.spec.templates;
 
-  const nonEntryPointTemplatesAndDagTasks = new Map<string, string>();
-  const templatesAndSteps: Array<[string, string]> = [];
+  const templates = new Map<string, { nodeType: nodeType, template: Template }>();
 
-  // Iterate through the workflow's templates to gather the information needed to construct the
-  // graph. Some information is stored in the above variables because Containers, Dags, and Steps
-  // are all templates, and we do not know in which order we will encounter them while iterating.
-  for (const template of workflowTemplates) {
-    // Argo allows specifying a single global exit handler. We also highlight that node.
+  // Iterate through the workflow's templates to construct a map which will be used to traverse and
+  // construct the graph
+  for (const template of workflowTemplates.filter(t => !!t && !!t.name)) {
+    // Argo allows specifying a single global exit handler. We also highlight that node
     if (template.name === workflow.spec.onExit) {
-      g.setNode(template.name, {
-        bgColor: '#eee',
-        height: NODE_HEIGHT,
+      const info = new SelectedNodeInfo();
+      _populateInfoFromTemplate(info, template);
+      graph.setNode(template.name, {
+        bgColor: color.lightGrey,
+        height: Constants.NODE_HEIGHT,
+        info,
         label: 'onExit - ' + template.name,
-        width: NODE_WIDTH,
+        width: Constants.NODE_WIDTH,
       });
     }
 
-    // Steps are only used by the DSL as a workaround for handling conditionals because DAGs are not
-    // sufficient. (TODO: why?) We keep track of each template and its step(s) so that we can draw
-    // edges from the DAG task with that template name to its grandchild. This template/DAG task
-    // will always be a conditional, so we can use this list of tuples to do additional formatting
-    // of the node as desired.
-    if (template.steps) {
-      if (template.steps.length > 1 || template.steps[0].length > 1) {
-        throw new Error('Pipeline had template with multiple steps. Was this Pipeline compiled?');
-      }
-      const step = template.steps[0];
-      // Though the types system says 'steps' is WorkflowStep[][], sometimes the inner elements
-      // are just WorkflowStep, not WorkflowStep[], but we still want to treat them the same.
-      (step.length ? step : [step as WorkflowStep]).forEach((s) => {
-        templatesAndSteps.push([template.name, s.name!]);
-      });
-    }
-
-    // DAGs are the main component making up a Pipeline, and each DAG is composed of tasks.
-    // TODO: add tests for the assertions below
-    // A compiled Pipeline will only have multiple DAGs if:
-    //   1) it defines an exit-handler within the DSL, which will result in its own DAG wrapping the
-    //      entirety of the Pipeline.
-    //   2) it includes conditionals. In this case, there will also be Steps templates corresponding
-    //      to those conditions, and each Steps template will have a child DAG representing the rest
-    //      of the Pipeline from that conditional on.
-    if (template.dag && template.dag.tasks) {
-      template.dag.tasks.forEach((task) => {
-        g.setNode(task.name, {
-          height: NODE_HEIGHT,
-          label: task.name,
-          width: NODE_WIDTH,
-        });
-
-        // DAG tasks can indicate dependencies which are graphically shown as parents with edges
-        // pointing to their children (the task(s)).
-        (task.dependencies || []).forEach((dep) => g.setEdge(dep, task.name));
-
-        // A Pipeline may contain multiple DAGs, but the Pipeline will only have a single entry
-        // point.
-        //
-        // The first task of the entry point DAG can be thought of as the root of the Pipeline.
-        // TODO: add tests for the assertion below
-        // Compiled Pipelines should always have exactly 1 root.
-        //
-        // For DAGs that do not contain the entry point, we keep track of all tasks which don't have
-        // dependencies because they are the roots of that DAG (note that a DAG may have multiple
-        // roots). These roots are important for stitching together the overall Pipeline graph, but
-        // they are not relevant themselves to the user.
-        //
-        // The non-root tasks within these DAGs, however, are important parts of the Pipeline. We
-        // keep a map of DAG templates to their non-root tasks so that we can draw edges between
-        // the tasks and their grandparents.
-        //
-        // We also use the map to remove any of the templates that weren't already skipped for being
-        // step templates.
-        if (template.name !== workflow.spec.entrypoint
-          && (!task.dependencies || !task.dependencies.length)) {
-          nonEntryPointTemplatesAndDagTasks.set(template.name, task.name);
-        }
-      });
+    if (template.container) {
+      templates.set(template.name, { nodeType: 'container', template });
+    } else if (template.resource) {
+      templates.set(template.name, { nodeType: 'resource', template });
+    } else if (template.dag) {
+      templates.set(template.name, { nodeType: 'dag', template });
+    } else {
+      logger.verbose(`Template: ${template.name} was neither a Container/Resource nor a DAG`);
     }
   }
 
-  // TODO: do we need to worry about rewiring from parents to children here?
-  // Remove all non-entry-point DAG templates. They are artifacts of the compilation system and not
-  // useful to users.
-  nonEntryPointTemplatesAndDagTasks.forEach((_, k) => g.removeNode(k));
-
-  // Connect conditionals to their grandchildren; the tasks of non-entry-point DAGs.
-  // We can also apply any desired formatting to the conditional nodes here.
-  templatesAndSteps.forEach((tuple) => {
-    // Add styling for conditional nodes
-    g.node(tuple[0]).bgColor = 'cornsilk';
-
-    const grandchild = nonEntryPointTemplatesAndDagTasks.get(tuple[1]);
-    if (grandchild) {
-      g.setEdge(tuple[0], grandchild);
-    }
-  });
+  buildDag(graph, workflow.spec.entrypoint, templates, new Map(), '');
 
   // DSL-compiled Pipelines will always include a DAG, so they should never reach this point.
   // It is, however, possible for users to upload manually constructed Pipelines, and extremely
   // simple ones may have no steps or DAGs, just an entry point container.
-  if (g.nodeCount() === 0) {
+  if (graph.nodeCount() === 0) {
     const entryPointTemplate = workflowTemplates.find((t) => t.name === workflow.spec.entrypoint);
     if (entryPointTemplate) {
-      g.setNode(entryPointTemplate.name, {
-        height: NODE_HEIGHT,
+      graph.setNode(entryPointTemplate.name, {
+        height: Constants.NODE_HEIGHT,
         label: entryPointTemplate.name,
-        width: NODE_WIDTH,
+        width: Constants.NODE_WIDTH,
       });
     }
   }
 
-  return g;
-}
-
-export function getNodeInfo(workflow?: Workflow, nodeId?: string): SelectedNodeInfo | null {
-  if (!nodeId || !workflow || !workflow.spec || !workflow.spec.templates) {
-    return null;
-  }
-
-  const info: SelectedNodeInfo = { nodeType: 'unknown' };
-  const template = workflow.spec.templates.find((t) => t.name === nodeId);
-  if (template) {
-    if (template.container) {
-      info.nodeType = 'container';
-      info.containerInfo = {
-        args: template.container.args || [],
-        command: template.container.command || [],
-        image: template.container.image || '',
-        inputs: [[]],
-        outputs: [[]]
-      };
-      if (template.inputs) {
-        info.containerInfo.inputs =
-          (template.inputs.parameters || []).map(p => [p.name, p.value || '']);
-      }
-      if (template.outputs) {
-        info.containerInfo.outputs = (template.outputs.parameters || []).map(p => {
-          let value = '';
-          if (p.value) {
-            value = p.value;
-          } else if (p.valueFrom) {
-            value = p.valueFrom.jqFilter || p.valueFrom.jsonPath || p.valueFrom.parameter || p.valueFrom.path || '';
-          }
-          return [p.name, value];
-        });
-      }
-    } else if (template.steps && template.steps[0] && template.steps[0].length) {
-      // 'template.steps' represent conditionals.
-      // There should only ever be 1 WorkflowStep in a steps template, and it should have a 'when'.
-      info.nodeType = 'steps';
-      info.stepsInfo = { conditional: '', parameters: [[]] };
-
-      info.stepsInfo.conditional = template.steps[0][0].when || '';
-
-      if (template.steps[0][0].arguments) {
-        info.stepsInfo.parameters =
-          (template.steps[0][0].arguments!.parameters || []).map(p => [p.name, p.value || '']);
-      }
-    }
-  }
-  return info;
+  return graph;
 }

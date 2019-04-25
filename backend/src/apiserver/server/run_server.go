@@ -17,6 +17,7 @@ package server
 import (
 	"context"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -48,21 +49,45 @@ func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*ap
 }
 
 func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) (*api.ListRunsResponse, error) {
-	paginationContext, err := ValidatePagination(
-		request.PageToken, int(request.PageSize), model.GetRunTablePrimaryKeyColumn(),
-		request.SortBy, runModelFieldsBySortableAPIFields)
+	opts, err := validatedListOptions(&model.Run{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
+
 	if err != nil {
-		return nil, util.Wrap(err, "Validating pagination failed.")
+		return nil, util.Wrap(err, "Failed to create list options")
 	}
+
 	filterContext, err := ValidateFilter(request.ResourceReferenceKey)
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
-	runs, nextPageToken, err := s.resourceManager.ListRuns(filterContext, paginationContext)
+	runs, total_size, nextPageToken, err := s.resourceManager.ListRuns(filterContext, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list runs.")
 	}
-	return &api.ListRunsResponse{Runs: ToApiRuns(runs), NextPageToken: nextPageToken}, nil
+	return &api.ListRunsResponse{Runs: ToApiRuns(runs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
+}
+
+func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.ArchiveRun(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.UnarchiveRun(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
+func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.DeleteRun(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
@@ -102,15 +127,19 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 	if run.Name == "" {
 		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
 	}
-	// Run must be created under an experiment.
-	if err := ValidateExperimentResourceReference(s.resourceManager, run.ResourceReferences); err != nil {
-		return util.Wrap(err, "The run must have a valid experiment resource reference.")
-	}
 
 	if err := ValidatePipelineSpec(s.resourceManager, run.PipelineSpec); err != nil {
 		return util.Wrap(err, "The pipeline spec is invalid.")
 	}
 	return nil
+}
+
+func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.TerminateRun(request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {

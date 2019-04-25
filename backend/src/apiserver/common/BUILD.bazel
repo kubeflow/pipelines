@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "const.go",
+        "filter_context.go",
+        "pagination_context.go",
+        "paths.go",
+    ],
+    importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/common",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/api:go_default_library",
+        "//backend/src/common/util:go_default_library",
+    ],
+)

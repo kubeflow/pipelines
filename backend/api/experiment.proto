@@ -17,8 +17,10 @@ syntax = "proto3";
 package api;
 
 import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "protoc-gen-swagger/options/annotations.proto";
+import "backend/api/error.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   responses: {
@@ -73,6 +75,12 @@ service ExperimentService {
       get: "/apis/v1beta1/experiments"
     };
   }
+
+  rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/apis/v1beta1/experiments/{id}"
+    };
+  }
 }
 
 message CreateExperimentRequest {
@@ -89,11 +97,20 @@ message ListExperimentsRequest {
   // Can be format of "field_name", "field_name asc" or "field_name des"
   // Ascending by default.
   string sort_by = 3;
+
+  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
+  // filter.proto).
+  string filter = 4;
 }
 
 message ListExperimentsResponse {
   repeated Experiment experiments = 1;
+  int32 total_size = 3;
   string next_page_token = 2;
+}
+
+message DeleteExperimentRequest{
+  string id = 1;
 }
 
 message Experiment {

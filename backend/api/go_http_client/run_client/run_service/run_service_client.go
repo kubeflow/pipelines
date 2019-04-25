@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,6 +39,35 @@ type Client struct {
 }
 
 /*
+ArchiveRun archive run API
+*/
+func (a *Client) ArchiveRun(params *ArchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*ArchiveRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewArchiveRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ArchiveRun",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/runs/{id}:archive",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ArchiveRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ArchiveRunOK), nil
+
+}
+
+/*
 CreateRun create run API
 */
 func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthInfoWriter) (*CreateRunOK, error) {
@@ -64,6 +93,35 @@ func (a *Client) CreateRun(params *CreateRunParams, authInfo runtime.ClientAuthI
 		return nil, err
 	}
 	return result.(*CreateRunOK), nil
+
+}
+
+/*
+DeleteRun delete run API
+*/
+func (a *Client) DeleteRun(params *DeleteRunParams, authInfo runtime.ClientAuthInfoWriter) (*DeleteRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewDeleteRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DeleteRun",
+		Method:             "DELETE",
+		PathPattern:        "/apis/v1beta1/runs/{id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DeleteRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DeleteRunOK), nil
 
 }
 
@@ -180,6 +238,64 @@ func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runti
 		return nil, err
 	}
 	return result.(*ReportRunMetricsOK), nil
+
+}
+
+/*
+TerminateRun terminate run API
+*/
+func (a *Client) TerminateRun(params *TerminateRunParams, authInfo runtime.ClientAuthInfoWriter) (*TerminateRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTerminateRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TerminateRun",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/runs/{run_id}/terminate",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &TerminateRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TerminateRunOK), nil
+
+}
+
+/*
+UnarchiveRun unarchive run API
+*/
+func (a *Client) UnarchiveRun(params *UnarchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*UnarchiveRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewUnarchiveRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UnarchiveRun",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/runs/{id}:unarchive",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UnarchiveRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UnarchiveRunOK), nil
 
 }
 

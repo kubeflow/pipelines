@@ -23,16 +23,18 @@ func NewPipelineCmd() *cobra.Command {
 func NewPipelineUploadCmd(root *RootCommand) *cobra.Command {
 	var (
 		filename string
-		err      error
 		name     string
 	)
+	const (
+		flagNameFile = "file"
+	)
 	var command = &cobra.Command{
-		Use:   "upload FILE",
+		Use:   "upload",
 		Short: "Upload a pipeline",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			filename, err = ValidateSingleString(args, "FILE")
+			_, err := ValidateArgumentCount(args, 0)
 			return err
 		},
 
@@ -42,16 +44,19 @@ func NewPipelineUploadCmd(root *RootCommand) *cobra.Command {
 			if name != "" {
 				params.Name = &name
 			}
-			_, err := root.PipelineUploadClient().UploadFile(filename, params)
+			pipeline, err := root.PipelineUploadClient().UploadFile(filename, params)
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
 
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), "")
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), pipeline)
 			return nil
 		},
 	}
-	command.PersistentFlags().StringVarP(&name, "name", "a", "",
+	command.PersistentFlags().StringVar(&filename, flagNameFile,
+		"", "The file to upload")
+	command.MarkPersistentFlagRequired(flagNameFile)
+	command.PersistentFlags().StringVar(&name, "name", "",
 		"Name of the pipeline. If not specified, the name of the uploaded file is used.")
 	command.SetOutput(root.Writer())
 	return command
@@ -59,16 +64,20 @@ func NewPipelineUploadCmd(root *RootCommand) *cobra.Command {
 
 func NewPipelineCreateCmd(root *RootCommand) *cobra.Command {
 	var (
-		pipelineURL string
-		err         error
+		pipelineName string
+		pipelineURL  string
+	)
+	const (
+		flagNameName = "name"
+		flagNameURL  = "url"
 	)
 	var command = &cobra.Command{
-		Use:   "create url",
+		Use:   "create",
 		Short: "Create a pipeline",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			pipelineURL, err = ValidateSingleString(args, "url")
+			_, err := ValidateArgumentCount(args, 0)
 			if err != nil {
 				return err
 			}
@@ -84,33 +93,39 @@ func NewPipelineCreateCmd(root *RootCommand) *cobra.Command {
 			// We can't specify the pipeline name for now due to issue
 			// https://github.com/grpc-ecosystem/grpc-gateway/issues/559
 			params := params.NewCreatePipelineParams()
-			params.Body = &model.APIURL{PipelineURL: pipelineURL}
+			params.Body = &model.APIPipeline{URL: &model.APIURL{PipelineURL: pipelineURL}, Name: pipelineName}
 
 			pkg, err := root.PipelineClient().Create(params)
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
 
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), pkg)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), pkg)
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVar(&pipelineName, flagNameName, "", "The pipeline name")
+	command.PersistentFlags().StringVar(&pipelineURL, flagNameURL,
+		"", "The URL from which to create the pipeline")
+	command.MarkPersistentFlagRequired(flagNameURL)
 	command.SetOutput(root.Writer())
 	return command
 }
 
 func NewPipelineGetCmd(root *RootCommand) *cobra.Command {
 	var (
-		id  string
-		err error
+		id string
+	)
+	const (
+		flagNameID = "id"
 	)
 	var command = &cobra.Command{
-		Use:   "get ID",
+		Use:   "get",
 		Short: "Display a pipeline",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			id, err = ValidateSingleString(args, "ID")
+			_, err := ValidateArgumentCount(args, 0)
 			return err
 		},
 
@@ -122,10 +137,13 @@ func NewPipelineGetCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), pkg)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), pkg)
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVar(&id, flagNameID,
+		"", "The ID of the pipeline")
+	command.MarkPersistentFlagRequired(flagNameID)
 	command.SetOutput(root.Writer())
 	return command
 }
@@ -158,7 +176,7 @@ func NewPipelineListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), results)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), results)
 			return nil
 		},
 	}
@@ -170,16 +188,18 @@ func NewPipelineListCmd(root *RootCommand, pageSize int32) *cobra.Command {
 
 func NewPipelineDeleteCmd(root *RootCommand) *cobra.Command {
 	var (
-		id  string
-		err error
+		id string
+	)
+	const (
+		flagNameID = "id"
 	)
 	var command = &cobra.Command{
-		Use:   "delete ID",
+		Use:   "delete",
 		Short: "Delete a pipeline",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			id, err = ValidateSingleString(args, "ID")
+			_, err := ValidateArgumentCount(args, 0)
 			return err
 		},
 
@@ -191,26 +211,31 @@ func NewPipelineDeleteCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), "")
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), "")
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVar(&id, flagNameID,
+		"", "The ID of the pipeline")
+	command.MarkPersistentFlagRequired(flagNameID)
 	command.SetOutput(root.Writer())
 	return command
 }
 
 func NewPipelineGetTemplateCmd(root *RootCommand) *cobra.Command {
 	var (
-		id  string
-		err error
+		id string
+	)
+	const (
+		flagNameID = "id"
 	)
 	var command = &cobra.Command{
-		Use:   "get-manifest ID",
+		Use:   "get-manifest",
 		Short: "Display the manifest of a pipeline",
 
 		// Validation
 		Args: func(cmd *cobra.Command, args []string) error {
-			id, err = ValidateSingleString(args, "ID")
+			_, err := ValidateArgumentCount(args, 0)
 			return err
 		},
 
@@ -222,10 +247,13 @@ func NewPipelineGetTemplateCmd(root *RootCommand) *cobra.Command {
 			if err != nil {
 				return util.ExtractErrorForCLI(err, root.Debug())
 			}
-			PrettyPrintResult(root.Writer(), root.NoColor(), root.OutputFormat(), workflow)
+			PrettyPrintResult(root.Writer(), root.OutputFormat(), workflow)
 			return nil
 		},
 	}
+	command.PersistentFlags().StringVar(&id, flagNameID,
+		"", "The ID of the pipeline")
+	command.MarkPersistentFlagRequired(flagNameID)
 	command.SetOutput(root.Writer())
 	return command
 

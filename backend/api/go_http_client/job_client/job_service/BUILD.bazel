@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "create_job_parameters.go",
+        "create_job_responses.go",
+        "delete_job_parameters.go",
+        "delete_job_responses.go",
+        "disable_job_parameters.go",
+        "disable_job_responses.go",
+        "enable_job_parameters.go",
+        "enable_job_responses.go",
+        "get_job_parameters.go",
+        "get_job_responses.go",
+        "job_service_client.go",
+        "list_jobs_parameters.go",
+        "list_jobs_responses.go",
+    ],
+    importpath = "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/api/go_http_client/job_model:go_default_library",
+        "@com_github_go_openapi_errors//:go_default_library",
+        "@com_github_go_openapi_runtime//:go_default_library",
+        "@com_github_go_openapi_runtime//client:go_default_library",
+        "@com_github_go_openapi_strfmt//:go_default_library",
+        "@com_github_go_openapi_swag//:go_default_library",
+    ],
+)

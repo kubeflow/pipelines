@@ -15,29 +15,35 @@
  */
 
 import createMuiTheme from '@material-ui/core/styles/createMuiTheme';
-import { style, stylesheet } from 'typestyle';
 import { NestedCSSProperties } from 'typestyle/lib/types';
+import { style, stylesheet } from 'typestyle';
 
 export const color = {
   activeBg: '#eaf1fd',
   alert: '#f9ab00', // Google yellow 600
   background: '#fff',
+  blue: '#4285f4', // Google blue 500
   disabledBg: '#ddd',
   divider: '#e0e0e0',
-  errorBg: '#FBE9E7',
-  errorText: '#D50000',
+  errorBg: '#fbe9e7',
+  errorText: '#d50000',
   foreground: '#000',
-  graphBg: '#f5f5f5',
-  hoverBg: '#eee',
-  inactive: '#616161',
+  graphBg: '#f2f2f2',
+  grey: '#5f6368', // Google grey 500
+  inactive: '#5f6368',
+  lightGrey: '#eee', // Google grey 200
+  lowContrast: '#80868b', // Google grey 600
   secondaryText: 'rgba(0, 0, 0, .88)',
   separator: '#e8e8e8',
-  strong: '#212121',
+  strong: '#202124', // Google grey 900
   success: '#34a853',
+  successWeak: '#e6f4ea', // Google green 50
+  terminated: '#80868b',
   theme: '#1a73e8',
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
-  weak: '#999',
+  warningText: '#ee8100',
+  weak: '#9aa0a6',
 };
 
 export const dimension = {
@@ -51,6 +57,24 @@ export const dimension = {
   xsmall: 32,
 };
 
+// tslint:disable:object-literal-sort-keys
+export const zIndex = {
+  DROP_ZONE_OVERLAY: 1,
+  GRAPH_NODE: 1,
+  BUSY_OVERLAY: 2,
+  PIPELINE_SUMMARY_CARD: 2,
+  SIDE_PANEL: 2,
+};
+
+export const fontsize = {
+  small: 12,
+  base: 14,
+  medium: 16,
+  large: 18,
+  title: 18,
+};
+// tslint:enable:object-literal-sort-keys
+
 const baseSpacing = 24;
 export const spacing = {
   base: baseSpacing,
@@ -61,14 +85,6 @@ export const fonts = {
   code: '"Source Code Pro", monospace',
   main: '"Google Sans", "Helvetica Neue", sans-serif',
   secondary: '"Roboto", "Helvetica Neue", sans-serif',
-};
-
-export const fontsize = {
-  base: 14,
-  large: 18,
-  medium: 16,
-  small: 12,
-  title: 18,
 };
 
 const palette = {
@@ -84,9 +100,6 @@ const palette = {
 export const theme = createMuiTheme({
   overrides: {
     MuiButton: {
-      disabled: {
-        backgroundColor: 'initial',
-      },
       flat: {
         fontSize: fontsize.base,
         fontWeight: 'bold',
@@ -104,6 +117,9 @@ export const theme = createMuiTheme({
         color: color.theme,
       },
       root: {
+        '&$disabled': {
+          backgroundColor: 'initial',
+        },
         color: color.theme,
         marginRight: 10,
         padding: '0 8px'
@@ -129,11 +145,11 @@ export const theme = createMuiTheme({
         marginLeft: 0,
         marginTop: 0,
       },
-      focused: {
-        marginLeft: 0,
-        marginTop: 0,
-      },
       root: {
+        '&$focused': {
+          marginLeft: 0,
+          marginTop: 0,
+        },
         fontSize: fontsize.base,
         marginLeft: 5,
         marginTop: -8,
@@ -145,14 +161,14 @@ export const theme = createMuiTheme({
       },
     },
     MuiInput: {
-      input: {padding: 0},
-      root: {padding: 0}
+      input: { padding: 0 },
+      root: { padding: 0 }
     },
     MuiInputAdornment: {
       positionEnd: {
         paddingRight: 0,
       },
-      root: {padding: 0},
+      root: { padding: 0 },
     },
     MuiTooltip: {
       tooltip: {
@@ -166,6 +182,7 @@ export const theme = createMuiTheme({
   typography: {
     fontFamily: fonts.main,
     fontSize: fontsize.base + ' !important' as any,
+    useNextVariants: true,
   },
 });
 
@@ -174,6 +191,15 @@ export const commonCss = stylesheet({
     left: 'calc(50% - 15px)',
     position: 'absolute',
     top: 'calc(50% - 15px)',
+  },
+  busyOverlay: {
+    backgroundColor: '#ffffffaa',
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: zIndex.BUSY_OVERLAY,
   },
   buttonAction: {
     $nest: {
@@ -211,6 +237,11 @@ export const commonCss = stylesheet({
     fontWeight: 'bold',
     paddingBottom: 16,
     paddingTop: 20,
+  },
+  infoIcon: {
+    color: color.lowContrast,
+    height: 16,
+    width: 16
   },
   link: {
     $nest: {
@@ -253,6 +284,7 @@ export const commonCss = stylesheet({
     backgroundRepeat: 'no-repeat',
     backgroundSize: '100% 40px, 100% 40px, 100% 2px, 100% 2px',
     overflow: 'auto',
+    position: 'relative',
   },
   textField: {
     display: 'flex',
@@ -267,7 +299,7 @@ export const commonCss = stylesheet({
   },
 });
 
-export function _paddingInternal(units?: number, directions?: string) {
+export function _paddingInternal(units?: number, directions?: string): NestedCSSProperties {
   units = units || baseSpacing;
   directions = directions || 'blrt';
   const rules: NestedCSSProperties = {};
@@ -286,6 +318,6 @@ export function _paddingInternal(units?: number, directions?: string) {
   return rules;
 }
 
-export function padding(units?: number, directions?: string) {
+export function padding(units?: number, directions?: string): string {
   return style(_paddingInternal(units, directions));
 }

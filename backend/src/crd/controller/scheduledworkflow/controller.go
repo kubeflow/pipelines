@@ -25,7 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
-	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	swfScheme "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/scheme"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
@@ -83,7 +83,7 @@ func NewController(
 	time commonutil.TimeInterface) *Controller {
 
 	// obtain references to shared informers
-	swfInformer := swfInformerFactory.Scheduledworkflow().V1alpha1().ScheduledWorkflows()
+	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
 	workflowInformer := workflowInformerFactory.Argoproj().V1alpha1().Workflows()
 
 	// Add controller types to the default Kubernetes Scheme so Events can be

@@ -16,6 +16,8 @@ from kfp.compiler._component_builder import GCSHelper
 from kfp.compiler._component_builder import DockerfileHelper
 from kfp.compiler._component_builder import CodeGenerator
 from kfp.compiler._component_builder import ImageBuilder
+from kfp.compiler._component_builder import VersionedDependency
+from kfp.compiler._component_builder import DependencyHelper
 
 import os
 import unittest
@@ -23,31 +25,92 @@ import yaml
 import tarfile
 from pathlib import Path
 import inspect
+from collections import OrderedDict
 
-GCS_BASE = 'gs://ngao-mlpipeline-testing/'
+GCS_BASE = 'gs://kfp-testing/'
 
-class TestGCSHelper(unittest.TestCase):
+class TestVersionedDependency(unittest.TestCase):
 
-  def test_upload_gcs_path(self):
-    """ test uploading gcs file """
+  def test_version(self):
+    """ test version overrides min_version and max_version """
+    version = VersionedDependency(name='tensorflow', version='0.3.0', min_version='0.1.0', max_version='0.4.0')
+    self.assertTrue(version.min_version == '0.3.0')
+    self.assertTrue(version.max_version == '0.3.0')
+    self.assertTrue(version.has_versions())
+    self.assertTrue(version.name == 'tensorflow')
+
+  def test_minmax_version(self):
+    """ test if min_version and max_version are configured when version is not given """
+    version = VersionedDependency(name='tensorflow', min_version='0.1.0', max_version='0.4.0')
+    self.assertTrue(version.min_version == '0.1.0')
+    self.assertTrue(version.max_version == '0.4.0')
+    self.assertTrue(version.has_versions())
+
+  def test_min_or_max_version(self):
+    """ test if min_version and max_version are configured when version is not given """
+    version = VersionedDependency(name='tensorflow', min_version='0.1.0')
+    self.assertTrue(version.min_version == '0.1.0')
+    self.assertTrue(version.has_versions())
+    version = VersionedDependency(name='tensorflow', max_version='0.3.0')
+    self.assertTrue(version.max_version == '0.3.0')
+    self.assertTrue(version.has_versions())
+
+  def test_no_version(self):
+    """ test the no version scenario """
+    version = VersionedDependency(name='tensorflow')
+    self.assertFalse(version.has_min_version())
+    self.assertFalse(version.has_max_version())
+    self.assertFalse(version.has_versions())
+
+class TestDependencyHelper(unittest.TestCase):
+
+  def test_generate_requirement(self):
+    """ Test generating requirement file """
+
     # prepare
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    temp_file = os.path.join(test_data_dir, 'test_data.tmp')
-    temp_downloaded_file = os.path.join(test_data_dir, 'test_data.tmp.downloaded')
-    Path(temp_file).touch()
-    gcs_path = os.path.join(GCS_BASE, 'test_data.tmp')
+    temp_file = os.path.join(test_data_dir, 'test_requirements.tmp')
 
-    # check
-    try:
-      GCSHelper.upload_gcs_file(temp_file, gcs_path)
-      GCSHelper.download_gcs_blob(temp_downloaded_file, gcs_path)
-      GCSHelper.remove_gcs_blob(gcs_path)
-    except:
-      self.fail('GCS helper failure')
+    dependency_helper = DependencyHelper()
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'))
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='kubernetes', min_version='0.6.0'))
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='pytorch', max_version='0.3.0'))
+    dependency_helper.generate_pip_requirements(temp_file)
 
-    # clean up
+    golden_requirement_payload = '''\
+tensorflow >= 0.10.0, <= 0.11.0
+kubernetes >= 0.6.0
+pytorch <= 0.3.0
+'''
+    with open(temp_file, 'r') as f:
+      target_requirement_payload = f.read()
+    self.assertEqual(target_requirement_payload, golden_requirement_payload)
     os.remove(temp_file)
-    os.remove(temp_downloaded_file)
+
+  def test_add_python_package(self):
+    """ Test add_python_package """
+
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    temp_file = os.path.join(test_data_dir, 'test_requirements.tmp')
+
+    dependency_helper = DependencyHelper()
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'))
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='kubernetes', min_version='0.6.0'))
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='tensorflow', min_version='0.12.0'), override=True)
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='kubernetes', min_version='0.8.0'), override=False)
+    dependency_helper.add_python_package(dependency=VersionedDependency(name='pytorch', version='0.3.0'))
+    dependency_helper.generate_pip_requirements(temp_file)
+    golden_requirement_payload = '''\
+tensorflow >= 0.12.0
+kubernetes >= 0.6.0
+pytorch >= 0.3.0, <= 0.3.0
+'''
+    with open(temp_file, 'r') as f:
+      target_requirement_payload = f.read()
+    self.assertEqual(target_requirement_payload, golden_requirement_payload)
+    os.remove(temp_file)
+
 
 class TestDockerfileHelper(unittest.TestCase):
 
@@ -65,14 +128,14 @@ class TestDockerfileHelper(unittest.TestCase):
       f.write('temporary file two content')
 
     # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name='', gcs_path='')
-    self.assertTrue(docker_helper._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two}))
+    docker_helper = DockerfileHelper(arc_dockerfile_name='')
+    docker_helper._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two})
     self.assertTrue(os.path.exists(temp_tarball))
-    temp_tarball_handler = tarfile.open(temp_tarball)
-    temp_files = temp_tarball_handler.getmembers()
-    self.assertTrue(len(temp_files) == 2)
-    for temp_file in temp_files:
-      self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
+    with tarfile.open(temp_tarball) as temp_tarball_handle:
+      temp_files = temp_tarball_handle.getmembers()
+      self.assertTrue(len(temp_files) == 2)
+      for temp_file in temp_files:
+        self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
 
     # clean up
     os.remove(temp_file_one)
@@ -85,19 +148,47 @@ class TestDockerfileHelper(unittest.TestCase):
     # prepare
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     target_dockerfile = os.path.join(test_data_dir, 'component.temp.dockerfile')
-    golden_dockerfile_payload = '''\
+    golden_dockerfile_payload_one = '''\
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
-RUN pip3 install fire
+ADD main.py /ml/
+ENTRYPOINT ["python3", "/ml/main.py"]'''
+    golden_dockerfile_payload_two = '''\
+FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
+ADD requirements.txt /ml/
+RUN pip3 install -r /ml/requirements.txt
 ADD main.py /ml/
 ENTRYPOINT ["python3", "/ml/main.py"]'''
 
+    golden_dockerfile_payload_three = '''\
+FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools
+ADD requirements.txt /ml/
+RUN pip install -r /ml/requirements.txt
+ADD main.py /ml/
+ENTRYPOINT ["python", "/ml/main.py"]'''
     # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name=target_dockerfile, gcs_path='')
-    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', python_filepath='main.py')
+    docker_helper = DockerfileHelper(arc_dockerfile_name=target_dockerfile)
+    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+                                               python_filepath='main.py', has_requirement_file=False, python_version='python3')
     with open(target_dockerfile, 'r') as f:
       target_dockerfile_payload = f.read()
-    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload)
+    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_one)
+    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+                                               python_filepath='main.py', has_requirement_file=True, python_version='python3')
+    with open(target_dockerfile, 'r') as f:
+      target_dockerfile_payload = f.read()
+    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_two)
+    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+                                               python_filepath='main.py', has_requirement_file=True, python_version='python2')
+    with open(target_dockerfile, 'r') as f:
+      target_dockerfile_payload = f.read()
+    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_three)
+
+    self.assertRaises(ValueError, docker_helper._generate_dockerfile_with_py, target_file=target_dockerfile,
+                      base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', python_filepath='main.py',
+                      has_requirement_file=True, python_version='python4')
 
     # clean up
     os.remove(target_dockerfile)
@@ -108,22 +199,48 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     # prepare
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     python_filepath = os.path.join(test_data_dir, 'basic.py')
-    downloaded_tarball = os.path.join(test_data_dir, 'test_docker.tar.gz')
-    gcs_tar_path = os.path.join(GCS_BASE, 'test_docker.tar.gz')
+    local_tarball_path = os.path.join(test_data_dir, 'test_docker.tar.gz')
 
     # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile', gcs_path=gcs_tar_path)
-    docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0')
-    GCSHelper.download_gcs_blob(downloaded_tarball, gcs_tar_path)
-    temp_tarball_handler = tarfile.open(downloaded_tarball)
-    temp_files = temp_tarball_handler.getmembers()
-    self.assertTrue(len(temp_files) == 2)
-    for temp_file in temp_files:
-      self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
+    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
+    docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
+                                                 base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
+                                                 local_tarball_path=local_tarball_path, python_version='python3')
+    with tarfile.open(local_tarball_path) as temp_tarball_handle:
+      temp_files = temp_tarball_handle.getmembers()
+      self.assertTrue(len(temp_files) == 2)
+      for temp_file in temp_files:
+        self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
 
     # clean up
-    os.remove(downloaded_tarball)
-    GCSHelper.remove_gcs_blob(gcs_tar_path)
+    os.remove(local_tarball_path)
+
+  def test_prepare_docker_with_py_and_dependency(self):
+    """ Test the whole prepare docker from python function and dependencies """
+
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    python_filepath = os.path.join(test_data_dir, 'basic.py')
+    local_tarball_path = os.path.join(test_data_dir, 'test_docker.tar.gz')
+
+    # check
+    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
+    dependencies = {
+      VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'),
+      VersionedDependency(name='kubernetes', min_version='0.6.0'),
+    }
+    docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
+                                                 base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
+                                                 local_tarball_path=local_tarball_path, python_version='python3',
+                                                 dependency=dependencies)
+    with tarfile.open(local_tarball_path) as temp_tarball_handle:
+      temp_files = temp_tarball_handle.getmembers()
+      self.assertTrue(len(temp_files) == 3)
+      for temp_file in temp_files:
+        self.assertTrue(temp_file.name in ['dockerfile', 'main.py', 'requirements.txt'])
+
+      # clean up
+    os.remove(local_tarball_path)
 
   def test_prepare_docker_tarball(self):
     """ Test the whole prepare docker tarball """
@@ -132,23 +249,20 @@ ENTRYPOINT ["python3", "/ml/main.py"]'''
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     dockerfile_path = os.path.join(test_data_dir, 'component.target.dockerfile')
     Path(dockerfile_path).touch()
-    downloaded_tarball = os.path.join(test_data_dir, 'test_docker.tar.gz')
-    gcs_tar_path = os.path.join(GCS_BASE, 'test_docker.tar.gz')
+    local_tarball_path = os.path.join(test_data_dir, 'test_docker.tar.gz')
 
     # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile', gcs_path=gcs_tar_path)
-    docker_helper.prepare_docker_tarball(dockerfile_path=dockerfile_path)
-    GCSHelper.download_gcs_blob(downloaded_tarball, gcs_tar_path)
-    temp_tarball_handler = tarfile.open(downloaded_tarball)
-    temp_files = temp_tarball_handler.getmembers()
-    self.assertTrue(len(temp_files) == 1)
-    for temp_file in temp_files:
-      self.assertTrue(temp_file.name in ['dockerfile'])
+    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
+    docker_helper.prepare_docker_tarball(dockerfile_path=dockerfile_path, local_tarball_path=local_tarball_path)
+    with tarfile.open(local_tarball_path) as temp_tarball_handle:
+      temp_files = temp_tarball_handle.getmembers()
+      self.assertTrue(len(temp_files) == 1)
+      for temp_file in temp_files:
+        self.assertTrue(temp_file.name in ['dockerfile'])
 
     # clean up
-    os.remove(downloaded_tarball)
+    os.remove(local_tarball_path)
     os.remove(dockerfile_path)
-    GCSHelper.remove_gcs_blob(gcs_tar_path)
 
 # hello function is used by the TestCodeGenerator to verify the auto generated python function
 def hello():
@@ -199,7 +313,7 @@ class TestImageBuild(unittest.TestCase):
     generated_yaml = builder._generate_kaniko_spec(namespace='default', arc_dockerfile_name='dockerfile',
                                                    gcs_path='gs://mlpipeline/kaniko_build.tar.gz', target_image='gcr.io/mlpipeline/kaniko_image:latest')
     with open(os.path.join(test_data_dir, 'kaniko.basic.yaml'), 'r') as f:
-      golden = yaml.load(f)
+      golden = yaml.safe_load(f)
 
     self.assertEqual(golden, generated_yaml)
 
@@ -219,14 +333,22 @@ def sample_component_func(a: str, b: int) -> float:
     result = float(b + 5)
   return result
 
-def wrapper_sample_component_func(a,b):
+def wrapper_sample_component_func(a,b,_output_file):
   output = sample_component_func(str(a),int(b))
-  with open("/output.txt", "w") as f:
-    f.write(str(output))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
 
-import fire
+import argparse
+parser = argparse.ArgumentParser(description="Parsing arguments")
+parser.add_argument("a", type=str)
+parser.add_argument("b", type=int)
+parser.add_argument("_output_file", type=str)
+args = vars(parser.parse_args())
+
 if __name__ == "__main__":
-  fire.Fire(wrapper_sample_component_func)
+  wrapper_sample_component_func(**args)
 '''
     self.assertEqual(golden, generated_codes)
 
@@ -238,14 +360,22 @@ def sample_component_func_two(a: str, b: int) -> float:
     result = float(b + 5)
   return result
 
-def wrapper_sample_component_func_two(a,b):
+def wrapper_sample_component_func_two(a,b,_output_file):
   output = sample_component_func_two(str(a),int(b))
-  with open("/output.txt", "w") as f:
-    f.write(str(output))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
 
-import fire
+import argparse
+parser = argparse.ArgumentParser(description="Parsing arguments")
+parser.add_argument("a", type=str)
+parser.add_argument("b", type=int)
+parser.add_argument("_output_file", type=str)
+args = vars(parser.parse_args())
+
 if __name__ == "__main__":
-  fire.Fire(wrapper_sample_component_func_two)
+  wrapper_sample_component_func_two(**args)
 '''
     self.assertEqual(golden, generated_codes)
 
@@ -254,13 +384,54 @@ if __name__ == "__main__":
 def sample_component_func_three() -> float:
   return 1.0
 
-def wrapper_sample_component_func_three():
+def wrapper_sample_component_func_three(_output_file):
   output = sample_component_func_three()
-  with open("/output.txt", "w") as f:
-    f.write(str(output))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
 
-import fire
+import argparse
+parser = argparse.ArgumentParser(description="Parsing arguments")
+parser.add_argument("_output_file", type=str)
+args = vars(parser.parse_args())
+
 if __name__ == "__main__":
-  fire.Fire(wrapper_sample_component_func_three)
+  wrapper_sample_component_func_three(**args)
+'''
+    self.assertEqual(golden, generated_codes)
+
+  def test_generate_entrypoint_python2(self):
+    """ Test entrypoint generation for python2"""
+
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+
+    # check
+    builder = ImageBuilder(gcs_base=GCS_BASE, target_image='')
+    generated_codes = builder._generate_entrypoint(component_func=sample_component_func_two, python_version='python2')
+    golden = '''\
+def sample_component_func_two(a, b):
+  result = 3.45
+  if a == 'succ':
+    result = float(b + 5)
+  return result
+
+def wrapper_sample_component_func_two(a,b,_output_file):
+  output = sample_component_func_two(str(a),int(b))
+  import os
+  os.makedirs(os.path.dirname(_output_file))
+  with open(_output_file, "w") as data:
+    data.write(str(output))
+
+import argparse
+parser = argparse.ArgumentParser(description="Parsing arguments")
+parser.add_argument("a", type=str)
+parser.add_argument("b", type=int)
+parser.add_argument("_output_file", type=str)
+args = vars(parser.parse_args())
+
+if __name__ == "__main__":
+  wrapper_sample_component_func_two(**args)
 '''
     self.assertEqual(golden, generated_codes)

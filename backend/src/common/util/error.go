@@ -262,28 +262,28 @@ func ToGRPCError(err error) error {
 	case *UserError:
 		userError := err.(*UserError)
 		stat := status.New(userError.externalStatusCode, userError.internalError.Error())
-		statWithDetail, err := stat.
+		statWithDetail, statErr := stat.
 			WithDetails(&api.Error{
 				ErrorMessage: userError.externalMessage,
 				ErrorDetails: userError.internalError.Error(),
 			})
 
-		if err != nil {
+		if statErr != nil {
 			// Failed to stream error message as proto.
 			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v",
-				userError.String(), err.Error())
+				userError.String(), statErr)
 			return stat.Err()
 		}
 		return statWithDetail.Err()
 	default:
 		externalMessage := fmt.Sprintf("Internal error: %+v", err)
 		stat := status.New(codes.Internal, externalMessage)
-		statWithDetail, err := stat.
+		statWithDetail, statErr := stat.
 			WithDetails(&api.Error{ErrorMessage: externalMessage, ErrorDetails: externalMessage})
-		if err != nil {
+		if statErr != nil {
 			// Failed to stream error message as proto.
 			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v",
-				externalMessage, err.Error())
+				externalMessage, statErr)
 			return stat.Err()
 		}
 		return statWithDetail.Err()

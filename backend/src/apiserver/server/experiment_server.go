@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -37,20 +38,29 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetEx
 
 func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.ListExperimentsRequest) (
 	*api.ListExperimentsResponse, error) {
-	paginationContext, err := ValidatePagination(
-		request.PageToken, int(request.PageSize), model.GetExperimentTablePrimaryKeyColumn(),
-		request.SortBy, experimentModelFieldsBySortableAPIFields)
+	opts, err := validatedListOptions(&model.Experiment{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
+
 	if err != nil {
-		return nil, util.Wrap(err, "List experiments failed.")
+		return nil, util.Wrap(err, "Failed to create list options")
 	}
-	experiments, nextPageToken, err := s.resourceManager.ListExperiments(paginationContext)
+
+	experiments, total_size, nextPageToken, err := s.resourceManager.ListExperiments(opts)
 	if err != nil {
 		return nil, util.Wrap(err, "List experiments failed.")
 	}
 	return &api.ListExperimentsResponse{
 			Experiments:   ToApiExperiments(experiments),
+			TotalSize:     int32(total_size),
 			NextPageToken: nextPageToken},
 		nil
+}
+
+func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *api.DeleteExperimentRequest) (*empty.Empty, error) {
+	err := s.resourceManager.DeleteExperiment(request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error {

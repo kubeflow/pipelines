@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "interface.go",
+        "scheduledworkflow.go",
+    ],
+    importpath = "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions/scheduledworkflow/v1beta1",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/src/crd/pkg/apis/scheduledworkflow/v1beta1:go_default_library",
+        "//backend/src/crd/pkg/client/clientset/versioned:go_default_library",
+        "//backend/src/crd/pkg/client/informers/externalversions/internalinterfaces:go_default_library",
+        "//backend/src/crd/pkg/client/listers/scheduledworkflow/v1beta1:go_default_library",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
+        "@io_k8s_apimachinery//pkg/runtime:go_default_library",
+        "@io_k8s_apimachinery//pkg/watch:go_default_library",
+        "@io_k8s_client_go//tools/cache:go_default_library",
+    ],
+)

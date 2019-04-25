@@ -26,7 +26,7 @@ import (
 // to be executed before and after all API handler calls, e.g. Logging, error handling.
 // For more details, see https://github.com/grpc/grpc-go/blob/master/interceptor.go
 func apiServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-	glog.Infof("%v called", info.FullMethod)
+	glog.Infof("%v handler starting", info.FullMethod)
 	resp, err = handler(ctx, req)
 	if err != nil {
 		util.LogError(util.Wrapf(err, "%s call failed", info.FullMethod))
@@ -34,5 +34,6 @@ func apiServerInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 		err = util.ToGRPCError(err)
 		return
 	}
+	glog.Infof("%v handler finished", info.FullMethod)
 	return
 }

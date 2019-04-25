@@ -13,7 +13,7 @@ const (
 	FileForClientErrorTest = "./samples/hello-world.yaml"
 
 	ClientErrorString  = "Error with client"
-	InvalidFakeRequest = "Invalid fake request"
+	InvalidFakeRequest = "Invalid fake request, don't know how to handle '%s' in the fake client."
 )
 
 func getDefaultUploadedPipeline() *model.APIPipeline {
@@ -40,9 +40,7 @@ func (c *PipelineUploadClientFake) UploadFile(filePath string,
 	switch filePath {
 	case FileForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
-	case FileForDefaultTest:
-		return getDefaultUploadedPipeline(), nil
 	default:
-		return nil, fmt.Errorf(InvalidFakeRequest)
+		return getDefaultUploadedPipeline(), nil
 	}
 }

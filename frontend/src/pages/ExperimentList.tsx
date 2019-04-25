@@ -15,16 +15,18 @@
  */
 
 import * as React from 'react';
-import AddIcon from '@material-ui/icons/Add';
-import CustomTable, { Column, Row, ExpandState } from '../components/CustomTable';
+import Buttons from '../lib/Buttons';
+import CustomTable, { Column, Row, ExpandState, CustomRendererProps } from '../components/CustomTable';
 import RunList from './RunList';
-import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
+import produce from 'immer';
+import { ApiFilter, PredicateOp } from '../apis/filter';
 import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
-import { ApiResourceType, ApiRun } from '../apis/run';
+import { ApiResourceType, ApiRun, RunStorageState } from '../apis/run';
+import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
+import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
@@ -38,10 +40,8 @@ interface DisplayExperiment extends ApiExperiment {
 
 interface ExperimentListState {
   displayExperiments: DisplayExperiment[];
-  selectedExperimentIds: string[];
-  selectedRunIds: string[];
+  selectedIds: string[];
   selectedTab: number;
-  sortBy: string;
 }
 
 class ExperimentList extends Page<{}, ExperimentListState> {
@@ -52,60 +52,45 @@ class ExperimentList extends Page<{}, ExperimentListState> {
 
     this.state = {
       displayExperiments: [],
-      selectedExperimentIds: [],
-      selectedRunIds: [],
+      selectedIds: [],
       selectedTab: 0,
-      sortBy: ExperimentSortKeys.CREATED_AT,
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [{
-        action: this._newExperimentClicked.bind(this),
-        icon: AddIcon,
-        id: 'newExperimentBtn',
-        outlined: true,
-        title: 'Create experiment',
-        tooltip: 'Create a new experiment',
-      }, {
-        action: this._compareRuns.bind(this),
-        disabled: true,
-        disabledTitle: 'Select multiple runs to compare',
-        id: 'compareBtn',
-        title: 'Compare runs',
-        tooltip: 'Compare up to 10 selected runs',
-      }, {
-        action: this._cloneRun.bind(this),
-        disabled: true,
-        disabledTitle: 'Select a run to clone',
-        id: 'cloneBtn',
-        title: 'Clone run',
-        tooltip: 'Create a copy from this run\s initial state',
-      }, {
-        action: this._reload.bind(this),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh the list of experiments',
-      }],
-      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      actions: [
+        buttons.newRun(),
+        buttons.newExperiment(),
+        buttons.compareRuns(() => this.state.selectedIds),
+        buttons.cloneRun(() => this.state.selectedIds, false),
+        buttons.archive(
+          () => this.state.selectedIds,
+          false,
+          ids => this._selectionChanged(ids),
+        ),
+        buttons.refresh(this.refresh.bind(this)),
+      ],
+      breadcrumbs: [],
+      pageTitle: 'Experiments',
     };
   }
 
-  public render() {
-    const columns: Column[] = [
-      {
-        customRenderer: this._nameCustomRenderer.bind(this),
-        flex: 2,
-        label: 'Experiment name',
-        sortKey: ExperimentSortKeys.NAME,
-      },
-      {
-        customRenderer: this._last5RunsCustomRenderer.bind(this),
-        flex: 1,
-        label: 'Last 5 runs',
-      },
-    ];
+  public render(): JSX.Element {
+    const columns: Column[] = [{
+      customRenderer: this._nameCustomRenderer,
+      flex: 1,
+      label: 'Experiment name',
+      sortKey: ExperimentSortKeys.NAME,
+    }, {
+      flex: 2,
+      label: 'Description',
+    }, {
+      customRenderer: this._last5RunsCustomRenderer,
+      flex: 1,
+      label: 'Last 5 runs',
+    }];
 
     const rows: Row[] = this.state.displayExperiments.map((exp) => {
       return {
@@ -114,6 +99,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
         id: exp.id!,
         otherFields: [
           exp.name!,
+          exp.description!,
           exp.expandState === ExpandState.EXPANDED ? [] : exp.last5Runs,
         ]
       };
@@ -122,20 +108,35 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <CustomTable columns={columns} rows={rows} ref={this._tableRef}
-          disableSelection={true} initialSortColumn={this.state.sortBy}
-          reload={this._reload.bind(this)} selectedIds={this.state.selectedExperimentIds}
-          toggleExpansion={this._toggleRowExpand.bind(this)}
+          disableSelection={true} initialSortColumn={ExperimentSortKeys.CREATED_AT}
+          reload={this._reload.bind(this)} toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
+          filterLabel='Filter experiments'
           emptyMessage='No experiments found. Click "Create experiment" to start.' />
       </div>
     );
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     if (this._tableRef.current) {
       this.clearBanner();
-      this._tableRef.current.reload();
+      await this._tableRef.current.reload();
     }
+  }
+
+  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (props: CustomRendererProps<string>) => {
+    return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
+      to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}>{props.value}</Link>;
+  }
+
+  public _last5RunsCustomRenderer: React.FC<CustomRendererProps<ApiRun[]>> = (props: CustomRendererProps<ApiRun[]>) => {
+    return <div className={commonCss.flex}>
+      {(props.value || []).map((run, i) => (
+        <span key={i} style={{ margin: '0 1px' }}>
+          {statusToIcon(run.status as NodePhase || NodePhase.UNKNOWN, run.created_at)}
+        </span>
+      ))}
+    </div>;
   }
 
   private async _reload(request: ListRequest): Promise<string> {
@@ -144,7 +145,7 @@ class ExperimentList extends Page<{}, ExperimentListState> {
     let displayExperiments: DisplayExperiment[];
     try {
       response = await Apis.experimentServiceApi.listExperiment(
-        request.pageToken, request.pageSize, request.sortBy);
+        request.pageToken, request.pageSize, request.sortBy, request.filter);
       displayExperiments = response.experiments || [];
       displayExperiments.forEach((exp) => exp.expandState = ExpandState.COLLAPSED);
     } catch (err) {
@@ -162,7 +163,14 @@ class ExperimentList extends Page<{}, ExperimentListState> {
           5 /* pageSize */,
           RunSortKeys.CREATED_AT + ' desc',
           ApiResourceType.EXPERIMENT.toString(),
-          experiment.id
+          experiment.id,
+          encodeURIComponent(JSON.stringify({
+            predicates: [{
+              key: 'storage_state',
+              op: PredicateOp.NOTEQUALS,
+              string_value: RunStorageState.ARCHIVED.toString(),
+            }]
+          } as ApiFilter)),
         );
         experiment.last5Runs = listRunsResponse.runs || [];
       } catch (err) {
@@ -173,76 +181,42 @@ class ExperimentList extends Page<{}, ExperimentListState> {
       }
     }));
 
-    this.setState({ displayExperiments, sortBy: request.sortBy! });
+    this.setState({ displayExperiments });
     return response.next_page_token || '';
   }
 
-  private _cloneRun() {
-    if (this.state.selectedRunIds.length === 1) {
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.cloneFromRun]: this.state.selectedRunIds[0] || ''
-      });
-      this.props.history.push(RoutePage.NEW_RUN + searchString);
-    }
+  private _selectionChanged(selectedIds: string[]): void {
+    const actions = produce(this.props.toolbarProps.actions, draft => {
+      // Enable/Disable Run compare button
+      draft[2].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
+      // Enable/Disable Clone button
+      draft[3].disabled = selectedIds.length !== 1;
+      // Archive run button
+      draft[4].disabled = !selectedIds.length;
+    });
+    this.props.updateToolbar({ actions });
+    this.setState({ selectedIds });
   }
 
-  private _nameCustomRenderer(value: string, id: string) {
-    return <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
-      to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, id)}>{value}</Link>;
-  }
-
-  private _last5RunsCustomRenderer(runs: ApiRun[]) {
-    return <div className={commonCss.flex}>
-      {runs.map((run, i) => (
-        <span key={i} style={{ margin: '0 1px' }}>
-          {statusToIcon(run.status as NodePhase || NodePhase.UNKNOWN)}
-        </span>
-      ))}
-    </div>;
-  }
-
-  private _runSelectionChanged(selectedRunIds: string[]) {
-    const toolbarActions = [...this.props.toolbarProps.actions];
-    // Enable/Disable Run compare button
-    toolbarActions[1].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
-    // Enable/Disable Clone button
-    toolbarActions[2].disabled = selectedRunIds.length !== 1;
-    this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
-    this.setState({ selectedRunIds });
-  }
-
-  private _compareRuns() {
-    const indices = this.state.selectedRunIds;
-    if (indices.length > 1 && indices.length <= 10) {
-      const runIds = this.state.selectedRunIds.join(',');
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.runlist]: runIds,
-      });
-      this.props.history.push(RoutePage.COMPARE + searchString);
-    }
-  }
-
-  private _newExperimentClicked() {
-    this.props.history.push(RoutePage.NEW_EXPERIMENT);
-  }
-
-  private _toggleRowExpand(rowIndex: number) {
-    const displayExperiments = this.state.displayExperiments;
-    displayExperiments[rowIndex].expandState =
-      displayExperiments[rowIndex].expandState === ExpandState.COLLAPSED ?
-        ExpandState.EXPANDED :
-        ExpandState.COLLAPSED;
+  private _toggleRowExpand(rowIndex: number): void {
+    const displayExperiments = produce(this.state.displayExperiments, draft => {
+      draft[rowIndex].expandState =
+        draft[rowIndex].expandState === ExpandState.COLLAPSED ?
+          ExpandState.EXPANDED :
+          ExpandState.COLLAPSED;
+    });
 
     this.setState({ displayExperiments });
   }
 
-  private _getExpandedExperimentComponent(experimentIndex: number) {
+  private _getExpandedExperimentComponent(experimentIndex: number): JSX.Element {
     const experiment = this.state.displayExperiments[experimentIndex];
-    const runIds = (experiment.last5Runs || []).map((r) => r.id!);
-    return <RunList runIdListMask={runIds} onError={() => null} {...this.props}
-      disablePaging={true} selectedIds={this.state.selectedRunIds}
-      onSelectionChange={this._runSelectionChanged.bind(this)} disableSorting={true} />;
+    return <RunList hideExperimentColumn={true} experimentIdMask={experiment.id} onError={() => null} {...this.props}
+      disablePaging={true} selectedIds={this.state.selectedIds} noFilterBox={true}
+      storageState={RunStorageState.AVAILABLE}
+      onSelectionChange={this._selectionChanged.bind(this)} disableSorting={true} />;
   }
+
 }
 
 export default ExperimentList;

@@ -22,8 +22,7 @@ NAMESPACE=kubeflow
 usage()
 {
     echo "usage: run_test.sh
-    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/api_integration_test
-    [--commit_sha     commit SHA to pull code from]
+    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/e2e_test
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
     [-h help]"
 }
@@ -32,9 +31,6 @@ while [ "$1" != "" ]; do
     case $1 in
              --results-gcs-dir )shift
                                 RESULTS_GCS_DIR=$1
-                                ;;
-             --commit_sha )     shift
-                                COMMIT_SHA=$1
                                 ;;
              --namespace )      shift
                                 NAMESPACE=$1
@@ -62,6 +58,10 @@ tools/google-cloud-sdk/install.sh --usage-reporting=false \
   --disable-installation-options
 tools/google-cloud-sdk/bin/gcloud -q components install kubectl
 
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  tools/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
+
 npm install
 
 # Port forward the UI so tests can work against localhost
@@ -74,8 +74,11 @@ POD=`/src/tools/google-cloud-sdk/bin/kubectl get pods -n ${NAMESPACE} -l app=ml-
 ./node_modules/.bin/wait-port 127.0.0.1:3000 -t 20000
 
 export PIPELINE_OUTPUT=${RESULTS_GCS_DIR}/pipeline_output
+# Don't exit early if 'npm test' fails
+set +e
 npm test
 TEST_EXIT_CODE=$?
+set -e
 
 JUNIT_TEST_RESULT=junit_FrontendIntegrationTestOutput.xml
 

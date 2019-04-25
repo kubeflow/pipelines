@@ -69,15 +69,15 @@ interface LogViewerProps {
 class LogViewer extends React.Component<LogViewerProps> {
   private _rootRef = React.createRef<List>();
 
-  public componentDidMount() {
+  public componentDidMount(): void {
     this._scrollToEnd();
   }
 
-  public componentDidUpdate() {
+  public componentDidUpdate(): void {
     this._scrollToEnd();
   }
 
-  public render() {
+  public render(): JSX.Element {
     return <AutoSizer>
       {({ height, width }) => (
         <List id='logViewer' width={width} height={height} rowCount={this.props.logLines.length}
@@ -87,7 +87,7 @@ class LogViewer extends React.Component<LogViewerProps> {
     </AutoSizer>;
   }
 
-  private _scrollToEnd() {
+  private _scrollToEnd(): void {
     const root = this._rootRef.current;
     if (root) {
       root.scrollToRow(this.props.logLines.length + 1);

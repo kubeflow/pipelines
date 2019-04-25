@@ -23,7 +23,7 @@ describe('Trigger', () => {
   // tslint:disable-next-line:variable-name
   const RealDate = Date;
 
-  function mockDate(isoDate: any) {
+  function mockDate(isoDate: any): void {
     (global as any).Date = class extends RealDate {
       constructor() {
         super();

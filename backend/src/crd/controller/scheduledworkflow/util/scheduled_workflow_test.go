@@ -22,7 +22,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
-	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1alpha1"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/core"
@@ -582,7 +582,7 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 				"scheduledworkflows.kubeflow.org/workflowEpoch":              strconv.Itoa(int(scheduledEpoch)),
 				"scheduledworkflows.kubeflow.org/workflowIndex":              "1"},
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion:         "kubeflow.org/v1alpha1",
+				APIVersion:         "kubeflow.org/v1beta1",
 				Kind:               "ScheduledWorkflow",
 				Name:               "SCHEDULE1",
 				UID:                "",
@@ -655,7 +655,7 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 				"scheduledworkflows.kubeflow.org/workflowEpoch":              strconv.Itoa(int(scheduledEpoch)),
 				"scheduledworkflows.kubeflow.org/workflowIndex":              "1"},
 			OwnerReferences: []metav1.OwnerReference{{
-				APIVersion:         "kubeflow.org/v1alpha1",
+				APIVersion:         "kubeflow.org/v1beta1",
 				Kind:               "ScheduledWorkflow",
 				Name:               "SCHEDULE1",
 				UID:                "",

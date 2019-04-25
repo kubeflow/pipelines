@@ -15,8 +15,8 @@
  */
 
 import * as React from 'react';
-import AddIcon from '@material-ui/icons/Add';
 import Button from '@material-ui/core/Button';
+import Buttons from '../lib/Buttons';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -24,13 +24,14 @@ import Paper from '@material-ui/core/Paper';
 import PopOutIcon from '@material-ui/icons/Launch';
 import RecurringRunsManager from './RecurringRunsManager';
 import RunList from '../pages/RunList';
-import Toolbar, { ToolbarActionConfig, ToolbarProps } from '../components/Toolbar';
+import Toolbar, { ToolbarProps } from '../components/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
 import { ApiExperiment } from '../apis/experiment';
+import { ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
-import { URLParser, QUERY_PARAMS } from '../lib/URLParser';
+import { RunStorageState } from '../apis/run';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
@@ -63,7 +64,7 @@ const css = stylesheet({
     lineHeight: '28px',
   },
   cardRow: {
-    borderBottom: '1px solid #eee',
+    borderBottom: `1px solid ${color.lightGrey}`,
     display: 'flex',
     flexFlow: 'row',
     minHeight: 120,
@@ -101,7 +102,7 @@ interface ExperimentDetailsState {
   activeRecurringRunsCount: number;
   experiment: ApiExperiment | null;
   recurringRunsManagerOpen: boolean;
-  selectedRunIds: string[];
+  selectedIds: string[];
   selectedTab: number;
   runListToolbarProps: ToolbarProps;
 }
@@ -110,72 +111,49 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
 
   private _runlistRef = React.createRef<RunList>();
 
-  private _runListToolbarActions: ToolbarActionConfig[] = [{
-    action: () => this._startNewRun(false),
-    icon: AddIcon,
-    id: 'startNewRunBtn',
-    outlined: true,
-    title: 'Start new run',
-    tooltip: 'Start a new run within this experiment',
-  }, {
-    action: () => this._startNewRun(true),
-    icon: AddIcon,
-    id: 'startNewRecurringRunBtn',
-    outlined: true,
-    title: 'Start recurring run',
-    tooltip: 'Start a new recurring run in this experiment',
-  }, {
-    action: this._compareRuns.bind(this),
-    disabled: true,
-    disabledTitle: 'Select multiple runs to compare',
-    id: 'compareBtn',
-    title: 'Compare runs',
-    tooltip: 'Compare up to 10 selected runs',
-  }, {
-    action: this._cloneRun.bind(this),
-    disabled: true,
-    disabledTitle: 'Select a run to clone',
-    id: 'cloneBtn',
-    title: 'Clone',
-    tooltip: 'Create a copy from this run\s initial state',
-  }];
-
   constructor(props: any) {
     super(props);
 
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     this.state = {
       activeRecurringRunsCount: 0,
       experiment: null,
       recurringRunsManagerOpen: false,
       runListToolbarProps: {
-        actions: this._runListToolbarActions,
-        breadcrumbs: [{ displayName: 'Runs', href: '' }],
+        actions: [
+          buttons.newRun(() => this.props.match.params[RouteParams.experimentId]),
+          buttons.newRecurringRun(this.props.match.params[RouteParams.experimentId]),
+          buttons.compareRuns(() => this.state.selectedIds),
+          buttons.cloneRun(() => this.state.selectedIds, false),
+          buttons.archive(
+            () => this.state.selectedIds,
+            false,
+            ids => this._selectionChanged(ids),
+          ),
+        ],
+        breadcrumbs: [],
+        pageTitle: 'Runs',
         topLevelToolbar: false,
       },
       // TODO: remove
-      selectedRunIds: [],
+      selectedIds: [],
       selectedTab: 0,
     };
   }
 
-  public getInitialToolbarState() {
+  public getInitialToolbarState(): ToolbarProps {
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [{
-        action: this.refresh.bind(this),
-        id: 'refreshBtn',
-        title: 'Refresh',
-        tooltip: 'Refresh',
-      }],
-      breadcrumbs: [
-        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-        { displayName: this.props.match.params[RouteParams.experimentId], href: '' }
-      ],
+      actions: [buttons.refresh(this.refresh.bind(this))],
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      // TODO: determine what to show if no props.
+      pageTitle: this.props ? this.props.match.params[RouteParams.experimentId] : '',
     };
   }
 
-  public render() {
+  public render(): JSX.Element {
     const { activeRecurringRunsCount, experiment } = this.state;
-    const description = experiment ? experiment.description || '' : '';
+    const description = experiment ? (experiment.description || '') : '';
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lrt'))}>
@@ -193,7 +171,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                   <div className={classes(css.cardContent, !!activeRecurringRunsCount && css.recurringRunsActive)}>
                     {activeRecurringRunsCount + ' active'}
                   </div>
-                  <Button className={css.cardBtn} disableRipple={true}
+                  <Button className={css.cardBtn} id='manageExperimentRecurringRunsBtn' disableRipple={true}
                     onClick={() => this.setState({ recurringRunsManagerOpen: true })}>
                     Manage
                     </Button>
@@ -202,7 +180,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               <Paper id='experimentDescriptionCard' className={classes(css.card, css.runStatsCard)} elevation={0}>
                 <div className={css.cardTitle}>
                   <span>Experiment description</span>
-                  <Button onClick={() => this.props.updateDialog({ title: 'Experiment description', content: description })}
+                  <Button id='expandExperimentDescriptionBtn' onClick={() => this.props.updateDialog({ title: 'Experiment description', content: description })}
                     className={classes(css.popOutIcon, 'popOutButton')}>
                     <Tooltip title='Read more'>
                       <PopOutIcon style={{ fontSize: 18 }} />
@@ -219,8 +197,8 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
             </div>
             <Toolbar {...this.state.runListToolbarProps} />
             <RunList onError={this.showPageError.bind(this)}
-              experimentIdMask={experiment.id} ref={this._runlistRef}
-              selectedIds={this.state.selectedRunIds}
+              hideExperimentColumn={true} experimentIdMask={experiment.id} ref={this._runlistRef}
+              selectedIds={this.state.selectedIds} storageState={RunStorageState.AVAILABLE}
               onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />
 
             <Dialog open={this.state.recurringRunsManagerOpen} classes={{ paper: css.recurringRunsDialog }}
@@ -230,7 +208,9 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                   experimentId={this.props.match.params[RouteParams.experimentId]} />
               </DialogContent>
               <DialogActions>
-                <Button onClick={this._recurringRunsManagerClosed.bind(this)} color='secondary'>
+                <Button id='closeExperimentRecurringRunManagerBtn'
+                  onClick={this._recurringRunsManagerClosed.bind(this)}
+                  color='secondary'>
                   Close
                 </Button>
               </DialogActions>
@@ -241,91 +221,83 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     );
   }
 
-  public async refresh() {
+  public async refresh(): Promise<void> {
     return this.load();
   }
 
-  public async componentDidMount() {
+  public async componentDidMount(): Promise<void> {
     return this.load();
   }
 
-  public async load() {
+  public async load(): Promise<void> {
     this.clearBanner();
 
     const experimentId = this.props.match.params[RouteParams.experimentId];
 
     try {
       const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
+      const pageTitle = experiment.name || this.props.match.params[RouteParams.experimentId];
 
       this.props.updateToolbar({
         actions: this.props.toolbarProps.actions,
-        breadcrumbs: [
-          { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
-          {
-            displayName: experiment && experiment.name ? experiment.name : this.props.match.params[RouteParams.experimentId],
-            href: ''
-          }],
+        breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+        pageTitle,
+        pageTitleTooltip: pageTitle,
       });
 
-      // TODO: get ALL jobs in the experiment
-      const recurringRuns = await Apis.jobServiceApi.listJobs(undefined, 100);
-      const activeRecurringRunsCount =
-        (recurringRuns.jobs || []).filter(j => j.enabled === true).length;
-      this.setState(
-        { activeRecurringRunsCount, experiment },
-        () => this._runlistRef.current && this._runlistRef.current.refresh()
-      );
+      let activeRecurringRunsCount = -1;
+
+      // Fetch this experiment's jobs
+      try {
+        // TODO: get ALL jobs in the experiment
+        const recurringRuns = await Apis.jobServiceApi.listJobs(
+          undefined,
+          100,
+          '',
+          ApiResourceType.EXPERIMENT.toString(),
+          experimentId,
+        );
+        activeRecurringRunsCount =
+          (recurringRuns.jobs || []).filter(j => j.enabled === true).length;
+
+      } catch (err) {
+        await this.showPageError(
+          `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`, err);
+        logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
+      }
+
+      this.setStateSafe({ activeRecurringRunsCount, experiment });
+
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
       logger.error(`Error loading experiment: ${experimentId}`, err);
     }
-  }
 
-  private _compareRuns(): void {
-    const indices = this.state.selectedRunIds;
-    if (indices.length > 1 && indices.length <= 10) {
-      const runIds = this.state.selectedRunIds.join(',');
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.runlist]: runIds,
-      });
-      this.props.history.push(RoutePage.COMPARE + searchString);
+    if (this._runlistRef.current) {
+      this._runlistRef.current.refresh();
     }
   }
 
-  private _startNewRun(isRecurring: boolean): void {
-    const searchString = new URLParser(this.props).build(Object.assign(
-      { [QUERY_PARAMS.experimentId]: this.state.experiment!.id || '', },
-      isRecurring ? { [QUERY_PARAMS.isRecurring]: '1' } : {}));
-    this.props.history.push(RoutePage.NEW_RUN + searchString);
-  }
-
-  private _cloneRun() {
-    if (this.state.selectedRunIds.length === 1) {
-      const runId = this.state.selectedRunIds[0];
-      const searchString = new URLParser(this.props).build({
-        [QUERY_PARAMS.cloneFromRun]: runId || ''
-      });
-      this.props.history.push(RoutePage.NEW_RUN + searchString);
-    }
-  }
-
-  private _selectionChanged(selectedRunIds: string[]) {
+  private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = [...this.state.runListToolbarProps.actions];
     // Compare runs button
-    toolbarActions[2].disabled = selectedRunIds.length <= 1 || selectedRunIds.length > 10;
+    toolbarActions[2].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
     // Clone run button
-    toolbarActions[3].disabled = selectedRunIds.length !== 1;
+    toolbarActions[3].disabled = selectedIds.length !== 1;
+    // Archive run button
+    toolbarActions[4].disabled = !selectedIds.length;
     this.setState({
       runListToolbarProps: {
         actions: toolbarActions,
         breadcrumbs: this.state.runListToolbarProps.breadcrumbs,
+        pageTitle: this.state.runListToolbarProps.pageTitle,
         topLevelToolbar: this.state.runListToolbarProps.topLevelToolbar,
       },
-      selectedRunIds
+      selectedIds,
     });
   }
 
-  private _recurringRunsManagerClosed() {
+  private _recurringRunsManagerClosed(): void {
     this.setState({ recurringRunsManagerOpen: false });
     // Reload the details to get any updated recurring runs
     this.refresh();
