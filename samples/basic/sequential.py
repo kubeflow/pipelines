@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,28 +14,39 @@
 # limitations under the License.
 
 
-import kfp.dsl as dsl
+import kfp
+from kfp import dsl
 
+
+def gcs_download_op(url):
+    return dsl.ContainerOp(
+        name='GCS - Download',
+        image='google/cloud-sdk:216.0.0',
+        command=['sh', '-c'],
+        arguments=['gsutil cat $0 | tee $1', url, '/tmp/results.txt'],
+        file_outputs={
+            'data': '/tmp/results.txt',
+        }
+    )
+
+
+def echo_op(text):
+    return dsl.ContainerOp(
+        name='echo',
+        image='library/bash:4.4.23',
+        command=['sh', '-c'],
+        arguments=['echo "$0"', text]
+    )
 
 @dsl.pipeline(
-  name='Sequential',
-  description='A pipeline with two sequential steps.'
+    name='Sequential pipeline',
+    description='A pipeline with two sequential steps.'
 )
 def sequential_pipeline(url='gs://ml-pipeline-playground/shakespeare1.txt'):
-  """A pipeline with two sequential steps."""
+    """A pipeline with two sequential steps."""
 
-  op1 = dsl.ContainerOp(
-     name='download',
-     image='google/cloud-sdk:216.0.0',
-     command=['sh', '-c'],
-     arguments=['gsutil cat %s | tee /tmp/results.txt' % url],
-     file_outputs={'downloaded': '/tmp/results.txt'})
-  op2 = dsl.ContainerOp(
-     name='echo',
-     image='library/bash:4.4.23',
-     command=['sh', '-c'],
-     arguments=['echo "%s"' % op1.output])
+    download_task = gcs_download_op(url)
+    echo_task = echo_op(download_task.output)
 
 if __name__ == '__main__':
-  import kfp.compiler as compiler
-  compiler.Compiler().compile(sequential_pipeline, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(sequential_pipeline, __file__ + '.zip')

@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from typing import Mapping
-from ._structures import ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
+from ._structures import ContainerImplementation, ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
 from ._components import _generate_output_file_name, _default_component_name
 from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
 
@@ -22,8 +22,8 @@ def create_container_op_from_task(task_spec: TaskSpec):
     argument_values = task_spec.arguments
     component_spec = task_spec.component_ref._component_spec
 
-    if hasattr(component_spec.implementation, 'graph'):
-        raise TypeError('Cannot convert graph component to ContainerOp')
+    if not isinstance(component_spec.implementation, ContainerImplementation):
+        raise TypeError('Only container component tasks can be converted to ContainerOp')
 
     inputs_dict = {input_spec.name: input_spec for input_spec in component_spec.inputs or []}
     container_spec = component_spec.implementation.container

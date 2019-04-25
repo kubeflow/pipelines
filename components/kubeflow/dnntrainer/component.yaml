@@ -1,18 +1,18 @@
 name: Train FC DNN using TF
 description: Trains fully-connected neural network using Tensorflow
 inputs:
-  - {name: Transformed data dir,  type: GCPPath,  description: 'GCS path containing tf-transformed training and eval data.'} # type: {GCSPath: {path_type: Directory}}
-  - {name: Schema,                type: GCPPath,       description: 'GCS json schema file path.'} # type: {GCSPath: {data_type: JSON}}
+  - {name: Transformed data dir,  type: GCSPath,  description: 'GCS path containing tf-transformed training and eval data.'} # type: {GCSPath: {path_type: Directory}}
+  - {name: Schema,                type: GCSPath,       description: 'GCS json schema file path.'} # type: {GCSPath: {data_type: JSON}}
   - {name: Learning rate,         type: Float, default: '0.1',              description: 'Learning rate for training.'}
   - {name: Optimizer,             type: String, default: 'Adagrad', description: 'Optimizer for training. Valid values are: Adam, SGD, Adagrad. If not provided, tf.estimator default will be used.'}
   - {name: Hidden layer size,     type: String, default: '100',             description: 'Comma-separated hidden layer sizes. For example "200,100,50".'}
   - {name: Steps,                 type: Integer,                            description: 'Maximum number of training steps to perform. If unspecified, will honor epochs.'}
   #- {name: Epochs,                type: Integer, default: '',               description: 'Maximum number of training data epochs on which to train. If both "steps" and "epochs" are specified, the training job will run for "steps" or "epochs", whichever occurs first.'}
   - {name: Target,                type: String,                             description: 'Name of the column for prediction target.'}
-  - {name: Preprocessing module,  type: GCPPath, default: '', description: 'GCS path to a python file defining "preprocess" and "get_feature_columns" functions.'} # type: {GCSPath: {data_type: Python}}
-  - {name: Training output dir,   type: GCPPath,  description: 'GCS or local directory.'} # type: {GCSPath: {path_type: Directory}}
+  - {name: Preprocessing module,  type: GCSPath, default: '', description: 'GCS path to a python file defining "preprocess" and "get_feature_columns" functions.'} # type: {GCSPath: {data_type: Python}}
+  - {name: Training output dir,   type: GCSPath,  description: 'GCS or local directory.'} # type: {GCSPath: {path_type: Directory}}
 outputs:
-  - {name: Training output dir,   type: GCPPath,  description: 'GCS or local directory.'} # type: {GCSPath: {path_type: Directory}}
+  - {name: Training output dir,   type: GCSPath,  description: 'GCS or local directory.'} # type: {GCSPath: {path_type: Directory}}
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:e20fad3e161e88226c83437271adb063221459b9

@@ -1,7 +1,7 @@
 name: Kubeflow - Serve TF model
 description: Serve TensorFlow model using Kubeflow TF-serving
 inputs:
-  - {name: Model dir,     type: GCPPath, description: 'Path of GCS directory containing exported Tensorflow model.'} # type: {GCSPath: {path_type: Directory}}
+  - {name: Model dir,     type: GCSPath, description: 'Path of GCS directory containing exported Tensorflow model.'} # type: {GCSPath: {path_type: Directory}}
   - {name: Cluster name,  type: String, default: '',              description: 'Kubernetes cluster name where the TS-serving service should be deployed. Uses the current cluster by default.'}
   - {name: Namespace,     type: String, default: 'kubeflow',      description: 'Kubernetes namespace where the TS-serving service should be deployed.'}
   - {name: Server name,   type: String, default: 'model-server',  description: 'TF-serving server name to use when deploying.'}
