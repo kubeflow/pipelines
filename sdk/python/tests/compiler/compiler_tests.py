@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,6 +38,8 @@ class TestCompiler(unittest.TestCase):
     with dsl.Pipeline('somename') as p:
       msg1 = dsl.PipelineParam('msg1')
       msg2 = dsl.PipelineParam('msg2', value='value2')
+      json = dsl.PipelineParam('json')
+      kind = dsl.PipelineParam('kind')
       op = dsl.ContainerOp(name='echo', image='image', command=['sh', '-c'],
                            arguments=['echo %s %s | tee /tmp/message.txt' % (msg1, msg2)],
                            file_outputs={'merged': '/tmp/message.txt'}) \
@@ -47,6 +49,17 @@ class TestCompiler(unittest.TestCase):
         .add_env_variable(k8s_client.V1EnvVar(
           name='GOOGLE_APPLICATION_CREDENTIALS',
           value='/secret/gcp-credentials/user-gcp-sa.json'))
+      res = dsl.ResourceOp(
+        name="test-resource",
+        k8s_resource=k8s_client.V1PersistentVolumeClaim(
+          api_version="v1",
+          kind=kind,
+          metadata=k8s_client.V1ObjectMeta(
+            name="resource"
+          )
+        ),
+        attribute_outputs={"out": json}
+      )
     golden_output = {
       'container': {
         'image': 'image',
@@ -115,9 +128,47 @@ class TestCompiler(unittest.TestCase):
         }]
       }
     }
+    res_output = {
+      'inputs': {
+        'parameters': [{
+          'name': 'json'
+        }, {
+          'name': 'kind'
+        }]
+      },
+      'name': 'test-resource',
+      'outputs': {
+        'parameters': [{
+          'name': 'test-resource-manifest',
+          'valueFrom': {
+            'jsonPath': '{}'
+          }
+        }, {
+          'name': 'test-resource-name',
+          'valueFrom': {
+            'jsonPath': '{.metadata.name}'
+          }
+        }, {
+          'name': 'test-resource-out',
+          'valueFrom': {
+            'jsonPath': '{{inputs.parameters.json}}'
+          }
+        }]
+      },
+      'resource': {
+        'action': 'create',
+        'manifest': (
+          "apiVersion: v1\n"
+          "kind: '{{inputs.parameters.kind}}'\n"
+          "metadata:\n"
+          "  name: resource\n"
+        )
+      }
+    }
 
     self.maxDiff = None
     self.assertEqual(golden_output, compiler.Compiler()._op_to_template(op))
+    self.assertEqual(res_output, compiler.Compiler()._op_to_template(res))
 
   def _get_yaml_from_zip(self, zip_file):
     with zipfile.ZipFile(zip_file, 'r') as zip:
@@ -297,6 +348,34 @@ class TestCompiler(unittest.TestCase):
   def test_py_recursive_while(self):
     """Test pipeline recursive."""
     self._test_py_compile_yaml('recursive_while')
+
+  def test_py_resourceop_basic(self):
+    """Test pipeline resourceop_basic."""
+    self._test_py_compile_yaml('resourceop_basic')
+
+  def test_py_volumeop_basic(self):
+    """Test pipeline volumeop_basic."""
+    self._test_py_compile_yaml('volumeop_basic')
+
+  def test_py_volumeop_parallel(self):
+    """Test pipeline volumeop_parallel."""
+    self._test_py_compile_yaml('volumeop_parallel')
+
+  def test_py_volumeop_dag(self):
+    """Test pipeline volumeop_dag."""
+    self._test_py_compile_yaml('volumeop_dag')
+
+  def test_py_volume_snapshotop_sequential(self):
+    """Test pipeline volume_snapshotop_sequential."""
+    self._test_py_compile_yaml('volume_snapshotop_sequential')
+
+  def test_py_volume_snapshotop_rokurl(self):
+    """Test pipeline volumeop_sequential."""
+    self._test_py_compile_yaml('volume_snapshotop_rokurl')
+
+  def test_py_volumeop_sequential(self):
+    """Test pipeline volumeop_sequential."""
+    self._test_py_compile_yaml('volumeop_sequential')
 
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
