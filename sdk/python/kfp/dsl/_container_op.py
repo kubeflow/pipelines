@@ -18,7 +18,8 @@ from typing import Any, Dict, List, TypeVar, Union, Callable
 from kubernetes.client.models import (
     V1Container, V1EnvVar, V1EnvFromSource, V1SecurityContext, V1Probe,
     V1ResourceRequirements, V1VolumeDevice, V1VolumeMount, V1ContainerPort,
-    V1Lifecycle)
+    V1Lifecycle, V1Volume
+)
 
 from . import _pipeline_param
 from ._metadata import ComponentMeta
@@ -622,83 +623,37 @@ class Sidecar(Container):
         return _pipeline_param.extract_pipelineparams_from_any(self)
 
 
-def _make_hash_based_id_for_container_op(container_op):
-    # Generating a unique ID for ContainerOp. For class instances, the hash is the object's memory address which is unique.
-    return container_op.human_name + ' ' + hex(2**63 + hash(container_op))[2:]
+def _make_hash_based_id_for_op(op):
+    # Generating a unique ID for Op. For class instances, the hash is the object's memory address which is unique.
+    return op.human_name + ' ' + hex(2**63 + hash(op))[2:]
 
 
-# Pointer to a function that generates a unique ID for the ContainerOp instance (Possibly by registering the ContainerOp instance in some system).
-_register_container_op_handler = _make_hash_based_id_for_container_op
+# Pointer to a function that generates a unique ID for the Op instance (Possibly by registering the Op instance in some system).
+_register_op_handler = _make_hash_based_id_for_op
 
 
-class ContainerOp(object):
-    """
-    Represents an op implemented by a container image.
-    
-    Example
-
-        from kfp import dsl
-        from kubernetes.client.models import V1EnvVar
-
-
-        @dsl.pipeline(
-            name='foo',
-            description='hello world')
-        def foo_pipeline(tag: str, pull_image_policy: str):
-
-            # any attributes can be parameterized (both serialized string or actual PipelineParam)
-            op = dsl.ContainerOp(name='foo', 
-                                image='busybox:%s' % tag,
-                                # pass in sidecars list
-                                sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
-                                # pass in k8s container kwargs
-                                container_kwargs={'env': [V1EnvVar('foo', 'bar')]})
-
-            # set `imagePullPolicy` property for `container` with `PipelineParam` 
-            op.container.set_pull_image_policy(pull_image_policy)
-
-            # add sidecar with parameterized image tag
-            # sidecar follows the argo sidecar swagger spec
-            op.add_sidecar(dsl.Sidecar('redis', 'redis:%s' % tag).set_image_pull_policy('Always'))
-    
-    """
+class BaseOp(object):
 
     # list of attributes that might have pipeline params - used to generate
     # the input parameters during compilation.
     # Excludes `file_outputs` and `outputs` as they are handled separately
     # in the compilation process to generate the DAGs and task io parameters.
     attrs_with_pipelineparams = [
-        '_container', 'node_selector', 'volumes', 'pod_annotations',
-        'pod_labels', 'num_retries', 'sidecars'
+        'node_selector', 'volumes', 'pod_annotations', 'pod_labels',
+        'num_retries', 'sidecars'
     ]
 
     def __init__(self,
                  name: str,
-                 image: str,
-                 command: StringOrStringList = None,
-                 arguments: StringOrStringList = None,
                  sidecars: List[Sidecar] = None,
-                 container_kwargs: Dict = None,
-                 file_outputs: Dict[str, str] = None,
-                 is_exit_handler=False):
-        """Create a new instance of ContainerOp.
+                 is_exit_handler: bool = False):
+        """Create a new instance of BaseOp
 
         Args:
           name: the name of the op. It does not have to be unique within a pipeline
               because the pipeline will generates a unique new name in case of conflicts.
-          image: the container image name, such as 'python:3.5-jessie'
-          command: the command to run in the container.
-              If None, uses default CMD in defined in container.
-          arguments: the arguments of the command. The command can include "%s" and supply
-              a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
-              At container run time the argument will be 'echo param_value'.
           sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy 
                     together with the `main` container.
-          container_kwargs: the dict of additional keyword arguments to pass to the
-                            op's `Container` definition.
-          file_outputs: Maps output labels to local file paths. At pipeline run time,
-              the value of a PipelineParam is saved to its corresponding local file. It's
-              one way for outside world to receive outputs of the container.
           is_exit_handler: Whether it is used as an exit handler.
         """
 
@@ -708,45 +663,14 @@ class ContainerOp(object):
                 'Only letters, numbers, spaces, "_", and "-"  are allowed in name. Must begin with letter: %s'
                 % (name))
 
-        # convert to list if not a list
-        command = as_list(command)
-        arguments = as_list(arguments)
+        self.is_exit_handler = is_exit_handler
 
-        # human_name must exist to construct containerOps name
+        # human_name must exist to construct operator's name
         self.human_name = name
-
-        # `container` prop in `io.argoproj.workflow.v1alpha1.Template`
-        container_kwargs = container_kwargs or {}
-        self._container = Container(
-            image=image, args=arguments, command=command, **container_kwargs)
-
-        # NOTE for backward compatibility (remove in future?)
-        # proxy old ContainerOp callables to Container
-
-        # attributes to NOT proxy
-        ignore_set = frozenset(['to_dict', 'to_str'])
-
-        # decorator func to proxy a method in `Container` into `ContainerOp`
-        def _proxy(proxy_attr):
-            """Decorator func to proxy to ContainerOp.container"""
-
-            def _decorated(*args, **kwargs):
-                # execute method
-                ret = getattr(self._container, proxy_attr)(*args, **kwargs)
-                if ret == self._container:
-                    return self
-                return ret
-
-            return deprecation_warning(_decorated, proxy_attr, proxy_attr)
-
-        # iter thru container and attach a proxy func to the container method
-        for attr_to_proxy in dir(self._container):
-            func = getattr(self._container, attr_to_proxy)
-            # ignore private methods
-            if hasattr(func, '__call__') and (attr_to_proxy[0] != '_') and (
-                    attr_to_proxy not in ignore_set):
-                # only proxy public callables
-                setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
+        # ID of the current Op. Ideally, it should be generated by the compiler that sees the bigger context.
+        # However, the ID is used in the task output references (PipelineParams) which can be serialized to strings.
+        # Because of this we must obtain a unique ID right now.
+        self.name = _register_op_handler(self)
 
         # TODO: proper k8s definitions so that `convert_k8s_obj_to_json` can be used?
         # `io.argoproj.workflow.v1alpha1.Template` properties
@@ -757,51 +681,16 @@ class ContainerOp(object):
         self.num_retries = 0
         self.sidecars = sidecars or []
 
-        # attributes specific to `ContainerOp`
+        # attributes specific to `BaseOp`
         self._inputs = []
-        self.file_outputs = file_outputs
         self.dependent_names = []
-        self.is_exit_handler = is_exit_handler
-        self._metadata = None
-
-        # ID of the current ContainerOp. Ideally, it should be generated by the compiler that sees the bigger context.
-        # However, the ID is used in the task output references (PipelineParams) which can be serialized to strings.
-        # Because of this we must obtain a unique ID right now.
-        self.name = _register_container_op_handler(self)
-
-        self.outputs = {}
-        if file_outputs:
-            self.outputs = {
-                name: _pipeline_param.PipelineParam(name, op_name=self.name)
-                for name in file_outputs.keys()
-            }
-
-        self.output = None
-        if len(self.outputs) == 1:
-            self.output = list(self.outputs.values())[0]
-
-    @property
-    def command(self):
-        return self._container.command
-
-    @command.setter
-    def command(self, value):
-        self._container.command = as_list(value)
-
-    @property
-    def arguments(self):
-        return self._container.args
-
-    @arguments.setter
-    def arguments(self, value):
-        self._container.args = as_list(value)
 
     @property
     def inputs(self):
         """List of PipelineParams that will be converted into input parameters
         (io.argoproj.workflow.v1alpha1.Inputs) for the argo workflow.
         """
-        # iterate thru and extract all the `PipelineParam` in `ContainerOp` when
+        # Iterate through and extract all the `PipelineParam` in Op when
         # called the 1st time (because there are in-place updates to `PipelineParam`
         # during compilation - remove in-place updates for easier debugging?)
         if not self._inputs:
@@ -820,27 +709,6 @@ class ContainerOp(object):
     def inputs(self, value):
         # to support in-place updates
         self._inputs = value
-
-    @property
-    def container(self):
-        """`Container` object that represents the `container` property in 
-        `io.argoproj.workflow.v1alpha1.Template`. Can be used to update the
-        container configurations. 
-        
-        Example:
-            import kfp.dsl as dsl
-            from kubernetes.client.models import V1EnvVar
-    
-            @dsl.pipeline(name='example_pipeline')
-            def immediate_value_pipeline():
-                op1 = (dsl.ContainerOp(name='example', image='nginx:alpine')
-                          .container
-                            .add_env_variable(V1EnvVar(name='HOST', value='foo.bar'))
-                            .add_env_variable(V1EnvVar(name='PORT', value='80'))
-                            .parent # return the parent `ContainerOp`
-                        )
-        """
-        return self._container
 
     def apply(self, mod_func):
         """Applies a modifier function to self. The function should return the passed object.
@@ -919,7 +787,7 @@ class ContainerOp(object):
         return self
 
     def add_sidecar(self, sidecar: Sidecar):
-        """Add a sidecar to the ContainerOps. 
+        """Add a sidecar to the Op.
 
         Args:
           sidecar: SideCar object.
@@ -930,6 +798,192 @@ class ContainerOp(object):
 
     def __repr__(self):
         return str({self.__class__.__name__: self.__dict__})
+
+
+from ._pipeline_volume import PipelineVolume #The import is here to prevent circular reference problems.
+
+
+class ContainerOp(BaseOp):
+    """
+    Represents an op implemented by a container image.
+    
+    Example
+
+        from kfp import dsl
+        from kubernetes.client.models import V1EnvVar
+
+
+        @dsl.pipeline(
+            name='foo',
+            description='hello world')
+        def foo_pipeline(tag: str, pull_image_policy: str):
+
+            # any attributes can be parameterized (both serialized string or actual PipelineParam)
+            op = dsl.ContainerOp(name='foo', 
+                                image='busybox:%s' % tag,
+                                # pass in sidecars list
+                                sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
+                                # pass in k8s container kwargs
+                                container_kwargs={'env': [V1EnvVar('foo', 'bar')]})
+
+            # set `imagePullPolicy` property for `container` with `PipelineParam` 
+            op.container.set_pull_image_policy(pull_image_policy)
+
+            # add sidecar with parameterized image tag
+            # sidecar follows the argo sidecar swagger spec
+            op.add_sidecar(dsl.Sidecar('redis', 'redis:%s' % tag).set_image_pull_policy('Always'))
+    
+    """
+
+    # list of attributes that might have pipeline params - used to generate
+    # the input parameters during compilation.
+    # Excludes `file_outputs` and `outputs` as they are handled separately
+    # in the compilation process to generate the DAGs and task io parameters.
+
+    def __init__(self,
+                 name: str,
+                 image: str,
+                 command: StringOrStringList = None,
+                 arguments: StringOrStringList = None,
+                 sidecars: List[Sidecar] = None,
+                 container_kwargs: Dict = None,
+                 file_outputs: Dict[str, str] = None,
+                 is_exit_handler=False,
+                 pvolumes: Dict[str, V1Volume] = None,
+        ):
+        """Create a new instance of ContainerOp.
+
+        Args:
+          name: the name of the op. It does not have to be unique within a pipeline
+              because the pipeline will generates a unique new name in case of conflicts.
+          image: the container image name, such as 'python:3.5-jessie'
+          command: the command to run in the container.
+              If None, uses default CMD in defined in container.
+          arguments: the arguments of the command. The command can include "%s" and supply
+              a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
+              At container run time the argument will be 'echo param_value'.
+          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy 
+                    together with the `main` container.
+          container_kwargs: the dict of additional keyword arguments to pass to the
+                            op's `Container` definition.
+          file_outputs: Maps output labels to local file paths. At pipeline run time,
+              the value of a PipelineParam is saved to its corresponding local file. It's
+              one way for outside world to receive outputs of the container.
+          is_exit_handler: Whether it is used as an exit handler.
+          pvolumes: Dictionary for the user to match a path on the op's fs with a
+              V1Volume or it inherited type.
+              E.g {"/my/path": vol, "/mnt": other_op.volumes["/output"]}.
+        """
+
+        super().__init__(name=name, sidecars=sidecars, is_exit_handler=is_exit_handler)
+        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container'] #Copying the BaseOp class variable!
+
+        # convert to list if not a list
+        command = as_list(command)
+        arguments = as_list(arguments)
+
+        # `container` prop in `io.argoproj.workflow.v1alpha1.Template`
+        container_kwargs = container_kwargs or {}
+        self._container = Container(
+            image=image, args=arguments, command=command, **container_kwargs)
+
+        # NOTE for backward compatibility (remove in future?)
+        # proxy old ContainerOp callables to Container
+
+        # attributes to NOT proxy
+        ignore_set = frozenset(['to_dict', 'to_str'])
+
+        # decorator func to proxy a method in `Container` into `ContainerOp`
+        def _proxy(proxy_attr):
+            """Decorator func to proxy to ContainerOp.container"""
+
+            def _decorated(*args, **kwargs):
+                # execute method
+                ret = getattr(self._container, proxy_attr)(*args, **kwargs)
+                if ret == self._container:
+                    return self
+                return ret
+
+            return deprecation_warning(_decorated, proxy_attr, proxy_attr)
+
+        # iter thru container and attach a proxy func to the container method
+        for attr_to_proxy in dir(self._container):
+            func = getattr(self._container, attr_to_proxy)
+            # ignore private methods
+            if hasattr(func, '__call__') and (attr_to_proxy[0] != '_') and (
+                    attr_to_proxy not in ignore_set):
+                # only proxy public callables
+                setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
+
+        # attributes specific to `ContainerOp`
+        self.file_outputs = file_outputs
+        self._metadata = None
+
+        self.outputs = {}
+        if file_outputs:
+            self.outputs = {
+                name: _pipeline_param.PipelineParam(name, op_name=self.name)
+                for name in file_outputs.keys()
+            }
+
+        self.output = None
+        if len(self.outputs) == 1:
+            self.output = list(self.outputs.values())[0]
+
+        self.pvolumes = {}
+        if pvolumes:
+            for mount_path, pvolume in pvolumes.items():
+                if hasattr(pvolume, "dependent_names"): #TODO: Replace with type check
+                    self.dependent_names.extend(pvolume.dependent_names)
+                else:
+                    pvolume = PipelineVolume(volume=pvolume)
+                self.pvolumes[mount_path] = pvolume.after(self)
+                self.add_volume(pvolume)
+                self._container.add_volume_mount(V1VolumeMount(
+                    name=pvolume.name,
+                    mount_path=mount_path
+                ))
+
+        self.pvolume = None
+        if self.pvolumes and len(self.pvolumes) == 1:
+            self.pvolume = list(self.pvolumes.values())[0]
+
+    @property
+    def command(self):
+        return self._container.command
+
+    @command.setter
+    def command(self, value):
+        self._container.command = as_list(value)
+
+    @property
+    def arguments(self):
+        return self._container.args
+
+    @arguments.setter
+    def arguments(self, value):
+        self._container.args = as_list(value)
+
+    @property
+    def container(self):
+        """`Container` object that represents the `container` property in 
+        `io.argoproj.workflow.v1alpha1.Template`. Can be used to update the
+        container configurations. 
+        
+        Example:
+            import kfp.dsl as dsl
+            from kubernetes.client.models import V1EnvVar
+    
+            @dsl.pipeline(name='example_pipeline')
+            def immediate_value_pipeline():
+                op1 = (dsl.ContainerOp(name='example', image='nginx:alpine')
+                          .container
+                            .add_env_variable(V1EnvVar(name='HOST', value='foo.bar'))
+                            .add_env_variable(V1EnvVar(name='PORT', value='80'))
+                            .parent # return the parent `ContainerOp`
+                        )
+        """
+        return self._container
 
     def _set_metadata(self, metadata):
         '''_set_metadata passes the containerop the metadata information
