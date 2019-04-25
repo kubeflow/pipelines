@@ -36,7 +36,7 @@ class TestContainerOp(unittest.TestCase):
       
     self.assertCountEqual([x.name for x in op1.inputs], ['param1', 'param2'])
     self.assertCountEqual(list(op1.outputs.keys()), ['out1'])
-    self.assertCountEqual([x.op_name for x in op1.outputs.values()], ['op1'])
+    self.assertCountEqual([x.op_name for x in op1.outputs.values()], [op1.name])
     self.assertEqual(op1.output.name, 'out1')
     self.assertCountEqual([sidecar.name for sidecar in op1.sidecars], ['sidecar0', 'sidecar1', 'sidecar2'])
     self.assertCountEqual([sidecar.image for sidecar in op1.sidecars], ['image0', 'image1', 'image2'])
