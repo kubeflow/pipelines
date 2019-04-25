@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Watson OpenScale - Monitor quality'
+name: 'Monitor quality - Watson OpenScale'
 description: |
   Enable model quality monitoring on Watson OpenScale.
 metadata:

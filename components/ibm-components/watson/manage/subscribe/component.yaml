@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Watson OpenScale - Subscribe'
+name: 'Subscribe - Watson OpenScale'
 description: |
   Binding deployed models and subscribe them to Watson OpenScale service.
 metadata:
