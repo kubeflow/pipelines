@@ -25,6 +25,8 @@ import { Constants } from './Constants';
 export enum StorageService {
   GCS = 'gcs',
   MINIO = 'minio',
+  S3 = 's3',
+  LOCAL = 'local'
 }
 
 export interface StoragePath {
@@ -252,6 +254,19 @@ export default class WorkflowParser {
         bucket: pathParts[0],
         key: pathParts.slice(1).join('/'),
         source: StorageService.MINIO,
+      };
+    } else if (strPath.startsWith('s3://')) {
+      const pathParts = strPath.substr('s3://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.S3,
+      };
+    } else if (strPath.startsWith('/')) {
+      return {
+        bucket: 'local',
+        key: strPath,
+        source: StorageService.LOCAL,
       };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);

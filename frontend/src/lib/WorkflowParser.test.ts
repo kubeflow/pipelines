@@ -686,6 +686,54 @@ describe('WorkflowParser', () => {
         source: StorageService.MINIO,
       });
     });
+
+    it('handles S3 bucket without key', () => {
+      expect(WorkflowParser.parseStoragePath('s3://testbucket/')).toEqual({
+        bucket: 'testbucket',
+        key: '',
+        source: StorageService.S3,
+      });
+    });
+
+    it('handles S3 bucket and key', () => {
+      expect(WorkflowParser.parseStoragePath('s3://testbucket/testkey')).toEqual({
+        bucket: 'testbucket',
+        key: 'testkey',
+        source: StorageService.S3,
+      });
+    });
+
+    it('handles S3 bucket and multi-part key', () => {
+      expect(WorkflowParser.parseStoragePath('s3://testbucket/test/key/path')).toEqual({
+        bucket: 'testbucket',
+        key: 'test/key/path',
+        source: StorageService.S3,
+      });
+    });
+
+    it('handles local file without directory', () => {
+      expect(WorkflowParser.parseStoragePath('/testbucket')).toEqual({
+        bucket: 'local',
+        key: '/testbucket',
+        source: StorageService.LOCAL,
+      });
+    });
+
+    it('handles local file with directory', () => {
+      expect(WorkflowParser.parseStoragePath('/testbucket/testkey')).toEqual({
+        bucket: 'local',
+        key: '/testbucket/testkey',
+        source: StorageService.LOCAL,
+      });
+    });
+
+    it('handles local file with multi-level directory', () => {
+      expect(WorkflowParser.parseStoragePath('/testbucket/test/key/path')).toEqual({
+        bucket: 'local',
+        key: '/testbucket/test/key/path',
+        source: StorageService.LOCAL,
+      });
+    });
   });
 
   describe('getOutboundNodes', () => {
