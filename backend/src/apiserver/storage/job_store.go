@@ -77,12 +77,12 @@ func (s *JobStore) ListJobs(
 	if err != nil {
 		return errorF(err)
 	}
-	defer rows.Close()
 	jobs, err := s.scanRows(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {

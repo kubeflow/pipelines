@@ -78,12 +78,12 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer rows.Close()
 	pipelines, err := s.scanRows(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
