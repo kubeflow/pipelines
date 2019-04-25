@@ -23,7 +23,7 @@ def mpi_job_op(name, image, command, workers=1, gpus=0, cpu=0, memory=0, env=[],
           rdma=False,
           tensorboard=False,  tensorboard_image=None, 
           metrics=['Train-accuracy:PERCENTAGE'],
-          arenaImage='cheyang/arena_launcher:v0.3',
+          arenaImage='cheyang/arena_launcher:v0.4',
           timeout_hours=240):
     """This function submits MPI Job, it can run Allreduce-style Distributed Training.
 
@@ -74,13 +74,18 @@ def mpi_job_op(name, image, command, workers=1, gpus=0, cpu=0, memory=0, env=[],
                       "--gpus", str(gpus),
                       "--cpu", str(cpu),
                       "--memory", str(memory),
+                      "--step-name", '{{pod.name}}',
+                      "--workflow-name", '{{workflow.name}}',
                       "--workers", str(workers),
                       "--timeout-hours", str(timeout_hours),
                       ] + options + 
                       [
                       "mpijob",
                       "--", str(command)],
-          file_outputs={'train': '/output.txt'}
+          file_outputs={'train': '/output.txt',
+                        'workflow':'/workflow-name.txt',
+                        'step':'/step-name.txt',
+                        'name':'/name.txt'}
     )
     op.set_image_pull_policy('Always')
     return op

@@ -37,7 +37,15 @@ def sample_pipeline(learning_rate='0.01',
     env=["GIT_SYNC_REV=%s" % (commit)],
     gpus=gpus,
     data=data,
-    command="echo %s;python code/tensorflow-sample-code/tfjob/docker/mnist/main.py --max_steps 500 --data_dir /training/dataset/mnist --log_dir /training/output/mnist  --learning_rate %s --dropout %s" % (prepare_data.output, learning_rate, dropout),
+    command='''echo prepare_step_name=%s and prepare_wf_name=%s && \
+    python code/tensorflow-sample-code/tfjob/docker/mnist/main.py --max_steps 500 \
+    --data_dir /training/dataset/mnist \
+    --log_dir /training/output/mnist \
+    --learning_rate %s --dropout %s''' % (
+      prepare_data.outputs['step'], 
+      prepare_data.outputs['workflow'], 
+      learning_rate, 
+      dropout),
     metrics=["Train-accuracy:PERCENTAGE"])
   # 3. export the model
   export_model = arena.standalone_job_op(
@@ -46,7 +54,11 @@ def sample_pipeline(learning_rate='0.01',
     sync_source="https://code.aliyun.com/xiaozhou/tensorflow-sample-code.git",
     env=["GIT_SYNC_REV=%s" % (commit)],
     data=data,
-    command="echo %s;python code/tensorflow-sample-code/tfjob/docker/mnist/export_model.py --model_version=%s --checkpoint_path=/training/output/mnist /training/output/models" % (train.output, model_version))
+    command="echo train_step_name=%s and train_wf_name=%s && \
+    python code/tensorflow-sample-code/tfjob/docker/mnist/export_model.py \
+    --model_version=%s \
+    --checkpoint_path=/training/output/mnist \
+    /training/output/models" % (train.outputs['step'], train.outputs['workflow'], model_version))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
