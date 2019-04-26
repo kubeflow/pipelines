@@ -75,9 +75,6 @@ source "${DIR}/install-argo.sh"
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
--p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
--p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
 -p api-image="${GCR_IMAGE_BASE_DIR}/api" \
 -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
 -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
