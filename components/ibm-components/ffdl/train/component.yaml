@@ -10,11 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Fabric for Deep Learning - Train Model'
+name: 'Train Model - FfDL'
 description: |
   Train Machine Learning and Deep Learning Models remotely using Fabric for Deep Learning
 metadata:
-  labels: {platform: 'Open Source'}
+  labels: {platform: 'OpenSource'}
 inputs:
   - {name: model_def_file_path, description: 'Required. Path for model training code in object storage'}
   - {name: manifest_file_path,  description: 'Required. Path for model manifest definition in object storage'}
