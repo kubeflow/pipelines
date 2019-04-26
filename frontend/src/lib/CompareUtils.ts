@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-import { ApiRunDetail } from '../apis/run';
+import { ApiRunDetail, ApiRun } from '../apis/run';
 import { CompareTableProps } from '../components/CompareTable';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { chain, flatten } from 'lodash';
 import WorkflowParser from './WorkflowParser';
 import { logger } from './Utils';
+import RunUtils from './RunUtils';
+import MetricUtils from './MetricUtils';
 
 export default class CompareUtils {
   /**
@@ -52,6 +54,37 @@ export default class CompareUtils {
           return param ? param.value || '' : '';
         });
     });
+
+    return { rows, xLabels, yLabels };
+  }
+
+  public static getMetricsCompareProps(runs: ApiRun[]): CompareTableProps {
+    const xLabels = runs.map(r => r.name!);
+
+    const metricMetadataMap = RunUtils.runsToMetricMetadataMap(runs);
+
+    const yLabels = Array.from(metricMetadataMap.keys());
+
+    // const yLabels = chain(flatten(workflowObjects
+    //   .map(w => WorkflowParser.getParameters(w))))
+    //   .countBy(p => p.name)                         // count by parameter name
+    //   .map((k, v) => ({ name: v, count: k }))       // convert to counter objects
+    //   .orderBy('count', 'desc')                     // sort on count field, descending
+    //   .map(o => o.name)
+    //   .value();
+
+    const rows =
+      yLabels.map(name =>
+        runs.map(r =>
+          MetricUtils.getMetricDisplayString((r.metrics || []).find(m => m.name === name))
+        )
+      );
+
+    // const rows: string[][] = [[]];
+
+    // const rows = runs.map(r => {
+
+    // });
 
     return { rows, xLabels, yLabels };
   }
