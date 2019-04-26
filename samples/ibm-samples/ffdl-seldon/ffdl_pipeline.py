@@ -27,7 +27,7 @@ def ffdlPipeline(
 ):
     """A pipeline for end to end machine learning workflow."""
     
-    get_configuration = configuration_op(
+    create_secrets = configuration_op(
                    token = GITHUB_TOKEN,
                    url = CONFIG_FILE_URL,
                    name = secret_name

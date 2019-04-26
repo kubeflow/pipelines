@@ -10,11 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Seldon Core - Serve PyTorch Model'
+name: 'Serve PyTorch Model - Seldon Core'
 description: |
   Serve PyTorch Models remotely as web service using Seldon Core
 metadata:
-  labels: {platform: 'Open Source'}
+  labels: {platform: 'OpenSource'}
 inputs:
   - {name: model_id,            description: 'Required. Model training_id from Fabric for Deep Learning'}
   - {name: deployment_name,     description: 'Required. Deployment name for the seldon service'}
