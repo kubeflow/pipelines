@@ -45,7 +45,7 @@ gfile.Copy('tfx/tfx/examples/chicago_taxi_pipeline/taxi_utils.py', 'gs://<my buc
 
 Modify the pipeline configuration file at 
 ```
-tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
+tfx/tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
 ```
 Configure 
 - Set `_input_bucket` to the GCS directory where you've copied taxi_utils.py. I.e. gs://<my bucket>/<path>/
