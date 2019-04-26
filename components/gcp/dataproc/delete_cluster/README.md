@@ -54,7 +54,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 dataproc_delete_cluster_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/d2f5cc92a46012b9927209e2aaccab70961582dc/components/gcp/dataproc/delete_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e8524eefb138725fc06600d1956da0f4dd477178/components/gcp/dataproc/delete_cluster/component.yaml')
 help(dataproc_delete_cluster_op)
 ```
 

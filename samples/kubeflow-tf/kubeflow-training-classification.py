@@ -19,10 +19,10 @@ from kfp import components
 from kfp import dsl
 from kfp import gcp
 
-dataflow_tf_transform_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/dataflow/tft/component.yaml')
-kubeflow_tf_training_op  = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/kubeflow/dnntrainer/component.yaml')
-dataflow_tf_predict_op   = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/dataflow/predict/component.yaml')
-confusion_matrix_op      = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/local/confusion_matrix/component.yaml')
+dataflow_tf_transform_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e8524eefb138725fc06600d1956da0f4dd477178/components/dataflow/tft/component.yaml')
+kubeflow_tf_training_op  = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e8524eefb138725fc06600d1956da0f4dd477178/components/kubeflow/dnntrainer/component.yaml')
+dataflow_tf_predict_op   = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e8524eefb138725fc06600d1956da0f4dd477178/components/dataflow/predict/component.yaml')
+confusion_matrix_op      = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e8524eefb138725fc06600d1956da0f4dd477178/components/local/confusion_matrix/component.yaml')
 
 @dsl.pipeline(
     name='TF training and prediction pipeline',
@@ -68,7 +68,7 @@ def kubeflow_training(output, project,
     ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
     if use_gpu:
-        training.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:e20fad3e161e88226c83437271adb063221459b9',
+        training.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:b0147bdbed9f25212408e0468a475289e80e0406',
         training.set_gpu_limit(1)
 
     prediction = dataflow_tf_predict_op(
