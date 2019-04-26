@@ -32,13 +32,13 @@ git clone https://github.com/tensorflow/tfx
 
 Upload the utility code to your storage bucket. You can modify this code if needed for a different dataset.
 ```
-gsutil cp tfx/examples/chicago_taxi_pipeline/taxi_utils.py gs://my-bucket/<path>/
+gsutil cp tfx/tfx/examples/chicago_taxi_pipeline/taxi_utils.py gs://my-bucket/<path>/
 ```
 
 If gsutil does not work, try `tensorflow.gfile`:
 ```
 from tensorflow import gfile
-gfile.Copy('tfx/examples/chicago_taxi_pipeline/taxi_utils.py', 'gs://<my bucket>/<path>/taxi_utils.py')
+gfile.Copy('tfx/tfx/examples/chicago_taxi_pipeline/taxi_utils.py', 'gs://<my bucket>/<path>/taxi_utils.py')
 ```
 
 ## Configure the TFX Pipeline
@@ -55,7 +55,7 @@ Configure
 
 ## Compile and run the pipeline
 ```
-python tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
+python tfx/tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
 ```
 This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz
 Upload this file to the Pipelines Cluster and crate a run.
