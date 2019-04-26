@@ -31,7 +31,7 @@ def train(args):
     wml_runtime_version = args.runtime_version if args.runtime_version else '3.5'
     wml_run_definition = args.run_definition if args.run_definition else 'python-tensorflow-definition'
     wml_run_name = args.run_name if args.run_name else 'python-tensorflow-run'
-    wml_author_email = args.author_email if args.author_email else 'wzhuang@us.ibm.com'
+    wml_author_email = args.author_email if args.author_email else 'author@ibm.com'
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
