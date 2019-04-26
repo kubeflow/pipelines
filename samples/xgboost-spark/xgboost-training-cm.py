@@ -20,8 +20,8 @@ from kfp import components
 from kfp import dsl
 from kfp import gcp
 
-confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/local/confusion_matrix/component.yaml')
-roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/785d474699cffb7463986b9abc4b1fbe03796cb6/components/local/roc/component.yaml')
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e8524eefb138725fc06600d1956da0f4dd477178/components/local/confusion_matrix/component.yaml')
+roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e8524eefb138725fc06600d1956da0f4dd477178/components/local/roc/component.yaml')
 
 # ! Please do not forget to enable the Dataproc API in your cluster https://console.developers.google.com/apis/api/dataproc.googleapis.com/overview
 
@@ -36,7 +36,7 @@ def dataproc_create_cluster_op(
 ):
     return dsl.ContainerOp(
         name='Dataproc - Create cluster',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:e20fad3e161e88226c83437271adb063221459b9',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:b0147bdbed9f25212408e0468a475289e80e0406',
         arguments=[
             '--project', project,
             '--region', region,
@@ -56,7 +56,7 @@ def dataproc_delete_cluster_op(
 ):
     return dsl.ContainerOp(
         name='Dataproc - Delete cluster',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:e20fad3e161e88226c83437271adb063221459b9',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:b0147bdbed9f25212408e0468a475289e80e0406',
         arguments=[
             '--project', project,
             '--region', region,
@@ -76,7 +76,7 @@ def dataproc_analyze_op(
 ):
     return dsl.ContainerOp(
         name='Dataproc - Analyze',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:e20fad3e161e88226c83437271adb063221459b9',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:b0147bdbed9f25212408e0468a475289e80e0406',
         arguments=[
             '--project', project,
             '--region', region,
@@ -103,7 +103,7 @@ def dataproc_transform_op(
 ):
     return dsl.ContainerOp(
         name='Dataproc - Transform',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:e20fad3e161e88226c83437271adb063221459b9',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:b0147bdbed9f25212408e0468a475289e80e0406',
         arguments=[
             '--project', project,
             '--region', region,
@@ -141,7 +141,7 @@ def dataproc_train_op(
 
     return dsl.ContainerOp(
         name='Dataproc - Train XGBoost model',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:e20fad3e161e88226c83437271adb063221459b9',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:b0147bdbed9f25212408e0468a475289e80e0406',
         arguments=[
             '--project', project,
             '--region', region,
@@ -174,7 +174,7 @@ def dataproc_predict_op(
 ):
     return dsl.ContainerOp(
         name='Dataproc - Predict with XGBoost model',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:e20fad3e161e88226c83437271adb063221459b9',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:b0147bdbed9f25212408e0468a475289e80e0406',
         arguments=[
             '--project', project,
             '--region', region,
