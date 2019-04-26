@@ -1,6 +1,6 @@
 # TFX Pipeline Example
 
-This sample walks through running [TFX](https://github.com/tensorflow/tfx) [Taxi Application Example](https://github.com/tensorflow/tfx/tree/master/examples/chicago_taxi_pipeline) on Kubeflow Pipelines cluster. 
+This sample walks through running [TFX](https://github.com/tensorflow/tfx) [Taxi Application Example](https://github.com/tensorflow/tfx/tree/master/tfx/examples/chicago_taxi_pipeline) on Kubeflow Pipelines cluster. 
 
 ## Overview
 
