@@ -14,7 +14,7 @@ name: 'Train Model - Watson Machine Learning'
 description: |
   Train Machine Learning and Deep Learning Models in the Cloud using Watson Machine Learning
 metadata:
-  labels: {platform: 'IBM-Watson-Machine-Learning'}
+  annotations: {platform: 'IBM Watson Machine Learning'}
 inputs:
   - {name: train_code,        description: 'Required. Code for training ML/DL models'}
   - {name: execution_command, description: 'Required. Execution command to start the model training.'}

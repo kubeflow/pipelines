@@ -66,15 +66,15 @@ def kfp_wml_pipeline(
 
     # op3 - this operation stores the model trained above
     wml_store = store_op(
-                   run_uid=wml_train.output,
-                   model_name=model_name
+                   wml_train.output,
+                   model_name
                   ).apply(params.use_ai_pipeline_params(secret_name))
 
     # op4 - this operation deploys the model to a web service and run scoring with the payload in the cloud object store
     wml_deploy = deploy_op(
-                  model_uid=wml_store.output,
-                  model_name=model_name,
-                  scoring_payload=scoring_payload
+                  wml_store.output,
+                  model_name,
+                  scoring_payload
                  ).apply(params.use_ai_pipeline_params(secret_name))
 
 if __name__ == '__main__':
