@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Create secret - Kubernetes Cluster'
+name: 'Create Secret - Kubernetes Cluster'
 description: |
   Create secret to store pipeline credentials on Kubernetes Cluster
 inputs:
