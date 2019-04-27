@@ -30,7 +30,7 @@
 VERSION="$1"
 
 if [ -z "$VERSION" ]; then
-    echo "Usage: build_kfp_server_api_package.sh <version>"
+    echo "Usage: build_kfp_server_api_python_package.sh <version>"
     exit 1
 fi
 
@@ -51,7 +51,7 @@ jq -s '
     reduce .[] as $item ({}; . * $item) |
     .info.title = "KF Pipelines API" |
     .info.description = "Generated python client for the KF Pipelines server API"
-' ../../backend/api/swagger/{run,job,pipeline,experiment,pipeline.upload}.swagger.json > "$swagger_file"
+' ./swagger/{run,job,pipeline,experiment,pipeline.upload}.swagger.json > "$swagger_file"
 
 echo "Generating python code from swagger json in $DIR."
 java -jar "$codegen_file" generate -l python -i "$swagger_file" -o "$DIR" -c <(echo '{
