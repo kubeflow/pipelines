@@ -22,6 +22,8 @@ import zipfile
 import yaml
 from datetime import datetime
 
+import kfp_server_api
+
 from .compiler import compiler
 from .compiler import _k8s_helper
 
@@ -45,11 +47,6 @@ class Client(object):
           proxy connection, then set it to something like "127.0.0.1:8080/pipeline".
       client_id: The client ID used by Identity-Aware Proxy.
     """
-
-    try:
-      import kfp_server_api
-    except ImportError:
-      raise Exception('This module requires the kfp-server-api package')
 
     self._host = host
 
@@ -99,7 +96,6 @@ class Client(object):
     Returns:
       An Experiment object. Most important field is id.
     """
-    import kfp_server_api
 
     experiment = None
     try:
@@ -202,7 +198,6 @@ class Client(object):
     Returns:
       A run object. Most important field is id.
     """
-    import kfp_server_api
 
     pipeline_json_string = None
     if pipeline_package_path:
@@ -240,7 +235,6 @@ class Client(object):
       A response object including a list of experiments and next page token.
     """
     if experiment_id is not None:
-      import kfp_server_api
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
     else:
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
