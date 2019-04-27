@@ -17,7 +17,15 @@
 
 # The scripts creates a the KF Pipelines API python package.
 # Requirements: jq and Java
+# To install the prerequisites run the following:
+#
+# # Debian / Ubuntu:
 # sudo apt-get install --no-install-recommends -y -q default-jdk jq
+#
+# # OS X
+# brew tap caskroom/cask
+# brew cask install caskroom/versions/java8
+# brew install jq
 
 VERSION="$1"
 
