@@ -506,7 +506,40 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
 }
 
-// setDefaultExperimentIfNotPresent If the provided run does not include a reference to a containing
+// Used to initialize the Experiment database with a default to be used for runs
+func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
+	// First check that we don't already have a default experiment ID in the DB.
+	defaultExperimentId, err := r.GetDefaultExperimentId()
+	if err != nil {
+		return "", fmt.Errorf("Failed to check if default experiment exists. Err: %v", err)
+	}
+	// If default experiment ID is already present, don't fail, simply return.
+	if defaultExperimentId != "" {
+		glog.Info("Default experiment already exists! ID: %v", defaultExperimentId)
+		return "", nil
+	}
+
+	// Create default experiment
+	defaultExperiment := &model.Experiment{
+		Name:        "Default",
+		Description: "All runs created without specifying an experiment will be grouped here.",
+	}
+	experiment, err := r.CreateExperiment(defaultExperiment)
+	if err != nil {
+		return "", fmt.Errorf("Failed to create default experiment. Err: %v", err)
+	}
+
+	// Set default experiment ID in the DB
+	err = r.SetDefaultExperimentId(experiment.UUID)
+	if err != nil {
+		return "", fmt.Errorf("Failed to set default experiment ID. Err: %v", err)
+	}
+
+	glog.Info("Default experiment is set. ID is: %v", experiment.UUID)
+	return experiment.UUID, nil
+}
+
+// setExperimentIfNotPresent If the provided run does not include a reference to a containing
 // experiment, then we fetch the default experiment's ID and create a reference to that.
 func (r *ResourceManager) setExperimentIfNotPresent(apiRun *api.Run) error {
 	// First check if there is already a referenced experiment
@@ -522,7 +555,11 @@ func (r *ResourceManager) setExperimentIfNotPresent(apiRun *api.Run) error {
 		return util.NewInternalServerError(err, "Failed to retrieve default experiment")
 	}
 	if defaultExperimentId == "" {
-		return util.NewInternalServerError(errors.New("Default experiment ID was empty"), "Default experiment was not set")
+		glog.Info("No default experiment was found. Creating a new default experiment")
+		defaultExperimentId, err = r.CreateDefaultExperiment()
+		if defaultExperimentId == "" || err != nil {
+			return util.NewInternalServerError(err, "Failed to create new default experiment")
+		}
 	}
 	defaultExperimentRef := &api.ResourceReference{
 		Key: &api.ResourceKey{

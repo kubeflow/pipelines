@@ -315,6 +315,36 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
 }
 
+func TestCreateRun_NoExperiment(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store)
+	apiRun := &api.Run{
+		Name: "No experiment",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		// No experiment
+		ResourceReferences: []*api.ResourceReference{},
+	}
+	runDetail, err := manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+	expectedRunDetail := []*model.ResourceReference{{
+		ResourceUUID: "workflow1",
+		ResourceType: common.Run,
+		// Experiment is now set
+		ReferenceUUID: DefaultFakeUUID,
+		ReferenceType: common.Experiment,
+		Relationship:  common.Owner,
+	}}
+	assert.Equal(t, expectedRunDetail, runDetail.Run.ResourceReferences, "The CreateRun return has unexpected value.")
+	runDetail, err = manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRunDetail, runDetail.Run.ResourceReferences, "CreateRun stored invalid data in database")
+}
+
 func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
@@ -444,6 +474,69 @@ func TestDeleteRun_DbFailure(t *testing.T) {
 
 	store.DB().Close()
 	err := manager.DeleteRun(runDetail.UUID)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestDeleteExperiment(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	err := manager.DeleteExperiment(experiment.UUID)
+	assert.Nil(t, err)
+
+	_, err = manager.GetExperiment(experiment.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteExperiment_ClearsDefaultExperiment(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	// Set default experiment ID. This is not normally done manually
+	err := manager.SetDefaultExperimentId(experiment.UUID)
+	assert.Nil(t, err)
+	// Verify that default experiment ID is set
+	defaultExperimentId, err := manager.GetDefaultExperimentId()
+	assert.Nil(t, err)
+	assert.Equal(t, experiment.UUID, defaultExperimentId)
+
+	err = manager.DeleteExperiment(experiment.UUID)
+	assert.Nil(t, err)
+
+	_, err = manager.GetExperiment(experiment.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+
+	// Verify that default experiment ID has been cleared
+	defaultExperimentId, err = manager.GetDefaultExperimentId()
+	assert.Nil(t, err)
+	assert.Equal(t, "", defaultExperimentId)
+}
+
+func TestDeleteExperiment_ExperimentNotExist(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	err := manager.DeleteExperiment("1")
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteExperiment_CrdFailure(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+
+	manager.workflowClient = &FakeBadWorkflowClient{}
+	err := manager.DeleteExperiment(experiment.UUID)
+	assert.Nil(t, err)
+}
+
+func TestDeleteExperiment_DbFailure(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+
+	store.DB().Close()
+	err := manager.DeleteExperiment(experiment.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
