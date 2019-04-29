@@ -20,7 +20,7 @@ TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
 TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
 
 # Install ksonnet
-KS_VERSION="0.13.0"
+KS_VERSION="0.13.1"
 
 curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
 tar -xzf ks_${KS_VERSION}_linux_amd64.tar.gz
