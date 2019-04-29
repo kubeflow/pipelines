@@ -20,16 +20,16 @@ import logging
 
 
 def estimator_op(name, image, command, 
-                      chief_cpu, chief_memory, chief_port,
-                      workers, worker_image, worker_cpu, worker_memory,
-                      parameter_servers, ps_image, ps_cpu, ps_memory, ps_port, 
+                      chief_cpu_limit, chief_memory_limit, chief_port,
+                      workers, worker_image, worker_cpu_limit, worker_memory_limit,
+                      parameter_servers, ps_image, ps_cpu_limit, ps_memory_limit, ps_port, 
                       gpus, rdma, 
                       tensorboard, 
                       worker_port, annotations=[],
-                      evaluator=False, evaluator_cpu=0, evaluator_memory=0, 
+                      evaluator=False, evaluator_cpu_limit=0, evaluator_memory_limit=0, 
                       env=[], data=[], sync_source=None,
                       metrics=['Train-accuracy:PERCENTAGE'],
-                      arena_image='cheyang/arena_launcher:v0.3',
+                      arena_image='cheyang/arena_launcher:v0.5',
                       timeout_hours=240):
 
     """This function submits Distributed TFJob in Estimator mode.
@@ -41,11 +41,11 @@ def estimator_op(name, image, command,
             command: the command to run
           """
     return distributed_tf_op(name=name, image=image, command=command, envs=envs, data=data, sync_source=sync_source,
-                      workers=workers, worker_image=worker_image, worker_cpu=worker_cpu, worker_memory=worker_memory,
-                      parameter_servers=parameter_servers, ps_image=ps_image, ps_cpu=ps_cpu, ps_memory=ps_memory,
+                      workers=workers, worker_image=worker_image, worker_cpu_limit=worker_cpu_limit, worker_memory_limit=worker_memory,
+                      parameter_servers=parameter_servers, ps_image=ps_image, ps_cpu_limit=ps_cpu_limit, ps_memory_limit=ps_memory_limit,
                       gpus=gpus, rdma=rdma,
                       chief=True, 
-                      chief_cpu=chief_cpu,
+                      chief_cpu_limit=chief_cpu_limit,
                       worker_port=worker_port,
                       ps_port=ps_port,
                       tensorboard=tensorboard, 
@@ -56,13 +56,13 @@ def estimator_op(name, image, command,
 # def DistributeTFOp(name, image, gpus: int, ):
 
 def parameter_servers_op(name, image, command, env, data, sync_source, annotations,
-                      workers, worker_image, worker_cpu, worker_memory,
-                      parameter_servers, ps_image, ps_cpu, ps_memory,
+                      workers, worker_image, worker_cpu_limit, worker_memory,
+                      parameter_servers, ps_image, ps_cpu_limit, ps_memory_limit,
                       gpus, rdma, 
                       tensorboard, 
                       worker_port, ps_port, 
                       metrics=['Train-accuracy:PERCENTAGE'],
-                      arena_image='cheyang/arena_launcher:v0.4',
+                      arena_image='cheyang/arena_launcher:v0.5',
                       timeout_hours=240):
 
     """This function submits Distributed TFJob in Parameter Servers mode.
@@ -74,8 +74,8 @@ def parameter_servers_op(name, image, command, env, data, sync_source, annotatio
             command: the command to run
           """
     return distributed_tf_op(name=name, image=image, command=command, envs=envs, data=data, sync_source=sync_source,
-                      workers=workers, worker_image=worker_image, worker_cpu=worker_cpu, worker_memory=worker_memory,
-                      parameter_servers=parameter_servers, ps_image=ps_image, ps_cpu=ps_cpu, ps_memory=ps_memory,
+                      workers=workers, worker_image=worker_image, worker_cpu_limit=worker_cpu_limit, worker_memory_limit=worker_memory,
+                      parameter_servers=parameter_servers, ps_image=ps_image, ps_cpu_limit=ps_cpu_limit, ps_memory_limit=ps_memory_limit,
                       gpus=gpus, rdma=rdma, 
                       worker_port=worker_port,
                       ps_port=ps_port,
@@ -87,17 +87,17 @@ def parameter_servers_op(name, image, command, env, data, sync_source, annotatio
 
 
 def distributed_tf_op(name, image, command, env=[], data=[], sync_source=None,
-                      chief=False, chief_cpu=0, chief_memory=0, 
-                      workers=0, worker_image=None, worker_cpu=0, worker_memory=0,
-                      parameter_servers=0, ps_image=None, ps_cpu=0, ps_memory=0,
-                      evaluator=False, evaluator_cpu=0, evaluator_memory=0, 
+                      chief=False, chief_cpu_limit=0, chief_memory_limit=0, 
+                      workers=0, worker_image=None, worker_cpu_limit=0, worker_memory_limit=0,
+                      parameter_servers=0, ps_image=None, ps_cpu_limit=0, ps_memory_limit=0,
+                      evaluator=False, evaluator_cpu_limit=0, evaluator_memory_limit=0, 
                       gpus=0, rdma=False, 
                       chief_port=22222,
                       worker_port=22222,
                       ps_port=22224,
                       tensorboard=False, 
                       metrics=['Train-accuracy:PERCENTAGE'],
-                      arena_image='cheyang/arena_launcher:v0.3',
+                      arena_image='cheyang/arena_launcher:v0.5',
                       timeout_hours=240):
           """This function submits Distributed TFJob in Distributed mode.
 
@@ -118,8 +118,8 @@ def distributed_tf_op(name, image, command, env=[], data=[], sync_source=None,
                       "--output-data", output_data,
                       "--image", image,
                       "--gpus", gpus,
-                      "--cpu", cpu,
-                      "--memory", memory,
+                      "--worker-cpu", worker_cpu_limit,
+                      "--worker-memory", worker_memory_limit,
                       "--timeout-hours", timeout_hours,
                       "--metric-name", metric_name,
                       "--metric-unit", metric_unit,
