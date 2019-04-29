@@ -37,6 +37,7 @@ spec:
       artifacts:
       - name: mlpipeline-ui-metadata
         path: /mlpipeline-ui-metadata.json
+        optional: true
         s3:
           accessKeySecret:
             key: accesskey
@@ -50,6 +51,7 @@ spec:
             name: mlpipeline-minio-artifact
       - name: mlpipeline-metrics
         path: /mlpipeline-metrics.json
+        optional: true
         s3:
           accessKeySecret:
             key: accesskey
@@ -80,6 +82,7 @@ spec:
       artifacts:
       - name: mlpipeline-ui-metadata
         path: /mlpipeline-ui-metadata.json
+        optional: true
         s3:
           accessKeySecret:
             key: accesskey
@@ -93,6 +96,7 @@ spec:
             name: mlpipeline-minio-artifact
       - name: mlpipeline-metrics
         path: /mlpipeline-metrics.json
+        optional: true
         s3:
           accessKeySecret:
             key: accesskey
