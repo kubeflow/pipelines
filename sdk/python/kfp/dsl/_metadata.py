@@ -152,3 +152,79 @@ def _annotation_to_typemeta(annotation):
   else:
     return TypeMeta()
   return arg_type
+
+
+def _extract_component_metadata(func):
+  '''Creates component metadata structure instance based on the function signature.'''
+
+  import inspect
+  fullargspec = inspect.getfullargspec(func)
+  annotations = fullargspec.annotations
+
+  # defaults
+  arg_defaults = {}
+  if fullargspec.defaults:
+    for arg, default in zip(reversed(fullargspec.args), reversed(fullargspec.defaults)):
+      arg_defaults[arg] = default
+
+  # Inputs
+  inputs = []
+  for arg in fullargspec.args:
+    arg_type = TypeMeta()
+    arg_default = arg_defaults[arg] if arg in arg_defaults else None
+    if arg in annotations:
+      arg_type = _annotation_to_typemeta(annotations[arg])
+    inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
+  # Outputs
+  outputs = []
+  if 'return' in annotations:
+    for output in annotations['return']:
+      arg_type = _annotation_to_typemeta(annotations['return'][output])
+      outputs.append(ParameterMeta(name=output, description='', param_type=arg_type))
+
+  #TODO: add descriptions to the metadata
+  #docstring parser:
+  #  https://github.com/rr-/docstring_parser
+  #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
+
+  # Construct the ComponentMeta
+  return ComponentMeta(
+    name=func.__name__,
+    description='',
+    inputs=inputs,
+    outputs=outputs,
+  )
+
+
+def _extract_pipeline_metadata(func):
+  '''Creates pipeline metadata structure instance based on the function signature.'''
+
+  import inspect
+  fullargspec = inspect.getfullargspec(func)
+  args = fullargspec.args
+  annotations = fullargspec.annotations
+
+  # defaults
+  arg_defaults = {}
+  if fullargspec.defaults:
+    for arg, default in zip(reversed(fullargspec.args), reversed(fullargspec.defaults)):
+      arg_defaults[arg] = default
+
+  # Construct the PipelineMeta
+  pipeline_meta = PipelineMeta(
+    name=getattr(func, '_pipeline_name', func.__name__),
+    description=getattr(func, '_pipeline_description', func.__doc__)
+  )
+  # Inputs
+  for arg in args:
+    arg_type = TypeMeta()
+    arg_default = arg_defaults[arg] if arg in arg_defaults else None
+    if arg in annotations:
+      arg_type = _annotation_to_typemeta(annotations[arg])
+    pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
+
+  #TODO: add descriptions to the metadata
+  #docstring parser:
+  #  https://github.com/rr-/docstring_parser
+  #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
+  return pipeline_meta

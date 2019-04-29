@@ -22,9 +22,18 @@ exports[`AllRunsList renders all runs 1`] = `
           Object {
             "action": [Function],
             "icon": [Function],
+            "id": "createNewRunBtn",
+            "outlined": true,
+            "primary": true,
+            "title": "Create run",
+            "tooltip": "Create a new run",
+          },
+          Object {
+            "action": [Function],
+            "icon": [Function],
             "id": "newExperimentBtn",
             "outlined": true,
-            "title": "Create an experiment",
+            "title": "Create experiment",
             "tooltip": "Create a new experiment",
           },
           Object {

@@ -24,7 +24,7 @@ gcloud config set core/project ${PROJECT}
 #Uploading the source code to GCS:
 local_code_archive_file=$(mktemp)
 date_string=$(TZ=PST8PDT date +%Y-%m-%d_%H-%M-%S_%Z)
-code_archive_prefix="gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/source_code"
+code_archive_prefix="${TEST_RESULTS_GCS_DIR}/source_code"
 remote_code_archive_uri="${code_archive_prefix}_${PULL_BASE_SHA}_${date_string}.tar.gz"
 
 tar -czf "$local_code_archive_file" .

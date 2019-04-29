@@ -7,7 +7,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-  "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/go-cmp/cmp"
@@ -41,6 +41,17 @@ func (f *fakeListable) APIToModelFieldMap() map[string]string {
 
 func TestNextPageToken_ValidTokens(t *testing.T) {
 	l := &fakeListable{PrimaryKey: "uuid123", FakeName: "Fake", CreatedTimestamp: 1234}
+
+	protoFilter := &api.Filter{Predicates: []*api.Predicate{
+		&api.Predicate{
+			Key:   "name",
+			Op:    api.Predicate_EQUALS,
+			Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+		}}}
+	testFilter, err := filter.New(protoFilter)
+	if err != nil {
+		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
+	}
 
 	tests := []struct {
 		inOpts *Options
@@ -82,12 +93,29 @@ func TestNextPageToken_ValidTokens(t *testing.T) {
 				IsDesc:           false,
 			},
 		},
+		{
+			inOpts: &Options{
+				PageSize: 10,
+				token: &token{
+					SortByFieldName: "FakeName", IsDesc: false,
+					Filter: testFilter,
+				},
+			},
+			want: &token{
+				SortByFieldName:  "FakeName",
+				SortByFieldValue: "Fake",
+				KeyFieldName:     "PrimaryKey",
+				KeyFieldValue:    "uuid123",
+				IsDesc:           false,
+				Filter:           testFilter,
+			},
+		},
 	}
 
 	for _, test := range tests {
 		got, err := test.inOpts.nextPageToken(l)
 
-		if !cmp.Equal(got, test.want) || err != nil {
+		if !cmp.Equal(got, test.want, cmp.AllowUnexported(filter.Filter{})) || err != nil {
 			t.Errorf("nextPageToken(%+v, %+v) =\nGot: %+v, %+v\nWant: %+v, <nil>\nDiff:\n%s",
 				test.inOpts, l, got, err, test.want, cmp.Diff(test.want, got))
 		}
@@ -484,6 +512,17 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 }
 
 func TestTokenSerialization(t *testing.T) {
+	protoFilter := &api.Filter{Predicates: []*api.Predicate{
+		&api.Predicate{
+			Key:   "name",
+			Op:    api.Predicate_EQUALS,
+			Value: &api.Predicate_StringValue{StringValue: "SomeName"},
+		}}}
+	testFilter, err := filter.New(protoFilter)
+	if err != nil {
+		t.Fatalf("failed to parse filter proto %+v: %v", protoFilter, err)
+	}
+
 	tests := []struct {
 		in   *token
 		want *token
@@ -518,6 +557,25 @@ func TestTokenSerialization(t *testing.T) {
 				KeyFieldValue:    float64(200),
 				IsDesc:           true},
 		},
+		// has a filter.
+		{
+			in: &token{
+				SortByFieldName:  "SortField",
+				SortByFieldValue: 100,
+				KeyFieldName:     "KeyField",
+				KeyFieldValue:    200,
+				IsDesc:           true,
+				Filter:           testFilter,
+			},
+			want: &token{
+				SortByFieldName:  "SortField",
+				SortByFieldValue: float64(100),
+				KeyFieldName:     "KeyField",
+				KeyFieldValue:    float64(200),
+				IsDesc:           true,
+				Filter:           testFilter,
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -530,9 +588,9 @@ func TestTokenSerialization(t *testing.T) {
 
 		got := &token{}
 		got.unmarshal(s)
-		if !cmp.Equal(got, test.want) {
+		if !cmp.Equal(got, test.want, cmp.AllowUnexported(filter.Filter{})) {
 			t.Errorf("token.unmarshal(%q) =\nGot: %+v\nWant: %+v\nDiff:\n%s",
-				s, got, test.want, cmp.Diff(test.want, got))
+				s, got, test.want, cmp.Diff(test.want, got, cmp.AllowUnexported(filter.Filter{})))
 		}
 	}
 }
@@ -664,7 +722,7 @@ func TestFilterOnResourceReference(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		sqlBuilder, gotErr := FilterOnResourceReference(test.in.table, test.in.resourceType, test.in.count, test.in.filter)
+		sqlBuilder, gotErr := FilterOnResourceReference(test.in.table, []string{"*"}, test.in.resourceType, test.in.count, test.in.filter)
 		gotSql, _, err := sqlBuilder.ToSql()
 		assert.Nil(t, err)
 

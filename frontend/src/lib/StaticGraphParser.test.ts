@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,6 +71,52 @@ describe('StaticGraphParser', () => {
           { container: {}, name: 'heads' },
           // Container that is run if result is 'tails'
           { container: {}, name: 'tails' },
+        ]
+      }
+    };
+  }
+
+  function newResourceCreatingWorkflow(): any {
+    return {
+      spec: {
+        entrypoint: 'template-1',
+        templates: [
+          {
+            dag: {
+              tasks: [
+                { name: 'create-pvc-task', template: 'create-pvc' },
+                {
+                  dependencies: ['create-pvc-task'],
+                  name: 'container-1',
+                  template: 'container-1',
+                },
+                {
+                  dependencies: ['container-1'],
+                  name: 'create-snapshot-task',
+                  template: 'create-snapshot',
+                },
+              ]
+            },
+            name: 'template-1',
+          },
+          {
+            name: 'create-pvc',
+            resource: {
+              action: 'create',
+              manifest: 'apiVersion: v1\nkind: PersistentVolumeClaim',
+            },
+          },
+          {
+            container: {},
+            name: 'container-1',
+          },
+          {
+            name: 'create-snapshot',
+            resource: {
+              action: 'create',
+              manifest: 'apiVersion: snapshot.storage.k8s.io/v1alpha1\nkind: VolumeSnapshot',
+            },
+          },
         ]
       }
     };
@@ -194,6 +240,18 @@ describe('StaticGraphParser', () => {
           expect(node.info.condition).toEqual('{{inputs.parameters.flip-output}} == heads');
         } else if (nodeName.startsWith('condition-2')) {
           expect(node.info.condition).toEqual('{{inputs.parameters.flip-output}} == tails');
+        }
+      });
+    });
+
+    it('includes the resource\'s action and manifest itself in the info of resource nodes', () => {
+      const g = createGraph(newResourceCreatingWorkflow());
+      g.nodes().forEach((nodeName) => {
+        const node = g.node(nodeName);
+        if (nodeName.startsWith('create-pvc')) {
+          expect(node.info.resource).toEqual([['create', 'apiVersion: v1\nkind: PersistentVolumeClaim']]);
+        } else if (nodeName.startsWith('create-snapshot')) {
+          expect(node.info.resource).toEqual([['create', 'apiVersion: snapshot.storage.k8s.io\nkind: VolumeSnapshot']]);
         }
       });
     });
@@ -392,12 +450,13 @@ describe('StaticGraphParser', () => {
       expect(nodeInfo).toEqual(defaultSelectedNodeInfo);
     });
 
-    it('returns nodeInfo with empty values for args, command, and/or image if container does not have them', () => {
+    it('returns nodeInfo of a container with empty values for args, command, image and/or volumeMounts if container does not have them', () => {
       const template = {
         container: {
           // No args
           // No command
           // No image
+          // No volumeMounts
         },
         dag: [],
         name: 'template-1',
@@ -407,6 +466,7 @@ describe('StaticGraphParser', () => {
       expect(nodeInfo.args).toEqual([]);
       expect(nodeInfo.command).toEqual([]);
       expect(nodeInfo.image).toEqual('');
+      expect(nodeInfo.volumeMounts).toEqual([]);
     });
 
 
@@ -449,7 +509,48 @@ describe('StaticGraphParser', () => {
       expect(nodeInfo.image).toEqual('some-image');
     });
 
-    it('returns nodeInfo with empty values if template does not have inputs and/or outputs', () => {
+    it('returns nodeInfo containing container volumeMounts', () => {
+      const template = {
+        container: {
+          volumeMounts: [{'mountPath': '/some/path', 'name': 'some-vol'}]
+        },
+        dag: [],
+        name: 'template-1',
+      } as any;
+      const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
+      expect(nodeInfo.nodeType).toEqual('container');
+      expect(nodeInfo.volumeMounts).toEqual([['/some/path', 'some-vol']]);
+    });
+
+    it('returns nodeInfo of a resource with empty values for action and manifest', () => {
+      const template = {
+        dag: [],
+        name: 'template-1',
+        resource: {
+          // No action
+          // No manifest
+        },
+      } as any;
+      const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
+      expect(nodeInfo.nodeType).toEqual('resource');
+      expect(nodeInfo.resource).toEqual([[]]);
+    });
+
+    it('returns nodeInfo containing resource action and manifest', () => {
+      const template = {
+        dag: [],
+        name: 'template-1',
+        resource: {
+          action: 'create',
+          manifest: 'manifest'
+        },
+      } as any;
+      const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
+      expect(nodeInfo.nodeType).toEqual('resource');
+      expect(nodeInfo.resource).toEqual([['create', 'manifest']]);
+    });
+
+    it('returns nodeInfo of a container with empty values if template does not have inputs and/or outputs', () => {
       const template = {
         container: {},
         dag: [],
@@ -463,7 +564,7 @@ describe('StaticGraphParser', () => {
       expect(nodeInfo.outputs).toEqual([[]]);
     });
 
-    it('returns nodeInfo containing template inputs params as list of name/value tuples', () => {
+    it('returns nodeInfo of a container containing template inputs params as list of name/value tuples', () => {
       const template = {
         container: {},
         dag: [],
@@ -477,7 +578,7 @@ describe('StaticGraphParser', () => {
       expect(nodeInfo.inputs).toEqual([['param1', 'val1'], ['param2', 'val2']]);
     });
 
-    it('returns empty strings for inputs with no specified value', () => {
+    it('returns nodeInfo of a container with empty strings for inputs with no specified value', () => {
       const template = {
         container: {},
         dag: [],
@@ -516,7 +617,7 @@ describe('StaticGraphParser', () => {
       ]);
     });
 
-    it('returns empty strings for outputs with no specified value', () => {
+    it('returns nodeInfo of a container with empty strings for outputs with no specified value', () => {
       const template = {
         container: {},
         name: 'template-1',
@@ -529,6 +630,89 @@ describe('StaticGraphParser', () => {
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
       expect(nodeInfo.nodeType).toEqual('container');
+      expect(nodeInfo.outputs).toEqual([['param1', ''], ['param2', '']]);
+    });
+
+    it('returns nodeInfo of a resource with empty values if template does not have inputs and/or outputs', () => {
+      const template = {
+        dag: [],
+        // No inputs
+        // No outputs
+        name: 'template-1',
+        resource: {},
+      } as any;
+      const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
+      expect(nodeInfo.nodeType).toEqual('resource');
+      expect(nodeInfo.inputs).toEqual([[]]);
+      expect(nodeInfo.outputs).toEqual([[]]);
+    });
+
+    it('returns nodeInfo of a resource containing template inputs params as list of name/value tuples', () => {
+      const template = {
+        dag: [],
+        inputs: {
+          parameters: [{ name: 'param1', value: 'val1' }, { name: 'param2', value: 'val2' }]
+        },
+        name: 'template-1',
+        resource: {},
+      } as any;
+      const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
+      expect(nodeInfo.nodeType).toEqual('resource');
+      expect(nodeInfo.inputs).toEqual([['param1', 'val1'], ['param2', 'val2']]);
+    });
+
+    it('returns nodeInfo of a resource with empty strings for inputs with no specified value', () => {
+      const template = {
+        dag: [],
+        inputs: {
+          parameters: [{ name: 'param1' }, { name: 'param2' }]
+        },
+        name: 'template-1',
+        resource: {},
+      } as any;
+      const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
+      expect(nodeInfo.nodeType).toEqual('resource');
+      expect(nodeInfo.inputs).toEqual([['param1', ''], ['param2', '']]);
+    });
+
+    it('returns nodeInfo containing resource outputs as list of name/value tuples, pulling from valueFrom if necessary', () => {
+      const template = {
+        name: 'template-1',
+        outputs: {
+          parameters: [
+            { name: 'param1', value: 'val1' },
+            { name: 'param2', valueFrom: { jsonPath: 'jsonPath' } },
+            { name: 'param3', valueFrom: { path: 'path' } },
+            { name: 'param4', valueFrom: { parameter: 'parameterReference' } },
+            { name: 'param5', valueFrom: { jqFilter: 'jqFilter' } },
+          ],
+        },
+        resource: {},
+      } as any;
+      const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
+      expect(nodeInfo.nodeType).toEqual('resource');
+      expect(nodeInfo.outputs).toEqual([
+        ['param1', 'val1'],
+        ['param2', 'jsonPath'],
+        ['param3', 'path'],
+        ['param4', 'parameterReference'],
+        ['param5', 'jqFilter'],
+      ]);
+    });
+
+    it('returns nodeInfo of a resource with empty strings for outputs with no specified value', () => {
+      const template = {
+        name: 'template-1',
+        outputs: {
+          parameters: [
+            { name: 'param1' },
+            { name: 'param2' },
+          ],
+        },
+        resource: {},
+      } as any;
+      const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
+      expect(nodeInfo.nodeType).toEqual('resource');
       expect(nodeInfo.outputs).toEqual([['param1', ''], ['param2', '']]);
     });
 

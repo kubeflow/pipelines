@@ -43,6 +43,7 @@ class AllRunsList extends Page<{}, AllRunsListState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: [
+        buttons.newRun(),
         buttons.newExperiment(),
         buttons.compareRuns(() => this.state.selectedIds),
         buttons.cloneRun(() => this.state.selectedIds, false),
@@ -76,12 +77,14 @@ class AllRunsList extends Page<{}, AllRunsListState> {
 
   private _selectionChanged(selectedIds: string[]): void {
     const toolbarActions = [...this.props.toolbarProps.actions];
+    // TODO: keeping track of indices in the toolbarActions array is not ideal. This should be
+    // refactored so that individual buttons can be referenced with something other than indices.
     // Compare runs button
-    toolbarActions[1].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
+    toolbarActions[2].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
     // Clone run button
-    toolbarActions[2].disabled = selectedIds.length !== 1;
+    toolbarActions[3].disabled = selectedIds.length !== 1;
     // Archive run button
-    toolbarActions[3].disabled = !selectedIds.length;
+    toolbarActions[4].disabled = !selectedIds.length;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
   }

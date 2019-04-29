@@ -16,7 +16,7 @@ import kfp.dsl as dsl
 
 def kubeflow_studyjob_launcher_op(name, namespace, optimizationtype, objectivevaluename, optimizationgoal, requestcount, metricsnames,
                                   parameterconfigs, nasConfig, workertemplatepath, mcollectortemplatepath, suggestionspec,
-                                  studyjob_timeout_minutes, output_file='/output.txt', step_name='StudyJob-Launcher'):
+                                  studyjob_timeout_minutes, delete=True, output_file='/output.txt', step_name='StudyJob-Launcher'):
     return dsl.ContainerOp(
         name = step_name,
         image = 'liuhougangxa/ml-pipeline-kubeflow-studyjob:latest',
@@ -34,6 +34,7 @@ def kubeflow_studyjob_launcher_op(name, namespace, optimizationtype, objectiveva
             "--mcollectortemplatepath", mcollectortemplatepath,
             "--suggestionspec", suggestionspec,
             "--outputfile", output_file,
+            "--deleteAfterDone", delete,
             '--studyjobtimeoutminutes', studyjob_timeout_minutes,
         ],
         file_outputs = {'hyperparameter': output_file}

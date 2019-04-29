@@ -6,19 +6,19 @@ description: |
   * infer a schema,
   * detect data anomalies.
 inputs:
-- {name: Inference data,    type: GCPPath,  description: GCS path of the CSV file from which to infer the schema.} # type: {GCSPath: {data_type: CSV}}
-- {name: Validation data,   type: GCPPath,  description: GCS path of the CSV file whose contents should be validated.} # type: {GCSPath: {data_type: CSV}}
-- {name: Column names,      type: GCPPath, description: GCS json file containing a list of column names.} # type: {GCSPath: {data_type: JSON}}
+- {name: Inference data,    type: GCSPath,  description: GCS path of the CSV file from which to infer the schema.} # type: {GCSPath: {data_type: CSV}}
+- {name: Validation data,   type: GCSPath,  description: GCS path of the CSV file whose contents should be validated.} # type: {GCSPath: {data_type: CSV}}
+- {name: Column names,      type: GCSPath, description: GCS json file containing a list of column names.} # type: {GCSPath: {data_type: JSON}}
 - {name: Key columns,       type: String,                       description: Comma separated list of columns to treat as keys.}
-- {name: GCP project,       type: GcpProject, default: '',      description: The GCP project to run the dataflow job.}
+- {name: GCP project,       type: GCPProjectID, default: '',      description: The GCP project to run the dataflow job.}
 - {name: Run mode,          type: String,     default: local,   description: Whether to run the job locally or in Cloud Dataflow. Valid values are "local" and "cloud". }
-- {name: Validation output, type: GCPPath, description: GCS or local directory.} # type: {GCSPath: {path_type: Directory}}
+- {name: Validation output, type: GCSPath, description: GCS or local directory.} # type: {GCSPath: {path_type: Directory}}
 outputs:
-- {name: Schema,            type: GCPPath, description: GCS path of the inferred schema JSON.} # type: {GCSPath: {data_type: TFDV schema JSON}}
+- {name: Schema,            type: GCSPath, description: GCS path of the inferred schema JSON.} # type: {GCSPath: {data_type: TFDV schema JSON}}
 - {name: Validation result, type: String,                       description: Indicates whether anomalies were detected or not.}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:a277f87ea1d4707bf860d080d06639b7caf9a1cf
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:b0147bdbed9f25212408e0468a475289e80e0406
     command: [python2, /ml/validate.py]
     args: [
       --csv-data-for-inference, {inputValue: Inference data},

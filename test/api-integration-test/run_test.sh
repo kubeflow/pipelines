@@ -22,7 +22,7 @@ NAMESPACE=kubeflow
 usage()
 {
     echo "usage: run_test.sh
-    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/api_integration_test
+    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/backend_unit_test
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
     [-h help]"
 }
