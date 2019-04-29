@@ -18,12 +18,12 @@ import kfp.dsl as dsl
 import datetime
 import logging
 
-def mpi_job_op(name, image, command, workers=1, gpus=0, cpu=0, memory=0, env=[],annotations=[],
+def mpi_job_op(name, image, command, workers=1, gpus=0, cpu_limit=0, memory_limit=0, env=[], annotations=[],
           data=[], sync_source=None,
           rdma=False,
           tensorboard=False,  tensorboard_image=None, 
           metrics=['Train-accuracy:PERCENTAGE'],
-          arenaImage='cheyang/arena_launcher:v0.4',
+          arenaImage='cheyang/arena_launcher:v0.5',
           timeout_hours=240):
     """This function submits MPI Job, it can run Allreduce-style Distributed Training.
 
@@ -72,8 +72,8 @@ def mpi_job_op(name, image, command, workers=1, gpus=0, cpu=0, memory=0, env=[],
                       "--rdma", str(rdma),
                       "--image", str(image),
                       "--gpus", str(gpus),
-                      "--cpu", str(cpu),
-                      "--memory", str(memory),
+                      "--cpu", str(cpu_limit),
+                      "--memory", str(memory_limit),
                       "--step-name", '{{pod.name}}',
                       "--workflow-name", '{{workflow.name}}',
                       "--workers", str(workers),
