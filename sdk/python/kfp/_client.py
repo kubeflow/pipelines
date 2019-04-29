@@ -22,6 +22,8 @@ import zipfile
 import yaml
 from datetime import datetime
 
+import kfp_server_api
+
 from .compiler import compiler
 from .compiler import _k8s_helper
 
@@ -46,34 +48,18 @@ class Client(object):
       client_id: The client ID used by Identity-Aware Proxy.
     """
 
-    try:
-      import kfp_experiment
-    except ImportError:
-      raise Exception('This module requires installation of kfp_experiment')
-
-    try:
-      import kfp_run
-    except ImportError:
-      raise Exception('This module requires installation of kfp_run')
-
     self._host = host
 
     token = None
     if host and client_id:
       token = get_auth_token(client_id)
   
-    config = kfp_run.configuration.Configuration()
+    config = kfp_server_api.configuration.Configuration()
     config.host = host if host else Client.IN_CLUSTER_DNS_NAME
     self._configure_auth(config, token)
-    api_client = kfp_run.api_client.ApiClient(config)
-    self._run_api = kfp_run.api.run_service_api.RunServiceApi(api_client)
-
-    config = kfp_experiment.configuration.Configuration()
-    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
-    self._configure_auth(config, token)
-    api_client = kfp_experiment.api_client.ApiClient(config)
-    self._experiment_api = \
-        kfp_experiment.api.experiment_service_api.ExperimentServiceApi(api_client)
+    api_client = kfp_server_api.api_client.ApiClient(config)
+    self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
+    self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
 
   def _configure_auth(self, config, token):
     if token:
@@ -110,7 +96,6 @@ class Client(object):
     Returns:
       An Experiment object. Most important field is id.
     """
-    import kfp_experiment
 
     experiment = None
     try:
@@ -121,7 +106,7 @@ class Client(object):
 
     if not experiment:
       logging.info('Creating experiment {}.'.format(name))
-      experiment = kfp_experiment.models.ApiExperiment(name=name)
+      experiment = kfp_server_api.models.ApiExperiment(name=name)
       experiment = self._experiment_api.create_experiment(body=experiment)
     
     if self._is_ipython():
@@ -213,22 +198,21 @@ class Client(object):
     Returns:
       A run object. Most important field is id.
     """
-    import kfp_run
 
     pipeline_json_string = None
     if pipeline_package_path:
       pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
       pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_run.ApiParameter(name=_k8s_helper.K8sHelper.sanitize_k8s_name(k), value=str(v))
+    api_params = [kfp_server_api.ApiParameter(name=_k8s_helper.K8sHelper.sanitize_k8s_name(k), value=str(v))
                   for k,v in params.items()]
-    key = kfp_run.models.ApiResourceKey(id=experiment_id,
-                                        type=kfp_run.models.ApiResourceType.EXPERIMENT)
-    reference = kfp_run.models.ApiResourceReference(key, kfp_run.models.ApiRelationship.OWNER)
-    spec = kfp_run.models.ApiPipelineSpec(
+    key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
+                                        type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
+    reference = kfp_server_api.models.ApiResourceReference(key, kfp_server_api.models.ApiRelationship.OWNER)
+    spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string, 
         parameters=api_params)
-    run_body = kfp_run.models.ApiRun(
+    run_body = kfp_server_api.models.ApiRun(
         pipeline_spec=spec, resource_references=[reference], name=job_name)
 
     response = self._run_api.create_run(body=run_body)
@@ -251,8 +235,7 @@ class Client(object):
       A response object including a list of experiments and next page token.
     """
     if experiment_id is not None:
-      import kfp_run
-      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_run.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
     else:
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
