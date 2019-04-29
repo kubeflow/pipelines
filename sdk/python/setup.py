@@ -29,6 +29,7 @@ REQUIRES = [
     'cryptography>=2.4.2',
     'google-auth>=1.6.1',
     'requests_toolbelt>=0.8.0',
+    'kfp-server-api >= 0.1.18, < 0.1.19', #Update the upper version whenever a new version of the kfp-server-api package is released. Update the lower version when there is a breaking change in kfp-server-api.
 ]
 
 setup(
@@ -45,21 +46,6 @@ setup(
         'kfp.components.structures.kubernetes',
         'kfp.dsl',
         'kfp.notebook',
-        'kfp_experiment',
-        'kfp_experiment.api',
-        'kfp_experiment.models',
-        'kfp_run',
-        'kfp_run.api',
-        'kfp_run.models',
-        'kfp_pipeline',
-        'kfp_pipeline.api',
-        'kfp_pipeline.models',
-        'kfp_uploadpipeline',
-        'kfp_uploadpipeline.api',
-        'kfp_uploadpipeline.models',
-        'kfp_job',
-        'kfp_job.api',
-        'kfp_job.models',
     ],
     classifiers=[
         'Intended Audience :: Developers',
