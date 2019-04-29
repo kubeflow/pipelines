@@ -14,7 +14,7 @@ name: 'Monitor quality - Watson OpenScale'
 description: |
   Enable model quality monitoring on Watson OpenScale.
 metadata:
-  labels: {platform: 'IBM Watson OpenScale'}
+  annotations: {platform: 'IBM Watson OpenScale'}
 inputs:
   - {name: model_name,           description: 'Deployed model name on OpenScale.', default: 'AIOS Spark German Risk Model - Final'}
   - {name: problem_type,         description: 'Model problem type.', default: 'BINARY_CLASSIFICATION'}

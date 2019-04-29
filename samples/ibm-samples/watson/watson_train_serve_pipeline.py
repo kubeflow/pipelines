@@ -10,9 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# place storing the configuration secrets
-GITHUB_TOKEN = ''
-CONFIG_FILE_URL = 'https://raw.githubusercontent.com/user-name/kfp-secrets/master/creds.ini'
 
 # generate default secret name
 import os
@@ -26,7 +23,7 @@ configuration_op = components.load_component_from_url('https://raw.githubusercon
 train_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/train/component.yaml')
 store_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/store/component.yaml')
 deploy_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/deploy/component.yaml')
-    
+
 # create pipelines
 
 @dsl.pipeline(
@@ -49,24 +46,30 @@ def kfp_wml_pipeline(
 ):
     # op1 - this operation will create the credentials as secrets to be used by other operations
     get_configuration = configuration_op(
-                   token = GITHUB_TOKEN,
-                   url = CONFIG_FILE_URL,
-                   name = secret_name
+                   token=GITHUB_TOKEN,
+                   url=CONFIG_FILE_URL,
+                   name=secret_name
     )
-    
+
     # op2 - this operation trains the model with the model codes and data saved in the cloud object store
     wml_train = train_op(
-                   get_configuration.output,
-                   train_code,
-                   execution_command
+                   config=get_configuration.output,
+                   train_code=train_code,
+                   execution_command=execution_command,
+                   framework=framework,
+                   framework_version=framework_version,
+                   runtime=runtime,
+                   runtime_version=runtime_version,
+                   run_definition=run_definition,
+                   run_name=run_name
                    ).apply(params.use_ai_pipeline_params(secret_name))
-    
+
     # op3 - this operation stores the model trained above
     wml_store = store_op(
                    wml_train.output,
                    model_name
                   ).apply(params.use_ai_pipeline_params(secret_name))
-    
+
     # op4 - this operation deploys the model to a web service and run scoring with the payload in the cloud object store
     wml_deploy = deploy_op(
                   wml_store.output,

@@ -14,7 +14,7 @@ name: 'Monitor Fairness - Watson OpenScale'
 description: |
   Enable model fairness monitoring on Watson OpenScale.
 metadata:
-  labels: {platform: 'IBM Watson OpenScale'}
+  annotations: {platform: 'IBM Watson OpenScale'}
 inputs:
   - {name: model_name,            description: 'Deployed model name on OpenScale.', default: 'AIOS Spark German Risk Model - Final'}
   - {name: fairness_threshold,    description: 'Amount of threshold for fairness monitoring.', default: '0.95'}
