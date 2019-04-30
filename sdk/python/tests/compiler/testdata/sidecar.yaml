@@ -23,6 +23,7 @@ spec:
       artifacts:
       - name: mlpipeline-ui-metadata
         path: "/mlpipeline-ui-metadata.json"
+        optional: true
         s3:
           endpoint: minio-service.kubeflow:9000
           secretKeySecret:
@@ -36,6 +37,7 @@ spec:
           insecure: true
       - name: mlpipeline-metrics
         path: "/mlpipeline-metrics.json"
+        optional: true
         s3:
           endpoint: minio-service.kubeflow:9000
           secretKeySecret:
@@ -68,6 +70,7 @@ spec:
       artifacts:
       - name: mlpipeline-ui-metadata
         path: "/mlpipeline-ui-metadata.json"
+        optional: true
         s3:
           endpoint: minio-service.kubeflow:9000
           secretKeySecret:
@@ -81,6 +84,7 @@ spec:
           insecure: true
       - name: mlpipeline-metrics
         path: "/mlpipeline-metrics.json"
+        optional: true
         s3:
           endpoint: minio-service.kubeflow:9000
           secretKeySecret:

@@ -193,6 +193,10 @@ def _op_to_template(op: BaseOp):
             for name, path in output_artifact_paths.items()
         ]
 
+        for output_artifact in output_artifacts:
+            if output_artifact['name'] in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']:
+                output_artifact['optional'] = True
+
         # workflow template
         template = {
             'name': processed_op.name,
