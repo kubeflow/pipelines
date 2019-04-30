@@ -1,9 +1,6 @@
 kfp.dsl package
 ===============
 
-Module contents
----------------
-
 .. Empty
 
     .. automodule:: kfp.dsl
@@ -13,7 +10,13 @@ Module contents
 
 .. Manual
 
-.. automodule:: kfp.dsl._container_op
+.. 
+    .. automodule:: kfp.dsl._container_op
+        :members:
+        :undoc-members:
+        :show-inheritance:
+
+.. autoclass:: kfp.dsl._container_op.ContainerOp
     :members:
     :undoc-members:
     :show-inheritance:
@@ -39,7 +42,7 @@ Module contents
     :show-inheritance:
 
 
-..
+.. #dsl/init__.py
 
     from ._pipeline_param import PipelineParam, match_serialized_pipelineparam
     from ._pipeline import Pipeline, pipeline, get_pipeline_conf
@@ -47,13 +50,10 @@ Module contents
     from ._ops_group import OpsGroup, ExitHandler, Condition
     from ._component import python_component, graph_component, component
 
-Submodules
-----------
 
 kfp.dsl.types module
 --------------------
 
-.. automodule:: kfp.dsl.types
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. toctree::
+
+    kfp.dsl.types

@@ -1,18 +1,10 @@
 kfp.components package
 ======================
 
-Subpackages
------------
-
-.. toctree::
-
-    kfp.components.structures
-
-.. automodule does not work
+.. Empty
 
     Module contents
     ---------------
-
 
     .. automodule:: kfp.components
         :members:
@@ -40,15 +32,13 @@ kfp.components._python_op module
     :show-inheritance:
 
 kfp.components._component_store module
-----------------------------------
+--------------------------------------
 
 .. automodule:: kfp.components._component_store
     :members:
     :undoc-members:
     :show-inheritance:
 
-Submodules
-----------
 
 kfp.components.modelbase module
 -------------------------------
@@ -57,3 +47,11 @@ kfp.components.modelbase module
     :members:
     :undoc-members:
     :show-inheritance:
+
+
+kfp.components.structures subpackage
+-------------------------------
+
+.. toctree::
+
+    kfp.components.structures

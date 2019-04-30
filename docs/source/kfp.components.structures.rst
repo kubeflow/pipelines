@@ -2,9 +2,6 @@ kfp.components.structures package
 =================================
 
 
-Module contents
----------------
-
 .. automodule does not see anything here
 
     .. automodule:: kfp.components.structures
@@ -18,9 +15,6 @@ Module contents
     :members:
     :undoc-members:
     :show-inheritance:
-
-Subpackages
------------
 
 .. toctree::
 

@@ -7,14 +7,14 @@ Welcome to Kubeflow Pipelines SDK documentation!
 ==============================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
+   source/kfp
 
 
-Indices and tables
-==================
+.. * :ref:`modindex`
+.. * :ref:`kfp-ref`
+.. * :ref:`search`
 
-* :ref:`modindex`
-* :ref:`search`
 * :ref:`genindex`

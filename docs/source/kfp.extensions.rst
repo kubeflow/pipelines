@@ -1,5 +1,5 @@
-KFP DSL Extensions
-===============
+KFP extension modules
+========================
 
 
 kfp.gcp module

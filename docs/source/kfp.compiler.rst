@@ -1,27 +1,35 @@
 kfp.compiler package
 ====================
 
-Submodules
-----------
-
 kfp.compiler.compiler module
 ----------------------------
 
-.. init
-
+.. #compiler/__init__.py
     from .compiler import Compiler
     from ._component_builder import build_python_component, build_docker_image, VersionedDependency
 
-
-.. automodule:: kfp.compiler.compiler
+.. autoclass:: kfp.compiler.compiler.Compiler
     :members:
     :undoc-members:
     :show-inheritance:
 
-.. automodule:: kfp.compiler._component_builder
+.. autofunction:: kfp.compiler._component_builder.build_python_component
+.. autofunction:: kfp.compiler._component_builder.build_docker_image
+.. autoclass:: kfp.compiler._component_builder.VersionedDependency
     :members:
     :undoc-members:
     :show-inheritance:
+
+.. Following  __init__.py
+    .. automodule:: kfp.compiler.compiler
+        :members:
+        :undoc-members:
+        :show-inheritance:
+
+    .. automodule:: kfp.compiler._component_builder
+        :members:
+        :undoc-members:
+        :show-inheritance:
 
 
 .. Private
