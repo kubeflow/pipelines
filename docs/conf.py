@@ -37,12 +37,12 @@
 # conf.py:  Added extensions: sphinx.ext.autodoc, sphinx.ext.napoleon
 # conf.py:  Set the project information
 # conf.py:  Set the theme to sphinx_rtd_theme
-# *.rst:    Added ":imported-members:" to all automodule incvocations so that the members imported in __init__.py are included
-# *.rst:    Reworked the files removing emty or unneeded section
+# *.rst:    Added ":imported-members:" to all automodule invocations so that the members imported in __init__.py are included
+# *.rst:    Reworked the files removing empty or unneeded sections
 # *.rst:    Manually split out some modules and classes into separate pages: kfp.Client, kfp.extensions
 # *.rst:    Fully reworked the kfp.rst and index.rst pages
 
-# When SDK code changes are submitted to master, the GutHub sends a signal to ReadTheDocs using a webhook.
+# When SDK code changes are submitted to master, the GitHub sends a signal to ReadTheDocs using a webhook.
 # RTD automatically pulls the branch and generates the documentation at https://kf-pipelines.readthedocs.io
 
 
