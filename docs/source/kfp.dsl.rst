@@ -7,8 +7,6 @@ kfp.dsl package
     :show-inheritance:
     :imported-members:
 
-kfp.dsl.types module
---------------------
 
 .. toctree::
 
