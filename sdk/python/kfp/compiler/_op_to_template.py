@@ -237,6 +237,10 @@ def _op_to_template(op: BaseOp):
     if processed_op.node_selector:
         template['nodeSelector'] = processed_op.node_selector
 
+    # tolerations
+    if processed_op.tolerations:
+        template['tolerations'] = processed_op.tolerations
+
     # metadata
     if processed_op.pod_annotations or processed_op.pod_labels:
         template['metadata'] = {}

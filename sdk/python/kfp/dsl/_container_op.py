@@ -644,7 +644,7 @@ class BaseOp(object):
     # in the compilation process to generate the DAGs and task io parameters.
     attrs_with_pipelineparams = [
         'node_selector', 'volumes', 'pod_annotations', 'pod_labels',
-        'num_retries', 'sidecars'
+        'num_retries', 'sidecars', 'tolerations'
     ]
 
     def __init__(self,
@@ -680,6 +680,7 @@ class BaseOp(object):
         # `io.argoproj.workflow.v1alpha1.Template` properties
         self.node_selector = {}
         self.volumes = []
+        self.tolerations = []
         self.pod_annotations = {}
         self.pod_labels = {}
         self.num_retries = 0
@@ -743,6 +744,17 @@ class BaseOp(object):
           https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume.py
         """
         self.volumes.append(volume)
+        return self
+
+    def add_toleration(self, tolerations):
+        """Add K8s tolerations
+
+        Args:
+          volume: Kubernetes toleration
+          For detailed spec, check volume definition
+          https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_toleration.py
+        """
+        self.tolerations.append(tolerations)
         return self
 
     def add_node_selector_constraint(self, label_name, value):
