@@ -1,6 +1,13 @@
 KFP extension modules
 ========================
 
+kfp.onprem module
+-----------------
+
+.. automodule:: kfp.onprem
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 kfp.gcp module
 --------------
@@ -10,10 +17,10 @@ kfp.gcp module
     :undoc-members:
     :show-inheritance:
 
-kfp.onprem module
------------------
+kfp.aws module
+----------------
 
-.. automodule:: kfp.onprem
+.. automodule:: kfp.aws
     :members:
     :undoc-members:
     :show-inheritance:
