@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Kubeflow Pipelines SDK documentation!
-==============================================
+Welcome to Kubeflow Pipelines SDK API reference
+================================================
 
 .. toctree::
    :maxdepth: 3
