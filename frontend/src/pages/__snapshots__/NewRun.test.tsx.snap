@@ -337,6 +337,31 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -726,6 +751,31 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       required={true}
       value="some mock experiment name"
       variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
     />
     <div
       className="header"
@@ -1141,6 +1191,31 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -1514,6 +1589,31 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
       required={true}
       value=""
       variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
     />
     <div
       className="header"
@@ -1897,6 +1997,31 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       required={true}
       value=""
       variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
     />
     <div
       className="header"
@@ -2294,6 +2419,31 @@ exports[`NewRun renders the new run page 1`] = `
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -2679,7 +2829,35 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run trigger
+    </div>
+    <div>
+      Choose a method by which new runs will be triggered
     </div>
     <Trigger
       onChange={[Function]}
@@ -3096,6 +3274,31 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
       required={true}
       value=""
       variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
     />
     <div
       className="header"
@@ -3517,6 +3720,31 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -3533,7 +3761,6 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
         select={false}
         style={
           Object {
-            "height": 40,
             "maxWidth": 600,
           }
         }
@@ -3550,7 +3777,6 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
         select={false}
         style={
           Object {
-            "height": 40,
             "maxWidth": 600,
           }
         }
@@ -3940,6 +4166,31 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       required={true}
       value="some mock experiment name"
       variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
     />
     <div
       className="header"
@@ -4337,6 +4588,31 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -4353,7 +4629,6 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         select={false}
         style={
           Object {
-            "height": 40,
             "maxWidth": 600,
           }
         }
@@ -4370,7 +4645,6 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         select={false}
         style={
           Object {
-            "height": 40,
             "maxWidth": 600,
           }
         }
@@ -4766,6 +5040,31 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -5155,6 +5454,31 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       required={true}
       value="some mock experiment name"
       variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
     />
     <div
       className="header"

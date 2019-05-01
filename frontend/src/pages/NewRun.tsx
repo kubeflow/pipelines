@@ -154,6 +154,7 @@ class NewRun extends Page<{}, NewRunState> {
 
           <div className={commonCss.header}>Run details</div>
 
+          {/* Pipeline selection */}
           {!!pipelineFromRun && (<React.Fragment>
             <FormControlLabel label={usePipelineFromRunLabel} control={<Radio color='primary' />}
               onChange={() => this.setStateSafe({ pipeline: pipelineFromRun, usePipelineFromRun: true })}
@@ -178,9 +179,11 @@ class NewRun extends Page<{}, NewRunState> {
                   </InputAdornment>
                 ),
                 readOnly: true,
-              }} />
+              }}
+            />
           )}
 
+          {/* Pipeline selector dialog */}
           <Dialog open={pipelineSelectorOpen}
             classes={{ paper: css.selectorDialog }}
             onClose={() => this._pipelineSelectorClosed(false)}
@@ -210,6 +213,7 @@ class NewRun extends Page<{}, NewRunState> {
             </DialogActions>
           </Dialog>
 
+          {/* Experiment selector dialog */}
           <Dialog open={experimentSelectorOpen}
             classes={{ paper: css.selectorDialog }}
             onClose={() => this._experimentSelectorClosed(false)}
@@ -220,7 +224,10 @@ class NewRun extends Page<{}, NewRunState> {
                 filterLabel='Filter experiments'
                 listApi={async (...args) => {
                   const response = await Apis.experimentServiceApi.listExperiment(...args);
-                  return { resources: response.experiments || [], nextPageToken: response.next_page_token || '' };
+                  return {
+                    nextPageToken: response.next_page_token || '',
+                    resources: response.experiments || [],
+                  };
                 }}
                 columns={this.experimentSelectorColumns}
                 emptyMessage='No experiments found. Create an experiment and then try again.'
@@ -239,11 +246,13 @@ class NewRun extends Page<{}, NewRunState> {
             </DialogActions>
           </Dialog>
 
+          {/* Run metadata inputs */}
           <Input label='Run name' required={true} onChange={this.handleChange('runName')}
             autoFocus={true} value={runName} variant='outlined' />
           <Input label='Description (optional)' multiline={true}
             onChange={this.handleChange('description')} value={description} variant='outlined' />
 
+          {/* Experiment selection */}
           <div>This run will be associated with the following experiment</div>
           <Input value={experimentName} required={true} label='Experiment' disabled={true}
             variant='outlined'
@@ -259,11 +268,23 @@ class NewRun extends Page<{}, NewRunState> {
                 </InputAdornment>
               ),
               readOnly: true,
-            }} />
+            }}
+          />
 
+          {/* One-off/Recurring Toggle */}
+          <div className={commonCss.header}>Run Type</div>
+          <FormControlLabel label='One-off' control={<Radio color='primary' />}
+            onChange={() => this.updateRecurringRunState(false)}
+            checked={!isRecurringRun} />
+          <FormControlLabel label='Recurring' control={<Radio color='primary' />}
+            onChange={() => this.updateRecurringRunState(true)}
+            checked={isRecurringRun} />
+
+          {/* Recurring run controls */}
           {isRecurringRun && (
             <React.Fragment>
               <div className={commonCss.header}>Run trigger</div>
+              <div>Choose a method by which new runs will be triggered</div>
 
               <Trigger onChange={(trigger, maxConcurrentRuns) => this.setStateSafe({
                 maxConcurrentRuns,
@@ -272,19 +293,20 @@ class NewRun extends Page<{}, NewRunState> {
             </React.Fragment>
           )}
 
+          {/* Run parameters form */}
           <div className={commonCss.header}>Run parameters</div>
           <div>{this._runParametersMessage(pipeline)}</div>
-
           {pipeline && Array.isArray(pipeline.parameters) && !!pipeline.parameters.length && (
             <div>
               {pipeline.parameters.map((param, i) =>
                 <TextField id={`newRunPipelineParam${i}`} key={i} variant='outlined'
                   label={param.name} value={param.value || ''}
                   onChange={(ev) => this._handleParamChange(i, ev.target.value || '')}
-                  style={{ height: 40, maxWidth: 600 }} className={commonCss.textField} />)}
+                  style={{ maxWidth: 600 }} className={commonCss.textField}/>)}
             </div>
           )}
 
+          {/* Create/Cancel buttons */}
           <div className={classes(commonCss.flex, padding(20, 'tb'))}>
             <BusyButton id='startNewRunBtn' disabled={!!errorMessage}
               busy={this.state.isBeingStarted}
@@ -304,6 +326,14 @@ class NewRun extends Page<{}, NewRunState> {
         </div>
       </div>
     );
+  }
+
+  public updateRecurringRunState(isRecurringRun: boolean): void {
+    this.props.updateToolbar({
+      actions: this.props.toolbarProps.actions,
+      pageTitle: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
+    });
+    this.setStateSafe({ isRecurringRun });
   }
 
   public async refresh(): Promise<void> {
@@ -372,8 +402,11 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
-    const pageTitle = isRecurringRun ? 'Start a recurring run' : 'Start a new run';
-    this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs, pageTitle });
+    this.props.updateToolbar({
+      actions: this.props.toolbarProps.actions,
+      breadcrumbs,
+      pageTitle: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
+    });
 
     this.setStateSafe({
       experiment,
@@ -535,10 +568,9 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   private _start(): void {
-    const { pipelineFromRun, pipeline, usePipelineFromRun } = this.state;
     // TODO: This cannot currently be reached because _validate() is called everywhere and blocks
     // the button from being clicked without first having a pipeline.
-    if (!pipeline) {
+    if (!this.state.pipeline) {
       this.showErrorDialog('Run creation failed', 'Cannot start run without pipeline');
       logger.error('Cannot start run without pipeline');
       return;
@@ -554,18 +586,19 @@ class NewRun extends Page<{}, NewRunState> {
       });
     }
 
-    const isRecurringRun = this.state.isRecurringRun;
     let newRun: ApiRun | ApiJob = {
       description: this.state.description,
       name: this.state.runName,
       pipeline_spec: {
-        parameters: pipeline.parameters,
-        pipeline_id: usePipelineFromRun ? undefined : pipeline.id,
-        workflow_manifest: usePipelineFromRun ? JSON.stringify(pipelineFromRun) : undefined,
+        parameters: this.state.pipeline.parameters,
+        pipeline_id: this.state.usePipelineFromRun ? undefined : this.state.pipeline.id,
+        workflow_manifest: this.state.usePipelineFromRun
+          ? JSON.stringify(this.state.pipelineFromRun)
+          : undefined,
       },
       resource_references: references,
     };
-    if (isRecurringRun) {
+    if (this.state.isRecurringRun) {
       newRun = Object.assign(newRun, {
         enabled: true,
         max_concurrency: this.state.maxConcurrentRuns || '1',
@@ -578,7 +611,7 @@ class NewRun extends Page<{}, NewRunState> {
       // calls, so a run creation could fail, and the success path would still be taken. We need
       // tests for this and other similar situations.
       try {
-        isRecurringRun
+        this.state.isRecurringRun
           ? await Apis.jobServiceApi.createJob(newRun)
           : await Apis.runServiceApi.createRun(newRun);
       } catch (err) {
