@@ -6,6 +6,10 @@
 Welcome to Kubeflow Pipelines SDK API reference
 ================================================
 
+Main documentation: https://www.kubeflow.org/docs/pipelines/
+
+Source code: https://github.com/kubeflow/pipelines/
+
 .. toctree::
    :maxdepth: 3
    :caption: Contents:
