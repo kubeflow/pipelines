@@ -9,7 +9,6 @@ kfp package
 
     kfp.compiler
     kfp.components
-    kfp.components.structures
     kfp.dsl
     kfp.client
     kfp.notebook
