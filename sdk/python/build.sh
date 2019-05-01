@@ -28,3 +28,14 @@ dist_dir=$(mktemp -d)
 python setup.py sdist --format=gztar --dist-dir "$dist_dir"
 cp "$dist_dir"/*.tar.gz "$target_archive_file"
 popd
+
+echo "{\"packageName\": \"argo\"}" > /tmp/config.json
+java -jar /tmp/swagger-codegen-cli.jar generate -l python \
+  -i https://raw.githubusercontent.com/argoproj/argo/master/api/openapi-spec/swagger.json \
+  -o $DIR \
+  -c /tmp/config.json \
+  -DmodelTests=false \
+  -DmodelDocs=false \
+  -Dmodels=io.argoproj.workflow.v1alpha1.S3Artifact,io.k8s.api.core.v1.SecretKeySelector \
+  --import-mappings "IoK8sApiCoreV1SecretKeySelector=from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector as IoK8sApiCoreV1SecretKeySelector"
+rm /tmp/config.json

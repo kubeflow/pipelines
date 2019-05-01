@@ -645,7 +645,7 @@ class BaseOp(object):
     # in the compilation process to generate the DAGs and task io parameters.
     attrs_with_pipelineparams = [
         'node_selector', 'volumes', 'pod_annotations', 'pod_labels',
-        'num_retries', 'sidecars', '_s3_artifactory', 'output_artifacts'
+        'num_retries', 'sidecars'
     ]
 
     def __init__(self,
@@ -844,6 +844,9 @@ class ContainerOp(BaseOp):
     # the input parameters during compilation.
     # Excludes `file_outputs` and `outputs` as they are handled separately
     # in the compilation process to generate the DAGs and task io parameters.
+    attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + [
+        'artifact_location', 'output_artifact_paths'
+    ]
 
     def __init__(self,
                  name: str,
@@ -854,6 +857,7 @@ class ContainerOp(BaseOp):
                  container_kwargs: Dict = None,
                  file_outputs: Dict[str, str] = None,
                  output_artifact_paths : Dict[str, str]=None,
+                 artifact_location: ArtifactLocation,
                  is_exit_handler=False,
                  pvolumes: Dict[str, V1Volume] = None,
         ):
@@ -927,6 +931,7 @@ class ContainerOp(BaseOp):
 
         # attributes specific to `ContainerOp`
         self.file_outputs = file_outputs
+        self.artifact_location = artifact_location
         self.output_artifact_paths = output_artifact_paths or {}
 
         self._metadata = None
@@ -996,6 +1001,59 @@ class ContainerOp(BaseOp):
                         )
         """
         return self._container
+
+    @property
+    def s3_artifactory(self):
+        """`S3Artifactory` factory object used to create artifacts.
+
+        Example:
+            import kfp.dsl as dsl
+            from kubernetes.client.models import V1EnvVar
+    
+            @dsl.pipeline(name='example_pipeline')
+            def immediate_value_pipeline(bucket: str):
+                op = dsl.ContainerOp(name='example', image='nginx:alpine')
+                # customize s3 artifactory
+                (op.s3_artifactory
+                   .bucket(bucket)
+                   .endpoint('s3.amazonaws.com'),
+                   .insecure(False)
+                   .region('ap-southeast-1')
+                   .access_key_secret(name='s3_credential', key='accesskey')
+                   .secret_key_secret(name='s3_credential', key='secretkey'))
+        """
+        # create default s3 artifactory if not created
+        if not self._s3_artifactory:
+            self._s3_artifactory = S3Artifactory()
+        return self._s3_artifactory
+
+    def set_s3_artifactory(self, s3_artifactory: S3Artifactory):
+        """Specify the s3 artifactory configuration to use when outputing the artifacts.
+
+        Arg
+          s3_artifactory: `S3Artifactory` factory object used to create artifacts.
+        """
+        self._s3_artifactory = s3_artifactory
+        return self
+
+    def add_output_artifact(self, name:str, path:str):
+        """Add a custom output artifact for argo to upload to the artifactory.
+        
+        Arguments:
+            name {str} -- name of the artifact.
+            path {str} -- where the artifact is located.
+        """
+        self.output_artifacts[name] = path
+        return self
+
+    def add_output_artifacts(self, artifacts: dict):
+        """Add multiple custom output artifacts for argo to upload to the artifactory.
+        
+        Arguments:
+            artifacts {dict} -- dict (name->path)
+        """
+        self.output_artifacts.update(artifacts)
+        return self          
 
     def _set_metadata(self, metadata):
         '''_set_metadata passes the containerop the metadata information
