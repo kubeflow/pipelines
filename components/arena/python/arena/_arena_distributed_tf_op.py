@@ -29,7 +29,7 @@ def estimator_op(name, image, command,
                       evaluator=False, evaluator_cpu_limit=0, evaluator_memory_limit=0, 
                       env=[], data=[], sync_source=None,
                       metrics=['Train-accuracy:PERCENTAGE'],
-                      arena_image='cheyang/arena_launcher:v0.5',
+                      arena_image='cheyang/arena_launcher:v0.6',
                       timeout_hours=240):
 
     """This function submits Distributed TFJob in Estimator mode.
@@ -62,7 +62,7 @@ def parameter_servers_op(name, image, command, env, data, sync_source, annotatio
                       tensorboard, 
                       worker_port, ps_port, 
                       metrics=['Train-accuracy:PERCENTAGE'],
-                      arena_image='cheyang/arena_launcher:v0.5',
+                      arena_image='cheyang/arena_launcher:v0.6',
                       timeout_hours=240):
 
     """This function submits Distributed TFJob in Parameter Servers mode.
@@ -97,7 +97,7 @@ def distributed_tf_op(name, image, command, env=[], data=[], sync_source=None,
                       ps_port=22224,
                       tensorboard=False, 
                       metrics=['Train-accuracy:PERCENTAGE'],
-                      arena_image='cheyang/arena_launcher:v0.5',
+                      arena_image='cheyang/arena_launcher:v0.6',
                       timeout_hours=240):
           """This function submits Distributed TFJob in Distributed mode.
 
