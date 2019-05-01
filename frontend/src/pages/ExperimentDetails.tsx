@@ -197,7 +197,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
             </div>
             <Toolbar {...this.state.runListToolbarProps} />
             <RunList onError={this.showPageError.bind(this)}
-              experimentIdMask={experiment.id} ref={this._runlistRef}
+              hideExperimentColumn={true} experimentIdMask={experiment.id} ref={this._runlistRef}
               selectedIds={this.state.selectedIds} storageState={RunStorageState.AVAILABLE}
               onSelectionChange={this._selectionChanged.bind(this)} {...this.props} />
 

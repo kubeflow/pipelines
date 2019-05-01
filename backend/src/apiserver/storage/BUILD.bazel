@@ -6,6 +6,7 @@ go_library(
         "db.go",
         "db_fake.go",
         "db_status_store.go",
+        "default_experiment_store.go",
         "experiment_store.go",
         "job_store.go",
         "minio_client.go",
@@ -49,6 +50,7 @@ go_test(
     srcs = [
         "db_status_store_test.go",
         "db_test.go",
+        "default_experiment_store_test.go",
         "experiment_store_test.go",
         "job_store_test.go",
         "object_store_test.go",

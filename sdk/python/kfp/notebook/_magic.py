@@ -13,19 +13,11 @@
 # limitations under the License.
 
 
-try:
-  import IPython
-  import IPython.core.magic
-except ImportError:
-  raise Exception('This module can only be loaded in Jupyter.')
-
-
 import os
 import tempfile
 from ..compiler import build_docker_image
 
 
-@IPython.core.magic.register_cell_magic
 def docker(line, cell):
   """cell magic for %%docker"""
 
@@ -42,3 +34,11 @@ def docker(line, cell):
 
   build_docker_image(staging, target, f.name)
   os.remove(f.name)
+
+try:
+  import IPython
+  docker = IPython.core.magic.register_cell_magic(docker)
+except ImportError:
+  pass
+except NameError:
+  pass

@@ -13,6 +13,7 @@
 # limitations under the License.
 import argparse
 import datetime
+from distutils.util import strtobool
 import json
 import os
 import logging
@@ -34,7 +35,7 @@ def yamlOrJsonStr(str):
     try:
         return json.loads(str)
     except:
-        return yaml.load(str)
+        return yaml.safe_load(str)
 
 def strToList(str):
     return str.split(",")
@@ -49,7 +50,7 @@ def _generate_studyjob_yaml(src_filename, name, namespace, optimizationtype, obj
                             metricsnames, parameterconfigs, nasConfig, workertemplatepath, mcollectortemplatepath, suggestionspec):
   """_generate_studyjob_yaml generates studyjob yaml file based on hp.template.yaml"""
   with open(src_filename, 'r') as f:
-    content = yaml.load(f)
+    content = yaml.safe_load(f)
 
   content['metadata']['name'] = name
   content['metadata']['namespace'] = namespace
@@ -121,6 +122,9 @@ def main(argv=None):
   parser.add_argument('--outputfile', type=str,
                       default='/output.txt',
                       help='The file which stores the best trial of the studyJob.')
+  parser.add_argument('--deleteAfterDone', type=strtobool,
+                      default=True,
+                      help='When studyjob done, delete the studyjob automatically if it is True.')
   parser.add_argument('--studyjobtimeoutminutes', type=int,
                       default=10,
                       help='Time in minutes to wait for the StudyJob to complete')
@@ -128,7 +132,6 @@ def main(argv=None):
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
-
 
   logging.info('Generating studyjob template.')
   template_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'hp.template.yaml')
@@ -157,8 +160,8 @@ def main(argv=None):
       f.write(json.dumps(ps_dict))
   if succ:
     logging.info('Study success.')
-
-  study_job_client.delete_study_job(api_client, job_name, job_namespace)
+  if args.deleteAfterDone:
+    study_job_client.delete_study_job(api_client, job_name, job_namespace)
 
 if __name__== "__main__":
   main()

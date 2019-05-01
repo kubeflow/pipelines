@@ -31,10 +31,34 @@ spec:
     name: download
     outputs:
       artifacts:
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
       - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
+        path: "/mlpipeline-ui-metadata.json"
+        optional: true
+        s3:
+          endpoint: minio-service.kubeflow:9000
+          secretKeySecret:
+            name: mlpipeline-minio-artifact
+            key: secretkey
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          bucket: mlpipeline
+          accessKeySecret:
+            name: mlpipeline-minio-artifact
+            key: accesskey
+          insecure: true
+      - name: mlpipeline-metrics
+        path: "/mlpipeline-metrics.json"
+        optional: true
+        s3:
+          endpoint: minio-service.kubeflow:9000
+          secretKeySecret:
+            name: mlpipeline-minio-artifact
+            key: secretkey
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          bucket: mlpipeline
+          accessKeySecret:
+            name: mlpipeline-minio-artifact
+            key: accesskey
+          insecure: true
       parameters:
       - name: download-downloaded
         valueFrom:
@@ -49,8 +73,38 @@ spec:
       - echo {{inputs.parameters.download-downloaded}}
       command:
       - sh
-      - -c
-      image: library/bash
+      - "-c"
+  - outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        path: "/mlpipeline-ui-metadata.json"
+        optional: true
+        s3:
+          endpoint: minio-service.kubeflow:9000
+          secretKeySecret:
+            name: mlpipeline-minio-artifact
+            key: secretkey
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+          bucket: mlpipeline
+          accessKeySecret:
+            name: mlpipeline-minio-artifact
+            key: accesskey
+          insecure: true
+      - name: mlpipeline-metrics
+        path: "/mlpipeline-metrics.json"
+        optional: true
+        s3:
+          endpoint: minio-service.kubeflow:9000
+          secretKeySecret:
+            name: mlpipeline-minio-artifact
+            key: secretkey
+          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
+          bucket: mlpipeline
+          accessKeySecret:
+            name: mlpipeline-minio-artifact
+            key: accesskey
+          insecure: true
+    name: echo
     inputs:
       parameters:
       - name: download-downloaded

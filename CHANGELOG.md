@@ -1,22 +1,99 @@
 # Change Log
 
-## [0.1.15](https://github.com/kubeflow/pipelines/tree/0.1.15) (2019-04-04)
-[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.14...0.1.15)
+## [Unreleased](https://github.com/kubeflow/pipelines/tree/HEAD)
+
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.17...HEAD)
+
+**Merged pull requests:**
+
+- SDK/Client - Stopped extracting pipeline file to disk during submission [\#1178](https://github.com/kubeflow/pipelines/pull/1178) ([Ark-kun](https://github.com/Ark-kun))
+- adding myself as reviewer for samples [\#1174](https://github.com/kubeflow/pipelines/pull/1174) ([animeshsingh](https://github.com/animeshsingh))
+
+## [0.1.17](https://github.com/kubeflow/pipelines/tree/0.1.17) (2019-04-17)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.16...0.1.17)
+
+**Closed issues:**
+
+- Runs leaked into archived page [\#1150](https://github.com/kubeflow/pipelines/issues/1150)
+- Pagination broken in UI  [\#1149](https://github.com/kubeflow/pipelines/issues/1149)
+- The number of members in the policy \(1,503\) is larger than the maximum allowed size 1,500 [\#1146](https://github.com/kubeflow/pipelines/issues/1146)
+- Backend Docker build fails with python error in resnet-train-pipeline.py [\#1142](https://github.com/kubeflow/pipelines/issues/1142)
+- `func\_to\_container\_op` converting underscores to dashes [\#1135](https://github.com/kubeflow/pipelines/issues/1135)
+- Use range instead of pin for python dependencies for kfp [\#1134](https://github.com/kubeflow/pipelines/issues/1134)
+- Deploy a TFX pipeline from the command line [\#1127](https://github.com/kubeflow/pipelines/issues/1127)
+- CloudBuild is failing since the CMLE deployer component was deleted [\#1123](https://github.com/kubeflow/pipelines/issues/1123)
+- Failed to load the trained model using kubeflow deployer component [\#1102](https://github.com/kubeflow/pipelines/issues/1102)
+- Pipeline parameters should be accessible to pipeline logic [\#1099](https://github.com/kubeflow/pipelines/issues/1099)
+- Retrieve the experiment during list run [\#1084](https://github.com/kubeflow/pipelines/issues/1084)
+- Connect local notebook to remote Pipeline cluster [\#1079](https://github.com/kubeflow/pipelines/issues/1079)
+- How to support continuous online learning? [\#1053](https://github.com/kubeflow/pipelines/issues/1053)
+- When notebook submits a run and clicks the link they get "Error: failed to retrieve run:" [\#1017](https://github.com/kubeflow/pipelines/issues/1017)
+- Add static type checking sample test [\#974](https://github.com/kubeflow/pipelines/issues/974)
+- Test coverage for runs without experiments [\#685](https://github.com/kubeflow/pipelines/issues/685)
+
+**Merged pull requests:**
+
+- release 0.1.17: update yaml tag in samples [\#1176](https://github.com/kubeflow/pipelines/pull/1176) ([gaoning777](https://github.com/gaoning777))
+- Component releasing for 0.1.17 [\#1171](https://github.com/kubeflow/pipelines/pull/1171) ([gaoning777](https://github.com/gaoning777))
+- SDK - Simplified the @component decorator [\#1166](https://github.com/kubeflow/pipelines/pull/1166) ([Ark-kun](https://github.com/Ark-kun))
+- delete the resnet image items [\#1165](https://github.com/kubeflow/pipelines/pull/1165) ([gaoning777](https://github.com/gaoning777))
+- Adding myself as a reviewer for components [\#1161](https://github.com/kubeflow/pipelines/pull/1161) ([animeshsingh](https://github.com/animeshsingh))
+- new kubernetes packages contain breaking change, thus fixing the version in the sample test image [\#1159](https://github.com/kubeflow/pipelines/pull/1159) ([gaoning777](https://github.com/gaoning777))
+- bug fix in resnet sample [\#1154](https://github.com/kubeflow/pipelines/pull/1154) ([gaoning777](https://github.com/gaoning777))
+- Add filter to next page token so it applies to subsequently requested pages [\#1153](https://github.com/kubeflow/pipelines/pull/1153) ([neuromage](https://github.com/neuromage))
+- fix missing filter for list call [\#1151](https://github.com/kubeflow/pipelines/pull/1151) ([IronPan](https://github.com/IronPan))
+- using comp yaml for ffdl pipeline [\#1148](https://github.com/kubeflow/pipelines/pull/1148) ([animeshsingh](https://github.com/animeshsingh))
+- component readmes [\#1147](https://github.com/kubeflow/pipelines/pull/1147) ([animeshsingh](https://github.com/animeshsingh))
+- Removes unnecessary API calls [\#1144](https://github.com/kubeflow/pipelines/pull/1144) ([rileyjbauer](https://github.com/rileyjbauer))
+- use kubeflow/pipelines branch for deployment in test [\#1143](https://github.com/kubeflow/pipelines/pull/1143) ([IronPan](https://github.com/IronPan))
+- Set run model default timestamp to 0 [\#1140](https://github.com/kubeflow/pipelines/pull/1140) ([IronPan](https://github.com/IronPan))
+- Allow adding pipeline with name and description. [\#1139](https://github.com/kubeflow/pipelines/pull/1139) ([neuromage](https://github.com/neuromage))
+- Allow later versions of dependencies to be used with Python KFP package. [\#1137](https://github.com/kubeflow/pipelines/pull/1137) ([neuromage](https://github.com/neuromage))
+- Expose service-type as parameter [\#1136](https://github.com/kubeflow/pipelines/pull/1136) ([vincent-pli](https://github.com/vincent-pli))
+- Add helper to easily add aws secrets [\#1133](https://github.com/kubeflow/pipelines/pull/1133) ([Jeffwan](https://github.com/Jeffwan))
+- add type checking sample to sample tests [\#1129](https://github.com/kubeflow/pipelines/pull/1129) ([gaoning777](https://github.com/gaoning777))
+- Updated descriptions of pre-installed samples [\#1126](https://github.com/kubeflow/pipelines/pull/1126) ([Ark-kun](https://github.com/Ark-kun))
+- Fixed CloudBuild failure [\#1124](https://github.com/kubeflow/pipelines/pull/1124) ([Ark-kun](https://github.com/Ark-kun))
+- Surface workflow finished time in list run API [\#1122](https://github.com/kubeflow/pipelines/pull/1122) ([IronPan](https://github.com/IronPan))
+- SDK - Simplified the @pipeline decorator [\#1120](https://github.com/kubeflow/pipelines/pull/1120) ([Ark-kun](https://github.com/Ark-kun))
+- update katib laucher [\#1118](https://github.com/kubeflow/pipelines/pull/1118) ([hougangliu](https://github.com/hougangliu))
+- Updated the package version in the notebooks [\#1117](https://github.com/kubeflow/pipelines/pull/1117) ([Ark-kun](https://github.com/Ark-kun))
+- Updated the "Basic - Retry" sample [\#1111](https://github.com/kubeflow/pipelines/pull/1111) ([Ark-kun](https://github.com/Ark-kun))
+- Updated the "Basic - Exit handler" sample [\#1109](https://github.com/kubeflow/pipelines/pull/1109) ([Ark-kun](https://github.com/Ark-kun))
+- incremented app version [\#1107](https://github.com/kubeflow/pipelines/pull/1107) ([kevinbache](https://github.com/kevinbache))
+- uprade tf-serving in deployer component [\#1103](https://github.com/kubeflow/pipelines/pull/1103) ([jinchihe](https://github.com/jinchihe))
+- Stabilized the artifact ordering during the compilation [\#1097](https://github.com/kubeflow/pipelines/pull/1097) ([Ark-kun](https://github.com/Ark-kun))
+- Creates a default experiment at API server set up time [\#1089](https://github.com/kubeflow/pipelines/pull/1089) ([rileyjbauer](https://github.com/rileyjbauer))
+- Passing the annotations and labels to the ContainerOp [\#1077](https://github.com/kubeflow/pipelines/pull/1077) ([Ark-kun](https://github.com/Ark-kun))
+- Build Pipeline leveraging Arena  [\#1058](https://github.com/kubeflow/pipelines/pull/1058) ([cheyang](https://github.com/cheyang))
+- Rewrite ResNet sample by GCP components [\#1018](https://github.com/kubeflow/pipelines/pull/1018) ([hongye-sun](https://github.com/hongye-sun))
+- Add a ResNet example from NVIDIA [\#964](https://github.com/kubeflow/pipelines/pull/964) ([khoa-ho](https://github.com/khoa-ho))
+
+## [0.1.16](https://github.com/kubeflow/pipelines/tree/0.1.16) (2019-04-06)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.14...0.1.16)
 
 **Closed issues:**
 
 - usage reporting link broken  [\#1073](https://github.com/kubeflow/pipelines/issues/1073)
 - Exit handler task does not have proper name in the UX [\#1051](https://github.com/kubeflow/pipelines/issues/1051)
+- Remove link to JupyterHub from pipelines UI [\#1029](https://github.com/kubeflow/pipelines/issues/1029)
 - Invalid memory address or nil pointer dereference in metadata\_store.go [\#1024](https://github.com/kubeflow/pipelines/issues/1024)
 - KFP SDK: suggest retry if pipeline launch returns 500 error \('warmup' apparently required\) [\#1007](https://github.com/kubeflow/pipelines/issues/1007)
 - Refactor the test infra code [\#875](https://github.com/kubeflow/pipelines/issues/875)
-- Add image substitution feature to either DSL compiler or KFP client [\#487](https://github.com/kubeflow/pipelines/issues/487)
 - Ability to stop runs [\#413](https://github.com/kubeflow/pipelines/issues/413)
 - Surface the sample test results to github [\#361](https://github.com/kubeflow/pipelines/issues/361)
 - feature ask: support for loops [\#303](https://github.com/kubeflow/pipelines/issues/303)
 
 **Merged pull requests:**
 
+- Fixed Kubeflow sample test [\#1096](https://github.com/kubeflow/pipelines/pull/1096) ([Ark-kun](https://github.com/Ark-kun))
+- Rolling back TFMA image [\#1095](https://github.com/kubeflow/pipelines/pull/1095) ([Ark-kun](https://github.com/Ark-kun))
+- Fixed bug in TFMA component code [\#1094](https://github.com/kubeflow/pipelines/pull/1094) ([Ark-kun](https://github.com/Ark-kun))
+- Fixed bug in ROC component definition [\#1093](https://github.com/kubeflow/pipelines/pull/1093) ([Ark-kun](https://github.com/Ark-kun))
+- Added "Target lambda" parameter to "Confusion matrix" component [\#1091](https://github.com/kubeflow/pipelines/pull/1091) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Fix obj name in K8s -\> json conversion util [\#1088](https://github.com/kubeflow/pipelines/pull/1088) ([NathanDeMaria](https://github.com/NathanDeMaria))
+- optimize UX for loading pipeline pages [\#1085](https://github.com/kubeflow/pipelines/pull/1085) ([IronPan](https://github.com/IronPan))
+- Update CHANGELOG for release 0.1.15 [\#1083](https://github.com/kubeflow/pipelines/pull/1083) ([neuromage](https://github.com/neuromage))
 - Release component image version a277f87ea1d4707bf860d080d06639b7caf9a1cf [\#1082](https://github.com/kubeflow/pipelines/pull/1082) ([neuromage](https://github.com/neuromage))
 - Fix wrong indentation in extract\_pipelineparams\_from\_any\(\) [\#1076](https://github.com/kubeflow/pipelines/pull/1076) ([elikatsis](https://github.com/elikatsis))
 - Removes link to Kubeflow privacy links as KFP no longer runs Spartakus [\#1074](https://github.com/kubeflow/pipelines/pull/1074) ([rileyjbauer](https://github.com/rileyjbauer))

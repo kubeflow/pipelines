@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import re
+from collections import OrderedDict
+import yaml
 from typing import Union, List, Any, Callable, TypeVar, Dict
 
 from kubernetes.client.models.v1_secret_key_selector import V1SecretKeySelector
@@ -20,6 +22,7 @@ from argo.models.io_argoproj_workflow_v1alpha1_s3_artifact import IoArgoprojWork
 
 from ._k8s_helper import K8sHelper
 from .. import dsl
+from ..dsl._container_op import BaseOp
 
 # generics
 T = TypeVar('T')
@@ -85,21 +88,21 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     return obj
 
 
-def _process_container_ops(op: dsl.ContainerOp):
-    """Recursively go through the attrs listed in `attrs_with_pipelineparams` 
-    and sanitize and replace pipeline params with template var string.   
-    
-    Returns a processed `ContainerOp`.
+def _process_base_ops(op: BaseOp):
+    """Recursively go through the attrs listed in `attrs_with_pipelineparams`
+    and sanitize and replace pipeline params with template var string.
 
-    NOTE this is an in-place update to `ContainerOp`'s attributes (i.e. other than
-    `file_outputs`, and `outputs`, all `PipelineParam` are replaced with the 
-    corresponding template variable strings).
+    Returns a processed `BaseOp`.
+
+    NOTE this is an in-place update to `BaseOp`'s attributes (i.e. the ones
+    specified in `attrs_with_pipelineparams`, all `PipelineParam` are replaced
+    with the corresponding template variable strings).
 
     Args:
-        op {dsl.ContainerOp}: class that inherits from ds.ContainerOp
-    
+        op {BaseOp}: class that inherits from BaseOp
+
     Returns:
-        dsl.ContainerOp
+        BaseOp
     """
 
     # map param's (unsanitized pattern or serialized str pattern) -> input param var str
@@ -131,16 +134,21 @@ def _inputs_to_json(inputs_params: List[dsl.PipelineParam], _artifacts=None):
     return {'parameters': parameters} if parameters else None
 
 
-def _outputs_to_json(outputs: Dict[str, dsl.PipelineParam],
-                     file_outputs: Dict[str, str],
+def _outputs_to_json(op: BaseOp,
+                     outputs: Dict[str, dsl.PipelineParam],
+                     param_outputs: Dict[str, str],
                      output_artifacts: List[dict]):
     """Creates an argo `outputs` JSON obj."""
+    if isinstance(op, dsl.ResourceOp):
+        value_from_key = "jsonPath"
+    else:
+        value_from_key = "path"
     output_parameters = []
     for param in outputs.values():
         output_parameters.append({
             'name': param.full_name,
             'valueFrom': {
-                'path': file_outputs[param.name]
+                value_from_key: param_outputs[param.name]
             }
         })
     output_parameters.sort(key=lambda x: x['name'])
@@ -164,6 +172,7 @@ def _build_conventional_artifact(name: str, path: str, s3_artifactory: dsl.S3Art
 
 
 # TODO: generate argo python classes from swagger and use convert_k8s_obj_to_json??
+<<<<<<< HEAD
 def _op_to_template(op: dsl.ContainerOp):
     """Generate template given an operator inherited from dsl.ContainerOp."""
 
@@ -190,6 +199,52 @@ def _op_to_template(op: dsl.ContainerOp):
         'name': op.name,
         'container': K8sHelper.convert_k8s_obj_to_json(op.container)
     }
+=======
+def _op_to_template(op: BaseOp):
+    """Generate template given an operator inherited from BaseOp."""
+
+    # NOTE in-place update to BaseOp
+    # replace all PipelineParams with template var strings
+    processed_op = _process_base_ops(op)
+
+    if isinstance(op, dsl.ContainerOp):
+        # default output artifacts
+        output_artifact_paths = OrderedDict(op.output_artifact_paths)
+        output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
+        output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
+
+        output_artifacts = [
+            _build_conventional_artifact(name, path)
+            for name, path in output_artifact_paths.items()
+        ]
+
+        for output_artifact in output_artifacts:
+            if output_artifact['name'] in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']:
+                output_artifact['optional'] = True
+
+        # workflow template
+        template = {
+            'name': processed_op.name,
+            'container': K8sHelper.convert_k8s_obj_to_json(
+                processed_op.container
+            )
+        }
+    elif isinstance(op, dsl.ResourceOp):
+        # no output artifacts
+        output_artifacts = []
+
+        # workflow template
+        processed_op.resource["manifest"] = yaml.dump(
+            K8sHelper.convert_k8s_obj_to_json(processed_op.k8s_resource),
+            default_flow_style=False
+        )
+        template = {
+            'name': processed_op.name,
+            'resource': K8sHelper.convert_k8s_obj_to_json(
+                processed_op.resource
+            )
+        }
+>>>>>>> master
 
     # inputs
     inputs = _inputs_to_json(processed_op.inputs)
@@ -197,8 +252,12 @@ def _op_to_template(op: dsl.ContainerOp):
         template['inputs'] = inputs
 
     # outputs
-    template['outputs'] = _outputs_to_json(op.outputs, op.file_outputs,
-                                           output_artifacts)
+    if isinstance(op, dsl.ContainerOp):
+        param_outputs = processed_op.file_outputs
+    elif isinstance(op, dsl.ResourceOp):
+        param_outputs = processed_op.attribute_outputs
+    template['outputs'] = _outputs_to_json(op, processed_op.outputs,
+                                           param_outputs, output_artifacts)
 
     # node selector
     if processed_op.node_selector:

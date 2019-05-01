@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -164,6 +164,38 @@ export default class WorkflowParser {
       inputsOutputs[1] = node.outputs.parameters.map(p => [p.name, p.value || '']);
     }
     return inputsOutputs;
+  }
+
+  // Makes sure the workflow object contains the node and returns its
+  // volume mounts if any.
+  public static getNodeVolumeMounts(workflow: Workflow, nodeId: string): string[][] {
+    if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId] || !workflow.spec || !workflow.spec.templates) {
+      return [];
+    }
+
+    const node = workflow.status.nodes[nodeId];
+    const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+    let volumeMounts: string[][] = [];
+    if (tmpl && tmpl.container && tmpl.container.volumeMounts) {
+      volumeMounts = tmpl.container.volumeMounts.map(v => [v.mountPath, v.name]);
+    }
+    return volumeMounts;
+  }
+
+  // Makes sure the workflow object contains the node and returns its
+  // action and manifest.
+  public static getNodeManifest(workflow: Workflow, nodeId: string): string[][] {
+    if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId] || !workflow.spec || !workflow.spec.templates) {
+      return [];
+    }
+
+    const node = workflow.status.nodes[nodeId];
+    const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+    let manifest: string[][] = [];
+    if (tmpl && tmpl.resource && tmpl.resource.action && tmpl.resource.manifest) {
+      manifest = [[tmpl.resource.action, tmpl.resource.manifest]];
+    }
+    return manifest;
   }
 
   // Returns a list of output paths for the given workflow Node, by looking for
