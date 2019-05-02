@@ -20,12 +20,13 @@ import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
 import { ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
-import { NodePhase, statusToIcon } from './Status';
+import { NodePhase } from '../lib/StatusUtils';
 import { PredicateOp, ApiFilter } from '../apis/filter';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { URLParser } from '../lib/URLParser';
 import { commonCss, color } from '../Css';
 import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
+import { statusToIcon } from './Status';
 import { stylesheet } from 'typestyle';
 
 const css = stylesheet({
