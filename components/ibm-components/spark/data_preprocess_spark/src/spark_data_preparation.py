@@ -4,6 +4,12 @@ import requests
 from ibm_botocore.client import Config
 from pyspark.sql import SparkSession
 
+def get_secret(path):
+    with open(path, 'r') as f:
+        cred = f.readline().strip('\'')
+    f.close()
+    return cred
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--bucket_name', type=str, help='Object storage bucket name', default="dummy-bucket-name")
@@ -13,15 +19,9 @@ if __name__ == "__main__":
     cos_bucket_name = args.bucket_name
     data_url = args.data_url
 
-    with open("/app/secrets/cos_url", 'r') as f:
-        cos_url = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/cos_apikey", 'r') as f:
-        cos_apikey = f.readline().strip('\'')
-    f.close()
-    with open("/app/secrets/cos_resource_id", 'r') as f:
-        cos_resource_instance_id = f.readline().strip('\'')
-    f.close()
+    cos_url = get_secret("/app/secrets/cos_url")
+    cos_apikey = get_secret("/app/secrets/cos_resource_id")
+    cos_resource_instance_id = get_secret("/app/secrets/cos_resource_id")
 
     ''' Download data from data source '''
     filename = data_url
