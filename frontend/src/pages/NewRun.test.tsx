@@ -33,6 +33,10 @@ class TestNewRun extends NewRun {
   public async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
     return await super._pipelineSelectorClosed(confirmed);
   }
+
+  public _updateRecurringRunState(isRecurringRun: boolean): void {
+    return super._updateRecurringRunState(isRecurringRun);
+  }
 }
 
 describe('NewRun', () => {
@@ -189,6 +193,30 @@ describe('NewRun', () => {
     (tree.instance() as TestNewRun).handleChange('description')({ target: { value: 'run description' } });
 
     expect(tree.state()).toHaveProperty('description', 'run description');
+  });
+
+  it('changes title and form if the new run will recur, based on the radio buttons', async () => {
+    // Default props do not include isRecurring in query params
+    tree = shallow(<TestNewRun {...generateProps() as any} />);
+    await TestUtils.flushPromises();
+
+    (tree.instance() as TestNewRun)._updateRecurringRunState(true);
+    await TestUtils.flushPromises();
+
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('changes title and form to default state if the new run is a one-off, based on the radio buttons', async () => {
+    // Modify props to set page to recurring run form
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.isRecurring}=1`;
+    tree = shallow(<TestNewRun {...props} />);
+    await TestUtils.flushPromises();
+
+    (tree.instance() as TestNewRun)._updateRecurringRunState(false);
+    await TestUtils.flushPromises();
+
+    expect(tree).toMatchSnapshot();
   });
 
   it('exits to the AllRuns page if there is no associated experiment', async () => {

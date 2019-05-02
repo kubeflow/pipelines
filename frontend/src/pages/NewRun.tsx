@@ -144,9 +144,10 @@ class NewRun extends Page<{}, NewRunState> {
     } = this.state;
 
     const originalRunId = new URLParser(this.props).get(QUERY_PARAMS.cloneFromRun);
-    const pipelineDetailsUrl = originalRunId ?
-      RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') +
-      new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: originalRunId }) : '';
+    const pipelineDetailsUrl = originalRunId
+      ? RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') +
+        new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: originalRunId })
+      : '';
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
@@ -247,8 +248,8 @@ class NewRun extends Page<{}, NewRunState> {
           </Dialog>
 
           {/* Run metadata inputs */}
-          <Input label='Run name' required={true} onChange={this.handleChange('runName')}
-            autoFocus={true} value={runName} variant='outlined' />
+          <Input label={isRecurringRun ? 'Recurring run config name' : 'Run name'} required={true}
+            onChange={this.handleChange('runName')} autoFocus={true} value={runName} variant='outlined' />
           <Input label='Description (optional)' multiline={true}
             onChange={this.handleChange('description')} value={description} variant='outlined' />
 
@@ -273,11 +274,11 @@ class NewRun extends Page<{}, NewRunState> {
 
           {/* One-off/Recurring Toggle */}
           <div className={commonCss.header}>Run Type</div>
-          <FormControlLabel label='One-off' control={<Radio color='primary' />}
-            onChange={() => this.updateRecurringRunState(false)}
+          <FormControlLabel id='oneOffToggle' label='One-off' control={<Radio color='primary' />}
+            onChange={() => this._updateRecurringRunState(false)}
             checked={!isRecurringRun} />
-          <FormControlLabel label='Recurring' control={<Radio color='primary' />}
-            onChange={() => this.updateRecurringRunState(true)}
+          <FormControlLabel label='Recurring' control={<Radio color='primary' id='recurringToggle' />}
+            onChange={() => this._updateRecurringRunState(true)}
             checked={isRecurringRun} />
 
           {/* Recurring run controls */}
@@ -326,14 +327,6 @@ class NewRun extends Page<{}, NewRunState> {
         </div>
       </div>
     );
-  }
-
-  public updateRecurringRunState(isRecurringRun: boolean): void {
-    this.props.updateToolbar({
-      actions: this.props.toolbarProps.actions,
-      pageTitle: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
-    });
-    this.setStateSafe({ isRecurringRun });
   }
 
   public async refresh(): Promise<void> {
@@ -447,6 +440,14 @@ class NewRun extends Page<{}, NewRunState> {
       pipelineName: (pipeline && pipeline.name) || '',
       pipelineSelectorOpen: false
     }, () => this._validate());
+  }
+
+  protected _updateRecurringRunState(isRecurringRun: boolean): void {
+    this.props.updateToolbar({
+      actions: this.props.toolbarProps.actions,
+      pageTitle: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
+    });
+    this.setStateSafe({ isRecurringRun });
   }
 
   private async _prepareFormFromEmbeddedPipeline(embeddedPipelineRunId: string): Promise<void> {
