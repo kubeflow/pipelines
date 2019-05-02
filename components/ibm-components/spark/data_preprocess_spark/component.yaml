@@ -17,7 +17,7 @@ metadata:
   annotations: {platform: 'IBM Cloud Spark Service'}
 inputs:
   - {name: bucket_name,       description: 'Required. Object storage bucket name'}
-  - {name: data_url,      description: 'Required. URL of the data source'}}
+  - {name: data_url,      description: 'Required. URL of the data source'}
 outputs:
   - {name: output,          description: 'Data Filename'}
 implementation:
