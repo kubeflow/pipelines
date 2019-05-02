@@ -249,7 +249,7 @@ def main(argv=None):
   parser.add_argument('--tensorboard-image', type=str, default='tensorflow/tensorflow:1.12.0')
   parser.add_argument('--timeout-hours', type=int,
                       default=200,
-                      help='Time in hours to wait for the Job submitted by arena to complete')
+                      help='Time in minutes to wait for the Job submitted by arena to complete')
   parser.add_argument('--pending-timeout-minutes', type=int,
                       default=360,
                       help='Time in hours to wait for the Job submitted by arena from pending to running')
