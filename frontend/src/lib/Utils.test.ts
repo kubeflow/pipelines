@@ -21,6 +21,7 @@ import {
   getRunDuration,
   getRunDurationFromWorkflow,
 } from './Utils';
+import { NodePhase } from './StatusUtils';
 
 describe('Utils', () => {
   describe('log', () => {
@@ -102,10 +103,20 @@ describe('Utils', () => {
       expect(getRunDuration(run)).toBe('-');
     });
 
+    it('handles run which has not finished', () => {
+      const run = {
+        created_at: new Date(2018, 1, 2, 3, 55, 30).toISOString(),
+        finished_at: new Date(2018, 1, 3, 3, 56, 25).toISOString(),
+        status: NodePhase.RUNNING,
+      } as any;
+      expect(getRunDuration(run)).toBe('-');
+    });
+
     it('computes seconds', () => {
       const run = {
         created_at: new Date(2018, 1, 2, 3, 55, 30).toISOString(),
         finished_at: new Date(2018, 1, 3, 3, 56, 25).toISOString(),
+        status: NodePhase.SUCCEEDED,
       } as any;
       expect(getRunDuration(run)).toBe('0:00:55');
     });
@@ -114,6 +125,7 @@ describe('Utils', () => {
       const run = {
         created_at: new Date(2018, 1, 2, 3, 55, 10).toISOString(),
         finished_at: new Date(2018, 1, 3, 3, 59, 25).toISOString(),
+        status: NodePhase.SUCCEEDED,
       } as any;
       expect(getRunDuration(run)).toBe('0:04:15');
     });
@@ -122,6 +134,7 @@ describe('Utils', () => {
       const run = {
         created_at: new Date(2018, 1, 2, 3, 55, 10).toISOString(),
         finished_at: new Date(2018, 1, 3, 4, 55, 10).toISOString(),
+        status: NodePhase.SUCCEEDED,
       } as any;
       expect(getRunDuration(run)).toBe('1:00:00');
     });
@@ -130,6 +143,7 @@ describe('Utils', () => {
       const run = {
         created_at: new Date(2018, 1, 2, 3, 55, 10).toISOString(),
         finished_at: new Date(2018, 1, 3, 4, 56, 11).toISOString(),
+        status: NodePhase.SUCCEEDED,
       } as any;
       expect(getRunDuration(run)).toBe('1:01:01');
     });
@@ -138,6 +152,7 @@ describe('Utils', () => {
       const run = {
         created_at: new Date(2018, 1, 2, 3, 55, 13).toISOString(),
         finished_at: new Date(2018, 1, 2, 3, 55, 11).toISOString(),
+        status: NodePhase.SUCCEEDED,
       } as any;
       expect(getRunDuration(run)).toBe('-0:00:02');
     });

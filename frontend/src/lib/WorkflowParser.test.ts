@@ -15,7 +15,7 @@
  */
 
 import WorkflowParser, { StorageService } from './WorkflowParser';
-import { NodePhase } from '../pages/Status';
+import { NodePhase } from '../lib/StatusUtils';
 import { color } from '../Css';
 import { Constants } from './Constants';
 
