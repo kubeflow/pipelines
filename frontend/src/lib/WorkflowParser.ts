@@ -18,9 +18,10 @@ import * as dagre from 'dagre';
 import IconWithTooltip from '../atoms/IconWithTooltip';
 import MoreIcon from '@material-ui/icons/MoreHoriz';
 import { Workflow, NodeStatus, Parameter } from '../../third_party/argo-ui/argo_template';
-import { statusToIcon, NodePhase, hasFinished, statusToBgColor } from '../pages/Status';
+import { statusToIcon } from '../pages/Status';
 import { color } from '../Css';
 import { Constants } from './Constants';
+import { NodePhase, statusToBgColor, hasFinished } from './StatusUtils';
 
 export enum StorageService {
   GCS = 'gcs',

@@ -18,6 +18,7 @@ import { ApiRun } from '../apis/run';
 import { ApiTrigger } from '../apis/job';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { isFunction } from 'lodash';
+import { hasFinished, NodePhase } from './StatusUtils';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -75,7 +76,7 @@ function getDuration(start: Date, end: Date): string {
 }
 
 export function getRunDuration(run?: ApiRun): string {
-  if (!run || !run.created_at || !run.finished_at) {
+  if (!run || !run.created_at || !run.finished_at || !hasFinished(run.status as NodePhase)) {
     return '-';
   }
 

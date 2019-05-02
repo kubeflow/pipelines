@@ -24,13 +24,14 @@ import { ApiListExperimentsResponse, ApiExperiment } from '../apis/experiment';
 import { ApiResourceType, ApiRun, RunStorageState } from '../apis/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
+import { NodePhase } from '../lib/StatusUtils';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { logger } from '../lib/Utils';
-import { statusToIcon, NodePhase } from './Status';
+import { statusToIcon } from './Status';
 
 interface DisplayExperiment extends ApiExperiment {
   last5Runs?: ApiRun[];
