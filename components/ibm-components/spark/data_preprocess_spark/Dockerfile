@@ -1,4 +1,4 @@
-FROM jupyter/pyspark-notebook:c1b0cf6bf4d6
+FROM python:3.6.8-stretch
 
 RUN pip install --upgrade pip
 RUN pip install --upgrade watson-machine-learning-client ibm-ai-openscale --no-cache | tail -n 1
