@@ -21,6 +21,7 @@ def getSecret(secret):
 def train(args):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
     from minio import Minio
+    from urllib.parse import urlsplit
     import os,time
 
     wml_train_code = args.train_code
@@ -42,7 +43,12 @@ def train(args):
     wml_data_source_type = getSecret("/app/secrets/wml_data_source_type")
 
     cos_endpoint = getSecret("/app/secrets/cos_endpoint")
-    cos_endpoint_with_scheme = "https://" + cos_endpoint
+    cos_endpoint_parts = urlsplit(cos_endpoint)
+    if bool(cos_endpoint_parts.scheme):
+        cos_endpoint_hostname = cos_endpoint_parts.hostname
+    else:
+        cos_endpoint_hostname = cos_endpoint
+        cos_endpoint = 'https://' + cos_endpoint
     cos_access_key = getSecret("/app/secrets/cos_access_key")
     cos_secret_key = getSecret("/app/secrets/cos_secret_key")
     cos_input_bucket = getSecret("/app/secrets/cos_input_bucket")
@@ -51,7 +57,7 @@ def train(args):
     # download model code
     model_code = os.path.join('/app', wml_train_code)
 
-    cos = Minio(cos_endpoint,
+    cos = Minio(cos_endpoint_hostname,
                access_key = cos_access_key,
                secret_key = cos_secret_key,
                secure = True)
@@ -87,7 +93,7 @@ def train(args):
         client.training.ConfigurationMetaNames.AUTHOR_NAME : wml_author_name,
         client.training.ConfigurationMetaNames.TRAINING_DATA_REFERENCE : {
             "connection" : {
-                "endpoint_url"      : cos_endpoint_with_scheme,
+                "endpoint_url"      : cos_endpoint,
                 "access_key_id"     : cos_access_key,
                 "secret_access_key" : cos_secret_key
             },
@@ -98,7 +104,7 @@ def train(args):
         },
         client.training.ConfigurationMetaNames.TRAINING_RESULTS_REFERENCE: {
             "connection" : {
-                "endpoint_url"      : cos_endpoint_with_scheme,
+                "endpoint_url"      : cos_endpoint,
                 "access_key_id"     : cos_access_key,
                 "secret_access_key" : cos_secret_key
             },
