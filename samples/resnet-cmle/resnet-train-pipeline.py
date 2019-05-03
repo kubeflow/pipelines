@@ -22,11 +22,11 @@ import json
 import os
 
 dataflow_python_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e8524eefb138725fc06600d1956da0f4dd477178/components/gcp/dataflow/launch_python/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/gcp/dataflow/launch_python/component.yaml')
 cloudml_train_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e8524eefb138725fc06600d1956da0f4dd477178/components/gcp/ml_engine/train/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/gcp/ml_engine/train/component.yaml')
 cloudml_deploy_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e8524eefb138725fc06600d1956da0f4dd477178/components/gcp/ml_engine/deploy/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/gcp/ml_engine/deploy/component.yaml')
 
 
 def resnet_preprocess_op(project_id: 'GcpProject', output: 'GcsUri', staging_dir: 'GcsUri', train_csv: 'GcsUri[text/csv]',
