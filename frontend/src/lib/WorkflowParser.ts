@@ -206,19 +206,13 @@ export default class WorkflowParser {
     if (selectedWorkflowNode && selectedWorkflowNode.outputs) {
       (selectedWorkflowNode.outputs.artifacts || [])
         .filter((a) => a.name === 'mlpipeline-ui-metadata' && !!a.s3)
-        .forEach((a) => {
-          let source = StorageService.MINIO;
-          if (a.s3!.endpoint && a.s3!.endpoint.indexOf('s3.amazonaws.com') >= 0){
-            source = StorageService.S3;
-          } else if (a.s3!.endpoint.indexOf('storage.googleapis.com') >= 0) {
-            source = StorageService.GCS;
-          }
+        .forEach((a) =>
           outputPaths.push({
             bucket: a.s3!.bucket,
             key: a.s3!.key,
-            source: source!,
+            source: StorageService.MINIO,
           })
-        });
+        );
     }
 
     return outputPaths;
