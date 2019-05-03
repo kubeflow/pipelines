@@ -14,6 +14,7 @@ import argparse
 import logging
 import random
 from datetime import datetime
+from pathlib2 import Path
 
 from common import _utils
 
@@ -24,6 +25,7 @@ def main(argv=None):
   parser.add_argument('--model_name', type=str, help='The name of the model that you want to use for the transform job.')
   parser.add_argument('--input_location', type=str, help='The S3 location of the data source that is associated with a channel.')
   parser.add_argument('--output_location', type=str, help='The Amazon S3 path where you want Amazon SageMaker to store the results of the transform job.')
+  parser.add_argument('--output_location_file', type=str, help='File path where the program will write the Amazon S3 URI of the transform job results.')
 
   args = parser.parse_args()
 
@@ -36,8 +38,8 @@ def main(argv=None):
   _utils.wait_for_transform_job(client, batch_job_name)
   _utils.print_tranformation_job_result(args.output_location)
 
-  # with open('/tmp/output.txt', 'w') as f:
-  #   f.write(args.output_location)
+  Path(args.output_location_file).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.output_location_file).write_text(unicode(args.output_location))
 
   logging.info('Batch Transformation creation completed.')
 

@@ -17,7 +17,7 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y -q ca-certif
 
 RUN easy_install pip
 
-RUN pip install boto3==1.9.130 sagemaker
+RUN pip install boto3==1.9.130 sagemaker pathlib2
 
 COPY train/src/train.py .
 COPY deploy/src/deploy.py .

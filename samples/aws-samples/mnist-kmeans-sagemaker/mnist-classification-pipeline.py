@@ -20,7 +20,7 @@ def mnist_classification(region='us-west-2',
     model_output_path='s3://kubeflow-pipeline-data/mnist_kmeans_example/model',
     batch_transform_input='s3://kubeflow-pipeline-data/mnist_kmeans_example/input',
     batch_transform_ouput='s3://kubeflow-pipeline-data/mnist_kmeans_example/output',
-    role='arn:aws:iam::348134392524:role/service-role/AmazonSageMaker-ExecutionRole-20190423T222082'
+    role_arn=''
     ):
 
     training = sagemaker_train_op(
@@ -28,7 +28,7 @@ def mnist_classification(region='us-west-2',
         image=image,
         dataset_path=dataset_path,
         model_artifact_path=model_output_path,
-        role=role,
+        role=role_arn,
     ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
 
     create_model = sagemaker_model_op(
@@ -36,7 +36,7 @@ def mnist_classification(region='us-west-2',
         image=image,
         model_artifact_url=training.outputs['model_artifact_url'],
         model_name=training.outputs['job_name'],
-        role=role
+        role=role_arn
     ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
 
     prediction = sagemaker_deploy_op(

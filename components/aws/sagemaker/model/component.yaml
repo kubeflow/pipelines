@@ -1,8 +1,6 @@
-name: 'Sagamaker Model Creation'
+name: 'Sagamaker - Create Model'
 description: |
   Create Models in SageMaker
-metadata:
-  labels: {platform: 'SagaMaker'}
 inputs:
   - {name: region,              description: 'The region where the training job launches.'}
   - {name: image,               description: 'The Amazon EC2 Container Registry (Amazon ECR) path where inference code is stored.'}

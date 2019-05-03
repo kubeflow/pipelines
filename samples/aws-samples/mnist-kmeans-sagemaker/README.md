@@ -53,7 +53,7 @@ s3_client.upload_file('valid-data.csv', bucket, input_key)
 
 ## SageMaker permission
 
-In order to run this pipeline, we need to prepare an IAM Role to run Sagemaker jobs. You need this roleArn to run a pipeline. Check [here](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-roles.html) for details.
+In order to run this pipeline, we need to prepare an IAM Role to run Sagemaker jobs. You need this `role_arn` to run a pipeline. Check [here](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-roles.html) for details.
 
 This pipeline also use aws-secret to get access to Sagemaker services, please also make sure you have a `aws-secret` in the kubeflow namespace.
 
@@ -84,7 +84,7 @@ dsl-compile --py mnist-classification-pipeline.py --output mnist-classification-
 
 Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compiled specification (`.tar.gz` file) as a new pipeline template.
 
-The pipeline requires several arguments, replace `role` and data path with your settings.
+The pipeline requires several arguments, replace `role_arn` and data path with your settings.
 
 Once the pipeline done, you can go to `batch_transform_ouput` to check your batch prediction results.
 You will have an model enpoint in service. Please remember to clean it up.
