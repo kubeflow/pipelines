@@ -5,6 +5,7 @@ __all__ = [
 from pathlib import Path
 import requests
 from . import _components as comp
+from ._structures import ComponentReference
 
 class ComponentStore:
     def __init__(self, local_search_paths=None, url_search_prefixes=None):
@@ -73,6 +74,7 @@ class ComponentStore:
             component_path = Path(local_search_path, path_suffix)
             tried_locations.append(str(component_path))
             if component_path.is_file():
+                component_ref = ComponentReference(name=name, digest=digest, tag=tag)
                 return comp.load_component_from_file(str(component_path))
 
         #Trying URL prefixes
@@ -85,6 +87,7 @@ class ComponentStore:
             except:
                 continue
             if response.content:
-                return comp._load_component_from_yaml_or_zip_bytes(response.content, url)
+                component_ref = ComponentReference(name=name, digest=digest, tag=tag, url=url)
+                return comp._load_component_from_yaml_or_zip_bytes(response.content, url, component_ref)
 
         raise RuntimeError('Component {} was not found. Tried the following locations:\n{}'.format(name, '\n'.join(tried_locations)))
