@@ -46,8 +46,23 @@ images=(
 COMMIT_SHA=$1
 FROM_GCR_PREFIX='gcr.io/ml-pipeline-staging/'
 TO_GCR_PREFIX='gcr.io/ml-pipeline/'
-PARENT_PATH=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+REPO=kubeflow/pipelines
 
+if [ -z "$COMMIT_SHA" ]; then
+  echo "Usage: release.sh <commit-SHA>" >&2
+  exit 1
+fi
+
+# Checking out the repo
+clone_dir=$(mktemp -d)
+git clone "git@github.com:${REPO}.git" "$clone_dir"
+cd "$clone_dir"
+branch="release-$COMMIT_SHA"
+# Currently the release is based on master
+release_head=master
+git checkout "$release_head" -b "$branch"
+
+# Releasing the container images to public. Updating components and samples.
 for image in "${images[@]}"
 do
   TARGET_IMAGE_BASE=${TO_GCR_PREFIX}${image}
@@ -58,6 +73,19 @@ do
   ${FROM_GCR_PREFIX}${image}:${COMMIT_SHA} ${TARGET_IMAGE}
 
   # Update the code
-  find "${PARENT_PATH}/../samples" -type f | while read file; do sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" "$file"; done
-  find "${PARENT_PATH}" -type f | while read file; do sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" "$file"; done
+  find components samples -type f | while read file; do sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" "$file"; done
 done
+
+# Checking-in the container image changes
+git add --all
+git commit --message "Updated component images to version $COMMIT_SHA"
+image_update_commit_sha=$(git rev-parse HEAD)
+
+# Pushing the changes upstream
+read -p "Do you want to push the new branch to upstream to create a PR? [y|n]"
+if [ "$REPLY" != "y" ]; then
+   exit
+fi
+git push --set-upstream origin "$branch"
+
+sensible-browser "https://github.com/${REPO}/compare/master...$branch"
