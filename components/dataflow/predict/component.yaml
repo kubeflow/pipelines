@@ -15,7 +15,7 @@ outputs:
   - {name: Predictions dir,     type: GCSPath,  description: 'GCS or local directory.'} #Will contain prediction_results-* and schema.json files; TODO: Split outputs and replace dir with single file # type: {GCSPath: {path_type: Directory}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:b0147bdbed9f25212408e0468a475289e80e0406
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:727c48c690c081b505c1f0979d11930bf1ef07c0
     command: [python2, /ml/predict.py]
     args: [
       --data,       {inputValue: Data file pattern},
