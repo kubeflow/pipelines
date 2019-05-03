@@ -7,7 +7,7 @@ inputs:
   - {name: input_location,  description: 'The S3 location of the data source that is associated with a channel.'}
   - {name: output_location, description: 'The Amazon S3 path where you want Amazon SageMaker to store the results of the transform job.'}
 outputs:
-  - {name: output_location,    description: 'File path where the program will write the Amazon S3 URI of the transform job results.'}
+  - {name: output_location,    description: 'S3 URI of the transform job results.'}
 implementation:
   container:
     image: seedjeffwan/kubeflow-pipeline-aws-sm:20190501-05
