@@ -21,6 +21,9 @@ def main(argv=None):
   parser = argparse.ArgumentParser(description='SageMaker Training Job')
   parser.add_argument('--region', type=str, help='The region where the training job launches.')
   parser.add_argument('--image', type=str, help='The registry path of the Docker image that contains the training algorithm.')
+  parser.add_argument('--instance_type', type=str, help='The ML compute instance type.')
+  parser.add_argument('--instance_count', type=int, help='The registry path of the Docker image that contains the training algorithm.')
+  parser.add_argument('--volume_size', type=int, help='The size of the ML storage volume that you want to provision.')
   parser.add_argument('--dataset_path', type=str, help='The S3 location of the data source that is associated with a channel.')
   parser.add_argument('--model_artifact_path', type=str, help='Identifies the S3 path where you want Amazon SageMaker to store the model artifacts.')
   parser.add_argument('--role', type=str, help='The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.')
@@ -31,7 +34,7 @@ def main(argv=None):
 
   logging.info('Submitting Training Job to SageMaker...')
   job_name = _utils.create_training_job(
-      client, args.image, args.dataset_path, args.model_artifact_path, args.role)
+      client, args.image, args.instance_type, args.instance_count, args.volume_size, args.dataset_path, args.model_artifact_path, args.role)
   logging.info('Job request submitted. Waiting for completion...')
   _utils.wait_for_training_job(client, job_name)
 

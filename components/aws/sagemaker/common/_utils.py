@@ -33,7 +33,7 @@ def get_client(region=None):
 def get_sagemaker_role():
   return get_execution_role()
 
-def create_training_job(client, image, data_location, output_location, role):
+def create_training_job(client, image, instance_type, instance_count, volume_size, data_location, output_location, role):
   """Create a Sagemaker training job."""
   job_name = 'TrainingJob-' + strftime("%Y%m%d%H%M%S", gmtime()) + '-' + id_generator()
 
@@ -48,16 +48,11 @@ def create_training_job(client, image, data_location, output_location, role):
           "S3OutputPath": output_location
       },
       "ResourceConfig": {
-          "InstanceCount": 2,
-          "InstanceType": "ml.c4.8xlarge",
-          "VolumeSizeInGB": 50
+          "InstanceCount": instance_count,
+          "InstanceType": instance_type,
+          "VolumeSizeInGB": volume_size
       },
       "TrainingJobName": job_name,
-      "HyperParameters": {
-          "k": "10",
-          "feature_dim": "784",
-          "mini_batch_size": "500"
-      },
       "StoppingCondition": {
           "MaxRuntimeInSeconds": 60 * 60
       },
