@@ -120,7 +120,20 @@ spec:
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
             value: "notebook-lightweight"
-
+      - name: run-notebook-typecheck-tests
+        template: run-sample-tests
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: target-image-prefix
+            value: "{{inputs.parameters.target-image-prefix}}"
+          - name: sample-tests-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: namespace
+            value: "{{inputs.parameters.namespace}}"
+          - name: test-name
+            value: "notebook-typecheck"
 
   # Build and push image
   - name: build-image-by-dockerfile

@@ -131,8 +131,12 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       // Add buttons for creating experiment and deleting pipeline
       actions = actions.concat([
         buttons.newExperiment(() => this.state.pipeline ? this.state.pipeline.id! : ''),
-        buttons.delete(() => this.state.pipeline ? [this.state.pipeline.id!] : [],
-          'pipeline', () => null, true),
+        buttons.delete(
+          () => this.state.pipeline ? [this.state.pipeline.id!] : [],
+          'pipeline',
+          this._deleteCallback.bind(this),
+          true, /* useCurrentResource */
+        ),
       ]);
       return {
         actions,
@@ -344,6 +348,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       template,
       templateString,
     });
+  }
+
+  private _deleteCallback(_: string[], success: boolean): void {
+    if (success) {
+      const breadcrumbs = this.props.toolbarProps.breadcrumbs;
+      const previousPage = breadcrumbs.length ?
+        breadcrumbs[breadcrumbs.length - 1].href : RoutePage.PIPELINES;
+      this.props.history.push(previousPage);
+    }
   }
 }
 

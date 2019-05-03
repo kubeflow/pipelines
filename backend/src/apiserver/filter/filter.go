@@ -17,9 +17,11 @@
 package filter
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 
@@ -41,6 +43,69 @@ type Filter struct {
 	in map[string]interface{}
 
 	substring map[string]interface{}
+}
+
+// filterForMarshaling is a helper struct for marshaling Filter into JSON. This
+// is needed as we don't want to export the fields in Filter.
+type filterForMarshaling struct {
+	FilterProto string
+
+	EQ  map[string]interface{}
+	NEQ map[string]interface{}
+	GT  map[string]interface{}
+	GTE map[string]interface{}
+	LT  map[string]interface{}
+	LTE map[string]interface{}
+
+	IN map[string]interface{}
+
+	SUBSTRING map[string]interface{}
+}
+
+// MarshalJSON implements JSON Marshaler for Filter.
+func (f *Filter) MarshalJSON() ([]byte, error) {
+	m := &jsonpb.Marshaler{}
+	s, err := m.MarshalToString(f.filterProto)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(&filterForMarshaling{
+		FilterProto: s,
+		EQ:          f.eq,
+		NEQ:         f.neq,
+		GT:          f.gt,
+		GTE:         f.gte,
+		LT:          f.lt,
+		LTE:         f.lte,
+		IN:          f.in,
+		SUBSTRING:   f.substring,
+	})
+}
+
+// UnmarshalJSON implements JSON Unmarshaler for Filter.
+func (f *Filter) UnmarshalJSON(b []byte) error {
+	ffm := filterForMarshaling{}
+	err := json.Unmarshal(b, &ffm)
+	if err != nil {
+		return err
+	}
+
+	f.filterProto = &api.Filter{}
+	err = jsonpb.UnmarshalString(ffm.FilterProto, f.filterProto)
+	if err != nil {
+		return err
+	}
+
+	f.eq = ffm.EQ
+	f.neq = ffm.NEQ
+	f.gt = ffm.GT
+	f.gte = ffm.GTE
+	f.lt = ffm.LT
+	f.lte = ffm.LTE
+	f.in = ffm.IN
+	f.substring = ffm.SUBSTRING
+
+	return nil
 }
 
 // New creates a new Filter from parsing the API filter protocol buffer.

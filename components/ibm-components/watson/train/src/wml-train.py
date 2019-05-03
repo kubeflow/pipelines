@@ -31,6 +31,7 @@ def train(args):
     wml_runtime_version = args.runtime_version if args.runtime_version else '3.5'
     wml_run_definition = args.run_definition if args.run_definition else 'python-tensorflow-definition'
     wml_run_name = args.run_name if args.run_name else 'python-tensorflow-run'
+    wml_author_email = args.author_email if args.author_email else 'author@ibm.com'
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
@@ -43,9 +44,7 @@ def train(args):
     cos_endpoint = getSecret("/app/secrets/cos_endpoint")
     cos_access_key = getSecret("/app/secrets/cos_access_key")
     cos_secret_key = getSecret("/app/secrets/cos_secret_key")
-    
     cos_input_bucket = getSecret("/app/secrets/cos_input_bucket")
-
     cos_output_bucket = getSecret("/app/secrets/cos_output_bucket")
 
     # download model code
@@ -64,11 +63,11 @@ def train(args):
                        "instance_id": wml_instance_id
                       }
     client = WatsonMachineLearningAPIClient( wml_credentials )
-        
+
     # define the model
     metadata = {
         client.repository.DefinitionMetaNames.NAME              : wml_run_definition,
-        client.repository.DefinitionMetaNames.AUTHOR_EMAIL      : "wzhuang@us.ibm.com",
+        client.repository.DefinitionMetaNames.AUTHOR_EMAIL      : wml_author_email,
         client.repository.DefinitionMetaNames.FRAMEWORK_NAME    : wml_framework_name,
         client.repository.DefinitionMetaNames.FRAMEWORK_VERSION : wml_framework_version,
         client.repository.DefinitionMetaNames.RUNTIME_NAME      : wml_runtime_name,
@@ -83,7 +82,7 @@ def train(args):
     # define the run
     metadata = {
         client.training.ConfigurationMetaNames.NAME         : wml_run_name,
-        client.training.ConfigurationMetaNames.AUTHOR_EMAIL : "wzhuang@us.ibm.com",
+        client.training.ConfigurationMetaNames.AUTHOR_EMAIL : wml_author_email,
         client.training.ConfigurationMetaNames.TRAINING_DATA_REFERENCE : {
             "connection" : {
                 "endpoint_url"      : cos_endpoint,
@@ -137,8 +136,11 @@ if __name__ == "__main__":
     parser.add_argument('--runtime-version', type=str)
     parser.add_argument('--run-definition', type=str)
     parser.add_argument('--run-name', type=str)
-    parser.add_argument('--config', type=str)
+    parser.add_argument('--author-email', type=str)
+    parser.add_argument('--config', type=str, default="secret_name")
     args = parser.parse_args()
-    if (args.config != "created"):
+    # Check secret name is not empty
+    if (not args.config):
+        print("Secret for this pipeline is not properly created, exiting with status 1...")
         exit(1)
     train(args)

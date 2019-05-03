@@ -40,6 +40,7 @@ spec:
       artifacts:
       - name: mlpipeline-ui-metadata
         path: "/mlpipeline-ui-metadata.json"
+        optional: true
         s3:
           endpoint: minio-service.kubeflow:9000
           insecure: true
@@ -53,6 +54,7 @@ spec:
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
       - name: mlpipeline-metrics
         path: "/mlpipeline-metrics.json"
+        optional: true
         s3:
           endpoint: minio-service.kubeflow:9000
           insecure: true
@@ -91,6 +93,7 @@ spec:
       artifacts:
       - name: mlpipeline-ui-metadata
         path: "/mlpipeline-ui-metadata.json"
+        optional: true
         s3:
           endpoint: minio-service.kubeflow:9000
           insecure: true
@@ -104,6 +107,7 @@ spec:
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
       - name: mlpipeline-metrics
         path: "/mlpipeline-metrics.json"
+        optional: true
         s3:
           endpoint: minio-service.kubeflow:9000
           insecure: true

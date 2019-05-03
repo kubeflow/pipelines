@@ -8,16 +8,16 @@
     "http",
     "https"
   ],
-  "consumes": [
-    "multipart/form-data"
-  ],
-  "produces": [
-    "application/json"
-  ],
   "paths": {
     "/apis/v1beta1/pipelines/upload": {
       "post": {
         "operationId": "UploadPipeline",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ],
         "responses": {
           "200": {
             "description": "",

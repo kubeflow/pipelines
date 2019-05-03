@@ -124,6 +124,45 @@ func TestParseValidTFXMetadata(t *testing.T) {
 	}
 }
 
+func TestParseInvalidTFXMetadata(t *testing.T) {
+	tests := []struct {
+		desc  string
+		input string
+	}{
+		{
+			"no artifact type",
+			`[{
+			 	"artifact": {
+					"uri": "/location",
+					 "properties": {
+							 "state": {"stringValue": "complete"},
+							 "span": {"intValue": 10} }
+					}
+				}]`,
+		},
+		{
+			"no artifact",
+			`[{
+				"artifact_type": {
+					"name": "Artifact",
+					"properties": {"state": "STRING", "span": "INT" } },
+				}]`,
+		},
+		{
+			"empty string",
+			"",
+		},
+	}
+
+	for _, test := range tests {
+		_, err := parseTFXMetadata(test.input)
+		if err == nil {
+			t.Errorf("Test: %q", test.desc)
+			t.Errorf("parseTFXMetadata(%q)\nGot non-nil error. Want error.", test.input)
+		}
+	}
+}
+
 func fakeMLMDStore(t *testing.T) *mlmetadata.Store {
 	cfg := &mlpb.ConnectionConfig{
 		Config: &mlpb.ConnectionConfig_FakeDatabase{&mlpb.FakeDatabaseConfig{}},

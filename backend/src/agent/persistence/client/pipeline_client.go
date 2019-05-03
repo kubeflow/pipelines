@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	addressTemp = "%s.%s.svc.cluster.local:%s"
+	addressTemp = "%s:%s"
 )
 
 type PipelineClientInterface interface {
@@ -48,15 +48,14 @@ type PipelineClient struct {
 }
 
 func NewPipelineClient(
-	namespace string,
 	initializeTimeout time.Duration,
 	timeout time.Duration,
 	basePath string,
 	mlPipelineServiceName string,
 	mlPipelineServiceHttpPort string,
 	mlPipelineServiceGRPCPort string) (*PipelineClient, error) {
-	httpAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, namespace, mlPipelineServiceHttpPort)
-	grpcAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, namespace, mlPipelineServiceGRPCPort)
+	httpAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, mlPipelineServiceHttpPort)
+	grpcAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, mlPipelineServiceGRPCPort)
 	err := util.WaitForAPIAvailable(initializeTimeout, basePath, httpAddress)
 	if err != nil {
 		return nil, errors.Wrapf(err,

@@ -35,6 +35,7 @@ exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -302,6 +303,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -530,6 +532,7 @@ exports[`CustomTable renders a collapsed row when selection is disabled 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -744,6 +747,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -986,6 +990,7 @@ exports[`CustomTable renders an expanded row 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -1204,6 +1209,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -1439,6 +1445,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -1614,6 +1621,7 @@ exports[`CustomTable renders empty message on no rows 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -1751,6 +1759,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -1969,6 +1978,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -2229,6 +2239,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -2405,6 +2416,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -2580,6 +2592,7 @@ exports[`CustomTable renders some rows 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -2840,6 +2853,7 @@ exports[`CustomTable renders some rows using a custom renderer 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -3104,6 +3118,7 @@ exports[`CustomTable renders with default filter label 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -3235,6 +3250,7 @@ exports[`CustomTable renders with provided filter label 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="test filter label"
       maxWidth="100%"
       onChange={[Function]}
@@ -3459,6 +3475,7 @@ exports[`CustomTable renders without rows or columns 1`] = `
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -3590,6 +3607,7 @@ exports[`CustomTable renders without the checkboxes if disableSelection is true 
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}
@@ -3824,6 +3842,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
       }
       className="filterBox"
       height={48}
+      id="tableFilterBox"
       label="Filter"
       maxWidth="100%"
       onChange={[Function]}

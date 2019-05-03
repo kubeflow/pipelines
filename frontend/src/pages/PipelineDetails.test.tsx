@@ -325,7 +325,7 @@ describe('PipelineDetails', () => {
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     const newExperimentBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Create an experiment');
+      b => b.title === 'Create experiment');
     expect(newExperimentBtn).toBeDefined();
   });
 
@@ -379,7 +379,7 @@ describe('PipelineDetails', () => {
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
     const newExperimentBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Create an experiment');
+      b => b.title === 'Create experiment');
     await newExperimentBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(

@@ -22,7 +22,7 @@ NAMESPACE=kubeflow
 usage()
 {
     echo "usage: run_test.sh
-    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/api_integration_test
+    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/e2e_test
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
     [-h help]"
 }
@@ -74,8 +74,11 @@ POD=`/src/tools/google-cloud-sdk/bin/kubectl get pods -n ${NAMESPACE} -l app=ml-
 ./node_modules/.bin/wait-port 127.0.0.1:3000 -t 20000
 
 export PIPELINE_OUTPUT=${RESULTS_GCS_DIR}/pipeline_output
+# Don't exit early if 'npm test' fails
+set +e
 npm test
 TEST_EXIT_CODE=$?
+set -e
 
 JUNIT_TEST_RESULT=junit_FrontendIntegrationTestOutput.xml
 
