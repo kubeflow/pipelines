@@ -70,7 +70,7 @@ outputs:
     type: String
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:b0147bdbed9f25212408e0468a475289e80e0406
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:727c48c690c081b505c1f0979d11930bf1ef07c0
     args: [
       kfp_component.google.dataproc, submit_hive_job,
       --project_id, {inputValue: project_id},
