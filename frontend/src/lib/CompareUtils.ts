@@ -36,8 +36,6 @@ export default class CompareUtils {
       logger.error('Numbers of passed in runs and workflows do not match');
     }
 
-    const xLabels = runs.map(r => r.run!.name!);
-
     const yLabels = chain(flatten(workflowObjects
       .map(w => WorkflowParser.getParameters(w))))
       .countBy(p => p.name)                         // count by parameter name
@@ -55,23 +53,17 @@ export default class CompareUtils {
         });
     });
 
-    return { rows, xLabels, yLabels };
+    return {
+      rows,
+      xLabels: runs.map(r => r.run!.name!),
+      yLabels,
+    };
   }
 
   public static getMetricsCompareProps(runs: ApiRun[]): CompareTableProps {
-    const xLabels = runs.map(r => r.name!);
-
     const metricMetadataMap = RunUtils.runsToMetricMetadataMap(runs);
 
     const yLabels = Array.from(metricMetadataMap.keys());
-
-    // const yLabels = chain(flatten(workflowObjects
-    //   .map(w => WorkflowParser.getParameters(w))))
-    //   .countBy(p => p.name)                         // count by parameter name
-    //   .map((k, v) => ({ name: v, count: k }))       // convert to counter objects
-    //   .orderBy('count', 'desc')                     // sort on count field, descending
-    //   .map(o => o.name)
-    //   .value();
 
     const rows =
       yLabels.map(name =>
@@ -80,12 +72,10 @@ export default class CompareUtils {
         )
       );
 
-    // const rows: string[][] = [[]];
-
-    // const rows = runs.map(r => {
-
-    // });
-
-    return { rows, xLabels, yLabels };
+    return {
+      rows,
+      xLabels: runs.map(r => r.name!),
+      yLabels,
+    };
   }
 }
