@@ -1,0 +1,33 @@
+name: 'Sagamaker - Training Job'
+description: |
+  Train Machine Learning and Deep Learning Models using SageMaker
+inputs:
+  - {name: region,                description: 'The region where the training job launches.'}
+  - {name: image,                 description: 'The registry path of the Docker image that contains the training algorithm.'}
+  - {name: instance_type,         description: 'The ML compute instance type.'}
+  - {name: instance_count,        description: 'The registry path of the Docker image that contains the training algorithm.'}
+  - {name: volume_size,           description: 'The size of the ML storage volume that you want to provision.'}
+  - {name: dataset_path,          description: 'The S3 location of the data source that is associated with a channel.'}
+  - {name: model_artifact_path,   description: 'Identifies the S3 path where you want Amazon SageMaker to store the model artifacts.'}
+  - {name: role,                  description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'}
+outputs:
+  - {name: model_artifact_url,    description: 'Model artifacts url'}
+  - {name: job_name,              description: 'Training job name'}
+implementation:
+  container:
+    image: seedjeffwan/kubeflow-pipeline-aws-sm:20190501-05
+    command: ['python']
+    args: [
+      train.py,
+      --region, {inputValue: region},
+      --image, {inputValue: image},
+      --instance_type, {inputValue: instance_type},
+      --instance_count, {inputValue: instance_count},
+      --volume_size, {inputValue: volume_size},
+      --dataset_path, {inputValue: dataset_path},
+      --model_artifact_path, {inputValue: model_artifact_path},
+      --role, {inputValue: role}
+    ]
+    fileOutputs:
+      model_artifact_url: /tmp/model_artifact_url.txt
+      job_name: /tmp/job_name.txt
