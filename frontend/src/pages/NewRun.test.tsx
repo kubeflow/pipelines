@@ -26,17 +26,9 @@ import { ApiPipeline } from '../apis/pipeline';
 import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
 
 class TestNewRun extends NewRun {
-  public async _experimentSelectorClosed(confirmed: boolean): Promise<void> {
-    return await super._experimentSelectorClosed(confirmed);
-  }
-
-  public async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
-    return await super._pipelineSelectorClosed(confirmed);
-  }
-
-  public _updateRecurringRunState(isRecurringRun: boolean): void {
-    return super._updateRecurringRunState(isRecurringRun);
-  }
+  public _experimentSelectorClosed = super._experimentSelectorClosed;
+  public _pipelineSelectorClosed = super._pipelineSelectorClosed;
+  public _updateRecurringRunState = super._updateRecurringRunState;
 }
 
 describe('NewRun', () => {

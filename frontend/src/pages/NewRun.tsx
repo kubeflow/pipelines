@@ -444,7 +444,6 @@ class NewRun extends Page<{}, NewRunState> {
 
   protected _updateRecurringRunState(isRecurringRun: boolean): void {
     this.props.updateToolbar({
-      actions: this.props.toolbarProps.actions,
       pageTitle: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
     });
     this.setStateSafe({ isRecurringRun });

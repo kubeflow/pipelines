@@ -973,7 +973,6 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
                     "pageTitle": "Start a recurring run",
                   },
                 ],
@@ -1109,7 +1108,6 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
                     "pageTitle": "Start a recurring run",
                   },
                 ],
@@ -1412,7 +1410,6 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
                     "pageTitle": "Start a new run",
                   },
                 ],
@@ -1544,7 +1541,6 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
                     "pageTitle": "Start a new run",
                   },
                 ],
