@@ -50,18 +50,18 @@ class Metric extends React.PureComponent<MetricProps> {
       return <div />;
     }
 
-    const leftSpace = 6;
     const displayString = MetricUtils.getMetricDisplayString(metric);
     let width = '';
 
     if (metric.format === RunMetricFormat.PERCENTAGE) {
       width = `calc(${displayString})`;
     } else {
-
       // Non-percentage metrics must contain metadata
       if (!metadata) {
         return <div />;
       }
+
+      const leftSpace = 6;
 
       if (metadata.maxValue === 0 && metadata.minValue === 0) {
         return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;

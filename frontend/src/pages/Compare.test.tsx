@@ -359,6 +359,7 @@ describe('Compare', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
+      'Metrics': true,
       'Parameters': true,
       'Run overview': true,
       'Table': true,
@@ -381,6 +382,7 @@ describe('Compare', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
+      'Metrics': true,
       'Parameters': true,
       'Run overview': true,
       'Table': true,
