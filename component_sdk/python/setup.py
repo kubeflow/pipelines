@@ -15,7 +15,7 @@
 from setuptools import setup
 
 PACKAGE_NAME = "kfp-component"
-VERSION = '0.1'
+VERSION = '0.1.19'
 REQUIRES = []
 with open('requirements.txt') as f:
     REQUIRES = f.readlines()
