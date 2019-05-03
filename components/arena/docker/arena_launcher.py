@@ -114,8 +114,6 @@ def _collect_metrics(name, job_type, metric_name):
 
   return metric
 
-
-
 def _get_job_status(name, job_type):
   get_cmd = "arena get %s --type %s | grep -i STATUS:|awk -F: '{print $NF}'" % (name, job_type)
   status = ""
@@ -139,22 +137,70 @@ def _get_tensorboard_url(name, job_type):
 
   return url
 
-# 
-
-# Generate standalone job
-def generate_job_command(args):
-    name = args.name
+# Generate common options
+def generate_options(args):
     gpus = args.gpus
     cpu = args.cpu
     memory = args.memory
     tensorboard = args.tensorboard
-    image = args.image
     output_data = args.output_data
     data = args.data
     env = args.env
     tensorboard_image = args.tensorboard_image
     tensorboard = str2bool(args.tensorboard)
     log_dir = args.log_dir
+    sync_source = args.sync_source
+
+    options = []
+
+    if gpus > 0:
+        options.extend(['--gpus', str(gpus)])
+
+    if cpu > 0:
+        options.extend(['--cpu', str(cpu)])
+
+    if memory >0:
+        options.extend(['--memory', str(memory)])
+
+    if tensorboard_image != "tensorflow/tensorflow:1.12.0":
+        options.extend(['--tensorboardImage', tensorboard_image])    
+
+    if tensorboard:
+        options.append("--tensorboard")
+
+    if os.path.isdir(args.log_dir):  
+        options.extend(['--logdir', args.log_dir])
+    else:
+        logging.info("skip log dir :{0}".format(args.log_dir))
+
+    if len(data) > 0:
+      for d in data:
+        options.append("--data={0}".format(d))
+
+    if len(env) > 0:
+      for e in env:
+        options.append("--env={0}".format(e))
+
+    if len(args.workflow_name) > 0:
+        options.append("--env=WORKFLOW_NAME={0}".format(args.workflow_name))
+
+    if len(args.step_name) > 0:
+        options.append("--env=STEP_NAME={0}".format(args.step_name))
+
+    if len(sync_source) > 0:
+      if not sync_source.endswith(".git"):
+        raise ValueError("sync_source must be an http git url")
+      options.extend(['--sync-mode','git'])
+      options.extend(['--sync-source',sync_source])
+
+    return options
+
+
+
+# Generate standalone job
+def generate_job_command(args):
+    name = args.name
+    image = args.image
 
     commandArray = [
     'arena', 'submit', 'tfjob',
@@ -162,33 +208,7 @@ def generate_job_command(args):
     '--image={0}'.format(image),
     ]
 
-    if gpus > 0:
-        commandArray.append("--gpus={0}".format(gpus))
-
-    if cpu > 0:
-        commandArray.append("--cpu={0}".format(cpu))
-
-    if memory >0:
-        commandArray.append("--memory={0}".format(memory))
-
-    if tensorboard_image != "tensorflow/tensorflow:1.12.0":
-        commandArray.append("--tensorboardImage={0}".format(tensorboard_image))    
-
-    if tensorboard:
-        commandArray.append("--tensorboard")
-
-    if os.path.isdir(args.log_dir):  
-        commandArray.append("--logdir={0}".format(args.log_dir))
-    else:
-        logging.info("skip log dir :{0}".format(args.log_dir))
-
-    if len(data) > 0:
-      for d in data:
-        commandArray.append("--data={0}".format(d))
-
-    if len(env) > 0:
-      for e in env:
-        commandArray.append("--env={0}".format(e))
+    commandArray.extend(generate_options(args))
 
     return commandArray, "tfjob"
 
@@ -196,18 +216,7 @@ def generate_job_command(args):
 def generate_mpjob_command(args):
     name = args.name
     workers = args.workers
-    gpus = args.gpus
-    cpu = args.cpu
-    memory = args.memory
-    tensorboard = args.tensorboard
     image = args.image
-    output_data = args.output_data
-    data = args.data
-    env = args.env
-    tensorboard_image = args.tensorboard_image
-    tensorboard = str2bool(args.tensorboard)
-    rdma = str2bool(args.rdma)
-    log_dir = args.log_dir
 
     commandArray = [
     'arena', 'submit', 'mpijob',
@@ -216,36 +225,10 @@ def generate_mpjob_command(args):
     '--image={0}'.format(image),
     ]
 
-    if gpus > 0:
-        commandArray.append("--gpus={0}".format(gpus))
-
-    if cpu > 0:
-        commandArray.append("--cpu={0}".format(cpu))
-
-    if memory >0:
-        commandArray.append("--memory={0}".format(memory))
-
-    if tensorboard_image != "tensorflow/tensorflow:1.12.0":
-        commandArray.append("--tensorboardImage={0}".format(tensorboard_image))    
-
-    if tensorboard:
-        commandArray.append("--tensorboard")
-
     if rdma:
-        commandArray.append("--rdma")
+       commandArray.append("--rdma")
 
-    if os.path.isdir(args.log_dir):  
-        commandArray.append("--logdir={0}".format(args.log_dir))
-    else:
-        logging.info("skip log dir :{0}".format(args.log_dir))
-
-    if len(data) > 0:
-      for d in data:
-        commandArray.append("--data={0}".format(d))
-
-    if len(env) > 0:
-      for e in env:
-        commandArray.append("--env={0}".format(e))
+    commandArray.extend(generate_options(args))
 
     return commandArray, "mpijob"
 
@@ -281,6 +264,10 @@ def main(argv=None):
   parser.add_argument('--env', action='append', type=str, default=[])
   parser.add_argument('--data', action='append', type=str, default=[])
   parser.add_argument('--metric', action='append', type=str, default=[])
+  parser.add_argument('--sync-source', type=str, default='')
+
+  parser.add_argument('--workflow-name', type=str, default='')
+  parser.add_argument('--step-name', type=str, default='')
 
   subparsers = parser.add_subparsers(help='arena sub-command help')
 
@@ -392,6 +379,14 @@ def main(argv=None):
   with open('/output.txt', 'w') as f:
     f.write(output)
 
+  with open('/workflow-name.txt', 'w') as f:
+    f.write(args.workflow_name)
+
+  with open('/step-name.txt', 'w') as f:
+    f.write(args.step_name)
+
+  with open('/name.txt', 'w') as f:
+    f.write(args.name)
 
 if __name__== "__main__":
   main()

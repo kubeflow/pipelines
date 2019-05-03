@@ -109,14 +109,14 @@ def main():
   #   confusion matrix should show three columns for the flower data
   #     target, predicted, count
   cm_tar_path = './confusion_matrix.tar.gz'
-  cm_filename = 'mlpipeline-ui-metadata.json'
-  utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path)
-  tar_handler = tarfile.open(cm_tar_path)
-  tar_handler.extractall()
+  utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path, 'mlpipeline-ui-metadata')
+  with tarfile.open(cm_tar_path) as tar_handle:
+    file_handles = tar_handle.getmembers()
+    assert len(file_handles) == 1
 
-  with open(cm_filename, 'r') as f:
-    cm_data = f.read()
-    utils.add_junit_test(test_cases, 'confusion matrix format', (len(cm_data) > 0), 'the confusion matrix file is empty')
+    with tar_handle.extractfile(file_handles[0]) as f:
+      cm_data = f.read()
+      utils.add_junit_test(test_cases, 'confusion matrix format', (len(cm_data) > 0), 'the confusion matrix file is empty')
 
   ###### Delete Job ######
   #TODO: add deletion when the backend API offers the interface.

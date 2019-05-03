@@ -562,10 +562,10 @@ func (s *RunStore) toRunMetadatas(models []model.ListableDataModel) []model.Run 
 // used to record artifact metadata.
 func NewRunStore(db *DB, time util.TimeInterface, metadataStore *metadata.Store) *RunStore {
 	return &RunStore{
-		db:                     db,
+		db: db,
 		resourceReferenceStore: NewResourceReferenceStore(db),
-		time:                   time,
-		metadataStore:          metadataStore,
+		time:          time,
+		metadataStore: metadataStore,
 	}
 }
 

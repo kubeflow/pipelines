@@ -101,6 +101,14 @@ func (a *artifactStruct) UnmarshalJSON(b []byte) error {
 		return errorF(err)
 	}
 
+	if _, ok := jsonMap["artifact_type"]; !ok {
+		return util.NewInvalidInputError("JSON Unmarshal failure: missing 'artifact_type' field")
+	}
+
+	if _, ok := jsonMap["artifact"]; !ok {
+		return util.NewInvalidInputError("JSON Unmarshal failure: missing 'artifact_type' field")
+	}
+
 	a.ArtifactType = &mlpb.ArtifactType{}
 	a.Artifact = &mlpb.Artifact{}
 

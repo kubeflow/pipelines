@@ -32,34 +32,6 @@ enum SortOrder {
   DESC = 'desc',
 }
 
-function desc(a: string[], b: string[], orderBy: number): number {
-  if (b[orderBy] < a[orderBy]) {
-    return -1;
-  }
-  if (b[orderBy] > a[orderBy]) {
-    return 1;
-  }
-  return 0;
-}
-
-function stableSort(array: string[][], cmp: any): string[][] {
-  const stabilizedThis = array.map((row: string[], index: number) => [row, index]);
-  stabilizedThis.sort((a: [string[], number], b: [string[], number]) => {
-    const order = cmp(a[0], b[0]);
-    if (order !== 0) {
-      return order;
-    }
-    return a[1] - b[1];
-  });
-  return stabilizedThis.map((el: [string[], number]) => el[0]);
-}
-
-function getSorting(order: SortOrder, orderBy: any): (a: any, b: any) => number {
-  return order === 'desc' ? (a: any, b: any) => desc(a, b, orderBy) : (a: any, b: any) => -desc(a, b, orderBy);
-}
-
-const rowHeight = 30;
-
 export interface PagedTableConfig extends ViewerConfig {
   data: string[][];
   labels: string[];
@@ -81,6 +53,7 @@ interface PagedTableState {
 class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
   private _shrinkThreshold = 600;
   private _config = this.props.configs[0];
+  private _rowHeight = 30;
 
   private _css = stylesheet({
     cell: {
@@ -92,12 +65,13 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
       pointerEvents: this._isSmall() ? 'none' : 'initial',
     },
     columnName: {
-      fontSize: fontsize.medium,
+      fontSize: this._isSmall() ? fontsize.base : fontsize.medium,
       fontWeight: 'bold',
+      paddingLeft: this._isSmall() ? 5 : 'invalid',
     },
     row: {
       borderBottom: '1px solid #ddd',
-      height: this._isSmall() ? 25 : rowHeight,
+      height: this._isSmall() ? 25 : this._rowHeight,
     },
   });
 
@@ -123,29 +97,29 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     const { data, labels } = this._config;
     const { order, orderBy, rowsPerPage, page } = this.state;
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, data.length - page * rowsPerPage);
-    const small = this._isSmall();
 
     return (
       <div style={{ width: '100%' }} className={commonCss.page}>
         <Table style={{ display: 'block', overflow: 'auto' }}>
-          {!small && <TableHead>
+          <TableHead>
             <TableRow>
               {labels.map((label, i) => {
                 return <TableCell className={this._css.columnName} key={i}
                   sortDirection={orderBy === i ? order : false}>
                   <Tooltip title='Sort' enterDelay={300}>
                     <TableSortLabel active={orderBy === i} direction={order}
-                      onClick={this._createSortHandler(i)}>
+                      onClick={this._handleSort(i)}>
                       {label}
                     </TableSortLabel>
                   </Tooltip>
                 </TableCell>;
               }, this)}
             </TableRow>
-          </TableHead>}
+          </TableHead>
 
           <TableBody>
-            {stableSort(data, getSorting(order, orderBy))
+            {/* TODO: bug: sorting keeps appending items */}
+            {this._stableSort(data)
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .map(row => {
                 return <TableRow hover={true} tabIndex={-1} key={row[0]} className={this._css.row}>
@@ -154,23 +128,23 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
                 </TableRow>;
               })}
             {emptyRows > 0 && (
-              <TableRow style={{ height: rowHeight * emptyRows }}>
+              <TableRow style={{ height: this._rowHeight * emptyRows }}>
                 <TableCell colSpan={6} />
               </TableRow>
             )}
           </TableBody>
         </Table>
 
-        {!small && <TablePagination component='div' count={data.length} rowsPerPage={rowsPerPage}
+        <TablePagination component='div' count={data.length} rowsPerPage={rowsPerPage}
           page={page} onChangePage={this._handleChangePage}
-          onChangeRowsPerPage={this._handleChangeRowsPerPage} />}
+          onChangeRowsPerPage={this._handleChangeRowsPerPage} />
       </div>
     );
   }
 
-  private _createSortHandler = (index: number) => () => {
+  private _handleSort = (index: number) => () => {
     const orderBy = index;
-    let order = SortOrder.DESC;
+    let order = SortOrder.ASC;
 
     if (this.state.orderBy === index && this.state.order === SortOrder.ASC) {
       order = SortOrder.DESC;
@@ -180,7 +154,6 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
   };
 
   private _handleChangePage = (event: any, page: number) => {
-    // TODO: bug: paging keeps appending items
     this.setState({ page });
   };
 
@@ -191,6 +164,39 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
   private _isSmall(): boolean {
     return !!this.props.maxDimension && this.props.maxDimension < this._shrinkThreshold;
   }
+
+  private _stableSort(array: string[][]): string[][] {
+    const stabilizedThis = array.map((row: string[], index: number) => [row, index]);
+
+    const compareFn = this._getSorting(this.state.order, this.state.orderBy);
+
+    stabilizedThis.sort((a: [string[], number], b: [string[], number]) => {
+      const order = compareFn(a[0], b[0]);
+      if (order !== 0) {
+        return order;
+      }
+      return a[1] - b[1];
+    });
+    return stabilizedThis.map((el: [string[], number]) => el[0]);
+  }
+
+
+  private _desc(a: string[], b: string[], orderBy: number): number {
+    if (b[orderBy] < a[orderBy]) {
+      return -1;
+    }
+    if (b[orderBy] > a[orderBy]) {
+      return 1;
+    }
+    return 0;
+  }
+
+  private _getSorting(order: SortOrder, orderBy: number): (a: any, b: any) => number {
+    return order === SortOrder.DESC
+      ? (a: any, b: any) => this._desc(a, b, orderBy)
+      : (a: any, b: any) => -this._desc(a, b, orderBy);
+  }
+
 }
 
 export default PagedTable;

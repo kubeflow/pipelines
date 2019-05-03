@@ -25,6 +25,7 @@ type ExperimentStore struct {
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 	resourceReferenceStore *ResourceReferenceStore
+	defaultExperimentStore *DefaultExperimentStore
 }
 
 // Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
@@ -178,7 +179,7 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 		return util.NewInternalServerError(err,
 			"Failed to create query to delete experiment: %s", id)
 	}
-	// Use a transaction to make sure both experiment and its resource references are stored.
+	// Use a transaction to make sure both experiment and its resource references are deleted.
 	tx, err := s.db.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to delete experiment.")
@@ -187,6 +188,11 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete experiment %s from table", id)
+	}
+	err = s.defaultExperimentStore.UnsetDefaultExperimentIdIfIdMatches(tx, id)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to clear default experiment ID for experiment %v ", id)
 	}
 	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, common.Run)
 	if err != nil {
@@ -202,5 +208,11 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 
 // factory function for experiment store
 func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *ExperimentStore {
-	return &ExperimentStore{db: db, time: time, uuid: uuid, resourceReferenceStore: NewResourceReferenceStore(db)}
+	return &ExperimentStore{
+		db:   db,
+		time: time,
+		uuid: uuid,
+		resourceReferenceStore: NewResourceReferenceStore(db),
+		defaultExperimentStore: NewDefaultExperimentStore(db),
+	}
 }

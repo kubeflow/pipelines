@@ -34,8 +34,12 @@ if __name__ == "__main__":
     secret_name = args.name
     if (not secret_name):
         secret_name = 'ai-pipeline-' + os.path.splitext(config_file)[0]
-    command = ['kubectl', 'delete', 'secret', secret_name]
-    subprocess.run(command, check=True)
+
+    try:
+        command = ['kubectl', 'delete', 'secret', secret_name]
+        subprocess.run(command, check=True)
+    except Exception as e:
+        print('No previous secret: ' + secret_name + '. Secret deletion is not performed.')
 
     # gather all secrets
     command = ['kubectl', 'create', 'secret', 'generic', secret_name]

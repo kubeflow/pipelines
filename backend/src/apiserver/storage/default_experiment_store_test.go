@@ -33,7 +33,7 @@ func TestInitializeDefaultExperimentTable(t *testing.T) {
 	// Default experiment ID is empty after table initialization
 	defaultExperimentId, err := defaultExperimentStore.GetDefaultExperimentId()
 	assert.Nil(t, err)
-	assert.Equal(t, defaultExperimentId, "")
+	assert.Equal(t, "", defaultExperimentId)
 
 	// Initializing the table with an invalid DB is an error
 	db.Close()
@@ -54,10 +54,13 @@ func TestGetAndSetDefaultExperimentId(t *testing.T) {
 	// Get the default experiment ID
 	defaultExperimentId, err := defaultExperimentStore.GetDefaultExperimentId()
 	assert.Nil(t, err)
-	assert.Equal(t, defaultExperimentId, "test-ID")
-	// Trying to set the default experiment ID again is an error
+	assert.Equal(t, "test-ID", defaultExperimentId)
+	// Trying to set the default experiment ID again is not an error, but the ID is not changed
 	err = defaultExperimentStore.SetDefaultExperimentId("a-different-ID")
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
+	defaultExperimentId, err = defaultExperimentStore.GetDefaultExperimentId()
+	assert.Nil(t, err)
+	assert.Equal(t, "test-ID", defaultExperimentId)
 
 	// Setting or getting the default experiment ID with an invalid DB is an error
 	db.Close()
@@ -65,4 +68,28 @@ func TestGetAndSetDefaultExperimentId(t *testing.T) {
 	assert.NotNil(t, err)
 	_, err = defaultExperimentStore.GetDefaultExperimentId()
 	assert.NotNil(t, err)
+}
+
+func TestUnsetDefaultExperimentIdIfIdMatches(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defaultExperimentStore := NewDefaultExperimentStore(db)
+
+	// Initialize for the first time
+	err := defaultExperimentStore.initializeDefaultExperimentTable()
+	assert.Nil(t, err)
+	// Set the default experiment ID
+	err = defaultExperimentStore.SetDefaultExperimentId("test-ID")
+	assert.Nil(t, err)
+	// Clear the default experiment ID. This requires a transaction.
+	tx, _ := db.Begin()
+	err = defaultExperimentStore.UnsetDefaultExperimentIdIfIdMatches(tx, "test-ID")
+	assert.Nil(t, err)
+	err = tx.Commit()
+	assert.Nil(t, err)
+	// Get the default experiment ID
+	defaultExperimentId, err := defaultExperimentStore.GetDefaultExperimentId()
+	assert.Nil(t, err)
+	assert.Equal(t, "", defaultExperimentId)
+
+	db.Close()
 }
