@@ -95,6 +95,8 @@ describe('deploy helloworld sample run', () => {
 
     // Skip over "choose experiment" button
     browser.keys('Tab');
+    // Skip over "Run Type" radio button
+    browser.keys('Tab');
 
     browser.keys('Tab');
     browser.keys(outputParameterValue);
@@ -213,6 +215,8 @@ describe('deploy helloworld sample run', () => {
     browser.keys(runWithoutExperimentDescription);
 
     // Skip over "choose experiment" button
+    browser.keys('Tab');
+    // Skip over "Run Type" radio button
     browser.keys('Tab');
 
     browser.keys('Tab');
