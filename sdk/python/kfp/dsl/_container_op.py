@@ -751,7 +751,7 @@ class BaseOp(object):
 
         Args:
           volume: Kubernetes toleration
-          For detailed spec, check volume definition
+          For detailed spec, check toleration definition
           https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_toleration.py
         """
         self.tolerations.append(tolerations)
