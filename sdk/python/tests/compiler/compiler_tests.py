@@ -315,6 +315,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline with sidecar."""
     self._test_py_compile_yaml('sidecar')
 
+  def test_py_tolerations(self):
+    """Test a pipeline with a tolerations."""
+    self._test_py_compile_yaml('tolerations')
+
   def test_py_compile_with_pipelineparams(self):
     """Test pipeline with multiple pipeline params."""
     self._test_py_compile_yaml('pipelineparams')
