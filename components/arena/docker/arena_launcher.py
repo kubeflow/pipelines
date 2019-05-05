@@ -249,7 +249,10 @@ def main(argv=None):
   parser.add_argument('--tensorboard-image', type=str, default='tensorflow/tensorflow:1.12.0')
   parser.add_argument('--timeout-hours', type=int,
                       default=200,
-                      help='Time in hours to wait for the Job submitted by arena to complete')
+                      help='Time in minutes to wait for the Job submitted by arena to complete')
+  parser.add_argument('--pending-timeout-minutes', type=int,
+                      default=360,
+                      help='Time in hours to wait for the Job submitted by arena from pending to running')
   # parser.add_argument('--command', type=str)
   parser.add_argument('--output-dir', type=str, default='')
   parser.add_argument('--output-data', type=str, default='None')
@@ -321,7 +324,8 @@ def main(argv=None):
 
   # wait for job done
   # _wait_job_done(fullname, job_type, datetime.timedelta(minutes=timeout_hours))
-  _wait_job_running(fullname, job_type, datetime.timedelta(minutes=30))
+  pending_timeout_minutes = args.pending_timeout_minutes
+  _wait_job_running(fullname, job_type, datetime.timedelta(minutes=pending_timeout_minutes))
 
   rc = _job_logging(fullname, job_type)
   logging.info("rc: {0}".format(rc))
