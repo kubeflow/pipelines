@@ -24,6 +24,7 @@
 import argparse
 import json
 import os
+import urlparse
 import pandas as pd
 from sklearn.metrics import roc_curve, roc_auc_score
 from tensorflow.python.lib.io import file_io
@@ -45,7 +46,9 @@ def main(argv=None):
   parser.add_argument('--output', type=str, help='GCS path of the output directory.')
   args = parser.parse_args()
 
-  on_cloud = args.output.startswith('gs://')
+  storage_service_dict = {'minio': 'minio', 'gs': 'gcs', 's3': 's3', '': 'gcs'}
+  storage_service_scheme = urlparse.urlparse(args.output).scheme
+  on_cloud = True if storage_service_scheme else False
   if not on_cloud and not os.path.exists(args.output):
     os.makedirs(args.output)
 
@@ -64,7 +67,7 @@ def main(argv=None):
   for file in files:
     with file_io.FileIO(file, 'r') as f:
       dfs.append(pd.read_csv(f, names=names))
-    
+
   df = pd.concat(dfs)
   if args.target_lambda:
     df['target'] = df.apply(eval(args.target_lambda), axis=1)
@@ -76,11 +79,11 @@ def main(argv=None):
   roc_file = os.path.join(args.output, 'roc.csv')
   with file_io.FileIO(roc_file, 'w') as f:
     df_roc.to_csv(f, columns=['fpr', 'tpr', 'thresholds'], header=False, index=False)
-  
+
   metadata = {
     'outputs': [{
       'type': 'roc',
-      'storage': 'gcs',
+      'storage': storage_service_dict[storage_service_scheme],
       'format': 'csv',
       'schema': [
         {'name': 'fpr', 'type': 'NUMBER'},
