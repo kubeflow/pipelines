@@ -1,0 +1,40 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: emr_submit_pyspark_job
+description: >-
+  Submits an Elastic Map Reduce (EMR) PySpark application.
+inputs:
+  - {name: region, description: 'The EMR region in which to handle the request.'}
+  - {name: jobflow_id, description: 'The cluster id to run the job.'}
+  - {name: job_name, description: 'The name of the spark job.'}
+  - {name: py_file, description: 'A path to a pyspark file run during the step.'}
+  - {name: input, description: 'File path of the dataset.'}
+  - {name: output, description: 'Output path of the result files.'}
+outputs:
+  - {name: job_id, description: 'The id of the created job.'}
+  - {name: output_location,    description: 'S3 URI of the training job results.'}
+implementation:
+  container:
+    image: seedjeffwan/kubeflow-pipeline-aws-emr:20190507
+    command: ['python', 'submit_pyspark_job.py']
+    args: [
+      --region, {inputValue: region},
+      --jobflow_id, {inputValue: jobflow_id},
+      --job_name, {inputValue: job_name},
+      --py_file, {inputValue: py_file},
+      --input, {inputValue: input},
+      --output, {inputValue: output},
+      --output_file, {outputPath: output_location},
+    ]
+    fileOutputs:
+      job_id: /output.txt
