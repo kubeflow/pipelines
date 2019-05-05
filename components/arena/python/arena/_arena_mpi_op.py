@@ -23,7 +23,7 @@ def mpi_job_op(name, image, command, workers=1, gpus=0, cpu_limit=0, memory_limi
           rdma=False,
           tensorboard=False,  tensorboard_image=None, 
           metrics=['Train-accuracy:PERCENTAGE'],
-          arenaImage='cheyang/arena_launcher:v0.5',
+          arenaImage='cheyang/arena_launcher:v0.6',
           timeout_hours=240):
     """This function submits MPI Job, it can run Allreduce-style Distributed Training.
 
