@@ -15,6 +15,8 @@
 import re
 import warnings
 from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
+
+from kubernetes.client import V1Toleration
 from kubernetes.client.models import (
     V1Container, V1EnvVar, V1EnvFromSource, V1SecurityContext, V1Probe,
     V1ResourceRequirements, V1VolumeDevice, V1VolumeMount, V1ContainerPort,
@@ -746,7 +748,7 @@ class BaseOp(object):
         self.volumes.append(volume)
         return self
 
-    def add_toleration(self, tolerations):
+    def add_toleration(self, tolerations: V1Toleration):
         """Add K8s tolerations
 
         Args:
