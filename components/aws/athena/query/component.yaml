@@ -17,7 +17,7 @@ name: Athena - Query
 inputs:
   - {name: region,        description: 'The Athena region in which to handle the request.'}
   - {name: database,      description: 'The name of the database.'}
-  - {name: query,         description: 'The SQL query statements to be executed in Athena.}
+  - {name: query,         description: 'The SQL query statements to be executed in Athena.'}
   - {name: output_path,        description: 'The path to the Amazon S3 location where logs for this cluster are stored.'}
 outputs:
   - {name: output_path,   description: 'The path to the S3 bucket containing the query output in CSV format.'}
