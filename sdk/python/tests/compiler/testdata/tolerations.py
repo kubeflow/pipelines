@@ -17,14 +17,13 @@ from kubernetes import client as k8s_client
 
 
 @dsl.pipeline(name='Tolerations', description='A pipeline with tolerations.')
-def sidecar_pipeline():
+def tolerations_pipeline():
 
     op1 = dsl.ContainerOp(
         name='download',
         image='busybox',
         command=['sh', '-c'],
         arguments=['sleep 10; wget localhost:5678 -O /tmp/results.txt'],
-        sidecars=[echo],
         file_outputs={'downloaded': '/tmp/results.txt'})\
     .add_toleration(k8s_client.V1Toleration(
         effect='NoSchedule',
