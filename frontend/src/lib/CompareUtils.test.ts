@@ -15,7 +15,7 @@
  */
 
 import CompareUtils from './CompareUtils';
-import { ApiRun, ApiRunMetric } from '../apis/run';
+import { ApiRun } from '../apis/run';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 
 describe('CompareUtils', () => {

@@ -20,9 +20,11 @@ function getMetricDisplayString(metric?: ApiRunMetric, decimalPlaces = 3): strin
   if (!metric || metric.number_value === undefined) {
     return '';
   }
+
   if (metric.format === RunMetricFormat.PERCENTAGE) {
     return (metric.number_value * 100).toFixed(decimalPlaces) + '%';
   }
+
   return metric.number_value.toFixed(decimalPlaces);
 }
 
