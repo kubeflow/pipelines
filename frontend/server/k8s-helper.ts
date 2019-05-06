@@ -155,6 +155,5 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
       }
     }
   };
-  const pretty = null;
-  await k8sV1CustomObjectClient.createNamespacedCustomObject(group, version, namespace, plural, body, pretty);
+  await k8sV1CustomObjectClient.createNamespacedCustomObject(group, version, namespace, plural, body);
  } 
