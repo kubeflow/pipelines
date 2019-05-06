@@ -1,5 +1,4 @@
 import argparse
-import ibm_boto3
 import requests
 from pyspark.sql import SparkSession
 from minio import Minio
@@ -48,7 +47,6 @@ if __name__ == "__main__":
                 access_key=cos_access_key,
                 secret_key=cos_secret_key,
                 secure=True)
-
 
     if not cos.bucket_exists(cos_bucket_name):
         try:

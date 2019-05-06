@@ -1,7 +1,6 @@
 import os
 import argparse
 import json
-import time
 
 
 def get_secret_creds(path):
