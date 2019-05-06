@@ -11,4 +11,4 @@ WORKDIR $APP_HOME
 USER root
 
 ENTRYPOINT ["python"]
-CMD ["data_preprocess_spark.py"]
+CMD ["store_spark_model.py"]
