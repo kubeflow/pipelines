@@ -81,6 +81,19 @@ git add --all
 git commit --message "Updated component images to version $COMMIT_SHA"
 image_update_commit_sha=$(git rev-parse HEAD)
 
+# Updating the samples to use the updated components
+git diff HEAD~1 HEAD --name-only | while read component_file; do
+    echo $component_file
+    find components samples -type f | while read file; do
+      sed -i -E "s|(https://raw.githubusercontent.com/kubeflow/pipelines/)[^/]+(/$component_file)|\1${image_update_commit_sha}\2|g" "$file";
+    done
+done
+
+# Checking-in the component changes
+git add --all
+git commit --message "Updated components to version $image_update_commit_sha"
+component_update_commit_sha=$(git rev-parse HEAD)
+
 # Pushing the changes upstream
 read -p "Do you want to push the new branch to upstream to create a PR? [y|n]"
 if [ "$REPLY" != "y" ]; then
