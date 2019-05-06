@@ -26,6 +26,7 @@ import { NodePhase, statusToBgColor, hasFinished } from './StatusUtils';
 export enum StorageService {
   GCS = 'gcs',
   MINIO = 'minio',
+  S3 = 's3'
 }
 
 export interface StoragePath {
@@ -253,6 +254,13 @@ export default class WorkflowParser {
         bucket: pathParts[0],
         key: pathParts.slice(1).join('/'),
         source: StorageService.MINIO,
+      };
+    } else if (strPath.startsWith('s3://')) {
+      const pathParts = strPath.substr('s3://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.S3,
       };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);
