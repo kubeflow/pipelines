@@ -39,6 +39,12 @@ const minioClient = new MinioClient({
   useSSL: false,
 } as any);
 
+const s3Client = new MinioClient({
+  endPoint: 's3.amazonaws.com',
+  accessKey: process.env.AWS_ACCESS_KEY_ID,
+  secretKey: process.env.AWS_SECRET_ACCESS_KEY,
+} as any);
+
 const app = express() as Application;
 
 app.use(function (req, _, next) {
@@ -171,6 +177,28 @@ const artifactsHandler = async (req, res) => {
         }
       });
       break;
+    case 's3':
+      s3Client.getObject(bucket, key, (err, stream) => {
+        if (err) {
+          res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
+          return;
+        }
+
+        try {
+          let contents = '';
+          stream.on('data', (chunk) => {
+            contents = chunk.toString();
+          });
+
+          stream.on('end', () => {
+            res.send(contents);
+          });
+        } catch (err) {
+          res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
+        }
+      });
+      break;
+
     default:
       res.status(500).send('Unknown storage source: ' + source);
       return;
