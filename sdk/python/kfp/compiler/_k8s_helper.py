@@ -116,9 +116,8 @@ class K8sHelper(object):
     succ = self._wait_for_k8s_job(pod_name, yaml_spec, timeout)
     if not succ:
       logging.info('Kubernetes job failed.')
+      print(self._read_pod_log(pod_name, yaml_spec))
       return False
-    #TODO: investigate the read log error
-    # print(self._read_pod_log(pod_name, yaml_spec))
     self._delete_k8s_job(pod_name, yaml_spec)
     return succ
 

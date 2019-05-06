@@ -32,7 +32,7 @@ import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiRun, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
-import { NodePhase, statusToIcon, hasFinished } from './Status';
+import { NodePhase, hasFinished } from '../lib/StatusUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -44,6 +44,7 @@ import { commonCss, padding, color, fonts, fontsize } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { flatten } from 'lodash';
 import { formatDateString, getRunDurationFromWorkflow, logger, errorToMessage } from '../lib/Utils';
+import { statusToIcon } from './Status';
 
 enum SidePaneTab {
   ARTIFACTS,

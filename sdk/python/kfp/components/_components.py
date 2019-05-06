@@ -85,7 +85,8 @@ def load_component_from_url(url):
     import requests
     resp = requests.get(url)
     resp.raise_for_status()
-    return _load_component_from_yaml_or_zip_bytes(resp.content, url)
+    component_ref = ComponentReference(url=url)
+    return _load_component_from_yaml_or_zip_bytes(resp.content, url, component_ref)
 
 
 def load_component_from_file(filename):
@@ -124,13 +125,13 @@ def load_component_from_text(text):
 _COMPONENT_FILE_NAME_IN_ARCHIVE = 'component.yaml'
 
 
-def _load_component_from_yaml_or_zip_bytes(bytes, component_filename=None):
+def _load_component_from_yaml_or_zip_bytes(bytes, component_filename=None, component_ref: ComponentReference = None):
     import io
     component_stream = io.BytesIO(bytes)
-    return _load_component_from_yaml_or_zip_stream(component_stream, component_filename)
+    return _load_component_from_yaml_or_zip_stream(component_stream, component_filename, component_ref)
 
 
-def _load_component_from_yaml_or_zip_stream(stream, component_filename=None):
+def _load_component_from_yaml_or_zip_stream(stream, component_filename=None, component_ref: ComponentReference = None):
     '''Loads component from a stream and creates a task factory function.
     The stream can be YAML or a zip file with a component.yaml file inside.
     '''
@@ -140,20 +141,20 @@ def _load_component_from_yaml_or_zip_stream(stream, component_filename=None):
         stream.seek(0)
         with zipfile.ZipFile(stream) as zip_obj:
             with zip_obj.open(_COMPONENT_FILE_NAME_IN_ARCHIVE) as component_stream:
-                return _create_task_factory_from_component_text(component_stream, component_filename)
+                return _create_task_factory_from_component_text(component_stream, component_filename, component_ref)
     else:
         stream.seek(0)
-        return _create_task_factory_from_component_text(stream, component_filename)
+        return _create_task_factory_from_component_text(stream, component_filename, component_ref)
 
 
-def _create_task_factory_from_component_text(text_or_file, component_filename=None):
+def _create_task_factory_from_component_text(text_or_file, component_filename=None, component_ref: ComponentReference = None):
     component_dict = load_yaml(text_or_file)
-    return _create_task_factory_from_component_dict(component_dict, component_filename)
+    return _create_task_factory_from_component_dict(component_dict, component_filename, component_ref)
 
 
-def _create_task_factory_from_component_dict(component_dict, component_filename=None):
+def _create_task_factory_from_component_dict(component_dict, component_filename=None, component_ref: ComponentReference = None):
     component_spec = ComponentSpec.from_struct(component_dict)
-    return _create_task_factory_from_component_spec(component_spec, component_filename)
+    return _create_task_factory_from_component_spec(component_spec, component_filename, component_ref)
 
 
 _inputs_dir = '/inputs'

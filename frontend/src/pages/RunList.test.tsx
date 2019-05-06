@@ -23,7 +23,7 @@ import { ApiFilter, PredicateOp } from '../apis/filter';
 import { ApiRun, ApiRunDetail, ApiResourceType, ApiRunMetric, RunMetricFormat, RunStorageState } from '../apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { MetricMetadata } from '../lib/RunUtils';
-import { NodePhase } from './Status';
+import { NodePhase } from '../lib/StatusUtils';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { range } from 'lodash';
 

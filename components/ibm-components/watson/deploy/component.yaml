@@ -14,7 +14,7 @@ name: 'Deploy Model - Watson Machine Learning'
 description: |
   Deploy stored model on Watson Machine Learning as a web service.
 metadata:
-  labels: {platform: 'IBM Watson Machine Learning'}
+  annotations: {platform: 'IBM Watson Machine Learning'}
 inputs:
   - {name: model_uid,       description: 'Required. UID for the stored model on Watson Machine Learning'}
   - {name: model_name,      description: 'Required. Model Name on Watson Machine Learning'}

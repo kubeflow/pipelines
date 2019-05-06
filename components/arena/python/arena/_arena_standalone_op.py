@@ -19,11 +19,11 @@ import datetime
 import logging
 
 
-def standalone_job_op(name, image, command, gpus=0, cpu=0, memory=0, env=[],
+def standalone_job_op(name, image, command, gpus=0, cpu_limit=0, memory_limit=0, env=[],
           tensorboard=False, tensorboard_image=None,
           data=[], sync_source=None, annotations=[],
           metrics=['Train-accuracy:PERCENTAGE'],
-          arena_image='cheyang/arena_launcher:v0.3',
+          arena_image='cheyang/arena_launcher:v0.6',
           timeout_hours=240):
 
     """This function submits a standalone training Job 
@@ -72,14 +72,19 @@ def standalone_job_op(name, image, command, gpus=0, cpu=0, memory=0, env=[],
                       "--tensorboard", str(tensorboard),
                       "--image", str(image),
                       "--gpus", str(gpus),
-                      "--cpu", str(cpu),
-                      "--memory", str(memory),
+                      "--cpu", str(cpu_limit),
+                      "--step-name", '{{pod.name}}',
+                      "--workflow-name", '{{workflow.name}}',
+                      "--memory", str(memory_limit),
                       "--timeout-hours", str(timeout_hours),
                       ] + options +
                       [
                       "job",
                       "--", str(command)],
-          file_outputs={'train': '/output.txt'}
+          file_outputs={'train': '/output.txt',
+                        'workflow':'/workflow-name.txt',
+                        'step':'/step-name.txt',
+                        'name':'/name.txt'}
       )
     op.set_image_pull_policy('Always')
     return op

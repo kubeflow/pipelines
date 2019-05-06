@@ -21,13 +21,13 @@ import TestUtils from '../TestUtils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { ApiRunDetail, ApiResourceType, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
+import { NodePhase } from '../lib/StatusUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { PageProps } from './Page';
 import { PlotType } from '../components/viewers/Viewer';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { shallow, ShallowWrapper } from 'enzyme';
-import { NodePhase } from './Status';
 
 describe('RunDetails', () => {
   const updateBannerSpy = jest.fn();

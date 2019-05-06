@@ -1,0 +1,19 @@
+name: 'Sagamaker - Deploy Model'
+description: |
+  Deploy Machine Learning Model Endpoint in SageMaker
+inputs:
+  - {name: region,        description: 'The region to deploy your model endpoints.'}
+  - {name: model_name,    description: 'The model name used for endpoint deployment'}
+outputs:
+  - {name: endpoint_name,          description: 'Endpoint name'}
+implementation:
+  container:
+    image: seedjeffwan/kubeflow-pipeline-aws-sm:20190501-05
+    command: ['python']
+    args: [
+      deploy.py,
+      --region, {inputValue: region},
+      --model_name, {inputValue: model_name}
+    ]
+    fileOutputs:
+      endpoint_name: /tmp/endpoint_name.txt
