@@ -82,8 +82,8 @@ def main():
   client = get_client(args.region)
   results = query(client, args.query, args.database, args.output)
 
-  results['output'] = output
-  logger.INFO("Athena results: %s", results)
+  results['output'] = args.output
+  logging.info('Athena results: %s', results)
   with open('/output.txt', 'w+') as f:
     json.dump(results, f)
 

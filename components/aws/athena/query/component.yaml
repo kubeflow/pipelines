@@ -10,7 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Athena - Query
+name: Athena Query
+description: |
   A Kubeflow Pipeline component to submit a query to Amazon Web Services Athena
   service and dump outputs to AWS S3.
 
@@ -18,7 +19,7 @@ inputs:
   - {name: region,        description: 'The Athena region in which to handle the request.'}
   - {name: database,      description: 'The name of the database.'}
   - {name: query,         description: 'The SQL query statements to be executed in Athena.'}
-  - {name: output_path,        description: 'The path to the Amazon S3 location where logs for this cluster are stored.'}
+  - {name: output_path,   description: 'The path to the Amazon S3 location where logs for this cluster are stored.'}
 outputs:
   - {name: output_path,   description: 'The path to the S3 bucket containing the query output in CSV format.'}
 implementation:
@@ -29,7 +30,7 @@ implementation:
       --region, {inputValue: region},
       --database, {inputValue: database},
       --query, {inputValue: query},
-      --output, {inputValue: output}
+      --output, {inputValue: output_path}
     ]
     fileOutputs:
       output_path: /output.txt
