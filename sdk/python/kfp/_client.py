@@ -155,29 +155,28 @@ class Client(object):
     raise ValueError('No experiment is found with name {}.'.format(experiment_name))
 
   def _extract_pipeline_yaml(self, package_file):
+    def _choose_pipeline_yaml_file(file_list) -> str:
+      yaml_files = [file for file in file_list if file.endswith('.yaml')]
+      if len(yaml_files) == 0:
+        raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
+      
+      if 'pipeline.yaml' in yaml_files:
+        return 'pipeline.yaml'
+      else:
+        if len(yaml_files) == 1:
+          return yaml_files[0]
+        raise ValueError('Invalid package. There is no pipeline.yaml file and there are multiple yaml files.')
+
     if package_file.endswith('.tar.gz') or package_file.endswith('.tgz'):
       with tarfile.open(package_file, "r:gz") as tar:
-        all_yaml_files = [m for m in tar if m.isfile() and
-            (os.path.splitext(m.name)[-1] == '.yaml' or os.path.splitext(m.name)[-1] == '.yml')]
-        if len(all_yaml_files) == 0:
-          raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
-        
-        if len(all_yaml_files) > 1:
-          raise ValueError('Invalid package. Multiple yaml files in the package.')
-        
-        with tar.extractfile(all_yaml_files[0]) as f:
+        file_names = [member.name for member in tar if member.isfile()]
+        pipeline_yaml_file = _choose_pipeline_yaml_file(file_names)
+        with tar.extractfile(tar.getmember(pipeline_yaml_file)) as f:
           return yaml.safe_load(f)
     elif package_file.endswith('.zip'):
       with zipfile.ZipFile(package_file, 'r') as zip:
-        all_yaml_files = [m for m in zip.namelist() if
-                          (os.path.splitext(m)[-1] == '.yaml' or os.path.splitext(m)[-1] == '.yml')]
-        if len(all_yaml_files) == 0:
-          raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
-
-        if len(all_yaml_files) > 1:
-          raise ValueError('Invalid package. Multiple yaml files in the package.')
-
-        with zip.open(all_yaml_files[0]) as f:
+        pipeline_yaml_file = _choose_pipeline_yaml_file(zip.namelist())
+        with zip.open(pipeline_yaml_file) as f:
           return yaml.safe_load(f)
     elif package_file.endswith('.yaml') or package_file.endswith('.yml'):
       with open(package_file, 'r') as f:
