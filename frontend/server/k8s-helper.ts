@@ -142,14 +142,14 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
   const namespace = 'kubeflow';
   const plural = 'tensorboard';
   const body = {
-    apiVersion: 'kubeflow.org/v1beta1',
+    apiVersion: group + '/' + version,
     kind: 'Viewer',
     metadata: {
       generateName: 'viewer-',
-      namespace: 'kubeflow',
+      namespace: namespace,
     },
     spec: {
-      type: 'tensorboard',
+      type: plural,
       tensorboardSpec: {
         logDir: logdir,
       }
