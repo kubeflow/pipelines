@@ -482,7 +482,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
   target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)
   if target_component_file:
     from ..components._yaml_utils import dump_yaml
-    component_text = dump_yaml(component_spec.to_struct())
+    component_text = dump_yaml(component_spec.to_dict())
     Path(target_component_file).write_text(component_text)
 
   return _create_task_factory_from_component_spec(component_spec)
