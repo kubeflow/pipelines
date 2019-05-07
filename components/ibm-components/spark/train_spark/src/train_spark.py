@@ -63,7 +63,5 @@ if __name__ == "__main__":
 
     with open("/tmp/model_filepath", "w") as report:
         report.write("model.zip")
-    with open("/tmp/pipeline_filepath", "w") as report:
-        report.write("pipeline.zip")
     with open("/tmp/train_data_filepath", "w") as report:
         report.write("train_data.zip")

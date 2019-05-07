@@ -22,7 +22,6 @@ inputs:
   - {name: spark_entrypoint, description: 'Required. Entrypoint command for training the spark model'}
 outputs:
   - {name: model_filepath,           description: 'Spark Model binary filepath'}
-  - {name: pipeline_filepath,        description: 'Spark Model pipeline filepath'}
   - {name: train_data_filepath,      description: 'Spark training data filepath'}
 implementation:
   container:
@@ -37,5 +36,4 @@ implementation:
     ]
     fileOutputs:
       model_filepath: /tmp/model_filepath
-      pipeline_filepath: /tmp/pipeline_filepath
       train_data_filepath: /tmp/train_data_filepath

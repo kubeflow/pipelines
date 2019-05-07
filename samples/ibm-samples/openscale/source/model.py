@@ -59,7 +59,6 @@ print(predictions)
 
 # Persistent model, pipeline, and training data
 model.write().overwrite().save('model')
-pipeline.write().overwrite().save('pipeline')
 train_data.write.option("header", "true").mode("overwrite").csv('train_data')
 
 evaluation_metrics = {

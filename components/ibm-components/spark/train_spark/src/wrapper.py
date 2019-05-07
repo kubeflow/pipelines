@@ -32,12 +32,10 @@ cos.fget_object(creds['bucket_name'], creds['model_filename'], creds['model_file
 os.system('chmod 755 %s' % creds['model_filename'])
 os.system(creds['spark_entrypoint'])
 os.system('zip -r model.zip model')
-os.system('zip -r pipeline.zip pipeline')
 os.system('zip -r train_data.zip train_data')
 
 cos.fput_object(creds['bucket_name'], 'model.zip', 'model.zip')
-cos.fput_object(creds['bucket_name'], 'pipeline.zip', 'pipeline.zip')
 cos.fput_object(creds['bucket_name'], 'train_data.zip', 'train_data.zip')
 cos.fput_object(creds['bucket_name'], 'evaluation.json', 'evaluation.json')
 
-print('Trained model, pipeline, and train_data are uploaded.')
+print('Trained model and train_data are uploaded.')

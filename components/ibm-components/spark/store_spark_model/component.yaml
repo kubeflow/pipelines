@@ -22,7 +22,6 @@ inputs:
   - {name: model_name,           description: 'Required. Model name for the trained model'}
   - {name: deployment_name,      description: 'Required. Deployment name for the trained model'}
   - {name: model_filepath,       description: 'Required. Name of the trained model zip'}
-  - {name: pipeline_filepath,    description: 'Required. Name of the spark pipeline zip'}
   - {name: train_data_filepath,  description: 'Required. Name of the training data zip'}
 outputs:
   - {name: model_uid,            description: 'Stored model UID'}
@@ -38,7 +37,6 @@ implementation:
       --model_name, {inputValue: model_name},
       --deployment_name, {inputValue: deployment_name},
       --model_filepath, {inputValue: model_filepath},
-      --pipeline_filepath, {inputValue: pipeline_filepath},
       --train_data_filepath, {inputValue: train_data_filepath}
     ]
     fileOutputs:

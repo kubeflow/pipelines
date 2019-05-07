@@ -20,8 +20,7 @@ def get_secret_creds(path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--bucket_name', type=str, help='Object storage bucket name', default="dummy-bucket-name")
-    parser.add_argument('--model_filepath', type=str, help='Name of the trained model zip', default="model.zip")
-    parser.add_argument('--pipeline_filepath', type=str, help='Name of the spark pipeline zip', default="pipeline.zip")
+    parser.add_argument('--model_filepath', type=str, help='Name of the trained spark model packaged as zip', default="model.zip")
     parser.add_argument('--train_data_filepath', type=str, help='Name of the train_data zip', default="train_data.zip")
     parser.add_argument('--aios_manifest_path', type=str, help='Object storage file path for the aios manifest file', default="")
     parser.add_argument('--problem_type', type=str, help='Model problem type', default="BINARY_CLASSIFICATION")
@@ -32,7 +31,6 @@ if __name__ == "__main__":
     cos_bucket_name = args.bucket_name
     model_filepath = args.model_filepath
     aios_manifest_path = args.aios_manifest_path
-    pipeline_filepath = args.pipeline_filepath
     train_data_filepath = args.train_data_filepath
     problem_type = args.problem_type
     MODEL_NAME = args.model_name
@@ -63,7 +61,6 @@ if __name__ == "__main__":
                 secure=True)
 
     cos.fget_object(cos_bucket_name, model_filepath, model_filepath)
-    cos.fget_object(cos_bucket_name, pipeline_filepath, pipeline_filepath)
     cos.fget_object(cos_bucket_name, train_data_filepath, train_data_filepath)
     cos.fget_object(cos_bucket_name, 'evaluation.json', 'evaluation.json')
     if aios_manifest_path:
@@ -71,17 +68,14 @@ if __name__ == "__main__":
 
     os.system('unzip %s' % model_filepath)
     print('model ' + model_filepath + ' is downloaded')
-    os.system('unzip %s' % pipeline_filepath)
-    print('pipeline ' + pipeline_filepath + ' is downloaded')
     os.system('unzip %s' % train_data_filepath)
     print('train_data ' + train_data_filepath + ' is downloaded')
 
     sc = SparkContext()
     model = PipelineModel.load(model_filepath.split('.')[0])
-    pipeline = Pipeline.load(pipeline_filepath.split('.')[0])
+    pipeline = Pipeline(stages=model.stages)
     spark = SparkSession.builder.getOrCreate()
     train_data = spark.read.csv(path=train_data_filepath.split('.')[0], sep=",", header=True, inferSchema=True)
-
 
     ''' Remove previous deployed model '''
     wml_client = WatsonMachineLearningAPIClient(WML_CREDENTIALS)

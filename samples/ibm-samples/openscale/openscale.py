@@ -50,7 +50,6 @@ def aiosPipeline(
         model_name=MODEL_NAME,
         deployment_name=DEPLOYMENT_NAME,
         model_filepath=train_spark.outputs['model_filepath'],
-        pipeline_filepath=train_spark.outputs['pipeline_filepath'],
         train_data_filepath=train_spark.outputs['train_data_filepath']
         ).apply(params.use_ai_pipeline_params(secret_name))
     deploy = deploy_op(
