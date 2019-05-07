@@ -211,6 +211,15 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
 
+	// Mark auto-added artifacts as optional. Otherwise workflows fail in Argo 2.3. Proper fix: Fix the components to explicitly declare the artifacts where needed. Fix the compiler to stop auto-adding atrifacts to all tasks.
+	for templateIdx, template := range workflow.Workflow.Spec.Templates {
+		for artIdx, artifact := range template.Outputs.Artifacts {
+			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
+				workflow.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = True
+			}
+		}
+	}
+
 	// Create argo workflow CRD resource
 	newWorkflow, err := r.workflowClient.Create(workflow.Get())
 	if err != nil {
