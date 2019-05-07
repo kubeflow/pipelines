@@ -29,6 +29,9 @@ from .compiler import _k8s_helper
 
 from ._auth import get_auth_token
 
+KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
+KF_PIPELINES_UI_ENDPOINT_ENV = 'KF_PIPELINES_UI_ENDPOINT'
+
 class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
@@ -49,13 +52,15 @@ class Client(object):
     """
 
     self._host = host
+    self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, '')
 
     token = None
     if host and client_id:
       token = get_auth_token(client_id)
   
     config = kfp_server_api.configuration.Configuration()
-    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
+    config.host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV,
+                                         Client.IN_CLUSTER_DNS_NAME)
     self._configure_auth(config, token)
     api_client = kfp_server_api.api_client.ApiClient(config)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
@@ -79,12 +84,12 @@ class Client(object):
     return True
 
   def _get_url_prefix(self):
-    if self._host:
+    if self._uihost:
       # User's own connection.
-      if self._host.startswith('http://'):
-        return self._host
+      if self._uihost.startswith('http://'):
+        return self._uihost
       else:
-        return 'http://' + self._host
+        return 'http://' + self._uihost
 
     # In-cluster pod. We could use relative URL.
     return '/pipeline'
