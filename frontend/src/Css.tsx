@@ -286,6 +286,9 @@ export const commonCss = stylesheet({
     overflow: 'auto',
     position: 'relative',
   },
+  standardInput: {
+    height: 40,
+  },
   textField: {
     display: 'flex',
     height: 40,
@@ -298,6 +301,12 @@ export const commonCss = stylesheet({
     textDecoration: 'none',
   },
 });
+
+export const standardInputProps = {
+  classes: {
+    root: commonCss.standardInput,
+  }
+};
 
 export function _paddingInternal(units?: number, directions?: string): NestedCSSProperties {
   units = units || baseSpacing;

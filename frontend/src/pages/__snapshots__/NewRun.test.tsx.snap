@@ -285,6 +285,13 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -307,6 +314,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -417,6 +425,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -705,6 +714,13 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -727,6 +743,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -837,6 +854,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -1135,6 +1153,13 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Recurring run config name"
       onChange={[Function]}
@@ -1157,6 +1182,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -1278,6 +1304,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -1568,6 +1595,13 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -1590,6 +1624,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -1726,6 +1761,7 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -2006,6 +2042,13 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -2028,6 +2071,7 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -2410,6 +2454,13 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -2432,6 +2483,7 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -2540,6 +2592,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -2820,6 +2873,13 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -2842,6 +2902,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -2952,6 +3013,7 @@ exports[`NewRun renders the new run page 1`] = `
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -3240,6 +3302,13 @@ exports[`NewRun renders the new run page 1`] = `
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -3262,6 +3331,7 @@ exports[`NewRun renders the new run page 1`] = `
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -3372,6 +3442,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -3652,6 +3723,13 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Recurring run config name"
       onChange={[Function]}
@@ -3674,6 +3752,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -4103,6 +4182,13 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -4125,6 +4211,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -4233,6 +4320,7 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -4547,6 +4635,13 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -4569,6 +4664,7 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -4633,6 +4729,13 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
     </div>
     <div>
       <TextField
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         className="textField"
         id="newRunPipelineParam0"
         key="0"
@@ -4649,6 +4752,13 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
         variant="outlined"
       />
       <TextField
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         className="textField"
         id="newRunPipelineParam1"
         key="1"
@@ -4711,6 +4821,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -4999,6 +5110,13 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -5021,6 +5139,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -5131,6 +5250,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -5419,6 +5539,13 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -5441,6 +5568,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -5505,6 +5633,13 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     </div>
     <div>
       <TextField
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         className="textField"
         id="newRunPipelineParam0"
         key="0"
@@ -5521,6 +5656,13 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         variant="outlined"
       />
       <TextField
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         className="textField"
         id="newRunPipelineParam1"
         key="1"
@@ -5585,6 +5727,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -5873,6 +6016,13 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -5895,6 +6045,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -6005,6 +6156,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"
@@ -6293,6 +6445,13 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       </WithStyles(DialogActions)>
     </WithStyles(Dialog)>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       autoFocus={true}
       label="Run name"
       onChange={[Function]}
@@ -6315,6 +6474,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
         Object {
           "classes": Object {
             "disabled": "nonEditableInput",
+            "root": "standardInput",
           },
           "endAdornment": <WithStyles(InputAdornment)
             position="end"

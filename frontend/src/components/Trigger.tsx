@@ -21,7 +21,7 @@ import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Input from '../atoms/Input';
 import MenuItem from '@material-ui/core/MenuItem';
 import Separator from '../atoms/Separator';
-import { commonCss } from '../Css';
+import { commonCss, standardInputProps } from '../Css';
 import { dateToPickerFormat } from '../lib/TriggerUtils';
 import {
   PeriodicInterval, TriggerType, triggers, buildCron,
@@ -96,7 +96,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
 
     return <div>
       <Input select={true} label='Trigger type' required={true} onChange={this.handleChange('type')}
-        value={type} variant='outlined'>
+        value={type} variant='outlined' InputProps={standardInputProps}>
         {Array.from(triggers.entries()).map((trigger, i) => (
           <MenuItem key={i} value={trigger[0]}>
             {trigger[1].displayName}
@@ -107,7 +107,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       <div>
         <Input label='Maximum concurrent runs' required={true}
           onChange={this.handleChange('maxConcurrentRuns')} value={maxConcurrentRuns}
-          variant='outlined' />
+          variant='outlined' InputProps={standardInputProps} />
 
         <div className={commonCss.flex}>
           <FormControlLabel control={
@@ -117,12 +117,14 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
           <Input label='Start date' type='date' onChange={this.handleChange('startDate')}
             value={startDate} width={160} variant='outlined'
             InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
-            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }} />
+            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
+            InputProps={standardInputProps}/>
           <Separator />
           <Input label='Start time' type='time' onChange={this.handleChange('startTime')}
             value={startTime} width={120} variant='outlined'
             InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
-            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }} />
+            style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
+            InputProps={standardInputProps}/>
         </div>
 
         <div className={commonCss.flex}>
@@ -133,12 +135,12 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
           <Input label='End date' type='date' onChange={this.handleChange('endDate')}
             value={endDate} width={160} style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
             InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
-            variant='outlined' />
+            variant='outlined' InputProps={standardInputProps}/>
           <Separator />
           <Input label='End time' type='time' onChange={this.handleChange('endTime')}
             value={endTime} width={120} style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
             InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true}}
-            variant='outlined' />
+            variant='outlined' InputProps={standardInputProps}/>
         </div>
 
         <span className={commonCss.flex}>
@@ -148,13 +150,14 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               <Separator />
               <Input required={true} type='number' onChange={this.handleChange('intervalValue')}
                 value={intervalValue} height={30} width={65} error={intervalValue < 1}
-                variant='outlined' />
+                variant='outlined' InputProps={standardInputProps}/>
             </div>
           )}
 
           <Separator />
           <Input required={true} select={true} onChange={this.handleChange('intervalCategory')}
-            value={intervalCategory} height={30} width={95} variant='outlined' >
+            value={intervalCategory} height={30} width={95} variant='outlined'
+            InputProps={standardInputProps} >
             {Object.keys(PeriodicInterval).map((interval: PeriodicInterval, i) => (
               <MenuItem key={i} value={PeriodicInterval[interval]}>
                 {PeriodicInterval[interval] + (type === TriggerType.INTERVALED ? 's' : '')}
@@ -185,15 +188,17 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             <FormControlLabel control={
               <Checkbox checked={editCron} color='primary' onClick={this.handleChange('editCron')} />
             } label={
-              <span>Allow editing cron expression. (
-              format is specified <a href='https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format'>
-                  here</a>
-                )</span>
+              <span>Allow editing cron expression.
+              (format is specified <a href='https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format'>
+                here</a>
+              )
+              </span>
             } />
           </div>
 
           <Input label='cron expression' onChange={this.handleChange('cron')} value={cron}
-            width={300} disabled={!editCron} variant='outlined'/>
+            width={300} disabled={!editCron} variant='outlined'
+            InputProps={standardInputProps} />
 
           <div>Note: Start and end dates/times are handled outside of cron.</div>
         </div>

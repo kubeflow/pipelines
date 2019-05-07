@@ -26,7 +26,7 @@ import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Radio from '@material-ui/core/Radio';
 import { TextFieldProps } from '@material-ui/core/TextField';
-import { padding, commonCss, zIndex, color } from '../Css';
+import { padding, commonCss, zIndex, color, standardInputProps } from '../Css';
 import { stylesheet, classes } from 'typestyle';
 
 const css = stylesheet({
@@ -123,6 +123,7 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
                 <Input onChange={this.handleChange('fileName')} value={fileName} required={true}
                   label='File' variant='outlined'
                   InputProps={{
+                    classes: { root: commonCss.standardInput },
                     endAdornment: (
                       <InputAdornment position='end'>
                         <Button color='secondary' onClick={() => this._dropzoneRef.current!.open()}
@@ -143,13 +144,14 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
                 URL must be publicly accessible.
               </div>
               <Input onChange={this.handleChange('fileUrl')} value={fileUrl} required={true}
-                label='URL' variant='outlined' />
+                label='URL' variant='outlined' InputProps={standardInputProps}/>
             </React.Fragment>
           )}
 
           <Input id='uploadFileName' label='Pipeline name'
             onChange={this.handleChange('uploadPipelineName')}
-            required={true} value={uploadPipelineName} variant='outlined' />
+            required={true} value={uploadPipelineName} variant='outlined'
+            InputProps={standardInputProps} />
 
         </div>
 

@@ -26,7 +26,7 @@ import { TextFieldProps } from '@material-ui/core/TextField';
 import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding, fontsize } from '../Css';
+import { commonCss, padding, fontsize, standardInputProps } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 
 interface NewExperimentState {
@@ -86,7 +86,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
 
           <Input id='experimentName' label='Experiment name' inputRef={this._experimentNameRef}
             required={true} onChange={this.handleChange('experimentName')} value={experimentName}
-            autoFocus={true} variant='outlined' />
+            autoFocus={true} variant='outlined' InputProps={standardInputProps} />
           <Input id='experimentDescription' label='Description (optional)' multiline={true}
             onChange={this.handleChange('description')} value={description} variant='outlined' />
 

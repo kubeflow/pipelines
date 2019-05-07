@@ -49,6 +49,13 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
       URL must be publicly accessible.
     </div>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       label="URL"
       onChange={[Function]}
       required={true}
@@ -56,6 +63,13 @@ exports[`UploadPipelineDialog renders alternate UI for uploading via URL 1`] = `
       variant="outlined"
     />
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       id="uploadFileName"
       label="Pipeline name"
       onChange={[Function]}
@@ -164,6 +178,9 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
       <Component
         InputProps={
           Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
             "endAdornment": <WithStyles(InputAdornment)
               position="end"
             >
@@ -192,6 +209,13 @@ exports[`UploadPipelineDialog renders an active dropzone 1`] = `
       />
     </n>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       id="uploadFileName"
       label="Pipeline name"
       onChange={[Function]}
@@ -295,6 +319,9 @@ exports[`UploadPipelineDialog renders closed 1`] = `
       <Component
         InputProps={
           Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
             "endAdornment": <WithStyles(InputAdornment)
               position="end"
             >
@@ -323,6 +350,13 @@ exports[`UploadPipelineDialog renders closed 1`] = `
       />
     </n>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       id="uploadFileName"
       label="Pipeline name"
       onChange={[Function]}
@@ -426,6 +460,9 @@ exports[`UploadPipelineDialog renders open 1`] = `
       <Component
         InputProps={
           Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
             "endAdornment": <WithStyles(InputAdornment)
               position="end"
             >
@@ -454,6 +491,13 @@ exports[`UploadPipelineDialog renders open 1`] = `
       />
     </n>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       id="uploadFileName"
       label="Pipeline name"
       onChange={[Function]}
@@ -557,6 +601,9 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
       <Component
         InputProps={
           Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
             "endAdornment": <WithStyles(InputAdornment)
               position="end"
             >
@@ -585,6 +632,13 @@ exports[`UploadPipelineDialog renders with a selected file to upload 1`] = `
       />
     </n>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       id="uploadFileName"
       label="Pipeline name"
       onChange={[Function]}

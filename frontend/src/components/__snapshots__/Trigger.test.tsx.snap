@@ -3,6 +3,13 @@
 exports[`Trigger enables a single day on click 1`] = `
 <div>
   <Component
+    InputProps={
+      Object {
+        "classes": Object {
+          "root": "standardInput",
+        },
+      }
+    }
     label="Trigger type"
     onChange={[Function]}
     required={true}
@@ -25,6 +32,13 @@ exports[`Trigger enables a single day on click 1`] = `
   </Component>
   <div>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       label="Maximum concurrent runs"
       onChange={[Function]}
       required={true}
@@ -53,6 +67,13 @@ exports[`Trigger enables a single day on click 1`] = `
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="Start date"
         onChange={[Function]}
         style={
@@ -73,6 +94,13 @@ exports[`Trigger enables a single day on click 1`] = `
               "outlined": "noMargin",
             },
             "shrink": true,
+          }
+        }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
           }
         }
         label="Start time"
@@ -110,6 +138,13 @@ exports[`Trigger enables a single day on click 1`] = `
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="End date"
         onChange={[Function]}
         style={
@@ -132,6 +167,13 @@ exports[`Trigger enables a single day on click 1`] = `
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="End time"
         onChange={[Function]}
         style={
@@ -151,6 +193,13 @@ exports[`Trigger enables a single day on click 1`] = `
       Run every
       <Component />
       <Component
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         height={30}
         onChange={[Function]}
         required={true}
@@ -285,7 +334,7 @@ exports[`Trigger enables a single day on click 1`] = `
         }
         label={
           <span>
-            Allow editing cron expression. ( format is specified 
+            Allow editing cron expression. (format is specified 
             <a
               href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >
@@ -297,6 +346,13 @@ exports[`Trigger enables a single day on click 1`] = `
       />
     </div>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       disabled={true}
       label="cron expression"
       onChange={[Function]}
@@ -314,6 +370,13 @@ exports[`Trigger enables a single day on click 1`] = `
 exports[`Trigger renders all week days enabled 1`] = `
 <div>
   <Component
+    InputProps={
+      Object {
+        "classes": Object {
+          "root": "standardInput",
+        },
+      }
+    }
     label="Trigger type"
     onChange={[Function]}
     required={true}
@@ -336,6 +399,13 @@ exports[`Trigger renders all week days enabled 1`] = `
   </Component>
   <div>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       label="Maximum concurrent runs"
       onChange={[Function]}
       required={true}
@@ -364,6 +434,13 @@ exports[`Trigger renders all week days enabled 1`] = `
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="Start date"
         onChange={[Function]}
         style={
@@ -384,6 +461,13 @@ exports[`Trigger renders all week days enabled 1`] = `
               "outlined": "noMargin",
             },
             "shrink": true,
+          }
+        }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
           }
         }
         label="Start time"
@@ -421,6 +505,13 @@ exports[`Trigger renders all week days enabled 1`] = `
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="End date"
         onChange={[Function]}
         style={
@@ -443,6 +534,13 @@ exports[`Trigger renders all week days enabled 1`] = `
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="End time"
         onChange={[Function]}
         style={
@@ -462,6 +560,13 @@ exports[`Trigger renders all week days enabled 1`] = `
       Run every
       <Component />
       <Component
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         height={30}
         onChange={[Function]}
         required={true}
@@ -596,7 +701,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
         label={
           <span>
-            Allow editing cron expression. ( format is specified 
+            Allow editing cron expression. (format is specified 
             <a
               href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >
@@ -608,6 +713,13 @@ exports[`Trigger renders all week days enabled 1`] = `
       />
     </div>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       disabled={true}
       label="cron expression"
       onChange={[Function]}
@@ -625,6 +737,13 @@ exports[`Trigger renders all week days enabled 1`] = `
 exports[`Trigger renders periodic schedule controls for initial render 1`] = `
 <div>
   <Component
+    InputProps={
+      Object {
+        "classes": Object {
+          "root": "standardInput",
+        },
+      }
+    }
     label="Trigger type"
     onChange={[Function]}
     required={true}
@@ -647,6 +766,13 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
   </Component>
   <div>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       label="Maximum concurrent runs"
       onChange={[Function]}
       required={true}
@@ -675,6 +801,13 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="Start date"
         onChange={[Function]}
         style={
@@ -695,6 +828,13 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
               "outlined": "noMargin",
             },
             "shrink": true,
+          }
+        }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
           }
         }
         label="Start time"
@@ -732,6 +872,13 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="End date"
         onChange={[Function]}
         style={
@@ -752,6 +899,13 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
               "outlined": "noMargin",
             },
             "shrink": true,
+          }
+        }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
           }
         }
         label="End time"
@@ -776,6 +930,13 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
       >
         <Component />
         <Component
+          InputProps={
+            Object {
+              "classes": Object {
+                "root": "standardInput",
+              },
+            }
+          }
           error={false}
           height={30}
           onChange={[Function]}
@@ -788,6 +949,13 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
       </div>
       <Component />
       <Component
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         height={30}
         onChange={[Function]}
         required={true}
@@ -835,6 +1003,13 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
 exports[`Trigger renders periodic schedule controls if the trigger type is CRON 1`] = `
 <div>
   <Component
+    InputProps={
+      Object {
+        "classes": Object {
+          "root": "standardInput",
+        },
+      }
+    }
     label="Trigger type"
     onChange={[Function]}
     required={true}
@@ -857,6 +1032,13 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
   </Component>
   <div>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       label="Maximum concurrent runs"
       onChange={[Function]}
       required={true}
@@ -885,6 +1067,13 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="Start date"
         onChange={[Function]}
         style={
@@ -905,6 +1094,13 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
               "outlined": "noMargin",
             },
             "shrink": true,
+          }
+        }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
           }
         }
         label="Start time"
@@ -942,6 +1138,13 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="End date"
         onChange={[Function]}
         style={
@@ -964,6 +1167,13 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="End time"
         onChange={[Function]}
         style={
@@ -983,6 +1193,13 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
       Run every
       <Component />
       <Component
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         height={30}
         onChange={[Function]}
         required={true}
@@ -1038,7 +1255,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         }
         label={
           <span>
-            Allow editing cron expression. ( format is specified 
+            Allow editing cron expression. (format is specified 
             <a
               href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >
@@ -1050,6 +1267,13 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
       />
     </div>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       disabled={true}
       label="cron expression"
       onChange={[Function]}
@@ -1067,6 +1291,13 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
 exports[`Trigger renders week days if the trigger type is CRON and interval is weekly 1`] = `
 <div>
   <Component
+    InputProps={
+      Object {
+        "classes": Object {
+          "root": "standardInput",
+        },
+      }
+    }
     label="Trigger type"
     onChange={[Function]}
     required={true}
@@ -1089,6 +1320,13 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
   </Component>
   <div>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       label="Maximum concurrent runs"
       onChange={[Function]}
       required={true}
@@ -1117,6 +1355,13 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="Start date"
         onChange={[Function]}
         style={
@@ -1137,6 +1382,13 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
               "outlined": "noMargin",
             },
             "shrink": true,
+          }
+        }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
           }
         }
         label="Start time"
@@ -1174,6 +1426,13 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="End date"
         onChange={[Function]}
         style={
@@ -1196,6 +1455,13 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
             "shrink": true,
           }
         }
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         label="End time"
         onChange={[Function]}
         style={
@@ -1215,6 +1481,13 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       Run every
       <Component />
       <Component
+        InputProps={
+          Object {
+            "classes": Object {
+              "root": "standardInput",
+            },
+          }
+        }
         height={30}
         onChange={[Function]}
         required={true}
@@ -1349,7 +1622,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
         label={
           <span>
-            Allow editing cron expression. ( format is specified 
+            Allow editing cron expression. (format is specified 
             <a
               href="https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format"
             >
@@ -1361,6 +1634,13 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       />
     </div>
     <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "root": "standardInput",
+          },
+        }
+      }
       disabled={true}
       label="cron expression"
       onChange={[Function]}

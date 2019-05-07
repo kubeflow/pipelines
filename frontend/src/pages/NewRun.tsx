@@ -41,7 +41,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding, color } from '../Css';
+import { commonCss, padding, color, standardInputProps } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 
 interface NewRunState {
@@ -169,7 +169,7 @@ class NewRun extends Page<{}, NewRunState> {
             <Input value={pipelineName} required={true} label='Pipeline' disabled={true}
               variant='outlined'
               InputProps={{
-                classes: { disabled: css.nonEditableInput },
+                classes: { disabled: css.nonEditableInput, root: commonCss.standardInput },
                 endAdornment: (
                   <InputAdornment position='end'>
                     <Button color='secondary' id='choosePipelineBtn'
@@ -249,7 +249,8 @@ class NewRun extends Page<{}, NewRunState> {
 
           {/* Run metadata inputs */}
           <Input label={isRecurringRun ? 'Recurring run config name' : 'Run name'} required={true}
-            onChange={this.handleChange('runName')} autoFocus={true} value={runName} variant='outlined' />
+            onChange={this.handleChange('runName')} autoFocus={true} value={runName} variant='outlined'
+            InputProps={standardInputProps} />
           <Input label='Description (optional)' multiline={true}
             onChange={this.handleChange('description')} value={description} variant='outlined' />
 
@@ -258,7 +259,7 @@ class NewRun extends Page<{}, NewRunState> {
           <Input value={experimentName} required={true} label='Experiment' disabled={true}
             variant='outlined'
             InputProps={{
-              classes: { disabled: css.nonEditableInput },
+              classes: { disabled: css.nonEditableInput, root: commonCss.standardInput },
               endAdornment: (
                 <InputAdornment position='end'>
                   <Button color='secondary' id='chooseExperimentBtn'
@@ -278,8 +279,7 @@ class NewRun extends Page<{}, NewRunState> {
             onChange={() => this._updateRecurringRunState(false)}
             checked={!isRecurringRun} />
           <FormControlLabel label='Recurring' control={<Radio color='primary' id='recurringToggle' />}
-            onChange={() => this._updateRecurringRunState(true)}
-            checked={isRecurringRun} />
+            onChange={() => this._updateRecurringRunState(true)} checked={isRecurringRun} />
 
           {/* Recurring run controls */}
           {isRecurringRun && (
@@ -303,7 +303,8 @@ class NewRun extends Page<{}, NewRunState> {
                 <TextField id={`newRunPipelineParam${i}`} key={i} variant='outlined'
                   label={param.name} value={param.value || ''}
                   onChange={(ev) => this._handleParamChange(i, ev.target.value || '')}
-                  style={{ maxWidth: 600 }} className={commonCss.textField}/>)}
+                  style={{ maxWidth: 600 }} className={commonCss.textField}
+                  InputProps={standardInputProps}/>)}
             </div>
           )}
 
