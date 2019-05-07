@@ -14,11 +14,11 @@ quality_op = components.load_component_from_url('https://raw.githubusercontent.c
 
 
 @dsl.pipeline(
-  name='Watson openscale pipeline',
+  name='Watson OpenScale Pipeline',
   description='A pipeline for end to end Spark machine learning workflow and model monitoring.'
 )
 def aiosPipeline(
-    COS_BUCKET_NAME='german-tomcli',
+    BUCKET_NAME='',
     TRAINING_DATA_LINK='https://raw.githubusercontent.com/emartensibm/german-credit/master/german_credit_data_biased_training.csv',
     POSTGRES_SCHEMA_NAME='data_mart_credit',
     LABEL_NAME='Risk',
@@ -34,17 +34,17 @@ def aiosPipeline(
     """A pipeline for Spark machine learning workflow with OpenScale."""
 
     data_preprocess_spark = preprocess_spark_op(
-        bucket_name=COS_BUCKET_NAME,
+        bucket_name=BUCKET_NAME,
         data_url=TRAINING_DATA_LINK
         ).apply(params.use_ai_pipeline_params(secret_name))
     train_spark = train_spark_op(
-        bucket_name=COS_BUCKET_NAME,
+        bucket_name=BUCKET_NAME,
         data_filename=data_preprocess_spark.output,
         model_filename=MODEL_FILE_PATH,
         spark_entrypoint=SPARK_ENTRYPOINT
         ).apply(params.use_ai_pipeline_params(secret_name))
     store_spark_model = store_spark_op(
-        bucket_name=COS_BUCKET_NAME,
+        bucket_name=BUCKET_NAME,
         aios_manifest_path=AIOS_MANIFEST_PATH,
         problem_type=PROBLEM_TYPE,
         model_name=MODEL_NAME,
@@ -64,7 +64,7 @@ def aiosPipeline(
         aios_schema=POSTGRES_SCHEMA_NAME,
         label_column=LABEL_NAME,
         aios_manifest_path=AIOS_MANIFEST_PATH,
-        bucket_name=COS_BUCKET_NAME,
+        bucket_name=BUCKET_NAME,
         problem_type=PROBLEM_TYPE
         ).apply(params.use_ai_pipeline_params(secret_name))
     monitor_quality = quality_op(
@@ -74,7 +74,7 @@ def aiosPipeline(
     monitor_fairness = fairness_op(
         model_name=subscribe.output,
         aios_manifest_path=AIOS_MANIFEST_PATH,
-        cos_bucket_name=COS_BUCKET_NAME,
+        cos_bucket_name=BUCKET_NAME,
         data_filename=data_preprocess_spark.output
         ).apply(params.use_ai_pipeline_params(secret_name))
 

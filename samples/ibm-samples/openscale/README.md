@@ -1,6 +1,6 @@
 # Watson OpenScale Example
 
-This simple OpenScale pipeline will demonstrate how to train a model using IBM Spark Service, then deploy it with Watson Machine Learning, and subscribe the model with Watson OpenScale monitoring.
+This simple OpenScale pipeline will demonstrate how to train a model using IBM Spark Service, store and deploy it with Watson Machine Learning, and then use Watson OpenScale for fairness and quality monitoring.
 
 ## Prerequisites
 This pipeline requires the user to have provisioned OpenScale, Spark, and Machine Learning Service on Watson, a cloud object store set up and the service credentials configured in the creds.ini file.
@@ -9,9 +9,9 @@ To provision your own OpenScale, Spark, Watson Machine Learning services and clo
 
 1. IBM Watson Machine Learning service instance
 
-To create a machine learning service, go to [IBM Cloud](https://cloud.ibm.com/), login with IBM account id first. From the `Catalog` page, click on `AI` tab on the left side to go to this [page](https://cloud.ibm.com/catalog?category=ai). Then click on the [`Machine Learning`](https://cloud.ibm.com/catalog/services/machine-learning) link and follow the instructions to create the service.
+To create a Watson Machine Learning service, go to [IBM Cloud](https://cloud.ibm.com/), login with IBM account id first. From the `Catalog` page, click on `AI` tab on the left side to go to this [page](https://cloud.ibm.com/catalog?category=ai). Then click on the [`Machine Learning`](https://cloud.ibm.com/catalog/services/machine-learning) link and follow the instructions to create the service.
 
-Once the service is created, from the service's `Dashboard`, follow the instruction to generate `service credentials`. Refer to IBM Cloud [documents](https://cloud.ibm.com/docs) for help if needed. Collect the `url`, `username`, `password`, `apikey`, and `instance_id` info from the service credentials as these will be required to access the service.
+Once the service is created, from the service's `Dashboard`, follow the instructions to generate `service credentials`. Refer to IBM Cloud [documents](https://cloud.ibm.com/docs) for help if needed. Collect the `url`, `username`, `password`, `apikey`, and `instance_id` info from the service credentials as these will be required to access the service.
 
 2. IBM Watson OpenScale service instance
 
@@ -25,7 +25,7 @@ In addition, collect the IBM Cloud API Key from this [page](https://cloud.ibm.co
 
 The IBM Spark service will provide several spark executors to help train our example model. From the `Catalog` page, click on `Web and Application` tab on the left side to go to this [page](https://cloud.ibm.com/catalog?category=app_services). Then click on the [`Apache Spark`](https://cloud.ibm.com/catalog/services/apache-spark) link and follow the instructions to create the service.
 
-Once the service is created, from the service's `Service credentials` on the left side, follow the instruction to generate `service credentials`. Refer to IBM Cloud [documents](https://cloud.ibm.com/docs) for help if needed.
+Once the service is created, from the service's `Service credentials` on the left side, follow the instructions to generate `service credentials`. Refer to IBM Cloud [documents](https://cloud.ibm.com/docs) for help if needed.
 Collect the `tenant_secret`, `tenant_id`, `cluster_master_url`, and `instance_id` info from the service credentials as these will be required to access the service.
 
 4. A cloud object store
@@ -86,7 +86,7 @@ dsl-compile --py openscale.py --output openscale.tar.gz
 Then, submit `openscale.tar.gz` to the kubeflow pipeline UI. From there you can create different experiments and runs with the OpenScale pipeline.
 
 ## Pipeline Parameters
-- **cos-bucket-name**: Object Storage bucket that has the spark training files and openscale manifest
+- **bucket-name**: Object Storage bucket that has Spark training files and OpenScale manifest
 - **training-data-link**: Link to a public data source if the data is not being preprocessed.
 - **postgres-schema-name**: PostgreSQL schema name for storing model payload metrics
 - **label-name**: Model label name in the dataset.

@@ -14,9 +14,6 @@ df_data.head()
 spark_df = df_data
 (train_data, test_data) = spark_df.randomSplit([0.8, 0.2], 24)
 
-MODEL_NAME = "AIOS Spark German Risk Model - Final"
-DEPLOYMENT_NAME = "AIOS Spark German Risk Deployment - Final"
-
 print("Number of records for training: " + str(train_data.count()))
 print("Number of records for evaluation: " + str(test_data.count()))
 
