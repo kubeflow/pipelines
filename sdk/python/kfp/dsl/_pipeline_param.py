@@ -224,7 +224,7 @@ class PipelineParam(object):
     return ConditionOperator('>=', self, other)
 
   def __hash__(self):
-    return hash((self.op_name, self.name))
+    return hash((self.op_name, self.name, self.pattern))
 
   def ignore_type(self):
     """ignore_type ignores the type information such that type checking would also pass"""
