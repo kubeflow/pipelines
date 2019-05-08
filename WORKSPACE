@@ -955,3 +955,9 @@ go_repository(
     importpath = "k8s.io/klog",
     tag = "v0.1.0",
 )
+
+go_repository(
+    name = "com_github_gorilla_websocket",
+    importpath = "github.com/gorilla/websocket",
+    tag = "v1.2.0",
+)
