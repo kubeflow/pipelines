@@ -49,7 +49,7 @@ class PythonOpTestCase(unittest.TestCase):
                 task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
-            process = subprocess.run(full_command)
+            subprocess.run(full_command, check=True)
 
             output_path = list(task.file_outputs.values())[0]
             actual_str = Path(output_path).read_text()
@@ -70,7 +70,7 @@ class PythonOpTestCase(unittest.TestCase):
 
             full_command = task.command + task.arguments
 
-            process = subprocess.run(full_command)
+            subprocess.run(full_command, check=True)
 
             (output_path1, output_path2) = (task.file_outputs[output_names[0]], task.file_outputs[output_names[1]])
             actual1_str = Path(output_path1).read_text()
