@@ -10,7 +10,7 @@ inputs:
   - {name: Env, type: String, description: 'override function env var, Json {key: value, ..}', default: ''}
   - {name: Mount, type: String, description: 'volume mount, [vol-type:]<vol-url>:<dst-path>', default: ''}
 outputs:
-  - {name: address, type: String, description: 'function endpoint url'}
+  - {name: Endpoint, type: String, description: 'function endpoint url'}
 implementation:
   container:
     image: nuclio/pydeploy
@@ -25,4 +25,4 @@ implementation:
       --mount, {inputValue: Mount},
     ]
     fileOutputs:
-      address: /tmp/output
+      Endpoint: /tmp/output

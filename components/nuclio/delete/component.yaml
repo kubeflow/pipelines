@@ -10,4 +10,5 @@ implementation:
     command: [
       python, -m, nuclio, del, {inputValue: Name},
       --dashboard-url, {inputValue: Dashboard},
+      --namespace, {inputValue: Namespace},
     ]
