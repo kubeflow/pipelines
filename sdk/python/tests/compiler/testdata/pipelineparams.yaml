@@ -41,31 +41,9 @@ spec:
       - name: mlpipeline-ui-metadata
         path: "/mlpipeline-ui-metadata.json"
         optional: true
-        s3:
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          bucket: mlpipeline
-          accessKeySecret:
-            name: mlpipeline-minio-artifact
-            key: accesskey
-          secretKeySecret:
-            name: mlpipeline-minio-artifact
-            key: secretkey
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
       - name: mlpipeline-metrics
         path: "/mlpipeline-metrics.json"
         optional: true
-        s3:
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          bucket: mlpipeline
-          accessKeySecret:
-            name: mlpipeline-minio-artifact
-            key: accesskey
-          secretKeySecret:
-            name: mlpipeline-minio-artifact
-            key: secretkey
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
       parameters:
       - name: download-downloaded
         valueFrom:
@@ -94,31 +72,9 @@ spec:
       - name: mlpipeline-ui-metadata
         path: "/mlpipeline-ui-metadata.json"
         optional: true
-        s3:
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          bucket: mlpipeline
-          accessKeySecret:
-            name: mlpipeline-minio-artifact
-            key: accesskey
-          secretKeySecret:
-            name: mlpipeline-minio-artifact
-            key: secretkey
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
       - name: mlpipeline-metrics
         path: "/mlpipeline-metrics.json"
         optional: true
-        s3:
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          bucket: mlpipeline
-          accessKeySecret:
-            name: mlpipeline-minio-artifact
-            key: accesskey
-          secretKeySecret:
-            name: mlpipeline-minio-artifact
-            key: secretkey
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
   - name: pipelineparams
     inputs:
       parameters:
