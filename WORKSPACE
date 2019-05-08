@@ -159,7 +159,7 @@ go_repository(
 go_repository(
     name = "com_github_argoproj_argo",
     importpath = "github.com/argoproj/argo",
-    tag = "v2.3.0-rc2",
+    tag = "v2.3.0-rc3",
 )
 
 go_repository(
