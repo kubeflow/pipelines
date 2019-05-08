@@ -1,0 +1,21 @@
+name: nuclio invoker
+description: invoke nuclio function.
+inputs:
+  - {name: Url, type: String, description: 'function URL/endpoint'}
+  - {name: Body, type: String, description: 'request body', default: ''}
+  - {name: Log level, type: String, description: 'log level', default: 'info'}
+  - {name: Method, type: String, description: 'HTTP method GET|POST|..', default: ''}
+outputs:
+  - {name: output, type: String, description: 'function output'}
+implementation:
+  container:
+    image: nuclio/invoker
+    command: [
+      invoke,
+      -a, {inputValue: Url},
+      -b, {inputValue: Body},
+      -m, {inputValue: Method},
+      -l, {inputValue: Log level},
+    ]
+    fileOutputs:
+      output: /tmp/output
