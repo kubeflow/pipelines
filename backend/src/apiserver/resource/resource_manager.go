@@ -215,7 +215,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	for templateIdx, template := range workflow.Workflow.Spec.Templates {
 		for artIdx, artifact := range template.Outputs.Artifacts {
 			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
-				workflow.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = True
+				workflow.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
 			}
 		}
 	}
