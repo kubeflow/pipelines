@@ -1,4 +1,4 @@
-FROM gcr.io/ml-pipeline-test/selenium-standalone-chrome-gcloud-nodejs:v20190506-0.1.19-18-g96ab0ccc-dirty-e39006
+FROM gcr.io/ml-pipeline-test/selenium-standalone-chrome-gcloud-nodejs:v20190507-0.1.19-19-g0b8b4dd7-dirty-20a6f9
 #To build this image: cd selenium-standalone-chrome-gcloud-nodejs.Docker && make push
 
 COPY . /src
