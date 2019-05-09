@@ -172,7 +172,7 @@ class PipelineParam(object):
     self.op_name = op_name if op_name else None
     self.value = value if value else None
     self.param_type = param_type
-    self.pattern = pattern
+    self.pattern = pattern or str(self)
 
   @property
   def full_name(self):
