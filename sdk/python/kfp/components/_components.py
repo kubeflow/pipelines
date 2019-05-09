@@ -153,7 +153,7 @@ def _create_task_factory_from_component_text(text_or_file, component_filename=No
 
 
 def _create_task_factory_from_component_dict(component_dict, component_filename=None, component_ref: ComponentReference = None):
-    component_spec = ComponentSpec.from_struct(component_dict)
+    component_spec = ComponentSpec.from_dict(component_dict)
     return _create_task_factory_from_component_spec(component_spec, component_filename, component_ref)
 
 
