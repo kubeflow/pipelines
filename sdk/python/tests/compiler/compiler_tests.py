@@ -379,6 +379,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline volumeop_sequential."""
     self._test_py_compile_yaml('volumeop_sequential')
 
+  def test_py_param_substitutions(self):
+    """Test pipeline param_substitutions."""
+    self._test_py_compile_yaml('param_substitutions')
+
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
     @component
