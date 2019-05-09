@@ -37,7 +37,9 @@ COPY --from=build /usr/local/bin/kubectl /usr/local/bin/kubectl
 
 COPY --from=build /go/src/github.com/kubeflow/arena/charts /charts
 
-COPY arena_launcher.py /root
+ENV PYTHONPATH "${PYTHONPATH}:/root"
+
+ADD . /root
 
 WORKDIR /root
 
