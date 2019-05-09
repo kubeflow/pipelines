@@ -53,7 +53,6 @@ area_under_curve = evaluatorDT.evaluate(predictions)
 
 # default evaluation is areaUnderROC
 print("areaUnderROC = %g" % area_under_curve)
-
 print(model)
 print(predictions)
 
