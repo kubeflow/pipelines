@@ -132,10 +132,19 @@ export function getPodLogs(podName: string): Promise<string> {
     );
 }
 
+/*
+* Create Tensorboard pod via CRD with the given logdir if there is no existing 
+* Tensorboard pod.  
+*/
 export async function newTensorboardInstance(logdir: string): Promise<void> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
+  const currentPod = await getTensorboardInstance(logdir);
+  if (currentPod) {
+    return;
+  }
+
   // TODO: take the configuration below to a separate file
   const group = 'kubeflow.org';
   const version = 'v1beta1';
@@ -157,3 +166,45 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
   };
   await k8sV1CustomObjectClient.createNamespacedCustomObject(group, version, namespace, plural, body);
  } 
+
+ /**
+ * Finds a running Tensorboard pod created via CRD with the give logdir and
+ * returns its pod IP and port.
+ */
+export async function getTensorboardInstance(logdir: string): Promise<string> {
+  if (!k8sV1CustomObjectClient) {
+    throw new Error('Cannot access kubernetes Custom Object API');
+  }
+
+  const group = 'kubeflow.org';
+  const version = 'v1beta1';
+  const namespace = 'kubeflow';
+  const plural = 'tensorboard';  
+  const pods = (await k8sV1CustomObjectClient.listNamespacedCustomObject(group, 
+    version, namespace, plural)).body.items;
+  const args = ['tensorboard', '--logdir', logdir];
+  const pod = pods.find((p) =>
+    p.status.phase === 'Running' &&
+    !p.metadata.deletionTimestamp && // Terminating/terminated pods have this set
+    !!p.spec.containers.find((c) => Utils.equalArrays(c.args, args)));
+  return pod && pod.status.podIP ? `http://${pod.status.podIP}:6006` : '';
+}
+
+/**
+ * Polls every second for a running Tensorboard pod with the given logdir, and
+ * returns the address of one if found, or rejects if a timeout expires.
+ */
+export function waitForTensorboardInstance(logdir: string, timeout: number): Promise<string> {
+  const start = Date.now();
+  return new Promise((resolve, reject) => {
+    setInterval(async () => {
+      if (Date.now() - start > timeout) {
+        reject('Timed out waiting for tensorboard');
+      }
+      const tensorboardAddress = await getTensorboardInstance(logdir);
+      if (tensorboardAddress) {
+        resolve(encodeURIComponent(tensorboardAddress));
+      }
+    }, 1000);
+  });
+}
