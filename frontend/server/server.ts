@@ -234,7 +234,7 @@ const createTensorboardHandler = async (req, res) => {
     return;
   }
 
-  try {  
+  try {
     await k8sHelper.newTensorboardInstance(logdir);
     const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, 60 * 1000);
     res.send(tensorboardAddress);
