@@ -43,4 +43,4 @@ ADD . /root
 
 WORKDIR /root
 
-ENTRYPOINT ["python","arean_launcher.py"]
+ENTRYPOINT ["python","arena_launcher.py"]
