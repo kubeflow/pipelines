@@ -460,7 +460,6 @@ class TestCompiler(unittest.TestCase):
   def _test_op_to_template_yaml(self, ops, file_base_name):
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     target_yaml = os.path.join(test_data_dir, file_base_name + '.yaml')
-    print(target_yaml)
     with open(target_yaml, 'r') as f:
       expected = yaml.safe_load(f)['spec']['templates'][0]
 
