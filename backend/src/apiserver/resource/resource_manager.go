@@ -78,8 +78,8 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
-		time: clientManager.Time(),
-		uuid: clientManager.UUID(),
+		time:                    clientManager.Time(),
+		uuid:                    clientManager.UUID(),
 	}
 }
 
@@ -210,6 +210,17 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
+
+	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
+	// TODO: Fix the components to explicitly declare the artifacts they really output.
+	// TODO: Change the compiler to stop auto-adding those two atrifacts to all tasks.
+	for templateIdx, template := range workflow.Workflow.Spec.Templates {
+		for artIdx, artifact := range template.Outputs.Artifacts {
+			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
+				workflow.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
+			}
+		}
+	}
 
 	// Create argo workflow CRD resource
 	newWorkflow, err := r.workflowClient.Create(workflow.Get())
