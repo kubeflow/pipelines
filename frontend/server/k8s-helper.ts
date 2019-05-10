@@ -132,7 +132,7 @@ export function getPodLogs(podName: string): Promise<string> {
     );
 }
 
-/*
+/**
 * Create Tensorboard pod via CRD with the given logdir if there is no existing 
 * Tensorboard pod.  
 */
