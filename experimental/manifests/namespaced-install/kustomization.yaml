@@ -11,3 +11,5 @@ namespace: foobar
 
 patchesStrategicMerge:
 - ./workflow-controller-configmap.yaml
+- ./ml-pipeline-persistenceagent-deployment-patch.yaml
+- ./ml-pipeline-scheduledworkflow-deployment-patch.yaml
