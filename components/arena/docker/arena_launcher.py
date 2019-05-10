@@ -140,7 +140,7 @@ def main(argv=None):
         if len(mArray) > 1:
           metric_unit = mArray[1]
         logging.info("determine metric name {0} with metric unit {1}".format(metric_name, metric_unit))
-        value = _collect_metrics(fullname, job_type, metric_name)
+        value = collect_metrics(fullname, job_type, metric_name)
         if value > 0:
           import re
           p = re.compile('^[a-z]([-a-z0-9]{0,62}[a-z0-9])?')

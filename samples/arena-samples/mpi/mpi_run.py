@@ -18,7 +18,8 @@ def mpirun_pipeline(image="uber/horovod:0.13.11-tf1.10.0-torch0.4.0-py3.5",
                gpus=1,
                workers=2,
                cpu_limit='2',
-               memory_limit='2Gi'):
+               metric='',
+               memory_limit='10Gi'):
   """A pipeline for end to end machine learning workflow."""
 
   env = ['NCCL_DEBUG=INFO','GIT_SYNC_BRANCH={0}'.format(git_sync_branch)]
@@ -33,6 +34,7 @@ def mpirun_pipeline(image="uber/horovod:0.13.11-tf1.10.0-torch0.4.0-py3.5",
     gpus=gpus,
     cpu_limit=cpu_limit,
     memory_limit=memory_limit,
+    metrics=[metric],
   	command="""
   	mpirun python code/benchmarks/scripts/tf_cnn_benchmarks/tf_cnn_benchmarks.py --model resnet101 \
   	--batch_size {0}  --variable_update horovod --optimizer {1}\

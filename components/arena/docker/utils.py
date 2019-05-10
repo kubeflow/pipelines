@@ -60,7 +60,7 @@ def wait_job_running(name, job_type, timeout):
       timeoutMsg = "Timeout waiting for job {0} with job type {1} running.".format(name ,job_type)
       logging.error(timeoutMsg)
       raise Exception(timeoutMsg)
-    time.sleep(3)
+    time.sleep(10)
     status = get_job_status(name, job_type)
   logging.info("job {0} with type {1} status is {2}".format(name, job_type, status))
 
@@ -77,7 +77,7 @@ def job_logging(name, job_type):
   rc = process.poll()
   return rc
 
-def _collect_metrics(name, job_type, metric_name):
+def collect_metrics(name, job_type, metric_name):
   metrics_cmd = "arena logs --tail=50 %s | grep -e '%s=' -e '%s:' | tail -1" % (name, metric_name, metric_name)
   metric = 0
   logging.info("search metric_name %s" % (metric_name))
