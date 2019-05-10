@@ -92,6 +92,7 @@ def generate_mpjob_command(args):
     name = args.name
     workers = args.workers
     image = args.image
+    rdma = args.rdma
 
     commandArray = [
     'arena', 'submit', 'mpijob',
