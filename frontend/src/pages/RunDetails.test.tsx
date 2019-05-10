@@ -35,6 +35,8 @@ describe('RunDetails', () => {
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
   const historyPushSpy = jest.fn();
+  const getProjectIdSpy = jest.spyOn(Apis, 'getProjectId');
+  const getClusterNameSpy = jest.spyOn(Apis, 'getClusterName');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
   const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
@@ -86,6 +88,8 @@ describe('RunDetails', () => {
         status: 'Succeeded',
       },
     };
+    getProjectIdSpy.mockImplementation(() => Promise.resolve('some-project'));
+    getClusterNameSpy.mockImplementation(() => Promise.resolve('some-cluster'));
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
     getExperimentSpy.mockImplementation(() => Promise.resolve({ id: 'some-experiment-id', name: 'some experiment' }));
     getPodLogsSpy.mockImplementation(() => 'test logs');
@@ -478,80 +482,6 @@ describe('RunDetails', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('switches to logs tab in side pane', async () => {
-    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', }, }, },
-    });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 4);
-    expect(tree.state('sidepanelSelectedTab')).toEqual(4);
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('loads and shows logs in side pane', async () => {
-    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', }, }, },
-    });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 4);
-    await getPodLogsSpy;
-    expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
-    expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1');
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('shows error banner atop logs area if fetching logs failed', async () => {
-    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1', }, }, },
-    });
-    TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 4);
-    await getPodLogsSpy;
-    await TestUtils.flushPromises();
-    expect(tree.state()).toMatchObject({
-      logsBannerAdditionalInfo: 'getting logs failed',
-      logsBannerMessage: 'Error: failed to retrieve logs. Click Details for more information.',
-      logsBannerMode: 'error',
-    });
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('does not load logs if clicked node status is skipped', async () => {
-    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: {
-        nodes: {
-          node1: {
-            id: 'node1',
-            phase: 'Skipped',
-          },
-        },
-      },
-    });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 4);
-    await getPodLogsSpy;
-    await TestUtils.flushPromises();
-    expect(getPodLogsSpy).not.toHaveBeenCalled();
-    expect(tree.state()).toMatchObject({
-      logsBannerAdditionalInfo: '',
-      logsBannerMessage: '',
-    });
-    expect(tree).toMatchSnapshot();
-  });
-
   it('closes side panel when close button is clicked', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       status: { nodes: { node1: { id: 'node1', }, }, },
@@ -629,49 +559,6 @@ describe('RunDetails', () => {
     await (tree.instance() as RunDetails).refresh();
     const fourthCall = updateToolbarSpy.mock.calls[3][0];
     expect(fourthCall.pageTitle).toMatchSnapshot();
-  });
-
-  it('keeps side pane open and on same tab when logs change after refresh', async () => {
-    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1' } } },
-    });
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 4);
-    expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
-    expect(tree.state('sidepanelSelectedTab')).toEqual(4);
-
-    getPodLogsSpy.mockImplementationOnce(() => 'new test logs');
-    await (tree.instance() as RunDetails).refresh();
-    expect(tree).toMatchSnapshot();
-  });
-
-  it('dismisses log failure error banner when logs can be fetched after refresh', async () => {
-    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      status: { nodes: { node1: { id: 'node1' } } },
-    });
-    TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
-    tree = shallow(<RunDetails {...generateProps()} />);
-    await getRunSpy;
-    await TestUtils.flushPromises();
-    tree.find('Graph').simulate('click', 'node1');
-    tree.find('MD2Tabs').at(1).simulate('switch', 4);
-    await getPodLogsSpy;
-    await TestUtils.flushPromises();
-    expect(tree.state()).toMatchObject({
-      logsBannerAdditionalInfo: 'getting logs failed',
-      logsBannerMessage: 'Error: failed to retrieve logs. Click Details for more information.',
-      logsBannerMode: 'error',
-    });
-
-    testRun.run!.status = 'Failed';
-    await (tree.instance() as RunDetails).refresh();
-    expect(tree.state()).toMatchObject({
-      logsBannerAdditionalInfo: '',
-      logsBannerMessage: '',
-    });
   });
 
   it('shows node message banner if node receives message after refresh', async () => {
@@ -755,6 +642,173 @@ describe('RunDetails', () => {
       await TestUtils.flushPromises();
 
       expect(tree).toMatchSnapshot();
+    });
+  });
+
+  describe('logs tab', () => {
+    it('switches to logs tab in side pane', async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: { nodes: { node1: { id: 'node1', }, }, },
+      });
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      tree.find('Graph').simulate('click', 'node1');
+      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      expect(tree.state('sidepanelSelectedTab')).toEqual(4);
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('loads and shows logs in side pane', async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: { nodes: { node1: { id: 'node1', }, }, },
+      });
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      tree.find('Graph').simulate('click', 'node1');
+      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      await getPodLogsSpy;
+      expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+      expect(getPodLogsSpy).toHaveBeenLastCalledWith('node1');
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('shows warning banner and link to Stackdriver in logs area if fetching logs failed and cluster is in GKE', async () => {
+      // mocking out getProjectId and getClusterName simulates a cluster running in GKE
+      getProjectIdSpy.mockImplementationOnce(() => Promise.resolve('test-project-id'));
+      getClusterNameSpy.mockImplementationOnce(() => Promise.resolve('test-cluster-name'));
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: { nodes: { node1: { id: 'node1', }, }, },
+      });
+      TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      tree.find('Graph').simulate('click', 'node1');
+      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      await getPodLogsSpy;
+      await TestUtils.flushPromises();
+      expect(tree.state()).toMatchObject({
+        logsBannerMessage: 'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
+        logsBannerMode: 'warning',
+      });
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('shows error banner atop logs area if fetching logs failed and getProjectId fails', async () => {
+      // returning an error for getProjectId simulates a cluster running outside of GKE
+      TestUtils.makeErrorResponseOnce(getProjectIdSpy, 'getting project ID failed');
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: { nodes: { node1: { id: 'node1', }, }, },
+      });
+      TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      tree.find('Graph').simulate('click', 'node1');
+      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      await getPodLogsSpy;
+      await TestUtils.flushPromises();
+      expect(tree.state()).toMatchObject({
+        logsBannerAdditionalInfo: 'getting logs failed',
+        logsBannerMessage: 'Error: failed to retrieve pod logs. Click Details for more information.',
+        logsBannerMode: 'error',
+      });
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('shows error banner atop logs area if fetching logs failed and getClusterName fails', async () => {
+      // returning an error for getClusterName simulates a cluster running outside of GKE
+      TestUtils.makeErrorResponseOnce(getClusterNameSpy, 'getting cluster name failed');
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: { nodes: { node1: { id: 'node1', }, }, },
+      });
+      TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      tree.find('Graph').simulate('click', 'node1');
+      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      await getPodLogsSpy;
+      await TestUtils.flushPromises();
+      expect(tree.state()).toMatchObject({
+        logsBannerAdditionalInfo: 'getting logs failed',
+        logsBannerMessage: 'Error: failed to retrieve pod logs. Click Details for more information.',
+        logsBannerMode: 'error',
+      });
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('does not load logs if clicked node status is skipped', async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: {
+          nodes: {
+            node1: {
+              id: 'node1',
+              phase: 'Skipped',
+            },
+          },
+        },
+      });
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      tree.find('Graph').simulate('click', 'node1');
+      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      await getPodLogsSpy;
+      await TestUtils.flushPromises();
+      expect(getPodLogsSpy).not.toHaveBeenCalled();
+      expect(tree.state()).toMatchObject({
+        logsBannerAdditionalInfo: '',
+        logsBannerMessage: '',
+      });
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('keeps side pane open and on same tab when logs change after refresh', async () => {
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: { nodes: { node1: { id: 'node1' } } },
+      });
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      tree.find('Graph').simulate('click', 'node1');
+      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      expect(tree.state('selectedNodeDetails')).toHaveProperty('id', 'node1');
+      expect(tree.state('sidepanelSelectedTab')).toEqual(4);
+
+      getPodLogsSpy.mockImplementationOnce(() => 'new test logs');
+      await (tree.instance() as RunDetails).refresh();
+      expect(tree).toMatchSnapshot();
+    });
+
+    it('dismisses log failure error banner when logs can be fetched after refresh', async () => {
+      // returning an error for getProjectId simulates a cluster running outside of GKE
+      TestUtils.makeErrorResponseOnce(getProjectIdSpy, 'getting project ID failed');
+      testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+        status: { nodes: { node1: { id: 'node1' } } },
+      });
+      TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'getting logs failed');
+      tree = shallow(<RunDetails {...generateProps()} />);
+      await getRunSpy;
+      await TestUtils.flushPromises();
+      tree.find('Graph').simulate('click', 'node1');
+      tree.find('MD2Tabs').at(1).simulate('switch', 4);
+      await getPodLogsSpy;
+      await TestUtils.flushPromises();
+      expect(tree.state()).toMatchObject({
+        logsBannerAdditionalInfo: 'getting logs failed',
+        logsBannerMessage: 'Error: failed to retrieve pod logs. Click Details for more information.',
+        logsBannerMode: 'error',
+      });
+
+      testRun.run!.status = 'Failed';
+      await (tree.instance() as RunDetails).refresh();
+      expect(tree.state()).toMatchObject({
+        logsBannerAdditionalInfo: '',
+        logsBannerMessage: '',
+      });
     });
   });
 
