@@ -29,10 +29,13 @@ def mpirun_pipeline(image="uber/horovod:0.13.11-tf1.10.0-torch0.4.0-py3.5",
   	env=env,
     data=[data],
     workers=workers,
+    sync_source=sync_source,
+    workers=workers,
+    gpus=gpus,
     cpu_limit=cpu_limit,
     memory_limit=memory_limit,
   	command="""
-  	mpirun python /benchmarks/scripts/tf_cnn_benchmarks/tf_cnn_benchmarks.py --model resnet101 \
+  	mpirun python code/benchmarks/scripts/tf_cnn_benchmarks/tf_cnn_benchmarks.py --model resnet101 \
   	--batch_size {0}  --variable_update horovod --optimizer {1}\
   	--summary_verbosity=3 --save_summaries_steps=10
   	""".format(batch_size, optimizer)
