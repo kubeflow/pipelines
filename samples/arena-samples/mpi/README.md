@@ -86,7 +86,7 @@ Then, submit `[mpi_run.py.tar.gz](mpi_run.py.tar.gz)` to the kubeflow pipeline U
 
 ![](choose_pipelines.jpg)
 
-You can create different experiments and runs using the mpirun pipeline definition, and choose the different parameters.
+You can use the mpirun pipeline definition to submit run, and choose the different parameters.
 
 ![](submit_run.jpg)
 
