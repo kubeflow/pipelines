@@ -20,7 +20,7 @@ def setup_custom_logging():
 def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
 
-def submit_job(command):
+def _submit_job(command):
   logging.info("command: {0}".format(command))
   try:
     output = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)

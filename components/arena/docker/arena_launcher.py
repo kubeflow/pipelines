@@ -106,7 +106,7 @@ def main(argv=None):
   
   logging.info('Start training {0}.'.format(command))
   
-  _submit_job(command)
+  submit_job(command)
   
   #with open('/mlpipeline-ui-metadata.json', 'w') as f:
   #    json.dump(metadata, f)

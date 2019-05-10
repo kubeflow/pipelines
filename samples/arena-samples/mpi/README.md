@@ -68,7 +68,7 @@ spec:
 
 ## Instructions
 
-### 1.With command line
+### 1.With command line to compile the python code to p
 
 First, install the necessary Python Packages
 ```shell
@@ -82,7 +82,8 @@ Then run [mpi_run.py](mpi_run.py) with different parameters.
 dsl-compile --py mpi_run.py --output mpi_run.py.tar.gz
 ```
 
-### 2.With Jupyter Notebook
+### 2.Submit the 
+
 Run `jupyter notebook` to start running your jupyter server and load the notebook `mpi_run.ipynb`
 
 
