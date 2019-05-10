@@ -15,13 +15,11 @@ def get_secret_creds(path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', type=str, help='Deployed model name', default="AIOS Spark German Risk Model - Final")
-    parser.add_argument('--problem_type', type=str, help='Model problem type', default="BINARY_CLASSIFICATION")
     parser.add_argument('--quality_threshold', type=float, help='Amount of threshold for quality monitoring', default=0.7)
     parser.add_argument('--quality_min_records', type=int, help='Minimum amount of records for performing a quality monitor', default=5)
     args = parser.parse_args()
 
     model_name = args.model_name
-    problem_type = args.problem_type
     quality_threshold = args.quality_threshold
     quality_min_records = args.quality_min_records
 
@@ -43,15 +41,7 @@ if __name__ == "__main__":
         if ai_client.data_mart.subscriptions.get_details(sub)['entity']['asset']['name'] == model_name:
             subscription = ai_client.data_mart.subscriptions.get(sub)
 
-    PROBLEMTYPE = ProblemType.BINARY_CLASSIFICATION
-    if problem_type == 'BINARY_CLASSIFICATION':
-        PROBLEMTYPE = ProblemType.BINARY_CLASSIFICATION
-    elif problem_type == 'MULTICLASS_CLASSIFICATION':
-        PROBLEMTYPE = ProblemType.MULTICLASS_CLASSIFICATION
-    elif problem_type == 'REGRESSION':
-        PROBLEMTYPE = ProblemType.REGRESSION
-
-    subscription.quality_monitoring.enable(problem_type=PROBLEMTYPE, threshold=quality_threshold, min_records=quality_min_records)
+    subscription.quality_monitoring.enable(threshold=quality_threshold, min_records=quality_min_records)
     # Runs need to post the minial payload records in order to trigger the monitoring run.
     # run_details = subscription.quality_monitoring.run()
 

@@ -1,12 +1,13 @@
 import json
 import argparse
-import ibm_boto3
-from ibm_botocore.client import Config
+import re
 from ibm_ai_openscale import APIClient
 from ibm_ai_openscale.engines import *
 from ibm_ai_openscale.utils import *
 from ibm_ai_openscale.supporting_classes import PayloadRecord, Feature
 from ibm_ai_openscale.supporting_classes.enums import *
+from minio import Minio
+import pandas as pd
 
 def get_secret_creds(path):
     with open(path, 'r') as f:
@@ -21,6 +22,7 @@ if __name__ == "__main__":
     parser.add_argument('--fairness_min_records', type=int, help='Minimum amount of records for performing a fairness monitor', default=5)
     parser.add_argument('--aios_manifest_path', type=str, help='Object storage file path for the aios manifest file', default='aios.json')
     parser.add_argument('--cos_bucket_name', type=str, help='Object storage bucket name', default='bucket-name')
+    parser.add_argument('--data_filename', type=str, help='Name of the data binary', default="")
     args = parser.parse_args()
 
     model_name = args.model_name
@@ -28,24 +30,30 @@ if __name__ == "__main__":
     fairness_min_records = args.fairness_min_records
     cos_bucket_name = args.cos_bucket_name
     aios_manifest_path = args.aios_manifest_path
+    data_filename = args.data_filename
 
     aios_guid = get_secret_creds("/app/secrets/aios_guid")
     cloud_api_key = get_secret_creds("/app/secrets/cloud_api_key")
-    cos_url = get_secret_creds("/app/secrets/cos_url")
-    cos_apikey = get_secret_creds("/app/secrets/cos_apikey")
-    cos_resource_instance_id = get_secret_creds("/app/secrets/cos_resource_id")
+    cos_endpoint = get_secret_creds("/app/secrets/cos_endpoint")
+    cos_access_key = get_secret_creds("/app/secrets/cos_access_key")
+    cos_secret_key = get_secret_creds("/app/secrets/cos_secret_key")
 
-    ''' Upload data to IBM Cloud object storage '''
-    cos = ibm_boto3.resource('s3',
-                             ibm_api_key_id=cos_apikey,
-                             ibm_service_instance_id=cos_resource_instance_id,
-                             ibm_auth_endpoint='https://iam.bluemix.net/oidc/token',
-                             config=Config(signature_version='oauth'),
-                             endpoint_url=cos_url)
+    ''' Remove possible http scheme for Minio '''
+    url = re.compile(r"https?://")
+    cos_endpoint = url.sub('', cos_endpoint)
 
-    cos.Bucket(cos_bucket_name).download_file(aios_manifest_path, 'aios.json')
+    ''' Upload data to Cloud object storage '''
+    cos = Minio(cos_endpoint,
+                access_key=cos_access_key,
+                secret_key=cos_secret_key,
+                secure=True)
 
+    cos.fget_object(cos_bucket_name, aios_manifest_path, 'aios.json')
     print('Fairness definition file ' + aios_manifest_path + ' is downloaded')
+
+    cos.fget_object(cos_bucket_name, data_filename, data_filename)
+    pd_data = pd.read_csv(data_filename, sep=",", header=0, engine='python')
+    print('training data ' + data_filename + ' is downloaded and loaded')
 
     """ Load manifest JSON file """
     with open('aios.json') as f:
@@ -74,10 +82,10 @@ if __name__ == "__main__":
 
     subscription.fairness_monitoring.enable(
             features=feature_list,
-            prediction_column='predictedLabel',
             favourable_classes=aios_manifest['fairness_favourable_classes'],
             unfavourable_classes=aios_manifest['fairness_unfavourable_classes'],
-            min_records=fairness_min_records
+            min_records=fairness_min_records,
+            training_data=pd_data
         )
 
     run_details = subscription.fairness_monitoring.run()

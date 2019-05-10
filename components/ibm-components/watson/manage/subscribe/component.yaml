@@ -16,12 +16,15 @@ description: |
 metadata:
   annotations: {platform: 'IBM Watson OpenScale'}
 inputs:
-  - {name: model_name,    description: 'Deployed model name.', default: 'AIOS Spark German Risk Model - Final'}
-  - {name: model_uid,     description: 'Deployed model uid.', default: 'dummy uid'}
-  - {name: aios_schema,   description: 'OpenScale Schema Name', default: 'data_mart_credit_risk'}
-  - {name: label_column,  description: 'Model label column name.', default: 'Risk'}
+  - {name: model_name,             description: 'Deployed model name.', default: 'AIOS Spark German Risk Model - Final'}
+  - {name: model_uid,              description: 'Deployed model uid.', default: 'dummy uid'}
+  - {name: aios_schema,            description: 'OpenScale Schema Name', default: 'data_mart_credit_risk'}
+  - {name: label_column,           description: 'Model label column name.', default: 'Risk'}
+  - {name: aios_manifest_path,     description: 'Object storage file path for the aios manifest file', default: ''}
+  - {name: bucket_name,            description: 'Object storage bucket name', default: 'dummy-bucket-name'}
+  - {name: problem_type,           description: 'Model problem type', default: 'BINARY_CLASSIFICATION'}
 outputs:
-  - {name: model_name,    description: 'Deployed model name.'}
+  - {name: model_name,             description: 'Deployed model name.'}
 implementation:
   container:
     image: docker.io/aipipeline/subscribe:latest
@@ -31,7 +34,10 @@ implementation:
       --model_name, {inputValue: model_name},
       --model_uid, {inputValue: model_uid},
       --aios_schema, {inputValue: aios_schema},
-      --label_column, {inputValue: label_column}
+      --label_column, {inputValue: label_column},
+      --aios_manifest_path, {inputValue: aios_manifest_path},
+      --bucket_name, {inputValue: bucket_name},
+      --problem_type, {inputValue: problem_type}
     ]
     fileOutputs:
-      model_name: /tmp/model_name.txt
+      model_name: /tmp/model_name
