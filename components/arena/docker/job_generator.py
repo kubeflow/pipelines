@@ -101,7 +101,7 @@ def generate_mpjob_command(args):
     '--image={0}'.format(image),
     ]
 
-    if rdma:
+    if rdma.lower() == "true":
        commandArray.append("--rdma")
 
     commandArray.extend(generate_options(args))
