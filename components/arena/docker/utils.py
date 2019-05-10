@@ -38,33 +38,33 @@ def _is_pending_status(status):
     logging.info("status: {0}".format(status))
     return status == 'PENDING'
 
-def _wait_job_done(name, job_type, timeout):
+def wait_job_done(name, job_type, timeout):
   end_time = datetime.datetime.now() + timeout
   logging.info("expect done time: {0}".format(end_time))
-  status = _get_job_status(name, job_type)
+  status = get_job_status(name, job_type)
   while _is_active_status(status):
     if datetime.datetime.now() > end_time:
       timeoutMsg = "Timeout waiting for job {0} with job type {1} completing.".format(name ,job_type)
       logging.error(timeoutMsg)
       raise Exception(timeoutMsg)
     time.sleep(3)
-    status = _get_job_status(name, job_type)
+    status = get_job_status(name, job_type)
   logging.info("job {0} with type {1} status is {2}".format(name, job_type, status))
 
-def _wait_job_running(name, job_type, timeout):
+def wait_job_running(name, job_type, timeout):
   end_time = datetime.datetime.now() + timeout
   logging.info("expect running time: {0}".format(end_time))
-  status = _get_job_status(name, job_type)
+  status = get_job_status(name, job_type)
   while _is_pending_status(status):
     if datetime.datetime.now() > end_time:
       timeoutMsg = "Timeout waiting for job {0} with job type {1} running.".format(name ,job_type)
       logging.error(timeoutMsg)
       raise Exception(timeoutMsg)
     time.sleep(3)
-    status = _get_job_status(name, job_type)
+    status = get_job_status(name, job_type)
   logging.info("job {0} with type {1} status is {2}".format(name, job_type, status))
 
-def _job_logging(name, job_type):
+def job_logging(name, job_type):
   logging_cmd = "arena logs -f %s" % (name)
   process = Popen(split(logging_cmd), stdout = PIPE, stderr = PIPE, encoding='utf8')
   while True:
@@ -107,7 +107,7 @@ def _collect_metrics(name, job_type, metric_name):
 
   return metric
 
-def _get_job_status(name, job_type):
+def get_job_status(name, job_type):
   get_cmd = "arena get %s --type %s | grep -i STATUS:|awk -F: '{print $NF}'" % (name, job_type)
   status = ""
   try:

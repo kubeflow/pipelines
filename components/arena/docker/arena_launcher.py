@@ -115,16 +115,16 @@ def main(argv=None):
   succ = True
 
   # wait for job done
-  # _wait_job_done(fullname, job_type, datetime.timedelta(minutes=timeout_hours))
+  # wait_job_done(fullname, job_type, datetime.timedelta(minutes=timeout_hours))
   pending_timeout_minutes = args.pending_timeout_minutes
-  _wait_job_running(fullname, job_type, datetime.timedelta(minutes=pending_timeout_minutes))
+  wait_job_running(fullname, job_type, datetime.timedelta(minutes=pending_timeout_minutes))
 
-  rc = _job_logging(fullname, job_type)
+  rc = job_logging(fullname, job_type)
   logging.info("rc: {0}".format(rc))
   
-  _wait_job_done(fullname, job_type, datetime.timedelta(hours=timeout_hours))
+  wait_job_done(fullname, job_type, datetime.timedelta(hours=timeout_hours))
   
-  status = _get_job_status(fullname, job_type)
+  status = get_job_status(fullname, job_type)
 
   if status == "SUCCEEDED":
     logging.info("Training Job {0} success.".format(fullname))
