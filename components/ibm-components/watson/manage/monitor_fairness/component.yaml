@@ -21,6 +21,7 @@ inputs:
   - {name: fairness_min_records,  description: 'Minimum amount of records for performing a fairness monitor.', default: '5'}
   - {name: aios_manifest_path,    description: 'Object storage file path for the aios manifest file.', default: 'aios.json'}
   - {name: cos_bucket_name,       description: 'Object storage bucket name.', default: 'bucket-name'}
+  - {name: data_filename,         description: 'Name of the data binary', default: ''}
 implementation:
   container:
     image: docker.io/aipipeline/monitor_fairness:latest
@@ -31,5 +32,6 @@ implementation:
       --fairness_threshold, {inputValue: fairness_threshold},
       --fairness_min_records, {inputValue: fairness_min_records},
       --aios_manifest_path, {inputValue: aios_manifest_path},
-      --cos_bucket_name, {inputValue: cos_bucket_name}
+      --cos_bucket_name, {inputValue: cos_bucket_name},
+      --data_filename, {inputValue: data_filename}
     ]
