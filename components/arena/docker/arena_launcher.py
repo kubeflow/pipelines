@@ -52,8 +52,8 @@ def main(argv=None):
   
   parser.add_argument('--image', type=str)
   parser.add_argument('--gpus', type=int, default=0)
-  parser.add_argument('--cpu', type=int, default=0)
-  parser.add_argument('--memory', type=int, default=0)
+  parser.add_argument('--cpu', type=str, default='0')
+  parser.add_argument('--memory', type=str, default='0')
   parser.add_argument('--workers', type=int, default=2)
 
   parser.add_argument('--env', action='append', type=str, default=[])

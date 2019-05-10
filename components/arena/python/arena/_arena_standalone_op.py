@@ -19,7 +19,7 @@ import datetime
 import logging
 
 
-def standalone_job_op(name, image, command, gpus=0, cpu_limit=0, memory_limit=0, env=[],
+def standalone_job_op(name, image, command, gpus=0, cpu_limit='0', memory_limit='0', env=[],
           tensorboard=False, tensorboard_image=None,
           data=[], sync_source=None, annotations=[],
           metrics=['Train-accuracy:PERCENTAGE'],

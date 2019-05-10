@@ -13,19 +13,20 @@ def mpirun_pipeline(image="uber/horovod:0.13.11-tf1.10.0-torch0.4.0-py3.5",
 						   batch_size="64",
 						   optimizer='momentum',
                sync_source='https://github.com/tensorflow/benchmarks.git',
-               data='user-susan:/training',
-               env='NCCL_DEBUG=INFO,GIT_SYNC_BRANCH=cnn_tf_v1.9_compatible',
                gpus=1,
                workers=2,
-               cpu_limit=0,
-               memory_limit=0):
+               cpu_limit='2',
+               memory_limit='2Gi'):
   """A pipeline for end to end machine learning workflow."""
+
+  data = ['user-susan:/training']
+  env = ['NCCL_DEBUG=INFO','GIT_SYNC_BRANCH=cnn_tf_v1.9_compatible']
 
   train=arena.mpi_job_op(
   	name="all-reduce",
   	image=image,
-  	env=env.spllit(','),
-    data=data.split(','),
+  	env=env,
+    data=data,
     workers=workers,
     cpu_limit=cpu_limit,
     memory_limit=memory_limit,
