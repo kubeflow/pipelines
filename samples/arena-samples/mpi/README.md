@@ -82,12 +82,14 @@ Then run [mpi_run.py](mpi_run.py) with different parameters.
 dsl-compile --py mpi_run.py --output mpi_run.py.tar.gz
 ```
 
-### 2.Submit the 
+Then, submit `[mpi_run.py.tar.gz](mpi_run.py.tar.gz)` to the kubeflow pipeline UI. 
 
-Run `jupyter notebook` to start running your jupyter server and load the notebook `mpi_run.ipynb`
+![](choose_pipelines.jpg)
 
+You can create different experiments and runs using the mpirun pipeline definition, and choose the different parameters.
 
-### 3.Compare the result in pipelines dashboard
+![](submit_run.jpg)
 
+### 2.Check the result of the MPI Run pipeline
 
 ![](demo.jpg)

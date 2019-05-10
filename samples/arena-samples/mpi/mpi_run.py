@@ -16,9 +16,9 @@ def mpirun_pipeline(image="uber/horovod:0.13.11-tf1.10.0-torch0.4.0-py3.5",
                git_sync_branch='cnn_tf_v1.9_compatible',
                data='user-susan:/training',
                gpus=1,
-               workers=2,
+               workers=1,
                cpu_limit='2',
-               metric='',
+               metric='images/sec',
                memory_limit='10Gi'):
   """A pipeline for end to end machine learning workflow."""
 
