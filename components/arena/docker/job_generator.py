@@ -33,10 +33,10 @@ def generate_options(args):
     if gpus > 0:
         options.extend(['--gpus', str(gpus)])
 
-    if cpu > 0:
+    if cpu != '0':
         options.extend(['--cpu', str(cpu)])
 
-    if memory >0:
+    if memory != '0':
         options.extend(['--memory', str(memory)])
 
     if tensorboard_image != "tensorflow/tensorflow:1.12.0":
