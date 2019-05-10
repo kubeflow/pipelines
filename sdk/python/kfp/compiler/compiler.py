@@ -601,8 +601,8 @@ class Compiler(object):
         arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
 
     # Sanitize operator names and param names
-    sanitized_cops = {}
-    for op in p.cops.values():
+    sanitized_ops = {}
+    for op in p.ops.values():
       sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
       op.name = sanitized_name
       for param in op.outputs.values():
@@ -614,38 +614,19 @@ class Compiler(object):
         op.output.op_name = K8sHelper.sanitize_k8s_name(op.output.op_name)
       if op.dependent_names:
         op.dependent_names = [K8sHelper.sanitize_k8s_name(name) for name in op.dependent_names]
-      if op.file_outputs is not None:
+      if isinstance(op, dsl.ContainerOp) and op.file_outputs is not None:
         sanitized_file_outputs = {}
         for key in op.file_outputs.keys():
           sanitized_file_outputs[K8sHelper.sanitize_k8s_name(key)] = op.file_outputs[key]
         op.file_outputs = sanitized_file_outputs
-      sanitized_cops[sanitized_name] = op
-    p.cops = sanitized_cops
-    p.ops = dict(sanitized_cops)
-
-    # Sanitize operator names and param names of ResourceOps
-    sanitized_rops = {}
-    for rop in p.rops.values():
-      sanitized_name = K8sHelper.sanitize_k8s_name(rop.name)
-      rop.name = sanitized_name
-      for param in rop.outputs.values():
-        param.name = K8sHelper.sanitize_k8s_name(param.name)
-        if param.op_name:
-          param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
-      if rop.output is not None:
-        rop.output.name = K8sHelper.sanitize_k8s_name(rop.output.name)
-        rop.output.op_name = K8sHelper.sanitize_k8s_name(rop.output.op_name)
-      if rop.dependent_names:
-        rop.dependent_names = [K8sHelper.sanitize_k8s_name(name) for name in rop.dependent_names]
-      if rop.attribute_outputs is not None:
+      elif isinstance(op, dsl.ResourceOp) and op.attribute_outputs is not None:
         sanitized_attribute_outputs = {}
-        for key in rop.attribute_outputs.keys():
+        for key in op.attribute_outputs.keys():
           sanitized_attribute_outputs[K8sHelper.sanitize_k8s_name(key)] = \
-            rop.attribute_outputs[key]
-        rop.attribute_outputs = sanitized_attribute_outputs
-      sanitized_rops[sanitized_name] = rop
-    p.rops = sanitized_rops
-    p.ops.update(dict(sanitized_rops))
+            op.attribute_outputs[key]
+        op.attribute_outputs = sanitized_attribute_outputs
+      sanitized_ops[sanitized_name] = op
+    p.ops = sanitized_ops
 
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p)
     return workflow
