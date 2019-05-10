@@ -149,7 +149,7 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
   const group = 'kubeflow.org';
   const version = 'v1beta1';
   const namespace = 'kubeflow';
-  const plural = 'tensorboard';
+  const plural = 'viewers';
   const body = {
     apiVersion: group + '/' + version,
     kind: 'Viewer',
@@ -158,7 +158,7 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
       namespace: namespace,
     },
     spec: {
-      type: plural,
+      type: 'tensorboard',
       tensorboardSpec: {
         logDir: logdir,
       }
@@ -179,7 +179,7 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
   const group = 'kubeflow.org';
   const version = 'v1beta1';
   const namespace = 'kubeflow';
-  const plural = 'tensorboard';  
+  const plural = 'viewers';  
   const pods = (await k8sV1CustomObjectClient.listNamespacedCustomObject(group, 
     version, namespace, plural)).body.items;
   const args = ['tensorboard', '--logdir', logdir];
