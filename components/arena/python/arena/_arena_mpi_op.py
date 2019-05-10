@@ -42,8 +42,6 @@ def mpi_job_op(name, image, command, workers=1, gpus=0, cpu_limit='0', memory_li
 
     options = []
     if sync_source:
-       if not sync_source.startswith("http"):
-          raise ValueError("sync_source must be an http git url")
        options.append('--sync-source')
        options.append(str(sync_source))
 
