@@ -67,8 +67,16 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 echo "presubmit test starts"
 source "${DIR}/test-prep.sh"
 
+# Deploy Kubeflow
+source "${DIR}/deploy-kubeflow.sh"
+
 # Install Argo
-source "${DIR}/install-argo.sh"
+#source "${DIR}/install-argo.sh"
+ARGO_VERSION=v2.2.0
+mkdir -p ~/bin/
+export PATH=~/bin/:$PATH
+curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
+chmod +x ~/bin/argo
 
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
@@ -87,10 +95,7 @@ source "${DIR}/check-argo-status.sh"
 echo "build docker images workflow completed"
 
 # Delete Argo that we used to build images
-kubectl delete -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
-
-# Deploy Kubeflow
-source "${DIR}/deploy-kubeflow.sh"
+#kubectl delete -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
 
 # Deploy the pipeline
 source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
