@@ -245,8 +245,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                     refresh={this._loadSelectedNodeLogs.bind(this)} />
                                   {(legacyStackdriverUrl && stackdriverK8sLogsUrl) && (
                                     <div className={padding(20, 'blr')}>
-                                      Logs can still be viewed in either <a href={legacyStackdriverUrl} target='_blank' className={classes(css.link, commonCss.unstyled)}>Legacy Stackdriver</a>
-                                      or in <a href={stackdriverK8sLogsUrl} target='_blank' className={classes(css.link, commonCss.unstyled)}>Stackdriver Kubernetes Monitoring</a>
+                                      Logs can still be viewed in either <a href={legacyStackdriverUrl} target='_blank' className={classes(css.link, commonCss.unstyled)}>Legacy Stackdriver
+                                    </a> or in <a href={stackdriverK8sLogsUrl} target='_blank' className={classes(css.link, commonCss.unstyled)}>Stackdriver Kubernetes Monitoring</a>
                                     </div>
                                   )}
                                 </React.Fragment>
