@@ -7,9 +7,21 @@ bases:
 resources:
 - namespace.yaml
 
-namespace: foobar
+namespace: kubeflow
 
 patchesStrategicMerge:
 - ./workflow-controller-configmap.yaml
 - ./ml-pipeline-persistenceagent-deployment-patch.yaml
 - ./ml-pipeline-scheduledworkflow-deployment-patch.yaml
+
+vars:
+  - name: NAMESPACE
+    objref:
+      kind: Deployment
+      apiVersion: extensions/v1beta1
+      name:  workflow-controller
+    fieldref:
+      fieldpath: metadata.namespace
+
+configurations:
+- kustomizeconfig/namespace.yaml

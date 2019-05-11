@@ -31,5 +31,3 @@ images:
 - name: gcr.io/ml-pipeline/scheduledworkflow
   newName: gcr.io/yang-experiment-6/swf
   newTag: v2
-
-
