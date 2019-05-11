@@ -70,14 +70,14 @@ source "${DIR}/test-prep.sh"
 # Deploy Kubeflow
 source "${DIR}/deploy-kubeflow.sh"
 
-# Install Argo
-#source "${DIR}/install-argo.sh"
+# Install Argo CLI
 ARGO_VERSION=v2.2.0
 mkdir -p ~/bin/
 export PATH=~/bin/:$PATH
 curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
 chmod +x ~/bin/argo
 
+# Add serviceaccount for test workflows
 # Some workflows are deployed to the non-default namespace where the GCP credential secret is stored
 # In this case, the default service account in that namespace doesn't have enough permission
 echo "add service account for running the test workflow"
@@ -100,9 +100,6 @@ ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
 echo "build docker images workflow submitted successfully"
 source "${DIR}/check-argo-status.sh"
 echo "build docker images workflow completed"
-
-# Delete Argo that we used to build images
-#kubectl delete -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
 
 # Deploy the pipeline
 source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
