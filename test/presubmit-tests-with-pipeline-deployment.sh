@@ -69,7 +69,17 @@ source "${DIR}/test-prep.sh"
 source "${DIR}/deploy-kubeflow.sh"
 
 # Install Argo
-source "${DIR}/install-argo.sh"
+ARGO_VERSION=v2.2.0
+mkdir -p ~/bin/
+export PATH=~/bin/:$PATH
+curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
+chmod +x ~/bin/argo
+
+# Some workflows are deployed to the non-default namespace where the GCP credential secret is stored
+# In this case, the default service account in that namespace doesn't have enough permission
+echo "add service account for running the test workflow"
+kubectl create serviceaccount test-runner -n ${NAMESPACE}
+kubectl create clusterrolebinding test-admin-binding --clusterrole=cluster-admin --serviceaccount=${NAMESPACE}:test-runner
 
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
