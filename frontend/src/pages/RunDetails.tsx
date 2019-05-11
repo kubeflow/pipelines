@@ -73,10 +73,10 @@ interface AnnotatedConfig {
 interface RunDetailsState {
   allArtifactConfigs: AnnotatedConfig[];
   experiment?: ApiExperiment;
+  legacyStackdriverUrl: string;
   logsBannerAdditionalInfo: string;
   logsBannerMessage: string;
   logsBannerMode: Mode;
-  logsUrl: string;
   graph?: dagre.graphlib.Graph;
   runFinished: boolean;
   runMetadata?: ApiRun;
@@ -84,6 +84,7 @@ interface RunDetailsState {
   selectedNodeDetails: SelectedNodeDetails | null;
   sidepanelBusy: boolean;
   sidepanelSelectedTab: SidePaneTab;
+  stackdriverK8sLogsUrl: string;
   workflow?: Workflow;
 }
 
@@ -126,15 +127,16 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     this.state = {
       allArtifactConfigs: [],
+      legacyStackdriverUrl: '',
       logsBannerAdditionalInfo: '',
       logsBannerMessage: '',
       logsBannerMode: 'error',
-      logsUrl: '',
       runFinished: false,
       selectedNodeDetails: null,
       selectedTab: 0,
       sidepanelBusy: false,
       sidepanelSelectedTab: SidePaneTab.ARTIFACTS,
+      stackdriverK8sLogsUrl: '',
     };
   }
 
@@ -155,8 +157,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public render(): JSX.Element {
-    const { allArtifactConfigs, graph, logsUrl, runFinished, runMetadata, selectedTab, selectedNodeDetails,
-      sidepanelSelectedTab, workflow } = this.state;
+    const { allArtifactConfigs, graph, legacyStackdriverUrl, runFinished, runMetadata, selectedTab, selectedNodeDetails,
+      sidepanelSelectedTab, stackdriverK8sLogsUrl, workflow } = this.state;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
@@ -241,9 +243,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                     mode={this.state.logsBannerMode}
                                     additionalInfo={this.state.logsBannerAdditionalInfo}
                                     refresh={this._loadSelectedNodeLogs.bind(this)} />
-                                  {logsUrl && (
+                                  {(legacyStackdriverUrl && stackdriverK8sLogsUrl) && (
                                     <div className={padding(20, 'blr')}>
-                                      Logs can still be viewed in Stackdriver <a href={logsUrl} target='_blank' className={classes(css.link, commonCss.unstyled)}>here</a>
+                                      Logs can still be viewed in either <a href={legacyStackdriverUrl} target='_blank' className={classes(css.link, commonCss.unstyled)}>Legacy Stackdriver</a>
+                                      or in <a href={stackdriverK8sLogsUrl} target='_blank' className={classes(css.link, commonCss.unstyled)}>Stackdriver Kubernetes Monitoring</a>
                                     </div>
                                   )}
                                 </React.Fragment>
@@ -427,9 +430,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       this.setStateSafe({
         experiment,
         graph,
-        logsUrl: '', // Reset stackdriver logs URL
+        legacyStackdriverUrl: '', // Reset legacy Stackdriver logs URL
         runFinished,
         runMetadata,
+        stackdriverK8sLogsUrl: '', // Reset Kubernetes Stackdriver logs URL
         workflow,
       });
     } catch (err) {
@@ -570,9 +574,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         const projectId = await Apis.getProjectId();
         const clusterName = await Apis.getClusterName();
         this.setStateSafe({
+          legacyStackdriverUrl: `https://pantheon.corp.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_id:"${selectedNodeDetails.id}"`,
           logsBannerMessage: 'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
           logsBannerMode: 'warning',
-          logsUrl: `https://pantheon.corp.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_id:"${selectedNodeDetails.id}"`,
+          stackdriverK8sLogsUrl: `https://pantheon.corp.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`,
         });
       } catch (fetchSystemInfoErr) {
         const errorMessage = await errorToMessage(err);
