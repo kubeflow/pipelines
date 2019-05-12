@@ -13,13 +13,15 @@
 # limitations under the License.
 
 import re
-from collections import OrderedDict
+import warnings
 import yaml
+from collections import OrderedDict
 from typing import Union, List, Any, Callable, TypeVar, Dict
 
 from ._k8s_helper import K8sHelper
 from .. import dsl
 from ..dsl._container_op import BaseOp
+from ..dsl._artifact_location import ArtifactLocation
 
 # generics
 T = TypeVar('T')
@@ -66,10 +68,18 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
         return map_to_tmpl_var.get(
             str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
 
-    # k8s_obj
+    # k8s objects (generated from swaggercodegen)
     if hasattr(obj, 'swagger_types') and isinstance(obj.swagger_types, dict):
         # process everything inside recursively
         for key in obj.swagger_types.keys():
+            setattr(obj, key, _process_obj(getattr(obj, key), map_to_tmpl_var))
+        # return json representation of the k8s obj
+        return K8sHelper.convert_k8s_obj_to_json(obj)
+
+    # k8s objects (generated from openapi)
+    if hasattr(obj, 'openapi_types') and isinstance(obj.openapi_types, dict):
+        # process everything inside recursively
+        for key in obj.openapi_types.keys():
             setattr(obj, key, _process_obj(getattr(obj, key), map_to_tmpl_var))
         # return json representation of the k8s obj
         return K8sHelper.convert_k8s_obj_to_json(obj)
@@ -152,28 +162,6 @@ def _outputs_to_json(op: BaseOp,
     return ret
 
 
-def _build_conventional_artifact(name, path):
-    return {
-        'name': name,
-        'path': path,
-        's3': {
-            # TODO: parameterize namespace for minio service
-            'endpoint': 'minio-service.kubeflow:9000',
-            'bucket': 'mlpipeline',
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz',
-            'insecure': True,
-            'accessKeySecret': {
-                'name': 'mlpipeline-minio-artifact',
-                'key': 'accesskey',
-            },
-            'secretKeySecret': {
-                'name': 'mlpipeline-minio-artifact',
-                'key': 'secretkey'
-            }
-        },
-    }
-
-
 # TODO: generate argo python classes from swagger and use convert_k8s_obj_to_json??
 def _op_to_template(op: BaseOp):
     """Generate template given an operator inherited from BaseOp."""
@@ -189,7 +177,12 @@ def _op_to_template(op: BaseOp):
         output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
 
         output_artifacts = [
-            _build_conventional_artifact(name, path)
+             K8sHelper.convert_k8s_obj_to_json(
+                 ArtifactLocation.create_artifact_for_s3(
+                     op.artifact_location, 
+                     name=name, 
+                     path=path, 
+                     key='runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz'))
             for name, path in output_artifact_paths.items()
         ]
 
