@@ -15,9 +15,9 @@
 steps:
 
 # Build the Python SDK
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'apt-get update -y; apt-get install --no-install-recommends -y -q default-jdk wget python python-setuptools; wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar;cd /workspace/sdk/python;./build.sh /workspace/kfp.tar.gz']
+- name: 'python:3-alpine'
+  entrypoint: '/bin/sh'
+  args: ['-c', 'cd /workspace/sdk/python/; python3 setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp.tar.gz']
   id:   'preparePythonSDK'
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz']
@@ -29,9 +29,9 @@ steps:
   waitFor: ['preparePythonSDK']
 
 # Build the Python Component SDK
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'apt-get update -y; apt-get install --no-install-recommends -y -q default-jdk wget python python-setuptools;cd /workspace/component_sdk/python;python setup.py sdist --format=gztar;cp dist/*.tar.gz /workspace/kfp-component.tar.gz']
+- name: 'python:2-alpine'
+  entrypoint: '/bin/sh'
+  args: ['-c', 'cd /workspace/component_sdk/python;python setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp-component.tar.gz']
   id:   'preparePythonComponentSDK'
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp-component.tar.gz']

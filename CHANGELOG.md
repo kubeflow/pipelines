@@ -2,7 +2,60 @@
 
 ## [Unreleased](https://github.com/kubeflow/pipelines/tree/HEAD)
 
-[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.18...HEAD)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.19...HEAD)
+
+**Closed issues:**
+
+- Can only create recurring run from within experiment page [\#1217](https://github.com/kubeflow/pipelines/issues/1217)
+
+**Merged pull requests:**
+
+- SDK - Renamed ModelBase.from\_struct/to\_struct to from\_dict/to\_dict [\#1290](https://github.com/kubeflow/pipelines/pull/1290) ([Ark-kun](https://github.com/Ark-kun))
+- Add AWS EMR and Athena components [\#1286](https://github.com/kubeflow/pipelines/pull/1286) ([Jeffwan](https://github.com/Jeffwan))
+- Components - Updating component versions in samples during release [\#1283](https://github.com/kubeflow/pipelines/pull/1283) ([Ark-kun](https://github.com/Ark-kun))
+- Sets the background color for KFP pages [\#1281](https://github.com/kubeflow/pipelines/pull/1281) ([rileyjbauer](https://github.com/rileyjbauer))
+- keep the api image name consistent between the presubmit test and staging [\#1279](https://github.com/kubeflow/pipelines/pull/1279) ([gaoning777](https://github.com/gaoning777))
+- Frontend - Add support for artifacts stored in S3 [\#1278](https://github.com/kubeflow/pipelines/pull/1278) ([Jeffwan](https://github.com/Jeffwan))
+- Add SageMaker components and example pipeline [\#1276](https://github.com/kubeflow/pipelines/pull/1276) ([Jeffwan](https://github.com/Jeffwan))
+- Adds a toggle between one-off and recurring runs to NewRun page [\#1274](https://github.com/kubeflow/pipelines/pull/1274) ([rileyjbauer](https://github.com/rileyjbauer))
+- spark components [\#1272](https://github.com/kubeflow/pipelines/pull/1272) ([animeshsingh](https://github.com/animeshsingh))
+- make pending timeout customizable [\#1268](https://github.com/kubeflow/pipelines/pull/1268) ([cheyang](https://github.com/cheyang))
+- SDK/Client - Supporting pipeline packages with multiple files [\#1207](https://github.com/kubeflow/pipelines/pull/1207) ([Ark-kun](https://github.com/Ark-kun))
+- Retaining the component url, digest or tag when loading [\#1090](https://github.com/kubeflow/pipelines/pull/1090) ([Ark-kun](https://github.com/Ark-kun))
+- Allow to specify informers namespace in persistence agent [\#901](https://github.com/kubeflow/pipelines/pull/901) ([ywskycn](https://github.com/ywskycn))
+
+## [0.1.19](https://github.com/kubeflow/pipelines/tree/0.1.19) (2019-05-03)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.18...0.1.19)
+
+**Closed issues:**
+
+- Unfinished run duration shown as negative time [\#1236](https://github.com/kubeflow/pipelines/issues/1236)
+- Release the SDK in Pypi and automate the release process [\#1233](https://github.com/kubeflow/pipelines/issues/1233)
+- The post-submit test always fails [\#1228](https://github.com/kubeflow/pipelines/issues/1228)
+- docker magic command should print kaniko pod logs [\#924](https://github.com/kubeflow/pipelines/issues/924)
+- Kubeflow Pipeline conditionals should be able to handle multiple output parameters  [\#679](https://github.com/kubeflow/pipelines/issues/679)
+
+**Merged pull requests:**
+
+- Update component yaml reference to eb830cd73ca148e5a1a6485a9374c2dc068314bc [\#1282](https://github.com/kubeflow/pipelines/pull/1282) ([hongye-sun](https://github.com/hongye-sun))
+- Component Release 727c48c690c081b505c1f0979d11930bf1ef07c0 [\#1280](https://github.com/kubeflow/pipelines/pull/1280) ([hongye-sun](https://github.com/hongye-sun))
+- update the image in the samples to use the new component images [\#1267](https://github.com/kubeflow/pipelines/pull/1267) ([gaoning777](https://github.com/gaoning777))
+- Pulls most functions out of Status and into StatusUtils [\#1262](https://github.com/kubeflow/pipelines/pull/1262) ([rileyjbauer](https://github.com/rileyjbauer))
+- Properly alternate sorting in PagedTable between ascending and descending [\#1261](https://github.com/kubeflow/pipelines/pull/1261) ([rileyjbauer](https://github.com/rileyjbauer))
+- Marking the UI-metadata and Metrics artifacts as optional [\#1260](https://github.com/kubeflow/pipelines/pull/1260) ([Ark-kun](https://github.com/Ark-kun))
+- Changelog for v0.1.18 [\#1258](https://github.com/kubeflow/pipelines/pull/1258) ([Ark-kun](https://github.com/Ark-kun))
+- Update arena SDK version [\#1251](https://github.com/kubeflow/pipelines/pull/1251) ([cheyang](https://github.com/cheyang))
+- remove unnecessary args [\#1249](https://github.com/kubeflow/pipelines/pull/1249) ([gaoning777](https://github.com/gaoning777))
+- fix postsubmit bugs [\#1248](https://github.com/kubeflow/pipelines/pull/1248) ([gaoning777](https://github.com/gaoning777))
+- display kaniko log if failed [\#1247](https://github.com/kubeflow/pipelines/pull/1247) ([gaoning777](https://github.com/gaoning777))
+- Fix Watson pipeline example  [\#1246](https://github.com/kubeflow/pipelines/pull/1246) ([Tomcli](https://github.com/Tomcli))
+- fix the link for tfx taxi example [\#1245](https://github.com/kubeflow/pipelines/pull/1245) ([animeshsingh](https://github.com/animeshsingh))
+- updated ffdl notebook using component yaml file [\#1241](https://github.com/kubeflow/pipelines/pull/1241) ([animeshsingh](https://github.com/animeshsingh))
+- Fixing comp names [\#1239](https://github.com/kubeflow/pipelines/pull/1239) ([animeshsingh](https://github.com/animeshsingh))
+- SDK - Preventing errors when importing kfp.notebook [\#1215](https://github.com/kubeflow/pipelines/pull/1215) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Separated the generated api client package [\#1214](https://github.com/kubeflow/pipelines/pull/1214) ([Ark-kun](https://github.com/Ark-kun))
+- Clear default exp table on delete and create default exp on run create if none exists [\#1199](https://github.com/kubeflow/pipelines/pull/1199) ([rileyjbauer](https://github.com/rileyjbauer))
+- Automated the component image release script [\#1172](https://github.com/kubeflow/pipelines/pull/1172) ([Ark-kun](https://github.com/Ark-kun))
 
 ## [0.1.18](https://github.com/kubeflow/pipelines/tree/0.1.18) (2019-04-26)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.17...0.1.18)
@@ -19,6 +72,8 @@
 - Extend the DSL with support for Persistent Volumes and Snapshots [\#801](https://github.com/kubeflow/pipelines/issues/801)
 - Use GCP credentials for existing samples [\#418](https://github.com/kubeflow/pipelines/issues/418)
 - Does pipelines only support  on GKE?  And the workflow run with some problem. [\#365](https://github.com/kubeflow/pipelines/issues/365)
+- Remove experiment column from runs list inside experiment [\#222](https://github.com/kubeflow/pipelines/issues/222)
+- Support all container APIs through container op [\#204](https://github.com/kubeflow/pipelines/issues/204)
 
 **Merged pull requests:**
 
@@ -75,7 +130,6 @@
 - Pagination broken in UI  [\#1149](https://github.com/kubeflow/pipelines/issues/1149)
 - The number of members in the policy \(1,503\) is larger than the maximum allowed size 1,500 [\#1146](https://github.com/kubeflow/pipelines/issues/1146)
 - Backend Docker build fails with python error in resnet-train-pipeline.py [\#1142](https://github.com/kubeflow/pipelines/issues/1142)
-- `func\_to\_container\_op` converting underscores to dashes [\#1135](https://github.com/kubeflow/pipelines/issues/1135)
 - Use range instead of pin for python dependencies for kfp [\#1134](https://github.com/kubeflow/pipelines/issues/1134)
 - Deploy a TFX pipeline from the command line [\#1127](https://github.com/kubeflow/pipelines/issues/1127)
 - CloudBuild is failing since the CMLE deployer component was deleted [\#1123](https://github.com/kubeflow/pipelines/issues/1123)
@@ -255,7 +309,6 @@
 - UI feature ask: Search experiments and runs [\#257](https://github.com/kubeflow/pipelines/issues/257)
 - Containers should not be allowed to directly create K8s objects [\#254](https://github.com/kubeflow/pipelines/issues/254)
 - GKE cluster creation warnings [\#253](https://github.com/kubeflow/pipelines/issues/253)
-- Cannot get back to my hosted Jupyter notebook [\#250](https://github.com/kubeflow/pipelines/issues/250)
 - Consider never deleting the runs [\#247](https://github.com/kubeflow/pipelines/issues/247)
 - Our ksonnet sometimes throws "SIGSEGV: segmentation violation" failing deployment [\#241](https://github.com/kubeflow/pipelines/issues/241)
 - Get experiment by name, create run in experiment by name [\#237](https://github.com/kubeflow/pipelines/issues/237)

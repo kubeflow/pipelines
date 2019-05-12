@@ -16,22 +16,24 @@ description: |
 metadata:
   annotations: {platform: 'IBM Cloud Spark Service'}
 inputs:
-  - {name: bucket_name,       description: 'Required. Object storage bucket name'}
-  - {name: data_filename,      description: 'Required. Name of the data binary'}
-  - {name: model_filename, description: 'Required. Name of the training model file'}
+  - {name: bucket_name,      description: 'Required. Object storage bucket name'}
+  - {name: data_filename,    description: 'Required. Name of the data binary'}
+  - {name: model_filename,   description: 'Required. Name of the training model file'}
   - {name: spark_entrypoint, description: 'Required. Entrypoint command for training the spark model'}
 outputs:
-  - {name: output,          description: 'Spark Model Filename'}
+  - {name: model_filepath,           description: 'Spark Model binary filepath'}
+  - {name: train_data_filepath,      description: 'Spark training data filepath'}
 implementation:
   container:
-    image: docker.io/aipipeline/training_with_spark_service:latest
-    command: ['python3']
+    image: docker.io/aipipeline/train_spark:latest
+    command: ['python']
     args: [
-      /app/train_spark.py,
+      -u, train_spark.py,
       --bucket_name, {inputValue: bucket_name},
       --data_filename, {inputValue: data_filename},
       --model_filename, {inputValue: model_filename},
       --spark_entrypoint, {inputValue: spark_entrypoint}
     ]
     fileOutputs:
-      output: /tmp/spark_model.txt
+      model_filepath: /tmp/model_filepath
+      train_data_filepath: /tmp/train_data_filepath

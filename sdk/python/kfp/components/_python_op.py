@@ -225,7 +225,7 @@ for idx, filename in enumerate(_output_files):
 
 
 def _func_to_component_dict(func, extra_code='', base_image=_default_base_image):
-    return _func_to_component_spec(func, extra_code, base_image).to_struct()
+    return _func_to_component_spec(func, extra_code, base_image).to_dict()
 
 
 def func_to_component_text(func, extra_code='', base_image=_default_base_image):
@@ -309,9 +309,9 @@ def func_to_container_op(func, output_component_file=None, base_image=_default_b
 
     output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:
-        component_dict = component_spec.to_struct()
+        component_dict = component_spec.to_dict()
         component_yaml = dump_yaml(component_dict)
         Path(output_component_file).write_text(component_yaml)
-        #TODO: assert ComponentSpec.from_struct(load_yaml(output_component_file)) == component_spec
+        #TODO: assert ComponentSpec.from_dict(load_yaml(output_component_file)) == component_spec
 
     return _create_task_factory_from_component_spec(component_spec)
