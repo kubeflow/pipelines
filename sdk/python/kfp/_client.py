@@ -86,7 +86,7 @@ class Client(object):
   def _get_url_prefix(self):
     if self._uihost:
       # User's own connection.
-      if self._uihost.startswith('http://'):
+      if self._uihost.startswith('http://') or self._uihost.startswith('https://'):
         return self._uihost
       else:
         return 'http://' + self._uihost
