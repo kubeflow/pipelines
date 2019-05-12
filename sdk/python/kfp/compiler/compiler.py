@@ -602,7 +602,15 @@ class Compiler(object):
 
     # Sanitize operator names and param names
     sanitized_ops = {}
+    # pipeline level artifact location
+    artifact_location = p.conf.artifact_location
+
     for op in p.ops.values():
+      # inject pipeline level artifact location into if the op does not have
+      # an artifact location config already.
+      if artifact_location and not op.artifact_location:
+        op.artifact_location = artifact_location
+
       sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
       op.name = sanitized_name
       for param in op.outputs.values():
