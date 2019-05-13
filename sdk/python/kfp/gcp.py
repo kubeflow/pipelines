@@ -88,7 +88,7 @@ def use_tpu(tpu_cores: int, tpu_resource: str, tf_version: str):
 
     return _set_tpu_spec
 
-def use_preemptible_vm_gpu(toleration: V1Toleration = V1Toleration(effect='NoSchedule',
+def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoSchedule',
                                                              key='preemptible',
                                                              operator='Equal',
                                                              value='true')):
