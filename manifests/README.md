@@ -12,6 +12,7 @@ kubectl create clusterrolebinding your-binding --clusterrole=cluster-admin --use
 ```
 
 # Customization
+Customization can be done through Kustomize Overlay, and don't need to modify the base directory. 
 
 ## Change deploy namespace
 This directory contains the Kustomize Manifest for deploying Kubeflow Pipelines. 
@@ -21,7 +22,7 @@ To deploy Kubeflow Pipelines in namespace FOO
 - Edit [kustomization.yaml](namespaced-install/kustomization.yaml) namespace section to FOO
 - Then run 
 ```
-kubectl kustomize . | kubectl create -f -
+kubectl kustomize . | kubectl apply -f -
 ```
 
 ## Reinstall with existing data
