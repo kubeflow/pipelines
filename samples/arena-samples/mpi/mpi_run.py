@@ -45,4 +45,4 @@ def mpirun_pipeline(image="uber/horovod:0.13.11-tf1.10.0-torch0.4.0-py3.5",
   
 if __name__ == '__main__':
   import kfp.compiler as compiler
-  compiler.Compiler().compile(sample_mpirun_pipeline, __file__ + '.tar.gz')
+  compiler.Compiler().compile(mpirun_pipeline, __file__ + '.tar.gz')
