@@ -35,7 +35,8 @@ const {
   MINIO_ACCESS_KEY = 'minio',
   MINIO_SECRET_KEY = 'minio123',
   MINIO_PORT = '9000',
-  MINIO_ENDPOINT = 'minio-service.kubeflow',
+  MINIO_HOST = 'minio-service',
+  MINIO_NAMESPACE = 'kubeflow',
   MINIO_SSL = 'false',
   /** minio client use these to retrieve s3 objects/artifacts */
   AWS_ACCESS_KEY_ID,
@@ -45,6 +46,9 @@ const {
   /** API service will listen to this port */
   ML_PIPELINE_SERVICE_PORT = '3001'
 } = process.env
+
+/** construct minio endpoint from host and namespace (optional) */
+const MINIO_ENDPOINT = MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0 ? `${MINIO_HOST}.${MINIO_NAMESPACE}` : MINIO_HOST
 
 /** converts string to bool */
 const _as_bool = (value: string) => ['true', '1'].indexOf(value.toLowerCase()) >= 0
