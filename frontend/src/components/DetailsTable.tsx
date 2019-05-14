@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
+import 'codemirror/lib/codemirror.css';
+import 'codemirror/mode/javascript/javascript.js';
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color, spacing, commonCss } from '../Css';
+import { UnControlled as CodeMirror } from 'react-codemirror2';
 
 export const css = stylesheet({
   key: {
@@ -43,12 +46,35 @@ export default (props: DetailsTableProps) => {
   return (<React.Fragment>
     {!!props.title && <div className={commonCss.header}>{props.title}</div>}
     <div className={css.root}>
-      {props.fields.map((f, i) => (
-        <div key={i} className={css.row}>
-          <span className={css.key}>{f[0]}</span>
-          <span>{f[1]}</span>
-        </div>
-      ))}
+      {props.fields.map((f, i) => {
+        try{
+          const parsedJson = JSON.parse(f[1]);
+          return (
+            <div key={i} className={css.row}>
+              <span className={css.key}>{f[0]}</span>
+              <CodeMirror
+                  value={JSON.stringify(parsedJson, null, 2) || ''}
+                  editorDidMount={(editor) => editor.refresh()}
+                  options={{
+                    lineNumbers: true,
+                    lineWrapping: true,
+                    mode: 'application/json',
+                    readOnly: true,
+                    theme: 'default',
+                  }}
+                />
+            </div>
+          );
+        } catch (err) {
+          // If this isn't JSON, just print it as is
+          return (
+            <div key={i} className={css.row}>
+              <span className={css.key}>{f[0]}</span>
+              <span>{f[1]}</span>
+            </div>
+          );
+        }
+      })}
     </div>
   </React.Fragment>
   );
