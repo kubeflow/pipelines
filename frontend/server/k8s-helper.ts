@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // @ts-ignore
-import { Config, Core_v1Api, Custom_objectsApi, KubeConfig } from '@kubernetes/client-node';
+import { Core_v1Api, Custom_objectsApi, KubeConfig } from '@kubernetes/client-node';
 import * as fs from 'fs';
 import * as Utils from './utils';
 
@@ -28,9 +28,9 @@ export const isInCluster = fs.existsSync(namespaceFilePath);
 
 if (isInCluster) {
   namespace = fs.readFileSync(namespaceFilePath, 'utf-8');
-  k8sV1Client = Config.defaultClient();
   const kc = new KubeConfig();
   kc.loadFromDefault();
+  k8sV1Client = kc.makeApiClient(Core_v1Api);
   k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
 }
 
@@ -149,7 +149,7 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
   const group = 'kubeflow.org';
   const version = 'v1beta1';
   const namespace = 'kubeflow';
-  const plural = 'viewers';
+  const plural = 'viewer';
   const body = {
     apiVersion: group + '/' + version,
     kind: 'Viewer',
@@ -165,7 +165,7 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
     }
   };
   await k8sV1CustomObjectClient.createNamespacedCustomObject(group, version, namespace, plural, body);
- } 
+ }
 
  /**
  * Finds a running Tensorboard pod created via CRD with the give logdir and
@@ -179,7 +179,7 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
   const group = 'kubeflow.org';
   const version = 'v1beta1';
   const namespace = 'kubeflow';
-  const plural = 'viewers';  
+  const plural = 'viewer';  
   const pods = (await k8sV1CustomObjectClient.listNamespacedCustomObject(group, 
     version, namespace, plural)).body.items;
   const args = ['tensorboard', '--logdir', logdir];

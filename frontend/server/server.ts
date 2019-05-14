@@ -219,7 +219,7 @@ const getTensorboardHandler = async (req, res) => {
   try {
     res.send(await k8sHelper.getTensorboardInstance(logdir));
   } catch (err) {
-    res.status(500).send('Failed to list Tensorboard pods: ' + err);
+    res.status(500).send('Failed to list Tensorboard pods: ' + JSON.stringify(err));
   }
 };
 
@@ -239,7 +239,7 @@ const createTensorboardHandler = async (req, res) => {
     const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, 60 * 1000);
     res.send(tensorboardAddress);
   } catch (err) {
-    res.status(500).send('Failed to start Tensorboard app: ' + err);
+    res.status(500).send('Failed to start Tensorboard app: ' + JSON.stringify(err));
   }
 };
 
