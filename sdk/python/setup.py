@@ -15,7 +15,7 @@
 from setuptools import setup
 
 NAME = 'kfp'
-VERSION = '0.1.19'
+VERSION = '0.1.20'
 
 REQUIRES = [
     'urllib3>=1.15,<1.25', #Fixing the version conflict with the "requests" package
