@@ -895,7 +895,7 @@ class ContainerOp(BaseOp):
           is_exit_handler: Whether it is used as an exit handler.
           pvolumes: Dictionary for the user to match a path on the op's fs with a
               V1Volume or it inherited type.
-              E.g {"/my/path": vol, "/mnt": other_op.volumes["/output"]}.
+              E.g {"/my/path": vol, "/mnt": other_op.pvolumes["/output"]}.
         """
 
         super().__init__(name=name, sidecars=sidecars, is_exit_handler=is_exit_handler)
