@@ -17,7 +17,6 @@ metadata:
   annotations: {platform: 'IBM Watson OpenScale'}
 inputs:
   - {name: model_name,           description: 'Deployed model name on OpenScale.', default: 'AIOS Spark German Risk Model - Final'}
-  - {name: problem_type,         description: 'Model problem type.', default: 'BINARY_CLASSIFICATION'}
   - {name: quality_threshold,    description: 'Amount of threshold for quality monitoring', default: '0.7'}
   - {name: quality_min_records,  description: 'Minimum amount of records for performing a quality monitor.', default: '5'}
 implementation:
@@ -27,7 +26,6 @@ implementation:
     args: [
       -u, monitor_quality.py,
       --model_name, {inputValue: model_name},
-      --problem_type, {inputValue: problem_type},
       --quality_threshold, {inputValue: quality_threshold},
       --quality_min_records, {inputValue: quality_min_records}
     ]

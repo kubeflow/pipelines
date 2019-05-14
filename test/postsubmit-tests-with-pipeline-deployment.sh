@@ -70,10 +70,6 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 echo "postsubmit test starts"
 
 source "${DIR}/test-prep.sh"
-source "${DIR}/deploy-kubeflow.sh"
-
-# Install Argo
-source "${DIR}/install-argo.sh"
 
 ## Wait for the cloudbuild job to be started
 CLOUDBUILD_TIMEOUT_SECONDS=3600
@@ -117,6 +113,9 @@ elif [[ ${CLOUDBUILD_FINISHED} == TIMEOUT ]];then
   echo "Wait for cloudbuild job to finish, timeout exiting..."
   exit 1
 fi
+
+# Deploy Kubeflow
+source "${DIR}/deploy-kubeflow.sh"
 
 # Deploy the pipeline
 source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}

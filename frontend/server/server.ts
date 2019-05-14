@@ -262,6 +262,22 @@ const logsHandler = async (req, res) => {
   }
 };
 
+const clusterNameHandler = async (req, res) => {
+  const response = await fetch(
+    'http://metadata/computeMetadata/v1/instance/attributes/cluster-name',
+    { headers: {'Metadata-Flavor': 'Google' } }
+  );
+  res.send(await response.text());
+};
+
+const projectIdHandler = async (req, res) => {
+  const response = await fetch(
+    'http://metadata/computeMetadata/v1/project/project-id',
+    { headers: {'Metadata-Flavor': 'Google' } }
+  );
+  res.send(await response.text());
+};
+
 app.get('/' + v1beta1Prefix + '/healthz', healthzHandler);
 app.get(BASEPATH + '/' + v1beta1Prefix + '/healthz', healthzHandler);
 
@@ -276,6 +292,12 @@ app.post(BASEPATH + '/apps/tensorboard', createTensorboardHandler);
 
 app.get('/k8s/pod/logs', logsHandler);
 app.get(BASEPATH + '/k8s/pod/logs', logsHandler);
+
+app.get('/system/cluster-name', clusterNameHandler);
+app.get(BASEPATH + '/system/cluster-name', clusterNameHandler);
+
+app.get('/system/project-id', projectIdHandler);
+app.get(BASEPATH + '/system/project-id', projectIdHandler);
 
 // Order matters here, since both handlers can match any proxied request with a referer,
 // and we prioritize the basepath-friendly handler

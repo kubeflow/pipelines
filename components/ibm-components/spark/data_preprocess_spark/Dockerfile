@@ -1,7 +1,7 @@
-FROM python:3.6.8-stretch
+FROM aipipeline/pyspark:spark-2.1
 
 RUN pip install --upgrade pip
-RUN pip install --upgrade watson-machine-learning-client ibm-ai-openscale --no-cache | tail -n 1
+RUN pip install --upgrade Minio --no-cache | tail -n 1
 RUN pip install psycopg2-binary | tail -n 1
 
 ENV APP_HOME /app
@@ -11,4 +11,4 @@ WORKDIR $APP_HOME
 USER root
 
 ENTRYPOINT ["python"]
-CMD ["spark_data_preparation.py"]
+CMD ["data_preprocess_spark.py"]

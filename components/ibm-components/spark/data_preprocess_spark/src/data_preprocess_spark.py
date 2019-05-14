@@ -1,10 +1,12 @@
 import argparse
-import ibm_boto3
 import requests
-from ibm_botocore.client import Config
 from pyspark.sql import SparkSession
+from minio import Minio
+from minio.error import ResponseError
+import re
 
-def get_secret(path):
+
+def get_secret_creds(path):
     with open(path, 'r') as f:
         cred = f.readline().strip('\'')
     f.close()
@@ -13,15 +15,19 @@ def get_secret(path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--bucket_name', type=str, help='Object storage bucket name', default="dummy-bucket-name")
-    parser.add_argument('--data_url', type=str, help='URL of the data source', default="https://raw.githubusercontent.com/emartensibm/german-credit/binary/credit_risk_training.csv")
+    parser.add_argument('--data_url', type=str, help='URL of the data source', required=True)
     args = parser.parse_args()
 
     cos_bucket_name = args.bucket_name
     data_url = args.data_url
 
-    cos_url = get_secret("/app/secrets/cos_url")
-    cos_apikey = get_secret("/app/secrets/cos_resource_id")
-    cos_resource_instance_id = get_secret("/app/secrets/cos_resource_id")
+    cos_endpoint = get_secret_creds("/app/secrets/cos_endpoint")
+    cos_access_key = get_secret_creds("/app/secrets/cos_access_key")
+    cos_secret_key = get_secret_creds("/app/secrets/cos_secret_key")
+
+    ''' Remove possible http scheme for Minio '''
+    url = re.compile(r"https?://")
+    cos_endpoint = url.sub('', cos_endpoint)
 
     ''' Download data from data source '''
     filename = data_url
@@ -36,25 +42,22 @@ if __name__ == "__main__":
     df_data = spark.read.csv(path=filename, sep=",", header=True, inferSchema=True)
     df_data.head()
 
-    ''' Upload data to IBM Cloud object storage '''
-    cos = ibm_boto3.resource('s3',
-                             ibm_api_key_id=cos_apikey,
-                             ibm_service_instance_id=cos_resource_instance_id,
-                             ibm_auth_endpoint='https://iam.bluemix.net/oidc/token',
-                             config=Config(signature_version='oauth'),
-                             endpoint_url=cos_url)
+    ''' Upload data to Cloud object storage '''
+    cos = Minio(cos_endpoint,
+                access_key=cos_access_key,
+                secret_key=cos_secret_key,
+                secure=True)
 
-    buckets = []
-    for bucket in cos.buckets.all():
-        buckets.append(bucket.name)
+    if not cos.bucket_exists(cos_bucket_name):
+        try:
+            cos.make_bucket(cos_bucket_name)
+        except ResponseError as err:
+            print(err)
 
-    if cos_bucket_name not in buckets:
-        cos.create_bucket(Bucket=cos_bucket_name)
-
-    cos.Bucket(cos_bucket_name).upload_file(filename, filename)
+    cos.fput_object(cos_bucket_name, filename, filename)
 
     print('Data ' + filename + ' is uploaded to bucket at ' + cos_bucket_name)
-    with open("/tmp/filename.txt", "w") as report:
+    with open("/tmp/filename", "w") as report:
         report.write(filename)
 
     df_data.printSchema()
