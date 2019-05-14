@@ -228,7 +228,6 @@ class PythonOpTestCase(unittest.TestCase):
             #Compiling the pipleine:
             pipeline_filename = str(Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz'))
             import kfp.compiler as compiler
-
             compiler.Compiler().compile(calc_pipeline, pipeline_filename)
 
 
