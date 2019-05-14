@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import warnings
 from typing import Dict, Union, Any
 
 from argo.models import V1alpha1ArtifactLocation, V1alpha1S3Artifact, V1alpha1Artifact
@@ -112,28 +111,9 @@ class ArtifactLocation:
           V1alpha1Artifact: V1alpha1Artifact object.
         """
         if not artifact_location:
-            warnings.warn(
-                "Unspecified `dsl.ContainerOp.artifact_location` will not"
-                " return a default artifact location "
-                "(e.g. minio-service.kubeflow:9000) in future releases.",
-                PendingDeprecationWarning,
-            )
             return V1alpha1Artifact(
                 name=name,
                 path=path,
-                s3=V1alpha1S3Artifact(
-                    bucket="mlpipeline",
-                    endpoint="minio-service.kubeflow:9000",
-                    insecure=True,
-                    region=None,
-                    access_key_secret=V1SecretKeySelector(
-                        name="mlpipeline-minio-artifact", key="accesskey"
-                    ),
-                    secret_key_secret=V1SecretKeySelector(
-                        name="mlpipeline-minio-artifact", key="secretkey"
-                    ),
-                    key=key,
-                ),
                 **kwargs
             )
 

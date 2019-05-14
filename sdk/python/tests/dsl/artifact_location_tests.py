@@ -49,24 +49,16 @@ class TestArtifactLocation(unittest.TestCase):
     self.assertEqual(artifact_location.s3.secret_key_secret.key, "secretkey")
 
   def test_create_artifact_for_s3_with_default(self):
-    with self.assertWarns(PendingDeprecationWarning):
-        # should trigger pending deprecation warning about not having a default
-        # artifact_location if artifact_location is not provided.
-        artifact = ArtifactLocation.create_artifact_for_s3(
-            None, 
-            name="foo",
-            path="path/to",
-            key="key")
+    # should trigger pending deprecation warning about not having a default
+    # artifact_location if artifact_location is not provided.
+    artifact = ArtifactLocation.create_artifact_for_s3(
+        None, 
+        name="foo",
+        path="path/to",
+        key="key")
 
     self.assertEqual(artifact.name, "foo")
     self.assertEqual(artifact.path, "path/to")
-    self.assertEqual(artifact.s3.endpoint, "minio-service.kubeflow:9000")
-    self.assertEqual(artifact.s3.bucket, "mlpipeline")
-    self.assertEqual(artifact.s3.key, "key")
-    self.assertEqual(artifact.s3.access_key_secret.name, "mlpipeline-minio-artifact")
-    self.assertEqual(artifact.s3.access_key_secret.key, "accesskey")
-    self.assertEqual(artifact.s3.secret_key_secret.name, "mlpipeline-minio-artifact")
-    self.assertEqual(artifact.s3.secret_key_secret.key, "secretkey")
 
   def test_create_artifact_for_s3(self):
     artifact_location = ArtifactLocation.s3(

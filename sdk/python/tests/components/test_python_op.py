@@ -193,7 +193,6 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(component_spec.inputs[1].default, '5')
 
     def test_end_to_end_python_component_pipeline_compilation(self):
-        import warnings
         import kfp.components as comp
 
         #Defining the Python function
@@ -230,9 +229,7 @@ class PythonOpTestCase(unittest.TestCase):
             pipeline_filename = str(Path(temp_dir_name).joinpath(calc_pipeline.__name__ + '.pipeline.tar.gz'))
             import kfp.compiler as compiler
 
-            with warnings.catch_warnings():  # ignore pending deprecation warnings
-                warnings.simplefilter("ignore")
-                compiler.Compiler().compile(calc_pipeline, pipeline_filename)
+            compiler.Compiler().compile(calc_pipeline, pipeline_filename)
 
 
 if __name__ == '__main__':
