@@ -7,7 +7,7 @@ bases:
 resources:
 - namespace.yaml
 
-namespace: foobar
+namespace: kubeflow
 
 patchesStrategicMerge:
 - workflow-controller-configmap.yaml
