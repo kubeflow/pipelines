@@ -20,5 +20,5 @@ if __name__ == '__main__':
     setuptools.setup(name='tfdv_validation_job', version='1.0',
                      packages=setuptools.find_packages(),
                      install_requires=[
-                         'tensorflow==1.9.0',
+                         'tensorflow==1.12.1',
                          'tensorflow-data-validation==1.9.0'])
