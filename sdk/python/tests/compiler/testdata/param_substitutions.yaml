@@ -25,31 +25,9 @@ spec:
       - name: mlpipeline-ui-metadata
         optional: true
         path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       - name: mlpipeline-metrics
         optional: true
         path: /mlpipeline-metrics.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
   - name: create-volume
     outputs:
       parameters:

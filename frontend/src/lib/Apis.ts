@@ -140,6 +140,20 @@ export class Apis {
       });
   }
 
+  /*
+   * Retrieves the name of the Kubernetes cluster if it is running in GKE, otherwise returns an error.
+   */
+  public static async getClusterName(): Promise<string> {
+    return this._fetch('system/cluster-name');
+  }
+
+  /*
+   * Retrieves the project ID in which this cluster is running if using GKE, otherwise returns an error.
+   */
+  public static async getProjectId(): Promise<string> {
+    return this._fetch('system/project-id');
+  }
+
   private static _experimentServiceApi?: ExperimentServiceApi;
   private static _jobServiceApi?: JobServiceApi;
   private static _pipelineServiceApi?: PipelineServiceApi;
