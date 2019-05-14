@@ -17,17 +17,17 @@ metadata:
   annotations: {platform: 'IBM Cloud Spark Service'}
 inputs:
   - {name: bucket_name,       description: 'Required. Object storage bucket name'}
-  - {name: data_url,      description: 'Required. URL of the data source'}
+  - {name: data_url,          description: 'Required. URL of the data source'}
 outputs:
-  - {name: output,          description: 'Data Filename'}
+  - {name: output,            description: 'Data Filename'}
 implementation:
   container:
-    image: docker.io/aipipeline/training_with_spark_service:latest
-    command: ['python3']
+    image: docker.io/aipipeline/data_preprocess_spark:latest
+    command: ['python']
     args: [
-      /app/data_preprocess_spark.py,
+      -u, data_preprocess_spark.py,
       --bucket_name, {inputValue: bucket_name},
       --data_url, {inputValue: data_url}
     ]
     fileOutputs:
-      output: /tmp/output.txt
+      output: /tmp/filename

@@ -16,6 +16,7 @@
 
 set -ex
 
+# Tests work without these lines. TODO: Verify and remove these lines
 kubectl config set-context $(kubectl config current-context) --namespace=default
 echo "Add necessary cluster role bindings"
 ACCOUNT=$(gcloud info --format='value(config.account)')
@@ -28,8 +29,8 @@ mkdir -p ~/bin/
 export PATH=~/bin/:$PATH
 curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
 chmod +x ~/bin/argo
-kubectl create ns argo
-kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
+#kubectl create ns argo
+#kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
 
 # Some workflows are deployed to the non-default namespace where the GCP credential secret is stored
 # In this case, the default service account in that namespace doesn't have enough permission
