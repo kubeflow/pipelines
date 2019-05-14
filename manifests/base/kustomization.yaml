@@ -7,6 +7,8 @@ bases:
 - minio
 - mysql
 - pipeline
+# Uncomment to install the proxy agent
+# - proxy
 
 images:
 - name: argoproj/workflow-controller
@@ -24,4 +26,6 @@ images:
 - name: gcr.io/ml-pipeline/frontend
   newTag: 0.1.20
 - name: gcr.io/ml-pipeline/viewer-crd-controller
+  newTag: 0.1.20
+- name: gcr.io/ml-pipeline/inverse-proxy-agent
   newTag: 0.1.20
