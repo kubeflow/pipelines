@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from kubernetes.client import V1Toleration
+
 def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-gcp-sa.json', volume_name='gcp-credentials', secret_volume_mount_path='/secret/gcp-credentials'):
     """An operator that configures the container to use GCP service account.
 
@@ -85,3 +87,17 @@ def use_tpu(tpu_cores: int, tpu_resource: str, tf_version: str):
         return task
 
     return _set_tpu_spec
+
+def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoSchedule',
+                                                             key='preemptible',
+                                                             operator='Equal',
+                                                             value='true')):
+  """An operator that configures the GKE preemptible in a container op.
+  """
+
+  def _set_preemptible(task):
+    task.add_toleration(toleration)
+    task.add_node_selector_constraint("cloud.google.com/gke-preemptible", "true")
+    return task
+
+  return _set_preemptible

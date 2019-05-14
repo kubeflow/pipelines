@@ -65,17 +65,10 @@ matrix:
     - language: python
       python: "3.6"
       env: TOXENV=py36
-      addons:
-        apt:
-          packages:
-            - default-jdk
-            - wget
       script:
         # DSL tests
-        - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar
         - cd $TRAVIS_BUILD_DIR/sdk/python
-        - ./build.sh /tmp/kfp.tar.gz
-        - pip install /tmp/kfp.tar.gz
+        - python3 setup.py install
         - python tests/dsl/main.py
         - python tests/compiler/main.py
         - python -m unittest discover --verbose --start-dir tests --top-level-directory=..

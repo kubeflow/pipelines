@@ -50,7 +50,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 
 go_repository(
     name = "google_ml_metadata",
-    commit = "becc26ab61f82bfe7c812894f56f597949ce0fdc",
+    commit = "0fb82dc56ff7",
     importpath = "github.com/google/ml-metadata",
 )
 
@@ -159,7 +159,7 @@ go_repository(
 go_repository(
     name = "com_github_argoproj_argo",
     importpath = "github.com/argoproj/argo",
-    tag = "v2.2.0",
+    tag = "v2.3.0-rc3",
 )
 
 go_repository(
@@ -770,7 +770,7 @@ go_repository(
 
 go_repository(
     name = "org_golang_google_genproto",
-    commit = "bd91e49a0898",
+    commit = "ae2f86662275",
     importpath = "google.golang.org/genproto",
 )
 
@@ -924,4 +924,40 @@ go_repository(
     name = "org_golang_x_arch",
     commit = "5a4828bb7045",
     importpath = "golang.org/x/arch",
+)
+
+go_repository(
+    name = "com_github_docker_distribution",
+    importpath = "github.com/docker/distribution",
+    tag = "v2.7.0",
+)
+
+go_repository(
+    name = "com_github_opencontainers_go_digest",
+    importpath = "github.com/opencontainers/go-digest",
+    tag = "v1.0.0-rc1",
+)
+
+go_repository(
+    name = "io_k8s_apiextensions_apiserver",
+    commit = "e7617803aceb",
+    importpath = "k8s.io/apiextensions-apiserver",
+)
+
+go_repository(
+    name = "io_k8s_apiserver",
+    commit = "d55c9aeff1eb",
+    importpath = "k8s.io/apiserver",
+)
+
+go_repository(
+    name = "io_k8s_klog",
+    importpath = "k8s.io/klog",
+    tag = "v0.1.0",
+)
+
+go_repository(
+    name = "com_github_gorilla_websocket",
+    importpath = "github.com/gorilla/websocket",
+    tag = "v1.2.0",
 )
