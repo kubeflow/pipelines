@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+- argo
+- crds
+- minio
+- mysql
+- pipeline
+
+images:
+- name: argoproj/workflow-controller
+  newTag: v2.2.0
+- name: minio/minio
+  newTag: RELEASE.2018-02-09T22-40-05Z
+- name: mysql
+  newTag: "5.6"
+- name: gcr.io/ml-pipeline/api-server
+  newTag: 0.1.20
+- name: gcr.io/ml-pipeline/persistenceagent
+  newTag: 0.1.20
+- name: gcr.io/ml-pipeline/scheduledworkflow
+  newTag: 0.1.20
+- name: gcr.io/ml-pipeline/frontend
+  newTag: 0.1.20
+- name: gcr.io/ml-pipeline/viewer-crd-controller
+  newTag: 0.1.20

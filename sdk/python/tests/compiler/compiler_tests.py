@@ -27,6 +27,8 @@ import yaml
 from kfp.dsl._component import component
 from kfp.dsl import ContainerOp, pipeline
 from kfp.dsl.types import Integer, InconsistentTypeException
+from kubernetes.client import V1Toleration
+
 
 class TestCompiler(unittest.TestCase):
 
@@ -95,38 +97,10 @@ class TestCompiler(unittest.TestCase):
           'name': 'mlpipeline-ui-metadata',
           'path': '/mlpipeline-ui-metadata.json',
           'optional': True,
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
-            }
-          }
         },{
           'name': 'mlpipeline-metrics',
           'path': '/mlpipeline-metrics.json',
           'optional': True,
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
-            }
-          }
         }]
       }
     }
@@ -379,6 +353,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline volumeop_sequential."""
     self._test_py_compile_yaml('volumeop_sequential')
 
+  def test_py_param_substitutions(self):
+    """Test pipeline param_substitutions."""
+    self._test_py_compile_yaml('param_substitutions')
+
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
     @component
@@ -454,3 +432,31 @@ class TestCompiler(unittest.TestCase):
       task2 = op().after(task1)
     
     compiler.Compiler()._compile(pipeline)
+
+  def _test_op_to_template_yaml(self, ops, file_base_name):
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    target_yaml = os.path.join(test_data_dir, file_base_name + '.yaml')
+    with open(target_yaml, 'r') as f:
+      expected = yaml.safe_load(f)['spec']['templates'][0]
+
+    compiled_template = compiler.Compiler()._op_to_template(ops)
+
+    del compiled_template['name'], expected['name']
+    del compiled_template['outputs']['parameters'][0]['name'], expected['outputs']['parameters'][0]['name']
+    assert compiled_template == expected
+
+  def test_tolerations(self):
+    """Test a pipeline with a tolerations."""
+    op1 = dsl.ContainerOp(
+      name='download',
+      image='busybox',
+      command=['sh', '-c'],
+      arguments=['sleep 10; wget localhost:5678 -O /tmp/results.txt'],
+      file_outputs={'downloaded': '/tmp/results.txt'}) \
+      .add_toleration(V1Toleration(
+      effect='NoSchedule',
+      key='gpu',
+      operator='Equal',
+      value='run'))
+
+    self._test_op_to_template_yaml(op1, file_base_name='tolerations')

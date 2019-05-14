@@ -152,28 +152,6 @@ def _outputs_to_json(op: BaseOp,
     return ret
 
 
-def _build_conventional_artifact(name, path):
-    return {
-        'name': name,
-        'path': path,
-        's3': {
-            # TODO: parameterize namespace for minio service
-            'endpoint': 'minio-service.kubeflow:9000',
-            'bucket': 'mlpipeline',
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz',
-            'insecure': True,
-            'accessKeySecret': {
-                'name': 'mlpipeline-minio-artifact',
-                'key': 'accesskey',
-            },
-            'secretKeySecret': {
-                'name': 'mlpipeline-minio-artifact',
-                'key': 'secretkey'
-            }
-        },
-    }
-
-
 # TODO: generate argo python classes from swagger and use convert_k8s_obj_to_json??
 def _op_to_template(op: BaseOp):
     """Generate template given an operator inherited from BaseOp."""
@@ -189,7 +167,7 @@ def _op_to_template(op: BaseOp):
         output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
 
         output_artifacts = [
-            _build_conventional_artifact(name, path)
+            {'name': name, 'path': path}
             for name, path in output_artifact_paths.items()
         ]
 
@@ -236,6 +214,10 @@ def _op_to_template(op: BaseOp):
     # node selector
     if processed_op.node_selector:
         template['nodeSelector'] = processed_op.node_selector
+
+    # tolerations
+    if processed_op.tolerations:
+        template['tolerations'] = processed_op.tolerations
 
     # metadata
     if processed_op.pod_annotations or processed_op.pod_labels:

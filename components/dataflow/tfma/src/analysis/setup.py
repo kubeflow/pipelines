@@ -20,7 +20,7 @@ if __name__ == '__main__':
   setuptools.setup(name='tfma_analysis_job', version='1.0',
                    packages=setuptools.find_packages(),
                    install_requires=[
-                       'tensorflow==1.6.0',
+                       'tensorflow==1.12.1',
                        'tensorflow-model-analysis==0.6.0',
                        'tensorflow-serving-api==1.6.0',
                        'tensorflow-transform==0.6.0'])

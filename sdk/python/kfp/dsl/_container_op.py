@@ -15,6 +15,8 @@
 import re
 import warnings
 from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
+
+from kubernetes.client import V1Toleration
 from kubernetes.client.models import (
     V1Container, V1EnvVar, V1EnvFromSource, V1SecurityContext, V1Probe,
     V1ResourceRequirements, V1VolumeDevice, V1VolumeMount, V1ContainerPort,
@@ -644,7 +646,7 @@ class BaseOp(object):
     # in the compilation process to generate the DAGs and task io parameters.
     attrs_with_pipelineparams = [
         'node_selector', 'volumes', 'pod_annotations', 'pod_labels',
-        'num_retries', 'sidecars'
+        'num_retries', 'sidecars', 'tolerations'
     ]
 
     def __init__(self,
@@ -680,6 +682,7 @@ class BaseOp(object):
         # `io.argoproj.workflow.v1alpha1.Template` properties
         self.node_selector = {}
         self.volumes = []
+        self.tolerations = []
         self.pod_annotations = {}
         self.pod_labels = {}
         self.num_retries = 0
@@ -743,6 +746,17 @@ class BaseOp(object):
           https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume.py
         """
         self.volumes.append(volume)
+        return self
+
+    def add_toleration(self, tolerations: V1Toleration):
+        """Add K8s tolerations
+
+        Args:
+          volume: Kubernetes toleration
+          For detailed spec, check toleration definition
+          https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_toleration.py
+        """
+        self.tolerations.append(tolerations)
         return self
 
     def add_node_selector_constraint(self, label_name, value):
@@ -881,7 +895,7 @@ class ContainerOp(BaseOp):
           is_exit_handler: Whether it is used as an exit handler.
           pvolumes: Dictionary for the user to match a path on the op's fs with a
               V1Volume or it inherited type.
-              E.g {"/my/path": vol, "/mnt": other_op.volumes["/output"]}.
+              E.g {"/my/path": vol, "/mnt": other_op.pvolumes["/output"]}.
         """
 
         super().__init__(name=name, sidecars=sidecars, is_exit_handler=is_exit_handler)
