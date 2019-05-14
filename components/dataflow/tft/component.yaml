@@ -12,7 +12,7 @@ outputs:
   - {name: Transformed data dir,          type: GCSPath} # type: {GCSPath: {path_type: Directory}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:727c48c690c081b505c1f0979d11930bf1ef07c0
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:c3235d725eb1d1eb06b5600a8291967aa6cf518f
     command: [python2, /ml/transform.py]
     args: [
       --train,   {inputValue: Training data file pattern},
