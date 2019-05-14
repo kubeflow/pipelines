@@ -1,0 +1,20 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    app: ml-pipeline-persistenceagent
+  name: ml-pipeline-persistenceagent
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline-persistenceagent
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline-persistenceagent
+    spec:
+      containers:
+      - image: gcr.io/ml-pipeline/persistenceagent:0.1.15
+        imagePullPolicy: IfNotPresent
+        name: ml-pipeline-persistenceagent
+      serviceAccountName: ml-pipeline-persistenceagent
