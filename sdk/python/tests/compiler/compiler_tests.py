@@ -97,38 +97,10 @@ class TestCompiler(unittest.TestCase):
           'name': 'mlpipeline-ui-metadata',
           'path': '/mlpipeline-ui-metadata.json',
           'optional': True,
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
-            }
-          }
         },{
           'name': 'mlpipeline-metrics',
           'path': '/mlpipeline-metrics.json',
           'optional': True,
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
-            }
-          }
         }]
       }
     }
