@@ -15,10 +15,10 @@
 # limitations under the License.
 
 # This script automated the process to release the component images.
-# To run it, find a good release candidate commit SHA from ml-pipeline-staging project,
+# To run it, find a good release candidate commit SHA from ml-pipeline-test project,
 # and provide a full github COMMIT SHA to the script. E.g.
 # ./release.sh 2118baf752d3d30a8e43141165e13573b20d85b8
-# The script copies the images from staging to prod, and update the local code.
+# The script copies the images from test to prod, and update the local code.
 # You can then send a PR using your local branch.
 
 set -xe
@@ -44,7 +44,7 @@ images=(
 )
 
 COMMIT_SHA=$1
-FROM_GCR_PREFIX='gcr.io/ml-pipeline-staging/'
+FROM_GCR_PREFIX='gcr.io/ml-pipeline-test/'
 TO_GCR_PREFIX='gcr.io/ml-pipeline/'
 REPO=kubeflow/pipelines
 
@@ -68,7 +68,7 @@ do
   TARGET_IMAGE_BASE=${TO_GCR_PREFIX}${image}
   TARGET_IMAGE=${TARGET_IMAGE_BASE}:${COMMIT_SHA}
 
-  # Move image from staging to prod GCR
+  # Move image from test to prod GCR
   gcloud container images add-tag --quiet \
   ${FROM_GCR_PREFIX}${image}:${COMMIT_SHA} ${TARGET_IMAGE}
 
