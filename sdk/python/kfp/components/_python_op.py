@@ -21,6 +21,7 @@ from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
 from ._structures import *
 
+import inspect
 from pathlib import Path
 from typing import TypeVar, Generic
 
@@ -45,39 +46,13 @@ def _python_function_name_to_component_name(name):
     return re.sub(' +', ' ', name.replace('_', ' ')).strip(' ').capitalize()
 
 
-def _func_to_component_spec(func, extra_code='', base_image=_default_base_image) -> ComponentSpec:
-    '''Takes a self-contained python function and converts it to component
-
-    Args:
-        func: Required. The function to be converted
-        base_image: Optional. Docker image to be used as a base image for the python component. Must have python 3.5+ installed. Default is tensorflow/tensorflow:1.11.0-py3
-                    Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
-        extra_code: Optional. Python source code that gets placed before the function code. Can be used as workaround to define types used in function signature.
-    '''
-    decorator_base_image = getattr(func, '_component_base_image', None)
-    if decorator_base_image is not None:
-        if base_image is not _default_base_image and decorator_base_image != base_image:
-            raise ValueError('base_image ({}) conflicts with the decorator-specified base image metadata ({})'.format(base_image, decorator_base_image))
-        else:
-            base_image = decorator_base_image
-    else:
-        if base_image is None:
-            raise ValueError('base_image cannot be None')
-
-    import inspect
-    import re
-    from collections import OrderedDict
-    
+def _create_component_interface_spec_from_function_signature(func) -> ComponentSpec:
     single_output_name_const = 'Output'
-    single_output_pythonic_name_const = 'output'
 
     signature = inspect.signature(func)
     parameters = list(signature.parameters.values())
-    parameter_to_type_name = OrderedDict()
     inputs = []
     outputs = []
-    extra_output_names = []
-    arguments = []
 
     def annotation_to_type_struct(annotation):
         if not annotation or annotation == inspect.Parameter.empty:
@@ -89,9 +64,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
 
     for parameter in parameters:
         type_struct = annotation_to_type_struct(parameter.annotation)
-        parameter_to_type_name[parameter.name] = str(type_struct)
         #TODO: Humanize the input/output names
-        arguments.append(InputValuePlaceholder(parameter.name))
 
         input_spec = InputSpec(
             name=parameter.name,
@@ -113,8 +86,6 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
                 type=type_struct,
             )
             outputs.append(output_spec)
-            extra_output_names.append(field_name)
-            arguments.append(OutputPathPlaceholder(field_name))
     elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
         type_struct = annotation_to_type_struct(signature.return_annotation)
         output_spec = OutputSpec(
@@ -122,15 +93,54 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
             type=type_struct,
         )
         outputs.append(output_spec)
-        extra_output_names.append(single_output_pythonic_name_const)
-        arguments.append(OutputPathPlaceholder(single_output_name_const))
 
-    func_name=func.__name__
+    #Component name and description are derived from the function's name and docstribng, but can be overridden by @python_component function decorator
+    #The decorator can set the _component_human_name and _component_description attributes. getattr is needed to prevent error when these attributes do not exist.
+    component_name = getattr(func, '_component_human_name', None) or _python_function_name_to_component_name(func.__name__)
+    description = getattr(func, '_component_description', None) or func.__doc__
+    if description:
+        description = description.strip() + '\n' #Interesting: unlike ruamel.yaml, PyYaml cannot handle trailing spaces in the last line (' \n') and switches the style to double-quoted.
+
+    component_spec = ComponentSpec(
+        name=component_name,
+        description=description,
+        inputs=inputs,
+        outputs=outputs,
+    )
+    return component_spec
+
+
+def _func_to_component_spec(func, extra_code='', base_image=_default_base_image) -> ComponentSpec:
+    '''Takes a self-contained python function and converts it to component
+
+    Args:
+        func: Required. The function to be converted
+        base_image: Optional. Docker image to be used as a base image for the python component. Must have python 3.5+ installed. Default is tensorflow/tensorflow:1.11.0-py3
+                    Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
+        extra_code: Optional. Python source code that gets placed before the function code. Can be used as workaround to define types used in function signature.
+    '''
+    decorator_base_image = getattr(func, '_component_base_image', None)
+    if decorator_base_image is not None:
+        if base_image is not _default_base_image and decorator_base_image != base_image:
+            raise ValueError('base_image ({}) conflicts with the decorator-specified base image metadata ({})'.format(base_image, decorator_base_image))
+        else:
+            base_image = decorator_base_image
+    else:
+        if base_image is None:
+            raise ValueError('base_image cannot be None')
+
+    component_spec = _create_component_interface_spec_from_function_signature(func)
+
+    arguments = []
+    arguments.extend(InputValuePlaceholder(input.name) for input in component_spec.inputs)
+    arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
 
     #TODO: Add support for copying the NamedTuple subclass declaration code
     #Adding NamedTuple import if needed
+    signature = inspect.signature(func)
+
     func_type_declarations_code = ""
-    if hasattr(return_ann, '_fields'): #NamedTuple
+    if hasattr(signature.return_annotation, '_fields'): #NamedTuple
         func_type_declarations_code = func_type_declarations_code + '\n' + 'from typing import NamedTuple'
 
     #Source code can include decorators line @python_op. Remove them
@@ -146,7 +156,11 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
     
     func_code = ''.join(func_code_lines) #Lines retain their \n endings
 
+    extra_output_names = [output.name for output in component_spec.outputs]
     extra_output_external_names = [name + '_file' for name in extra_output_names]
+
+    from collections import OrderedDict
+    parameter_to_type_name = OrderedDict((input.name, str(input.type)) for input in component_spec.inputs)
 
     input_args_parsing_code_lines =(
         "    '{arg_name}': {arg_type}(sys.argv[{arg_idx}]),".format(
@@ -189,7 +203,7 @@ for idx, filename in enumerate(_output_files):
     _output_path.parent.mkdir(parents=True, exist_ok=True)
     _output_path.write_text(str(_outputs[idx]))
 '''.format(
-        func_name=func_name,
+        func_name=func.__name__,
         func_code=func_code,
         func_type_declarations_code=func_type_declarations_code,
         extra_code=extra_code,
@@ -198,26 +212,14 @@ for idx, filename in enumerate(_output_files):
     )
 
     #Removing consecutive blank lines
+    import re
     full_source = re.sub('\n\n\n+', '\n\n', full_source).strip('\n') + '\n'
 
-    #Component name and description are derived from the function's name and docstribng, but can be overridden by @python_component function decorator
-    #The decorator can set the _component_human_name and _component_description attributes. getattr is needed to prevent error when these attributes do not exist.
-    component_name = getattr(func, '_component_human_name', None) or _python_function_name_to_component_name(func.__name__)
-    description = getattr(func, '_component_description', None) or func.__doc__
-    if description:
-        description = description.strip() + '\n' #Interesting: unlike ruamel.yaml, PyYaml cannot handle trailing spaces in the last line (' \n') and switches the style to double-quoted.
-
-    component_spec = ComponentSpec(
-        name=component_name,
-        description=description,
-        inputs=inputs,
-        outputs=outputs,
-        implementation=ContainerImplementation(
-            container=ContainerSpec(
-                image=base_image,
-                command=['python3', '-c', full_source],
-                args=arguments,
-            )
+    component_spec.implementation=ContainerImplementation(
+        container=ContainerSpec(
+            image=base_image,
+            command=['python3', '-c', full_source],
+            args=arguments,
         )
     )
 
