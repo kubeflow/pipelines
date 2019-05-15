@@ -2,7 +2,7 @@ from setuptools import setup
 
 
 NAME = 'kfp-arena'
-VERSION = '0.4'
+VERSION = '0.6'
 
 REQUIRES = ['kfp >= 0.1']
 
