@@ -129,16 +129,8 @@ def create_container_op_from_task(task_spec: TaskSpec):
     )
 
 
-_dummy_pipeline=None
-
 def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, output_paths=None, env : Mapping[str, str]=None, component_spec=None):
     from .. import dsl
-    global _dummy_pipeline
-    need_dummy = dsl.Pipeline._default_pipeline is None
-    if need_dummy:
-        if _dummy_pipeline == None:
-            _dummy_pipeline = dsl.Pipeline('dummy pipeline')
-        _dummy_pipeline.__enter__()
 
     #Renaming outputs to conform with ContainerOp/Argo
     from ._naming import _sanitize_python_function_name, generate_unique_name_conversion_table
@@ -176,9 +168,6 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
             task.add_pod_annotation(key, value)
         for key, value in (component_spec.metadata.labels or {}).items():
             task.add_pod_label(key, value)
-
-    if need_dummy:
-        _dummy_pipeline.__exit__()
 
     return task
 

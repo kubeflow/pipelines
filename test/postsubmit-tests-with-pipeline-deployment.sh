@@ -30,8 +30,8 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
-CLOUDBUILD_PROJECT=ml-pipeline-staging
-GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-staging
+CLOUDBUILD_PROJECT=ml-pipeline-test
+GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test
 TARGET_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_BASE_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
@@ -116,6 +116,9 @@ fi
 
 # Deploy Kubeflow
 source "${DIR}/deploy-kubeflow.sh"
+
+# Install Argo
+source "${DIR}/install-argo.sh"
 
 # Deploy the pipeline
 source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}

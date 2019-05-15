@@ -24,3 +24,4 @@ from ._pipeline_volume import PipelineVolume
 from ._volume_snapshot_op import VolumeSnapshotOp
 from ._ops_group import OpsGroup, ExitHandler, Condition
 from ._component import python_component, graph_component, component
+from ._artifact_location import ArtifactLocation
