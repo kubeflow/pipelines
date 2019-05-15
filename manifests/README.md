@@ -11,6 +11,11 @@ You might lack the permission to create role and command might partially fail. I
 kubectl create clusterrolebinding your-binding --clusterrole=cluster-admin --user=[your-user-name]
 ```
 
+When deployment is done, the UI is accessible by port-forwarding
+```
+kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
+```
+
 # Customization
 Customization can be done through Kustomize Overlay, and don't need to modify the base directory. 
 
@@ -27,6 +32,17 @@ kubectl kustomize . | kubectl apply -f -
 
 ## Reinstall with existing data
 TODO
+
+## Expose a IAM controlled public endpoint
+By default, the deployment doesn't expose any public endpoint. 
+If you don't want to port-forward every time to access UI, you could install an [invert proxy agent](https://github.com/google/inverting-proxy) that exposes a public endpoint.
+To install, uncomment the proxy component in the [kustomization.yaml](base/kustomization.yaml).
+
+When deployment is done, you can find the endpoint by describing
+```
+kubectl describe configmap inverse-proxy-config -n kubeflow
+```
+and check the Hostname section. The endpoint should have format like **1234567-dot-datalab-vm-us-west1.googleusercontent.com**
 
 
 # Uninstall

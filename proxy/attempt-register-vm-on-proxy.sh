@@ -21,13 +21,13 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 function run-proxy-agent {
   # Start the proxy process
   # https://github.com/google/inverting-proxy/blob/master/agent/Dockerfile
-  # Connect proxy agent to ambassador so anything registered to ambassador can be transparently accessed.
+  # Connect proxy agent to Kubeflow Pipelines UI
   /opt/bin/proxy-forwarding-agent \
         --debug=${DEBUG} \
         --proxy=${PROXY_URL} \
         --proxy-timeout=${PROXY_TIMEOUT} \
         --backend=${BACKEND_ID} \
-        --host=${AMBASSADOR_SERVICE_HOST}:${AMBASSADOR_SERVICE_PORT} \
+        --host=${ML_PIPELINE_UI_SERVICE_HOST}:${ML_PIPELINE_UI_SERVICE_PORT} \
         --shim-websockets=true \
         --shim-path=websocket-shim \
         --health-check-path=${HEALTH_CHECK_PATH} \

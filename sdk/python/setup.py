@@ -15,7 +15,7 @@
 from setuptools import setup
 
 NAME = 'kfp'
-VERSION = '0.1.19'
+VERSION = '0.1.20'
 
 REQUIRES = [
     'urllib3>=1.15,<1.25', #Fixing the version conflict with the "requests" package
@@ -30,6 +30,7 @@ REQUIRES = [
     'google-auth>=1.6.1',
     'requests_toolbelt>=0.8.0',
     'kfp-server-api >= 0.1.18, < 0.1.19', #Update the upper version whenever a new version of the kfp-server-api package is released. Update the lower version when there is a breaking change in kfp-server-api.
+    'argo-models == 2.2.1a',  #2.2.1a is equivalent to argo 2.2.1
 ]
 
 setup(
