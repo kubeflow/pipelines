@@ -52,11 +52,18 @@ def generate_options(args):
 
     if len(data) > 0:
       for d in data:
-        options.append("--data={0}".format(d))
+        if ":" in d:
+            options.append("--data={0}".format(d))
+        else:
+            logging.info("--data={0} is illegal, skip.".format(d))
 
     if len(env) > 0:
       for e in env:
-        options.append("--env={0}".format(e))
+        if "=" in e:
+            options.append("--env={0}".format(e))
+        else:
+            logging.info("--env={0} is illegal, skip.".format(e))
+
 
     if len(args.workflow_name) > 0:
         options.append("--env=WORKFLOW_NAME={0}".format(args.workflow_name))
