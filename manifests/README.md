@@ -1,7 +1,8 @@
 # TL;DR
 If you want to skip any customization, you can deploy Kubeflow Pipelines by running
 ```
-export PIPELINE_VERSION=0.1.20
+# TODO use explicit version number instead of commit id in the future. E.g. 0.1.20
+export PIPELINE_VERSION=4eeeb6e22432ece32c7d0efbd8307c15bfa9b6d3
 kubectl create -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/namespaced-install.yaml
 ```
 
