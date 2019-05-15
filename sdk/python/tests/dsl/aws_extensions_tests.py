@@ -26,7 +26,6 @@ class AwsExtensionTests(unittest.TestCase):
     assert spec.defaults[2] == 'AWS_SECRET_ACCESS_KEY'
 
   def test_use_aws_secret(self):
-    with Pipeline('somename') as p:
       op1 = ContainerOp(name='op1', image='image')
       op1 = op1.apply(use_aws_secret('myaws-secret', 'key_id', 'access_key'))
       assert len(op1.env_variables) == 2
