@@ -18,7 +18,7 @@ import kfp.dsl as dsl
 
 @dsl.pipeline(
     name="Seldon MNIST TF",
-    description="The third example of the design doc."
+    description="Example of training and serving seldon MNIST TF model. Requires docker secret as per kubeflow/example-seldon."
 )
 def mnist_tf():
 
