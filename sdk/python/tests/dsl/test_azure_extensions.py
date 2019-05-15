@@ -24,17 +24,16 @@ class AzExtensionTests(unittest.TestCase):
         assert spec.defaults[0] == 'azcreds'
 
     def test_use_azure_secret(self):
-        with Pipeline('somename') as p:
-            op1 = ContainerOp(name='op1', image='image')
-            op1 = op1.apply(use_azure_secret('foo'))
-            assert len(op1.env_variables) == 4
-            
-            index = 0
-            for expected in ['AZ_SUBSCRIPTION_ID', 'AZ_TENANT_ID', 'AZ_CLIENT_ID', 'AZ_CLIENT_SECRET']:
-                assert op1.env_variables[index].name == expected
-                assert op1.env_variables[index].value_from.secret_key_ref.name == 'foo'
-                assert op1.env_variables[index].value_from.secret_key_ref.key == expected
-                index += 1
+        op1 = ContainerOp(name='op1', image='image')
+        op1 = op1.apply(use_azure_secret('foo'))
+        assert len(op1.env_variables) == 4
+        
+        index = 0
+        for expected in ['AZ_SUBSCRIPTION_ID', 'AZ_TENANT_ID', 'AZ_CLIENT_ID', 'AZ_CLIENT_SECRET']:
+            assert op1.env_variables[index].name == expected
+            assert op1.env_variables[index].value_from.secret_key_ref.name == 'foo'
+            assert op1.env_variables[index].value_from.secret_key_ref.key == expected
+            index += 1
 
 if __name__ == '__main__':
     unittest.main()
