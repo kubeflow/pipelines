@@ -62,7 +62,7 @@ def generate_options(args):
         if "=" in e:
             options.append("--env={0}".format(e))
         else:
-            logging.info("--env={0} is illegal, skip.".format(d))
+            logging.info("--env={0} is illegal, skip.".format(e))
 
 
     if len(args.workflow_name) > 0:
