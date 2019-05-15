@@ -49,11 +49,18 @@ def mnist_tf():
         pvolumes={"/workspace": clone.pvolume,"/root/.docker/": secret}
     )
 
+    buildServing = dsl.ContainerOp(
+        name="buildServing",
+        image="library/bash:4.4.23",
+        command=["echo", "This could become a serving build step."],
+        pvolumes={"/workspace": vop.volume.after(build)}
+    )
+
     serve = dsl.ContainerOp(
         name="serve",
         image="library/bash:4.4.23",
-        command=["echo", "This could become a serving step. Would first need to build serving image. Serve by deploying SeldonDeployment k8s resource."],
-        pvolumes={"/workspace": vop.volume.after(build)}
+        command=["echo", "Serve by deploying SeldonDeployment k8s resource."],
+        pvolumes={"/workspace": vop.volume.after(buildServing)}
     )
 
 
