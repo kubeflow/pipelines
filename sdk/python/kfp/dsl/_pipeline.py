@@ -25,7 +25,7 @@ import sys
 _pipeline_decorator_handler = None
 
 
-def pipeline(name, description):
+def pipeline(name : str = None, description : str = None):
   """Decorator of pipeline functions.
 
   Usage:
@@ -39,8 +39,10 @@ def pipeline(name, description):
   ```
   """
   def _pipeline(func):
-    func._pipeline_name = name
-    func._pipeline_description = description
+    if name:
+      func._pipeline_name = name
+    if description:
+      func._pipeline_description = description
 
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func
