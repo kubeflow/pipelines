@@ -281,6 +281,10 @@ class TestCompiler(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
+  def test_py_compile_artifact_location(self):
+    """Test configurable artifact location pipeline."""
+    self._test_py_compile_yaml('artifact_location')
+
   def test_py_compile_basic(self):
     """Test basic sequential pipeline."""
     self._test_py_compile_zip('basic')
