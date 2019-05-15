@@ -25,6 +25,8 @@ import { NodePhase, statusToBgColor, hasFinished } from './StatusUtils';
 
 export enum StorageService {
   GCS = 'gcs',
+  HTTP = 'http',
+  HTTPS = 'https',
   MINIO = 'minio',
   S3 = 's3'
 }
@@ -261,6 +263,20 @@ export default class WorkflowParser {
         bucket: pathParts[0],
         key: pathParts.slice(1).join('/'),
         source: StorageService.S3,
+      };
+    } else if (strPath.startsWith('http://')) {
+      const pathParts = strPath.substr('http://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.HTTP,
+      };
+    } else if (strPath.startsWith('https://')) {
+      const pathParts = strPath.substr('https://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.HTTPS,
       };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);
