@@ -19,7 +19,7 @@ kubectl create -f https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73
 ## Demos
 
 - [Standalone Job](standalonejob/README.md)
-- [MPI Job]()
+- [MPI Job](mpi/README.md)
 - [TensorFlow Estimator Job]()
 - [TFJob]()
 
