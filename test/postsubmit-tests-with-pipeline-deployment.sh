@@ -117,6 +117,9 @@ fi
 # Deploy Kubeflow
 source "${DIR}/deploy-kubeflow.sh"
 
+# Install Argo
+source "${DIR}/install-argo.sh"
+
 # Deploy the pipeline
 source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}
 
