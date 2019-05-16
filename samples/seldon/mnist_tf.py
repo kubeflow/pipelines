@@ -14,6 +14,7 @@
 
 from kubernetes import client as k8s_client
 import kfp.dsl as dsl
+import json
 
 
 @dsl.pipeline(
@@ -49,11 +50,57 @@ def mnist_tf():
         pvolumes={"/workspace": clone.pvolume,"/root/.docker/": secret}
     )
 
-    train = dsl.ContainerOp(
+    tfjobjson = """
+{
+	"apiVersion": "kubeflow.org/v1beta1",
+	"kind": "TFJob",
+	"metadata": {
+		"name": "mnist-train-makethisrunname"
+	},
+	"spec": {
+		"tfReplicaSpecs": {
+			"Worker": {
+				"replicas": 1,
+				"template": {
+					"spec": {
+						"containers": [
+							{
+								"image": "ryandawsonuk/deepmnistclassifier_trainer:0.3",
+								"name": "tensorflow",
+								"volumeMounts": [
+									{
+										"mountPath": "/data",
+										"name": "persistent-storage"
+									}
+								]
+							}
+						],
+						"restartPolicy": "OnFailure",
+						"volumes": [
+							{
+								"name": "persistent-storage",
+								"persistentVolumeClaim": {
+									"claimName": "nfs-1"
+								}
+							}
+						]
+					}
+				},
+				"tfReplicaType": "MASTER"
+			}
+		}
+	}
+}
+"""
+
+    tfjob = json.loads(tfjobjson)
+
+    train = dsl.ResourceOp(
         name="train",
-        image="library/bash:4.4.23",
-        command=["echo", "This would run training image as job."],
-        pvolumes={"/workspace": vop.volume.after(build)}
+        k8s_resource=tfjob,
+        attribute_outputs={"name": "{.metadata.name}"}
+        # todo this needs to be set to run after the previous step but can't use pvolumes currently
+        # pvolumes={"/workspace": vop.volume.after(build)}
     )
 
     buildServing = dsl.ContainerOp(
