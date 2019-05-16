@@ -73,7 +73,7 @@ steps:
   id:   'buildPersistenceAgent'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA', '-f',
-         '/workspace/proxy/Dockerfile', '/workspace']
+         '/workspace/proxy/Dockerfile', '/workspace/proxy']
   id:   'buildInverseProxyAgent'
 
 # Build the Dataflow-based pipeline component images
