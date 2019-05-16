@@ -99,9 +99,7 @@ def mnist_tf():
         name="train",
         k8s_resource=tfjob,
         attribute_outputs={"name": "{.metadata.name}"}
-        # todo this needs to be set to run after the previous step but can't use pvolumes currently
-        # pvolumes={"/workspace": vop.volume.after(build)}
-    )
+    ).after(build)
 
     buildServing = dsl.ContainerOp(
         name="buildServing",
