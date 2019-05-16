@@ -16,8 +16,9 @@
 
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
+import Metric from '../components/Metric';
 import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
-import { ApiRun, ApiResourceType, RunMetricFormat, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
+import { ApiRun, ApiResourceType, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -27,23 +28,6 @@ import { URLParser } from '../lib/URLParser';
 import { commonCss, color } from '../Css';
 import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
 import { statusToIcon } from './Status';
-import { stylesheet } from 'typestyle';
-
-const css = stylesheet({
-  metricContainer: {
-    background: '#f6f7f9',
-    marginLeft: 6,
-    marginRight: 10,
-  },
-  metricFill: {
-    background: '#cbf0f8',
-    boxSizing: 'border-box',
-    color: '#202124',
-    fontFamily: 'Roboto',
-    fontSize: 13,
-    textIndent: 6,
-  },
-});
 
 interface ExperimentInfo {
   displayName?: string;
@@ -237,59 +221,11 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
   public _metricCustomRenderer: React.FC<CustomRendererProps<DisplayMetric>> = (props: CustomRendererProps<DisplayMetric>) => {
     const displayMetric = props.value;
-    if (!displayMetric || !displayMetric.metric ||
-      displayMetric.metric.number_value === undefined) {
+    if (!displayMetric) {
       return <div />;
     }
 
-    const leftSpace = 6;
-    let displayString = '';
-    let width = '';
-
-    if (displayMetric.metric.format === RunMetricFormat.PERCENTAGE) {
-      displayString = (displayMetric.metric.number_value * 100).toFixed(3) + '%';
-      width = `calc(${displayString})`;
-    } else {
-
-      // Non-percentage metrics must contain metadata
-      if (!displayMetric.metadata) {
-        return <div />;
-      }
-
-      displayString = displayMetric.metric.number_value.toFixed(3);
-
-      if (displayMetric.metadata.maxValue === 0 && displayMetric.metadata.minValue === 0) {
-        return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
-      }
-
-      if (displayMetric.metric.number_value - displayMetric.metadata.minValue < 0) {
-        logger.error(`Run ${props.id}'s metric ${displayMetric.metadata.name}'s value:`
-          + ` (${displayMetric.metric.number_value}) was lower than the supposed minimum of`
-          + ` (${displayMetric.metadata.minValue})`);
-        return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
-      }
-
-      if (displayMetric.metadata.maxValue - displayMetric.metric.number_value < 0) {
-        logger.error(`Run ${props.id}'s metric ${displayMetric.metadata.name}'s value:`
-          + ` (${displayMetric.metric.number_value}) was greater than the supposed maximum of`
-          + ` (${displayMetric.metadata.maxValue})`);
-        return <div style={{ paddingLeft: leftSpace }}>{displayString}</div>;
-      }
-
-      const barWidth =
-        (displayMetric.metric.number_value - displayMetric.metadata.minValue)
-        / (displayMetric.metadata.maxValue - displayMetric.metadata.minValue)
-        * 100;
-
-      width = `calc(${barWidth}%)`;
-    }
-    return (
-      <div className={css.metricContainer}>
-        <div className={css.metricFill} style={{ width }}>
-          {displayString}
-        </div>
-      </div>
-    );
+    return <Metric metric={displayMetric.metric} metadata={displayMetric.metadata} />;
   }
 
   protected async _loadRuns(request: ListRequest): Promise<string> {

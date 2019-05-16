@@ -6913,45 +6913,19 @@ exports[`RunList reloads the run when refresh is called 1`] = `
 </RunList>
 `;
 
-exports[`RunList renders a empty metric container when a metric has value of zero 1`] = `<div />`;
-
-exports[`RunList renders a metric container when a percentage metric has value of zero 1`] = `
-<div
-  className="metricContainer"
->
-  <div
-    className="metricFill"
-    style={
-      Object {
-        "width": "calc(0.000%)",
-      }
-    }
-  >
-    0.000%
-  </div>
-</div>
+exports[`RunList renders an empty metric when metric is empty 1`] = `
+<Metric
+  metadata={undefined}
+  metric={undefined}
+/>
 `;
 
-exports[`RunList renders a metric container when a raw metric has value of zero 1`] = `
-<div
-  className="metricContainer"
->
-  <div
-    className="metricFill"
-    style={
-      Object {
-        "width": "calc(0%)",
-      }
-    }
-  >
-    0.000
-  </div>
-</div>
+exports[`RunList renders an empty metric when metric value is empty 1`] = `
+<Metric
+  metadata={undefined}
+  metric={Object {}}
+/>
 `;
-
-exports[`RunList renders an empty metric when metric is empty 1`] = `<div />`;
-
-exports[`RunList renders an empty metric when metric value is empty 1`] = `<div />`;
 
 exports[`RunList renders an empty metric when there is no metric 1`] = `<div />`;
 
@@ -6987,20 +6961,15 @@ exports[`RunList renders no experiment name 1`] = `
 `;
 
 exports[`RunList renders percentage metric 1`] = `
-<div
-  className="metricContainer"
->
-  <div
-    className="metricFill"
-    style={
-      Object {
-        "width": "calc(30.000%)",
-      }
+<Metric
+  metadata={undefined}
+  metric={
+    Object {
+      "format": "PERCENTAGE",
+      "number_value": 0.3,
     }
-  >
-    30.000%
-  </div>
-</div>
+  }
+/>
 `;
 
 exports[`RunList renders pipeline name as link to its details page 1`] = `
@@ -7015,56 +6984,20 @@ exports[`RunList renders pipeline name as link to its details page 1`] = `
 `;
 
 exports[`RunList renders raw metric 1`] = `
-<div
-  className="metricContainer"
->
-  <div
-    className="metricFill"
-    style={
-      Object {
-        "width": "calc(50%)",
-      }
-    }
-  >
-    55.000
-  </div>
-</div>
-`;
-
-exports[`RunList renders raw metric that is greater than its max value, logs error to console 1`] = `
-<div
-  style={
+<Metric
+  metadata={
     Object {
-      "paddingLeft": 6,
+      "count": 1,
+      "maxValue": 100,
+      "minValue": 10,
     }
   }
->
-  105.000
-</div>
-`;
-
-exports[`RunList renders raw metric that is less than its min value, logs error to console 1`] = `
-<div
-  style={
+  metric={
     Object {
-      "paddingLeft": 6,
+      "number_value": 55,
     }
   }
->
-  5.000
-</div>
-`;
-
-exports[`RunList renders raw metric with zero max/min values 1`] = `
-<div
-  style={
-    Object {
-      "paddingLeft": 6,
-    }
-  }
->
-  15.000
-</div>
+/>
 `;
 
 exports[`RunList renders run name as link to its details page 1`] = `
