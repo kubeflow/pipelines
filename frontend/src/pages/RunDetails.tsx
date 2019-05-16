@@ -162,6 +162,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
+    const nodeInputOutputParams = WorkflowParser.getNodeInputOutputParams(workflow, selectedNodeId);
 
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
@@ -209,12 +210,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                           {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
                             <div className={padding(20)}>
                               <DetailsTable title='Input parameters'
-                                fields={WorkflowParser.getNodeInputOutputParams(
-                                  workflow, selectedNodeId)[0]} />
+                                fields={nodeInputOutputParams[0]} />
 
                               <DetailsTable title='Output parameters'
-                                fields={WorkflowParser.getNodeInputOutputParams(
-                                  workflow, selectedNodeId)[1]} />
+                                fields={nodeInputOutputParams[1]} />
                             </div>
                           )}
 
