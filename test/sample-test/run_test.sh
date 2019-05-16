@@ -264,19 +264,19 @@ elif [ "$TEST_NAME" == "recursion" ]; then
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_RECURSION_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_RECURSION_TEST_RESULT}
 elif [ "$TEST_NAME" == "resources" ]; then
-  # ResourceOp
-  SAMPLE_RESOURCEOP_TEST_RESULT=junit_SampleResourceOpOutput.xml
-  SAMPLE_RESOURCEOP_TEST_OUTPUT=${RESULTS_GCS_DIR}
-
-  # Compile samples
-  cd ${BASE_DIR}/samples/resourceops
-  dsl-compile --py resourceop_basic.py --output resourceop_basic.tar.gz
-
-  cd "${TEST_DIR}"
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/resourceops/resourceop_basic.tar.gz --result $SAMPLE_RESOURCEOP_TEST_RESULT --output $SAMPLE_RESOURCEOP_TEST_OUTPUT --testname resource --namespace ${NAMESPACE} --params '{"username": "test", "password": "test123"}'
-
-  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
-  gsutil cp ${SAMPLE_RESOURCEOP_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_RESOURCEOP_TEST_RESULT}
+#  # ResourceOp
+#  SAMPLE_RESOURCEOP_TEST_RESULT=junit_SampleResourceOpOutput.xml
+#  SAMPLE_RESOURCEOP_TEST_OUTPUT=${RESULTS_GCS_DIR}
+#
+#  # Compile samples
+#  cd ${BASE_DIR}/samples/resourceops
+#  dsl-compile --py resourceop_basic.py --output resourceop_basic.tar.gz
+#
+#  cd "${TEST_DIR}"
+#  python3 run_basic_test.py --input ${BASE_DIR}/samples/resourceops/resourceop_basic.tar.gz --result $SAMPLE_RESOURCEOP_TEST_RESULT --output $SAMPLE_RESOURCEOP_TEST_OUTPUT --testname resource --namespace ${NAMESPACE} --params '{"username": "test", "password": "test123"}'
+#
+#  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+#  gsutil cp ${SAMPLE_RESOURCEOP_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_RESOURCEOP_TEST_RESULT}
 
   # VolumeOpSequential
   SAMPLE_VOLUMEOP_TEST_RESULT=junit_SampleVolumeOpOutput.xml
