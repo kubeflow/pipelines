@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workflow-controller-configmap
+data:
+  config: |
+    {
+    executorImage: argoproj/argoexec:v2.2.0,
+    artifactRepository:
+    {
+        s3: {
+            bucket: mlpipeline,
+            keyPrefix: artifacts,
+            endpoint: minio-service.default:9000,
+            insecure: true,
+            accessKeySecret: {
+                name: mlpipeline-minio-artifact,
+                key: accesskey
+            },
+            secretKeySecret: {
+                name: mlpipeline-minio-artifact,
+                key: secretkey
+            }
+        }
+    }
+    }
