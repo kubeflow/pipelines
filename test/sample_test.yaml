@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#TODO: change the yaml file name to component_integration_test after committing to test-infra
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
@@ -26,8 +25,6 @@ spec:
   arguments:
     parameters:
     - name: image-build-context-gcs-uri
-    - name: commit-sha
-    - name: component-image-prefix
     - name: target-image-prefix
     - name: test-results-gcs-dir
     - name: sample-tests-image-suffix
@@ -38,8 +35,6 @@ spec:
   - name: sample-test
     inputs:
       parameters:
-      - name: commit-sha
-      - name: component-image-prefix
       - name: target-image-prefix
       - name: test-results-gcs-dir
       - name: sample-tests-image-suffix
@@ -55,7 +50,7 @@ spec:
             value: test/sample-test/Dockerfile
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-    - - name: run-tfx-tests
+    - - name: run-tf-training-tests
         template: run-sample-tests
         arguments:
           parameters:
@@ -63,34 +58,20 @@ spec:
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: target-image-prefix
             value: "{{inputs.parameters.target-image-prefix}}"
-          - name: dataflow-tft-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tft:{{inputs.parameters.commit-sha}}"
-          - name: dataflow-predict-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tf-predict:{{inputs.parameters.commit-sha}}"
-          - name: dataflow-tfma-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tfma:{{inputs.parameters.commit-sha}}"
-          - name: dataflow-tfdv-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tfdv:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-create-cluster-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-create-cluster:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-delete-cluster-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-delete-cluster:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-analyze-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-analyze:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-transform-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-transform:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-train-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-train:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-predict-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-predict:{{inputs.parameters.commit-sha}}"
-          - name: kubeflow-dnntrainer-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-kubeflow-tf-trainer:{{inputs.parameters.commit-sha}}"
-          - name: kubeflow-deployer-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-kubeflow-deployer:{{inputs.parameters.commit-sha}}"
-          - name: local-confusionmatrix-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-confusion-matrix:{{inputs.parameters.commit-sha}}"
-          - name: local-roc-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-roc:{{inputs.parameters.commit-sha}}"
+          - name: sample-tests-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: namespace
+            value: "{{inputs.parameters.namespace}}"
+          - name: test-name
+            value: "tf-training"
+      - name: run-tfx-tests
+        template: run-sample-tests
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: target-image-prefix
+            value: "{{inputs.parameters.target-image-prefix}}"
           - name: sample-tests-image
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
           - name: namespace
@@ -105,40 +86,54 @@ spec:
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: target-image-prefix
             value: "{{inputs.parameters.target-image-prefix}}"
-          - name: dataflow-tft-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tft:{{inputs.parameters.commit-sha}}"
-          - name: dataflow-predict-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tf-predict:{{inputs.parameters.commit-sha}}"
-          - name: dataflow-tfma-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tfma:{{inputs.parameters.commit-sha}}"
-          - name: dataflow-tfdv-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tfdv:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-create-cluster-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-create-cluster:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-delete-cluster-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-delete-cluster:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-analyze-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-analyze:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-transform-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-transform:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-train-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-train:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-predict-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-predict:{{inputs.parameters.commit-sha}}"
-          - name: kubeflow-dnntrainer-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-kubeflow-tf-trainer:{{inputs.parameters.commit-sha}}"
-          - name: kubeflow-deployer-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-kubeflow-deployer:{{inputs.parameters.commit-sha}}"
-          - name: local-confusionmatrix-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-confusion-matrix:{{inputs.parameters.commit-sha}}"
-          - name: local-roc-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-roc:{{inputs.parameters.commit-sha}}"
           - name: sample-tests-image
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
             value: "xgboost"
+      - name: run-notebook-tfx-tests
+        template: run-sample-tests
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: target-image-prefix
+            value: "{{inputs.parameters.target-image-prefix}}"
+          - name: sample-tests-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: namespace
+            value: "{{inputs.parameters.namespace}}"
+          - name: test-name
+            value: "notebook-tfx"
+      - name: run-notebook-lightweight-tests
+        template: run-sample-tests
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: target-image-prefix
+            value: "{{inputs.parameters.target-image-prefix}}"
+          - name: sample-tests-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: namespace
+            value: "{{inputs.parameters.namespace}}"
+          - name: test-name
+            value: "notebook-lightweight"
+      - name: run-notebook-typecheck-tests
+        template: run-sample-tests
+        arguments:
+          parameters:
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
+          - name: target-image-prefix
+            value: "{{inputs.parameters.target-image-prefix}}"
+          - name: sample-tests-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: namespace
+            value: "{{inputs.parameters.namespace}}"
+          - name: test-name
+            value: "notebook-typecheck"
 
   # Build and push image
   - name: build-image-by-dockerfile
@@ -187,20 +182,6 @@ spec:
       parameters:
       - name: test-results-gcs-dir
       - name: target-image-prefix
-      - name: dataflow-tft-image
-      - name: dataflow-predict-image
-      - name: dataflow-tfma-image
-      - name: dataflow-tfdv-image
-      - name: dataproc-create-cluster-image
-      - name: dataproc-delete-cluster-image
-      - name: dataproc-analyze-image
-      - name: dataproc-transform-image
-      - name: dataproc-train-image
-      - name: dataproc-predict-image
-      - name: kubeflow-dnntrainer-image
-      - name: kubeflow-deployer-image
-      - name: local-confusionmatrix-image
-      - name: local-roc-image
       - name: sample-tests-image
       - name: namespace
       - name: test-name
@@ -209,20 +190,6 @@ spec:
       args: [
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}",
-        "--dataflow-tft-image","{{inputs.parameters.dataflow-tft-image}}",
-        "--dataflow-predict-image","{{inputs.parameters.dataflow-predict-image}}",
-        "--dataflow-tfma-image","{{inputs.parameters.dataflow-tfma-image}}",
-        "--dataflow-tfdv-image","{{inputs.parameters.dataflow-tfdv-image}}",
-        "--dataproc-create-cluster-image","{{inputs.parameters.dataproc-create-cluster-image}}",
-        "--dataproc-delete-cluster-image","{{inputs.parameters.dataproc-delete-cluster-image}}",
-        "--dataproc-analyze-image","{{inputs.parameters.dataproc-analyze-image}}",
-        "--dataproc-transform-image","{{inputs.parameters.dataproc-transform-image}}",
-        "--dataproc-train-image","{{inputs.parameters.dataproc-train-image}}",
-        "--dataproc-predict-image","{{inputs.parameters.dataproc-predict-image}}",
-        "--kubeflow-dnntrainer-image","{{inputs.parameters.kubeflow-dnntrainer-image}}",
-        "--kubeflow-deployer-image","{{inputs.parameters.kubeflow-deployer-image}}",
-        "--local-confusionmatrix-image", "{{inputs.parameters.local-confusionmatrix-image}}",
-        "--local-roc-image", "{{inputs.parameters.local-roc-image}}",
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
