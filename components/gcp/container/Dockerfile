@@ -15,7 +15,7 @@
 FROM python:2.7-slim-jessie
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-		wget \
+		wget patch \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN pip2 install apache-beam[gcp]==2.10.0
@@ -26,5 +26,7 @@ RUN pip install .
 
 RUN mkdir /usr/licenses && \
     /ml/license.sh /ml/third_party_licenses.csv /usr/licenses
+
+RUN patch /usr/local/lib/python2.7/site-packages/googleapiclient/http.py < /ml/patches/http.patch
 
 ENTRYPOINT ["python", "-u", "-m", "kfp_component.launcher"]

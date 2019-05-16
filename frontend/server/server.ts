@@ -29,20 +29,44 @@ import { Stream } from 'stream';
 
 const BASEPATH = '/pipeline';
 
-// The minio endpoint, port, access and secret keys are hardcoded to the same
-// values used in the deployment.
+/** All configurable environment variables can be found here. */
+const {
+  /** minio client use these to retrieve minio objects/artifacts */
+  MINIO_ACCESS_KEY = 'minio',
+  MINIO_SECRET_KEY = 'minio123',
+  MINIO_PORT = '9000',
+  MINIO_HOST = 'minio-service',
+  MINIO_NAMESPACE = 'kubeflow',
+  MINIO_SSL = 'false',
+  /** minio client use these to retrieve s3 objects/artifacts */
+  AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY,
+  /** API service will listen to this host */
+  ML_PIPELINE_SERVICE_HOST = 'localhost',
+  /** API service will listen to this port */
+  ML_PIPELINE_SERVICE_PORT = '3001'
+} = process.env
+
+/** construct minio endpoint from host and namespace (optional) */
+const MINIO_ENDPOINT = MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0 ? `${MINIO_HOST}.${MINIO_NAMESPACE}` : MINIO_HOST
+
+/** converts string to bool */
+const _as_bool = (value: string) => ['true', '1'].indexOf(value.toLowerCase()) >= 0
+
+/** minio client for minio storage */
 const minioClient = new MinioClient({
-  accessKey: 'minio',
-  endPoint: 'minio-service.kubeflow',
-  port: 9000,
-  secretKey: 'minio123',
-  useSSL: false,
+  accessKey: MINIO_ACCESS_KEY,
+  endPoint: MINIO_ENDPOINT,
+  port: parseInt(MINIO_PORT, 10),
+  secretKey: MINIO_SECRET_KEY,
+  useSSL: _as_bool(MINIO_SSL),
 } as any);
 
+/** minio client for s3 objects */
 const s3Client = new MinioClient({
   endPoint: 's3.amazonaws.com',
-  accessKey: process.env.AWS_ACCESS_KEY_ID,
-  secretKey: process.env.AWS_SECRET_ACCESS_KEY,
+  accessKey: AWS_ACCESS_KEY_ID,
+  secretKey: AWS_SECRET_ACCESS_KEY,
 } as any);
 
 const app = express() as Application;
@@ -71,9 +95,7 @@ const buildDate =
 const commitHash =
   fs.existsSync(commitHashPath) ? fs.readFileSync(commitHashPath, 'utf-8').trim() : '';
 const port = process.argv[3] || 3000;
-const apiServerHost = process.env.ML_PIPELINE_SERVICE_HOST || 'localhost';
-const apiServerPort = process.env.ML_PIPELINE_SERVICE_PORT || '3001';
-const apiServerAddress = `http://${apiServerHost}:${apiServerPort}`;
+const apiServerAddress = `http://${ML_PIPELINE_SERVICE_HOST}:${ML_PIPELINE_SERVICE_PORT}`;
 
 const v1beta1Prefix = 'apis/v1beta1';
 

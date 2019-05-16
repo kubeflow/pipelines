@@ -81,9 +81,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    a = a_op(field_l=12)
+    b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
   def test_type_check_with_different_represenation(self):
     """Test type check at the decorator."""
@@ -123,9 +122,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    a = a_op(field_l=12)
+    b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
   def test_type_check_with_inconsistent_types_property_value(self):
     """Test type check at the decorator."""
@@ -166,7 +164,6 @@ class TestPythonComponent(unittest.TestCase):
       )
 
     with self.assertRaises(InconsistentTypeException):
-      with Pipeline('pipeline') as p:
         a = a_op(field_l=12)
         b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
@@ -209,7 +206,6 @@ class TestPythonComponent(unittest.TestCase):
       )
 
     with self.assertRaises(InconsistentTypeException):
-      with Pipeline('pipeline') as p:
         a = a_op(field_l=12)
         b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
@@ -251,9 +247,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    a = a_op(field_l=12)
+    b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
   def test_type_check_nonnamed_inputs(self):
     """Test type check at the decorator."""
@@ -293,9 +288,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(a.outputs['field_n'], field_z=a.outputs['field_m'], field_y=a.outputs['field_o'])
+    a = a_op(field_l=12)
+    b = b_op(a.outputs['field_n'], field_z=a.outputs['field_m'], field_y=a.outputs['field_o'])
 
   def test_type_check_with_inconsistent_types_disabled(self):
     """Test type check at the decorator."""
@@ -335,9 +329,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    a = a_op(field_l=12)
+    b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
   def test_type_check_with_openapi_schema(self):
     """Test type check at the decorator."""
@@ -377,9 +370,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    a = a_op(field_l=12)
+    b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
   def test_type_check_with_ignore_type(self):
     """Test type check at the decorator."""
@@ -419,11 +411,10 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      with self.assertRaises(InconsistentTypeException):
-        b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
-      b = b_op(field_x=a.outputs['field_n'].ignore_type(), field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    a = a_op(field_l=12)
+    with self.assertRaises(InconsistentTypeException):
+      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    b = b_op(field_x=a.outputs['field_n'].ignore_type(), field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
 class TestGraphComponent(unittest.TestCase):
 

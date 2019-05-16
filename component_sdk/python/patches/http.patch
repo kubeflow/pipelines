@@ -1,0 +1,8 @@
+--- http.py	2019-05-03 15:07:52.591411824 -0700
++++ http_new.py	2019-05-03 15:09:23.470304022 -0700
+@@ -1784,4 +1784,4 @@
+     http_timeout = socket.getdefaulttimeout()
+   else:
+     http_timeout = DEFAULT_HTTP_TIMEOUT_SEC
+-  return httplib2.Http(timeout=http_timeout)
++  return set_user_agent(httplib2.Http(timeout=http_timeout), '-kfpipeline-')

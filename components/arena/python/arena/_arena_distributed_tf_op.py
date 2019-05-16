@@ -26,10 +26,10 @@ def estimator_op(name, image, command,
                       gpus, rdma, 
                       tensorboard, 
                       worker_port, annotations=[],
-                      evaluator=False, evaluator_cpu_limit=0, evaluator_memory_limit=0, 
+                      evaluator=False, evaluator_cpu_limit='0', evaluator_memory_limit='0', 
                       env=[], data=[], sync_source=None,
                       metrics=['Train-accuracy:PERCENTAGE'],
-                      arena_image='cheyang/arena_launcher:v0.6',
+                      arena_image='cheyang/arena_launcher:v0.7',
                       timeout_hours=240):
 
     """This function submits Distributed TFJob in Estimator mode.
@@ -62,7 +62,7 @@ def parameter_servers_op(name, image, command, env, data, sync_source, annotatio
                       tensorboard, 
                       worker_port, ps_port, 
                       metrics=['Train-accuracy:PERCENTAGE'],
-                      arena_image='cheyang/arena_launcher:v0.6',
+                      arena_image='cheyang/arena_launcher:v0.7',
                       timeout_hours=240):
 
     """This function submits Distributed TFJob in Parameter Servers mode.
@@ -87,17 +87,17 @@ def parameter_servers_op(name, image, command, env, data, sync_source, annotatio
 
 
 def distributed_tf_op(name, image, command, env=[], data=[], sync_source=None,
-                      chief=False, chief_cpu_limit=0, chief_memory_limit=0, 
-                      workers=0, worker_image=None, worker_cpu_limit=0, worker_memory_limit=0,
-                      parameter_servers=0, ps_image=None, ps_cpu_limit=0, ps_memory_limit=0,
-                      evaluator=False, evaluator_cpu_limit=0, evaluator_memory_limit=0, 
+                      chief=False, chief_cpu_limit='0', chief_memory_limit='0', 
+                      workers=0, worker_image=None, worker_cpu_limit='0', worker_memory_limit='0',
+                      parameter_servers=0, ps_image=None, ps_cpu_limit='0', ps_memory_limit='0',
+                      evaluator=False, evaluator_cpu_limit='0', evaluator_memory_limit='0', 
                       gpus=0, rdma=False, 
                       chief_port=22222,
                       worker_port=22222,
                       ps_port=22224,
                       tensorboard=False, 
                       metrics=['Train-accuracy:PERCENTAGE'],
-                      arena_image='cheyang/arena_launcher:v0.6',
+                      arena_image='cheyang/arena_launcher:v0.7',
                       timeout_hours=240):
           """This function submits Distributed TFJob in Distributed mode.
 
