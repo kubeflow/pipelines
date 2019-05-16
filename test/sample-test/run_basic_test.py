@@ -18,6 +18,7 @@ import os
 from datetime import datetime
 from kfp import Client
 import utils
+import json
 
 ###### Input/Output Instruction ######
 # input: yaml
@@ -49,6 +50,10 @@ def parse_arguments():
                       type=str,
                       default='kubeflow',
                       help="namespace of the deployed pipeline system. Default: kubeflow")
+  parser.add_argument('--params',
+                      type=str,
+                      default='{}',
+                      help="Parameters to pass to the pipeline (as JSON string). Default: {}")
   args = parser.parse_args()
   return args
 
@@ -76,7 +81,7 @@ def main():
 
   ###### Create Job ######
   job_name = args.testname +'_sample'
-  params = {}
+  params = json.loads(args.params)
   response = client.run_pipeline(experiment_id, job_name, args.input, params)
   run_id = response.id
   utils.add_junit_test(test_cases, 'create pipeline run', True)

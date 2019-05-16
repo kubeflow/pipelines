@@ -25,7 +25,7 @@ def volumeop_sequential():
         name="mypvc",
         resource_name="newpvc",
         size="10Gi",
-        modes=dsl.VOLUME_MODE_RWM
+        modes=dsl.VOLUME_MODE_RWO
     )
 
     step1 = dsl.ContainerOp(
