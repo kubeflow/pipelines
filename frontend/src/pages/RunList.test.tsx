@@ -400,27 +400,6 @@ describe('RunList', () => {
     expect(getShallowInstance()._metricCustomRenderer({ value: { metric: {} }, id: 'run-id' })).toMatchSnapshot();
   });
 
-  it('renders a empty metric container when a metric has value of zero', () => {
-    expect(getShallowInstance()._metricCustomRenderer({ value: { metric: { number_value: 0 } }, id: 'run-id' })).toMatchSnapshot();
-  });
-
-  it('renders a metric container when a percentage metric has value of zero', () => {
-    expect(getShallowInstance()._metricCustomRenderer({
-      id: 'run-id',
-      value: { metric: { number_value: 0, format: RunMetricFormat.PERCENTAGE } },
-    })).toMatchSnapshot();
-  });
-
-  it('renders a metric container when a raw metric has value of zero', () => {
-    expect(getShallowInstance()._metricCustomRenderer({
-      id: 'run-id',
-      value: {
-        metadata: { maxValue: 10, minValue: 0 } as any,
-        metric: { number_value: 0, format: RunMetricFormat.RAW },
-      },
-    })).toMatchSnapshot();
-  });
-
   it('renders percentage metric', () => {
     expect(getShallowInstance()._metricCustomRenderer({
       id: 'run-id',
@@ -436,40 +415,6 @@ describe('RunList', () => {
         metric: { number_value: 55 } as ApiRunMetric,
       },
     })).toMatchSnapshot();
-  });
-
-  it('renders raw metric with zero max/min values', () => {
-    expect(getShallowInstance()._metricCustomRenderer({
-      id: 'run-id',
-      value: {
-        metadata: { count: 1, maxValue: 0, minValue: 0 } as MetricMetadata,
-        metric: { number_value: 15 } as ApiRunMetric,
-      },
-    })).toMatchSnapshot();
-  });
-
-  it('renders raw metric that is less than its min value, logs error to console', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    expect(getShallowInstance()._metricCustomRenderer({
-      id: 'run-id',
-      value: {
-        metadata: { count: 1, maxValue: 100, minValue: 10 } as MetricMetadata,
-        metric: { number_value: 5 } as ApiRunMetric,
-      },
-    })).toMatchSnapshot();
-    expect(consoleSpy).toHaveBeenCalled();
-  });
-
-  it('renders raw metric that is greater than its max value, logs error to console', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-    expect(getShallowInstance()._metricCustomRenderer({
-      id: 'run-id',
-      value: {
-        metadata: { count: 1, maxValue: 100, minValue: 10 } as MetricMetadata,
-        metric: { number_value: 105 } as ApiRunMetric,
-      },
-    })).toMatchSnapshot();
-    expect(consoleSpy).toHaveBeenCalled();
   });
 
 });
