@@ -79,6 +79,14 @@ describe('UploadPipelineDialog', () => {
     expect(spy).toHaveBeenLastCalledWith(true, 'test name', null, '', ImportMethod.LOCAL, '');
   });
 
+  it('trims file extension for pipeline name suggestion', () => {
+    tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
+    const file = { name: 'test_upload_file.tar.gz' };
+    tree.find('#dropZone').simulate('drop', [file]);
+    expect(tree.state()).toHaveProperty('dropzoneActive', false);
+    expect(tree.state()).toHaveProperty('uploadPipelineName', 'test_upload_file');
+  });
+
   it('sets the import method based on which radio button is toggled', () => {
     tree = shallow(<UploadPipelineDialog open={false} onClose={jest.fn()} />);
     // Import method is LOCAL by default
