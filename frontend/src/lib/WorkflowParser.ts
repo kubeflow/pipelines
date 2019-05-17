@@ -151,9 +151,9 @@ export default class WorkflowParser {
   // Makes sure the workflow object contains the node and returns its
   // inputs/outputs if any, while looking out for any missing link in the chain to
   // the node's inputs/outputs.
-  public static getNodeInputOutputParams(workflow: Workflow, nodeId: string): [string[][], string[][]] {
+  public static getNodeInputOutputParams(workflow?: Workflow, nodeId?: string): [string[][], string[][]] {
     type paramList = string[][];
-    if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
+    if (!nodeId || !workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
       return [[], []];
     }
 

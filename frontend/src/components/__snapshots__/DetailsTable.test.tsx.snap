@@ -1,45 +1,85 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`DetailsTable shows a row with a title 1`] = `
-Array [
+<Fragment>
   <div
     className="header"
   >
     some title
-  </div>,
-  <div
-    className="root"
-  >
+  </div>
+  <div>
     <div
       className="row"
+      key="0"
     >
       <span
         className="key"
       >
         key
       </span>
-      <span>
+      <span
+        className="valueText"
+      >
         value
       </span>
     </div>
-  </div>,
-]
+  </div>
+</Fragment>
+`;
+
+exports[`DetailsTable shows key and JSON value in row 1`] = `
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
+    >
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <UnControlled
+        className="valueJson"
+        editorDidMount={[Function]}
+        options={
+          Object {
+            "gutters": Array [
+              "codeMirrorGutter",
+            ],
+            "lineWrapping": true,
+            "mode": "application/json",
+            "readOnly": true,
+            "theme": "default",
+          }
+        }
+        value="[
+  {
+    \\"jsonKey\\": \\"jsonValue\\"
+  }
+]"
+      />
+    </div>
+  </div>
+</Fragment>
 `;
 
 exports[`DetailsTable shows key and value for large values 1`] = `
-<div
-  className="root"
->
-  <div
-    className="row"
-  >
-    <span
-      className="key"
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
     >
-      key
-    </span>
-    <span>
-      Lorem Ipsum is simply dummy text of the printing and typesetting
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <span
+        className="valueText"
+      >
+        Lorem Ipsum is simply dummy text of the printing and typesetting
       industry. Lorem Ipsum has been the industry's standard dummy text ever
       since the 1500s, when an unknown printer took a galley of type and
       scrambled it to make a type specimen book. It has survived not only five
@@ -48,142 +88,200 @@ exports[`DetailsTable shows key and value for large values 1`] = `
       of Letraset sheets containing Lorem Ipsum passages, and more recently
       with desktop publishing software like Aldus PageMaker including versions
       of Lorem Ipsum.
-    </span>
+      </span>
+    </div>
   </div>
-</div>
+</Fragment>
 `;
 
 exports[`DetailsTable shows key and value in row 1`] = `
-<div
-  className="root"
->
-  <div
-    className="row"
-  >
-    <span
-      className="key"
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
     >
-      key
-    </span>
-    <span>
-      value
-    </span>
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <span
+        className="valueText"
+      >
+        value
+      </span>
+    </div>
   </div>
-</div>
+</Fragment>
 `;
 
-exports[`DetailsTable shows keys and values in a bunch of rows 1`] = `
-<div
-  className="root"
->
-  <div
-    className="row"
-  >
-    <span
-      className="key"
+exports[`DetailsTable shows keys and values for multiple rows 1`] = `
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
     >
-      key1
-    </span>
-    <span>
-      value1
-    </span>
-  </div>
-  <div
-    className="row"
-  >
-    <span
-      className="key"
+      <span
+        className="key"
+      >
+        key1
+      </span>
+      <span
+        className="valueText"
+      >
+        value1
+      </span>
+    </div>
+    <div
+      className="row"
+      key="1"
     >
-      key2
-    </span>
-    <span>
-      value2
-    </span>
-  </div>
-  <div
-    className="row"
-  >
-    <span
-      className="key"
+      <span
+        className="key"
+      >
+        key2
+      </span>
+      <UnControlled
+        className="valueJson"
+        editorDidMount={[Function]}
+        options={
+          Object {
+            "gutters": Array [
+              "codeMirrorGutter",
+            ],
+            "lineWrapping": true,
+            "mode": "application/json",
+            "readOnly": true,
+            "theme": "default",
+          }
+        }
+        value="[
+  {
+    \\"jsonKey\\": \\"jsonValue2\\"
+  }
+]"
+      />
+    </div>
+    <div
+      className="row"
+      key="2"
     >
-      key3
-    </span>
-    <span>
-      value3
-    </span>
-  </div>
-  <div
-    className="row"
-  >
-    <span
-      className="key"
+      <span
+        className="key"
+      >
+        key3
+      </span>
+      <span
+        className="valueText"
+      >
+        value3
+      </span>
+    </div>
+    <div
+      className="row"
+      key="3"
     >
-      key4
-    </span>
-    <span>
-      value4
-    </span>
-  </div>
-  <div
-    className="row"
-  >
-    <span
-      className="key"
+      <span
+        className="key"
+      >
+        key4
+      </span>
+      <span
+        className="valueText"
+      >
+        value4
+      </span>
+    </div>
+    <div
+      className="row"
+      key="4"
     >
-      key5
-    </span>
-    <span>
-      value5
-    </span>
-  </div>
-  <div
-    className="row"
-  >
-    <span
-      className="key"
+      <span
+        className="key"
+      >
+        key5
+      </span>
+      <UnControlled
+        className="valueJson"
+        editorDidMount={[Function]}
+        options={
+          Object {
+            "gutters": Array [
+              "codeMirrorGutter",
+            ],
+            "lineWrapping": true,
+            "mode": "application/json",
+            "readOnly": true,
+            "theme": "default",
+          }
+        }
+        value="{
+  \\"jsonKey\\": {
+    \\"nestedJsonKey\\": \\"jsonValue\\"
+  }
+}"
+      />
+    </div>
+    <div
+      className="row"
+      key="5"
     >
-      key6
-    </span>
-    <span>
-      value6
-    </span>
-  </div>
-  <div
-    className="row"
-  >
-    <span
-      className="key"
+      <span
+        className="key"
+      >
+        key6
+      </span>
+      <span
+        className="valueText"
+      >
+        value6
+      </span>
+    </div>
+    <div
+      className="row"
+      key="6"
     >
-      key6
-    </span>
-    <span>
-      value7
-    </span>
+      <span
+        className="key"
+      >
+        key6
+      </span>
+      <span
+        className="valueText"
+      >
+        value7
+      </span>
+    </div>
   </div>
-</div>
+</Fragment>
 `;
 
 exports[`DetailsTable shows no rows 1`] = `
-<div
-  className="root"
-/>
+<Fragment>
+  <div />
+</Fragment>
 `;
 
 exports[`DetailsTable shows one row 1`] = `
-<div
-  className="root"
->
-  <div
-    className="row"
-  >
-    <span
-      className="key"
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
     >
-      key
-    </span>
-    <span>
-      value
-    </span>
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <span
+        className="valueText"
+      >
+        value
+      </span>
+    </div>
   </div>
-</div>
+</Fragment>
 `;
