@@ -17,26 +17,26 @@
 import * as React from 'react';
 
 import DetailsTable from './DetailsTable';
-import { create } from 'react-test-renderer';
+import { shallow } from 'enzyme';
 
 describe('DetailsTable', () => {
   it('shows no rows', () => {
-    const tree = create(<DetailsTable fields={[]} />);
+    const tree = shallow(<DetailsTable fields={[]} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('shows one row', () => {
-    const tree = create(<DetailsTable fields={[['key', 'value']]} />);
+    const tree = shallow(<DetailsTable fields={[['key', 'value']]} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('shows a row with a title', () => {
-    const tree = create(<DetailsTable title='some title' fields={[['key', 'value']]} />);
+    const tree = shallow(<DetailsTable title='some title' fields={[['key', 'value']]} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('shows key and value for large values', () => {
-    const tree = create(<DetailsTable fields={[
+    const tree = shallow(<DetailsTable fields={[
       ['key', `Lorem Ipsum is simply dummy text of the printing and typesetting
       industry. Lorem Ipsum has been the industry's standard dummy text ever
       since the 1500s, when an unknown printer took a galley of type and
@@ -46,25 +46,31 @@ describe('DetailsTable', () => {
       of Letraset sheets containing Lorem Ipsum passages, and more recently
       with desktop publishing software like Aldus PageMaker including versions
       of Lorem Ipsum.`]
-    ]} />).toJSON();
+    ]} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('shows key and value in row', () => {
-    const tree = create(<DetailsTable fields={[['key', 'value']]} />).toJSON();
+    const tree = shallow(<DetailsTable fields={[['key', 'value']]} />);
     expect(tree).toMatchSnapshot();
   });
 
-  it('shows keys and values in a bunch of rows', () => {
-    const tree = create(<DetailsTable fields={[
-      ['key1', 'value1'],
-      ['key2', 'value2'],
-      ['key3', 'value3'],
-      ['key4', 'value4'],
-      ['key5', 'value5'],
-      ['key6', 'value6'],
-      ['key6', 'value7'],
-    ]} />).toJSON();
+  it('shows key and JSON value in row', () => {
+    const tree = shallow(<DetailsTable fields={[['key', JSON.stringify([{ jsonKey: 'jsonValue' }])]]} />);
     expect(tree).toMatchSnapshot();
   });
+
+  it('shows keys and values for multiple rows', () => {
+    const tree = shallow(<DetailsTable fields={[
+      ['key1', 'value1'],
+      ['key2', JSON.stringify([{ jsonKey: 'jsonValue2' }])],
+      ['key3', 'value3'],
+      ['key4', 'value4'],
+      ['key5', JSON.stringify({ jsonKey: { nestedJsonKey: 'jsonValue' } })],
+      ['key6', 'value6'],
+      ['key6', 'value7'],
+    ]} />);
+    expect(tree).toMatchSnapshot();
+  });
+
 });
