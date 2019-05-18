@@ -727,7 +727,7 @@ describe('WorkflowParser', () => {
       });
     });
 
-    it('handles HTTP URL without path', () => {
+    it('handles HTTPS URL without path', () => {
       expect(WorkflowParser.parseStoragePath('https://host:port')).toEqual({
         bucket: 'host:port',
         key: '',
@@ -735,7 +735,7 @@ describe('WorkflowParser', () => {
       });
     });
 
-    it('handles HTTP URL with path', () => {
+    it('handles HTTPS URL with path', () => {
       expect(WorkflowParser.parseStoragePath('https://host:port/path/foo/bar')).toEqual({
         bucket: 'host:port',
         key: 'path/foo/bar',
