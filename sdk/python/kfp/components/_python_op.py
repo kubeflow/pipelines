@@ -130,21 +130,36 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
     #TODO: Add support for copying the NamedTuple subclass declaration code
     #Adding NamedTuple import if needed
     func_type_declarations_code = ""
-    if hasattr(return_ann, '_fields'): #NamedTuple
-        func_type_declarations_code = func_type_declarations_code + '\n' + 'from typing import NamedTuple'
 
-    #Source code can include decorators line @python_op. Remove them
-    (func_code_lines, _) = inspect.getsourcelines(func) 
-    while func_code_lines[0].lstrip().startswith('@'): #decorator
-        del func_code_lines[0]
-        
-    #Function might be defined in some indented scope (e.g. in another function).
-    #We need to handle this and properly dedent the function source code
-    first_line = func_code_lines[0]
-    indent = len(first_line) - len(first_line.lstrip())
-    func_code_lines = [line[indent:] for line in func_code_lines]
-    
-    func_code = ''.join(func_code_lines) #Lines retain their \n endings
+    if False:
+        if hasattr(return_ann, '_fields'): #NamedTuple
+            func_type_declarations_code = func_type_declarations_code + '\n' + 'from typing import NamedTuple'
+
+        #Source code can include decorators line @python_op. Remove them
+        (func_code_lines, _) = inspect.getsourcelines(func) 
+        while func_code_lines[0].lstrip().startswith('@'): #decorator
+            del func_code_lines[0]
+
+        #Function might be defined in some indented scope (e.g. in another function).
+        #We need to handle this and properly dedent the function source code
+        first_line = func_code_lines[0]
+        indent = len(first_line) - len(first_line.lstrip())
+        func_code_lines = [line[indent:] for line in func_code_lines]
+
+        func_code = ''.join(func_code_lines) #Lines retain their \n endings
+
+    else:
+        import cloudpickle
+        import pickle
+        # Hack to force cloudpickle to capture the whole function instead of just referencing the code file. See https://github.com/cloudpipe/cloudpickle/blob/74d69d759185edaeeac7bdcb7015cfc0c652f204/cloudpickle/cloudpickle.py#L490
+        try: # Try is needed to restore the state if something goes wrong
+            old_module = func.__module__
+            func.__module__ = '__main__'
+            func_pickle = cloudpickle.dumps(func, pickle.DEFAULT_PROTOCOL)
+        finally:
+            func.__module__ = old_module
+        func_code = '{func_name} = pickle.loads({func_pickle})'.format(func_name=func_name, func_pickle=repr(func_pickle))
+        func_type_declarations_code = 'import pickle'
 
     extra_output_external_names = [name + '_file' for name in extra_output_names]
 

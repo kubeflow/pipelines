@@ -95,6 +95,24 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
+    def test_func_to_container_op_call_other_func(self):
+        extra_variable = 10
+
+        class ExtraClass:
+            def class_method(self, x):
+                return x * extra_variable
+
+        def extra_func(a: float) -> float:
+            return a * 5
+
+        def main_func(a: float, b: float) -> float:
+            return ExtraClass().class_method(a) + extra_func(b)
+
+        func = main_func
+        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
     def test_func_to_container_op_multiple_named_typed_outputs(self):
         from typing import NamedTuple
         def add_multiply_two_numbers(a: float, b: float) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
