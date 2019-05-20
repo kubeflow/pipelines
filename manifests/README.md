@@ -1,6 +1,7 @@
 
 This folder contains Kubeflow Pipelines Kustomize manifests for a light weight deployment. You can follow the instruction and deploy Kubeflow Pipelines in an existing cluster.
 
+
 # TL;DR
 
 If you want to skip any customization, you can deploy Kubeflow Pipelines by running
@@ -23,6 +24,9 @@ and open http://localhost:8080/
 
 # Customization
 Customization can be done through Kustomize [Overlay](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/glossary.md#overlay). You don't need to modify the base directory. 
+
+Note - The instruction below assume you installed kubectl v1.14.0 or later, which has native support of kustomize.
+To get latest kubectl, visit [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 ## Change deploy namespace
 To deploy Kubeflow Pipelines in namespace FOO

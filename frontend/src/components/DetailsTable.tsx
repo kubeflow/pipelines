@@ -14,23 +14,33 @@
  * limitations under the License.
  */
 
+import 'codemirror/lib/codemirror.css';
+import 'codemirror/mode/javascript/javascript.js';
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color, spacing, commonCss } from '../Css';
+import { UnControlled as CodeMirror } from 'react-codemirror2';
 
 export const css = stylesheet({
+  codeMirrorGutter: {
+    width: 6,
+  },
   key: {
     color: color.strong,
     flex: '0 0 50%',
     fontWeight: 'bold',
-  },
-  root: {
-    maxWidth: 700,
+    maxWidth: 300,
   },
   row: {
     borderBottom: `1px solid ${color.divider}`,
     display: 'flex',
     padding: `${spacing.units(-5)}px ${spacing.units(-6)}px`,
+  },
+  valueJson: {
+    flexGrow: 1,
+  },
+  valueText: {
+    maxWidth: 400,
   },
 });
 
@@ -42,13 +52,37 @@ interface DetailsTableProps {
 export default (props: DetailsTableProps) => {
   return (<React.Fragment>
     {!!props.title && <div className={commonCss.header}>{props.title}</div>}
-    <div className={css.root}>
-      {props.fields.map((f, i) => (
-        <div key={i} className={css.row}>
-          <span className={css.key}>{f[0]}</span>
-          <span>{f[1]}</span>
-        </div>
-      ))}
+    <div>
+      {props.fields.map((f, i) => {
+        try{
+          const parsedJson = JSON.parse(f[1]);
+          return (
+            <div key={i} className={css.row}>
+              <span className={css.key}>{f[0]}</span>
+              <CodeMirror
+                  className={css.valueJson}
+                  value={JSON.stringify(parsedJson, null, 2) || ''}
+                  editorDidMount={(editor) => editor.refresh()}
+                  options={{
+                    gutters: [css.codeMirrorGutter],
+                    lineWrapping: true,
+                    mode: 'application/json',
+                    readOnly: true,
+                    theme: 'default',
+                  }}
+                />
+            </div>
+          );
+        } catch (err) {
+          // If the value isn't JSON, just display it as is
+          return (
+            <div key={i} className={css.row}>
+              <span className={css.key}>{f[0]}</span>
+              <span className={css.valueText}>{f[1]}</span>
+            </div>
+          );
+        }
+      })}
     </div>
   </React.Fragment>
   );

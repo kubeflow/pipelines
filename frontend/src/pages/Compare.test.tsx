@@ -293,6 +293,51 @@ describe('Compare', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('displays a run\'s metrics if the run has any', async () => {
+    const run = newMockRun('run-with-metrics');
+    run.run!.metrics = [
+      { name: 'some-metric', number_value: 0.33 },
+      { name: 'another-metric', number_value: 0.554 },
+    ];
+    runs.push(run);
+
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.runlist}=run-with-metrics`;
+
+    tree = shallow(<Compare {...props} />);
+    await TestUtils.flushPromises();
+    tree.update();
+
+    expect(tree.state('metricsCompareProps')).toEqual({
+      rows: [['0.330'], ['0.554']],
+      xLabels: ['test run run-with-metrics'],
+      yLabels: ['some-metric', 'another-metric']
+    });
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('displays metrics from multiple runs', async () => {
+    const run1 = newMockRun('run1');
+    run1.run!.metrics = [
+      { name: 'some-metric', number_value: 0.33 },
+      { name: 'another-metric', number_value: 0.554 },
+    ];
+    const run2 = newMockRun('run2');
+    run2.run!.metrics = [
+      { name: 'some-metric', number_value: 0.67 },
+    ];
+    runs.push(run1, run2);
+
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.runlist}=run1,run2`;
+
+    tree = shallow(<Compare {...props} />);
+    await TestUtils.flushPromises();
+    tree.update();
+
+    expect(tree).toMatchSnapshot();
+  });
+
   it('creates a map of viewers', async () => {
     // Simulate returning a tensorboard and table viewer
     outputArtifactLoaderSpy.mockImplementationOnce(() => [
@@ -359,6 +404,7 @@ describe('Compare', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
+      'Metrics': true,
       'Parameters': true,
       'Run overview': true,
       'Table': true,
@@ -381,6 +427,7 @@ describe('Compare', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
+      'Metrics': true,
       'Parameters': true,
       'Run overview': true,
       'Table': true,
