@@ -635,8 +635,8 @@ describe('WorkflowParser', () => {
 
   describe('parseStoragePath', () => {
     it('throws for unsupported protocol', () => {
-      expect(() => WorkflowParser.parseStoragePath('http://path')).toThrowError(
-        'Unsupported storage path: http://path');
+      expect(() => WorkflowParser.parseStoragePath('unsupported://path')).toThrowError(
+        'Unsupported storage path: unsupported://path');
     });
 
     it('handles GCS bucket without key', () => {
@@ -708,6 +708,38 @@ describe('WorkflowParser', () => {
         bucket: 'testbucket',
         key: 'test/key/path',
         source: StorageService.S3,
+      });
+    });
+
+    it('handles HTTP URL without path', () => {
+      expect(WorkflowParser.parseStoragePath('http://host:port')).toEqual({
+        bucket: 'host:port',
+        key: '',
+        source: StorageService.HTTP,
+      });
+    });
+
+    it('handles HTTP URL with path', () => {
+      expect(WorkflowParser.parseStoragePath('http://host:port/path/foo/bar')).toEqual({
+        bucket: 'host:port',
+        key: 'path/foo/bar',
+        source: StorageService.HTTP,
+      });
+    });
+
+    it('handles HTTPS URL without path', () => {
+      expect(WorkflowParser.parseStoragePath('https://host:port')).toEqual({
+        bucket: 'host:port',
+        key: '',
+        source: StorageService.HTTPS,
+      });
+    });
+
+    it('handles HTTPS URL with path', () => {
+      expect(WorkflowParser.parseStoragePath('https://host:port/path/foo/bar')).toEqual({
+        bucket: 'host:port',
+        key: 'path/foo/bar',
+        source: StorageService.HTTPS,
       });
     });
   });
