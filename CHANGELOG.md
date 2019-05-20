@@ -3,6 +3,13 @@
 ## [0.1.20](https://github.com/kubeflow/pipelines/tree/0.1.20) (2019-05-14)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.19...0.1.20)
 
+ **Closed issues:**
+
+ - Cannot create job for experiment via Pipelines Go CLI [\#1321](https://github.com/kubeflow/pipelines/issues/1321)
+ - Support a container flow inside one pod [\#1313](https://github.com/kubeflow/pipelines/issues/1313)
+ - toleration support for ContainerOp [\#1265](https://github.com/kubeflow/pipelines/issues/1265)
+ - Can only create recurring run from within experiment page [\#1217](https://github.com/kubeflow/pipelines/issues/1217)
+
 **Merged pull requests:**
 
 - Release c3235d725eb1d1eb06b5600a8291967aa6cf518f [\#1331](https://github.com/kubeflow/pipelines/pull/1331) ([IronPan](https://github.com/IronPan))
