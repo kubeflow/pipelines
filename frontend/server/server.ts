@@ -41,14 +41,20 @@ const {
   /** minio client use these to retrieve s3 objects/artifacts */
   AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY,
+  /** http/https base URL **/
+  HTTP_BASE_URL = '',
+  /** http/https fetch with this authorization header key (for example: 'Authorization') */
+  HTTP_AUTHORIZATION_KEY = '',
+  /** http/https fetch with this authorization header value by default when absent in client request at above key */
+  HTTP_AUTHORIZATION_DEFAULT_VALUE = '',
   /** API service will listen to this host */
   ML_PIPELINE_SERVICE_HOST = 'localhost',
   /** API service will listen to this port */
   ML_PIPELINE_SERVICE_PORT = '3001'
-} = process.env
+} = process.env;
 
 /** construct minio endpoint from host and namespace (optional) */
-const MINIO_ENDPOINT = MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0 ? `${MINIO_HOST}.${MINIO_NAMESPACE}` : MINIO_HOST
+const MINIO_ENDPOINT = MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0 ? `${MINIO_HOST}.${MINIO_NAMESPACE}` : MINIO_HOST;
 
 /** converts string to bool */
 const _as_bool = (value: string) => ['true', '1'].indexOf(value.toLowerCase()) >= 0
@@ -219,6 +225,21 @@ const artifactsHandler = async (req, res) => {
           res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
         }
       });
+      break;
+    case 'http':
+    case 'https':
+      // trim `/` from both ends of the base URL, then append with a single `/` to the end (empty string remains empty)
+      const baseUrl = HTTP_BASE_URL.replace(/^\/*(.+?)\/*$/, '$1/');
+      const headers = {};
+
+      // add authorization header to fetch request if key is non-empty
+      if (HTTP_AUTHORIZATION_KEY.length > 0) {
+        // inject original request's value if exists, otherwise default to provided default value
+        headers[HTTP_AUTHORIZATION_KEY] = req.headers[HTTP_AUTHORIZATION_KEY] || HTTP_AUTHORIZATION_DEFAULT_VALUE;
+      }
+      const response = await fetch(`${source}://${baseUrl}${bucket}/${key}`, { headers: headers });
+      const content = await response.buffer();
+      res.send(content);
       break;
 
     default:
