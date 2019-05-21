@@ -731,7 +731,7 @@ class BaseOp(object):
               .set_memory_limit('2GB')
           )
         """
-        return mod_func(self)
+        return mod_func(self) or self
 
     def after(self, *ops):
         """Specify explicit dependency on other ops."""
