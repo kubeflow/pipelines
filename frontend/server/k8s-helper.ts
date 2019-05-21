@@ -187,7 +187,7 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
     p.metadata.name == 'viewer-' + crypto.SHA1(logdir) &&
     p.spec.tensorboardSpec.logDir == logdir &&
     p.spec.type == 'tensorboard');
-  return pod && pod.metadata.name ? `http://${pod.metadata.name}.kubeflow.svc.cluster.local:6006` : '';
+  return pod ? `http://${pod.metadata.name}-service.kubeflow.svc.cluster.local:6006` : '';
 }
 
 /**
