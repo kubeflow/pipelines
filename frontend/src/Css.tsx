@@ -170,6 +170,13 @@ export const theme = createMuiTheme({
       },
       root: { padding: 0 },
     },
+    MuiInputBase: {
+      root: {
+        fontFamily: fonts.secondary,
+        fontSize: fontsize.base,
+        letterSpacing: 0.17,
+      },
+    },
     MuiTooltip: {
       tooltip: {
         backgroundColor: '#666',
