@@ -13,7 +13,8 @@
 // limitations under the License.
 
 // @ts-ignore
-import { Core_v1Api, Custom_objectsApi, KubeConfig } from '@kubernetes/client-node';
+import {Core_v1Api, Custom_objectsApi, KubeConfig} from '@kubernetes/client-node';
+import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import * as Utils from './utils';
 
@@ -133,8 +134,8 @@ export function getPodLogs(podName: string): Promise<string> {
 }
 
 /**
-* Create Tensorboard pod via CRD with the given logdir if there is no existing 
-* Tensorboard pod.  
+* Create Tensorboard pod via CRD with the given logdir if there is no existing
+* Tensorboard pod.
 */
 export async function newTensorboardInstance(logdir: string): Promise<void> {
   if (!k8sV1CustomObjectClient) {
@@ -146,15 +147,15 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
   }
 
   // TODO: take the configuration below to a separate file
+  // Name of the viewer resource is based on logDir.
   const group = 'kubeflow.org';
   const version = 'v1beta1';
-  const namespace = 'kubeflow';
   const plural = 'viewers';
   const body = {
     apiVersion: group + '/' + version,
     kind: 'Viewer',
     metadata: {
-      generateName: 'viewer-',
+      name: 'viewer-' + crypto.SHA1(logdir),
       namespace: namespace,
     },
     spec: {
@@ -164,13 +165,14 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
       }
     }
   };
-  await k8sV1CustomObjectClient.createNamespacedCustomObject(group, version, namespace, plural, body);
- }
+  await k8sV1CustomObjectClient.createNamespacedCustomObject(group, version,
+    namespace, plural, body);
+}
 
- /**
- * Finds a running Tensorboard pod created via CRD with the give logdir and
- * returns its pod IP and port.
- */
+/**
+* Finds a running Tensorboard pod created via CRD with the give logdir and
+* returns its pod IP and port.
+*/
 export async function getTensorboardInstance(logdir: string): Promise<string> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
@@ -178,16 +180,14 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
 
   const group = 'kubeflow.org';
   const version = 'v1beta1';
-  const namespace = 'kubeflow';
-  const plural = 'viewers';  
-  const pods = (await k8sV1CustomObjectClient.listNamespacedCustomObject(group, 
+  const plural = 'viewers';
+  const pods = (await k8sV1CustomObjectClient.listNamespacedCustomObject(group,
     version, namespace, plural)).body.items;
-  const args = ['tensorboard', '--logdir', logdir];
   const pod = pods.find((p) =>
-    p.status.phase === 'Running' &&
-    !p.metadata.deletionTimestamp && // Terminating/terminated pods have this set
-    !!p.spec.containers.find((c) => Utils.equalArrays(c.args, args)));
-  return pod && pod.status.podIP ? `http://${pod.status.podIP}:6006` : '';
+    p.metadata.name == 'viewer-' + crypto.SHA1(logdir) &&
+    p.spec.tensorboardSpec.logDir == logdir &&
+    p.spec.type == 'tensorboard');
+  return pod && pod.metadata.name ? `http://${pod.metadata.name}.kubeflow.svc.cluster.local:6006` : '';
 }
 
 /**
