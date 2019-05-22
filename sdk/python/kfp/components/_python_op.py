@@ -127,14 +127,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
 
     func_name=func.__name__
 
-    #TODO: Add support for copying the NamedTuple subclass declaration code
-    #Adding NamedTuple import if needed
-    func_type_declarations_code = ""
-
     if False:
-        if hasattr(return_ann, '_fields'): #NamedTuple
-            func_type_declarations_code = func_type_declarations_code + '\n' + 'from typing import NamedTuple'
-
         #Source code can include decorators line @python_op. Remove them
         (func_code_lines, _) = inspect.getsourcelines(func) 
         while func_code_lines[0].lstrip().startswith('@'): #decorator
@@ -145,6 +138,12 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
         first_line = func_code_lines[0]
         indent = len(first_line) - len(first_line.lstrip())
         func_code_lines = [line[indent:] for line in func_code_lines]
+
+        #TODO: Add support for copying the NamedTuple subclass declaration code
+        #Adding NamedTuple import if needed
+        if hasattr(return_ann, '_fields'): #NamedTuple
+            func_code_lines.insert(0, '')
+            func_code_lines.insert(0, 'from typing import NamedTuple')
 
         func_code = ''.join(func_code_lines) #Lines retain their \n endings
 
@@ -159,7 +158,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
         finally:
             func.__module__ = old_module
         func_code = '{func_name} = pickle.loads({func_pickle})'.format(func_name=func_name, func_pickle=repr(func_pickle))
-        func_type_declarations_code = 'import pickle'
+        func_code = 'import pickle' + '\n\n' + func_code
 
     extra_output_external_names = [name + '_file' for name in extra_output_names]
 
@@ -180,8 +179,6 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
     full_source = \
 '''\
 {extra_code}
-
-{func_type_declarations_code}
 
 {func_code}
 
@@ -206,7 +203,6 @@ for idx, filename in enumerate(_output_files):
 '''.format(
         func_name=func_name,
         func_code=func_code,
-        func_type_declarations_code=func_type_declarations_code,
         extra_code=extra_code,
         input_args_parsing_code='\n'.join(input_args_parsing_code_lines),
         output_files_parsing_code='\n'.join(output_files_parsing_code_lines),
