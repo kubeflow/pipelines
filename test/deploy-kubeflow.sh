@@ -56,4 +56,11 @@ ${KUBEFLOW_SRC}/scripts/kfctl.sh apply platform
 ${KUBEFLOW_SRC}/scripts/kfctl.sh generate k8s
 ${KUBEFLOW_SRC}/scripts/kfctl.sh apply k8s
 
+pushd ks_app
+ks param set argo workflowControllerImage argoproj/workflow-controller:v2.3.0
+ks param set argo executorImage argoproj/argoexec:v2.3.0
+ks param set argo uiImage argoproj/argoui:v2.3.0
+ks apply default -c argo
+popd
+
 gcloud container clusters get-credentials ${TEST_CLUSTER}
