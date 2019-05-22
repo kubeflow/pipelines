@@ -54,8 +54,13 @@ export default (props: DetailsTableProps) => {
     {!!props.title && <div className={commonCss.header}>{props.title}</div>}
     <div>
       {props.fields.map((f, i) => {
-        try{
+        try {
           const parsedJson = JSON.parse(f[1]);
+          // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
+          // about rendering those using CodeMirror. Note that `typeOf null` returns 'object'
+          if (parsedJson === null || typeof parsedJson !== 'object') {
+            throw new Error('Parsed JSON was neither an array nor an object. Using default renderer');
+          }
           return (
             <div key={i} className={css.row}>
               <span className={css.key}>{f[0]}</span>
@@ -74,7 +79,7 @@ export default (props: DetailsTableProps) => {
             </div>
           );
         } catch (err) {
-          // If the value isn't JSON, just display it as is
+          // If the value isn't a JSON object, just display it as is
           return (
             <div key={i} className={css.row}>
               <span className={css.key}>{f[0]}</span>

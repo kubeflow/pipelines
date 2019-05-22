@@ -1,5 +1,174 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`DetailsTable does not render booleans as JSON 1`] = `
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
+    >
+      <span
+        className="key"
+      >
+        key1
+      </span>
+      <span
+        className="valueText"
+      >
+        true
+      </span>
+    </div>
+    <div
+      className="row"
+      key="1"
+    >
+      <span
+        className="key"
+      >
+        key2
+      </span>
+      <span
+        className="valueText"
+      >
+        false
+      </span>
+    </div>
+  </div>
+</Fragment>
+`;
+
+exports[`DetailsTable does not render nulls as JSON 1`] = `
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
+    >
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <span
+        className="valueText"
+      >
+        null
+      </span>
+    </div>
+  </div>
+</Fragment>
+`;
+
+exports[`DetailsTable does not render numbers as JSON 1`] = `
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
+    >
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <span
+        className="valueText"
+      >
+        10
+      </span>
+    </div>
+  </div>
+</Fragment>
+`;
+
+exports[`DetailsTable does not render strings as JSON 1`] = `
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
+    >
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <span
+        className="valueText"
+      >
+        "some string"
+      </span>
+    </div>
+  </div>
+</Fragment>
+`;
+
+exports[`DetailsTable does render arrays as JSON 1`] = `
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
+    >
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <UnControlled
+        className="valueJson"
+        editorDidMount={[Function]}
+        options={
+          Object {
+            "gutters": Array [
+              "codeMirrorGutter",
+            ],
+            "lineWrapping": true,
+            "mode": "application/json",
+            "readOnly": true,
+            "theme": "default",
+          }
+        }
+        value="[]"
+      />
+    </div>
+  </div>
+</Fragment>
+`;
+
+exports[`DetailsTable does render arrays as JSON 2`] = `
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
+    >
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <UnControlled
+        className="valueJson"
+        editorDidMount={[Function]}
+        options={
+          Object {
+            "gutters": Array [
+              "codeMirrorGutter",
+            ],
+            "lineWrapping": true,
+            "mode": "application/json",
+            "readOnly": true,
+            "theme": "default",
+          }
+        }
+        value="{}"
+      />
+    </div>
+  </div>
+</Fragment>
+`;
+
 exports[`DetailsTable shows a row with a title 1`] = `
 <Fragment>
   <div
