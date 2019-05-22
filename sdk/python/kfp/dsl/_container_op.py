@@ -731,11 +731,12 @@ class BaseOp(object):
               .set_memory_limit('2GB')
           )
         """
-        return mod_func(self)
+        return mod_func(self) or self
 
-    def after(self, op):
-        """Specify explicit dependency on another op."""
-        self.dependent_names.append(op.name)
+    def after(self, *ops):
+        """Specify explicit dependency on other ops."""
+        for op in ops:
+            self.dependent_names.append(op.name)
         return self
 
     def add_volume(self, volume):
