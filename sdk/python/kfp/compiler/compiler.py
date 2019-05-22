@@ -455,7 +455,12 @@ class Compiler(object):
     return template
 
   def _create_templates(self, pipeline, op_transformers=None):
-    """Create all groups and ops templates in the pipeline."""
+    """Create all groups and ops templates in the pipeline.
+    
+    Args:
+      pipeline: Pipeline context object to get all the pipeline data from.
+      op_transformers: A list of functions that are applied to all ContainerOp instances that are being processed.
+    """
 
     new_root_group = pipeline.groups[0]
 
@@ -572,7 +577,7 @@ class Compiler(object):
 
     return _validate_exit_handler_helper(pipeline.groups[0], [], False)
 
-  def _compile(self, pipeline_func, op_transformers=None):
+  def _compile(self, pipeline_func):
     """Compile the given pipeline function into workflow."""
 
     argspec = inspect.getfullargspec(pipeline_func)
@@ -640,23 +645,22 @@ class Compiler(object):
       sanitized_ops[sanitized_name] = op
     p.ops = sanitized_ops
 
-    workflow = self._create_pipeline_workflow(args_list_with_defaults, p, op_transformers)
+    workflow = self._create_pipeline_workflow(args_list_with_defaults, p, p.conf.op_transformers)
     return workflow
 
-  def compile(self, pipeline_func, package_path, type_check=True, op_transformers=None):
+  def compile(self, pipeline_func, package_path, type_check=True):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
       pipeline_func: pipeline functions with @dsl.pipeline decorator.
       package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
       type_check: whether to enable the type check or not, default: False.
-      op_transformers: A list of functions that are applied to all ContainerOp instances that are being processed.
     """
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
     try:
       kfp.TYPE_CHECK = type_check
-      workflow = self._compile(pipeline_func, op_transformers)
+      workflow = self._compile(pipeline_func)
       yaml.Dumper.ignore_aliases = lambda *args : True
       yaml_text = yaml.dump(workflow, default_flow_style=False)
 
