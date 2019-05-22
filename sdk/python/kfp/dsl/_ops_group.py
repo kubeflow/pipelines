@@ -125,12 +125,9 @@ class Condition(OpsGroup):
   """
 
   def __init__(self, condition):
-    """Create a new instance of ExitHandler.
+    """Create a new instance of Condition.
     Args:
       condition (ConditionOperator): the condition.
-
-    Raises:
-      ValueError is the exit_op is invalid.
     """
     super(Condition, self).__init__('condition')
     self.condition = condition
