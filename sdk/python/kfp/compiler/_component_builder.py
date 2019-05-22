@@ -433,9 +433,11 @@ def _configure_logger(logger):
   """ _configure_logger configures the logger such that the info level logs
   go to the stdout and the error(or above) level logs go to the stderr.
   It is important for the Jupyter notebook log rendering """
-  if logger.hasHandlers():
-    # If the logger has handlers, it has been configured, thus return immediately.
+  if hasattr(_configure_logger, 'configured'):
+    # Skip the logger configuration the second time this function
+    # is called to avoid multiple streamhandlers bound to the logger.
     return
+  setattr(_configure_logger, 'configured', 'true')
   logger.setLevel(logging.INFO)
   info_handler = logging.StreamHandler(stream=sys.stdout)
   info_handler.addFilter(lambda record: record.levelno <= logging.INFO)
@@ -480,7 +482,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
   target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)
   if target_component_file:
     from ..components._yaml_utils import dump_yaml
-    component_text = dump_yaml(component_spec.to_struct())
+    component_text = dump_yaml(component_spec.to_dict())
     Path(target_component_file).write_text(component_text)
 
   return _create_task_factory_from_component_spec(component_spec)

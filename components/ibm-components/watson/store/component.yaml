@@ -14,7 +14,7 @@ name: 'Store model - Watson Machine Learning'
 description: |
   Store and persistent trained model on Watson Machine Learning.
 metadata:
-  labels: {platform: 'IBM Watson Machine Learning'}
+  annotations: {platform: 'IBM Watson Machine Learning'}
 inputs:
   - {name: run_uid,        description: 'Required. UID for the Watson Machine Learning training-runs'}
   - {name: model_name,     description: 'Required. Model Name to store on Watson Machine Learning'}

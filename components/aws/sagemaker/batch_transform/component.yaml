@@ -1,0 +1,22 @@
+name: 'SageMaker - Batch Transformation'
+description: |
+  Batch Transformation Jobs in SageMaker
+inputs:
+  - {name: region,          description: 'The region where the cluster launches.'}
+  - {name: model_name,      description: 'The name of the model that you want to use for the transform job.'}
+  - {name: input_location,  description: 'The S3 location of the data source that is associated with a channel.'}
+  - {name: output_location, description: 'The Amazon S3 path where you want Amazon SageMaker to store the results of the transform job.'}
+outputs:
+  - {name: output_location,    description: 'S3 URI of the transform job results.'}
+implementation:
+  container:
+    image: seedjeffwan/kubeflow-pipeline-aws-sm:20190501-05
+    command: ['python']
+    args: [
+      batch_transform.py,
+      --region, {inputValue: region},
+      --model_name, {inputValue: model_name},
+      --input_location, {inputValue: input_location},
+      --output_location, {inputValue: output_location},
+      --output_location_file, {outputPath: output_location},
+    ]

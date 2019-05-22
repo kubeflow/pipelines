@@ -6,9 +6,9 @@ import ai_pipeline_params as params
 # generate default secret name
 secret_name = 'kfp-creds'
 
-configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/commons/config/component.yaml')
-train_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/ffdl/train/component.yaml')
-serve_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/ffdl/serve/component.yaml')
+configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/ibm-components/commons/config/component.yaml')
+train_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/ibm-components/ffdl/train/component.yaml')
+serve_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/ibm-components/ffdl/serve/component.yaml')
     
 # create pipeline
 @dsl.pipeline(
@@ -17,24 +17,17 @@ serve_op = components.load_component_from_url('https://raw.githubusercontent.com
 )
 
 def ffdlPipeline(
-    GITHUB_TOKEN=dsl.PipelineParam(name='github-token',
-                                   value=''),
-    CONFIG_FILE_URL=dsl.PipelineParam(name='config-file-url',
-                                      value='https://raw.githubusercontent.com/user/repository/branch/creds.ini'),
-    model_def_file_path=dsl.PipelineParam(name='model-def-file-path',
-                                          value='gender-classification.zip'),
-    manifest_file_path=dsl.PipelineParam(name='manifest-file-path',
-                                         value='manifest.yml'),
-    model_deployment_name=dsl.PipelineParam(name='model-deployment-name',
-                                            value='gender-classifier'),
-    model_class_name=dsl.PipelineParam(name='model-class-name',
-                                       value='ThreeLayerCNN'),
-    model_class_file=dsl.PipelineParam(name='model-class-file',
-                                       value='gender_classification.py')
+    GITHUB_TOKEN='',
+    CONFIG_FILE_URL='https://raw.githubusercontent.com/user/repository/branch/creds.ini',
+    model_def_file_path='gender-classification.zip',
+    manifest_file_path='manifest.yml',
+    model_deployment_name='gender-classifier',
+    model_class_name='ThreeLayerCNN',
+    model_class_file='gender_classification.py'
 ):
     """A pipeline for end to end machine learning workflow."""
     
-    get_configuration = configuration_op(
+    create_secrets = configuration_op(
                    token = GITHUB_TOKEN,
                    url = CONFIG_FILE_URL,
                    name = secret_name

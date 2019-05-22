@@ -22,7 +22,7 @@ import { ApiFilter, PredicateOp } from '../apis/filter';
 import { ApiResourceType, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { ExpandState } from '../components/CustomTable';
-import { NodePhase } from './Status';
+import { NodePhase } from '../lib/StatusUtils';
 import { PageProps } from './Page';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';

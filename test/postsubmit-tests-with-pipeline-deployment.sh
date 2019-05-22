@@ -30,8 +30,8 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
-CLOUDBUILD_PROJECT=ml-pipeline-staging
-GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-staging/
+CLOUDBUILD_PROJECT=ml-pipeline-test
+GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test
 TARGET_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_BASE_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
@@ -70,10 +70,6 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 echo "postsubmit test starts"
 
 source "${DIR}/test-prep.sh"
-source "${DIR}/deploy-kubeflow.sh"
-
-# Install Argo
-source "${DIR}/install-argo.sh"
 
 ## Wait for the cloudbuild job to be started
 CLOUDBUILD_TIMEOUT_SECONDS=3600
@@ -118,6 +114,12 @@ elif [[ ${CLOUDBUILD_FINISHED} == TIMEOUT ]];then
   exit 1
 fi
 
+# Deploy Kubeflow
+source "${DIR}/deploy-kubeflow.sh"
+
+# Install Argo
+source "${DIR}/install-argo.sh"
+
 # Deploy the pipeline
 source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}
 
@@ -126,7 +128,7 @@ echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 -p commit-sha="${PULL_BASE_SHA}" \
--p component-image-prefix="${GCR_IMAGE_BASE_DIR}" \
+-p component-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p target-image-prefix="${TARGET_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \

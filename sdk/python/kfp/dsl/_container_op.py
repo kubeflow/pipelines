@@ -14,7 +14,10 @@
 
 import re
 import warnings
-from typing import Any, Dict, List, TypeVar, Union, Callable
+from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
+
+from argo.models import V1alpha1ArtifactLocation
+from kubernetes.client import V1Toleration
 from kubernetes.client.models import (
     V1Container, V1EnvVar, V1EnvFromSource, V1SecurityContext, V1Probe,
     V1ResourceRequirements, V1VolumeDevice, V1VolumeMount, V1ContainerPort,
@@ -72,11 +75,15 @@ def _proxy_container_op_props(cls: "ContainerOp"):
     return cls
 
 
-def as_list(value: Any, if_none: Union[None, List] = None) -> List:
+def as_string_list(list_or_str: Optional[Union[Any, Sequence[Any]]]) -> List[str]:
     """Convert any value except None to a list if not already a list."""
-    if value is None:
-        return if_none
-    return value if isinstance(value, list) else [value]
+    if list_or_str is None:
+        return None
+    if isinstance(list_or_str, Sequence) and not isinstance(list_or_str, str):
+        list_value = list_or_str
+    else:
+        list_value = [list_or_str]
+    return [str(item) for item in list_value]
 
 
 def create_and_append(current_list: Union[List[T], None], item: T) -> List[T]:
@@ -596,8 +603,8 @@ class Sidecar(Container):
         super().__init__(
             name=name,
             image=image,
-            command=as_list(command),
-            args=as_list(args),
+            command=as_string_list(command),
+            args=as_string_list(args),
             **kwargs)
 
         self.mirror_volume_mounts = mirror_volume_mounts
@@ -640,7 +647,7 @@ class BaseOp(object):
     # in the compilation process to generate the DAGs and task io parameters.
     attrs_with_pipelineparams = [
         'node_selector', 'volumes', 'pod_annotations', 'pod_labels',
-        'num_retries', 'sidecars'
+        'num_retries', 'sidecars', 'tolerations'
     ]
 
     def __init__(self,
@@ -676,6 +683,7 @@ class BaseOp(object):
         # `io.argoproj.workflow.v1alpha1.Template` properties
         self.node_selector = {}
         self.volumes = []
+        self.tolerations = []
         self.pod_annotations = {}
         self.pod_labels = {}
         self.num_retries = 0
@@ -723,11 +731,12 @@ class BaseOp(object):
               .set_memory_limit('2GB')
           )
         """
-        return mod_func(self)
+        return mod_func(self) or self
 
-    def after(self, op):
-        """Specify explicit dependency on another op."""
-        self.dependent_names.append(op.name)
+    def after(self, *ops):
+        """Specify explicit dependency on other ops."""
+        for op in ops:
+            self.dependent_names.append(op.name)
         return self
 
     def add_volume(self, volume):
@@ -739,6 +748,17 @@ class BaseOp(object):
           https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_volume.py
         """
         self.volumes.append(volume)
+        return self
+
+    def add_toleration(self, tolerations: V1Toleration):
+        """Add K8s tolerations
+
+        Args:
+          volume: Kubernetes toleration
+          For detailed spec, check toleration definition
+          https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_toleration.py
+        """
+        self.tolerations.append(tolerations)
         return self
 
     def add_node_selector_constraint(self, label_name, value):
@@ -807,10 +827,10 @@ class ContainerOp(BaseOp):
     """
     Represents an op implemented by a container image.
     
-    Example
+    Example::
 
         from kfp import dsl
-        from kubernetes.client.models import V1EnvVar
+        from kubernetes.client.models import V1EnvVar, V1SecretKeySelector
 
 
         @dsl.pipeline(
@@ -818,13 +838,23 @@ class ContainerOp(BaseOp):
             description='hello world')
         def foo_pipeline(tag: str, pull_image_policy: str):
 
+            # configures artifact location
+            artifact_location = dsl.ArtifactLocation.s3(
+                                    bucket="foobar",
+                                    endpoint="minio-service:9000",
+                                    insecure=True,
+                                    access_key_secret=V1SecretKeySelector(name="minio", key="accesskey"),
+                                    secret_key_secret=V1SecretKeySelector(name="minio", key="secretkey"))
+
             # any attributes can be parameterized (both serialized string or actual PipelineParam)
             op = dsl.ContainerOp(name='foo', 
                                 image='busybox:%s' % tag,
                                 # pass in sidecars list
                                 sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
                                 # pass in k8s container kwargs
-                                container_kwargs={'env': [V1EnvVar('foo', 'bar')]})
+                                container_kwargs={'env': [V1EnvVar('foo', 'bar')]},
+                                # configures artifact location
+                                artifact_location=artifact_location)
 
             # set `imagePullPolicy` property for `container` with `PipelineParam` 
             op.container.set_pull_image_policy(pull_image_policy)
@@ -849,6 +879,7 @@ class ContainerOp(BaseOp):
                  container_kwargs: Dict = None,
                  file_outputs: Dict[str, str] = None,
                  output_artifact_paths : Dict[str, str]=None,
+                 artifact_location: V1alpha1ArtifactLocation=None,
                  is_exit_handler=False,
                  pvolumes: Dict[str, V1Volume] = None,
         ):
@@ -874,18 +905,21 @@ class ContainerOp(BaseOp):
               It has the following default artifact paths during compile time.
               {'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
                'mlpipeline-metrics': '/mlpipeline-metrics.json'}
+          artifact_location: configures the default artifact location for artifacts
+               in the argo workflow template. Must be a `V1alpha1ArtifactLocation`
+               object.
           is_exit_handler: Whether it is used as an exit handler.
           pvolumes: Dictionary for the user to match a path on the op's fs with a
               V1Volume or it inherited type.
-              E.g {"/my/path": vol, "/mnt": other_op.volumes["/output"]}.
+              E.g {"/my/path": vol, "/mnt": other_op.pvolumes["/output"]}.
         """
 
         super().__init__(name=name, sidecars=sidecars, is_exit_handler=is_exit_handler)
-        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container'] #Copying the BaseOp class variable!
+        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location'] #Copying the BaseOp class variable!
 
         # convert to list if not a list
-        command = as_list(command)
-        arguments = as_list(arguments)
+        command = as_string_list(command)
+        arguments = as_string_list(arguments)
 
         # `container` prop in `io.argoproj.workflow.v1alpha1.Template`
         container_kwargs = container_kwargs or {}
@@ -923,6 +957,7 @@ class ContainerOp(BaseOp):
         # attributes specific to `ContainerOp`
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
+        self.artifact_location = artifact_location
 
         self._metadata = None
 
@@ -961,7 +996,7 @@ class ContainerOp(BaseOp):
 
     @command.setter
     def command(self, value):
-        self._container.command = as_list(value)
+        self._container.command = as_string_list(value)
 
     @property
     def arguments(self):
@@ -969,7 +1004,7 @@ class ContainerOp(BaseOp):
 
     @arguments.setter
     def arguments(self, value):
-        self._container.args = as_list(value)
+        self._container.args = as_string_list(value)
 
     @property
     def container(self):

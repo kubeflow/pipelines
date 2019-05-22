@@ -1,0 +1,25 @@
+name: 'Sagamaker - Create Model'
+description: |
+  Create Models in SageMaker
+inputs:
+  - {name: region,              description: 'The region where the training job launches.'}
+  - {name: image,               description: 'The Amazon EC2 Container Registry (Amazon ECR) path where inference code is stored.'}
+  - {name: model_artifact_url,  description: 'S3 path where Amazon SageMaker to store the model artifacts.'}
+  - {name: model_name,          description: 'The name of the new model.'}
+  - {name: role,                description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'}
+outputs:
+  - {name: model_name,          description: 'The model name Sagemaker created'}
+implementation:
+  container:
+    image: seedjeffwan/kubeflow-pipeline-aws-sm:20190501-05
+    command: ['python']
+    args: [
+      create_model.py,
+      --region, {inputValue: region},
+      --image, {inputValue: image},
+      --model_artifact_url, {inputValue: model_artifact_url},
+      --model_name, {inputValue: model_name},
+      --role, {inputValue: role}
+    ]
+    fileOutputs:
+      model_name: /tmp/model_name.txt

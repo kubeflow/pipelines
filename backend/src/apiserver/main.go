@@ -30,7 +30,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"google.golang.org/grpc"
@@ -61,7 +60,7 @@ func main() {
 		glog.Fatalf("Failed to load samples. Err: %v", err)
 	}
 
-	err = createDefaultExperiment(resourceManager)
+	_, err = resourceManager.CreateDefaultExperiment()
 	if err != nil {
 		glog.Fatalf("Failed to create default experiment. Err: %v", err)
 	}
@@ -133,39 +132,6 @@ func registerHttpHandlerFromEndpoint(handler RegisterHttpHandlerFromEndpoint, se
 	if err := handler(ctx, mux, endpoint, opts); err != nil {
 		glog.Fatalf("Failed to register %v handler: %v", serviceName, err)
 	}
-}
-
-// Used to initialize the Experiment database with a default to be used for runs
-func createDefaultExperiment(resourceManager *resource.ResourceManager) error {
-	// First check that we don't already have a default experiment ID in the DB.
-	defaultExperimentId, err := resourceManager.GetDefaultExperimentId()
-	if err != nil {
-		return fmt.Errorf("Failed to check if default experiment exists. Err: %v", err)
-	}
-	// If default experiment ID is already present, don't fail, simply return.
-	if defaultExperimentId != "" {
-		glog.Info("Default experiment already exists! ID: %v", defaultExperimentId)
-		return nil
-	}
-
-	// Create default experiment
-	defaultExperiment := &model.Experiment{
-		Name:        "Default",
-		Description: "All runs created without specifying an experiment will be grouped here.",
-	}
-	experiment, err := resourceManager.CreateExperiment(defaultExperiment)
-	if err != nil {
-		return fmt.Errorf("Failed to create default experiment. Err: %v", err)
-	}
-
-	// Set default experiment ID in the DB
-	err = resourceManager.SetDefaultExperimentId(experiment.UUID)
-	if err != nil {
-		return fmt.Errorf("Failed to set default experiment ID. Err: %v", err)
-	}
-
-	glog.Info("Default experiment is set. ID is: %v", experiment.UUID)
-	return nil
 }
 
 // Preload a bunch of pipeline samples

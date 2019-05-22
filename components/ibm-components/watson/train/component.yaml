@@ -14,17 +14,18 @@ name: 'Train Model - Watson Machine Learning'
 description: |
   Train Machine Learning and Deep Learning Models in the Cloud using Watson Machine Learning
 metadata:
-  labels: {platform: 'IBM Watson Machine Learning'}
+  annotations: {platform: 'IBM Watson Machine Learning'}
 inputs:
   - {name: train_code,        description: 'Required. Code for training ML/DL models'}
   - {name: execution_command, description: 'Required. Execution command to start the model training.'}
-  - {name: config,            description: 'Required. Credential configfile is properly created.'}
+  - {name: config,            description: 'Credential configfile is properly created.', default: 'secret_name'}
   - {name: framework,         description: 'ML/DL Model Framework', default: 'tensorflow'}
   - {name: framework_version, description: 'Model Framework version', default: '1.5'}
   - {name: runtime,           description: 'Model Code runtime language', default: 'python'}
   - {name: runtime_version,   description: 'Model Code runtime version', default: '3.5'}
   - {name: run_definition,    description: 'Name for the Watson Machine Learning training definition', default: 'python-tensorflow-definition'}
   - {name: run_name,          description: 'Name for the Watson Machine Learning training-runs', default: 'python-tensorflow-run'}
+  - {name: author_email,      description: 'Email of this training job author', default: 'author@ibm.com'}
 outputs:
   - {name: run_uid,           description: 'UID for the Watson Machine Learning training-runs'}
 implementation:
@@ -41,7 +42,8 @@ implementation:
       --runtime, {inputValue: runtime},
       --runtime-version, {inputValue: runtime_version},
       --run-definition, {inputValue: run_definition},
-      --run-name, {inputValue: run_name}
+      --run-name, {inputValue: run_name},
+      --author-email, {inputValue: author_email}
     ]
     fileOutputs:
       run_uid: /tmp/run_uid
