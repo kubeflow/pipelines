@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-import { ApiRunDetail } from '../apis/run';
+import { ApiRunDetail, ApiRun } from '../apis/run';
 import { CompareTableProps } from '../components/CompareTable';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { chain, flatten } from 'lodash';
 import WorkflowParser from './WorkflowParser';
 import { logger } from './Utils';
+import RunUtils from './RunUtils';
+import MetricUtils from './MetricUtils';
 
 export default class CompareUtils {
   /**
@@ -33,8 +35,6 @@ export default class CompareUtils {
       // Should never happen
       logger.error('Numbers of passed in runs and workflows do not match');
     }
-
-    const xLabels = runs.map(r => r.run!.name!);
 
     const yLabels = chain(flatten(workflowObjects
       .map(w => WorkflowParser.getParameters(w))))
@@ -53,6 +53,29 @@ export default class CompareUtils {
         });
     });
 
-    return { rows, xLabels, yLabels };
+    return {
+      rows,
+      xLabels: runs.map(r => r.run!.name!),
+      yLabels,
+    };
+  }
+
+  public static getMetricsCompareProps(runs: ApiRun[]): CompareTableProps {
+    const metricMetadataMap = RunUtils.runsToMetricMetadataMap(runs);
+
+    const yLabels = Array.from(metricMetadataMap.keys());
+
+    const rows =
+      yLabels.map(name =>
+        runs.map(r =>
+          MetricUtils.getMetricDisplayString((r.metrics || []).find(m => m.name === name))
+        )
+      );
+
+    return {
+      rows,
+      xLabels: runs.map(r => r.name!),
+      yLabels,
+    };
   }
 }

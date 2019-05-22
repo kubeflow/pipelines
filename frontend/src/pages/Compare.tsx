@@ -55,6 +55,7 @@ export interface CompareState {
   collapseSections: { [key: string]: boolean };
   fullscreenViewerConfig: PlotCardProps | null;
   paramsCompareProps: CompareTableProps;
+  metricsCompareProps: CompareTableProps;
   runs: ApiRunDetail[];
   selectedIds: string[];
   viewersMap: Map<PlotType, TaggedViewerConfig[]>;
@@ -63,6 +64,7 @@ export interface CompareState {
 
 const overviewSectionName = 'Run overview';
 const paramsSectionName = 'Parameters';
+const metricsSectionName = 'Metrics';
 
 class Compare extends Page<{}, CompareState> {
 
@@ -72,6 +74,7 @@ class Compare extends Page<{}, CompareState> {
     this.state = {
       collapseSections: {},
       fullscreenViewerConfig: null,
+      metricsCompareProps: { rows: [], xLabels: [], yLabels: [] },
       paramsCompareProps: { rows: [], xLabels: [], yLabels: [] },
       runs: [],
       selectedIds: [],
@@ -86,6 +89,7 @@ class Compare extends Page<{}, CompareState> {
       actions: [
         buttons.expandSections(() => this.setState({ collapseSections: {} })),
         buttons.collapseSections(this._collapseAllSections.bind(this)),
+        buttons.refresh(this.refresh.bind(this)),
       ],
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'Compare runs',
@@ -126,6 +130,17 @@ class Compare extends Page<{}, CompareState> {
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
           <CompareTable {...this.state.paramsCompareProps} />
+          <Hr />
+        </div>
+      )}
+
+      {/* Metrics section */}
+      <CollapseButton sectionName={metricsSectionName} collapseSections={collapseSections}
+        compareSetState={this.setStateSafe.bind(this)} />
+      {!collapseSections[metricsSectionName] && (
+        <div className={classes(commonCss.noShrink, css.outputsRow)}>
+          <Separator orientation='vertical' />
+          <CompareTable {...this.state.metricsCompareProps} />
           <Hr />
         </div>
       )}
@@ -212,6 +227,7 @@ class Compare extends Page<{}, CompareState> {
       workflowObjects,
     });
     this._loadParameters(selectedIds);
+    this._loadMetrics(selectedIds);
 
     const outputPathsList = workflowObjects.map(
       workflow => WorkflowParser.loadAllOutputPaths(workflow));
@@ -235,17 +251,22 @@ class Compare extends Page<{}, CompareState> {
       }
     }));
 
-    // For each output artifact type, list all artifact instances in all runs	
+    // For each output artifact type, list all artifact instances in all runs
     this.setStateSafe({ viewersMap });
   }
 
   protected _selectionChanged(selectedIds: string[]): void {
     this.setState({ selectedIds });
     this._loadParameters(selectedIds);
+    this._loadMetrics(selectedIds);
   }
 
   private _collapseAllSections(): void {
-    const collapseSections = { [overviewSectionName]: true, [paramsSectionName]: true };
+    const collapseSections = {
+      [overviewSectionName]: true,
+      [paramsSectionName]: true,
+      [metricsSectionName]: true,
+    };
     Array.from(this.state.viewersMap.keys()).map(t => {
       const sectionName = componentMap[t].prototype.getDisplayName();
       collapseSections[sectionName] = true;
@@ -263,6 +284,17 @@ class Compare extends Page<{}, CompareState> {
     const paramsCompareProps = CompareUtils.getParamsCompareProps(filteredRuns, filteredWorkflows);
 
     this.setState({ paramsCompareProps });
+  }
+
+  private _loadMetrics(selectedIds: string[]): void {
+    const { runs } = this.state;
+
+    const selectedIndices = selectedIds.map(id => runs.findIndex(r => r.run!.id === id));
+    const filteredRuns = runs.filter((_, i) => selectedIndices.indexOf(i) > -1).map(r => r.run!);
+
+    const metricsCompareProps = CompareUtils.getMetricsCompareProps(filteredRuns);
+
+    this.setState({ metricsCompareProps });
   }
 }
 
