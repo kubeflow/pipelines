@@ -34,6 +34,23 @@ def components_local_output_dir_context(output_dir: str):
     finally:
         comp._components._outputs_dir = old_dir
 
+
+module_level_variable = 10
+
+
+class ModuleLevelClass:
+    def class_method(self, x):
+        return x * module_level_variable
+
+
+def module_func(a: float) -> float:
+    return a * 5
+
+
+def module_func_with_deps(a: float, b: float) -> float:
+    return ModuleLevelClass().class_method(a) + module_func(b)
+
+
 class PythonOpTestCase(unittest.TestCase):
     def helper_test_2_in_1_out_component_using_local_call(self, func, op):
         arg1 = float(3)
@@ -109,6 +126,12 @@ class PythonOpTestCase(unittest.TestCase):
             return ExtraClass().class_method(a) + extra_func(b)
 
         func = main_func
+        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_call_other_func_global(self):
+        func = module_func_with_deps
         op = comp.func_to_container_op(func, output_component_file='comp.yaml')
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
