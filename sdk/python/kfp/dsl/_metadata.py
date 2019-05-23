@@ -157,6 +157,10 @@ def _annotation_to_typemeta(annotation):
 def _extract_component_metadata(func):
   '''Creates component metadata structure instance based on the function signature.'''
 
+  # Importing here to prevent circular import failures
+  #TODO: Change _pipeline_param to stop importing _metadata
+  from ._pipeline_param import PipelineParam
+
   import inspect
   fullargspec = inspect.getfullargspec(func)
   annotations = fullargspec.annotations
@@ -172,6 +176,8 @@ def _extract_component_metadata(func):
   for arg in fullargspec.args:
     arg_type = TypeMeta()
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
+    if isinstance(arg_default, PipelineParam):
+      arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
     inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
@@ -199,6 +205,10 @@ def _extract_component_metadata(func):
 def _extract_pipeline_metadata(func):
   '''Creates pipeline metadata structure instance based on the function signature.'''
 
+  # Importing here to prevent circular import failures
+  #TODO: Change _pipeline_param to stop importing _metadata
+  from ._pipeline_param import PipelineParam
+
   import inspect
   fullargspec = inspect.getfullargspec(func)
   args = fullargspec.args
@@ -219,6 +229,8 @@ def _extract_pipeline_metadata(func):
   for arg in args:
     arg_type = TypeMeta()
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
+    if isinstance(arg_default, PipelineParam):
+      arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
     pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
