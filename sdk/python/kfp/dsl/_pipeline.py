@@ -57,6 +57,7 @@ class PipelineConf():
   def __init__(self):
     self.image_pull_secrets = []
     self.artifact_location = None
+    self.op_transformers = []
 
   def set_image_pull_secrets(self, image_pull_secrets):
     """Configures the pipeline level imagepullsecret
