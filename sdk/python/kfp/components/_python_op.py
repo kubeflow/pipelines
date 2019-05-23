@@ -69,15 +69,15 @@ def _capture_function_code_using_source_copy(func) -> str:
 
 
 def _capture_function_code_using_cloudpickle(func) -> str:
+    import sys
     import cloudpickle
     import pickle
     # Hack to force cloudpickle to capture the whole function instead of just referencing the code file. See https://github.com/cloudpipe/cloudpickle/blob/74d69d759185edaeeac7bdcb7015cfc0c652f204/cloudpickle/cloudpickle.py#L490
     try: # Try is needed to restore the state if something goes wrong
-        old_module = func.__module__
-        func.__module__ = '__main__'
+        old_module = sys.modules.pop(func.__module__)
         func_pickle = cloudpickle.dumps(func, pickle.DEFAULT_PROTOCOL)
     finally:
-        func.__module__ = old_module
+        sys.modules[func.__module__] = old_module
     func_code = '{func_name} = pickle.loads({func_pickle})'.format(func_name=func.__name__, func_pickle=repr(func_pickle))
     return 'import pickle' + '\n\n' + func_code
 
