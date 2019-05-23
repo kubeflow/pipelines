@@ -25,7 +25,7 @@ inputs:
   - {name: runtime_version,   description: 'Model Code runtime version', default: '3.5'}
   - {name: run_definition,    description: 'Name for the Watson Machine Learning training definition', default: 'python-tensorflow-definition'}
   - {name: run_name,          description: 'Name for the Watson Machine Learning training-runs', default: 'python-tensorflow-run'}
-  - {name: author_email,      description: 'Email of this training job author', default: 'author@ibm.com'}
+  - {name: author_name,       description: 'Name of this training job author', default: 'default-author'}
 outputs:
   - {name: run_uid,           description: 'UID for the Watson Machine Learning training-runs'}
 implementation:
@@ -43,7 +43,7 @@ implementation:
       --runtime-version, {inputValue: runtime_version},
       --run-definition, {inputValue: run_definition},
       --run-name, {inputValue: run_name},
-      --author-email, {inputValue: author_email}
+      --author-name, {inputValue: author_name}
     ]
     fileOutputs:
       run_uid: /tmp/run_uid
