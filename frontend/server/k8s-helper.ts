@@ -134,11 +134,11 @@ export function getPodLogs(podName: string): Promise<string> {
   return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any)
     .then(
       (response: any) => (response && response.body) ? response.body.toString() : '',
-      (error: any) => { throw new Error(JSON.stringify(error.body)); }
+      (error: any) => {throw new Error(JSON.stringify(error.body));}
     );
 }
 
-function getNameOfViewerResource(logdir:string) : string {
+function getNameOfViewerResource(logdir: string): string {
   return 'viewer-' + crypto.SHA1(logdir);
 }
 
