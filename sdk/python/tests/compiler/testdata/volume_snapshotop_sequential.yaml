@@ -1,6 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    kubeflow.org/pipelines/pipeline_spec: '{"name": "VolumeSnapshotOp Sequential",
+      "description": "The fourth example of the design doc.", "inputs": [{"name":
+      "url", "description": "", "type": "", "default": null}]}'
   generateName: volumesnapshotop-sequential-
 spec:
   arguments:

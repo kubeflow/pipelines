@@ -646,6 +646,10 @@ class Compiler(object):
     p.ops = sanitized_ops
 
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p, p.conf.op_transformers)
+
+    import json
+    workflow.setdefault('metadata', {}).setdefault('annotations', {})['kubeflow.org/pipelines/pipeline_spec'] = json.dumps(pipeline_meta.to_dict())
+
     return workflow
 
   def compile(self, pipeline_func, package_path, type_check=True):

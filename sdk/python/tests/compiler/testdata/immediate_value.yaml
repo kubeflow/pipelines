@@ -14,6 +14,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    kubeflow.org/pipelines/pipeline_spec: '{"name": "Immediate Value", "description":
+      "A pipeline with parameter values hard coded", "inputs": []}'
   generateName: immediate-value-
 spec:
   arguments:
