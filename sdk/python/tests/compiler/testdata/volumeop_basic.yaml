@@ -1,6 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    kubeflow.org/pipelines/pipeline_spec: '{"name": "VolumeOp Basic", "description":
+      "A Basic Example on VolumeOp Usage.", "inputs": [{"name": "size", "description":
+      "", "type": "", "default": null}]}'
   generateName: volumeop-basic-
 spec:
   arguments:

@@ -1,6 +1,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    kubeflow.org/pipelines/pipeline_spec: '{"name": "Volume Op DAG", "description":
+      "The second example of the design doc.", "inputs": []}'
   generateName: volume-op-dag-
 spec:
   arguments:

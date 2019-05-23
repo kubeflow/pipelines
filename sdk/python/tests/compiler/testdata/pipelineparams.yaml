@@ -14,6 +14,11 @@
 ---
 apiVersion: argoproj.io/v1alpha1
 metadata:
+  annotations:
+    kubeflow.org/pipelines/pipeline_spec: '{"name": "PipelineParams", "description":
+      "A pipeline with multiple pipeline params.", "inputs": [{"name": "tag", "description":
+      "", "type": "", "default": "latest"}, {"name": "sleep_ms", "description": "",
+      "type": "", "default": 10}]}'
   generateName: pipelineparams-
 spec:
   entrypoint: pipelineparams

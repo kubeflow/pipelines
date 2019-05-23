@@ -1,6 +1,11 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    kubeflow.org/pipelines/pipeline_spec: '{"name": "ResourceOp Basic", "description":
+      "A Basic Example on ResourceOp Usage.", "inputs": [{"name": "username", "description":
+      "", "type": "", "default": null}, {"name": "password", "description": "", "type":
+      "", "default": null}]}'
   generateName: resourceop-basic-
 spec:
   arguments:
