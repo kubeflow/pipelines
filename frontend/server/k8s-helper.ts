@@ -25,6 +25,11 @@ let namespace = '';
 let k8sV1Client: Core_v1Api | null = null;
 let k8sV1CustomObjectClient: Custom_objectsApi | null = null;
 
+// Constants for creating customer resource Viewer.
+const viewerGroup = 'kubeflow.org';
+const viewerVersion = 'v1beta1';
+const viewerPlural = 'viewers';
+
 export const isInCluster = fs.existsSync(namespaceFilePath);
 
 if (isInCluster) {
@@ -133,6 +138,10 @@ export function getPodLogs(podName: string): Promise<string> {
     );
 }
 
+function getNameOfViewerResource(logdir:string) : string {
+  return 'viewer-' + crypto.SHA1(logdir);
+}
+
 /**
 * Create Tensorboard pod via CRD with the given logdir if there is no existing
 * Tensorboard pod.
@@ -148,14 +157,11 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
 
   // TODO: take the configuration below to a separate file
   // Name of the viewer resource is based on logDir.
-  const group = 'kubeflow.org';
-  const version = 'v1beta1';
-  const plural = 'viewers';
   const body = {
-    apiVersion: group + '/' + version,
+    apiVersion: viewerGroup + '/' + viewerVersion,
     kind: 'Viewer',
     metadata: {
-      name: 'viewer-' + crypto.SHA1(logdir),
+      name: getNameOfViewerResource(logdir),
       namespace: namespace,
     },
     spec: {
@@ -181,8 +187,8 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
       }],
     }
   };
-  await k8sV1CustomObjectClient.createNamespacedCustomObject(group, version,
-    namespace, plural, body);
+  await k8sV1CustomObjectClient.createNamespacedCustomObject(viewerGroup,
+    viewerVersion, namespace, viewerPlural, body);
 }
 
 /**
@@ -194,16 +200,13 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
 
-  const group = 'kubeflow.org';
-  const version = 'v1beta1';
-  const plural = 'viewers';
-  const pods = (await k8sV1CustomObjectClient.listNamespacedCustomObject(group,
-    version, namespace, plural)).body.items;
-  const pod = pods.find((p) =>
-    p.metadata.name == 'viewer-' + crypto.SHA1(logdir) &&
-    p.spec.tensorboardSpec.logDir == logdir &&
-    p.spec.type == 'tensorboard');
-  return pod ? `http://${pod.metadata.name}-service.kubeflow.svc.cluster.local:6006` : '';
+  const viewers = (await k8sV1CustomObjectClient.listNamespacedCustomObject(
+    viewerGroup, viewerVersion, namespace, viewerPlural)).body.items;
+  const viewer = viewers.find((v) =>
+    v.metadata.name == getNameOfViewerResource(logdir) &&
+    v.spec.tensorboardSpec.logDir == logdir &&
+    v.spec.type == 'tensorboard');
+  return viewer ? `http://${viewer.metadata.name}-service.kubeflow.svc.cluster.local:6006` : '';
 }
 
 /**
