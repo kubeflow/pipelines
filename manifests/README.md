@@ -66,5 +66,5 @@ If sample code requires a "user-gcp-sa" secret, you could create one by
 - First download the GCE VM service account token following this [instruction](https://cloud.google.com/kubernetes-engine/docs/tutorials/authenticating-to-cloud-platform#step_3_create_service_account_credentials)
 - Run
 ```
-kubectl create secret -n kubeflow generic user-gcp-sa --from-file=user-gcp-sa.json=[your-token-file].json
+kubectl create secret -n [your-namespace] generic user-gcp-sa --from-file=user-gcp-sa.json=[your-token-file].json
 ```
