@@ -1,4 +1,4 @@
-name: 'Sagamaker - Training Job'
+name: 'Sagemaker - Training Job'
 description: |
   Train Machine Learning and Deep Learning Models using SageMaker
 inputs:
