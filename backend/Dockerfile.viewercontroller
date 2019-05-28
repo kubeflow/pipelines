@@ -19,4 +19,6 @@ COPY --from=builder /bin/controller /bin/controller
 COPY --from=builder /src/github.com/kubeflow/pipelines/third_party/license.txt /bin/license.txt
 RUN chmod +x /bin/controller
 
-CMD /bin/controller -alsologtostderr=true
+ENV MAX_NUM_VIEWERS "50"
+
+CMD /bin/controller -alsologtostderr=true -max_num_viewers=${MAX_NUM_VIEWERS}
