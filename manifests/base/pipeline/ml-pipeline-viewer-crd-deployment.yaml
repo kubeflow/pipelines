@@ -19,5 +19,5 @@ spec:
         name: ml-pipeline-viewer-crd
         env:
         - name: MAX_NUM_VIEWERS
-          value: 50
+          value: "50"
       serviceAccountName: ml-pipeline-viewer-crd-service-account
