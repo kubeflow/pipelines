@@ -169,22 +169,26 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
       tensorboardSpec: {
         logDir: logdir,
       },
-      containers: [{
-        env: [{
-          name: 'GOOGLE_APPLICATION_CREDENTIALS',
-          value: '/secret/gcp-credentials/user-gcp-sa.json'
-        }],
-        volumeMounts: [{
-          mountPath: '/secret/gcp-credentials',
-          name: 'gcp-credentials',
-        }],
-      }],
-      volumes: [{
-        name: 'gcp-credentials',
-        secret: {
-          secretName: 'user-gcp-sa',
-        },
-      }],
+      PodTemplateSpec: {
+        spec: {
+          containers: [{
+            env: [{
+              name: 'GOOGLE_APPLICATION_CREDENTIALS',
+              value: '/secret/gcp-credentials/user-gcp-sa.json'
+            }],
+            volumeMounts: [{
+              mountPath: '/secret/gcp-credentials',
+              name: 'gcp-credentials',
+            }],
+          }],
+          volumes: [{
+            name: 'gcp-credentials',
+            secret: {
+              secretName: 'user-gcp-sa',
+            },
+          }],
+        }
+      }
     }
   };
   await k8sV1CustomObjectClient.createNamespacedCustomObject(viewerGroup,
