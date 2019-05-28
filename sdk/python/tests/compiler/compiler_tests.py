@@ -464,3 +464,25 @@ class TestCompiler(unittest.TestCase):
       value='run'))
 
     self._test_op_to_template_yaml(op1, file_base_name='tolerations')
+
+  def test_op_transformers(self):
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline(name='some_pipeline', description='')
+    def some_pipeline():
+        task1 = some_op()
+        task2 = some_op()
+        task3 = some_op()
+
+        dsl.get_pipeline_conf().op_transformers.append(lambda op: op.set_retry(5))
+
+    workflow_dict = compiler.Compiler()._compile(some_pipeline)
+    for template in workflow_dict['spec']['templates']:
+      container = template.get('container', None)
+      if container:
+        self.assertEqual(template['retryStrategy']['limit'], 5)

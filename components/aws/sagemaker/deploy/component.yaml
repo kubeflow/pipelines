@@ -1,4 +1,4 @@
-name: 'Sagamaker - Deploy Model'
+name: 'Sagemaker - Deploy Model'
 description: |
   Deploy Machine Learning Model Endpoint in SageMaker
 inputs:
