@@ -17,4 +17,7 @@ spec:
       - image: gcr.io/ml-pipeline/viewer-crd-controller:0.1.15
         imagePullPolicy: Always
         name: ml-pipeline-viewer-crd
+        env:
+        - name: MAX_NUM_VIEWERS
+          value: "50"
       serviceAccountName: ml-pipeline-viewer-crd-service-account
