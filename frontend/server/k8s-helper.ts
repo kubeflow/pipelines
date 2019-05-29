@@ -183,8 +183,10 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
           }],
           volumes: [{
             name: 'gcp-credentials',
-            secret: {
-              secretName: 'user-gcp-sa',
+            volumeSource: {
+              secret: {
+                secretName: 'user-gcp-sa',
+              }
             },
           }],
         }

@@ -176,18 +176,20 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 	}
 
 	// Propage the credentials from viewer resource definition to pod spec
-	for viewSpecContainer := range view.Spec.PodTemplateSpec.Spec.Containers {
-		for env := range viewSpecContainer {
-			c.Env = append(c.Env, corev1.EnvVar{env.Name, env.Value})
+	for _, viewSpecContainer := range view.Spec.PodTemplateSpec.Spec.Containers {
+		for _, env := range viewSpecContainer.Env {
+			c.Env = append(c.Env, corev1.EnvVar{Name: env.Name, Value: env.Value})
 		}
-		for volMount := range viewSpecContainer.VolumeMounts {
+		for _, volMount := range viewSpecContainer.VolumeMounts {
 			c.VolumeMounts = append(c.VolumeMounts,
-				corev1.VolumeMount{volMount.MountPath, volMount.Name})
+				corev1.VolumeMount{MountPath: volMount.MountPath, Name: volMount.Name})
 		}
 	}
-  for vol := range view.Spec.PodTemplateSpec.Spec.Volumes {
-		s.Volumes = append(s.Volumes, corev1.Volume{vol.Name,
-			vol.Secret.SecretName})
+	for _, viewSpecVolume := range view.Spec.PodTemplateSpec.Spec.Volumes {
+		s.Volumes = append(s.Volumes, corev1.Volume{Name: viewSpecVolume.Name,
+			VolumeSource: corev1.VolumeSource{Secret:
+				&corev1.SecretVolumeSource{SecretName:
+					viewSpecVolume.VolumeSource.Secret.SecretName}}})
 	}
 }
 
