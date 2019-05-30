@@ -23,16 +23,17 @@ import json
 )
 
 #Example derived from https://github.com/kubeflow/example-seldon
+#push access needed to chosen docker repo - see note below on secret
 def mnist_tf(docker_secret='docker-config',
              training_repo='https://github.com/kubeflow/example-seldon.git',
              training_branch='master',
              training_files='./example-seldon/models/tf_mnist/train/*',
-             docker_repo_training='ryandawsonuk/deepmnistclassifier_trainer',
+             docker_repo_training='seldonio/deepmnistclassifier_trainer',
              docker_tag_training='0.3',
              serving_repo='https://github.com/kubeflow/example-seldon.git',
              serving_branch='master',
              serving_files='./example-seldon/models/tf_mnist/runtime/*',
-             docker_repo_serving='ryandawsonuk/deepmnistclassifier_runtime',
+             docker_repo_serving='seldonio/deepmnistclassifier_runtime',
              docker_tag_serving='0.3'):
 
 #will be pushing image so need docker secret
