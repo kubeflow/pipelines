@@ -23,126 +23,111 @@ import kfp.dsl as dsl
 )
 def mabdeploy_seldon():
 
+#serve two models load balanced as bandit as per https://github.com/SeldonIO/seldon-core/blob/master/notebooks/helm_examples.ipynb
 
     mabjson = """
 {
     "apiVersion": "machinelearning.seldon.io/v1alpha2",
     "kind": "SeldonDeployment",
     "metadata": {
-	"labels": {
-	    "app": "seldon"
-	},
-	"name": "mnist-classifier"
+        "labels": {
+            "app": "seldon"
+        },
+        "name": "mnist-classifier-mab"
     },
     "spec": {
-	"annotations": {
-	    "project_name": "kubeflow-seldon",
-	    "deployment_version": "v1"
-	},
-	"name": "mnist-classifier",
-	"predictors": [
-	    {
-		"componentSpecs": [{
-		    "spec": {
-			"containers": [
-			    {
-                                "image": "seldonio/deepmnistclassifier_runtime:0.2",
-				"name": "tf-model",
-                                "volumeMounts": [
-                                    {
-                                        "mountPath": "/data",
-                                        "name": "persistent-storage"
-                                    }
-                                ]
-			    },
-			    {
-                                "image": "seldonio/skmnistclassifier_runtime:0.2",
-				"name": "sk-model",
-                                "volumeMounts": [
-                                    {
-                                        "mountPath": "/data",
-                                        "name": "persistent-storage"
-                                    }
-                                ]
-			    },
-			    {
-                                "image": "seldonio/rmnistclassifier_runtime:0.2",
-				"name": "r-model",
-                                "volumeMounts": [
-                                    {
-                                        "mountPath": "/data",
-                                        "name": "persistent-storage"
-                                    }
-                                ]
-			    },
-			    {
-				"image": "seldonio/mab_epsilon_greedy:1.1",
-				"name": "eg-router"
-			    }
-			],
-                        "volumes": [
+        "name": "mnist-classifier-mab",
+        "predictors": [
+            {
+                "name": "abtest",
+                "replicas": 1,
+                "componentSpecs": [{
+                    "spec": {
+                        "containers": [
                             {
-                                "name": "persistent-storage",
-				"volumeSource" : {
-                                    "persistentVolumeClaim": {
-					"claimName": "nfs-1"
+                                "image": "seldonio/mock_classifier:1.0",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "classifier-1",
+                                "resources": {
+                                    "requests": {
+                                        "memory": "1Mi"
                                     }
-				}
+                                }
+                            }],
+                        "terminationGracePeriodSeconds": 20
+                    }},
+                {
+                    "metadata":{
+                        "labels":{
+                            "version":"v2"
+                        }
+                    },    
+                        "spec":{
+                            "containers":[
+                            {
+                                "image": "seldonio/mock_classifier:1.0",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "classifier-2",
+                                "resources": {
+                                    "requests": {
+                                        "memory": "1Mi"
+                                    }
+                                }
                             }
-                        ]
-		    }
-		}],
-		"name": "mnist-classifier",
-		"replicas": 1,
-		"annotations": {
-		    "predictor_version": "v1"
-		},
-		"graph": {
-		    "name": "eg-router",
-		    "type":"ROUTER",
-		    "parameters": [
-			{
-			    "name": "n_branches",
-			    "value": "3",
-			    "type": "INT"
-			},
-			{
-			    "name": "epsilon",
-			    "value": "0.2",
-			    "type": "FLOAT"
-			},
-			{
-			    "name": "verbose",
-			    "value": "1",
-			    "type": "BOOL"
-			}
-		    ],
-		    "children": [
-			{
-			    "name": "sk-model",
-			    "type": "MODEL",
-			    "endpoint":{
-				"type":"REST"
-			    }
-			},
-			{
-			    "name": "tf-model",
-			    "type": "MODEL",
-			    "endpoint":{
-				"type":"REST"
-			    }
-			},
-			{
-			    "name": "r-model",
-			    "type": "MODEL",
-			    "endpoint":{
-				"type":"REST"
-			    }
-			}
-		    ]
-		}
-	    }
-	]
+                        ],
+                        "terminationGracePeriodSeconds": 20
+                        }
+                },
+                {
+                    "spec":{
+                        "containers": [{
+                            "image": "seldonio/mab_epsilon_greedy:1.1",
+                            "name": "eg-router"
+                        }],
+                        "terminationGracePeriodSeconds": 20
+                    }}
+                ],
+                "graph": {
+                    "name": "eg-router",
+                    "type":"ROUTER",
+                    "parameters": [
+                        {
+                            "name": "n_branches",
+                            "value": "2",
+                            "type": "INT"
+                        },
+                        {
+                            "name": "epsilon",
+                            "value": "0.2",
+                            "type": "FLOAT"
+                        },
+                        {
+                            "name": "verbose",
+                            "value": "1",
+                            "type": "BOOL"
+                        }
+                    ],
+                    "children": [
+                        {
+                            "name": "classifier-1",
+                            "endpoint":{
+                                "type":"REST"
+                            },
+                            "type":"MODEL",
+                            "children":[]
+                        },
+                        {
+                            "name": "classifier-2",
+                            "endpoint":{
+                                "type":"REST"
+                            },
+                            "type":"MODEL",
+                            "children":[]
+                        }   
+                    ]
+                }
+            }
+        ]
     }
 }
 """
@@ -152,6 +137,8 @@ def mabdeploy_seldon():
     deploy = dsl.ResourceOp(
         name="deploy",
         k8s_resource=mabdeployment,
+        action="apply",
+        success_condition='status.state == Available',
         attribute_outputs={"name": "{.metadata.name}"}
     )
 
