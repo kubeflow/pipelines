@@ -45,7 +45,7 @@ class Client(object):
           in the same cluster (such as a Jupyter instance spawned by Kubeflow's
           JupyterHub). If you have a different connection to cluster, such as a kubectl
           proxy connection, then set it to something like "127.0.0.1:8080/pipeline.
-          If you connect to an IAP enabled cluster, set it with format
+          If you connect to an IAP enabled cluster, set it to
           https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
       client_id: The client ID used by Identity-Aware Proxy.
     """
