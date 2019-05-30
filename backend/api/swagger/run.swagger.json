@@ -592,7 +592,7 @@
         "finished_at": {
           "type": "string",
           "format": "date-time",
-          "description": "Output. When this run is finished."
+          "description": "Output. The time this run is finished."
         },
         "status": {
           "type": "string",

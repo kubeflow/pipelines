@@ -16,11 +16,11 @@
 // source: backend/api/experiment.proto
 
 /*
-Package go_client is a reverse proxy.
+Package api is a reverse proxy.
 
 It translates gRPC into RESTful JSON APIs.
 */
-package go_client
+package api
 
 import (
 	"io"
