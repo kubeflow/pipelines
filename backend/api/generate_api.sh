@@ -18,7 +18,7 @@
 # directory using Bazel, then copies them back into the source tree so they can
 # be checked-in.
 
-set +ex
+set -ex
 
 BAZEL_BINDIR=$(bazel info bazel-bin)
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
@@ -56,7 +56,7 @@ jq -s '
     reduce .[] as $item ({}; . * $item) |
     .info.title = "KF Pipelines API" |
     .info.description = "Generated Kubeflow Pipelines server API"
-' ${DIR}/swagger/{run,job,pipeline,experiment,pipeline.upload}.swagger.json > "${DIR}/swagger/kfp.swagger.json"
+' ${DIR}/swagger/{run,job,pipeline,experiment,pipeline.upload}.swagger.json > "${DIR}/swagger/kfp_api_single_file.swagger.json"
 
 # Generate Go HTTP client from the swagger files.
 ${SWAGGER_CMD} generate client \
