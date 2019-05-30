@@ -33,9 +33,10 @@ go_proto_library(
         "@com_github_grpc_ecosystem_grpc_gateway//protoc-gen-grpc-gateway:go_gen_grpc_gateway",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/api/go_client",  # keep
-    proto = ":api_proto",
+    proto = ":go_client_proto",
     visibility = ["//visibility:public"],
     deps = [
+        ":go_default_library",
         "@com_github_grpc_ecosystem_grpc_gateway//protoc-gen-swagger/options:go_default_library",
         "@go_googleapis//google/api:annotations_go_proto",
     ],
@@ -59,5 +60,29 @@ go_path(
     name = "api_generated_go_sources",
     deps = [
         ":api_go_proto",
+    ],
+)
+
+proto_library(
+    name = "go_client_proto",
+    srcs = [
+        "error.proto",
+        "experiment.proto",
+        "filter.proto",
+        "job.proto",
+        "parameter.proto",
+        "pipeline.proto",
+        "pipeline_spec.proto",
+        "report.proto",
+        "resource_reference.proto",
+        "run.proto",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_grpc_ecosystem_grpc_gateway//protoc-gen-swagger/options:options_proto",
+        "@com_google_protobuf//:any_proto",
+        "@com_google_protobuf//:empty_proto",
+        "@com_google_protobuf//:timestamp_proto",
+        "@go_googleapis//google/api:annotations_proto",
     ],
 )

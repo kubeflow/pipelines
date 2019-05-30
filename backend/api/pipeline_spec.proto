@@ -14,6 +14,7 @@
 
 syntax = "proto3";
 
+option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
 package api;
 
 import "backend/api/parameter.proto";
