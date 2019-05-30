@@ -60,6 +60,39 @@ describe('DetailsTable', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('does render arrays as JSON', () => {
+    const tree = shallow(<DetailsTable fields={[['key', '[]']]} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does render arrays as JSON', () => {
+    const tree = shallow(<DetailsTable fields={[['key', '{}']]} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does not render nulls as JSON', () => {
+    const tree = shallow(<DetailsTable fields={[['key', 'null']]} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does not render numbers as JSON', () => {
+    const tree = shallow(<DetailsTable fields={[['key', '10']]} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does not render strings as JSON', () => {
+    const tree = shallow(<DetailsTable fields={[['key', '"some string"']]} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('does not render booleans as JSON', () => {
+    const tree = shallow(<DetailsTable fields={[
+      ['key1', 'true'],
+      ['key2', 'false']
+    ]} />);
+    expect(tree).toMatchSnapshot();
+  });
+
   it('shows keys and values for multiple rows', () => {
     const tree = shallow(<DetailsTable fields={[
       ['key1', 'value1'],
