@@ -1,4 +1,4 @@
-name: 'Sagamaker - Create Model'
+name: 'Sagemaker - Create Model'
 description: |
   Create Models in SageMaker
 inputs:
