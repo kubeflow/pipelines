@@ -28,7 +28,12 @@ def mnist_tf(docker_secret='docker-config',
              training_branch='master',
              training_files='./example-seldon/models/tf_mnist/train/*',
              docker_repo_training='ryandawsonuk/deepmnistclassifier_trainer',
-             docker_tag_training='0.3'):
+             docker_tag_training='0.3',
+             serving_repo='https://github.com/kubeflow/example-seldon.git',
+             serving_branch='master',
+             serving_files='./example-seldon/models/tf_mnist/runtime/*',
+             docker_repo_serving='ryandawsonuk/deepmnistclassifier_runtime',
+             docker_tag_serving='0.3'):
 
 #will be pushing image so need docker secret
 #create local with `kubectl create secret generic docker-config --from-file=config.json=${DOCKERHOME}/config.json --type=kubernetes.io/config`
@@ -38,9 +43,16 @@ def mnist_tf(docker_secret='docker-config',
     )
 
 #use volume for storing model
-    vop = dsl.VolumeOp(
-        name="mypvc",
-        resource_name="newpvc",
+    modelvolop = dsl.VolumeOp(
+        name="modelpvc",
+        resource_name="modelpvc",
+        size="50Mi",
+        modes=dsl.VOLUME_MODE_RWO
+    )
+#and another as working directory between steps
+    wkdirop = dsl.VolumeOp(
+        name="wkdirpvc",
+        resource_name="wkdirpvc",
         size="50Mi",
         modes=dsl.VOLUME_MODE_RWO
     )
@@ -51,7 +63,7 @@ def mnist_tf(docker_secret='docker-config',
         image="alpine/git:latest",
         command=["sh", "-c"],
         arguments=["git clone --depth 1 --branch "+str(training_branch)+" "+str(training_repo)+"; cp "+str(training_files)+" /workspace; ls /workspace/;"],
-        pvolumes={"/workspace": vop.volume}
+        pvolumes={"/workspace": wkdirop.volume}
     )
 
 #build and push image for training
@@ -92,7 +104,7 @@ def mnist_tf(docker_secret='docker-config',
 							{
 								"name": "persistent-storage",
 								"persistentVolumeClaim": {
-									"claimName": "{{workflow.name}}-newpvc"
+									"claimName": "{{workflow.name}}-modelpvc"
 								}
 							}
 						]
@@ -112,21 +124,96 @@ def mnist_tf(docker_secret='docker-config',
         k8s_resource=tfjob,
         success_condition='status.replicaStatuses.Worker.succeeded == 1',
         attribute_outputs={"name": "{.metadata.name}"}
-    ).after(build)
+    ).after(build).after(modelvolop)
+
+#prepare the serving code
+    cloneServing = dsl.ContainerOp(
+        name="cloneServing",
+        image="alpine/git:latest",
+        command=["sh", "-c"],
+        arguments=["rm -rf /workspace/*; git clone --depth 1 --branch "+str(serving_branch)+" "+str(serving_repo)+"; cp "+str(serving_files)+" /workspace; ls /workspace/;"],
+        pvolumes={"/workspace": wkdirop.volume}
+    ).after(train)
 
     buildServing = dsl.ContainerOp(
         name="buildServing",
-        image="library/bash:4.4.23",
-        command=["echo", "This could become a serving build step."],
-        pvolumes={"/workspace": vop.volume.after(train)}
-    )
+        image="gcr.io/kaniko-project/executor:latest",
+        arguments=["--dockerfile","Dockerfile","--destination",str(docker_repo_serving)+":"+str(docker_tag_serving)],
+        pvolumes={"/workspace": cloneServing.pvolume,"/root/.docker/": secret}
+    ).after(cloneServing)
 
-    serve = dsl.ContainerOp(
-        name="serve",
-        image="library/bash:4.4.23",
-        command=["echo", "Serve by deploying SeldonDeployment k8s resource."],
-        pvolumes={"/workspace": vop.volume.after(buildServing)}
-    )
+    seldonServingJson = """
+{
+	"apiVersion": "machinelearning.seldon.io/v1alpha2",
+	"kind": "SeldonDeployment",
+	"metadata": {
+		"labels": {
+			"app": "seldon"
+		},
+		"name": "mnist-classifier"
+	},
+	"spec": {
+		"annotations": {
+			"deployment_version": "v1",
+			"project_name": "MNIST Example"
+		},
+		"name": "mnist-classifier",
+		"predictors": [
+			{
+				"annotations": {
+					"predictor_version": "v1"
+				},
+				"componentSpecs": [
+					{
+						"spec": {
+							"containers": [
+								{
+									"image": "{{workflow.parameters.docker-repo-serving}}:{{workflow.parameters.docker-tag-serving}}",
+									"imagePullPolicy": "Always",
+									"name": "mnist-classifier",
+									"volumeMounts": [
+										{
+											"mountPath": "/data",
+											"name": "persistent-storage"
+										}
+									]
+								}
+							],
+							"terminationGracePeriodSeconds": 1,
+							"volumes": [
+								{
+									"name": "persistent-storage",
+									"persistentVolumeClaim": {
+											"claimName": "{{workflow.name}}-modelpvc"
+									}
+								}
+							]
+						}
+					}
+				],
+				"graph": {
+					"children": [],
+					"endpoint": {
+						"type": "REST"
+					},
+					"name": "mnist-classifier",
+					"type": "MODEL"
+				},
+				"name": "mnist-classifier",
+				"replicas": 1
+			}
+		]
+	}
+}    
+"""
+    seldonDeployment = json.loads(seldonServingJson)
+
+    serve = dsl.ResourceOp(
+        name='serve',
+        k8s_resource=seldonDeployment,
+        success_condition='status.state == Available',
+        attribute_outputs={"name": "{.metadata.name}"}
+    ).after(buildServing)
 
 
 if __name__ == "__main__":
