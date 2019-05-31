@@ -22,7 +22,10 @@ class TestTypes(unittest.TestCase):
     gcspath_dict = _instance_to_dict(GCSPath())
     golden_dict = {
         'GCSPath': {
-
+          'openapi_schema_validator': {
+              "type": "string",
+              "pattern": "^gs://.*$"
+          }
         }
     }
     self.assertEqual(golden_dict, gcspath_dict)
