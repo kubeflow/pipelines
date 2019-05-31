@@ -75,7 +75,10 @@ for the get job operation typically these are written to a http.Request
 */
 type GetJobParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the job to be retrieved
+
+	*/
 	ID string
 
 	timeout    time.Duration

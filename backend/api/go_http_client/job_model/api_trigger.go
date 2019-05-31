@@ -26,7 +26,7 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// APITrigger api trigger
+// APITrigger Trigger defines what starts a pipeline run.
 // swagger:model apiTrigger
 type APITrigger struct {
 

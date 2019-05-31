@@ -1,4 +1,4 @@
-FROM l.gcr.io/google/bazel:0.21.0 as builder
+FROM l.gcr.io/google/bazel:0.24.0 as builder
 
 RUN apt-get update && \
   apt-get install -y cmake clang musl-dev openssl
