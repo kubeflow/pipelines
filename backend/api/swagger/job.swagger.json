@@ -104,6 +104,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "The job to be created",
             "in": "body",
             "required": true,
             "schema": {
@@ -136,6 +137,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the job to be retrieved",
             "in": "path",
             "required": true,
             "type": "string"
@@ -164,6 +166,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the job to be deleted",
             "in": "path",
             "required": true,
             "type": "string"
@@ -194,6 +197,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the job to be disabled",
             "in": "path",
             "required": true,
             "type": "string"
@@ -224,6 +228,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the job to be enabled",
             "in": "path",
             "required": true,
             "type": "string"
@@ -251,16 +256,20 @@
       "properties": {
         "start_time": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "title": "The start time of the cron job"
         },
         "end_time": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "title": "The end time of the cron job"
         },
         "cron": {
-          "type": "string"
+          "type": "string",
+          "title": "The cron string. For details how to compose a cron, visit ttps://en.wikipedia.org/wiki/Cron"
         }
-      }
+      },
+      "title": "CronSchedule allow scheduling the job with unix-like cron"
     },
     "apiJob": {
       "type": "object",
@@ -320,7 +329,8 @@
         },
         "enabled": {
           "type": "boolean",
-          "format": "boolean"
+          "format": "boolean",
+          "description": "Input. Whether the job is enabled or not."
         }
       }
     },
@@ -331,7 +341,8 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiJob"
-          }
+          },
+          "description": "A list of jobs returned."
         },
         "total_size": {
           "type": "integer",
@@ -358,17 +369,21 @@
       "properties": {
         "start_time": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "title": "The start time of the periodic job"
         },
         "end_time": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "title": "The end time of the periodic job"
         },
         "interval_second": {
           "type": "string",
-          "format": "int64"
+          "format": "int64",
+          "title": "The time interval between the starting time of consecutive jobs"
         }
-      }
+      },
+      "title": "PeriodicSchedule allow scheduling the job periodically with certain interval"
     },
     "apiPipelineSpec": {
       "type": "object",
@@ -464,7 +479,8 @@
         "periodic_schedule": {
           "$ref": "#/definitions/apiPeriodicSchedule"
         }
-      }
+      },
+      "description": "Trigger defines what starts a pipeline run."
     },
     "protobufAny": {
       "type": "object",
