@@ -32,7 +32,7 @@ import (
 // swagger:model apiListJobsResponse
 type APIListJobsResponse struct {
 
-	// jobs
+	// A list of jobs returned.
 	Jobs []*APIJob `json:"jobs"`
 
 	// next page token
