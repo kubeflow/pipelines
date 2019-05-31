@@ -174,6 +174,7 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 	c.Ports = []corev1.ContainerPort{
 		corev1.ContainerPort{ContainerPort: viewerTargetPort},
 	}
+
 }
 
 func deploymentFrom(view *viewerV1beta1.Viewer) (*appsv1.Deployment, error) {
