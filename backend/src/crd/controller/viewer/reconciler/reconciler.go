@@ -174,23 +174,6 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 	c.Ports = []corev1.ContainerPort{
 		corev1.ContainerPort{ContainerPort: viewerTargetPort},
 	}
-
-	// Propage the credentials from viewer resource definition to pod spec
-	for _, viewSpecContainer := range view.Spec.PodTemplateSpec.Spec.Containers {
-		for _, env := range viewSpecContainer.Env {
-			c.Env = append(c.Env, corev1.EnvVar{Name: env.Name, Value: env.Value})
-		}
-		for _, volMount := range viewSpecContainer.VolumeMounts {
-			c.VolumeMounts = append(c.VolumeMounts,
-				corev1.VolumeMount{MountPath: volMount.MountPath, Name: volMount.Name})
-		}
-	}
-	for _, viewSpecVolume := range view.Spec.PodTemplateSpec.Spec.Volumes {
-		s.Volumes = append(s.Volumes, corev1.Volume{Name: viewSpecVolume.Name,
-			VolumeSource: corev1.VolumeSource{Secret:
-				&corev1.SecretVolumeSource{SecretName:
-					viewSpecVolume.VolumeSource.Secret.SecretName}}})
-	}
 }
 
 func deploymentFrom(view *viewerV1beta1.Viewer) (*appsv1.Deployment, error) {

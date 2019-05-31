@@ -139,7 +139,7 @@ export function getPodLogs(podName: string): Promise<string> {
 }
 
 function getNameOfViewerResource(logdir: string): string {
-  return 'viewer-' + crypto.SHA1(logdir);
+  return 'viewer-' + crypto.SHA1(logdir) + '-v1';
 }
 
 /**
