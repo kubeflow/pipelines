@@ -15,17 +15,20 @@
 
 import json
 import kfp.dsl as dsl
-
+from string import Template
 
 @dsl.pipeline(
     name="Deploy example MAB",
     description="Multi-armed bandit example"
 )
-def mabdeploy_seldon():
+def mabdeploy_seldon(docker_image1='seldonio/mock_classifier:1.0',
+                     docker_image2='seldonio/mock_classifier:1.0',
+                     mab_router_image='seldonio/mab_epsilon_greedy:1.1'):
 
 #serve two models load balanced as bandit as per https://github.com/SeldonIO/seldon-core/blob/master/notebooks/helm_examples.ipynb
-
-    mabjson = """
+#in this example no volumes or buckets required as the models are baked into images
+#seldon can also be used with volumes - see seldon tf mnist example
+    mabjsonTemplate = Template("""
 {
     "apiVersion": "machinelearning.seldon.io/v1alpha2",
     "kind": "SeldonDeployment",
@@ -45,7 +48,7 @@ def mabdeploy_seldon():
                     "spec": {
                         "containers": [
                             {
-                                "image": "seldonio/mock_classifier:1.0",
+                                "image": "$image1",
                                 "imagePullPolicy": "IfNotPresent",
                                 "name": "classifier-1",
                                 "resources": {
@@ -65,7 +68,7 @@ def mabdeploy_seldon():
                         "spec":{
                             "containers":[
                             {
-                                "image": "seldonio/mock_classifier:1.0",
+                                "image": "$image2",
                                 "imagePullPolicy": "IfNotPresent",
                                 "name": "classifier-2",
                                 "resources": {
@@ -81,7 +84,7 @@ def mabdeploy_seldon():
                 {
                     "spec":{
                         "containers": [{
-                            "image": "seldonio/mab_epsilon_greedy:1.1",
+                            "image": "$router",
                             "name": "eg-router"
                         }],
                         "terminationGracePeriodSeconds": 20
@@ -130,7 +133,9 @@ def mabdeploy_seldon():
         ]
     }
 }
-"""
+""")
+
+    mabjson = mabjsonTemplate.substitute({ 'image1': str(docker_image1),'image2': str(docker_image2),'router': str(mab_router_image)})
 
     mabdeployment = json.loads(mabjson)
 
@@ -138,8 +143,7 @@ def mabdeploy_seldon():
         name="deploy",
         k8s_resource=mabdeployment,
         action="apply",
-        success_condition='status.state == Available',
-        attribute_outputs={"name": "{.metadata.name}"}
+        success_condition='status.state == Available'
     )
 
 

@@ -19,7 +19,7 @@ from string import Template
 
 @dsl.pipeline(
     name="Seldon MNIST TF",
-    description="Example of training and serving seldon MNIST TF model. Requires docker secret as per kubeflow/example-seldon."
+    description="Example of training and serving seldon MNIST TF model. Requires docker secret as per kubeflow/example-seldon. Simpler version is mnist_tf_nopush.py"
 )
 
 #Example derived from https://github.com/kubeflow/example-seldon
