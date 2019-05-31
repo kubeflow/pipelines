@@ -15,7 +15,7 @@
 from kubernetes import client as k8s_client
 import kfp.dsl as dsl
 import json
-
+from string import Template
 
 @dsl.pipeline(
     name="Seldon MNIST TF",
@@ -75,7 +75,7 @@ def mnist_tf(docker_secret='docker-config',
         pvolumes={"/workspace": clone.pvolume,"/root/.docker/": secret}
     )
 
-    tfjobjson = """
+    tfjobjsonTemplate = Template("""
 {
 	"apiVersion": "kubeflow.org/v1beta1",
 	"kind": "TFJob",
@@ -90,7 +90,7 @@ def mnist_tf(docker_secret='docker-config',
 					"spec": {
 						"containers": [
 							{
-								"image": "{{workflow.parameters.docker-repo-training}}:{{workflow.parameters.docker-tag-training}}",
+								"image": "$dockerrepotraining:$dockertagtraining",
 								"name": "tensorflow",
 								"volumeMounts": [
 									{
@@ -105,7 +105,7 @@ def mnist_tf(docker_secret='docker-config',
 							{
 								"name": "persistent-storage",
 								"persistentVolumeClaim": {
-									"claimName": "{{workflow.name}}-modelpvc"
+									"claimName": "$modelpvc"
 								}
 							}
 						]
@@ -116,7 +116,9 @@ def mnist_tf(docker_secret='docker-config',
 		}
 	}
 }
-"""
+""")
+
+    tfjobjson = tfjobjsonTemplate.substitute({ 'dockerrepotraining': str(docker_repo_training),'dockertagtraining': str(docker_tag_training),'modelpvc': modelvolop.outputs["name"]})
 
     tfjob = json.loads(tfjobjson)
 
