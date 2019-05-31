@@ -279,8 +279,7 @@ const createTensorboardHandler = async (req, res) => {
 
   try {
     await k8sHelper.newTensorboardPod(logdir);
-    const tensorboardAddress = await k8sHelper.waitForTensorboard(
-      logdir, 60 * 1000);
+    const tensorboardAddress = await k8sHelper.waitForTensorboard(logdir, 60 * 1000);
     res.send(tensorboardAddress);
   } catch (err) {
     res.status(500).send('Failed to start Tensorboard app: ' + JSON.stringify(err));
