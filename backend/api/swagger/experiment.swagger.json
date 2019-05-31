@@ -84,6 +84,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "The experiment to be created",
             "in": "body",
             "required": true,
             "schema": {
@@ -116,6 +117,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the experiment to be retrieved",
             "in": "path",
             "required": true,
             "type": "string"
@@ -144,6 +146,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the experiment to be deleted.",
             "in": "path",
             "required": true,
             "type": "string"
@@ -185,14 +188,17 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiExperiment"
-          }
+          },
+          "description": "A list of experiments returned."
         },
         "total_size": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "description": "The total number of experiments for the given query."
         },
         "next_page_token": {
-          "type": "string"
+          "type": "string",
+          "description": "The token to list the next page of experiments."
         }
       }
     },
