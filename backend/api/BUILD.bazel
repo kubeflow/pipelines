@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 load("@com_github_grpc_ecosystem_grpc_gateway//protoc-gen-swagger:defs.bzl", "protoc_gen_swagger")
 
 proto_library(
-    name = "api_proto",
+    name = "go_client_proto",
     srcs = [
         "error.proto",
         "experiment.proto",
@@ -27,13 +27,13 @@ proto_library(
 )
 
 go_proto_library(
-    name = "api_go_proto",
+    name = "go_client_go_proto",
     compilers = [
         "@io_bazel_rules_go//proto:go_grpc",
         "@com_github_grpc_ecosystem_grpc_gateway//protoc-gen-grpc-gateway:go_gen_grpc_gateway",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/api/go_client",  # keep
-    proto = ":api_proto",
+    proto = ":go_client_proto",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_grpc_ecosystem_grpc_gateway//protoc-gen-swagger/options:go_default_library",
@@ -43,21 +43,19 @@ go_proto_library(
 
 go_library(
     name = "go_default_library",
-    embed = [
-        ":api_go_proto",
-    ],
-    importpath = "github.com/kubeflow/pipelines/backend/api/go_client",  # keep
+    embed = [":go_client_go_proto"],
+    importpath = "github.com/kubeflow/pipelines/backend/api/go_client",
     visibility = ["//visibility:public"],
 )
 
 protoc_gen_swagger(
     name = "api_swagger",
-    proto = ":api_proto",
+    proto = ":go_client_proto",
 )
 
 go_path(
     name = "api_generated_go_sources",
     deps = [
-        ":api_go_proto",
+        ":go_client_go_proto",
     ],
 )
