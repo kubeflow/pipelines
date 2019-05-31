@@ -75,7 +75,10 @@ for the disable job operation typically these are written to a http.Request
 */
 type DisableJobParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the job to be disabled
+
+	*/
 	ID string
 
 	timeout    time.Duration
