@@ -53,6 +53,11 @@ def create_training_job(client, image, instance_type, instance_count, volume_siz
           "VolumeSizeInGB": volume_size
       },
       "TrainingJobName": job_name,
+      "HyperParameters": {	
+          "k": "10",	
+          "feature_dim": "784",	
+          "mini_batch_size": "500"	
+      },
       "StoppingCondition": {
           "MaxRuntimeInSeconds": 60 * 60
       },
