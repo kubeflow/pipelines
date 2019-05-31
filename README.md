@@ -17,6 +17,9 @@ The Kubeflow pipelines service has the following goals:
 ## Documentation
 
 Get started with your first pipeline and read further information in the [Kubeflow Pipelines documentation](https://www.kubeflow.org/docs/guides/pipelines/pipelines-overview/).
+
+See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/pipelines/reference/api/) for API specification.
+
 Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/latest/) when writing pipelines using the python SDK.
 
 ## Blog posts
