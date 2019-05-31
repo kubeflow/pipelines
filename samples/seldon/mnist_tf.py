@@ -38,7 +38,7 @@ def mnist_tf(docker_secret='docker-config',
              docker_tag_serving='0.3'):
 
 #will be pushing image so need docker secret
-#create local with `kubectl create secret generic docker-config --from-file=config.json=${DOCKERHOME}/config.json --type=kubernetes.io/config`
+#create from local with `kubectl create secret generic docker-config --from-file=config.json=${DOCKERHOME}/config.json --type=kubernetes.io/config`
     secret = k8s_client.V1Volume(
         name="docker-config-secret",
         secret=k8s_client.V1SecretVolumeSource(secret_name=docker_secret)
