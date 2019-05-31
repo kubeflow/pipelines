@@ -80,7 +80,16 @@ def mnist_tf(docker_secret='docker-config',
 	"apiVersion": "kubeflow.org/v1beta1",
 	"kind": "TFJob",
 	"metadata": {
-		"name": "mnist-train-{{workflow.uid}}"
+		"name": "mnist-train-{{workflow.uid}}",
+		"ownerReferences": [
+		{
+			"apiVersion": "argoproj.io/v1alpha1",
+			"kind": "Workflow",
+			"controller": true,
+			"name": "{{workflow.name}}",
+			"uid": "{{workflow.uid}}"
+		}
+	    ]
 	},
 	"spec": {
 		"tfReplicaSpecs": {
@@ -125,9 +134,8 @@ def mnist_tf(docker_secret='docker-config',
     train = dsl.ResourceOp(
         name="train",
         k8s_resource=tfjob,
-        success_condition='status.replicaStatuses.Worker.succeeded == 1',
-        attribute_outputs={"name": "{.metadata.name}"}
-    ).after(build).after(modelvolop)
+        success_condition='status.replicaStatuses.Worker.succeeded == 1'
+    ).after(build)
 
 #prepare the serving code
     cloneServing = dsl.ContainerOp(
@@ -145,7 +153,7 @@ def mnist_tf(docker_secret='docker-config',
         pvolumes={"/workspace": cloneServing.pvolume,"/root/.docker/": secret}
     ).after(cloneServing)
 
-    seldonServingJson = """
+    seldonServingJsonTemplate = Template("""
 {
 	"apiVersion": "machinelearning.seldon.io/v1alpha2",
 	"kind": "SeldonDeployment",
@@ -171,7 +179,7 @@ def mnist_tf(docker_secret='docker-config',
 						"spec": {
 							"containers": [
 								{
-									"image": "{{workflow.parameters.docker-repo-serving}}:{{workflow.parameters.docker-tag-serving}}",
+									"image": "$dockerreposerving:$dockertagserving",
 									"imagePullPolicy": "Always",
 									"name": "mnist-classifier",
 									"volumeMounts": [
@@ -187,7 +195,7 @@ def mnist_tf(docker_secret='docker-config',
 								{
 									"name": "persistent-storage",
 									"persistentVolumeClaim": {
-											"claimName": "{{workflow.name}}-modelpvc"
+											"claimName": "$modelpvc"
 									}
 								}
 							]
@@ -208,14 +216,15 @@ def mnist_tf(docker_secret='docker-config',
 		]
 	}
 }    
-"""
+""")
+    seldonServingJson = seldonServingJsonTemplate.substitute({ 'dockerreposerving': str(docker_repo_serving),'dockertagserving': str(docker_tag_serving),'modelpvc': modelvolop.outputs["name"]})
+
     seldonDeployment = json.loads(seldonServingJson)
 
     serve = dsl.ResourceOp(
         name='serve',
         k8s_resource=seldonDeployment,
-        success_condition='status.state == Available',
-        attribute_outputs={"name": "{.metadata.name}"}
+        success_condition='status.state == Available'
     ).after(buildServing)
 
 
