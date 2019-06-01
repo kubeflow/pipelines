@@ -127,4 +127,3 @@ export function getPodLogs(podName: string): Promise<string> {
       (error: any) => { throw new Error(JSON.stringify(error.body)); }
     );
 }
-
