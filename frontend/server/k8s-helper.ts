@@ -13,8 +13,7 @@
 // limitations under the License.
 
 // @ts-ignore
-import {Core_v1Api, Custom_objectsApi, KubeConfig} from '@kubernetes/client-node';
-import * as crypto from 'crypto-js';
+import { Config, Core_v1Api } from '@kubernetes/client-node';
 import * as fs from 'fs';
 import * as Utils from './utils';
 
@@ -23,21 +22,12 @@ import * as Utils from './utils';
 const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
 let namespace = '';
 let k8sV1Client: Core_v1Api | null = null;
-let k8sV1CustomObjectClient: Custom_objectsApi | null = null;
-
-// Constants for creating customer resource Viewer.
-const viewerGroup = 'kubeflow.org';
-const viewerVersion = 'v1beta1';
-const viewerPlural = 'viewers';
 
 export const isInCluster = fs.existsSync(namespaceFilePath);
 
 if (isInCluster) {
   namespace = fs.readFileSync(namespaceFilePath, 'utf-8');
-  const kc = new KubeConfig();
-  kc.loadFromDefault();
-  k8sV1Client = kc.makeApiClient(Core_v1Api);
-  k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
+  k8sV1Client = Config.defaultClient();
 }
 
 /**
@@ -134,100 +124,7 @@ export function getPodLogs(podName: string): Promise<string> {
   return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any)
     .then(
       (response: any) => (response && response.body) ? response.body.toString() : '',
-      (error: any) => {throw new Error(JSON.stringify(error.body));}
+      (error: any) => { throw new Error(JSON.stringify(error.body)); }
     );
 }
 
-function getNameOfViewerResource(logdir: string): string {
-  return 'viewer-' + crypto.SHA1(logdir);
-}
-
-/**
-* Create Tensorboard pod via CRD with the given logdir if there is no existing
-* Tensorboard pod.
-*/
-export async function newTensorboardInstance(logdir: string): Promise<void> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
-  }
-  const currentPod = await getTensorboardInstance(logdir);
-  if (currentPod) {
-    return;
-  }
-
-  // TODO: take the configuration below to a separate file
-  // Name of the viewer resource is based on logDir.
-  const body = {
-    apiVersion: viewerGroup + '/' + viewerVersion,
-    kind: 'Viewer',
-    metadata: {
-      name: getNameOfViewerResource(logdir),
-      namespace: namespace,
-    },
-    spec: {
-      type: 'tensorboard',
-      tensorboardSpec: {
-        logDir: logdir,
-      },
-      PodTemplateSpec: {
-        spec: {
-          containers: [{
-            env: [{
-              name: 'GOOGLE_APPLICATION_CREDENTIALS',
-              value: '/secret/gcp-credentials/user-gcp-sa.json'
-            }],
-            volumeMounts: [{
-              mountPath: '/secret/gcp-credentials',
-              name: 'gcp-credentials',
-            }],
-          }],
-          volumes: [{
-            name: 'gcp-credentials',
-            secret: {
-              secretName: 'user-gcp-sa',
-            },
-          }],
-        }
-      }
-    }
-  };
-  await k8sV1CustomObjectClient.createNamespacedCustomObject(viewerGroup,
-    viewerVersion, namespace, viewerPlural, body);
-}
-
-/**
-* Finds a running Tensorboard pod created via CRD with the give logdir and
-* returns its pod IP and port.
-*/
-export async function getTensorboardInstance(logdir: string): Promise<string> {
-  if (!k8sV1CustomObjectClient) {
-    throw new Error('Cannot access kubernetes Custom Object API');
-  }
-
-  const viewers = (await k8sV1CustomObjectClient.listNamespacedCustomObject(
-    viewerGroup, viewerVersion, namespace, viewerPlural)).body.items;
-  const viewer = viewers.find((v) =>
-    v.metadata.name == getNameOfViewerResource(logdir) &&
-    v.spec.tensorboardSpec.logDir == logdir &&
-    v.spec.type == 'tensorboard');
-  return viewer ? `http://${viewer.metadata.name}-service.kubeflow.svc.cluster.local:6006` : '';
-}
-
-/**
- * Polls every second for a running Tensorboard pod with the given logdir, and
- * returns the address of one if found, or rejects if a timeout expires.
- */
-export function waitForTensorboardInstance(logdir: string, timeout: number): Promise<string> {
-  const start = Date.now();
-  return new Promise((resolve, reject) => {
-    setInterval(async () => {
-      if (Date.now() - start > timeout) {
-        reject('Timed out waiting for tensorboard');
-      }
-      const tensorboardAddress = await getTensorboardInstance(logdir);
-      if (tensorboardAddress) {
-        resolve(encodeURIComponent(tensorboardAddress));
-      }
-    }, 1000);
-  });
-}
