@@ -65,4 +65,6 @@ class TestPipelineVolume(unittest.TestCase):
         """Test PipelineVolume creation when omitting "name"."""
         vol = PipelineVolume(pvc="foo")
 
-        self.assertEqual(vol.name, "pvolume-%s" % id(vol))
+        name = ("pvolume-109601a31098e6c92e2ad294fee3fae234e3f52398d3b077b0e0"
+                "690e4cece686")
+        self.assertEqual(vol.name, name)

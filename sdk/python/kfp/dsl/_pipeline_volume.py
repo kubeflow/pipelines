@@ -13,6 +13,8 @@
 # limitations under the License.
 
 
+import hashlib
+
 from kubernetes.client.models import (
     V1Volume, V1PersistentVolumeClaimVolumeSource
 )
@@ -52,7 +54,7 @@ class PipelineVolume(V1Volume):
                            for attr in self.attribute_map.keys()}
         else:
             init_volume = {"name": kwargs.pop("name") if "name" in kwargs
-                           else "pvolume-%s" % id(self)}
+                           else "pvolume-placeholder"}
             if pvc and kwargs:
                 raise ValueError("You can only pass 'name' along with 'pvc'.")
             elif pvc and not kwargs:
@@ -61,6 +63,9 @@ class PipelineVolume(V1Volume):
                 )
                 init_volume["persistent_volume_claim"] = pvc_volume_source
         super().__init__(**init_volume, **kwargs)
+        self.name = "pvolume-%s" % hashlib.sha256(
+            bytes(str(self.to_dict()), "utf-8")
+        ).hexdigest()
         self.dependent_names = []
 
     def after(self, *ops):
