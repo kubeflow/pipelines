@@ -70,7 +70,10 @@ class TypeMeta(BaseMeta):
 
   @staticmethod
   def deserialize(payload):
-    # If the payload is a string of a dict serialization, convert it back to a dict
+    '''deserialize expects two types of input: dict and str
+    1) If the payload is a string of a dict serialization, convert it back to a dict
+    2) If the payload is a string, the type is named as such with no properties.
+    3) If the payload is a dict, the type name and properties are extracted. '''
     try:
       import ast
       payload = ast.literal_eval(payload)
@@ -138,6 +141,9 @@ def _annotation_to_typemeta(annotation):
   '''_annotation_to_type_meta converts an annotation to an instance of TypeMeta
   Args:
     annotation(BaseType/str/dict): input/output annotations
+      BaseType: registered in kfp.dsl.types
+      str: either a string of a dict serialization or a string of the type name
+      dict: type name and properties. note that the properties values can be dict.
   Returns:
     TypeMeta
     '''
@@ -233,6 +239,14 @@ def _extract_pipeline_metadata(func):
       arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
+    if 'openapi_schema_validator' in arg_type.properties and arg_default is not None:
+      from jsonschema import validate
+      import json
+      schema_object = arg_type.properties['openapi_schema_validator']
+      if isinstance(schema_object, str):
+        # In case the property value for the schema validator is a string instead of a dict.
+        schema_object = json.loads(arg_type.properties['openapi_schema_validator'])
+      validate(instance=arg_default, schema=schema_object)
     pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
 
   #TODO: add descriptions to the metadata

@@ -65,6 +65,7 @@ matrix:
     - language: python
       python: "3.6"
       env: TOXENV=py36
+      install: pip3 install jsonschema==3.0.1
       script:
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
