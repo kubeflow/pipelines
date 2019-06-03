@@ -56,7 +56,18 @@ def _capture_function_code_using_cloudpickle(func) -> str:
     finally:
         sys.modules[func.__module__] = old_module
     func_code = '{func_name} = pickle.loads({func_pickle})'.format(func_name=func.__name__, func_pickle=repr(func_pickle))
-    return 'import pickle' + '\n\n' + func_code
+
+    code_lines = [
+        'import subprocess',
+        'import sys',
+        'subprocess.call([sys.executable, "-m", "pip", "install", "cloudpickle"])'
+        '',
+        'import pickle',
+        '',
+        func_code,
+    ]
+
+    return '\n'.join(code_lines)
 
 
 def _func_to_component_spec(func, extra_code='', base_image=_default_base_image) -> ComponentSpec:
