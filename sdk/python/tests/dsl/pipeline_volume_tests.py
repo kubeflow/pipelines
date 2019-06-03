@@ -63,8 +63,11 @@ class TestPipelineVolume(unittest.TestCase):
 
     def test_omitting_name(self):
         """Test PipelineVolume creation when omitting "name"."""
-        vol = PipelineVolume(pvc="foo")
+        vol1 = PipelineVolume(pvc="foo")
+        vol2 = PipelineVolume(name="provided", pvc="foo")
+        name1 = ("pvolume-109601a31098e6c92e2ad294fee3fae234e3f52398d3b077b0e0"
+                 "690e4cece686")
+        name2 = "provided"
 
-        name = ("pvolume-109601a31098e6c92e2ad294fee3fae234e3f52398d3b077b0e0"
-                "690e4cece686")
-        self.assertEqual(vol.name, name)
+        self.assertEqual(vol1.name, name1)
+        self.assertEqual(vol2.name, name2)

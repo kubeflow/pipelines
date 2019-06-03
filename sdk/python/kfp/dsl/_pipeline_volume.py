@@ -48,13 +48,17 @@ class PipelineVolume(V1Volume):
             raise ValueError("You can't pass a volume along with other "
                              "kwargs.")
 
+        name_provided = True
         init_volume = {}
         if volume:
             init_volume = {attr: getattr(volume, attr)
                            for attr in self.attribute_map.keys()}
         else:
-            init_volume = {"name": kwargs.pop("name") if "name" in kwargs
-                           else "pvolume-placeholder"}
+            if "name" in kwargs:
+                init_volume = {"name": kwargs.pop("name")}
+            else:
+                name_provided = False
+                init_volume = {"name": "pvolume-placeholder"}
             if pvc and kwargs:
                 raise ValueError("You can only pass 'name' along with 'pvc'.")
             elif pvc and not kwargs:
@@ -63,9 +67,11 @@ class PipelineVolume(V1Volume):
                 )
                 init_volume["persistent_volume_claim"] = pvc_volume_source
         super().__init__(**init_volume, **kwargs)
-        self.name = "pvolume-%s" % hashlib.sha256(
-            bytes(str(self.to_dict()), "utf-8")
-        ).hexdigest()
+
+        if not name_provided:
+            self.name = "pvolume-%s" % hashlib.sha256(
+                bytes(str(self.to_dict()), "utf-8")
+            ).hexdigest()
         self.dependent_names = []
 
     def after(self, *ops):
