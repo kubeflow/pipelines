@@ -469,7 +469,7 @@ data:
   config: |
     {
     namespace: kubeflow,
-    executorImage: argoproj/argoexec:v2.2.0,
+    executorImage: argoproj/argoexec:v2.3.0,
     artifactRepository:
     {
         s3: {
@@ -792,7 +792,7 @@ spec:
         - --configmap
         - workflow-controller-configmap
         - --executor-image
-        - argoproj/argoexec:v2.2.0
+        - argoproj/argoexec:v2.3.0
         command:
         - workflow-controller
         env:
@@ -801,7 +801,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: argoproj/workflow-controller:v2.2.0
+        image: argoproj/workflow-controller:v2.3.0
         imagePullPolicy: IfNotPresent
         name: workflow-controller
         resources: {}
