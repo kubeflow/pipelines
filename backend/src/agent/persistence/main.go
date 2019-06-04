@@ -40,6 +40,7 @@ var (
 	mlPipelineAPIServerBasePath string
 	mlPipelineServiceHttpPort   string
 	mlPipelineServiceGRPCPort   string
+	namespace                   string
 )
 
 const (
@@ -51,6 +52,7 @@ const (
 	mlPipelineAPIServerNameFlagName     = "mlPipelineAPIServerName"
 	mlPipelineAPIServerHttpPortFlagName = "mlPipelineServiceHttpPort"
 	mlPipelineAPIServerGRPCPortFlagName = "mlPipelineServiceGRPCPort"
+	namespaceFlagName                   = "namespace"
 )
 
 func main() {
@@ -74,8 +76,15 @@ func main() {
 		log.Fatalf("Error building workflow clientset: %s", err.Error())
 	}
 
-	swfInformerFactory := swfinformers.NewSharedInformerFactory(swfClient, time.Second*30)
-	workflowInformerFactory := workflowinformers.NewSharedInformerFactory(workflowClient, time.Second*30)
+	var swfInformerFactory swfinformers.SharedInformerFactory
+	var workflowInformerFactory workflowinformers.SharedInformerFactory
+	if namespace == "" {
+		swfInformerFactory = swfinformers.NewSharedInformerFactory(swfClient, time.Second*30)
+		workflowInformerFactory = workflowinformers.NewSharedInformerFactory(workflowClient, time.Second*30)
+	} else {
+		swfInformerFactory = swfinformers.NewFilteredSharedInformerFactory(swfClient, time.Second*30, namespace, nil)
+		workflowInformerFactory = workflowinformers.NewFilteredSharedInformerFactory(workflowClient, time.Second*30, namespace, nil)
+	}
 
 	pipelineClient, err := client.NewPipelineClient(
 		initializeTimeout,
@@ -112,4 +121,5 @@ func init() {
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
 		"/apis/v1beta1", "The base path for the ML pipeline API server.")
+	flag.StringVar(&namespace, namespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")
 }

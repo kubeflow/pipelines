@@ -29,7 +29,7 @@ MANIFEST_FILE_PATH = '<Please put your path for model manifest definition in the
 ```python
 # Optional Parameters
 EXPERIMENT_NAME = 'Fabric for Deep Learning - Train Model'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/ffdl/train/component.yaml'
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/ibm-components/ffdl/train/component.yaml'
 ```
 
 ### Install KFP SDK

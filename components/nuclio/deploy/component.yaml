@@ -1,0 +1,28 @@
+name: nuclio deploy
+description: auto build and deploy nuclio function.
+inputs:
+  - {name: Url, type: String, description: 'url/path to source code, zip archive, git path, or notebook'}
+  - {name: Name, type: String, description: 'function name'}
+  - {name: Project, type: String, description: 'project name', default: 'default'}
+  - {name: Tag, type: String, description: 'function version tag', default: ''}
+  - {name: Dashboard, type: String, description: 'nuclio dashboard service url', default: 'http://nuclio-dashboard.nuclio:8070'}
+  - {name: Spec, type: String, description: 'override function spec, Json {key: value, ..}', default: ''}
+  - {name: Env, type: String, description: 'override function env var, Json {key: value, ..}', default: ''}
+  - {name: Mount, type: String, description: 'volume mount, [vol-type:]<vol-url>:<dst-path>', default: ''}
+outputs:
+  - {name: Endpoint, type: String, description: 'function endpoint url'}
+implementation:
+  container:
+    image: nuclio/pydeploy
+    command: [
+      python, -m, nuclio, deploy, {inputValue: Url},
+      --dashboard-url, {inputValue: Dashboard},
+      --name, {inputValue: Name},
+      --project, {inputValue: Project},
+      --tag, {inputValue: Tag},
+      --env-json, {inputValue: Env},
+      --spec-json, {inputValue: Spec},
+      --mount, {inputValue: Mount},
+    ]
+    fileOutputs:
+      Endpoint: /tmp/output

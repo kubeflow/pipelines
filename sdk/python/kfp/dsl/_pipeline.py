@@ -25,7 +25,7 @@ import sys
 _pipeline_decorator_handler = None
 
 
-def pipeline(name, description):
+def pipeline(name : str = None, description : str = None):
   """Decorator of pipeline functions.
 
   Usage:
@@ -39,8 +39,10 @@ def pipeline(name, description):
   ```
   """
   def _pipeline(func):
-    func._pipeline_name = name
-    func._pipeline_description = description
+    if name:
+      func._pipeline_name = name
+    if description:
+      func._pipeline_description = description
 
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func
@@ -54,9 +56,11 @@ class PipelineConf():
   """
   def __init__(self):
     self.image_pull_secrets = []
+    self.artifact_location = None
+    self.op_transformers = []
 
   def set_image_pull_secrets(self, image_pull_secrets):
-    """ configure the pipeline level imagepullsecret
+    """Configures the pipeline level imagepullsecret
 
     Args:
       image_pull_secrets: a list of Kubernetes V1LocalObjectReference
@@ -64,6 +68,41 @@ class PipelineConf():
       https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
     """
     self.image_pull_secrets = image_pull_secrets
+    return self
+
+  def set_artifact_location(self, artifact_location):
+    """Configures the pipeline level artifact location.
+
+    Example::
+
+      from kfp.dsl import ArtifactLocation, get_pipeline_conf, pipeline
+      from kubernetes.client.models import V1SecretKeySelector
+
+
+      @pipeline(name='foo', description='hello world')
+      def foo_pipeline(tag: str, pull_image_policy: str):
+        '''A demo pipeline'''
+        # create artifact location object
+        artifact_location = ArtifactLocation.s3(
+                              bucket="foo",
+                              endpoint="minio-service:9000",
+                              insecure=True,
+                              access_key_secret=V1SecretKeySelector(name="minio", key="accesskey"),
+                              secret_key_secret=V1SecretKeySelector(name="minio", key="secretkey"))
+        # config pipeline level artifact location
+        conf = get_pipeline_conf().set_artifact_location(artifact_location)
+
+        # rest of codes
+        ...
+
+    Args:
+      artifact_location: V1alpha1ArtifactLocation object
+      For detailed description, check Argo V1alpha1ArtifactLocation definition
+      https://github.com/e2fyi/argo-models/blob/release-2.2/argo/models/v1alpha1_artifact_location.py
+      https://github.com/argoproj/argo/blob/release-2.2/api/openapi-spec/swagger.json
+    """
+    self.artifact_location = artifact_location
+    return self
 
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline
@@ -110,8 +149,6 @@ class Pipeline():
     """
     self.name = name
     self.ops = {}
-    self.cops = {}
-    self.rops = {}
     # Add the root group.
     self.groups = [_ops_group.OpsGroup('pipeline', name=name)]
     self.group_id = 0
@@ -148,10 +185,6 @@ class Pipeline():
     op_name = _make_name_unique_by_adding_index(op.human_name, list(self.ops.keys()), ' ')
 
     self.ops[op_name] = op
-    if isinstance(op, _container_op.ContainerOp):
-      self.cops[op_name] = op
-    elif isinstance(op, _resource_op.ResourceOp):
-      self.rops[op_name] = op
     if not define_only:
       self.groups[-1].ops.append(op)
 
