@@ -70,11 +70,11 @@ class Client(object):
     if token:
       config.api_key['authorization'] = token
       config.api_key_prefix['authorization'] = 'Bearer'
-      return
+      return config
 
     if host:
       # if host is explicitly set with auth token, it's probably a port forward address.
-      return
+      return config
 
     import kubernetes as k8s
     in_cluster = True
@@ -86,9 +86,14 @@ class Client(object):
 
     if in_cluster:
       config.host = Client.IN_CLUSTER_DNS_NAME.format(namespace)
-      return
+      return config
 
-    k8s.config.load_kube_config(client_configuration=config)
+    try:
+      k8s.config.load_kube_config(client_configuration=config)
+    except:
+      print('Failed to load kube config.')
+      return config
+
     if config.host:
       config.host = os.path.join(config.host, Client.KUBE_PROXY_PATH.format(namespace))
     return config
