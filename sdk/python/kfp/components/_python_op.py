@@ -86,7 +86,7 @@ def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str]
     return '\n'.join(code_lines)
 
 
-def _create_component_interface_spec_from_function_signature(func) -> ComponentSpec:
+def _extract_component_interface(func) -> ComponentSpec:
     single_output_name_const = 'Output'
 
     signature = inspect.signature(func)
@@ -170,7 +170,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
         if base_image is None:
             raise ValueError('base_image cannot be None')
 
-    component_spec = _create_component_interface_spec_from_function_signature(func)
+    component_spec = _extract_component_interface(func)
 
     arguments = []
     arguments.extend(InputValuePlaceholder(input.name) for input in component_spec.inputs)
