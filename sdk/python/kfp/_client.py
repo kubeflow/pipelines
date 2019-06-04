@@ -34,9 +34,10 @@ class Client(object):
   """
 
   # in-cluster DNS name of the pipeline service
-  IN_CLUSTER_DNS_NAME = 'ml-pipeline.kubeflow.svc.cluster.local:8888'
+  IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
+  KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
-  def __init__(self, host=None, client_id=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow'):
     """Create a new instance of kfp client.
 
     Args:
@@ -51,22 +52,51 @@ class Client(object):
     """
 
     self._host = host
-
-    token = None
-    if host and client_id:
-      token = get_auth_token(client_id)
-  
-    config = kfp_server_api.configuration.Configuration()
-    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
-    self._configure_auth(config, token)
+    config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
 
-  def _configure_auth(self, config, token):
+  def _load_config(self, host, client_id, namespace):
+    config = kfp_server_api.configuration.Configuration()
+    if host:
+      config.host = host
+
+    token = None
+    if host and client_id:
+      # fetch IAP auth token
+      token = get_auth_token(client_id)
+    
     if token:
       config.api_key['authorization'] = token
       config.api_key_prefix['authorization'] = 'Bearer'
+      return config
+
+    if host:
+      # if host is explicitly set with auth token, it's probably a port forward address.
+      return config
+
+    import kubernetes as k8s
+    in_cluster = True
+    try:
+      k8s.config.load_incluster_config()
+    except:
+      in_cluster = False
+      pass
+
+    if in_cluster:
+      config.host = Client.IN_CLUSTER_DNS_NAME.format(namespace)
+      return config
+
+    try:
+      k8s.config.load_kube_config(client_configuration=config)
+    except:
+      print('Failed to load kube config.')
+      return config
+
+    if config.host:
+      config.host = os.path.join(config.host, Client.KUBE_PROXY_PATH.format(namespace))
+    return config
 
   def _is_ipython(self):
     """Returns whether we are running in notebook."""
