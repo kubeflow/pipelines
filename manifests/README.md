@@ -16,11 +16,11 @@ You might lack the permission to create role and command might partially fail. I
 kubectl create clusterrolebinding your-binding --clusterrole=cluster-admin --user=[your-user-name]
 ```
 
-When deployment is done, the UI is accessible by port-forwarding
+When deployment is complete, you can access Kubeflow Pipelines UI by an IAM controlled public endpoint, which can be found by
 ```
-kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
+kubectl describe configmap inverse-proxy-config -n kubeflow
 ```
-and open http://localhost:8080/
+and check the Hostname section. The endpoint should have format like **1234567-dot-datalab-vm-us-west1.googleusercontent.com**
 
 # Customization
 Customization can be done through Kustomize [Overlay](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/glossary.md#overlay). You don't need to modify the base directory. 
@@ -39,16 +39,15 @@ kubectl kustomize . | kubectl apply -f -
 ## Reinstall with existing data
 TODO
 
-## Expose a IAM controlled public endpoint
-By default, the deployment doesn't expose public endpoint.
-If you don't want to port-forward every time to access UI, you could install an [invert proxy agent](https://github.com/google/inverting-proxy) that exposes a public URL.
-To install, uncomment the proxy component in the [kustomization.yaml](base/kustomization.yaml).
+## Disable the public endpoint
+By default, the deployment install an [invert proxy agent](https://github.com/google/inverting-proxy) that exposes a public URL. If you want to skip installing it, comment out the proxy component in the [kustomization.yaml](base/kustomization.yaml).
 
-When deployment is complete, you can find the endpoint by describing
+The UI is still accessible by port-forwarding
 ```
-kubectl describe configmap inverse-proxy-config -n kubeflow
+kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
 ```
-and check the Hostname section. The endpoint should have format like **1234567-dot-datalab-vm-us-west1.googleusercontent.com**
+and open http://localhost:8080/
+
 
 
 # Uninstall
