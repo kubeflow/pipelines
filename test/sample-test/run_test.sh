@@ -269,11 +269,11 @@ elif [ "$TEST_NAME" == "resources" ]; then
 #  SAMPLE_RESOURCEOP_TEST_OUTPUT=${RESULTS_GCS_DIR}
 #
 #  # Compile samples
-#  cd ${BASE_DIR}/samples/resourceops
+#  cd ${BASE_DIR}/samples/basic
 #  dsl-compile --py resourceop_basic.py --output resourceop_basic.tar.gz
 #
 #  cd "${TEST_DIR}"
-#  python3 run_basic_test.py --input ${BASE_DIR}/samples/resourceops/resourceop_basic.tar.gz --result $SAMPLE_RESOURCEOP_TEST_RESULT --output $SAMPLE_RESOURCEOP_TEST_OUTPUT --testname resource --namespace ${NAMESPACE} --params '{"username": "test", "password": "test123"}'
+#  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/resourceop_basic.tar.gz --result $SAMPLE_RESOURCEOP_TEST_RESULT --output $SAMPLE_RESOURCEOP_TEST_OUTPUT --testname resource --namespace ${NAMESPACE} --params '{"username": "test", "password": "test123"}'
 #
 #  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
 #  gsutil cp ${SAMPLE_RESOURCEOP_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_RESOURCEOP_TEST_RESULT}
@@ -283,11 +283,11 @@ elif [ "$TEST_NAME" == "resources" ]; then
   SAMPLE_VOLUMEOP_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
   # Compile samples
-  cd ${BASE_DIR}/samples/resourceops
+  cd ${BASE_DIR}/samples/volumes
   dsl-compile --py volumeop_sequential.py --output volumeop_sequential.tar.gz
 
   cd "${TEST_DIR}"
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/resourceops/volumeop_sequential.tar.gz --result $SAMPLE_VOLUMEOP_TEST_RESULT --output $SAMPLE_VOLUMEOP_TEST_OUTPUT --testname resource --namespace ${NAMESPACE}
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/volumes/volumeop_sequential.tar.gz --result $SAMPLE_VOLUMEOP_TEST_RESULT --output $SAMPLE_VOLUMEOP_TEST_OUTPUT --testname resource --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_VOLUMEOP_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_VOLUMEOP_TEST_RESULT}
