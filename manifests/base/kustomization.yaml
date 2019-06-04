@@ -12,7 +12,7 @@ bases:
 
 images:
 - name: argoproj/workflow-controller
-  newTag: v2.2.0
+  newTag: v2.3.0
 - name: minio/minio
   newTag: RELEASE.2018-02-09T22-40-05Z
 - name: mysql
