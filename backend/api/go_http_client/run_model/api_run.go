@@ -45,7 +45,7 @@ type APIRun struct {
 	// how to handle error. This is especially useful during listing call.
 	Error string `json:"error,omitempty"`
 
-	// Output. When this run is finished.
+	// Output. The time this run is finished.
 	// Format: date-time
 	FinishedAt strfmt.DateTime `json:"finished_at,omitempty"`
 

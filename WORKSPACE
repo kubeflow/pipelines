@@ -130,8 +130,8 @@ http_archive(
 
 http_archive(
     name = "com_github_grpc_ecosystem_grpc_gateway",
-    strip_prefix = "grpc-gateway-1.6.3",
-    url = "https://github.com/grpc-ecosystem/grpc-gateway/archive/v1.6.3.tar.gz",
+    strip_prefix = "grpc-gateway-1.9.0",
+    url = "https://github.com/grpc-ecosystem/grpc-gateway/archive/v1.9.0.tar.gz",
 )
 
 go_repository(

@@ -18,7 +18,9 @@ import kfp
 from kfp import components
 from kfp import dsl
 from kfp import gcp
+from kfp import onprem
 
+platform = 'GCP'
 
 dataflow_tf_data_validation_op  = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/74d8e592174ae90175f66c3c00ba76a835cfba6d/components/dataflow/tfdv/component.yaml')
 dataflow_tf_transform_op        = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/74d8e592174ae90175f66c3c00ba76a835cfba6d/components/dataflow/tft/component.yaml')
@@ -30,7 +32,6 @@ confusion_matrix_op             = components.load_component_from_url('https://ra
 roc_op                          = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/74d8e592174ae90175f66c3c00ba76a835cfba6d/components/local/roc/component.yaml')
 
 kubeflow_deploy_op              = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/74d8e592174ae90175f66c3c00ba76a835cfba6d/components/kubeflow/deployer/component.yaml')
-
 
 @dsl.pipeline(
   name='TFX Taxi Cab Classification Pipeline Example',
@@ -56,6 +57,21 @@ def taxi_cab_classification(
 
     tf_server_name = 'taxi-cab-classification-model-{{workflow.uid}}'
 
+    if platform != 'GCP':
+        vop = dsl.VolumeOp(
+            name="create_pvc",
+            resource_name="pipeline-pvc",
+            modes=dsl.VOLUME_MODE_RWM,
+            size="1Gi"
+        )
+    
+        checkout = dsl.ContainerOp(
+            name="checkout",
+            image="alpine/git:latest",
+            command=["git", "clone", "https://github.com/kubeflow/pipelines.git", str(output) + "/pipelines"],
+        ).apply(onprem.mount_pvc(vop.outputs["name"], 'local-storage', output))
+        checkout.after(vop)
+
     validation = dataflow_tf_data_validation_op(
         inference_data=train,
         validation_data=evaluation,
@@ -63,8 +79,10 @@ def taxi_cab_classification(
         key_columns=key_columns,
         gcp_project=project,
         run_mode=mode,
-        validation_output=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        validation_output=output_template,
+    )
+    if platform != 'GCP':
+        validation.after(checkout)
 
     preprocess = dataflow_tf_transform_op(
         training_data_file_pattern=train,
@@ -74,7 +92,7 @@ def taxi_cab_classification(
         run_mode=mode,
         preprocessing_module=preprocess_module,
         transformed_data_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    )
 
     training = tf_train_op(
         transformed_data_dir=preprocess.output,
@@ -85,7 +103,7 @@ def taxi_cab_classification(
         target='tips',
         preprocessing_module=preprocess_module,
         training_output_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    )
 
     analysis = dataflow_tf_model_analyze_op(
         model=training.output,
@@ -95,7 +113,7 @@ def taxi_cab_classification(
         run_mode=mode,
         slice_columns=analyze_slice_column,
         analysis_results_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    )
 
     prediction = dataflow_tf_predict_op(
         data_file_pattern=evaluation,
@@ -105,24 +123,39 @@ def taxi_cab_classification(
         run_mode=mode,
         gcp_project=project,
         predictions_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    )
 
     cm = confusion_matrix_op(
         predictions=prediction.output,
         target_lambda=target_lambda,
         output_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    )
 
     roc = roc_op(
         predictions_dir=prediction.output,
         target_lambda=target_class_lambda,
         output_dir=output_template
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    )
 
-    deploy = kubeflow_deploy_op(
-        model_dir=str(training.output) + '/export/export',
-        server_name=tf_server_name
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    if platform == 'GCP':
+        deploy = kubeflow_deploy_op(
+            model_dir=str(training.output) + '/export/export',
+            server_name=tf_server_name
+        )
+    else:
+        deploy = kubeflow_deploy_op(
+            cluster_name=project,
+            model_dir=str(training.output) + '/export/export',
+            pvc_name=vop.outputs["name"],
+            server_name=tf_server_name
+        )
+
+    steps = [validation, preprocess, training, analysis, prediction, cm, roc, deploy]
+    for step in steps:
+        if platform == 'GCP':
+            step.apply(gcp.use_gcp_secret('user-gcp-sa'))
+        else:
+            step.apply(onprem.mount_pvc(vop.outputs["name"], 'local-storage', output))
 
 
 if __name__ == '__main__':

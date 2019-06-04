@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as Storage from '@google-cloud/storage';
 import * as express from 'express';
 import {Application, static as StaticHandler} from 'express';
 import * as fs from 'fs';
@@ -26,6 +25,8 @@ import {Stream} from 'stream';
 import * as tar from 'tar';
 import * as k8sHelper from './k8s-helper';
 import proxyMiddleware from './proxy-middleware';
+import { Storage } from '@google-cloud/storage';
+import { Stream } from 'stream';
 
 const BASEPATH = '/pipeline';
 
@@ -171,7 +172,7 @@ const artifactsHandler = async (req, res) => {
         matchingFiles.forEach((f, i) => {
           const buffer: Buffer[] = [];
           f.createReadStream()
-            .on('data', (data) => buffer.push(data))
+            .on('data', (data) => buffer.push(Buffer.from(data)))
             .on('end', () => {
               contents += Buffer.concat(buffer).toString().trim() + '\n';
               if (i === matchingFiles.length - 1) {

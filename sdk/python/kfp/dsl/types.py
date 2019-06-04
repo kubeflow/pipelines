@@ -19,65 +19,76 @@ class BaseType:
 
 # Primitive Types
 class Integer(BaseType):
-	openapi_schema_validator = {
-		"type": "integer"
-	}
+	def __init__(self):
+		self.openapi_schema_validator = {
+			"type": "integer"
+		}
 
 class String(BaseType):
-	openapi_schema_validator = {
-		"type": "string"
-	}
+	def __init__(self):
+		self.openapi_schema_validator = {
+			"type": "string"
+		}
 
 class Float(BaseType):
-	openapi_schema_validator = {
-		"type": "number"
-	}
+	def __init__(self):
+		self.openapi_schema_validator = {
+			"type": "number"
+		}
 
 class Bool(BaseType):
-	openapi_schema_validator = {
-		"type": "boolean"
-	}
+	def __init__(self):
+		self.openapi_schema_validator = {
+			"type": "boolean"
+		}
 
 class List(BaseType):
-	openapi_schema_validator = {
-		"type": "array"
-	}
+	def __init__(self):
+		self.openapi_schema_validator = {
+			"type": "array"
+		}
 
 class Dict(BaseType):
-	openapi_schema_validator = {
-		"type": "object",
-	}
+	def __init__(self):
+		self.openapi_schema_validator = {
+			"type": "object",
+		}
 
 # GCP Types
 class GCSPath(BaseType):
-	openapi_schema_validator = {
-		"type": "string",
-		"pattern": "^gs://.*$"
-	}
+	def __init__(self):
+		self.openapi_schema_validator = {
+			"type": "string",
+			"pattern": "^gs://.*$"
+		}
 
 class GCRPath(BaseType):
-	openapi_schema_validator = {
-		"type": "string",
-		"pattern": "^.*gcr\\.io/.*$"
-	}
+	def __init__(self):
+		self.openapi_schema_validator = {
+			"type": "string",
+			"pattern": "^.*gcr\\.io/.*$"
+		}
 
 class GCPRegion(BaseType):
-	openapi_schema_validator = {
-		"type": "string"
-	}
+	def __init__(self):
+		self.openapi_schema_validator = {
+			"type": "string"
+		}
 
 class GCPProjectID(BaseType):
 	'''MetaGCPProjectID: GCP project id'''
-	openapi_schema_validator = {
-		"type": "string"
-	}
+	def __init__(self):
+		self.openapi_schema_validator = {
+			"type": "string"
+		}
 
 # General Types
 class LocalPath(BaseType):
 	#TODO: add restriction to path
-	openapi_schema_validator = {
-		"type": "string"
-	}
+	def __init__(self):
+		self.openapi_schema_validator = {
+			"type": "string"
+		}
 
 class InconsistentTypeException(Exception):
 	'''InconsistencyTypeException is raised when two types are not consistent'''
