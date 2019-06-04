@@ -136,6 +136,23 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
+    def test_func_to_container_op_with_imported_func(self):
+        from .test_data.module1 import module_func_with_deps as module1_func_with_deps
+        func = module1_func_with_deps
+        op = comp.func_to_container_op(func)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_with_imported_func2(self):
+        from .test_data.module2_which_depends_on_module1 import module2_func_with_deps as module2_func_with_deps
+        func = module2_func_with_deps
+        op = comp.func_to_container_op(func, modules_to_capture=[
+            'tests.components.test_data.module1',
+            'tests.components.test_data.module2_which_depends_on_module1'
+        ])
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
     def test_func_to_container_op_multiple_named_typed_outputs(self):
         from typing import NamedTuple
         def add_multiply_two_numbers(a: float, b: float) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
