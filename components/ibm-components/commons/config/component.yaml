@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: 'Kubernetes Cluster - Create secret'
+name: 'Create Secret - Kubernetes Cluster'
 description: |
   Create secret to store pipeline credentials on Kubernetes Cluster
 inputs:
@@ -27,7 +27,6 @@ implementation:
       /app/config.py,
       --token, {inputValue: token},
       --url, {inputValue: url},
-      --name, {inputValue: name}
+      --name, {inputValue: name},
+      --output-secret-name-file, {outputPath: secret_name},
     ]
-    fileOutputs:
-      secret_name: /tmp/ai-pipeline-creds

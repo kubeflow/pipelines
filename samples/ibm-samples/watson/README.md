@@ -16,7 +16,9 @@ Once the service is created, from service's `Dashboard`, follow the instruction 
 
 Watson Machine Learning service loads datasets from cloud object store and stores model outputs and other artifacts to cloud object store. Users can use any cloud object store they already preserve. Users can also create a cloud object store with `IBM Cloud Object Storage` service by following this [link](https://console.bluemix.net/catalog/services/cloud-object-storage).
 
-Collect the `endpoint`, `access_key_id` and `secret_access_key` fields from the service credentials for the cloud object store. Create the service credentials first if not existed. To ensure generating HMAC credentials, specify the following in the `Add Inline Configuration Parameters` field: `{"HMAC":true}`.
+Collect the `access_key_id` and `secret_access_key` fields from the service credentials for the cloud object store. Create the service credentials first if not existed. To ensure generating HMAC credentials, specify the following in the `Add Inline Configuration Parameters` field: `{"HMAC":true}`.  
+
+Collect the `endpoint` info from the endpoint section in the cloud object store service.
 
 Create two buckets, one for storing the train datasets and model source codes, and one for storing the model outputs.
 
@@ -24,7 +26,7 @@ Create two buckets, one for storing the train datasets and model source codes, a
 
 This pipeline sample reads the credentials from a file hosted in a github repo. Refer to `creds.ini` file and input user's specific credentials. Then upload the file to a github repo the user has access.
 
-Note: make sure the `cos_endpoint` value in the `creds.ini` file only contains valid endpoint without the `http://` or `https://` prefix.
+Note: make sure the `cos_endpoint` value in the `creds.ini` file must have at least a scheme and hostname.
 
 To access the credentials file, the user should provide a github access token and the link to the raw content of the file. Modify the `GITHUB_TOKEN` and `CONFIG_FILE_URL` variables in the `watson_train_serve_pipeline.py` file with the user's access token and link.
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,17 @@ import * as dagre from 'dagre';
 import IconWithTooltip from '../atoms/IconWithTooltip';
 import MoreIcon from '@material-ui/icons/MoreHoriz';
 import { Workflow, NodeStatus, Parameter } from '../../third_party/argo-ui/argo_template';
-import { statusToIcon, NodePhase, hasFinished, statusToBgColor } from '../pages/Status';
+import { statusToIcon } from '../pages/Status';
 import { color } from '../Css';
 import { Constants } from './Constants';
+import { NodePhase, statusToBgColor, hasFinished } from './StatusUtils';
 
 export enum StorageService {
   GCS = 'gcs',
+  HTTP = 'http',
+  HTTPS = 'https',
   MINIO = 'minio',
+  S3 = 's3'
 }
 
 export interface StoragePath {
@@ -71,11 +75,15 @@ export default class WorkflowParser {
     // Create dagre graph nodes from workflow nodes.
     (Object as any).values(workflowNodes)
       .forEach((node: NodeStatus) => {
+        let nodeLabel = node.displayName || node.id;
+        if (node.name === `${workflowName}.onExit`) {
+          nodeLabel = `onExit - ${node.templateName}`;
+        }
         g.setNode(node.id, {
           height: Constants.NODE_HEIGHT,
-          icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt),
-          label: node.displayName || node.id,
-          statusColoring: statusToBgColor(node.phase as NodePhase),
+          icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message),
+          label: nodeLabel,
+          statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
           width: Constants.NODE_WIDTH,
           ...node,
         });
@@ -145,9 +153,9 @@ export default class WorkflowParser {
   // Makes sure the workflow object contains the node and returns its
   // inputs/outputs if any, while looking out for any missing link in the chain to
   // the node's inputs/outputs.
-  public static getNodeInputOutputParams(workflow: Workflow, nodeId: string): [string[][], string[][]] {
+  public static getNodeInputOutputParams(workflow?: Workflow, nodeId?: string): [string[][], string[][]] {
     type paramList = string[][];
-    if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
+    if (!nodeId || !workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
       return [[], []];
     }
 
@@ -160,6 +168,38 @@ export default class WorkflowParser {
       inputsOutputs[1] = node.outputs.parameters.map(p => [p.name, p.value || '']);
     }
     return inputsOutputs;
+  }
+
+  // Makes sure the workflow object contains the node and returns its
+  // volume mounts if any.
+  public static getNodeVolumeMounts(workflow: Workflow, nodeId: string): string[][] {
+    if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId] || !workflow.spec || !workflow.spec.templates) {
+      return [];
+    }
+
+    const node = workflow.status.nodes[nodeId];
+    const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+    let volumeMounts: string[][] = [];
+    if (tmpl && tmpl.container && tmpl.container.volumeMounts) {
+      volumeMounts = tmpl.container.volumeMounts.map(v => [v.mountPath, v.name]);
+    }
+    return volumeMounts;
+  }
+
+  // Makes sure the workflow object contains the node and returns its
+  // action and manifest.
+  public static getNodeManifest(workflow: Workflow, nodeId: string): string[][] {
+    if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId] || !workflow.spec || !workflow.spec.templates) {
+      return [];
+    }
+
+    const node = workflow.status.nodes[nodeId];
+    const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+    let manifest: string[][] = [];
+    if (tmpl && tmpl.resource && tmpl.resource.action && tmpl.resource.manifest) {
+      manifest = [[tmpl.resource.action, tmpl.resource.manifest]];
+    }
+    return manifest;
   }
 
   // Returns a list of output paths for the given workflow Node, by looking for
@@ -216,6 +256,27 @@ export default class WorkflowParser {
         bucket: pathParts[0],
         key: pathParts.slice(1).join('/'),
         source: StorageService.MINIO,
+      };
+    } else if (strPath.startsWith('s3://')) {
+      const pathParts = strPath.substr('s3://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.S3,
+      };
+    } else if (strPath.startsWith('http://')) {
+      const pathParts = strPath.substr('http://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.HTTP,
+      };
+    } else if (strPath.startsWith('https://')) {
+      const pathParts = strPath.substr('https://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.HTTPS,
       };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);

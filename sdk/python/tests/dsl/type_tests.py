@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from kfp.dsl._types import _instance_to_dict, check_types, GCSPath
+from kfp.dsl.types import _instance_to_dict, check_types, GCSPath
 import unittest
 
 class TestTypes(unittest.TestCase):
@@ -23,7 +22,10 @@ class TestTypes(unittest.TestCase):
     gcspath_dict = _instance_to_dict(GCSPath())
     golden_dict = {
         'GCSPath': {
-
+          'openapi_schema_validator': {
+              "type": "string",
+              "pattern": "^gs://.*$"
+          }
         }
     }
     self.assertEqual(golden_dict, gcspath_dict)

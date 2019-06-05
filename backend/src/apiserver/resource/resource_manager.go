@@ -43,6 +43,7 @@ type ClientManagerInterface interface {
 	RunStore() storage.RunStoreInterface
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
 	DBStatusStore() storage.DBStatusStoreInterface
+	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
@@ -57,6 +58,7 @@ type ResourceManager struct {
 	runStore                storage.RunStoreInterface
 	resourceReferenceStore  storage.ResourceReferenceStoreInterface
 	dBStatusStore           storage.DBStatusStoreInterface
+	defaultExperimentStore  storage.DefaultExperimentStoreInterface
 	objectStore             storage.ObjectStoreInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
@@ -72,6 +74,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		runStore:                clientManager.RunStore(),
 		resourceReferenceStore:  clientManager.ResourceReferenceStore(),
 		dBStatusStore:           clientManager.DBStatusStore(),
+		defaultExperimentStore:  clientManager.DefaultExperimentStore(),
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
@@ -208,10 +211,27 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
 
+	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
+	// TODO: Fix the components to explicitly declare the artifacts they really output.
+	// TODO: Change the compiler to stop auto-adding those two atrifacts to all tasks.
+	for templateIdx, template := range workflow.Workflow.Spec.Templates {
+		for artIdx, artifact := range template.Outputs.Artifacts {
+			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
+				workflow.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
+			}
+		}
+	}
+
 	// Create argo workflow CRD resource
 	newWorkflow, err := r.workflowClient.Create(workflow.Get())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
+	}
+
+	// Add a reference to the default experiment if run does not already have a containing experiment
+	err = r.setExperimentIfNotPresent(apiRun)
+	if err != nil {
+		return nil, err
 	}
 
 	// Store run metadata into database
@@ -267,8 +287,8 @@ func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 
 // TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
 func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) error {
-	patchObj := map[string]interface{} {
-		"spec": map[string]interface{} {
+	patchObj := map[string]interface{}{
+		"spec": map[string]interface{}{
 			"activeDeadlineSeconds": 0,
 		},
 	}
@@ -403,7 +423,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	if jobId == "" {
 		// If a run doesn't have owner UID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CRD is created.
-		return r.runStore.UpdateRun(runId, workflow.Condition(), workflow.ToStringForStore())
+		return r.runStore.UpdateRun(runId, workflow.Condition(), workflow.FinishedAt(), workflow.ToStringForStore())
 	}
 
 	// Get the experiment resource reference for job.
@@ -420,6 +440,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 			Namespace:        workflow.Namespace,
 			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
 			ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
+			FinishedAtInSec:  workflow.FinishedAt(),
 			Conditions:       workflow.Condition(),
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
@@ -496,6 +517,73 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
 }
 
+// Used to initialize the Experiment database with a default to be used for runs
+func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
+	// First check that we don't already have a default experiment ID in the DB.
+	defaultExperimentId, err := r.GetDefaultExperimentId()
+	if err != nil {
+		return "", fmt.Errorf("Failed to check if default experiment exists. Err: %v", err)
+	}
+	// If default experiment ID is already present, don't fail, simply return.
+	if defaultExperimentId != "" {
+		glog.Info("Default experiment already exists! ID: %v", defaultExperimentId)
+		return "", nil
+	}
+
+	// Create default experiment
+	defaultExperiment := &model.Experiment{
+		Name:        "Default",
+		Description: "All runs created without specifying an experiment will be grouped here.",
+	}
+	experiment, err := r.CreateExperiment(defaultExperiment)
+	if err != nil {
+		return "", fmt.Errorf("Failed to create default experiment. Err: %v", err)
+	}
+
+	// Set default experiment ID in the DB
+	err = r.SetDefaultExperimentId(experiment.UUID)
+	if err != nil {
+		return "", fmt.Errorf("Failed to set default experiment ID. Err: %v", err)
+	}
+
+	glog.Info("Default experiment is set. ID is: %v", experiment.UUID)
+	return experiment.UUID, nil
+}
+
+// setExperimentIfNotPresent If the provided run does not include a reference to a containing
+// experiment, then we fetch the default experiment's ID and create a reference to that.
+func (r *ResourceManager) setExperimentIfNotPresent(apiRun *api.Run) error {
+	// First check if there is already a referenced experiment
+	for _, ref := range apiRun.ResourceReferences {
+		if ref.Key.Type == api.ResourceType_EXPERIMENT && ref.Relationship == api.Relationship_OWNER {
+			return nil
+		}
+	}
+
+	// Create reference to the default experiment
+	defaultExperimentId, err := r.GetDefaultExperimentId()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to retrieve default experiment")
+	}
+	if defaultExperimentId == "" {
+		glog.Info("No default experiment was found. Creating a new default experiment")
+		defaultExperimentId, err = r.CreateDefaultExperiment()
+		if defaultExperimentId == "" || err != nil {
+			return util.NewInternalServerError(err, "Failed to create new default experiment")
+		}
+	}
+	defaultExperimentRef := &api.ResourceReference{
+		Key: &api.ResourceKey{
+			Id:   defaultExperimentId,
+			Type: api.ResourceType_EXPERIMENT,
+		},
+		Relationship: api.Relationship_OWNER,
+	}
+	apiRun.ResourceReferences = append(apiRun.ResourceReferences, defaultExperimentRef)
+
+	return nil
+}
+
 func (r *ResourceManager) ReportMetric(metric *api.RunMetric, runUUID string) error {
 	return r.runStore.ReportMetric(ToModelRunMetric(metric, runUUID))
 }
@@ -521,6 +609,14 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 			"arifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
 	return r.objectStore.GetFile(artifactPath)
+}
+
+func (r *ResourceManager) GetDefaultExperimentId() (string, error) {
+	return r.defaultExperimentStore.GetDefaultExperimentId()
+}
+
+func (r *ResourceManager) SetDefaultExperimentId(id string) error {
+	return r.defaultExperimentStore.SetDefaultExperimentId(id)
 }
 
 func (r *ResourceManager) HaveSamplesLoaded() (bool, error) {

@@ -63,7 +63,7 @@ exports[`RunList adds metrics columns 1`] = `
           "id": "testrun1",
           "otherFields": Array [
             "run with id: testrun1",
-            "-",
+            "Succeeded",
             "-",
             undefined,
             undefined,
@@ -100,7 +100,7 @@ exports[`RunList adds metrics columns 1`] = `
           "id": "testrun2",
           "otherFields": Array [
             "run with id: testrun2",
-            "-",
+            "Succeeded",
             "-",
             undefined,
             undefined,
@@ -243,10 +243,10 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
     rows={
       Array [
         Object {
-          "error": "Unexpected token b in JSON at position 0",
+          "error": "bad stuff happened",
           "id": "testrun1",
           "otherFields": Array [
-            "run with id: testrun1",
+            undefined,
             "-",
             "-",
             undefined,
@@ -255,71 +255,10 @@ exports[`RunList displays error in run row if it failed to parse (run list mask)
           ],
         },
         Object {
-          "error": "Unexpected token b in JSON at position 0",
+          "error": "Cannot read property 'run' of undefined",
           "id": "testrun2",
           "otherFields": Array [
-            "run with id: testrun2",
-            "-",
-            "-",
             undefined,
-            undefined,
-            "-",
-          ],
-        },
-      ]
-    }
-  />
-</div>
-`;
-
-exports[`RunList displays error in run row if it failed to parse 1`] = `
-<div>
-  <CustomTable
-    columns={
-      Array [
-        Object {
-          "customRenderer": [Function],
-          "flex": 2,
-          "label": "Run name",
-          "sortKey": "name",
-        },
-        Object {
-          "customRenderer": [Function],
-          "flex": 0.5,
-          "label": "Status",
-        },
-        Object {
-          "flex": 0.5,
-          "label": "Duration",
-        },
-        Object {
-          "customRenderer": [Function],
-          "flex": 1,
-          "label": "Experiment",
-        },
-        Object {
-          "customRenderer": [Function],
-          "flex": 1,
-          "label": "Pipeline",
-        },
-        Object {
-          "flex": 1,
-          "label": "Start time",
-          "sortKey": "created_at",
-        },
-      ]
-    }
-    emptyMessage="No available runs found."
-    filterLabel="Filter runs"
-    initialSortColumn="created_at"
-    reload={[Function]}
-    rows={
-      Array [
-        Object {
-          "error": "Unexpected token b in JSON at position 0",
-          "id": "testrun1",
-          "otherFields": Array [
-            "run with id: testrun1",
             "-",
             "-",
             undefined,
@@ -409,6 +348,61 @@ exports[`RunList handles no pipeline name 1`] = `
 >
   [View pipeline]
 </Link>
+`;
+
+exports[`RunList hides experiment name if instructed 1`] = `
+<div>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 2,
+          "label": "Run name",
+          "sortKey": "name",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 0.5,
+          "label": "Status",
+        },
+        Object {
+          "flex": 0.5,
+          "label": "Duration",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline",
+        },
+        Object {
+          "flex": 1,
+          "label": "Start time",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No available runs found."
+    filterLabel="Filter runs"
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "error": undefined,
+          "id": "testrun1",
+          "otherFields": Array [
+            "run with id: testrun1",
+            "-",
+            "-",
+            undefined,
+            "-",
+          ],
+        },
+      ]
+    }
+  />
+</div>
 `;
 
 exports[`RunList in archived state renders the empty experience 1`] = `
@@ -714,6 +708,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
             }
             className="filterBox"
             height={48}
+            id="tableFilterBox"
             label="Filter runs"
             maxWidth="100%"
             onChange={[Function]}
@@ -749,6 +744,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                 }
               }
               className="filterBox"
+              id="tableFilterBox"
               label="Filter runs"
               onChange={[Function]}
               required={false}
@@ -820,6 +816,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           "root": "noMargin",
                         }
                       }
+                      htmlFor="tableFilterBox"
                     >
                       <WithFormControlContext(InputLabel)
                         classes={
@@ -837,6 +834,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             "shrink": "MuiInputLabel-shrink-12",
                           }
                         }
+                        htmlFor="tableFilterBox"
                       >
                         <InputLabel
                           classes={
@@ -855,6 +853,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             }
                           }
                           disableAnimation={false}
+                          htmlFor="tableFilterBox"
                           muiFormControl={
                             Object {
                               "adornedStart": true,
@@ -883,6 +882,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                               }
                             }
                             data-shrink={true}
+                            htmlFor="tableFilterBox"
                           >
                             <WithFormControlContext(FormLabel)
                               className="MuiInputLabel-root-5 noMargin MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
@@ -898,6 +898,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                 }
                               }
                               data-shrink={true}
+                              htmlFor="tableFilterBox"
                             >
                               <FormLabel
                                 className="MuiInputLabel-root-5 noMargin MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
@@ -914,6 +915,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                 }
                                 component="label"
                                 data-shrink={true}
+                                htmlFor="tableFilterBox"
                                 muiFormControl={
                                   Object {
                                     "adornedStart": true,
@@ -934,6 +936,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                 <label
                                   className="MuiFormLabel-root-16 MuiInputLabel-root-5 noMargin MuiInputLabel-formControl-10 MuiInputLabel-animated-13 MuiInputLabel-shrink-12 MuiInputLabel-outlined-15"
                                   data-shrink={true}
+                                  htmlFor="tableFilterBox"
                                 >
                                   Filter runs
                                 </label>
@@ -950,6 +953,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           "root": "noLeftPadding",
                         }
                       }
+                      id="tableFilterBox"
                       labelWidth={0}
                       onChange={[Function]}
                       startAdornment={
@@ -986,6 +990,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             "root": "MuiOutlinedInput-root-23 noLeftPadding",
                           }
                         }
+                        id="tableFilterBox"
                         labelWidth={0}
                         onChange={[Function]}
                         startAdornment={
@@ -1023,6 +1028,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                             }
                           }
                           fullWidth={false}
+                          id="tableFilterBox"
                           inputComponent="input"
                           multiline={false}
                           onChange={[Function]}
@@ -1067,6 +1073,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                               }
                             }
                             fullWidth={false}
+                            id="tableFilterBox"
                             inputComponent="input"
                             multiline={false}
                             onChange={[Function]}
@@ -1111,6 +1118,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                 }
                               }
                               fullWidth={false}
+                              id="tableFilterBox"
                               inputComponent="input"
                               muiFormControl={
                                 Object {
@@ -1658,6 +1666,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                   aria-invalid={false}
                                   className="MuiInputBase-input-46 MuiOutlinedInput-input-31 MuiInputBase-inputAdornedStart-51 MuiOutlinedInput-inputAdornedStart-34"
                                   disabled={false}
+                                  id="tableFilterBox"
                                   onBlur={[Function]}
                                   onChange={[Function]}
                                   onFocus={[Function]}
@@ -6904,45 +6913,19 @@ exports[`RunList reloads the run when refresh is called 1`] = `
 </RunList>
 `;
 
-exports[`RunList renders a empty metric container when a metric has value of zero 1`] = `<div />`;
-
-exports[`RunList renders a metric container when a percentage metric has value of zero 1`] = `
-<div
-  className="metricContainer"
->
-  <div
-    className="metricFill"
-    style={
-      Object {
-        "width": "calc(0.000%)",
-      }
-    }
-  >
-    0.000%
-  </div>
-</div>
+exports[`RunList renders an empty metric when metric is empty 1`] = `
+<Metric
+  metadata={undefined}
+  metric={undefined}
+/>
 `;
 
-exports[`RunList renders a metric container when a raw metric has value of zero 1`] = `
-<div
-  className="metricContainer"
->
-  <div
-    className="metricFill"
-    style={
-      Object {
-        "width": "calc(0%)",
-      }
-    }
-  >
-    0.000
-  </div>
-</div>
+exports[`RunList renders an empty metric when metric value is empty 1`] = `
+<Metric
+  metadata={undefined}
+  metric={Object {}}
+/>
 `;
-
-exports[`RunList renders an empty metric when metric is empty 1`] = `<div />`;
-
-exports[`RunList renders an empty metric when metric value is empty 1`] = `<div />`;
 
 exports[`RunList renders an empty metric when there is no metric 1`] = `<div />`;
 
@@ -6978,20 +6961,15 @@ exports[`RunList renders no experiment name 1`] = `
 `;
 
 exports[`RunList renders percentage metric 1`] = `
-<div
-  className="metricContainer"
->
-  <div
-    className="metricFill"
-    style={
-      Object {
-        "width": "calc(30.000%)",
-      }
+<Metric
+  metadata={undefined}
+  metric={
+    Object {
+      "format": "PERCENTAGE",
+      "number_value": 0.3,
     }
-  >
-    30.000%
-  </div>
-</div>
+  }
+/>
 `;
 
 exports[`RunList renders pipeline name as link to its details page 1`] = `
@@ -7006,56 +6984,20 @@ exports[`RunList renders pipeline name as link to its details page 1`] = `
 `;
 
 exports[`RunList renders raw metric 1`] = `
-<div
-  className="metricContainer"
->
-  <div
-    className="metricFill"
-    style={
-      Object {
-        "width": "calc(50%)",
-      }
-    }
-  >
-    55.000
-  </div>
-</div>
-`;
-
-exports[`RunList renders raw metric that is greater than its max value, logs error to console 1`] = `
-<div
-  style={
+<Metric
+  metadata={
     Object {
-      "paddingLeft": 6,
+      "count": 1,
+      "maxValue": 100,
+      "minValue": 10,
     }
   }
->
-  105.000
-</div>
-`;
-
-exports[`RunList renders raw metric that is less than its min value, logs error to console 1`] = `
-<div
-  style={
+  metric={
     Object {
-      "paddingLeft": 6,
+      "number_value": 55,
     }
   }
->
-  5.000
-</div>
-`;
-
-exports[`RunList renders raw metric with zero max/min values 1`] = `
-<div
-  style={
-    Object {
-      "paddingLeft": 6,
-    }
-  }
->
-  15.000
-</div>
+/>
 `;
 
 exports[`RunList renders run name as link to its details page 1`] = `
@@ -7333,11 +7275,11 @@ exports[`RunList shows run time for each run 1`] = `
           "id": "testrun1",
           "otherFields": Array [
             "run with id: testrun1",
-            "-",
+            "Succeeded",
             "1:01:01",
             undefined,
             undefined,
-            "-",
+            "1/2/2019, 12:34:56 PM",
           ],
         },
       ]

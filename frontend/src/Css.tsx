@@ -22,7 +22,7 @@ export const color = {
   activeBg: '#eaf1fd',
   alert: '#f9ab00', // Google yellow 600
   background: '#fff',
-  blue: '#4285f4', // Google blue 500F
+  blue: '#4285f4', // Google blue 500
   disabledBg: '#ddd',
   divider: '#e0e0e0',
   errorBg: '#fbe9e7',
@@ -38,9 +38,11 @@ export const color = {
   strong: '#202124', // Google grey 900
   success: '#34a853',
   successWeak: '#e6f4ea', // Google green 50
+  terminated: '#80868b',
   theme: '#1a73e8',
   themeDarker: '#0b59dc',
   warningBg: '#f9f9e1',
+  warningText: '#ee8100',
   weak: '#9aa0a6',
 };
 

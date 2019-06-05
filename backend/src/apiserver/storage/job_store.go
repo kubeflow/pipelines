@@ -26,6 +26,12 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
+var jobColumns = []string{"UUID", "DisplayName", "Name", "Namespace", "Description", "MaxConcurrency",
+	"CreatedAtInSec", "UpdatedAtInSec", "Enabled", "CronScheduleStartTimeInSec", "CronScheduleEndTimeInSec",
+	"Schedule", "PeriodicScheduleStartTimeInSec", "PeriodicScheduleEndTimeInSec", "IntervalSecond",
+	"PipelineId", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "Conditions",
+}
+
 type JobStoreInterface interface {
 	ListJobs(filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error)
 	GetJob(id string) (*model.Job, error)
@@ -106,21 +112,20 @@ func (s *JobStore) ListJobs(
 
 func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	filterContext *common.FilterContext) (string, []interface{}, error) {
-	filteredSelectBuilder, err := list.FilterOnResourceReference("jobs", common.Job, selectCount, filterContext)
+	filteredSelectBuilder, err := list.FilterOnResourceReference("jobs", jobColumns,
+		common.Job, selectCount, filterContext)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
 
 	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
-	if err != nil {
-		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
-	}
 
 	// If we're not just counting, then also add select columns and perform a left join
 	// to get resource reference information. Also add pagination.
 	if !selectCount {
-		sqlBuilder = s.addResourceReferences(sqlBuilder)
 		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
+		sqlBuilder = s.addResourceReferences(sqlBuilder)
+		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
 	}
 	sql, args, err := sqlBuilder.ToSql()
 	if err != nil {
@@ -131,7 +136,7 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 }
 
 func (s *JobStore) GetJob(id string) (*model.Job, error) {
-	sql, args, err := s.addResourceReferences(sq.Select("*").From("jobs")).
+	sql, args, err := s.addResourceReferences(sq.Select(jobColumns...).From("jobs")).
 		Where(sq.Eq{"uuid": id}).
 		Limit(1).
 		ToSql()
@@ -199,7 +204,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: NullInt64ToPointer(cronScheduleStartTimeInSec),
 					CronScheduleEndTimeInSec:   NullInt64ToPointer(cronScheduleEndTimeInSec),
-					Cron:                       NullStringToPointer(cron),
+					Cron: NullStringToPointer(cron),
 				},
 				PeriodicSchedule: model.PeriodicSchedule{
 					PeriodicScheduleStartTimeInSec: NullInt64ToPointer(periodicScheduleStartTimeInSec),
@@ -379,8 +384,8 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 // factory function for job store
 func NewJobStore(db *DB, time util.TimeInterface) *JobStore {
 	return &JobStore{
-		db:                     db,
+		db: db,
 		resourceReferenceStore: NewResourceReferenceStore(db),
-		time:                   time,
+		time: time,
 	}
 }

@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,13 +14,18 @@
 
 
 from . import _container_op
-from ._metadata import  PipelineMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
+from . import _resource_op
 from . import _ops_group
 from ..components._naming import _make_name_unique_by_adding_index
 import sys
 
 
-def pipeline(name, description):
+# This handler is called whenever the @pipeline decorator is applied.
+# It can be used by command-line DSL compiler to inject code that runs for every pipeline definition.
+_pipeline_decorator_handler = None
+
+
+def pipeline(name : str = None, description : str = None):
   """Decorator of pipeline functions.
 
   Usage:
@@ -34,33 +39,15 @@ def pipeline(name, description):
   ```
   """
   def _pipeline(func):
-    import inspect
-    fullargspec = inspect.getfullargspec(func)
-    args = fullargspec.args
-    annotations = fullargspec.annotations
+    if name:
+      func._pipeline_name = name
+    if description:
+      func._pipeline_description = description
 
-    # defaults
-    arg_defaults = {}
-    if fullargspec.defaults:
-      for arg, default in zip(reversed(fullargspec.args), reversed(fullargspec.defaults)):
-        arg_defaults[arg] = default
-
-    # Construct the PipelineMeta
-    pipeline_meta = PipelineMeta(name=name, description=description)
-    # Inputs
-    for arg in args:
-      arg_type = TypeMeta()
-      arg_default = arg_defaults[arg] if arg in arg_defaults else None
-      if arg in annotations:
-        arg_type = _annotation_to_typemeta(annotations[arg])
-      pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
-
-    #TODO: add descriptions to the metadata
-    #docstring parser:
-    #  https://github.com/rr-/docstring_parser
-    #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
-    Pipeline.add_pipeline(pipeline_meta, func)
-    return func
+    if _pipeline_decorator_handler:
+      return _pipeline_decorator_handler(func) or func
+    else:
+      return func 
 
   return _pipeline
 
@@ -69,9 +56,11 @@ class PipelineConf():
   """
   def __init__(self):
     self.image_pull_secrets = []
+    self.artifact_location = None
+    self.op_transformers = []
 
   def set_image_pull_secrets(self, image_pull_secrets):
-    """ configure the pipeline level imagepullsecret
+    """Configures the pipeline level imagepullsecret
 
     Args:
       image_pull_secrets: a list of Kubernetes V1LocalObjectReference
@@ -79,6 +68,41 @@ class PipelineConf():
       https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
     """
     self.image_pull_secrets = image_pull_secrets
+    return self
+
+  def set_artifact_location(self, artifact_location):
+    """Configures the pipeline level artifact location.
+
+    Example::
+
+      from kfp.dsl import ArtifactLocation, get_pipeline_conf, pipeline
+      from kubernetes.client.models import V1SecretKeySelector
+
+
+      @pipeline(name='foo', description='hello world')
+      def foo_pipeline(tag: str, pull_image_policy: str):
+        '''A demo pipeline'''
+        # create artifact location object
+        artifact_location = ArtifactLocation.s3(
+                              bucket="foo",
+                              endpoint="minio-service:9000",
+                              insecure=True,
+                              access_key_secret=V1SecretKeySelector(name="minio", key="accesskey"),
+                              secret_key_secret=V1SecretKeySelector(name="minio", key="secretkey"))
+        # config pipeline level artifact location
+        conf = get_pipeline_conf().set_artifact_location(artifact_location)
+
+        # rest of codes
+        ...
+
+    Args:
+      artifact_location: V1alpha1ArtifactLocation object
+      For detailed description, check Argo V1alpha1ArtifactLocation definition
+      https://github.com/e2fyi/argo-models/blob/release-2.2/argo/models/v1alpha1_artifact_location.py
+      https://github.com/argoproj/argo/blob/release-2.2/api/openapi-spec/swagger.json
+    """
+    self.artifact_location = artifact_location
+    return self
 
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline
@@ -86,6 +110,7 @@ def get_pipeline_conf():
   """
   return Pipeline.get_default_pipeline().conf
 
+#TODO: Pipeline is in fact an opsgroup, refactor the code.
 class Pipeline():
   """A pipeline contains a list of operators.
 
@@ -105,24 +130,16 @@ class Pipeline():
   # _default_pipeline is set when it (usually a compiler) runs "with Pipeline()"
   _default_pipeline = None
 
-  # All pipeline functions with @pipeline decorator that are imported.
-  # Each key is a pipeline function. Each value is a (name, description).
-  _pipeline_functions = {}
-
   @staticmethod
   def get_default_pipeline():
     """Get default pipeline. """
     return Pipeline._default_pipeline
 
   @staticmethod
-  def get_pipeline_functions():
-    """Get all imported pipeline functions (decorated with @pipeline)."""
-    return Pipeline._pipeline_functions
-
-  @staticmethod
-  def add_pipeline(pipeline_meta, func):
-    """Add a pipeline function (decorated with @pipeline)."""
-    Pipeline._pipeline_functions[func] = pipeline_meta
+  def add_pipeline(name, description, func):
+    """Add a pipeline function with the specified name and description."""
+    # Applying the @pipeline decorator to the pipeline function
+    func = pipeline(name=name, description=description)(func)
 
   def __init__(self, name: str):
     """Create a new instance of Pipeline.
@@ -143,21 +160,27 @@ class Pipeline():
       raise Exception('Nested pipelines are not allowed.')
 
     Pipeline._default_pipeline = self
+
+    def register_op_and_generate_id(op):
+      return self.add_op(op, op.is_exit_handler)
+
+    self._old__register_op_handler = _container_op._register_op_handler
+    _container_op._register_op_handler = register_op_and_generate_id
     return self
 
   def __exit__(self, *args):
     Pipeline._default_pipeline = None
-        
-  def add_op(self, op: _container_op.ContainerOp, define_only: bool):
+    _container_op._register_op_handler = self._old__register_op_handler
+
+  def add_op(self, op: _container_op.BaseOp, define_only: bool):
     """Add a new operator.
 
     Args:
-      op: An operator of ContainerOp or its inherited type.
+      op: An operator of ContainerOp, ResourceOp or their inherited types.
 
     Returns
       op_name: a unique op name.
     """
-
     #If there is an existing op with this name then generate a new name.
     op_name = _make_name_unique_by_adding_index(op.human_name, list(self.ops.keys()), ' ')
 

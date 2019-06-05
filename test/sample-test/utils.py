@@ -18,14 +18,16 @@ import subprocess
 
 # Parse the workflow json to obtain the artifacts for a particular step.
 #   Note: the step_name could be the key words.
-def get_artifact_in_minio(workflow_json, step_name, output_path):
+def get_artifact_in_minio(workflow_json, step_name, output_path, artifact_name='mlpipeline-ui-metadata'):
   s3_data = {}
   minio_access_key = 'minio'
   minio_secret_key = 'minio123'
   try:
-    for key in workflow_json['status']['nodes'].keys():
-      if step_name in workflow_json['status']['nodes'][key]['name']:
-        s3_data = workflow_json['status']['nodes'][key]['outputs']['artifacts'][0]['s3']
+    for node in workflow_json['status']['nodes'].values():
+      if step_name in node['name']:
+        for artifact in node['outputs']['artifacts']:
+          if artifact['name'] == artifact_name:
+            s3_data = artifact['s3']
     minio_client = Minio(s3_data['endpoint'], access_key=minio_access_key, secret_key=minio_secret_key, secure=False)
     data = minio_client.get_object(s3_data['bucket'], s3_data['key'])
     with open(output_path, 'wb') as file:

@@ -137,21 +137,6 @@ export const css = stylesheet({
     marginLeft: 5,
     width: 12,
   },
-  privacyInfo: {
-    color: sideNavColors.fgDefault,
-    marginBottom: 6,
-    marginLeft: 30,
-  },
-  privacySeparator: {
-    background: sideNavColors.fgDefault,
-    borderRadius: 2,
-    display: 'inline-block',
-    height: 4,
-    marginBottom: 3,
-    marginLeft: 10,
-    marginRight: 10,
-    width: 4,
-  },
   root: {
     background: sideNavColors.bg,
     borderRight: `1px ${sideNavColors.sideNavBorder} solid`,
@@ -195,6 +180,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
 
     this.state = {
       collapsed,
+      // Set jupyterHubAvailable to false so UI don't show Jupyter Hub link
       jupyterHubAvailable: false,
       manualCollapseState: LocalStorage.hasKey(LocalStorageKey.navbarCollapsed),
     };
@@ -219,15 +205,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
       logger.error('Failed to retrieve build info', err);
     }
 
-    // Verify Jupyter Hub is reachable
-    let jupyterHubAvailable = false;
-    try {
-      jupyterHubAvailable = await Apis.isJupyterHubAvailable();
-    } catch (err) {
-      logger.error('Failed to reach Jupyter Hub', err);
-    }
-
-    this.setStateSafe({ displayBuildInfo, jupyterHubAvailable });
+    this.setStateSafe({ displayBuildInfo});
   }
 
   public componentWillUnmount(): void {
@@ -308,14 +286,6 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
           </IconButton>
         </div>
         <div className={collapsed ? css.infoHidden : css.infoVisible}>
-          <div className={css.privacyInfo}>
-            <span>Privacy</span>
-            <span className={css.privacySeparator}/>
-            <a href='https://www.kubeflow.org/docs/guides/usage-reporting/'
-              className={classes(css.link, commonCss.unstyled)} target='_blank'>
-              Usage reporting
-            </a>
-          </div>
           {displayBuildInfo && (
             <Tooltip title={'Build date: ' + displayBuildInfo.date} enterDelay={300} placement={'top-start'}>
               <div className={css.buildInfo}>

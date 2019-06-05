@@ -34,6 +34,23 @@ def components_local_output_dir_context(output_dir: str):
     finally:
         comp._components._outputs_dir = old_dir
 
+
+module_level_variable = 10
+
+
+class ModuleLevelClass:
+    def class_method(self, x):
+        return x * module_level_variable
+
+
+def module_func(a: float) -> float:
+    return a * 5
+
+
+def module_func_with_deps(a: float, b: float) -> float:
+    return ModuleLevelClass().class_method(a) + module_func(b)
+
+
 class PythonOpTestCase(unittest.TestCase):
     def helper_test_2_in_1_out_component_using_local_call(self, func, op):
         arg1 = float(3)
@@ -49,8 +66,7 @@ class PythonOpTestCase(unittest.TestCase):
                 task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
-
-            process = subprocess.run(full_command)
+            subprocess.run(full_command, check=True)
 
             output_path = list(task.file_outputs.values())[0]
             actual_str = Path(output_path).read_text()
@@ -71,7 +87,7 @@ class PythonOpTestCase(unittest.TestCase):
 
             full_command = task.command + task.arguments
 
-            process = subprocess.run(full_command)
+            subprocess.run(full_command, check=True)
 
             (output_path1, output_path2) = (task.file_outputs[output_names[0]], task.file_outputs[output_names[1]])
             actual1_str = Path(output_path1).read_text()
@@ -93,6 +109,30 @@ class PythonOpTestCase(unittest.TestCase):
 
         func = add_two_numbers_indented
         op = comp.func_to_container_op(func)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_call_other_func(self):
+        extra_variable = 10
+
+        class ExtraClass:
+            def class_method(self, x):
+                return x * extra_variable
+
+        def extra_func(a: float) -> float:
+            return a * 5
+
+        def main_func(a: float, b: float) -> float:
+            return ExtraClass().class_method(a) + extra_func(b)
+
+        func = main_func
+        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_call_other_func_global(self):
+        func = module_func_with_deps
+        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 

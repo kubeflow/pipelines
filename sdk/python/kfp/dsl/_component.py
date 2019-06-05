@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
+from ._metadata import _extract_component_metadata
 from ._pipeline_param import PipelineParam
-from ._types import check_types, InconsistentTypeException
+from .types import check_types, InconsistentTypeException
+from ._ops_group import Graph
 import kfp
 
 def python_component(name, description=None, base_image=None, target_component_file: str = None):
@@ -54,7 +55,7 @@ def python_component(name, description=None, base_image=None, target_component_f
   return _python_component
 
 def component(func):
-  """Decorator for component functions that use ContainerOp.
+  """Decorator for component functions that returns a ContainerOp.
   This is useful to enable type checking in the DSL compiler
 
   Usage:
@@ -66,36 +67,7 @@ def component(func):
   from functools import wraps
   @wraps(func)
   def _component(*args, **kargs):
-    import inspect
-    fullargspec = inspect.getfullargspec(func)
-    annotations = fullargspec.annotations
-
-    # defaults
-    arg_defaults = {}
-    if fullargspec.defaults:
-      for arg, default in zip(reversed(fullargspec.args), reversed(fullargspec.defaults)):
-        arg_defaults[arg] = default
-
-    # Construct the ComponentMeta
-    component_meta = ComponentMeta(name=func.__name__, description='')
-    # Inputs
-    for arg in fullargspec.args:
-      arg_type = TypeMeta()
-      arg_default = arg_defaults[arg] if arg in arg_defaults else None
-      if arg in annotations:
-        arg_type = _annotation_to_typemeta(annotations[arg])
-      component_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
-    # Outputs
-    if 'return' in annotations:
-      for output in annotations['return']:
-        arg_type = _annotation_to_typemeta(annotations['return'][output])
-        component_meta.outputs.append(ParameterMeta(name=output, description='', param_type=arg_type))
-
-    #TODO: add descriptions to the metadata
-    #docstring parser:
-    #  https://github.com/rr-/docstring_parser
-    #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
-
+    component_meta = _extract_component_metadata(func)
     if kfp.TYPE_CHECK:
       arg_index = 0
       for arg in args:
@@ -118,3 +90,37 @@ def component(func):
     return container_op
 
   return _component
+
+#TODO: combine the component and graph_component decorators into one
+def graph_component(func):
+  """Decorator for graph component functions.
+  This decorator returns an ops_group.
+
+  Usage:
+  ```python
+  import kfp.dsl as dsl
+  @dsl.graph_component
+  def flip_component(flip_result):
+    print_flip = PrintOp(flip_result)
+    flipA = FlipCoinOp().after(print_flip)
+    with dsl.Condition(flipA.output == 'heads'):
+      flip_component(flipA.output)
+    return {'flip_result': flipA.output}
+  """
+  from functools import wraps
+  @wraps(func)
+  def _graph_component(*args, **kargs):
+    graph_ops_group = Graph(func.__name__)
+    graph_ops_group.inputs = list(args) + list(kargs.values())
+    for input in graph_ops_group.inputs:
+      if not isinstance(input, PipelineParam):
+        raise ValueError('arguments to ' + func.__name__ + ' should be PipelineParams.')
+
+    # Entering the Graph Context
+    with graph_ops_group:
+      # Call the function
+      if not graph_ops_group.recursive_ref:
+        func(*args, **kargs)
+
+    return graph_ops_group
+  return _graph_component

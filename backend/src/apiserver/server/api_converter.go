@@ -120,6 +120,7 @@ func toApiRun(run *model.Run) *api.Run {
 		StorageState: api.Run_StorageState(api.Run_StorageState_value[run.StorageState]),
 		Description:  run.Description,
 		ScheduledAt:  &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
+		FinishedAt:   &timestamp.Timestamp{Seconds: run.FinishedAtInSec},
 		Status:       run.Conditions,
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId:       run.PipelineId,

@@ -29,7 +29,6 @@ go_library(
         "@com_github_jinzhu_gorm//:go_default_library",
         "@com_github_jinzhu_gorm//dialects/sqlite:go_default_library",
         "@com_github_minio_minio_go//:go_default_library",
-        "@com_github_pkg_errors//:go_default_library",
         "@com_github_spf13_viper//:go_default_library",
         "@google_ml_metadata//ml_metadata/metadata_store:metadata_store_go",  # keep
         "@google_ml_metadata//ml_metadata/proto:metadata_store_go_proto",  # keep

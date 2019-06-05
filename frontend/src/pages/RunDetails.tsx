@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2018-2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
 import { ApiRun, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
-import { NodePhase, statusToIcon, hasFinished } from './Status';
+import { NodePhase, hasFinished } from '../lib/StatusUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -43,11 +43,14 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, color, fonts, fontsize } from '../Css';
 import { componentMap } from '../components/viewers/ViewerContainer';
 import { flatten } from 'lodash';
-import { formatDateString, getRunTime, logger, errorToMessage } from '../lib/Utils';
+import { formatDateString, getRunDurationFromWorkflow, logger, errorToMessage } from '../lib/Utils';
+import { statusToIcon } from './Status';
 
 enum SidePaneTab {
   ARTIFACTS,
   INPUT_OUTPUT,
+  VOLUMES,
+  MANIFEST,
   LOGS,
 }
 
@@ -70,6 +73,7 @@ interface AnnotatedConfig {
 interface RunDetailsState {
   allArtifactConfigs: AnnotatedConfig[];
   experiment?: ApiExperiment;
+  legacyStackdriverUrl: string;
   logsBannerAdditionalInfo: string;
   logsBannerMessage: string;
   logsBannerMode: Mode;
@@ -80,6 +84,7 @@ interface RunDetailsState {
   selectedNodeDetails: SelectedNodeDetails | null;
   sidepanelBusy: boolean;
   sidepanelSelectedTab: SidePaneTab;
+  stackdriverK8sLogsUrl: string;
   workflow?: Workflow;
 }
 
@@ -102,6 +107,9 @@ export const css = stylesheet({
     lineHeight: '24px',
     paddingLeft: 6,
   },
+  link: {
+    color: '#77abda'
+  },
 });
 
 class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
@@ -119,6 +127,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     this.state = {
       allArtifactConfigs: [],
+      legacyStackdriverUrl: '',
       logsBannerAdditionalInfo: '',
       logsBannerMessage: '',
       logsBannerMode: 'error',
@@ -127,6 +136,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       selectedTab: 0,
       sidepanelBusy: false,
       sidepanelSelectedTab: SidePaneTab.ARTIFACTS,
+      stackdriverK8sLogsUrl: '',
     };
   }
 
@@ -135,7 +145,11 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     return {
       actions: [
         buttons.cloneRun(() => this.state.runMetadata ? [this.state.runMetadata!.id!] : [], true),
-        buttons.refresh(this.refresh.bind(this)),
+        buttons.terminateRun(
+          () => this.state.runMetadata ? [this.state.runMetadata!.id!] : [],
+          true,
+          () => this.refresh()
+        ),
       ],
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: this.props.runId!,
@@ -143,11 +157,12 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public render(): JSX.Element {
-    const { allArtifactConfigs, graph, runFinished, runMetadata, selectedTab, selectedNodeDetails,
-      sidepanelSelectedTab, workflow } = this.state;
+    const { allArtifactConfigs, graph, legacyStackdriverUrl, runFinished, runMetadata, selectedTab, selectedNodeDetails,
+      sidepanelSelectedTab, stackdriverK8sLogsUrl, workflow } = this.state;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
+    const nodeInputOutputParams = WorkflowParser.getNodeInputOutputParams(workflow, selectedNodeId);
 
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
@@ -170,7 +185,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                         <Banner mode='warning' message={selectedNodeDetails.phaseMessage} />
                       )}
                       <div className={commonCss.page}>
-                        <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Logs']}
+                        <MD2Tabs tabs={['Artifacts', 'Input/Output', 'Volumes', 'Manifest', 'Logs']}
                           selectedTab={sidepanelSelectedTab}
                           onSwitch={this._loadSidePaneTab.bind(this)} />
 
@@ -195,23 +210,45 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                           {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
                             <div className={padding(20)}>
                               <DetailsTable title='Input parameters'
-                                fields={WorkflowParser.getNodeInputOutputParams(
-                                  workflow, selectedNodeId)[0]} />
+                                fields={nodeInputOutputParams[0]} />
 
                               <DetailsTable title='Output parameters'
-                                fields={WorkflowParser.getNodeInputOutputParams(
-                                  workflow, selectedNodeId)[1]} />
+                                fields={nodeInputOutputParams[1]} />
+                            </div>
+                          )}
+
+                          {sidepanelSelectedTab === SidePaneTab.VOLUMES && (
+                            <div className={padding(20)}>
+                              <DetailsTable title='Volume Mounts'
+                                fields={WorkflowParser.getNodeVolumeMounts(
+                                  workflow, selectedNodeId)} />
+                            </div>
+                          )}
+
+                          {sidepanelSelectedTab === SidePaneTab.MANIFEST && (
+                            <div className={padding(20)}>
+                              <DetailsTable title='Resource Manifest'
+                                fields={WorkflowParser.getNodeManifest(
+                                  workflow, selectedNodeId)} />
                             </div>
                           )}
 
                           {sidepanelSelectedTab === SidePaneTab.LOGS && (
                             <div className={commonCss.page}>
                               {this.state.logsBannerMessage && (
-                                <Banner
-                                  message={this.state.logsBannerMessage}
-                                  mode={this.state.logsBannerMode}
-                                  additionalInfo={this.state.logsBannerAdditionalInfo}
-                                  refresh={this._loadSelectedNodeLogs.bind(this)} />
+                                <React.Fragment>
+                                  <Banner
+                                    message={this.state.logsBannerMessage}
+                                    mode={this.state.logsBannerMode}
+                                    additionalInfo={this.state.logsBannerAdditionalInfo}
+                                    refresh={this._loadSelectedNodeLogs.bind(this)} />
+                                  {(legacyStackdriverUrl && stackdriverK8sLogsUrl) && (
+                                    <div className={padding(20, 'blr')}>
+                                      Logs can still be viewed in either <a href={legacyStackdriverUrl} target='_blank' className={classes(css.link, commonCss.unstyled)}>Legacy Stackdriver
+                                    </a> or in <a href={stackdriverK8sLogsUrl} target='_blank' className={classes(css.link, commonCss.unstyled)}>Stackdriver Kubernetes Monitoring</a>
+                                    </div>
+                                  )}
+                                </React.Fragment>
                               )}
                               {!this.state.logsBannerMessage && this.state.selectedNodeDetails && (
                                 <LogViewer logLines={(this.state.selectedNodeDetails.logs || '').split('\n')}
@@ -300,6 +337,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     this._stopAutoRefresh();
     window.removeEventListener('focus', this._onFocus);
     window.removeEventListener('blur', this._onBlur);
+    this.clearBanner();
   }
 
   public async refresh(): Promise<void> {
@@ -312,11 +350,13 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     try {
       const runDetail = await Apis.runServiceApi.getRun(runId);
+
       const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
       let experiment: ApiExperiment | undefined;
       if (relatedExperimentId) {
         experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
       }
+
       const runMetadata = runDetail.run!;
 
       let runFinished = this.state.runFinished;
@@ -332,10 +372,19 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       // Show workflow errors
       const workflowError = WorkflowParser.getWorkflowError(workflow);
       if (workflowError) {
-        this.showPageError(
-          `Error: found errors when executing run: ${runId}.`,
-          new Error(workflowError),
-        );
+        if (workflowError === 'terminated') {
+          this.props.updateBanner({
+            additionalInfo: `This run's workflow included the following message: ${workflowError}`,
+            message: 'This run was terminated',
+            mode: 'warning',
+            refresh: undefined,
+          });
+        } else {
+          this.showPageError(
+            `Error: found errors when executing run: ${runId}.`,
+            new Error(workflowError),
+          );
+        }
       }
 
       // Build runtime graph
@@ -374,13 +423,16 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         buttons.restore(idGetter, true, () => this.refresh()) :
         buttons.archive(idGetter, true, () => this.refresh());
       actions.splice(2, 1, newButton);
+      actions[1].disabled = runMetadata.status as NodePhase === NodePhase.TERMINATING || runFinished;
       this.props.updateToolbar({ actions, breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
       this.setStateSafe({
         experiment,
         graph,
+        legacyStackdriverUrl: '', // Reset legacy Stackdriver logs URL
         runFinished,
         runMetadata,
+        stackdriverK8sLogsUrl: '', // Reset Kubernetes Stackdriver logs URL
         workflow,
       });
     } catch (err) {
@@ -447,7 +499,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       ['Created at', workflow.metadata ? formatDateString(workflow.metadata.creationTimestamp) : '-'],
       ['Started at', formatDateString(workflow.status.startedAt)],
       ['Finished at', formatDateString(workflow.status.finishedAt)],
-      ['Duration', getRunTime(workflow)],
+      ['Duration', getRunDurationFromWorkflow(workflow)],
     ];
   }
 
@@ -517,13 +569,24 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       selectedNodeDetails.logs = logs;
       this.setStateSafe({ selectedNodeDetails, logsBannerAdditionalInfo: '', logsBannerMessage: '' });
     } catch (err) {
-      const errorMessage = await errorToMessage(err);
-      this.setStateSafe({
-        logsBannerAdditionalInfo: errorMessage,
-        logsBannerMessage: 'Error: failed to retrieve logs.'
-          + (errorMessage ? ' Click Details for more information.' : ''),
-        logsBannerMode: 'error',
-      });
+      try {
+        const projectId = await Apis.getProjectId();
+        const clusterName = await Apis.getClusterName();
+        this.setStateSafe({
+          legacyStackdriverUrl: `https://pantheon.corp.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_id:"${selectedNodeDetails.id}"`,
+          logsBannerMessage: 'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
+          logsBannerMode: 'warning',
+          stackdriverK8sLogsUrl: `https://pantheon.corp.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`,
+        });
+      } catch (fetchSystemInfoErr) {
+        const errorMessage = await errorToMessage(err);
+        this.setStateSafe({
+          logsBannerAdditionalInfo: errorMessage,
+          logsBannerMessage: 'Error: failed to retrieve pod logs.'
+            + (errorMessage ? ' Click Details for more information.' : ''),
+          logsBannerMode: 'error',
+        });
+      }
       logger.error('Error loading logs for node:', selectedNodeDetails.id);
     } finally {
       this.setStateSafe({ sidepanelBusy: false });

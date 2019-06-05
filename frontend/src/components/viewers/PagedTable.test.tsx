@@ -52,6 +52,15 @@ describe('PagedTable', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('sorts on first column ascending', () => {
+    const tree = shallow(<PagedTable configs={[{data, labels, type: PlotType.TABLE}]} />);
+    // Once for descending
+    tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
+    // Once for ascending
+    tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
+    expect(tree).toMatchSnapshot();
+  });
+
   it('returns a user friendly display name', () => {
     expect(PagedTable.prototype.getDisplayName()).toBe('Table');
   });

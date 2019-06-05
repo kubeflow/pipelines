@@ -50,7 +50,7 @@ func (s *Store) RecordOutputArtifacts(runID, storedManifest, currentManifest str
 			// Newly completed node. Record output ml-metadata artifacts.
 			if n.Outputs != nil {
 				for _, output := range n.Outputs.Parameters {
-					if !strings.HasPrefix(output.ValueFrom.Path, "/output/ml_metadata/") {
+					if output.ValueFrom == nil || output.Value == nil || !strings.HasPrefix(output.ValueFrom.Path, "/output/ml_metadata/") {
 						continue
 					}
 
@@ -99,6 +99,14 @@ func (a *artifactStruct) UnmarshalJSON(b []byte) error {
 	jsonMap := make(map[string]*json.RawMessage)
 	if err := json.Unmarshal(b, &jsonMap); err != nil {
 		return errorF(err)
+	}
+
+	if _, ok := jsonMap["artifact_type"]; !ok {
+		return util.NewInvalidInputError("JSON Unmarshal failure: missing 'artifact_type' field")
+	}
+
+	if _, ok := jsonMap["artifact"]; !ok {
+		return util.NewInvalidInputError("JSON Unmarshal failure: missing 'artifact_type' field")
 	}
 
 	a.ArtifactType = &mlpb.ArtifactType{}

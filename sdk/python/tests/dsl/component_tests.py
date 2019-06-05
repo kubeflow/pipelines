@@ -13,10 +13,11 @@
 # limitations under the License.
 
 import kfp
-from kfp.dsl._component import component
+import kfp.dsl as dsl
+from kfp.dsl import component, graph_component
 from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta
-from kfp.dsl._types import GCSPath, Integer, InconsistentTypeException
-from kfp.dsl import ContainerOp, Pipeline
+from kfp.dsl.types import Integer, GCSPath, InconsistentTypeException
+from kfp.dsl import ContainerOp, Pipeline, PipelineParam
 import unittest
 
 class TestPythonComponent(unittest.TestCase):
@@ -36,9 +37,9 @@ class TestPythonComponent(unittest.TestCase):
 
     golden_meta = ComponentMeta(name='componentA', description='')
     golden_meta.inputs.append(ParameterMeta(name='a', description='', param_type=TypeMeta(name='ArtifactA', properties={'file_type': 'csv'})))
-    golden_meta.inputs.append(ParameterMeta(name='b', description='', param_type=TypeMeta(name='Integer'), default=12))
+    golden_meta.inputs.append(ParameterMeta(name='b', description='', param_type=TypeMeta(name='Integer', properties={'openapi_schema_validator': {"type": "integer"}}), default=12))
     golden_meta.inputs.append(ParameterMeta(name='c', description='', param_type=TypeMeta(name='ArtifactB', properties={'path_type':'file', 'file_type': 'tsv'}), default='gs://hello/world'))
-    golden_meta.outputs.append(ParameterMeta(name='model', description='', param_type=TypeMeta(name='Integer')))
+    golden_meta.outputs.append(ParameterMeta(name='model', description='', param_type=TypeMeta(name='Integer', properties={'openapi_schema_validator': {"type": "integer"}})))
 
     self.assertEqual(containerOp._metadata, golden_meta)
 
@@ -80,9 +81,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    a = a_op(field_l=12)
+    b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
   def test_type_check_with_different_represenation(self):
     """Test type check at the decorator."""
@@ -122,9 +122,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    a = a_op(field_l=12)
+    b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
   def test_type_check_with_inconsistent_types_property_value(self):
     """Test type check at the decorator."""
@@ -165,7 +164,6 @@ class TestPythonComponent(unittest.TestCase):
       )
 
     with self.assertRaises(InconsistentTypeException):
-      with Pipeline('pipeline') as p:
         a = a_op(field_l=12)
         b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
@@ -208,7 +206,6 @@ class TestPythonComponent(unittest.TestCase):
       )
 
     with self.assertRaises(InconsistentTypeException):
-      with Pipeline('pipeline') as p:
         a = a_op(field_l=12)
         b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
@@ -250,9 +247,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    a = a_op(field_l=12)
+    b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
   def test_type_check_nonnamed_inputs(self):
     """Test type check at the decorator."""
@@ -292,9 +288,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(a.outputs['field_n'], field_z=a.outputs['field_m'], field_y=a.outputs['field_o'])
+    a = a_op(field_l=12)
+    b = b_op(a.outputs['field_n'], field_z=a.outputs['field_m'], field_y=a.outputs['field_o'])
 
   def test_type_check_with_inconsistent_types_disabled(self):
     """Test type check at the decorator."""
@@ -334,9 +329,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    a = a_op(field_l=12)
+    b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
   def test_type_check_with_openapi_schema(self):
     """Test type check at the decorator."""
@@ -376,9 +370,8 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
-    with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    a = a_op(field_l=12)
+    b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
 
   def test_type_check_with_ignore_type(self):
     """Test type check at the decorator."""
@@ -418,8 +411,29 @@ class TestPythonComponent(unittest.TestCase):
           }
       )
 
+    a = a_op(field_l=12)
+    with self.assertRaises(InconsistentTypeException):
+      b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+    b = b_op(field_x=a.outputs['field_n'].ignore_type(), field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+
+class TestGraphComponent(unittest.TestCase):
+
+  def test_graphcomponent_basic(self):
+    """Test graph_component decorator metadata."""
+    @graph_component
+    def flip_component(flip_result):
+      with dsl.Condition(flip_result == 'heads'):
+        flip_component(flip_result)
+
     with Pipeline('pipeline') as p:
-      a = a_op(field_l=12)
-      with self.assertRaises(InconsistentTypeException):
-        b = b_op(field_x=a.outputs['field_n'], field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
-      b = b_op(field_x=a.outputs['field_n'].ignore_type(), field_y=a.outputs['field_o'], field_z=a.outputs['field_m'])
+      param = PipelineParam(name='param')
+      flip_component(param)
+      self.assertEqual(1, len(p.groups))
+      self.assertEqual(1, len(p.groups[0].groups)) # pipeline
+      self.assertEqual(1, len(p.groups[0].groups[0].groups)) # flip_component
+      self.assertEqual(1, len(p.groups[0].groups[0].groups[0].groups)) # condition
+      self.assertEqual(0, len(p.groups[0].groups[0].groups[0].groups[0].groups)) # recursive flip_component
+      recursive_group = p.groups[0].groups[0].groups[0].groups[0]
+      self.assertTrue(recursive_group.recursive_ref is not None)
+      self.assertEqual(1, len(recursive_group.inputs))
+      self.assertEqual('param', recursive_group.inputs[0].name)

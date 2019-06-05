@@ -18,8 +18,11 @@ import logging
 import json
 import os
 import tarfile
+import zipfile
 import yaml
 from datetime import datetime
+
+import kfp_server_api
 
 from .compiler import compiler
 from .compiler import _k8s_helper
@@ -31,9 +34,10 @@ class Client(object):
   """
 
   # in-cluster DNS name of the pipeline service
-  IN_CLUSTER_DNS_NAME = 'ml-pipeline.kubeflow.svc.cluster.local:8888'
+  IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
+  KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
 
-  def __init__(self, host=None, client_id=None):
+  def __init__(self, host=None, client_id=None, namespace='kubeflow'):
     """Create a new instance of kfp client.
 
     Args:
@@ -41,48 +45,66 @@ class Client(object):
           service DNS name will be used, which only works if the current environment is a pod
           in the same cluster (such as a Jupyter instance spawned by Kubeflow's
           JupyterHub). If you have a different connection to cluster, such as a kubectl
-          proxy connection, then set it to something like "127.0.0.1:8080/pipeline".
+          proxy connection, then set it to something like "127.0.0.1:8080/pipeline.
+          If you connect to an IAP enabled cluster, set it to
+          https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
       client_id: The client ID used by Identity-Aware Proxy.
     """
 
-    try:
-      import kfp_experiment
-    except ImportError:
-      raise Exception('This module requires installation of kfp_experiment')
-
-    try:
-      import kfp_run
-    except ImportError:
-      raise Exception('This module requires installation of kfp_run')
-
     self._host = host
+    config = self._load_config(host, client_id, namespace)
+    api_client = kfp_server_api.api_client.ApiClient(config)
+    self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
+    self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
+
+  def _load_config(self, host, client_id, namespace):
+    config = kfp_server_api.configuration.Configuration()
+    if host:
+      config.host = host
 
     token = None
     if host and client_id:
+      # fetch IAP auth token
       token = get_auth_token(client_id)
-  
-    config = kfp_run.configuration.Configuration()
-    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
-    self._configure_auth(config, token)
-    api_client = kfp_run.api_client.ApiClient(config)
-    self._run_api = kfp_run.api.run_service_api.RunServiceApi(api_client)
-
-    config = kfp_experiment.configuration.Configuration()
-    config.host = host if host else Client.IN_CLUSTER_DNS_NAME
-    self._configure_auth(config, token)
-    api_client = kfp_experiment.api_client.ApiClient(config)
-    self._experiment_api = \
-        kfp_experiment.api.experiment_service_api.ExperimentServiceApi(api_client)
-
-  def _configure_auth(self, config, token):
+    
     if token:
       config.api_key['authorization'] = token
       config.api_key_prefix['authorization'] = 'Bearer'
+      return config
+
+    if host:
+      # if host is explicitly set with auth token, it's probably a port forward address.
+      return config
+
+    import kubernetes as k8s
+    in_cluster = True
+    try:
+      k8s.config.load_incluster_config()
+    except:
+      in_cluster = False
+      pass
+
+    if in_cluster:
+      config.host = Client.IN_CLUSTER_DNS_NAME.format(namespace)
+      return config
+
+    try:
+      k8s.config.load_kube_config(client_configuration=config)
+    except:
+      print('Failed to load kube config.')
+      return config
+
+    if config.host:
+      config.host = os.path.join(config.host, Client.KUBE_PROXY_PATH.format(namespace))
+    return config
 
   def _is_ipython(self):
     """Returns whether we are running in notebook."""
     try:
       import IPython
+      ipy = IPython.get_ipython()
+      if ipy is None:
+        return False
     except ImportError:
       return False
 
@@ -91,7 +113,7 @@ class Client(object):
   def _get_url_prefix(self):
     if self._host:
       # User's own connection.
-      if self._host.startswith('http://'):
+      if self._host.startswith('http://') or self._host.startswith('https://'):
         return self._host
       else:
         return 'http://' + self._host
@@ -106,7 +128,6 @@ class Client(object):
     Returns:
       An Experiment object. Most important field is id.
     """
-    import kfp_experiment
 
     experiment = None
     try:
@@ -117,7 +138,7 @@ class Client(object):
 
     if not experiment:
       logging.info('Creating experiment {}.'.format(name))
-      experiment = kfp_experiment.models.ApiExperiment(name=name)
+      experiment = kfp_server_api.models.ApiExperiment(name=name)
       experiment = self._experiment_api.create_experiment(body=experiment)
     
     if self._is_ipython():
@@ -165,18 +186,35 @@ class Client(object):
           return self._experiment_api.get_experiment(id=experiment.id)
     raise ValueError('No experiment is found with name {}.'.format(experiment_name))
 
-  def _extract_pipeline_yaml(self, tar_file):
-    with tarfile.open(tar_file, "r:gz") as tar:
-      all_yaml_files = [m for m in tar if m.isfile() and 
-          (os.path.splitext(m.name)[-1] == '.yaml' or os.path.splitext(m.name)[-1] == '.yml')]
-      if len(all_yaml_files) == 0:
+  def _extract_pipeline_yaml(self, package_file):
+    def _choose_pipeline_yaml_file(file_list) -> str:
+      yaml_files = [file for file in file_list if file.endswith('.yaml')]
+      if len(yaml_files) == 0:
         raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
-        
-      if len(all_yaml_files) > 1:
-        raise ValueError('Invalid package. Multiple yaml files in the package.')
-        
-      with tar.extractfile(all_yaml_files[0]) as f:
-        return yaml.load(f)
+      
+      if 'pipeline.yaml' in yaml_files:
+        return 'pipeline.yaml'
+      else:
+        if len(yaml_files) == 1:
+          return yaml_files[0]
+        raise ValueError('Invalid package. There is no pipeline.yaml file and there are multiple yaml files.')
+
+    if package_file.endswith('.tar.gz') or package_file.endswith('.tgz'):
+      with tarfile.open(package_file, "r:gz") as tar:
+        file_names = [member.name for member in tar if member.isfile()]
+        pipeline_yaml_file = _choose_pipeline_yaml_file(file_names)
+        with tar.extractfile(tar.getmember(pipeline_yaml_file)) as f:
+          return yaml.safe_load(f)
+    elif package_file.endswith('.zip'):
+      with zipfile.ZipFile(package_file, 'r') as zip:
+        pipeline_yaml_file = _choose_pipeline_yaml_file(zip.namelist())
+        with zip.open(pipeline_yaml_file) as f:
+          return yaml.safe_load(f)
+    elif package_file.endswith('.yaml') or package_file.endswith('.yml'):
+      with open(package_file, 'r') as f:
+        return yaml.safe_load(f)
+    else:
+      raise ValueError('The package_file '+ package_file + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
 
   def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None):
     """Run a specified pipeline.
@@ -184,29 +222,28 @@ class Client(object):
     Args:
       experiment_id: The string id of an experiment.
       job_name: name of the job.
-      pipeline_package_path: local path of the pipeline package(tar.gz file).
+      pipeline_package_path: local path of the pipeline package(the filename should end with one of the following .tar.gz, .tgz, .zip, .yaml, .yml).
       params: a dictionary with key (string) as param name and value (string) as as param value.
       pipeline_id: the string ID of a pipeline.
 
     Returns:
       A run object. Most important field is id.
     """
-    import kfp_run
 
     pipeline_json_string = None
     if pipeline_package_path:
       pipeline_obj = self._extract_pipeline_yaml(pipeline_package_path)
       pipeline_json_string = json.dumps(pipeline_obj)
-    api_params = [kfp_run.ApiParameter(name=_k8s_helper.K8sHelper.sanitize_k8s_name(k), value=str(v))
+    api_params = [kfp_server_api.ApiParameter(name=_k8s_helper.K8sHelper.sanitize_k8s_name(k), value=str(v))
                   for k,v in params.items()]
-    key = kfp_run.models.ApiResourceKey(id=experiment_id,
-                                        type=kfp_run.models.ApiResourceType.EXPERIMENT)
-    reference = kfp_run.models.ApiResourceReference(key, kfp_run.models.ApiRelationship.OWNER)
-    spec = kfp_run.models.ApiPipelineSpec(
+    key = kfp_server_api.models.ApiResourceKey(id=experiment_id,
+                                        type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
+    reference = kfp_server_api.models.ApiResourceReference(key, kfp_server_api.models.ApiRelationship.OWNER)
+    spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
         workflow_manifest=pipeline_json_string, 
         parameters=api_params)
-    run_body = kfp_run.models.ApiRun(
+    run_body = kfp_server_api.models.ApiRun(
         pipeline_spec=spec, resource_references=[reference], name=job_name)
 
     response = self._run_api.create_run(body=run_body)
@@ -229,8 +266,7 @@ class Client(object):
       A response object including a list of experiments and next page token.
     """
     if experiment_id is not None:
-      import kfp_run
-      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_run.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
+      response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by, resource_reference_key_type=kfp_server_api.models.api_resource_type.ApiResourceType.EXPERIMENT, resource_reference_key_id=experiment_id)
     else:
       response = self._run_api.list_runs(page_token=page_token, page_size=page_size, sort_by=sort_by)
     return response
