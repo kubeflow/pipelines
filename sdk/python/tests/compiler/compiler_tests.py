@@ -97,38 +97,10 @@ class TestCompiler(unittest.TestCase):
           'name': 'mlpipeline-ui-metadata',
           'path': '/mlpipeline-ui-metadata.json',
           'optional': True,
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
-            }
-          }
         },{
           'name': 'mlpipeline-metrics',
           'path': '/mlpipeline-metrics.json',
           'optional': True,
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
-            }
-          }
         }]
       }
     }
@@ -309,6 +281,10 @@ class TestCompiler(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
+  def test_py_compile_artifact_location(self):
+    """Test configurable artifact location pipeline."""
+    self._test_py_compile_yaml('artifact_location')
+
   def test_py_compile_basic(self):
     """Test basic sequential pipeline."""
     self._test_py_compile_zip('basic')
@@ -388,7 +364,7 @@ class TestCompiler(unittest.TestCase):
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
     @component
-    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: 'Integer'):
+    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: Integer()):
       return ContainerOp(
           name = 'operator a',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -418,7 +394,7 @@ class TestCompiler(unittest.TestCase):
   def test_type_checking_with_inconsistent_types(self):
     """Test type check pipeline parameters against component metadata."""
     @component
-    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: 'Integer'):
+    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: Integer()):
       return ContainerOp(
           name = 'operator a',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -443,6 +419,38 @@ class TestCompiler(unittest.TestCase):
       with self.assertRaises(InconsistentTypeException):
         compiler.Compiler().compile(my_pipeline, simple_package_path, type_check=True)
       compiler.Compiler().compile(my_pipeline, simple_package_path, type_check=False)
+
+    finally:
+      shutil.rmtree(tmpdir)
+
+  def test_type_checking_with_json_schema(self):
+    """Test type check pipeline parameters against the json schema."""
+    @component
+    def a_op(field_m: {'GCRPath': {'openapi_schema_validator': {"type": "string", "pattern": "^.*gcr\\.io/.*$"}}}, field_o: 'Integer'):
+      return ContainerOp(
+          name = 'operator a',
+          image = 'gcr.io/ml-pipeline/component-b',
+          arguments = [
+              '--field-l', field_m,
+              '--field-o', field_o,
+          ],
+      )
+
+    @pipeline(
+        name='p1',
+        description='description1'
+    )
+    def my_pipeline(a: {'GCRPath': {'openapi_schema_validator': {"type": "string", "pattern": "^.*gcr\\.io/.*$"}}}='good', b: 'Integer'=12):
+      a_op(field_m=a, field_o=b)
+
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+    tmpdir = tempfile.mkdtemp()
+    try:
+      simple_package_path = os.path.join(tmpdir, 'simple.tar.gz')
+      import jsonschema
+      with self.assertRaises(jsonschema.exceptions.ValidationError):
+        compiler.Compiler().compile(my_pipeline, simple_package_path, type_check=True)
 
     finally:
       shutil.rmtree(tmpdir)
@@ -488,3 +496,25 @@ class TestCompiler(unittest.TestCase):
       value='run'))
 
     self._test_op_to_template_yaml(op1, file_base_name='tolerations')
+
+  def test_op_transformers(self):
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline(name='some_pipeline', description='')
+    def some_pipeline():
+        task1 = some_op()
+        task2 = some_op()
+        task3 = some_op()
+
+        dsl.get_pipeline_conf().op_transformers.append(lambda op: op.set_retry(5))
+
+    workflow_dict = compiler.Compiler()._compile(some_pipeline)
+    for template in workflow_dict['spec']['templates']:
+      container = template.get('container', None)
+      if container:
+        self.assertEqual(template['retryStrategy']['limit'], 5)

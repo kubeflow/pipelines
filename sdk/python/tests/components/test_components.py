@@ -522,9 +522,7 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
         
-        import kfp
-        with kfp.dsl.Pipeline('Dummy'): #Forcing the TaskSpec conversion to ContainerOp
-            task1 = task_factory1()
+        task1 = task_factory1()
         actual_env = {env_var.name: env_var.value for env_var in task1.container.env}
         expected_env = {'key1': 'value 1', 'key2': 'value 2'}
         self.assertDictEqual(expected_env, actual_env)

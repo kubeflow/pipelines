@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARGO_VERSION=${ARGO_VERSION:-v2.2.0}
+ARGO_VERSION=${ARGO_VERSION:-v2.3.0}
 
 sudo curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo/releases/download/${ARGO_VERSION}/argo-linux-amd64
 sudo chmod +x /usr/local/bin/argo

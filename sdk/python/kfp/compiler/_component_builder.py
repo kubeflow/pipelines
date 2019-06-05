@@ -260,14 +260,17 @@ class ImageBuilder(object):
       'apiVersion': 'v1',
       'metadata': {
         'generateName': 'kaniko-',
-        'namespace': 'kubeflow',
+        'namespace': namespace,
       },
       'kind': 'Pod',
       'spec': {
         'restartPolicy': 'Never',
         'containers': [{
           'name': 'kaniko',
-          'args': ['--cache=true'],
+          'args': ['--cache=true', 
+                   '--dockerfile=' + arc_dockerfile_name, 
+                   '--context=' + gcs_path, 
+                   '--destination=' + target_image],
           'image': 'gcr.io/kaniko-project/executor:v0.5.0',
           'env': [{
             'name': 'GOOGLE_APPLICATION_CREDENTIALS',
@@ -287,11 +290,6 @@ class ImageBuilder(object):
         'serviceAccountName': 'default'}
     }
 
-    content['metadata']['namespace'] = namespace
-    args = content['spec']['containers'][0]['args']
-    args.append('--dockerfile=' + arc_dockerfile_name)
-    args.append('--context=' + gcs_path)
-    args.append('--destination=' + target_image)
     return content
 
   #TODO: currently it supports single output, future support for multiple return values

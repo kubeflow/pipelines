@@ -19,11 +19,11 @@ import datetime
 import logging
 
 
-def standalone_job_op(name, image, command, gpus=0, cpu_limit=0, memory_limit=0, env=[],
+def standalone_job_op(name, image, command, gpus=0, cpu_limit='0', memory_limit='0', env=[],
           tensorboard=False, tensorboard_image=None,
           data=[], sync_source=None, annotations=[],
           metrics=['Train-accuracy:PERCENTAGE'],
-          arena_image='cheyang/arena_launcher:v0.6',
+          arena_image='cheyang/arena_launcher:v0.7',
           timeout_hours=240):
 
     """This function submits a standalone training Job 
@@ -43,8 +43,6 @@ def standalone_job_op(name, image, command, gpus=0, cpu_limit=0, memory_limit=0,
 
     options = []
     if sync_source:
-       if not sync_source.startswith("http"):
-          raise ValueError("sync_source must be an http git url")
        options.append('--sync-source')
        options.append(str(sync_source))
 

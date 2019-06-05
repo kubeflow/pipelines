@@ -75,7 +75,10 @@ for the delete experiment operation typically these are written to a http.Reques
 */
 type DeleteExperimentParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the experiment to be deleted.
+
+	*/
 	ID string
 
 	timeout    time.Duration

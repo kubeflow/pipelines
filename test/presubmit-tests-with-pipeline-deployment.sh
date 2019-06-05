@@ -66,9 +66,11 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "presubmit test starts"
 source "${DIR}/test-prep.sh"
+
+# Deploy Kubeflow
 source "${DIR}/deploy-kubeflow.sh"
 
-# Install Argo
+# Install Argo CLI and test-runner service account
 source "${DIR}/install-argo.sh"
 
 # Build Images

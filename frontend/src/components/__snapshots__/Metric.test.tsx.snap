@@ -1,0 +1,79 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Metric renders a metric and does not log an error when metric is between max and min value 1`] = `
+<div
+  className="metricContainer"
+>
+  <div
+    className="metricFill"
+    style={
+      Object {
+        "width": "calc(54%)",
+      }
+    }
+  >
+    0.540
+  </div>
+</div>
+`;
+
+exports[`Metric renders a metric and logs an error when metric has value greater than max value 1`] = `
+<div
+  style={
+    Object {
+      "paddingLeft": 6,
+    }
+  }
+>
+  2.000
+</div>
+`;
+
+exports[`Metric renders a metric and logs an error when metric has value less than min value 1`] = `
+<div
+  style={
+    Object {
+      "paddingLeft": 6,
+    }
+  }
+>
+  -0.540
+</div>
+`;
+
+exports[`Metric renders a metric when metric has max and min value of 0 1`] = `
+<div
+  style={
+    Object {
+      "paddingLeft": 6,
+    }
+  }
+>
+  0.540
+</div>
+`;
+
+exports[`Metric renders a metric when metric has value and percentage format 1`] = `
+<div
+  className="metricContainer"
+>
+  <div
+    className="metricFill"
+    style={
+      Object {
+        "width": "calc(54.000%)",
+      }
+    }
+  >
+    54.000%
+  </div>
+</div>
+`;
+
+exports[`Metric renders an empty metric when metric has no metadata and raw format 1`] = `<div />`;
+
+exports[`Metric renders an empty metric when metric has no metadata and unspecified format 1`] = `<div />`;
+
+exports[`Metric renders an empty metric when metric has no value 1`] = `<div />`;
+
+exports[`Metric renders an empty metric when there is no metric 1`] = `<div />`;
