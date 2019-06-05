@@ -58,9 +58,12 @@ def _capture_function_code_using_cloudpickle(func) -> str:
     func_code = '{func_name} = pickle.loads({func_pickle})'.format(func_name=func.__name__, func_pickle=repr(func_pickle))
 
     code_lines = [
-        'import subprocess',
-        'import sys',
-        'subprocess.call([sys.executable, "-m", "pip", "install", "cloudpickle"])'
+        'try:',
+        '    import cloudpickle as _cloudpickle',
+        'except ImportError:',
+        '    import subprocess',
+        '    import sys',
+        '    subprocess.call([sys.executable, "-m", "pip", "install", "cloudpickle==1.1.1", "--quiet"])'
         '',
         'import pickle',
         '',
