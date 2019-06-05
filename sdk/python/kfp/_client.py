@@ -28,7 +28,7 @@ from .compiler import compiler
 from .compiler import _k8s_helper
 
 from ._auth import get_auth_token
- 
+
 KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
 KF_PIPELINES_UI_ENDPOINT_ENV = 'KF_PIPELINES_UI_ENDPOINT'
 
@@ -55,6 +55,7 @@ class Client(object):
     """
 
     self._host = host
+    self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, '')
     config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
