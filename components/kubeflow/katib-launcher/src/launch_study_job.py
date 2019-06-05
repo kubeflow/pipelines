@@ -153,6 +153,8 @@ def main(argv=None):
   if wait_response.get("status", {}).get("condition") == "Completed":
     succ = True
     trial = get_best_trial(wait_response["status"]["bestTrialId"])
+    if not os.path.exists(os.path.dirname(args.outputfile)):
+      os.makedirs(os.path.dirname(args.outputfile))
     with open(args.outputfile, 'w') as f:
       ps_dict = {}
       for ps in trial.parameter_set:
