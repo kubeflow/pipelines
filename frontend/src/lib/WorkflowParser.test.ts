@@ -307,16 +307,18 @@ describe('WorkflowParser', () => {
     it('gives nodes customized labels based on template annotation', () => {
       const workflow = {
         metadata: { name: 'testWorkflow' },
-        templates: [
-          {
-            name: 'some-template',
-            metadata: {
-              annotations: {
-                'kubeflow.org/pipelines/task_display_name': 'Customized name',
+        spec: {
+          templates: [
+            {
+              name: 'some-template',
+              metadata: {
+                annotations: {
+                  'kubeflow.org/pipelines/task_display_name': 'Customized name',
+                }
               }
             }
-          }
-        ],
+          ],
+        },
         status: {
           nodes: {
             node1: {
