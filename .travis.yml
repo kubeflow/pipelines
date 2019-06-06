@@ -72,7 +72,7 @@ matrix:
         - python3 setup.py install
         - python tests/dsl/main.py
         - python tests/compiler/main.py
-        - python -m unittest discover --verbose --start-dir tests --top-level-directory=..
+        - $TRAVIS_BUILD_DIR/sdk/python/tests/run_tests.sh
 
         #Test loading all component.yaml definitions
         - $TRAVIS_BUILD_DIR/components/test_load_all_components.sh
