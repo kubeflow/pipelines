@@ -42,7 +42,10 @@ const (
 	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
 	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
+	mysqlUser             = "DBConfig.User"
+	mysqlPassword         = "DBConfig.Password"
 	mysqlServicePort      = "MYSQL_SERVICE_PORT"
+
 	podNamespace          = "POD_NAMESPACE"
 	dbName                = "mlpipeline"
 	initConnectionTimeout = "InitConnectionTimeout"
@@ -164,7 +167,8 @@ func initMetadataStore() *metadata.Store {
 				Host:     proto.String(getStringConfig(mysqlServiceHost)),
 				Port:     proto.Uint32(uint32(port)),
 				Database: proto.String("mlmetadata"),
-				User:     proto.String("root"),
+				User:     proto.String(getStringConfigWithDefault(mysqlUser, "root")),
+				Password: proto.String(getStringConfigWithDefault(mysqlPassword, "")),
 			},
 		},
 	}
@@ -218,7 +222,8 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 // Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True
 func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	mysqlConfig := client.CreateMySQLConfig(
-		"root",
+		getStringConfigWithDefault(mysqlUser, "root"),
+		getStringConfigWithDefault(mysqlPassword, ""),
 		getStringConfig(mysqlServiceHost),
 		getStringConfig(mysqlServicePort),
 		"")
