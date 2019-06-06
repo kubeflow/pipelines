@@ -1,4 +1,3 @@
-
 This folder contains Kubeflow Pipelines Kustomize manifests for a light weight deployment. You can follow the instruction and deploy Kubeflow Pipelines in an existing cluster.
 
 
@@ -6,7 +5,7 @@ This folder contains Kubeflow Pipelines Kustomize manifests for a light weight d
 
 If you want to skip any customization, you can deploy Kubeflow Pipelines by running
 ```
-export PIPELINE_VERSION=4eeeb6e22432ece32c7d0efbd8307c15bfa9b6d3
+export PIPELINE_VERSION=master
 kubectl apply -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/namespaced-install.yaml
 ```
 
