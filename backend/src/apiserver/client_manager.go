@@ -17,6 +17,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -263,8 +264,10 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
 	// Create minio client.
-	minioServiceHost := getStringConfig(minioServiceHost)
-	minioServicePort := getStringConfig(minioServicePort)
+	minioServiceHost := getStringConfigWithDefault(
+		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
+	minioServicePort := getStringConfigWithDefault(
+		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
 	accessKey := getStringConfig("ObjectStoreConfig.AccessKey")
 	secretKey := getStringConfig("ObjectStoreConfig.SecretAccessKey")
 	bucketName := getStringConfig("ObjectStoreConfig.BucketName")
