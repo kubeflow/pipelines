@@ -47,7 +47,7 @@ def pipeline(name : str = None, description : str = None):
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func
     else:
-      return func 
+      return func
 
   return _pipeline
 
@@ -128,15 +128,15 @@ class Pipeline():
   """
 
   # _default_pipeline is set when it (usually a compiler) runs "with Pipeline()"
-  _default_pipeline = None
+  _default_pipeline: 'Pipeline' = None
 
   @staticmethod
-  def get_default_pipeline():
+  def get_default_pipeline() -> 'Pipeline':
     """Get default pipeline. """
     return Pipeline._default_pipeline
 
   @staticmethod
-  def add_pipeline(name, description, func):
+  def add_pipeline(name: str, description: str, func) -> None:
     """Add a pipeline function with the specified name and description."""
     # Applying the @pipeline decorator to the pipeline function
     func = pipeline(name=name, description=description)(func)
