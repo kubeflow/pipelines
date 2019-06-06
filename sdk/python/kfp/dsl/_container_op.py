@@ -973,22 +973,7 @@ class ContainerOp(BaseOp):
             self.output = list(self.outputs.values())[0]
 
         self.pvolumes = {}
-        if pvolumes:
-            for mount_path, pvolume in pvolumes.items():
-                if hasattr(pvolume, "dependent_names"): #TODO: Replace with type check
-                    self.dependent_names.extend(pvolume.dependent_names)
-                else:
-                    pvolume = PipelineVolume(volume=pvolume)
-                self.pvolumes[mount_path] = pvolume.after(self)
-                self.add_volume(pvolume)
-                self._container.add_volume_mount(V1VolumeMount(
-                    name=pvolume.name,
-                    mount_path=mount_path
-                ))
-
-        self.pvolume = None
-        if self.pvolumes and len(self.pvolumes) == 1:
-            self.pvolume = list(self.pvolumes.values())[0]
+        self.add_pvolumes(pvolumes)
 
     @property
     def command(self):
@@ -1049,6 +1034,34 @@ class ContainerOp(BaseOp):
             self.output = None
             if len(self.outputs) == 1:
                 self.output = list(self.outputs.values())[0]
+
+    def add_pvolumes(self,
+                     pvolumes: Dict[str, V1Volume] = None):
+        """Updates the existing pvolumes dict, extends volumes and volume_mounts
+        and redefines the pvolume attribute.
+
+        Args:
+            pvolumes: Dictionary. Keys are mount paths, values are Kubernetes
+                      volumes or inherited types (e.g. PipelineVolumes).
+        """
+        if pvolumes:
+            for mount_path, pvolume in pvolumes.items():
+                if hasattr(pvolume, "dependent_names"):
+                    self.dependent_names.extend(pvolume.dependent_names)
+                else:
+                    pvolume = PipelineVolume(volume=pvolume)
+                self.pvolumes[mount_path] = pvolume.after(self)
+                self.add_volume(pvolume)
+                self._container.add_volume_mount(V1VolumeMount(
+                    name=pvolume.name,
+                    mount_path=mount_path
+                ))
+
+        self.pvolume = None
+        if len(self.pvolumes) == 1:
+            self.pvolume = list(self.pvolumes.values())[0]
+        return self
+
 
 # proxy old ContainerOp properties to ContainerOp.container
 # with PendingDeprecationWarning.
