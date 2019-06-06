@@ -303,6 +303,35 @@ describe('WorkflowParser', () => {
       expect(g.node('node1').label).toEqual('node1');
       expect(g.node('exitNode').label).toEqual('onExit - clean');
     });
+
+    it('gives nodes customized labels based on template annotation', () => {
+      const workflow = {
+        metadata: { name: 'testWorkflow' },
+        templates: [
+          {
+            name: 'some-template',
+            metadata: {
+              annotations: {
+                'kubeflow.org/pipelines/task_display_name': 'Customized name',
+              }
+            }
+          }
+        ],
+        status: {
+          nodes: {
+            node1: {
+              id: 'node1',
+              name: 'node1',
+              phase: 'Succeeded',
+              templateName: 'some-template',
+              type: 'Pod',
+            },
+          },
+        }
+      };
+      const g = WorkflowParser.createRuntimeGraph(workflow as any);
+      expect(g.node('node1').label).toEqual('Customized name');
+    });
   });
 
   describe('getNodeInputOutputParams', () => {
