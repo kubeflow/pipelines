@@ -310,12 +310,12 @@ describe('WorkflowParser', () => {
         spec: {
           templates: [
             {
-              name: 'some-template',
               metadata: {
                 annotations: {
                   'kubeflow.org/pipelines/task_display_name': 'Customized name',
                 }
-              }
+              },
+              name: 'some-template',
             }
           ],
         },
