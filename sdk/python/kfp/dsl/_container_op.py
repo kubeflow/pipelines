@@ -687,6 +687,7 @@ class BaseOp(object):
         self.pod_annotations = {}
         self.pod_labels = {}
         self.num_retries = 0
+        self.timeout = 0
         self.sidecars = sidecars or []
 
         # attributes specific to `BaseOp`
@@ -804,6 +805,16 @@ class BaseOp(object):
         """
 
         self.num_retries = num_retries
+        return self
+
+    def set_timeout(self, seconds: int):
+        """Sets the timeout for the task in seconds.
+
+        Args:
+          seconds: Number of seconds.
+        """
+
+        self.timeout = seconds
         return self
 
     def add_sidecar(self, sidecar: Sidecar):
