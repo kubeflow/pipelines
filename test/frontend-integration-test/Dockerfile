@@ -1,4 +1,4 @@
-FROM selenium/standalone-chrome
+FROM selenium/standalone-chrome:3.141.59-oxygen
 
 USER root
 
