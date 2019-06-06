@@ -133,6 +133,8 @@ class CreateJobOp:
         logging.info('Dumping job: {}'.format(job))
         gcp_common.dump_file('/tmp/kfp/output/ml_engine/job.json', json.dumps(job))
         gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_id.txt', job['jobId'])
+        job_dir = ''
         if 'trainingInput' in job and 'jobDir' in job['trainingInput']:
-            gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_dir.txt', 
-                job['trainingInput']['jobDir'])
+            job_dir = job['trainingInput']['jobDir']
+        gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_dir.txt', 
+            job_dir)
