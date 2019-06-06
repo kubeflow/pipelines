@@ -13,5 +13,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cd $(dirname $0)
-python3 -m unittest discover --verbose --start-dir tests --top-level-directory=..
+cd "$(dirname "$0")/.."
+python3 -m unittest discover --verbose --start-dir tests --top-level-directory=.
