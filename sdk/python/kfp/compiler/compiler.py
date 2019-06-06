@@ -456,13 +456,20 @@ class Compiler(object):
 
   def _create_templates(self, pipeline, op_transformers=None):
     """Create all groups and ops templates in the pipeline.
-    
+
     Args:
       pipeline: Pipeline context object to get all the pipeline data from.
       op_transformers: A list of functions that are applied to all ContainerOp instances that are being processed.
     """
 
     new_root_group = pipeline.groups[0]
+
+    # Call the transformation functions before determining the inputs/outputs, otherwise
+    # the user would not be able to use pipeline parameters in the container definition
+    # (for example as pod labels) - the generated template is invalid.
+    for op in pipeline.ops.values():
+      for transformer in op_transformers or []:
+        transformer(op)
 
     # Generate core data structures to prepare for argo yaml generation
     #   op_groups: op name -> list of ancestor groups including the current op
@@ -487,8 +494,6 @@ class Compiler(object):
       templates.append(template)
 
     for op in pipeline.ops.values():
-      for transformer in op_transformers or []:
-        op = transformer(op) or op
       template = _op_to_template(op)
       templates.append(template)
     return templates
