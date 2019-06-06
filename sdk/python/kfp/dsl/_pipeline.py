@@ -104,6 +104,14 @@ class PipelineConf():
     self.artifact_location = artifact_location
     return self
 
+  def add_op_transformer(self, transformer):
+    """Configures the op_transformers which will be applied to all ops in the pipeline.
+
+    Args:
+      transformer: a function that takes a ContainOp as input and returns a ContainerOp
+    """
+    self.op_transformers.append(transformer)
+
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline
     Note: call the function inside the user defined pipeline function.
