@@ -14,7 +14,8 @@
 
 from kubernetes.client import V1Toleration
 
-def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-gcp-sa.json', volume_name='gcp-credentials', secret_volume_mount_path='/secret/gcp-credentials'):
+
+def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-gcp-sa.json', volume_name=None, secret_volume_mount_path='/secret/gcp-credentials'):
     """An operator that configures the container to use GCP service account.
 
         The user-gcp-sa secret is created as part of the kubeflow deployment that
@@ -31,6 +32,12 @@ def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-
         service account access permission.
     """
 
+    if volume_name is None:
+        volume_name = 'gcp-credentials-' + secret_name
+    else:
+        import warnings
+        warnings.warn('The volume_name parameter is deprecated and will be removed in next release. The volume names are now generated automatically.', DeprecationWarning)
+    
     def _use_gcp_secret(task):
         from kubernetes import client as k8s_client
         return (
