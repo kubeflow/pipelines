@@ -1,66 +1,111 @@
-import fire
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from ._client import Client
 import sys
 import subprocess
 import pprint
 import time
 import json
+import click
 
 from tabulate import tabulate
 
-class KFPWrapper(object):
-    def __init__(self, host = None, client_id = None, namespace = 'kubeflow'):
-        self._client = Client(host, client_id, namespace)
-        self._namespace = namespace
+@click.group()
+@click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
+@click.option('--iap-client-id', help='Client ID for IAP protected endpoint.')
+@click.option('-n', '--namespace', default='kubeflow', help='Kubernetes namespace to connect to the KFP API.')
+@click.pass_context
+def cli(ctx, endpoint, iap_client_id, namespace):
+    """kfp is the command line interface to KFP service."""
+    ctx.obj['client'] = Client(endpoint, iap_client_id, namespace)
+    ctx.obj['namespace']= namespace
 
-    def run(self, experiment_name, run_name = None, pipeline_package_path = None, pipeline_id = None, watch = True, args = {}):
-        if not run_name:
-            run_name = experiment_name
+@cli.command()
+@click.option('-e', '--experiment-id', help='Parent experiment ID of listed runs.')
+@click.option('--max-size', default=100, help='Max size of the listed runs.')
+@click.pass_context
+def list_runs(ctx, experiment_id, max_size):
+    """list recent KFP runs"""
+    client = ctx.obj['client']
+    response = client.list_runs(experiment_id=experiment_id, page_size=max_size, sort_by='created_at desc')
+    _print_runs(response.runs)
 
-        if not pipeline_package_path and not pipeline_id:
-            print('You must provide one of [pipeline_package_path, pipeline_id].')
-            sys.exit(1)
+@cli.command()
+@click.option('-e', '--experiment-name', required=True, help='Experiment name of the run.')
+@click.option('-r', '--run-name', help='Name of the run.')
+@click.option('-f', '--package-file', type=click.Path(exists=True, dir_okay=False), help='Path of the pipeline package file.')
+@click.option('-p', '--pipeline-id', help='ID of the pipeline template.')
+@click.option('-w', '--watch', is_flag=True, default=False, help='Watch the run status until it finishes.')
+@click.argument('args', nargs=-1)
+@click.pass_context
+def run(ctx, experiment_name, run_name, package_file, pipeline_id, watch, args):
+    """submit a KFP run"""
+    client = ctx.obj['client']
+    namespace = ctx.obj['namespace']
+    if not run_name:
+        run_name = experiment_name
 
-        print(args)
-        experiment = self._client.create_experiment(experiment_name)
-        run = self._client.run_pipeline(experiment.id, run_name, pipeline_package_path, args, pipeline_id)
-        print('Run {} is submitted'.format(run.id))
-        self.get_run(run.id, watch)
+    if not package_file and not pipeline_id:
+        print('You must provide one of [package_file, pipeline_id].')
+        sys.exit(1)
 
-    def get_run(self, run_id, watch=True):
-        run = self._client.get_run(run_id).run
-        self._print_runs([run])
-        if not watch:
+    arg_dict = dict(arg.split('=') for arg in args)
+    experiment = client.create_experiment(experiment_name)
+    run = client.run_pipeline(experiment.id, run_name, package_file, arg_dict, pipeline_id)
+    print('Run {} is submitted'.format(run.id))
+    _display_run(client, namespace, run.id, watch)
+
+@cli.command()
+@click.option('-w', '--watch', is_flag=True, default=False, help='Watch the run status until it finishes.')
+@click.argument('run-id')
+@click.pass_context
+def get_run(ctx, watch, run_id):
+    """display the details of a KFP run"""
+    client = ctx.obj['client']
+    namespace = ctx.obj['namespace']
+    _display_run(client, namespace, run_id, watch)
+
+def _display_run(client, namespace, run_id, watch):
+    run = client.get_run(run_id).run
+    _print_runs([run])
+    if not watch:
+        return
+    argo_workflow_name = None
+    while True:
+        time.sleep(1)
+        run_detail = client.get_run(run_id)
+        run = run_detail.run
+        if run_detail.pipeline_runtime and run_detail.pipeline_runtime.workflow_manifest:
+            manifest = json.loads(run_detail.pipeline_runtime.workflow_manifest)
+            if manifest['metadata'] and manifest['metadata']['name']:
+                argo_workflow_name = manifest['metadata']['name']
+                break
+        if run_detail.run.status in ['Succeeded', 'Skipped', 'Failed', 'Error']:
+            print('Run is finished with status {}.'.format(run_detail.run.status))
             return
-        argo_workflow_name = None
-        while True:
-            time.sleep(1)
-            run_detail = self._client.get_run(run_id)
-            run = run_detail.run
-            if run_detail.pipeline_runtime and run_detail.pipeline_runtime.workflow_manifest:
-                manifest = json.loads(run_detail.pipeline_runtime.workflow_manifest)
-                if manifest['metadata'] and manifest['metadata']['name']:
-                    argo_workflow_name = manifest['metadata']['name']
-                    break
-            if run_detail.run.status in ['Succeeded', 'Skipped', 'Failed', 'Error']:
-                print('Run is finished with status {}.'.format(run_detail.run.status))
-                return
-        if argo_workflow_name:
-            subprocess.run(['argo', 'watch', argo_workflow_name, '-n', self._namespace])
-            self._print_runs([run])
+    if argo_workflow_name:
+        subprocess.run(['argo', 'watch', argo_workflow_name, '-n', namespace])
+        _print_runs([run])
 
-    def list_runs(self, experiment_id = None, page_size=100):
-        response = self._client.list_runs(experiment_id=experiment_id, page_size=page_size, sort_by='created_at desc')
-        self._print_runs(response.runs)
-
-    def _print_runs(self, runs):
-        headers = ['run id', 'name', 'status', 'created at']
-        data = [[run.id, run.name, run.status, run.created_at.isoformat()] for run in runs]
-        print(tabulate(data, headers=headers, tablefmt='grid'))
-
+def _print_runs(runs):
+    headers = ['run id', 'name', 'status', 'created at']
+    data = [[run.id, run.name, run.status, run.created_at.isoformat()] for run in runs]
+    print(tabulate(data, headers=headers, tablefmt='grid'))
 
 def main():
-    fire.Fire(KFPWrapper, name='kfp')
+    cli(obj={}, auto_envvar_prefix='KFP')
 
 if __name__ == '__main__':
     main()
