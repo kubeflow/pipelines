@@ -64,7 +64,7 @@
 #    --vcap ~/vcap.json \
 #    --deploy-mode cluster \
 #    --class com.ibm.sparkservice.App \
-#    --master https://169.54.219.20 \
+#    --master https://x.x.x.x\
 #    --jars /path/to/mock-library-1.0.jar,/path/to/mock-utils-1.0.jar \
 #    ~/mock-app-1.0.jar
 #
