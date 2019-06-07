@@ -56,6 +56,7 @@ class PipelineConf():
   """
   def __init__(self):
     self.image_pull_secrets = []
+    self.timeout = 0
     self.artifact_location = None
     self.op_transformers = []
 
@@ -68,6 +69,15 @@ class PipelineConf():
       https://github.com/kubernetes-client/python/blob/master/kubernetes/docs/V1LocalObjectReference.md
     """
     self.image_pull_secrets = image_pull_secrets
+    return self
+
+  def set_timeout(self, seconds: int):
+    """Configures the pipeline level timeout
+
+    Args:
+      seconds: number of seconds for timeout
+    """
+    self.timeout = seconds
     return self
 
   def set_artifact_location(self, artifact_location):
@@ -111,6 +121,7 @@ class PipelineConf():
       transformer: a function that takes a ContainOp as input and returns a ContainerOp
     """
     self.op_transformers.append(transformer)
+
 
 def get_pipeline_conf():
   """Configure the pipeline level setting to the current pipeline

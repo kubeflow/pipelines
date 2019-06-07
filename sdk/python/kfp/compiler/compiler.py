@@ -551,6 +551,10 @@ class Compiler(object):
       for image_pull_secret in pipeline.conf.image_pull_secrets:
         image_pull_secrets.append(K8sHelper.convert_k8s_obj_to_json(image_pull_secret))
       workflow['spec']['imagePullSecrets'] = image_pull_secrets
+
+    if pipeline.conf.timeout:
+      workflow['spec']['activeDeadlineSeconds'] = pipeline.conf.timeout
+
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
     if volumes:
