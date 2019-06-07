@@ -29,9 +29,9 @@ def _dict_to_secret(
 class ArtifactLocation:
     """
     ArtifactLocation describes a location for a single or multiple artifacts.
-    It is used as single artifact in the context of inputs/outputs 
-    (e.g. outputs.artifacts.artname). It is also used to describe the location 
-    of multiple artifacts such as the archive location of a single workflow 
+    It is used as single artifact in the context of inputs/outputs
+    (e.g. outputs.artifacts.artname). It is also used to describe the location
+    of multiple artifacts such as the archive location of a single workflow
     step, which the executor will use as a default location to store its files.
     """
 
@@ -49,7 +49,7 @@ class ArtifactLocation:
         backend.
 
         Example::
-  
+
           from kubernetes.client.models import V1SecretKeySelector
           from kfp.dsl import ArtifactLocation
 
@@ -69,10 +69,10 @@ class ArtifactLocation:
           insecure (bool): use TLS if set to True.
           region (str): bucket region (for s3 buckets).
           access_key_secret (Union[V1SecretKeySelector, Dict[str, Any]]): k8s secret selector to access key.
-          secret_key_secret (Union[V1SecretKeySelector, Dict[str, Any]]): k8s secret selector to secret key. 
+          secret_key_secret (Union[V1SecretKeySelector, Dict[str, Any]]): k8s secret selector to secret key.
 
         Returns:
-          V1alpha1ArtifactLocation: a new instance of V1alpha1ArtifactLocation.       
+          V1alpha1ArtifactLocation: a new instance of V1alpha1ArtifactLocation.
         """
         return V1alpha1ArtifactLocation(
             s3=V1alpha1S3Artifact(
@@ -128,8 +128,8 @@ class ArtifactLocation:
               endpoint=s3_artifact.get("endpoint"),
               insecure=s3_artifact.get("insecure"),
               region=s3_artifact.get("region"),
-              access_key_secret=_dict_to_secret(s3_artifact.get("access_key_secret")),
-              secret_key_secret=_dict_to_secret(s3_artifact.get("secret_key_secret")),
+              access_key_secret=_dict_to_secret(s3_artifact.get("accessKeySecret")),
+              secret_key_secret=_dict_to_secret(s3_artifact.get("secretKeySecret")),
               key=key
             )
           )
