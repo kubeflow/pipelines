@@ -245,6 +245,10 @@ def _op_to_template(op: BaseOp):
     if processed_op.num_retries:
         template['retryStrategy'] = {'limit': processed_op.num_retries}
 
+    # timeout
+    if processed_op.timeout:
+        template['activeDeadlineSeconds'] = processed_op.timeout
+
     # sidecars
     if processed_op.sidecars:
         template['sidecars'] = processed_op.sidecars
