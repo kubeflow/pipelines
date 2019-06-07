@@ -15,6 +15,7 @@
 package main
 
 import (
+	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -23,7 +24,9 @@ import (
 )
 
 func initConfig() {
-	// Import environment variable
+	// Import environment variable, support nested vars e.g. OBJECTSTORECONFIG_ACCESSKEY
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 
 	// Set configuration file name. The format is auto detected in this case.
@@ -45,6 +48,13 @@ func initConfig() {
 func getStringConfig(configName string) string {
 	if !viper.IsSet(configName) {
 		glog.Fatalf("Please specify flag %s", configName)
+	}
+	return viper.GetString(configName)
+}
+
+func getStringConfigWithDefault(configName, value string) string {
+	if !viper.IsSet(configName) {
+		return value
 	}
 	return viper.GetString(configName)
 }
