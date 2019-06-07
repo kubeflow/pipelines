@@ -485,7 +485,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
 
   return _create_task_factory_from_component_spec(component_spec)
 
-def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, build_image=True, timeout=600, namespace='kubeflow', target_component_file=None, python_version='python3'):
+def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, build_image=True, timeout=600, namespace='default', target_component_file=None, python_version='python3'):
   """ build_component automatically builds a container image for the component_func
   based on the base_image and pushes to the target_image.
 
@@ -534,7 +534,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
     logging.info('Build component complete.')
   return _generate_pythonop(component_func, target_image, target_component_file)
 
-def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace='kubeflow'):
+def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace='default'):
   """ build_docker_image automatically builds a container image based on the specification in the dockerfile and
   pushes to the target_image.
 
