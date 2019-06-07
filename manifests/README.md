@@ -22,13 +22,13 @@ kubectl describe configmap inverse-proxy-config -n kubeflow
 and check the Hostname section. The endpoint should have format like **1234567-dot-datalab-vm-us-west1.googleusercontent.com**
 
 # Customization
-Customization can be done through Kustomize [Overlay](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/glossary.md#overlay). You don't need to modify the base directory. 
+Customization can be done through Kustomize [Overlay](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/glossary.md#overlay). 
 
 Note - The instruction below assume you installed kubectl v1.14.0 or later, which has native support of kustomize.
 To get latest kubectl, visit [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 ## Change deploy namespace
-To deploy Kubeflow Pipelines in namespace FOO
+To deploy Kubeflow Pipelines in namespace FOO,
 - Edit [kustomization.yaml](namespaced-install/kustomization.yaml) namespace section to FOO
 - Then run 
 ```
@@ -39,7 +39,12 @@ kubectl kustomize . | kubectl apply -f -
 TODO
 
 ## Disable the public endpoint
-By default, the deployment install an [invert proxy agent](https://github.com/google/inverting-proxy) that exposes a public URL. If you want to skip installing it, comment out the proxy component in the [kustomization.yaml](base/kustomization.yaml).
+By default, the deployment install an [invert proxy agent](https://github.com/google/inverting-proxy) that exposes a public URL. If you want to skip installing it,
+- Comment out the proxy component in the [kustomization.yaml](base/kustomization.yaml).
+- Then run 
+```
+kubectl kustomize . | kubectl apply -f -
+```
 
 The UI is still accessible by port-forwarding
 ```
