@@ -11,13 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from .cli.cli import main
-
-# TODO(hongyes): add more commands:
-# kfp compile (migrate from dsl-compile)
-# kfp experiment (manage experiments)
-# kfp pipeline (manage pipelines)
-
-if __name__ == '__main__':
-    main()
