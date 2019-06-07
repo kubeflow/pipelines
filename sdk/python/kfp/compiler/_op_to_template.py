@@ -249,4 +249,8 @@ def _op_to_template(op: BaseOp):
     if processed_op.sidecars:
         template['sidecars'] = processed_op.sidecars
 
+    # Display name
+    if processed_op.display_name:
+        template.setdefault('metadata', {}).setdefault('annotations', {})['kubeflow.org/pipelines/task_display_name'] = processed_op.display_name
+
     return template
