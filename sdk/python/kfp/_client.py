@@ -54,8 +54,7 @@ class Client(object):
       client_id: The client ID used by Identity-Aware Proxy.
     """
 
-    self._host = host
-    self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, '')
+    self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
     config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
