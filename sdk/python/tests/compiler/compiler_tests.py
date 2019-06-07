@@ -366,6 +366,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline param_substitutions."""
     self._test_py_compile_yaml('param_substitutions')
 
+  def test_py_param_op_transform(self):
+    """Test pipeline param_op_transform."""
+    self._test_py_compile_yaml('param_op_transform')
+
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
     @component
@@ -471,7 +475,7 @@ class TestCompiler(unittest.TestCase):
     def pipeline():
       task1 = op()
       task2 = op().after(task1)
-    
+
     compiler.Compiler()._compile(pipeline)
 
   def _test_op_to_template_yaml(self, ops, file_base_name):
