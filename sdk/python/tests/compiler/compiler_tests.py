@@ -144,8 +144,8 @@ class TestCompiler(unittest.TestCase):
     }
 
     self.maxDiff = None
-    self.assertEqual(golden_output, compiler.Compiler()._op_to_template(op))
-    self.assertEqual(res_output, compiler.Compiler()._op_to_template(res))
+    self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
+    self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
 
   def _get_yaml_from_zip(self, zip_file):
     with zipfile.ZipFile(zip_file, 'r') as zip:
@@ -480,7 +480,7 @@ class TestCompiler(unittest.TestCase):
     with open(target_yaml, 'r') as f:
       expected = yaml.safe_load(f)['spec']['templates'][0]
 
-    compiled_template = compiler.Compiler()._op_to_template(ops)
+    compiled_template = compiler._op_to_template._op_to_template(ops)
 
     del compiled_template['name'], expected['name']
     del compiled_template['outputs']['parameters'][0]['name'], expected['outputs']['parameters'][0]['name']
