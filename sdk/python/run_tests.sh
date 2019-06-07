@@ -16,4 +16,4 @@
 cd $(dirname $0)
 python3 tests/dsl/main.py
 python3 tests/compiler/main.py
-python3 -m unittest discover --verbose --start-dir tests --top-level-directory=..
+python3 -m unittest discover --verbose --start-dir tests --top-level-directory=.
