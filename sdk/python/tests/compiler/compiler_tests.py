@@ -322,6 +322,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline imagepullsecret."""
     self._test_py_compile_yaml('imagepullsecret')
 
+  def test_py_timeout(self):
+    """Test pipeline timeout."""
+    self._test_py_compile_yaml('timeout')
+
   def test_py_recursive_do_while(self):
     """Test pipeline recursive."""
     self._test_py_compile_yaml('recursive_do_while')
