@@ -32,7 +32,9 @@ REQUIRES = [
     'cloudpickle',
     'kfp-server-api >= 0.1.18, < 0.1.19', #Update the upper version whenever a new version of the kfp-server-api package is released. Update the lower version when there is a breaking change in kfp-server-api.
     'argo-models == 2.2.1a',  #2.2.1a is equivalent to argo 2.2.1
-    'jsonschema >= 3.0.1'
+    'jsonschema >= 3.0.1',
+    'tabulate == 0.8.3',
+    'click == 7.0'
 ]
 
 setup(
@@ -67,4 +69,6 @@ setup(
     ],
     python_requires='>=3.5.3',
     include_package_data=True,
-    entry_points={'console_scripts': ['dsl-compile = kfp.compiler.main:main',]})
+    entry_points={'console_scripts': [
+        'dsl-compile = kfp.compiler.main:main',
+        'kfp=kfp.__main__:main']})
