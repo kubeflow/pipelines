@@ -22,7 +22,7 @@ from ._components import _create_task_factory_from_component_spec
 from ._structures import *
 
 from pathlib import Path
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, List
 
 T = TypeVar('T')
 
@@ -45,16 +45,23 @@ def _python_function_name_to_component_name(name):
     return re.sub(' +', ' ', name.replace('_', ' ')).strip(' ').capitalize()
 
 
-def _capture_function_code_using_cloudpickle(func) -> str:
+def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str] = None) -> str:
     import sys
     import cloudpickle
     import pickle
+
+    if modules_to_capture is None:
+        modules_to_capture = [func.__module__]
+
     # Hack to force cloudpickle to capture the whole function instead of just referencing the code file. See https://github.com/cloudpipe/cloudpickle/blob/74d69d759185edaeeac7bdcb7015cfc0c652f204/cloudpickle/cloudpickle.py#L490
+    old_modules = {}
     try: # Try is needed to restore the state if something goes wrong
-        old_module = sys.modules.pop(func.__module__)
+        for module_name in modules_to_capture:
+            if module_name in sys.modules:
+                old_modules[module_name] = sys.modules.pop(module_name)
         func_pickle = cloudpickle.dumps(func, pickle.DEFAULT_PROTOCOL)
     finally:
-        sys.modules[func.__module__] = old_module
+        sys.modules.update(old_modules)
     func_code = '{func_name} = pickle.loads({func_pickle})'.format(func_name=func.__name__, func_pickle=repr(func_pickle))
 
     code_lines = [
@@ -73,7 +80,7 @@ def _capture_function_code_using_cloudpickle(func) -> str:
     return '\n'.join(code_lines)
 
 
-def _func_to_component_spec(func, extra_code='', base_image=_default_base_image) -> ComponentSpec:
+def _func_to_component_spec(func, extra_code='', base_image=_default_base_image, modules_to_capture: List[str] = None) -> ComponentSpec:
     '''Takes a self-contained python function and converts it to component
 
     Args:
@@ -81,6 +88,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
         base_image: Optional. Docker image to be used as a base image for the python component. Must have python 3.5+ installed. Default is tensorflow/tensorflow:1.11.0-py3
                     Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         extra_code: Optional. Python source code that gets placed before the function code. Can be used as workaround to define types used in function signature.
+        modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured.
     '''
     decorator_base_image = getattr(func, '_component_base_image', None)
     if decorator_base_image is not None:
@@ -155,7 +163,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image)
 
     func_name=func.__name__
 
-    func_code = _capture_function_code_using_cloudpickle(func)
+    func_code = _capture_function_code_using_cloudpickle(func, modules_to_capture)
 
     extra_output_external_names = [name + '_file' for name in extra_output_names]
 
@@ -232,11 +240,11 @@ for idx, filename in enumerate(_output_files):
     return component_spec
 
 
-def _func_to_component_dict(func, extra_code='', base_image=_default_base_image):
-    return _func_to_component_spec(func, extra_code, base_image).to_dict()
+def _func_to_component_dict(func, extra_code='', base_image=_default_base_image, modules_to_capture: List[str] = None):
+    return _func_to_component_spec(func, extra_code, base_image, modules_to_capture).to_dict()
 
 
-def func_to_component_text(func, extra_code='', base_image=_default_base_image):
+def func_to_component_text(func, extra_code='', base_image=_default_base_image, modules_to_capture: List[str] = None):
     '''
     Converts a Python function to a component definition and returns its textual representation
 
@@ -254,15 +262,16 @@ def func_to_component_text(func, extra_code='', base_image=_default_base_image):
         base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.11.0-py3
                     Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
+        modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
     
     Returns:
         Textual representation of a component definition
     '''
-    component_dict = _func_to_component_dict(func, extra_code, base_image)
+    component_dict = _func_to_component_dict(func, extra_code, base_image, modules_to_capture)
     return dump_yaml(component_dict)
 
 
-def func_to_component_file(func, output_component_file, base_image=_default_base_image, extra_code='') -> None:
+def func_to_component_file(func, output_component_file, base_image=_default_base_image, extra_code='', modules_to_capture: List[str] = None) -> None:
     '''
     Converts a Python function to a component definition and writes it to a file
 
@@ -281,14 +290,15 @@ def func_to_component_file(func, output_component_file, base_image=_default_base
         base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.11.0-py3
                     Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
+        modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
     '''
 
-    component_yaml = func_to_component_text(func, extra_code, base_image)
+    component_yaml = func_to_component_text(func, extra_code, base_image, modules_to_capture)
     
     Path(output_component_file).write_text(component_yaml)
 
 
-def func_to_container_op(func, output_component_file=None, base_image=_default_base_image, extra_code=''):
+def func_to_container_op(func, output_component_file=None, base_image=_default_base_image, extra_code='', modules_to_capture: List[str] = None):
     '''
     Converts a Python function to a component and returns a task (ContainerOp) factory
 
@@ -307,13 +317,14 @@ def func_to_container_op(func, output_component_file=None, base_image=_default_b
                     Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         output_component_file: Optional. Write a component definition to a local file. Can be used for sharing.
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
+        modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
 
     Returns:
         A factory function with a strongly-typed signature taken from the python function.
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp) that can run the original function in a container.
     '''
 
-    component_spec = _func_to_component_spec(func, extra_code, base_image)
+    component_spec = _func_to_component_spec(func, extra_code, base_image, modules_to_capture)
 
     output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:
