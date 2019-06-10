@@ -349,9 +349,6 @@ class Compiler(object):
     else:
       return str(value_or_reference)
 
-  def _op_to_template(self, op):
-    return _op_to_template(op)
-
   def _group_to_template(self, group, inputs, outputs, dependencies):
     """Generate template given an OpsGroup.
 
@@ -454,15 +451,24 @@ class Compiler(object):
     template['dag'] = {'tasks': tasks}
     return template
 
-  def _create_templates(self, pipeline, op_transformers=None):
+  def _create_templates(self, pipeline, op_transformers=None, op_to_templates_handler=None):
     """Create all groups and ops templates in the pipeline.
-    
+
     Args:
       pipeline: Pipeline context object to get all the pipeline data from.
       op_transformers: A list of functions that are applied to all ContainerOp instances that are being processed.
+      op_to_templates_handler: Handler which converts a base op into a list of argo templates.
     """
 
+    op_to_templates_handler = op_to_templates_handler or (lambda op : [_op_to_template(op)])
     new_root_group = pipeline.groups[0]
+
+    # Call the transformation functions before determining the inputs/outputs, otherwise
+    # the user would not be able to use pipeline parameters in the container definition
+    # (for example as pod labels) - the generated template is invalid.
+    for op in pipeline.ops.values():
+      for transformer in op_transformers or []:
+        transformer(op)
 
     # Generate core data structures to prepare for argo yaml generation
     #   op_groups: op name -> list of ancestor groups including the current op
@@ -487,10 +493,7 @@ class Compiler(object):
       templates.append(template)
 
     for op in pipeline.ops.values():
-      for transformer in op_transformers or []:
-        op = transformer(op) or op
-      template = _op_to_template(op)
-      templates.append(template)
+      templates.extend(op_to_templates_handler(op))
     return templates
 
   def _create_volumes(self, pipeline):
@@ -551,6 +554,10 @@ class Compiler(object):
       for image_pull_secret in pipeline.conf.image_pull_secrets:
         image_pull_secrets.append(K8sHelper.convert_k8s_obj_to_json(image_pull_secret))
       workflow['spec']['imagePullSecrets'] = image_pull_secrets
+
+    if pipeline.conf.timeout:
+      workflow['spec']['activeDeadlineSeconds'] = pipeline.conf.timeout
+
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
     if volumes:

@@ -1,4 +1,3 @@
-#!/bin/bash -e
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,5 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cd "$(dirname "$0")/.."
-python3 -m unittest discover --verbose --start-dir tests --top-level-directory=.
+from .cli.cli import main
+
+# TODO(hongyes): add more commands:
+# kfp compile (migrate from dsl-compile)
+# kfp experiment (manage experiments)
+# kfp pipeline (manage pipelines)
+
+if __name__ == '__main__':
+    main()

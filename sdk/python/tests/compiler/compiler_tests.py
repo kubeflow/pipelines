@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 import kfp.compiler as compiler
 import kfp.dsl as dsl
 import os
@@ -143,8 +144,8 @@ class TestCompiler(unittest.TestCase):
     }
 
     self.maxDiff = None
-    self.assertEqual(golden_output, compiler.Compiler()._op_to_template(op))
-    self.assertEqual(res_output, compiler.Compiler()._op_to_template(res))
+    self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
+    self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
 
   def _get_yaml_from_zip(self, zip_file):
     with zipfile.ZipFile(zip_file, 'r') as zip:
@@ -321,6 +322,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline imagepullsecret."""
     self._test_py_compile_yaml('imagepullsecret')
 
+  def test_py_timeout(self):
+    """Test pipeline timeout."""
+    self._test_py_compile_yaml('timeout')
+
   def test_py_recursive_do_while(self):
     """Test pipeline recursive."""
     self._test_py_compile_yaml('recursive_do_while')
@@ -360,6 +365,10 @@ class TestCompiler(unittest.TestCase):
   def test_py_param_substitutions(self):
     """Test pipeline param_substitutions."""
     self._test_py_compile_yaml('param_substitutions')
+
+  def test_py_param_op_transform(self):
+    """Test pipeline param_op_transform."""
+    self._test_py_compile_yaml('param_op_transform')
 
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
@@ -466,7 +475,7 @@ class TestCompiler(unittest.TestCase):
     def pipeline():
       task1 = op()
       task2 = op().after(task1)
-    
+
     compiler.Compiler()._compile(pipeline)
 
   def _test_op_to_template_yaml(self, ops, file_base_name):
@@ -475,7 +484,7 @@ class TestCompiler(unittest.TestCase):
     with open(target_yaml, 'r') as f:
       expected = yaml.safe_load(f)['spec']['templates'][0]
 
-    compiled_template = compiler.Compiler()._op_to_template(ops)
+    compiled_template = compiler._op_to_template._op_to_template(ops)
 
     del compiled_template['name'], expected['name']
     del compiled_template['outputs']['parameters'][0]['name'], expected['outputs']['parameters'][0]['name']
@@ -496,6 +505,27 @@ class TestCompiler(unittest.TestCase):
       value='run'))
 
     self._test_op_to_template_yaml(op1, file_base_name='tolerations')
+
+  def test_set_display_name(self):
+    """Test a pipeline with a customized task names."""
+
+    import kfp
+    op1 = kfp.components.load_component_from_text(
+      '''
+name: Component name
+implementation:
+  container:
+    image: busybox
+'''
+    )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      op1().set_display_name('Custom name')
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    template = workflow_dict['spec']['templates'][0]
+    self.assertEqual(template['metadata']['annotations']['kubeflow.org/pipelines/task_display_name'], 'Custom name')
 
   def test_op_transformers(self):
     def some_op():

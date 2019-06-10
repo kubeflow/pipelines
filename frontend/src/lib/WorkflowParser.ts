@@ -79,6 +79,17 @@ export default class WorkflowParser {
         if (node.name === `${workflowName}.onExit`) {
           nodeLabel = `onExit - ${node.templateName}`;
         }
+
+        if (workflow.spec && workflow.spec.templates) {
+          const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+          if (tmpl && tmpl.metadata && tmpl.metadata.annotations) {
+            const displayName = tmpl.metadata.annotations['kubeflow.org/pipelines/task_display_name'];
+            if (displayName) {
+              nodeLabel = displayName;
+            }
+          }
+        }
+
         g.setNode(node.id, {
           height: Constants.NODE_HEIGHT,
           icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message),

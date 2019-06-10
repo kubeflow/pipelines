@@ -130,9 +130,46 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
+    def test_func_to_container_op_check_nothing_extra_captured(self):
+        def f1():
+            pass
+
+        def f2():
+            pass
+
+        def main_func(a: float, b: float) -> float:
+            f1()
+            try:
+                eval('f2()')
+            except:
+                return a + b
+            raise AssertionError("f2 should not be captured, because it's not a dependency.")
+
+        expected_func = lambda a, b: a + b
+        op = comp.func_to_container_op(main_func)
+
+        self.helper_test_2_in_1_out_component_using_local_call(expected_func, op)
+
     def test_func_to_container_op_call_other_func_global(self):
         func = module_func_with_deps
         op = comp.func_to_container_op(func, output_component_file='comp.yaml')
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_with_imported_func(self):
+        from .test_data.module1 import module_func_with_deps as module1_func_with_deps
+        func = module1_func_with_deps
+        op = comp.func_to_container_op(func)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_with_imported_func2(self):
+        from .test_data.module2_which_depends_on_module1 import module2_func_with_deps as module2_func_with_deps
+        func = module2_func_with_deps
+        op = comp.func_to_container_op(func, modules_to_capture=[
+            'tests.components.test_data.module1',
+            'tests.components.test_data.module2_which_depends_on_module1'
+        ])
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
