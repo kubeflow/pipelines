@@ -1,0 +1,3 @@
+ml-metadata==0.13.2
+fire==0.1.3
+tensorflow==1.13.1
