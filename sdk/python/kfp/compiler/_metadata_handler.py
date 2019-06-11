@@ -33,7 +33,7 @@ def _op_to_track_template(processed_op: BaseOp):
         }]
     }
     if processed_op.outputs:
-        param_outputs = { output.name: '/tmp/%s' % output.name for output in processed_op.outputs.values()}
+        param_outputs = { output.name: '/tmp/kfp/outputs/%s' % output.name for output in processed_op.outputs.values()}
         template['outputs'] = _outputs_to_json(processed_op, processed_op.outputs,
                                             param_outputs, [])
     # actual_outputs = { output.name : '{{inputs.parameters.%s}}' % output.full_name for output in processed_op.outputs.values()}
@@ -70,7 +70,11 @@ def _op_to_dag_template(processed_op: BaseOp):
     import json
     execution = {
         'inputs': {param.full_name: '{{inputs.parameters.%s}}' % param.full_name for param in processed_op.inputs},
-        'outputs': {param.name: '{{tasks.%s.outputs.parameters.%s}}' % (exec_op_name, param.full_name) for param in processed_op.outputs.values()}
+        'outputs': {param.name: '{{tasks.%s.outputs.parameters.%s}}' % (exec_op_name, param.full_name) for param in processed_op.outputs.values()},
+        'image': processed_op.container.image,
+        'command': processed_op.container.command,
+        'args': processed_op.container.args,
+        'workflow_id': '{{workflow.id}}'
     }
     track_task = {
         'name': track_op_name,
