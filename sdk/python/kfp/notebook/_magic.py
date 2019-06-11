@@ -21,18 +21,20 @@ from ..compiler import build_docker_image
 def docker(line, cell):
   """cell magic for %%docker"""
 
-  if len(line.split()) != 2:
+  if len(line.split()) in {2,3}:
     raise ValueError("usage: %%docker [gcr.io/project/image:tag] [gs://staging-bucket]")
   if not cell.strip():
     raise ValueError("Please fill in a dockerfile content in the cell.")
 
-  target, staging = line.split()
-  
-
   with tempfile.NamedTemporaryFile(mode='wt', delete=False) as f:
     f.write(cell)
 
-  build_docker_image(staging, target, f.name)
+  if len(line.split()) == 2:
+    target, staging = line.split()
+    build_docker_image(staging, target, f.name)
+  elif len(line.split()) == 3:
+    target, staging, ns = line.split()
+    build_docker_image(staging, target, f.name, namespace=ns)
   os.remove(f.name)
 
 try:
