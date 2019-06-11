@@ -22,7 +22,7 @@ def docker(line, cell):
   """cell magic for %%docker"""
 
   if len(line.split()) not in {2,3}:
-    raise ValueError("usage: %%docker [gcr.io/project/image:tag] [gs://staging-bucket]")
+    raise ValueError("usage: %%docker [gcr.io/project/image:tag] [gs://staging-bucket] [kubeflow]")
   if not cell.strip():
     raise ValueError("Please fill in a dockerfile content in the cell.")
 
