@@ -523,7 +523,8 @@ class Compiler(object):
       input_params.append(param)
 
     # Templates
-    templates = self._create_templates(pipeline, op_transformers)
+    from ._metadata_handler import _op_to_metadata_templates
+    templates = self._create_templates(pipeline, op_transformers, _op_to_metadata_templates)
     templates.sort(key=lambda x: x['name'])
 
     # Exit Handler
