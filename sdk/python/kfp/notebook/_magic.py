@@ -21,7 +21,7 @@ from ..compiler import build_docker_image
 def docker(line, cell):
   """cell magic for %%docker"""
 
-  if len(line.split()) in {2,3}:
+  if len(line.split()) not in {2,3}:
     raise ValueError("usage: %%docker [gcr.io/project/image:tag] [gs://staging-bucket]")
   if not cell.strip():
     raise ValueError("Please fill in a dockerfile content in the cell.")
