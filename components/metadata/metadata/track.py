@@ -28,20 +28,20 @@ KFP_OUTPUTS_DIR = '/tmp/kfp/outputs'
 
 # TODO(hongyes): remove pod ID to get stable digest
 def _compute_digest(execution_json: str, workflow_id: str) -> str:
-    stable_execution_json = execution_json.replace(workflow_id, '')
+    stable_execution_json = execution_json
+    if workflow_id:
+        stable_execution_json = stable_execution_json.replace(workflow_id, '')
     return hashlib.md5(stable_execution_json.encode()).hexdigest()
     
 def track(execution: Dict, mlmd: Metadata):
-    logging.basicConfig()
-    logging.info('Execution: ' + str(execution))
-    
+    logging.info('Execution: ' + str(execution))    
     # TODO(hongyes): add more exec_properties: envvar, pod id, etc.
     # TODO(hongyes): log artifacts (untyped, dataset and model)
     execution_json =json.dumps(execution, sort_keys=True)
     execution_id = mlmd.prepare_execution('kubeflow.org/container-execution/v1', exec_properties={
-        'image': execution['image'],
-        'workflow_id': execution['workflow_id'],
-        'digest': _compute_digest(execution_json, execution['workflow_id']),
+        'image': execution.get('image'),
+        'workflow_id': execution.get('workflow_id'),
+        'digest': _compute_digest(execution_json, execution.get('workflow_id')),
         'configuration': execution_json,
     })
     logging.info('Execution ID: ' + str(execution_id))
@@ -49,7 +49,7 @@ def track(execution: Dict, mlmd: Metadata):
     if 'outputs' in execution:
         if not os.path.exists(KFP_OUTPUTS_DIR):
             os.makedirs(KFP_OUTPUTS_DIR)
-        for o_key, o_value in execution['outputs'].items():
+        for o_key, o_value in execution.get('outputs').items():
             output_path = os.path.join(KFP_OUTPUTS_DIR, o_key)
             with open(output_path, 'w') as f:
                 f.write(o_value)
@@ -57,6 +57,7 @@ def track(execution: Dict, mlmd: Metadata):
     return execution_id
 
 def track_wrapper(execution: Dict):
+    logging.getLogger().setLevel(logging.INFO)
     connection_config = metadata_store_pb2.ConnectionConfig()
     # TODO(hongyes): find in-cluster DB connection for metadata service.
     connection_config.fake_database.SetInParent()
