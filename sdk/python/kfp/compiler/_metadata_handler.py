@@ -25,8 +25,6 @@ def _op_to_metadata_templates(op: BaseOp):
 def _op_to_track_template(processed_op: BaseOp):
     import json
     template = {'name': processed_op.name + '-track'}
-    # inputs = _inputs_to_json(processed_op.outputs.values())
-    # if inputs:
     template['inputs'] = {
         'parameters': [{
             'name': 'execution'
@@ -36,7 +34,6 @@ def _op_to_track_template(processed_op: BaseOp):
         param_outputs = { output.name: '/tmp/kfp/outputs/%s' % output.name for output in processed_op.outputs.values()}
         template['outputs'] = _outputs_to_json(processed_op, processed_op.outputs,
                                             param_outputs, [])
-    # actual_outputs = { output.name : '{{inputs.parameters.%s}}' % output.full_name for output in processed_op.outputs.values()}
     template['container'] = {
         'image': 'gcr.io/hongyes-ml/metadata-tool:latest',
         'args': ['track.py', '{{inputs.parameters.execution}}']
