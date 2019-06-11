@@ -24,6 +24,8 @@ from typing import Dict
 import copy
 import hashlib
 
+KFP_OUTPUTS_DIR = '/tmp/kfp/outputs'
+
 # TODO(hongyes): remove pod ID to get stable digest
 def _compute_digest(execution_json: str, workflow_id: str) -> str:
     stable_execution_json = execution_json.replace(workflow_id, '')
@@ -45,8 +47,10 @@ def track(execution: Dict, mlmd: Metadata):
     logging.info('Execution ID: ' + str(execution_id))
 
     if 'outputs' in execution:
+        if not os.path.exists(KFP_OUTPUTS_DIR):
+            os.makedirs(KFP_OUTPUTS_DIR)
         for o_key, o_value in execution['outputs'].items():
-            output_path = os.path.join('/tmp/kfp/outputs', o_key)
+            output_path = os.path.join(KFP_OUTPUTS_DIR, o_key)
             with open(output_path, 'w') as f:
                 f.write(o_value)
 
