@@ -71,10 +71,10 @@ def _op_to_dag_template(processed_op: BaseOp):
     execution = {
         'inputs': {param.full_name: '{{inputs.parameters.%s}}' % param.full_name for param in processed_op.inputs},
         'outputs': {param.name: '{{tasks.%s.outputs.parameters.%s}}' % (exec_op_name, param.full_name) for param in processed_op.outputs.values()},
-        'image': processed_op.container.image,
-        'command': processed_op.container.command,
-        'args': processed_op.container.args,
-        'workflow_id': '{{workflow.id}}'
+        'image': processed_op.container.get('image'),
+        'command': processed_op.container.get('command'),
+        'args': processed_op.container.get('args'),
+        'workflow_id': '{{workflow.name}}'
     }
     track_task = {
         'name': track_op_name,
@@ -88,20 +88,13 @@ def _op_to_dag_template(processed_op: BaseOp):
     
     if processed_op.outputs:
         output_parameters = []
-        # track_input_parameters = []
         for param in processed_op.outputs.values():
-            # track_input_parameters.append({
-            #     'name': param.full_name,
-            #     'value': '{{tasks.%s.outputs.parameters.%s}}' % (exec_op_name, param.full_name)
-            # })
             output_parameters.append({
                 'name': param.full_name,
                 'valueFrom': {
                     'parameter': '{{tasks.%s.outputs.parameters.%s}}' % (track_op_name, param.full_name)
                 }
             })
-        # track_input_parameters.sort(key=lambda x: x['name'])
-        # track_task['arguments'] = { 'parameters': track_input_parameters }
 
         output_parameters.sort(key=lambda x: x['name'])
         template['outputs'] = {
