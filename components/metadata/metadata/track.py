@@ -32,7 +32,7 @@ def _compute_digest(execution_json: str, workflow_id: str) -> str:
     return hashlib.md5(stable_execution_json.encode()).hexdigest()
     
 def track(execution: Dict, mlmd: Metadata):
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig()
     logging.info('Execution: ' + str(execution))
     
     # TODO(hongyes): add more exec_properties: envvar, pod id, etc.
