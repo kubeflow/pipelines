@@ -59,4 +59,4 @@ def track_wrapper(execution: Dict):
     track(execution, Metadata(connection_config))
 
 if __name__ == '__main__':
-    fire.Fire(track)
+    fire.Fire(track_wrapper)
