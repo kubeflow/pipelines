@@ -26,7 +26,6 @@ import * as tar from 'tar';
 import * as k8sHelper from './k8s-helper';
 import proxyMiddleware from './proxy-middleware';
 import { Storage } from '@google-cloud/storage';
-import { Stream } from 'stream';
 
 const BASEPATH = '/pipeline';
 
