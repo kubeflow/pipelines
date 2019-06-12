@@ -14,17 +14,31 @@
 
 from kfp import dsl
 
-def kubeflow_tfjob_launcher_op(container_image, command, number_of_workers: int, number_of_parameter_servers: int, tfjob_timeout_minutes: int, output_dir=None, step_name='TFJob-launcher'):
+def kubeflow_tfjob_launcher_op(container_image,
+                               command,
+                               version,
+                               pvc_map_str,
+                               delete_tfjob_after_done,
+                               has_master: bool,
+                               number_of_workers: int,
+                               number_of_parameter_servers: int,
+                               tfjob_timeout_minutes: int,
+                               output_dir=None,
+                               step_name='TFJob-launcher'):
     return dsl.ContainerOp(
         name = step_name,
-        image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf:6554e133dd453c62aea05ebb57a04f897c11d070',
+        image = 'liuhougangxa/tfjob-launcher',
         arguments = [
+            '--has-master', has_master,
             '--workers', number_of_workers,
             '--pss', number_of_parameter_servers,
             '--tfjob-timeout-minutes', tfjob_timeout_minutes,
             '--container-image', container_image,
             '--output-dir', output_dir,
             '--ui-metadata-type', 'tensorboard',
+            '--tfjob-version', version, 
+            '--mount-dict', pvc_map_str,
+            '--delete-after-done', delete_tfjob_after_done,
             '--',
         ] + command,
         file_outputs = {'train': '/output.txt'}

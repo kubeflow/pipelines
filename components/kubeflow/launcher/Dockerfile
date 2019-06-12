@@ -14,8 +14,6 @@
 
 FROM ubuntu:16.04
 
-ARG TRAINER_IMAGE_NAME
-
 RUN apt-get update -y
 
 RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev python-setuptools wget unzip git
@@ -23,7 +21,7 @@ RUN apt-get install --no-install-recommends -y -q ca-certificates python-dev pyt
 RUN easy_install pip
 
 RUN pip install pyyaml==3.12 six==1.11.0 requests==2.18.4 tensorflow==1.7.0 \
-      kubernetes google-api-python-client retrying
+      kubernetes google-api-python-client gcloud google-cloud-storage retrying
 
 RUN wget -nv https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.zip && \
     unzip -qq google-cloud-sdk.zip -d tools && \
@@ -47,12 +45,14 @@ RUN wget -nv https://github.com/ksonnet/ksonnet/releases/download/v0.9.0/ks_0.9.
 RUN wget https://github.com/kubeflow/tf-operator/archive/v0.3.0.zip && \
     unzip v0.3.0.zip && \
     mv tf-operator-0.3.0 tf-operator
+RUN wget https://github.com/kubeflow/tf-operator/archive/master.zip && \
+    unzip master.zip && rm -f master.zip && mv tf-operator-master/py/kubeflow/ /kubeflow && \
+    wget https://github.com/kubeflow/testing/archive/master.zip && unzip master.zip && \
+    cp -r testing-master/py/kubeflow/* /kubeflow
 
-ENV PYTHONPATH $PYTHONPATH:/tf-operator
+ENV PYTHONPATH $PYTHONPATH:/kubeflow
 
 ENV PATH $PATH:/tools/google-cloud-sdk/bin:/tools/ks/bin
-
-ENV TRAINER_IMAGE_NAME $TRAINER_IMAGE_NAME
 
 ADD build /ml
 
