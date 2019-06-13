@@ -20,7 +20,9 @@ import time
 
 from googleapiclient import errors
 
-from kfp_component.core import KfpExecutionContext, display
+from ._common_ops import wait_for_job_done, cancel_job
+
+from kfp_component.core import KfpExecutionContext
 from ._client import MLEngineClient
 from .. import common as gcp_common
 
@@ -53,16 +55,10 @@ class CreateJobOp:
         self._wait_interval = wait_interval
     
     def execute_and_wait(self):
-        with KfpExecutionContext(on_cancel=self._cancel) as ctx:
+        with KfpExecutionContext(on_cancel=lambda: cancel_job(self._ml, self._project_id, self._job_id)) as ctx:
             self._set_job_id(ctx.context_id())
-            self._dump_metadata()
             self._create_job()
-            finished_job = self._wait_for_done()
-            self._dump_job(finished_job)
-            if finished_job['state'] != 'SUCCEEDED':
-                raise RuntimeError('Job failed with state {}. Error: {}'.format(
-                    finished_job['state'], finished_job.get('errorMessage', '')))
-            return finished_job
+            return wait_for_job_done(self._ml, self._project_id, self._job_id, self._wait_interval)
 
     def _set_job_id(self, context_id):
         if self._job_id_prefix:
@@ -72,16 +68,6 @@ class CreateJobOp:
         job_id = gcp_common.normalize_name(job_id)
         self._job_id = job_id
         self._job['jobId'] = job_id
-
-    def _cancel(self):
-        try:
-            logging.info('Cancelling job {}.'.format(self._job_id))
-            self._ml.cancel_job(self._project_id, self._job_id)
-            logging.info('Cancelled job {}.'.format(self._job_id))
-        except errors.HttpError as e:
-            # Best effort to cancel the job
-            logging.error('Failed to cancel the job: {}'.format(e))
-            pass
 
     def _create_job(self):
         try:
@@ -103,38 +89,3 @@ class CreateJobOp:
         existing_job = self._ml.get_job(self._project_id, self._job_id)
         return existing_job.get('trainingInput', None) == self._job.get('trainingInput', None) \
             and existing_job.get('predictionInput', None) == self._job.get('predictionInput', None)
-
-    def _wait_for_done(self):
-        while True:
-            job = self._ml.get_job(self._project_id, self._job_id)
-            if job.get('state', None) in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
-                return job
-            # Move to config from flag
-            logging.info('job status is {}, wait for {}s'.format(
-                job.get('state', None), self._wait_interval))
-            time.sleep(self._wait_interval)
-
-    def _dump_metadata(self):
-        display.display(display.Link(
-            'https://console.cloud.google.com/mlengine/jobs/{}?project={}'.format(
-                self._job_id, self._project_id),
-            'Job Details'
-        ))
-        display.display(display.Link(
-            'https://console.cloud.google.com/logs/viewer?project={}&resource=ml_job/job_id/{}&interval=NO_LIMIT'.format(
-                self._project_id, self._job_id),
-            'Logs'
-        ))
-        if 'trainingInput' in self._job and 'jobDir' in self._job['trainingInput']:
-            display.display(display.Tensorboard(
-                self._job['trainingInput']['jobDir']))
-
-    def _dump_job(self, job):
-        logging.info('Dumping job: {}'.format(job))
-        gcp_common.dump_file('/tmp/kfp/output/ml_engine/job.json', json.dumps(job))
-        gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_id.txt', job['jobId'])
-        job_dir = ''
-        if 'trainingInput' in job and 'jobDir' in job['trainingInput']:
-            job_dir = job['trainingInput']['jobDir']
-        gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_dir.txt', 
-            job_dir)
