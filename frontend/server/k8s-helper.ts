@@ -139,7 +139,7 @@ export function getPodLogs(podName: string): Promise<string> {
 }
 
 function getNameOfViewerResource(logdir: string): string {
-  return 'viewer-' + crypto.SHA1(logdir) + '-v1';
+  return 'viewer-' + crypto.SHA1(logdir);
 }
 
 /**
@@ -212,7 +212,7 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
     v.metadata.name == getNameOfViewerResource(logdir) &&
     v.spec.tensorboardSpec.logDir == logdir &&
     v.spec.type == 'tensorboard');
-  return viewer ? `http://${viewer.metadata.name}-service.kubeflow.svc.cluster.local:6006/tensorboard/${viewer.metadata.name}` : '';
+  return viewer ? `http://${viewer.metadata.name}-service.kubeflow.svc.cluster.local:6006/tensorboard/${viewer.metadata.name}/` : '';
 }
 
 /**
