@@ -30,3 +30,4 @@ from ._train import train
 from ._batch_predict import batch_predict
 from ._deploy import deploy
 from ._set_default_version import set_default_version
+from ._wait_job import wait_job
