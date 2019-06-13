@@ -18,12 +18,14 @@ import * as React from 'react';
 import Banner, { Mode } from '../components/Banner';
 import Buttons from '../lib/Buttons';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import CompareTable, { CompareTableProps } from '../components/CompareTable';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import LogViewer from '../components/LogViewer';
 import MD2Tabs from '../atoms/MD2Tabs';
+import MetricUtils from '../lib/MetricUtils';
 import PlotCard from '../components/PlotCard';
 import RunUtils from '../lib/RunUtils';
 import Separator from '../atoms/Separator';
@@ -157,8 +159,18 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public render(): JSX.Element {
-    const { allArtifactConfigs, graph, legacyStackdriverUrl, runFinished, runMetadata, selectedTab, selectedNodeDetails,
-      sidepanelSelectedTab, stackdriverK8sLogsUrl, workflow } = this.state;
+    const {
+      allArtifactConfigs,
+      graph,
+      legacyStackdriverUrl,
+      runFinished,
+      runMetadata,
+      selectedTab,
+      selectedNodeDetails,
+      sidepanelSelectedTab,
+      stackdriverK8sLogsUrl,
+      workflow
+    } = this.state;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
@@ -173,6 +185,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
               onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })} />
             <div className={commonCss.page}>
 
+              {/* Graph tab */}
               {selectedTab === 0 && <div className={classes(commonCss.page, css.graphPane)}>
                 {graph && <div className={commonCss.page}>
                   <Graph graph={graph} selectedNodeId={selectedNodeId}
@@ -284,8 +297,11 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                 )}
               </div>}
 
+              {/* Run outputs tab */}
               {selectedTab === 1 && (
                 <div className={padding()}>
+                  <CompareTable {...this.runToMetricsCompareProps(runMetadata)} />
+
                   {!allArtifactConfigs.length && (
                     <span className={commonCss.absoluteCenter}>
                       No output artifacts found for this run.
@@ -302,6 +318,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                 </div>
               )}
 
+              {/* Config tab */}
               {selectedTab === 2 && (
                 <div className={padding()}>
                   <DetailsTable title='Run details' fields={this._getDetailsFields(workflow, runMetadata)} />
@@ -317,6 +334,44 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         )}
       </div>
     );
+  }
+
+  // TODO(rjbauer): move to CompareUtils?
+  // TODO(rjbauer): are these being aggregated properly for compare?
+  public runToMetricsCompareProps(run?: ApiRun): CompareTableProps {
+    let rows: string[][] = [[]];
+    let xLabels: string[] = [];
+    let yLabels: string[] = [];
+    if (run) {
+      const namesToNodesToValues: Map<string, Map<string, string>> = new Map();
+      const nodeIds: Set<string> = new Set();
+
+      (run.metrics || []).forEach(metric => {
+        if (!metric.name || !metric.node_id || metric.number_value === undefined || isNaN(metric.number_value)) {
+          return;
+        }
+        const nodeToValue = namesToNodesToValues.get(metric.name) || new Map();
+        nodeToValue.set(metric.node_id, MetricUtils.getMetricDisplayString(metric));
+        namesToNodesToValues.set(metric.name, nodeToValue);
+        nodeIds.add(metric.node_id);
+      });
+
+      yLabels = Array.from(nodeIds.keys());
+      xLabels = Array.from(namesToNodesToValues.keys());
+
+      rows =
+        yLabels.map(nodeId =>
+          xLabels.map(metricName =>
+            namesToNodesToValues.get(metricName)!.get(nodeId) || ''
+          )
+        );
+    }
+
+    return {
+      rows,
+      xLabels,
+      yLabels,
+    };
   }
 
   public async componentDidMount(): Promise<void> {
