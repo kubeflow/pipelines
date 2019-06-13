@@ -16,20 +16,20 @@ from setuptools import setup
 
 PACKAGE_NAME = "kfp-component"
 VERSION = '0.1.20'
-REQUIRES = []
-with open('requirements.txt') as f:
-    REQUIRES = f.readlines()
-
-with open('test-requirements.txt') as f:
-    TESTS_REQUIRES = f.readlines()
 
 setup(
     name=PACKAGE_NAME,
     version=VERSION,
     description='KubeFlow Pipelines Component SDK',
     author='google',
-    install_requires=REQUIRES,
-    tests_require=TESTS_REQUIRES,
+    install_requires=[
+      'kubernetes >= 8.0.1',
+      'urllib3>=1.15,<1.25',
+      'fire == 0.1.3',
+      'google-api-python-client == 1.7.8',
+      'google-cloud-storage == 1.14.0',
+      'google-cloud-bigquery == 1.9.0'
+    ],
     packages=[
       'kfp_component',
     ],
