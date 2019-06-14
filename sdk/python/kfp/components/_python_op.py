@@ -46,6 +46,7 @@ def _python_function_name_to_component_name(name):
 
 
 def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str] = None) -> str:
+    import base64
     import sys
     import cloudpickle
     import pickle
@@ -59,10 +60,13 @@ def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str]
         for module_name in modules_to_capture:
             if module_name in sys.modules:
                 old_modules[module_name] = sys.modules.pop(module_name)
-        func_pickle = cloudpickle.dumps(func, pickle.DEFAULT_PROTOCOL)
+        func_pickle = base64.b64encode(cloudpickle.dumps(func, pickle.DEFAULT_PROTOCOL))
     finally:
         sys.modules.update(old_modules)
-    func_code = '{func_name} = pickle.loads({func_pickle})'.format(func_name=func.__name__, func_pickle=repr(func_pickle))
+    func_code = '{func_name} = pickle.loads(base64.b64decode({func_pickle}))'.format(
+        func_name=func.__name__,
+        func_pickle=repr(func_pickle)
+    )
 
     code_lines = [
         'try:',
@@ -72,6 +76,7 @@ def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str]
         '    import sys',
         '    subprocess.call([sys.executable, "-m", "pip", "install", "cloudpickle==1.1.1", "--quiet"])'
         '',
+        'import base64',
         'import pickle',
         '',
         func_code,
@@ -103,7 +108,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     import inspect
     import re
     from collections import OrderedDict
-    
+
     single_output_name_const = 'Output'
     single_output_pythonic_name_const = 'output'
 
@@ -263,7 +268,7 @@ def func_to_component_text(func, extra_code='', base_image=_default_base_image, 
                     Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
-    
+
     Returns:
         Textual representation of a component definition
     '''
@@ -294,7 +299,7 @@ def func_to_component_file(func, output_component_file, base_image=_default_base
     '''
 
     component_yaml = func_to_component_text(func, extra_code, base_image, modules_to_capture)
-    
+
     Path(output_component_file).write_text(component_yaml)
 
 
