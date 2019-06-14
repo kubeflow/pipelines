@@ -74,7 +74,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 dataproc_create_cluster_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/74d8e592174ae90175f66c3c00ba76a835cfba6d/components/gcp/dataproc/create_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/f379080516a34d9c257a198cde9ac219d625ab84/components/gcp/dataproc/create_cluster/component.yaml')
 help(dataproc_create_cluster_op)
 ```
 
