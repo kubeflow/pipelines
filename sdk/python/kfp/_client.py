@@ -62,7 +62,7 @@ class Client(object):
 
   def _load_config(self, host, client_id, namespace):
     config = kfp_server_api.configuration.Configuration()
-    config.host = config.host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
+    host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     if host:
       config.host = host
 
