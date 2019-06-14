@@ -236,7 +236,7 @@ for idx, filename in enumerate(_output_files):
         implementation=ContainerImplementation(
             container=ContainerSpec(
                 image=base_image,
-                command=['python3', '-c', full_source],
+                command=['python3', '-u', '-c', full_source],
                 args=arguments,
             )
         )
