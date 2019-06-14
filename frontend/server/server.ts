@@ -20,12 +20,12 @@ import {Client as MinioClient} from 'minio';
 import fetch from 'node-fetch';
 import * as path from 'path';
 import * as process from 'process';
-import {Stream} from 'stream';
 // @ts-ignore
 import * as tar from 'tar';
 import * as k8sHelper from './k8s-helper';
 import proxyMiddleware from './proxy-middleware';
 import { Storage } from '@google-cloud/storage';
+import {Stream} from 'stream';
 
 const BASEPATH = '/pipeline';
 
