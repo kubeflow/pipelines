@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug encountered with KFP
+about: Report a bug encountered with Kubeflow Pipelines
 
 ---
 
