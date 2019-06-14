@@ -18,9 +18,10 @@ from googleapiclient import errors
 from kfp_component.google.ml_engine import create_job
 
 CREATE_JOB_MODULE = 'kfp_component.google.ml_engine._create_job'
+COMMON_OPS_MODEL = 'kfp_component.google.ml_engine._common_ops'
 
-@mock.patch(CREATE_JOB_MODULE + '.display.display')
-@mock.patch(CREATE_JOB_MODULE + '.gcp_common.dump_file')
+@mock.patch(COMMON_OPS_MODEL + '.display.display')
+@mock.patch(COMMON_OPS_MODEL + '.gcp_common.dump_file')
 @mock.patch(CREATE_JOB_MODULE + '.KfpExecutionContext')
 @mock.patch(CREATE_JOB_MODULE + '.MLEngineClient')
 class TestCreateJob(unittest.TestCase):
