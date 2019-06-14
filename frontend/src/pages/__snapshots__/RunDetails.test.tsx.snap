@@ -467,6 +467,11 @@ exports[`RunDetails loads the run's outputs in the output tab 1`] = `
       <div
         className=""
       >
+        <CompareTable
+          rows={Array []}
+          xLabels={Array []}
+          yLabels={Array []}
+        />
         <div
           key="0"
         >
@@ -2324,6 +2329,11 @@ exports[`RunDetails switches to run output tab, shows empty message 1`] = `
       <div
         className=""
       >
+        <CompareTable
+          rows={Array []}
+          xLabels={Array []}
+          yLabels={Array []}
+        />
         <span
           className="absoluteCenter"
         >

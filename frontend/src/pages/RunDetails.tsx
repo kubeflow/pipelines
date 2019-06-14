@@ -18,14 +18,14 @@ import * as React from 'react';
 import Banner, { Mode } from '../components/Banner';
 import Buttons from '../lib/Buttons';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import CompareTable, { CompareTableProps } from '../components/CompareTable';
+import CompareTable from '../components/CompareTable';
+import CompareUtils from '../lib/CompareUtils';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
 import LogViewer from '../components/LogViewer';
 import MD2Tabs from '../atoms/MD2Tabs';
-import MetricUtils from '../lib/MetricUtils';
 import PlotCard from '../components/PlotCard';
 import RunUtils from '../lib/RunUtils';
 import Separator from '../atoms/Separator';
@@ -300,7 +300,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
               {/* Run outputs tab */}
               {selectedTab === 1 && (
                 <div className={padding()}>
-                  <CompareTable {...this.runToMetricsCompareProps(runMetadata)} />
+                  <CompareTable {...CompareUtils.singleRunToMetricsCompareProps(runMetadata, workflow)} />
 
                   {!allArtifactConfigs.length && (
                     <span className={commonCss.absoluteCenter}>
@@ -334,44 +334,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         )}
       </div>
     );
-  }
-
-  // TODO(rjbauer): move to CompareUtils?
-  // TODO(rjbauer): are these being aggregated properly for compare?
-  public runToMetricsCompareProps(run?: ApiRun): CompareTableProps {
-    let rows: string[][] = [[]];
-    let xLabels: string[] = [];
-    let yLabels: string[] = [];
-    if (run) {
-      const namesToNodesToValues: Map<string, Map<string, string>> = new Map();
-      const nodeIds: Set<string> = new Set();
-
-      (run.metrics || []).forEach(metric => {
-        if (!metric.name || !metric.node_id || metric.number_value === undefined || isNaN(metric.number_value)) {
-          return;
-        }
-        const nodeToValue = namesToNodesToValues.get(metric.name) || new Map();
-        nodeToValue.set(metric.node_id, MetricUtils.getMetricDisplayString(metric));
-        namesToNodesToValues.set(metric.name, nodeToValue);
-        nodeIds.add(metric.node_id);
-      });
-
-      yLabels = Array.from(nodeIds.keys());
-      xLabels = Array.from(namesToNodesToValues.keys());
-
-      rows =
-        yLabels.map(nodeId =>
-          xLabels.map(metricName =>
-            namesToNodesToValues.get(metricName)!.get(nodeId) || ''
-          )
-        );
-    }
-
-    return {
-      rows,
-      xLabels,
-      yLabels,
-    };
   }
 
   public async componentDidMount(): Promise<void> {

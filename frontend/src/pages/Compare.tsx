@@ -292,7 +292,7 @@ class Compare extends Page<{}, CompareState> {
     const selectedIndices = selectedIds.map(id => runs.findIndex(r => r.run!.id === id));
     const filteredRuns = runs.filter((_, i) => selectedIndices.indexOf(i) > -1).map(r => r.run!);
 
-    const metricsCompareProps = CompareUtils.getMetricsCompareProps(filteredRuns);
+    const metricsCompareProps = CompareUtils.multiRunMetricsCompareProps(filteredRuns);
 
     this.setState({ metricsCompareProps });
   }
