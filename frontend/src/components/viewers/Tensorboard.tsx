@@ -59,7 +59,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   public render(): JSX.Element {
     // Strip the protocol from the URL. This is a workaround for cloud shell
     // incorrectly decoding the address and replacing the protocol's // with /.
-    const podAddress = encodeURIComponent(this.state.podAddress.replace(/(^\w+:|^)\/\//, ''));
+    const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '');
 
     return <div>
       {this.state.podAddress && <div>
