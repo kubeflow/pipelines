@@ -13,14 +13,13 @@
 # limitations under the License.
 
 
+import hashlib
+
 from kubernetes.client.models import (
-    V1Volume, V1PersistentVolumeClaimVolumeSource,
-    V1ObjectMeta, V1TypedLocalObjectReference
+    V1Volume, V1PersistentVolumeClaimVolumeSource
 )
 
 from . import _pipeline
-from ._pipeline_param import sanitize_k8s_name, match_serialized_pipelineparam
-from ._volume_snapshot_op import VolumeSnapshotOp
 
 
 class PipelineVolume(V1Volume):
@@ -42,23 +41,24 @@ class PipelineVolume(V1Volume):
             volume: Create a deep copy out of a V1Volume or PipelineVolume
                 with no deps
         Raises:
-            ValueError: if pvc is not None and name is None
-                        if volume is not None and kwargs is not None
+            ValueError: if volume is not None and kwargs is not None
                         if pvc is not None and kwargs.pop("name") is not None
         """
-        if pvc and "name" not in kwargs:
-            raise ValueError("Please provide name.")
-        elif volume and kwargs:
+        if volume and kwargs:
             raise ValueError("You can't pass a volume along with other "
                              "kwargs.")
 
+        name_provided = True
         init_volume = {}
         if volume:
             init_volume = {attr: getattr(volume, attr)
                            for attr in self.attribute_map.keys()}
         else:
-            init_volume = {"name": kwargs.pop("name")
-                           if "name" in kwargs else None}
+            if "name" in kwargs:
+                init_volume = {"name": kwargs.pop("name")}
+            else:
+                name_provided = False
+                init_volume = {"name": "pvolume-placeholder"}
             if pvc and kwargs:
                 raise ValueError("You can only pass 'name' along with 'pvc'.")
             elif pvc and not kwargs:
@@ -67,6 +67,11 @@ class PipelineVolume(V1Volume):
                 )
                 init_volume["persistent_volume_claim"] = pvc_volume_source
         super().__init__(**init_volume, **kwargs)
+
+        if not name_provided:
+            self.name = "pvolume-%s" % hashlib.sha256(
+                bytes(str(self.to_dict()), "utf-8")
+            ).hexdigest()
         self.dependent_names = []
 
     def after(self, *ops):

@@ -58,4 +58,16 @@ class TestPipelineVolume(unittest.TestCase):
         self.assertEqual(vol2.dependent_names, [op1.name])
         self.assertEqual(vol3.dependent_names, [op2.name])
         self.assertEqual(sorted(vol4.dependent_names), [op1.name, op2.name])
-        self.assertEqual(sorted(vol5.dependent_names), [op1.name, op2.name, op3.name])
+        self.assertEqual(sorted(vol5.dependent_names),
+                         [op1.name, op2.name, op3.name])
+
+    def test_omitting_name(self):
+        """Test PipelineVolume creation when omitting "name"."""
+        vol1 = PipelineVolume(pvc="foo")
+        vol2 = PipelineVolume(name="provided", pvc="foo")
+        name1 = ("pvolume-109601a31098e6c92e2ad294fee3fae234e3f52398d3b077b0e0"
+                 "690e4cece686")
+        name2 = "provided"
+
+        self.assertEqual(vol1.name, name1)
+        self.assertEqual(vol2.name, name2)
