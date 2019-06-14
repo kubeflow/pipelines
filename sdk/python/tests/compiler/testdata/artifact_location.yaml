@@ -67,29 +67,29 @@ spec:
         path: /mlpipeline-ui-metadata.json
         s3:
           accessKeySecret:
-            key: ''
-            optional: true
+            key: 'accesskey'
+            name: 'minio'
           bucket: '{{inputs.parameters.bucket}}'
           endpoint: minio-service.{{inputs.parameters.namespace}}:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
           secretKeySecret:
-            key: ''
-            optional: true
+            key: 'secretkey'
+            name: 'minio'
       - name: mlpipeline-metrics
         optional: true
         path: /mlpipeline-metrics.json
         s3:
           accessKeySecret:
-            key: ''
-            optional: true
+            key: 'accesskey'
+            name: 'minio'
           bucket: '{{inputs.parameters.bucket}}'
           endpoint: minio-service.{{inputs.parameters.namespace}}:9000
           insecure: true
           key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
           secretKeySecret:
-            key: ''
-            optional: true
+            key: 'secretkey'
+            name: 'minio'
   - container:
       image: busybox:{{inputs.parameters.tag}}
     inputs:
