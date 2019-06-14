@@ -8,7 +8,7 @@ The model predicts the number of crime reports expected today, given the daily t
 
 The pipeline has three steps:
 
-1. **Query** historical crime reports from BigQuery and save as a CSV into a Google Cloud Storage.
+1. **Query** historical crime reports from BigQuery and save as a CSV into a Google Cloud Storage bucket.
 2. **Train** the model using the AI Platform Training service.
 3. **Deploy** the model to the AI Platform Prediction service.
 
