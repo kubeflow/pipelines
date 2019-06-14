@@ -169,7 +169,7 @@ func setPodSpecForTensorboard(view *viewerV1beta1.Viewer, s *corev1.PodSpec) {
 	c.Args = []string{
 		"tensorboard",
 		fmt.Sprintf("--logdir=%s", view.Spec.TensorboardSpec.LogDir),
-		fmt.Sprintf("--path_prefix=/tensorboard/%s", view.Name),
+		fmt.Sprintf("--path_prefix=/tensorboard/%s/", view.Name),
 	}
 	c.Ports = []corev1.ContainerPort{
 		corev1.ContainerPort{ContainerPort: viewerTargetPort},
