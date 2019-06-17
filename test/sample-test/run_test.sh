@@ -130,13 +130,6 @@ chmod +x ~/bin/argo
 
 echo "Run the sample tests..."
 
-# Generate Python package
-cd ${BASE_DIR}/sdk/python
-./build.sh /tmp/kfp.tar.gz
-
-# Install python client, including DSL compiler.
-pip3 install /tmp/kfp.tar.gz
-
 # Run the tests
 if [ "$TEST_NAME" == 'tf-training' ]; then
   SAMPLE_KUBEFLOW_TEST_RESULT=junit_SampleKubeflowOutput.xml
