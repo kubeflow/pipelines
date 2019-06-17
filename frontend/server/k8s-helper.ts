@@ -212,7 +212,10 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
     v.metadata.name == getNameOfViewerResource(logdir) &&
     v.spec.tensorboardSpec.logDir == logdir &&
     v.spec.type == 'tensorboard');
-  return viewer ? `http://${viewer.metadata.name}-service.kubeflow.svc.cluster.local:6006/tensorboard/${viewer.metadata.name}/` : '';
+  // Viewer CRD pod has tensorboard instance running at port 6006 while
+  // viewer CRD service has tensorboard instance running at port 80. Since
+  // we return service address here (instead of pod address), so use 80.
+  return viewer ? `http://${viewer.metadata.name}-service.kubeflow.svc.cluster.local:80/tensorboard/${viewer.metadata.name}/` : '';
 }
 
 /**
