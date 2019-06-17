@@ -85,14 +85,21 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
 
-  const viewer = (await k8sV1CustomObjectClient.getNamespacedCustomObject(
-    viewerGroup, viewerVersion, namespace, viewerPlural, getNameOfViewerResource(logdir))).body;
-  // Viewer CRD pod has tensorboard instance running at port 6006 while
-  // viewer CRD service has tensorboard instance running at port 80. Since
-  // we return service address here (instead of pod address), so use 80.
-  return viewer && viewer.spec.tensorboardSpec.logDir == logdir && viewer.spec.type == 'tensorboard' ?
-    `http://${viewer.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.metadata.name}/` :
-    '';
+  return await (k8sV1CustomObjectClient.getNamespacedCustomObject(
+    viewerGroup, viewerVersion, namespace, viewerPlural,
+    getNameOfViewerResource(logdir))).then(
+      // Viewer CRD pod has tensorboard instance running at port 6006 while
+      // viewer CRD service has tensorboard instance running at port 80. Since
+      // we return service address here (instead of pod address), so use 80.
+      (viewer: any) => (
+        viewer && viewer.body &&
+        viewer.body.spec.tensorboardSpec.logDir == logdir &&
+        viewer.body.spec.type == 'tensorboard') ?
+          `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/` : '',
+      // No existing custom object with the given name, i.e., no existing
+      // tensorboard instance.
+      (error: any) => ''
+    );
 }
 
 /**
