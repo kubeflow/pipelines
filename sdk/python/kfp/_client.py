@@ -257,7 +257,7 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return response.run
 
-  def run_pipeline_func_on_kfp(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None):
+  def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
 
