@@ -69,8 +69,6 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
     return;
   }
 
-  // TODO: take the configuration below to a separate file
-  // Name of the viewer resource is based on logDir.
   const body = {
     apiVersion: viewerGroup + '/' + viewerVersion,
     kind: 'Viewer',
@@ -82,29 +80,7 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
       type: 'tensorboard',
       tensorboardSpec: {
         logDir: logdir,
-      },
-      PodTemplateSpec: {
-        spec: {
-          containers: [{
-            env: [{
-              name: 'GOOGLE_APPLICATION_CREDENTIALS',
-              value: '/secret/gcp-credentials/user-gcp-sa.json'
-            }],
-            volumeMounts: [{
-              mountPath: '/secret/gcp-credentials',
-              name: 'gcp-credentials',
-            }],
-          }],
-          volumes: [{
-            name: 'gcp-credentials',
-            volumeSource: {
-              secret: {
-                secretName: 'user-gcp-sa',
-              }
-            },
-          }],
-        }
-      }
+      }, 
     }
   };
   await k8sV1CustomObjectClient.createNamespacedCustomObject(viewerGroup,
@@ -120,16 +96,14 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
 
-  const viewers = (await k8sV1CustomObjectClient.listNamespacedCustomObject(
-    viewerGroup, viewerVersion, namespace, viewerPlural)).body.items;
-  const viewer = viewers.find((v) =>
-    v.metadata.name == getNameOfViewerResource(logdir) &&
-    v.spec.tensorboardSpec.logDir == logdir &&
-    v.spec.type == 'tensorboard');
+  const viewer = (await k8sV1CustomObjectClient.getNamespacedCustomObject(
+    viewerGroup, viewerVersion, namespace, viewerPlural, getNameOfViewerResource(logdir))).body;
   // Viewer CRD pod has tensorboard instance running at port 6006 while
   // viewer CRD service has tensorboard instance running at port 80. Since
   // we return service address here (instead of pod address), so use 80.
-  return viewer ? `http://${viewer.metadata.name}-service.kubeflow.svc.cluster.local:80/tensorboard/${viewer.metadata.name}/` : '';
+  return viewer && viewer.spec.tensorboardSpec.logDir == logdir && viewer.spec.type == 'tensorboard' ?
+    `http://${viewer.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.metadata.name}/` :
+    '';
 }
 
 /**
