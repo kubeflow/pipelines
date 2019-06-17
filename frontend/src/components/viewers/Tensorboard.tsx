@@ -63,7 +63,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     // <viewer_service_dns>.kubeflow.svc.cluster.local:6006/tensorboard/<viewer_name>/
     // We use this pod address without encoding since encoded pod address failed to open the 
     // tensorboard instance on this pod. 
-    // TODO(jingzhangjz): figure out why the encoded pod address failed to open the tensorboard.
+    // TODO: figure out why the encoded pod address failed to open the tensorboard.
     const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '');
 
     return <div>
