@@ -18,9 +18,11 @@ import logging
 import json
 import os
 import tarfile
+import tempfile
 import zipfile
 import yaml
 from datetime import datetime
+from typing import Mapping, Callable
 
 import kfp_server_api
 
@@ -254,6 +256,43 @@ class Client(object):
               % (self._get_url_prefix(), response.run.id))
       IPython.display.display(IPython.display.HTML(html))
     return response.run
+
+  def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None):
+    '''Runs pipeline on KFP-enabled Kubernetes cluster.
+    This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
+
+    Args:
+      pipeline_func: A function that describes a pipeline by calling components and composing them into execution graph.
+      arguments: Arguments to the pipeline function provided as a dict.
+      run_name: Optional. Name of the run to be shown in the UI.
+      experiment_name: Optional. Name of the experiment to add the run to.
+    '''
+
+    class RunPipelineResult:
+      def __init__(self, client, run_info):
+        self._client = client
+        self.run_info = run_info
+        self.run_id = run_info.id
+
+      def wait_for_run_completion(self, timeout=None):
+        timeout = timeout or datetime.datetime.max - datetime.datetime.min
+        return self._client.wait_for_run_completion(timeout)
+
+      def __str__(self):
+        return '<RunPipelineResult(run_id={})>'.format(self.run_id)
+
+    #TODO: Check arguments against the pipeline function
+    pipeline_name = pipeline_func.__name__
+    experiment_name = experiment_name or 'Default'
+    run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+    experiment = self.create_experiment(name=experiment_name)
+    try:
+      (_, pipeline_package_path) = tempfile.mkstemp(suffix='.zip')
+      kfp.compiler.Compiler().compile(pipeline_func, pipeline_package_path)
+      run_info = self.run_pipeline(experiment.id, run_name, pipeline_package_path, arguments)
+      return RunPipelineResult(self, run_info)
+    finally:
+      os.remove(pipeline_package_path)
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List runs.
