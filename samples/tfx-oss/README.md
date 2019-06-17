@@ -58,4 +58,4 @@ Configure
 python tfx/tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
 ```
 This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz
-Upload this file to the Pipelines Cluster and crate a run.
+Upload this file to the Pipelines Cluster and create a run.
