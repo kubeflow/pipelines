@@ -46,9 +46,9 @@ function getNameOfViewerResource(logdir: string): string {
 }
 
 /**
-* Create Tensorboard pod via CRD with the given logdir if there is no existing
-* Tensorboard pod.
-*/
+ * Create Tensorboard instance via CRD with the given logdir if there is no
+ * existing Tensorboard instance.
+ */
 export async function newTensorboardInstance(logdir: string): Promise<void> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
@@ -77,9 +77,9 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
 }
 
 /**
-* Finds a running Tensorboard pod created via CRD with the give logdir and
-* returns its pod IP and port.
-*/
+ * Finds a running Tensorboard instance created via CRD with the given logdir
+ * and returns its dns address.
+ */
 export async function getTensorboardInstance(logdir: string): Promise<string> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
@@ -96,8 +96,8 @@ export async function getTensorboardInstance(logdir: string): Promise<string> {
 }
 
 /**
- * Polls every second for a running Tensorboard pod with the given logdir, and
- * returns the address of one if found, or rejects if a timeout expires.
+ * Polls every second for a running Tensorboard instance with the given logdir,
+ * and returns the address of one if found, or rejects if a timeout expires.
  */
 export function waitForTensorboardInstance(logdir: string, timeout: number): Promise<string> {
   const start = Date.now();
