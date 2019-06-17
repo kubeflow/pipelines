@@ -40,17 +40,6 @@ if (isInCluster) {
   k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
 }
 
-export function getPodLogs(podName: string): Promise<string> {
-  if (!k8sV1Client) {
-    throw new Error('Cannot access kubernetes API');
-  }
-  return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any)
-    .then(
-      (response: any) => (response && response.body) ? response.body.toString() : '',
-      (error: any) => {throw new Error(JSON.stringify(error.body));}
-    );
-}
-
 function getNameOfViewerResource(logdir: string): string {
   // TODO: find some hash function with shorter resulting message.
   return 'viewer-' + crypto.SHA1(logdir);
@@ -123,4 +112,15 @@ export function waitForTensorboardInstance(logdir: string, timeout: number): Pro
       }
     }, 1000);
   });
+}
+
+export function getPodLogs(podName: string): Promise<string> {
+  if (!k8sV1Client) {
+    throw new Error('Cannot access kubernetes API');
+  }
+  return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any)
+    .then(
+      (response: any) => (response && response.body) ? response.body.toString() : '',
+      (error: any) => {throw new Error(JSON.stringify(error.body));}
+    );
 }
