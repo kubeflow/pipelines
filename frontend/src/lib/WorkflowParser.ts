@@ -83,7 +83,7 @@ export default class WorkflowParser {
         if (workflow.spec && workflow.spec.templates) {
           const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
           if (tmpl && tmpl.metadata && tmpl.metadata.annotations) {
-            const displayName = tmpl.metadata.annotations['kubeflow.org/pipelines/task_display_name'];
+            const displayName = tmpl.metadata.annotations['pipelines.kubeflow.org/task_display_name'];
             if (displayName) {
               nodeLabel = displayName;
             }
