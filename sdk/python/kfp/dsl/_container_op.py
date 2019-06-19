@@ -968,6 +968,7 @@ class ContainerOp(BaseOp):
       init_containers: List[UserContainer] = None,
       sidecars: List[Sidecar] = None,
       container_kwargs: Dict = None,
+      input_artifact_arguments : List[InputArtifactArgument] = None,
       file_outputs: Dict[str, str] = None,
       output_artifact_paths : Dict[str, str]=None,
       artifact_location: V1alpha1ArtifactLocation=None,
@@ -991,10 +992,9 @@ class ContainerOp(BaseOp):
                     together with the `main` container.
           container_kwargs: the dict of additional keyword arguments to pass to the
                             op's `Container` definition.
-          input_artifact_paths: Maps artifact input names to local file paths.
-              At pipeline run time, the value of the input artifact argument is saved to this local file.
-          input_artifact_arguments: Maps artifact input names to the artifact values.
-              At pipeline run time, the value of the input artifact argument is saved to a local file specified in the input_artifact_paths map.
+          input_artifact_arguments: Maps artifact inputs to the artifact argument values and paths.
+              Only artifact argument value is required.
+              At pipeline run time, the value of the artifact argument is saved to a local file with specified path.
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
@@ -1015,20 +1015,23 @@ class ContainerOp(BaseOp):
         self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location'] #Copying the BaseOp class variable!
 
         input_artifact_paths = {}
-        input_artifact_arguments = {}
+        artifact_arguments = {}
 
         def resolve_artifact_argument(artarg):
             from ..components._components import _generate_input_file_name
             if not isinstance(artarg, InputArtifactArgument):
                 return artarg
-            input_name = getattr(artarg.input, 'name', artarg.input) or ('input-' + str(len(input_artifact_arguments)))
+            input_name = getattr(artarg.input, 'name', artarg.input) or ('input-' + str(len(artifact_arguments)))
             input_path = artarg.path or _generate_input_file_name(input_name)
             input_artifact_paths[input_name] = input_path
             if not isinstance(artarg.argument, str):
                 raise TypeError('Argument "{}" was passed to the artifact input "{}", but only constant strings are supported at this moment.'.format(str(artarg.argument), input_name))
 
-            input_artifact_arguments[input_name] = artarg.argument
+            artifact_arguments[input_name] = artarg.argument
             return input_path
+
+        for artarg in input_artifact_arguments or []:
+            resolve_artifact_argument(artarg)
 
         if isinstance(command, Sequence) and not isinstance(command, str):
             command = list(map(resolve_artifact_argument, command))
@@ -1074,7 +1077,7 @@ class ContainerOp(BaseOp):
 
         # attributes specific to `ContainerOp`
         self.input_artifact_paths = input_artifact_paths
-        self.input_artifact_arguments = input_artifact_arguments
+        self.input_artifact_arguments = artifact_arguments
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
         self.artifact_location = artifact_location
