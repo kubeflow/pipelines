@@ -30,6 +30,7 @@ def mnist_tf(docker_repo_training='seldonio/deepmnistclassifier_trainer',
 #use volume for storing model
 #here model is saved and mounted into pre-defined image for serving
 #alternatively model can be baked into image - for that see mabdeploy-seldon.py
+#requires seldon v0.3.0 or higher
     modelvolop = dsl.VolumeOp(
         name="modelpvc",
         resource_name="modelpvc",

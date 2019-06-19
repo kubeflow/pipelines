@@ -25,6 +25,7 @@ from string import Template
 #Example derived from https://github.com/kubeflow/example-seldon
 #This example is TF but R and SKLearn flows are similar - see kubeflow/example-seldon
 #push access needed to chosen docker repo - see note below on secret
+#requires seldon v0.3.0 or higher
 def mnist_tf(docker_secret='docker-config',
              training_repo='https://github.com/kubeflow/example-seldon.git',
              training_branch='master',
