@@ -112,6 +112,12 @@ export const css = stylesheet({
   link: {
     color: '#77abda'
   },
+  outputTitle: {
+    color: color.strong,
+    fontSize: fontsize.title,
+    fontWeight: 'bold',
+    padding: 5,
+  },
 });
 
 class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
@@ -175,6 +181,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
     const nodeInputOutputParams = WorkflowParser.getNodeInputOutputParams(workflow, selectedNodeId);
+    const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
 
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
@@ -300,7 +307,20 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
               {/* Run outputs tab */}
               {selectedTab === 1 && (
                 <div className={padding()}>
-                  <CompareTable {...CompareUtils.singleRunToMetricsCompareProps(runMetadata, workflow)} />
+                  {hasMetrics && (
+                    <div>
+                      <div className={css.outputTitle}>Metrics</div>
+                      <CompareTable {...CompareUtils.singleRunToMetricsCompareProps(runMetadata, workflow)} />
+                    </div>
+                  )}
+                  {!hasMetrics && (
+                    <span>
+                      No metrics found for this run.
+                    </span>
+                  )}
+
+                  <Hr />
+                  <Separator orientation='vertical' />
 
                   {!allArtifactConfigs.length && (
                     <span className={commonCss.absoluteCenter}>
