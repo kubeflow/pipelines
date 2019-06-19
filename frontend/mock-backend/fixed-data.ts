@@ -274,11 +274,13 @@ const runs: ApiRunDetail[] = [
         {
           format: RunMetricFormat.PERCENTAGE,
           name: 'accuracy',
+          node_id: 'coinflip-recursive-q7dqb',
           number_value: 0.6762,
         },
         {
           format: RunMetricFormat.RAW,
           name: 'log_loss',
+          node_id: 'coinflip-recursive-q7dqb',
           number_value: -0.573,
         }
       ],
@@ -318,18 +320,7 @@ const runs: ApiRunDetail[] = [
       created_at: new Date('2018-04-17T21:00:00.000Z'),
       description: 'A coinflip run with an error. No metrics',
       id: '47a3d09c-7db4-4788-ac55-3f8d908574aa',
-      metrics: [
-        {
-          format: RunMetricFormat.PERCENTAGE,
-          name: 'accuracy',
-          number_value: 0.5512,
-        },
-        {
-          format: RunMetricFormat.RAW,
-          name: 'log_loss',
-          number_value: -0.78,
-        }
-      ],
+      metrics: [],
       name: 'coinflip-error-nklng2',
       pipeline_spec: {
         parameters: [
@@ -360,6 +351,7 @@ const runs: ApiRunDetail[] = [
       metrics: [{
         format: RunMetricFormat.PERCENTAGE,
         name: 'accuracy',
+        node_id: 'hello-world-7sm94',
         number_value: 0.5423,
       }],
       name: 'hello-world-7sm94',
@@ -392,6 +384,7 @@ const runs: ApiRunDetail[] = [
       metrics: [{
         format: RunMetricFormat.PERCENTAGE,
         name: 'accuracy',
+        node_id: 'hello-world-61985dbf-4299-458b-a183-1f2c2436c21c',
         number_value: 0.43,
       }],
       name: 'hello-world-with-steps-kajnkv4',
@@ -418,18 +411,25 @@ const runs: ApiRunDetail[] = [
         {
           format: RunMetricFormat.RAW,
           name: 'numeric_metric',
-          node_id: 'some node ID',
+          node_id: 'xgboost-training-gzkm9-2457131397',
           number_value: 24,
         },
         {
           format: RunMetricFormat.PERCENTAGE,
           name: 'accuracy',
+          node_id: 'xgboost-training-gzkm9-1761585008',
           number_value: 0.95675,
+        },
+        {
+          format: RunMetricFormat.PERCENTAGE,
+          name: 'accuracy',
+          node_id: 'xgboost-training-gzkm9-2365787662',
+          number_value: 0.8765,
         },
         {
           format: RunMetricFormat.UNSPECIFIED,
           name: 'unspecified format metric',
-          node_id: 'one more node ID',
+          node_id: 'xgboost-training-gzkm9-2203328319',
           number_value: 1.34,
         },
       ],
@@ -471,11 +471,13 @@ const runs: ApiRunDetail[] = [
         {
           format: RunMetricFormat.PERCENTAGE,
           name: 'accuracy',
+          node_id: 'xgboost-training-gzkm9-1253553084',
           number_value: 0.8999,
         },
         {
           format: RunMetricFormat.RAW,
           name: 'log_loss',
+          node_id: 'xgboost-training-gzkm9-2365787662',
           number_value: -0.123,
         }
       ],
@@ -511,11 +513,13 @@ const runs: ApiRunDetail[] = [
         {
           format: RunMetricFormat.PERCENTAGE,
           name: 'accuracy',
+          node_id: 'hello-world-7sm94',
           number_value: 0.5999,
         },
         {
           format: RunMetricFormat.RAW,
           name: 'log_loss',
+          node_id: 'hello-world-7sm94',
           number_value: -0.223,
         }
       ],
@@ -576,19 +580,19 @@ function generateNRuns(): ApiRunDetail[] {
           {
             format: RunMetricFormat.RAW,
             name: 'numeric_metric',
-            node_id: 'some node ID',
+            node_id: 'coinflip-recursive-q7dqb',
             number_value: i,
           },
           {
             format: RunMetricFormat.PERCENTAGE,
             name: 'accuracy',
-            node_id: 'another node ID',
+            node_id: 'coinflip-recursive-q7dqb-1720466287',
             number_value: ((i + 50) % 100) / 100.0,
           },
           {
             format: RunMetricFormat.UNSPECIFIED,
             name: 'unspecified format metric',
-            node_id: 'one more node ID',
+            node_id: 'coinflip-recursive-q7dqb-1720466287',
             number_value: i + 0.43,
           },
         ],

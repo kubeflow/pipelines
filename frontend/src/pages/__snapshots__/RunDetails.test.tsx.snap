@@ -467,11 +467,13 @@ exports[`RunDetails loads the run's outputs in the output tab 1`] = `
       <div
         className=""
       >
-        <CompareTable
-          rows={Array []}
-          xLabels={Array []}
-          yLabels={Array []}
+        <span>
+          No metrics found for this run.
+        </span>
+        <Component
+          orientation="vertical"
         />
+        <Component />
         <div
           key="0"
         >
@@ -488,10 +490,10 @@ exports[`RunDetails loads the run's outputs in the output tab 1`] = `
             maxDimension={400}
             title="step1"
           />
-          <Component />
           <Component
             orientation="vertical"
           />
+          <Component />
         </div>
       </div>
     </div>
@@ -2329,14 +2331,14 @@ exports[`RunDetails switches to run output tab, shows empty message 1`] = `
       <div
         className=""
       >
-        <CompareTable
-          rows={Array []}
-          xLabels={Array []}
-          yLabels={Array []}
+        <span>
+          No metrics found for this run.
+        </span>
+        <Component
+          orientation="vertical"
         />
-        <span
-          className="absoluteCenter"
-        >
+        <Component />
+        <span>
           No output artifacts found for this run.
         </span>
       </div>

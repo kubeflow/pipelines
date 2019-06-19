@@ -90,6 +90,8 @@ export default class CompareUtils {
    * execution.
    */
   public static singleRunToMetricsCompareProps(run?: ApiRun, workflow?: Workflow): CompareTableProps {
+    // tslint:disable-next-line:no-console
+    console.log('test');
     let rows: string[][] = [];
     let xLabels: string[] = [];
     const yLabels: string[] = [];
@@ -111,7 +113,7 @@ export default class CompareUtils {
 
       rows =
         Array.from(nodeIds.keys()).map(nodeId => {
-          yLabels.push(workflow ? workflow.status.nodes[nodeId].displayName : nodeId);
+          yLabels.push((workflow && workflow.status.nodes[nodeId].displayName) || nodeId);
           return xLabels.map(metricName =>
             namesToNodesToValues.get(metricName)!.get(nodeId) || ''
           );

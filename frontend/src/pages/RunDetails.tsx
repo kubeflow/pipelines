@@ -116,7 +116,7 @@ export const css = stylesheet({
     color: color.strong,
     fontSize: fontsize.title,
     fontWeight: 'bold',
-    padding: 5,
+    paddingLeft: 20,
   },
 });
 
@@ -310,7 +310,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                   {hasMetrics && (
                     <div>
                       <div className={css.outputTitle}>Metrics</div>
-                      <CompareTable {...CompareUtils.singleRunToMetricsCompareProps(runMetadata, workflow)} />
+                      <div className={padding(20, 'lt')}>
+                        <CompareTable {...CompareUtils.singleRunToMetricsCompareProps(runMetadata, workflow)}/>
+                      </div>
                     </div>
                   )}
                   {!hasMetrics && (
@@ -319,21 +321,20 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                     </span>
                   )}
 
-                  <Hr />
                   <Separator orientation='vertical' />
-
-                  {!allArtifactConfigs.length && (
-                    <span className={commonCss.absoluteCenter}>
-                      No output artifacts found for this run.
-                    </span>
-                  )}
+                  <Hr />
 
                   {allArtifactConfigs.map((annotatedConfig, i) => <div key={i}>
                     <PlotCard key={i} configs={[annotatedConfig.config]}
                       title={annotatedConfig.stepName} maxDimension={400} />
-                    <Hr />
                     <Separator orientation='vertical' />
+                    <Hr />
                   </div>
+                  )}
+                  {!allArtifactConfigs.length && (
+                    <span>
+                      No output artifacts found for this run.
+                    </span>
                   )}
                 </div>
               )}
