@@ -903,6 +903,13 @@ class BaseOp(object):
 from ._pipeline_volume import PipelineVolume  # The import is here to prevent circular reference problems.
 
 
+class InputArtifactArgument:
+    def __init__(self, argument, input=None, path=None):
+        self.argument = argument
+        self.input = input
+        self.path = path
+
+
 class ContainerOp(BaseOp):
     """
     Represents an op implemented by a container image.
@@ -961,8 +968,6 @@ class ContainerOp(BaseOp):
       init_containers: List[UserContainer] = None,
       sidecars: List[Sidecar] = None,
       container_kwargs: Dict = None,
-      input_artifact_paths: Dict[str, str] = None,
-      input_artifact_arguments: Dict[str, str] = None,
       file_outputs: Dict[str, str] = None,
       output_artifact_paths : Dict[str, str]=None,
       artifact_location: V1alpha1ArtifactLocation=None,
@@ -1009,6 +1014,27 @@ class ContainerOp(BaseOp):
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
         self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location'] #Copying the BaseOp class variable!
 
+        input_artifact_paths = {}
+        input_artifact_arguments = {}
+
+        def resolve_artifact_argument(artarg):
+            from ..components._components import _generate_input_file_name
+            if not isinstance(artarg, InputArtifactArgument):
+                return artarg
+            input_name = getattr(artarg.input, 'name', artarg.input) or ('input-' + str(len(input_artifact_arguments)))
+            input_path = artarg.path or _generate_input_file_name(input_name)
+            input_artifact_paths[input_name] = input_path
+            if not isinstance(artarg.argument, str):
+                raise TypeError('Argument "{}" was passed to the artifact input "{}", but only constant strings are supported at this moment.'.format(str(artarg.argument), input_name))
+
+            input_artifact_arguments[input_name] = artarg.argument
+            return input_path
+
+        if isinstance(command, Sequence) and not isinstance(command, str):
+            command = list(map(resolve_artifact_argument, command))
+        if isinstance(arguments, Sequence) and not isinstance(arguments, str):
+            arguments = list(map(resolve_artifact_argument, arguments))
+
         # convert to list if not a list
         command = as_string_list(command)
         arguments = as_string_list(arguments)
@@ -1047,15 +1073,11 @@ class ContainerOp(BaseOp):
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
 
         # attributes specific to `ContainerOp`
-        self.input_artifact_paths = input_artifact_paths or {}
-        self.input_artifact_arguments = input_artifact_arguments or {}
+        self.input_artifact_paths = input_artifact_paths
+        self.input_artifact_arguments = input_artifact_arguments
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
         self.artifact_location = artifact_location
-
-        for artifact_name, artifact_argument in self.input_artifact_arguments.items():
-            if not isinstance(artifact_argument, str):
-                raise TypeError('Argument "{}" was passed to the artifact input "{}", but only constant strings are supported at this moment.'.format(str(artifact_argument), artifact_name))
 
         self._metadata = None
 
