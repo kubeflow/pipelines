@@ -1077,7 +1077,7 @@ class ContainerOp(BaseOp):
 
         # attributes specific to `ContainerOp`
         self.input_artifact_paths = input_artifact_paths
-        self.input_artifact_arguments = artifact_arguments
+        self.artifact_arguments = artifact_arguments
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
         self.artifact_location = artifact_location

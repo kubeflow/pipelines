@@ -516,7 +516,7 @@ class Compiler(object):
         arguments.sort(key=lambda x: x['name'])
         task['arguments'] = {'parameters': arguments}
       
-      artifact_arguments = getattr(sub_group, 'input_artifact_arguments', None)
+      artifact_arguments = getattr(sub_group, 'artifact_arguments', None)
       if artifact_arguments:
         artifact_argument_structs = []
         for input_name, argument in artifact_arguments.items():
