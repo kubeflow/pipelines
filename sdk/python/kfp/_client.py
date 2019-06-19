@@ -288,7 +288,7 @@ class Client(object):
     experiment = self.create_experiment(name=experiment_name)
     try:
       (_, pipeline_package_path) = tempfile.mkstemp(suffix='.zip')
-      kfp.compiler.Compiler().compile(pipeline_func, pipeline_package_path)
+      compiler.Compiler().compile(pipeline_func, pipeline_package_path)
       run_info = self.run_pipeline(experiment.id, run_name, pipeline_package_path, arguments)
       return RunPipelineResult(self, run_info)
     finally:
