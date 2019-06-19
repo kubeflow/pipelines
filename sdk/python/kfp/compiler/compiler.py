@@ -515,6 +515,19 @@ class Compiler(object):
               })
         arguments.sort(key=lambda x: x['name'])
         task['arguments'] = {'parameters': arguments}
+      
+      artifact_arguments = getattr(sub_group, 'input_artifact_arguments', None)
+      if artifact_arguments:
+        artifact_argument_structs = []
+        for input_name, argument in artifact_arguments.items():
+          artifact_argument_dict = {'name': input_name}
+          if isinstance(argument, str):
+            artifact_argument_dict['raw'] = {'data': str(argument)}
+          else:
+            raise TypeError('Argument "{}" was passed to the artifact input "{}", but only constant strings are supported at this moment.'.format(str(argument), input_name))
+          artifact_argument_structs.append(artifact_argument_dict)
+        task.setdefault('arguments', {})['artifacts'] = artifact_argument_structs
+
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
     template['dag'] = {'tasks': tasks}

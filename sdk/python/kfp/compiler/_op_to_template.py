@@ -130,21 +130,14 @@ def _parameters_to_json(params: List[dsl.PipelineParam]):
 def _inputs_to_json(
     inputs_params: List[dsl.PipelineParam],
     input_artifact_paths: Dict[str, str] = None,
-    input_artifact_arguments: Dict[str, str] = None,
 ):
     """Converts a list of PipelineParam into an argo `inputs` JSON obj."""
     parameters = _parameters_to_json(inputs_params)
 
     # Building the input artifacts section
-    # Only constant arguments are supported for now
-    # Constant arguments will be compiled as Argo's input artifact default values, not as real arguments until the artifact passing is implemented
     artifacts = []
     for name, path in (input_artifact_paths or {}).items():
         artifact = {'name': name, 'path': path}
-        if input_artifact_arguments:
-            argument = input_artifact_arguments.get(name, None)
-            if argument:
-                artifact['raw'] = {'data': str(argument)}
         artifacts.append(artifact)
     artifacts.sort(key=lambda x: x['name']) #Stabilizing the input artifact ordering
 
@@ -235,10 +228,7 @@ def _op_to_template(op: BaseOp):
         }
 
     # inputs
-    if isinstance(op, dsl.ContainerOp):
-        inputs = _inputs_to_json(processed_op.inputs, processed_op.input_artifact_paths, processed_op.input_artifact_arguments)
-    elif isinstance(op, dsl.ResourceOp):
-        inputs = _inputs_to_json(processed_op.inputs)
+    inputs = _inputs_to_json(processed_op.inputs, getattr(processed_op, 'input_artifact_paths', None))
     if inputs:
         template['inputs'] = inputs
 
