@@ -60,7 +60,7 @@ export default class CompareUtils {
     };
   }
 
-  public static getMetricsCompareProps(runs: ApiRun[]): CompareTableProps {
+  public static multiRunMetricsCompareProps(runs: ApiRun[]): CompareTableProps {
     const metricMetadataMap = RunUtils.runsToMetricMetadataMap(runs);
 
     const yLabels = Array.from(metricMetadataMap.keys());
@@ -68,6 +68,8 @@ export default class CompareUtils {
     const rows =
       yLabels.map(name =>
         runs.map(r =>
+          // TODO(rjbauer): This logic isn't quite right. A single run can have multiple metrics
+          // with the same name, but here we're stopping once we find one.
           MetricUtils.getMetricDisplayString((r.metrics || []).find(m => m.name === name))
         )
       );
@@ -75,6 +77,52 @@ export default class CompareUtils {
     return {
       rows,
       xLabels: runs.map(r => r.name!),
+      yLabels,
+    };
+  }
+
+  /**
+   * For a given run and its runtime workflow, a CompareTableProps object is returned containing:
+   * xLabels: an array of unique meeric names produced during the run's execution
+   * yLabels: an array of display names (falling back to node IDs) for steps of the execution which
+   * produced metrics
+   * rows: an array of arrays, each representing all of the metrics produced by a given step of the
+   * execution.
+   */
+  public static singleRunToMetricsCompareProps(run?: ApiRun, workflow?: Workflow): CompareTableProps {
+    // tslint:disable-next-line:no-console
+    console.log('test');
+    let rows: string[][] = [];
+    let xLabels: string[] = [];
+    const yLabels: string[] = [];
+    if (run) {
+      const namesToNodesToValues: Map<string, Map<string, string>> = new Map();
+      const nodeIds: Set<string> = new Set();
+
+      (run.metrics || []).forEach(metric => {
+        if (!metric.name || !metric.node_id || metric.number_value === undefined || isNaN(metric.number_value)) {
+          return;
+        }
+        const nodeToValue = namesToNodesToValues.get(metric.name) || new Map();
+        nodeToValue.set(metric.node_id, MetricUtils.getMetricDisplayString(metric));
+        namesToNodesToValues.set(metric.name, nodeToValue);
+        nodeIds.add(metric.node_id);
+      });
+
+      xLabels = Array.from(namesToNodesToValues.keys());
+
+      rows =
+        Array.from(nodeIds.keys()).map(nodeId => {
+          yLabels.push((workflow && workflow.status.nodes[nodeId].displayName) || nodeId);
+          return xLabels.map(metricName =>
+            namesToNodesToValues.get(metricName)!.get(nodeId) || ''
+          );
+        });
+    }
+
+    return {
+      rows,
+      xLabels,
       yLabels,
     };
   }
