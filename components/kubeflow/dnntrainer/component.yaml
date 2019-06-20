@@ -15,7 +15,7 @@ outputs:
   - {name: Training output dir,   type: GCSPath,  description: 'GCS or local directory.'} # type: {GCSPath: {path_type: Directory}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:1d55a27cf8b69696f3ab5c10687edf2fde0068c7
+    image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:56134b8bf3eac9ea124d07c818724e2a64789c11
     command: [python2, -m, trainer.task]
     args: [
       --transformed-data-dir, {inputValue: Transformed data dir},

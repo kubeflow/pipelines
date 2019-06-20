@@ -90,7 +90,7 @@ outputs:
     type: String
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1d55a27cf8b69696f3ab5c10687edf2fde0068c7
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:56134b8bf3eac9ea124d07c818724e2a64789c11
     args: [
       kfp_component.google.ml_engine, deploy,
       --model_uri, {inputValue: model_uri},
