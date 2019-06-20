@@ -365,6 +365,6 @@ class Client(object):
     response = self._upload_api.upload_pipeline(pipeline_package_path)
     if self._is_ipython():
       import IPython
-      html = 'Pipeline link <a href=/pipeline/pipeline?id=%s>here</a>' % response.id
+      html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
       IPython.display.display(IPython.display.HTML(html))
     return response
