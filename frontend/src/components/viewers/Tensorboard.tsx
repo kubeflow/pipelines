@@ -59,7 +59,12 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
   public render(): JSX.Element {
     // Strip the protocol from the URL. This is a workaround for cloud shell
     // incorrectly decoding the address and replacing the protocol's // with /.
-    const podAddress = encodeURIComponent(this.state.podAddress.replace(/(^\w+:|^)\/\//, ''));
+    // Pod address (after stripping protocol) is of the format
+    // <viewer_service_dns>.kubeflow.svc.cluster.local:6006/tensorboard/<viewer_name>/
+    // We use this pod address without encoding since encoded pod address failed to open the 
+    // tensorboard instance on this pod. 
+    // TODO: figure out why the encoded pod address failed to open the tensorboard.
+    const podAddress = this.state.podAddress.replace(/(^\w+:|^)\/\//, '');
 
     return <div>
       {this.state.podAddress && <div>
