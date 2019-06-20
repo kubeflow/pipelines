@@ -153,16 +153,16 @@ describe('CompareUtils', () => {
     });
   });
 
-  describe('getMetricsCompareProps', () => {
+  describe('multiRunMetricsCompareProps', () => {
     it('returns empty props when passed no runs', () => {
-      expect(CompareUtils.getMetricsCompareProps([])).toEqual(
+      expect(CompareUtils.multiRunMetricsCompareProps([])).toEqual(
         { rows: [], xLabels: [], yLabels: [] }
       );
     });
 
     it('returns only x labels when passed a run with no metrics', () => {
       const runs = [{ name: 'run1' } as ApiRun];
-      expect(CompareUtils.getMetricsCompareProps(runs)).toEqual(
+      expect(CompareUtils.multiRunMetricsCompareProps(runs)).toEqual(
         { rows: [], xLabels: ['run1'], yLabels: [] }
       );
     });
@@ -171,7 +171,7 @@ describe('CompareUtils', () => {
       const runs = [
         { name: 'run1', metrics: [{ name: 'some-metric', number_value: 0.33 }] } as ApiRun
       ];
-      expect(CompareUtils.getMetricsCompareProps(runs)).toEqual(
+      expect(CompareUtils.multiRunMetricsCompareProps(runs)).toEqual(
         { rows: [['0.330']], xLabels: ['run1'], yLabels: ['some-metric'] }
       );
     });
@@ -186,7 +186,7 @@ describe('CompareUtils', () => {
           name: 'run1',
         } as ApiRun
       ];
-      expect(CompareUtils.getMetricsCompareProps(runs)).toEqual(
+      expect(CompareUtils.multiRunMetricsCompareProps(runs)).toEqual(
         {
           rows: [['0.330'], ['0.554']],
           xLabels: ['run1'],
@@ -210,7 +210,7 @@ describe('CompareUtils', () => {
           name: 'run2',
         } as ApiRun
       ];
-      expect(CompareUtils.getMetricsCompareProps(runs)).toEqual(
+      expect(CompareUtils.multiRunMetricsCompareProps(runs)).toEqual(
         {
           rows: [['0.330', '0.660']],
           xLabels: ['run1', 'run2'],
@@ -234,7 +234,7 @@ describe('CompareUtils', () => {
           name: 'run2',
         } as ApiRun
       ];
-      expect(CompareUtils.getMetricsCompareProps(runs)).toEqual(
+      expect(CompareUtils.multiRunMetricsCompareProps(runs)).toEqual(
         {
           rows: [['0.330', ''], ['', '0.660']],
           xLabels: ['run1', 'run2'],
@@ -242,5 +242,153 @@ describe('CompareUtils', () => {
         }
       );
     });
+  });
+
+  describe('singleRunToMetricsCompareProps', () => {
+    it('returns empty props when passed no run', () => {
+      expect(CompareUtils.singleRunToMetricsCompareProps()).toEqual(
+        { rows: [], xLabels: [], yLabels: [] }
+      );
+    });
+
+    it('returns empty props when passed a run with no metrics', () => {
+      const run = { name: 'run1' } as ApiRun;
+      expect(CompareUtils.singleRunToMetricsCompareProps(run)).toEqual(
+        { rows: [], xLabels: [], yLabels: [] }
+      );
+    });
+
+    it('ignores metrics with no name', () => {
+      const run = {
+        metrics: [
+          { node_id: 'some-node-id', number_value: 0.33 },
+        ],
+        name: 'run1'
+      } as ApiRun;
+      expect(CompareUtils.singleRunToMetricsCompareProps(run)).toEqual(
+        { rows: [], xLabels: [], yLabels: [] }
+      );
+    });
+
+    it('ignores metrics with no node ID', () => {
+      const run = {
+        metrics: [
+          { name: 'some-metric-name', number_value: 0.33 },
+        ],
+        name: 'run1'
+      } as ApiRun;
+      expect(CompareUtils.singleRunToMetricsCompareProps(run)).toEqual(
+        { rows: [], xLabels: [], yLabels: [] }
+      );
+    });
+
+    it('ignores metrics with no number value', () => {
+      const run = {
+        metrics: [
+          { name: 'some-metric-name', node_id: 'someNodeId' },
+        ],
+        name: 'run1'
+      } as ApiRun;
+      expect(CompareUtils.singleRunToMetricsCompareProps(run)).toEqual(
+        { rows: [], xLabels: [], yLabels: [] }
+      );
+    });
+
+    it('ignores metrics with NaN number values', () => {
+      const run = {
+        metrics: [
+          { name: 'some-metric-name', node_id: 'someNodeId', number_value: NaN },
+        ],
+        name: 'run1'
+      } as ApiRun;
+      expect(CompareUtils.singleRunToMetricsCompareProps(run)).toEqual(
+        { rows: [], xLabels: [], yLabels: [] }
+      );
+    });
+
+    it('returns a row when run has a metric', () => {
+      const run = {
+        metrics: [
+          { name: 'some-metric-name', node_id: 'someNodeId', number_value: 0.23 },
+        ],
+        name: 'run1'
+      } as ApiRun;
+      expect(CompareUtils.singleRunToMetricsCompareProps(run)).toEqual(
+        { rows: [['0.230']], xLabels: ['some-metric-name'], yLabels: ['someNodeId'] }
+      );
+    });
+
+    it('uses a node\'s display name if present in the workflow', () => {
+      const run = {
+        metrics: [
+          { name: 'some-metric-name', node_id: 'someNodeId', number_value: 0.23 },
+        ],
+        name: 'run1'
+      } as ApiRun;
+      const workflow = {
+        status: {
+          nodes: {
+            someNodeId: {
+              displayName: 'some-display-name'
+            }
+          }
+        }
+      } as any;
+      expect(CompareUtils.singleRunToMetricsCompareProps(run, workflow)).toEqual(
+        { rows: [['0.230']], xLabels: ['some-metric-name'], yLabels: ['some-display-name'] }
+      );
+    });
+
+    it('returns a single row when a run has a single step that produces multiple metrics', () => {
+      const run = {
+        metrics: [
+          { name: 'some-metric-name', node_id: 'someNodeId', number_value: 0.23 },
+          { name: 'another-metric-name', node_id: 'someNodeId', number_value: 0.54 },
+        ],
+        name: 'run1'
+      } as ApiRun;
+      expect(CompareUtils.singleRunToMetricsCompareProps(run)).toEqual(
+        {
+          rows: [['0.230', '0.540']],
+          xLabels: ['some-metric-name', 'another-metric-name'],
+          yLabels: ['someNodeId']
+        }
+      );
+    });
+
+    it('returns multiple rows when a run has a multiple steps that produce one metric', () => {
+      const run = {
+        metrics: [
+          { name: 'some-metric-name', node_id: 'someNodeId', number_value: 0.23 },
+          { name: 'another-metric-name', node_id: 'anotherNodeId', number_value: 0.54 },
+        ],
+        name: 'run1'
+      } as ApiRun;
+      expect(CompareUtils.singleRunToMetricsCompareProps(run)).toEqual(
+        {
+          rows: [['0.230', ''], ['', '0.540']],
+          xLabels: ['some-metric-name', 'another-metric-name'],
+          yLabels: ['someNodeId', 'anotherNodeId']
+        }
+      );
+    });
+
+    it('returns a single column when a run has a multiple steps that produces the same metric', () => {
+      const run = {
+        metrics: [
+          { name: 'some-metric-name', node_id: 'someNodeId', number_value: 0.23 },
+          { name: 'some-metric-name', node_id: 'anotherNodeId', number_value: 0.54 },
+        ],
+        name: 'run1'
+      } as ApiRun;
+      expect(CompareUtils.singleRunToMetricsCompareProps(run)).toEqual(
+        {
+          rows: [['0.230'], ['0.540']],
+          xLabels: ['some-metric-name'],
+          yLabels: ['someNodeId', 'anotherNodeId']
+        }
+      );
+    });
+
   });
 });
