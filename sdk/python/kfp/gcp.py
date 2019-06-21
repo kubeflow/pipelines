@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from kubernetes.client import V1Toleration
+from typing import Callable, List
+from .dsl._container_op import BaseOp
 
 
 def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-gcp-sa.json', volume_name=None, secret_volume_mount_path='/secret/gcp-credentials'):
@@ -109,8 +111,11 @@ def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoS
 
   return _set_preemptible
 
-def set_gcp_settings(secret_name='user-gcp-sa'):
-    def _set_gcp_settings(op):
+def configure_gcp_connector(
+    op_transformers: List[Callable[[BaseOp], BaseOp]] = [use_gcp_secret()]) -> Callable[[BaseOp], BaseOp]:
+    """Configure GCP settings for GCP connector components.
+    """
+    def _set_gcp_settings(op: BaseOp) -> BaseOp:
         if op.pod_labels and op.pod_labels['pipelines.kubeflow.org/component-type'] == 'gcp-connector':
             from kubernetes import client as k8s_client
             op.container.add_env_variable(
@@ -132,5 +137,8 @@ def set_gcp_settings(secret_name='user-gcp-sa'):
                     )
                 )
             )
-            op.apply(use_gcp_secret(secret_name=secret_name))
+            if op_transformers:
+                for op_transformer in op_transformers:
+                    op.apply(op_transformer)
+            return op
     return _set_gcp_settings

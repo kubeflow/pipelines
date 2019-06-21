@@ -28,7 +28,7 @@ def test_gcp_settings():
      arguments=['echo $KFP_POD_NAME']).add_pod_label(
          'pipelines.kubeflow.org/component-type', 'gcp-connector'
      ) 
-    dsl.get_pipeline_conf().add_op_transformer(gcp.set_gcp_settings())
+    dsl.get_pipeline_conf().add_op_transformer(gcp.configure_gcp_connector())
     
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(test_gcp_settings, __file__ + '.yaml')
