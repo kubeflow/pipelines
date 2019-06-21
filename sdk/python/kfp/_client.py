@@ -58,6 +58,7 @@ class Client(object):
     api_client = kfp_server_api.api_client.ApiClient(config)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
+    self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
 
   def _load_config(self, host, client_id, namespace):
     config = kfp_server_api.configuration.Configuration()
@@ -352,3 +353,18 @@ class Client(object):
     workflow = get_run_response.pipeline_runtime.workflow_manifest
     workflow_json = json.loads(workflow)
     return workflow_json
+
+  def upload_pipeline(self, pipeline_package_path):
+    """Uploads the pipeline to the Kubeflow Pipelines cluster.
+    Args:
+      pipeline_package_path: Local path to the pipeline package.
+    Returns:
+      Server response object containing pipleine id and other information.
+    """
+
+    response = self._upload_api.upload_pipeline(pipeline_package_path)
+    if self._is_ipython():
+      import IPython
+      html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
+      IPython.display.display(IPython.display.HTML(html))
+    return response
