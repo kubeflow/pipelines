@@ -67,7 +67,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 dataflow_template_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/f379080516a34d9c257a198cde9ac219d625ab84/components/gcp/dataflow/launch_template/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/d0aa15dfb3ff618e8cd1b03f86804ec4307fd9c2/components/gcp/dataflow/launch_template/component.yaml')
 help(dataflow_template_op)
 ```
 
