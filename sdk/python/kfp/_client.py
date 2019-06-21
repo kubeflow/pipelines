@@ -31,6 +31,34 @@ from .compiler import _k8s_helper
 
 from ._auth import get_auth_token
 
+
+def _add_generated_apis(target_struct, api_module, api_client):
+  '''Initializes a hierarchical API object based on the generated API module.
+  PipelineServiceApi.create_pipeline becomes target_struct.pipelines.create_pipeline
+  '''
+  Struct = type('Struct', (), {})
+
+  def camel_case_to_snake_case(name):
+      import re
+      return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+  for api_name in dir(api_module):
+      if not api_name.endswith('ServiceApi'):
+          continue
+
+      short_api_name = camel_case_to_snake_case(api_name[0:-len('ServiceApi')]) + 's'
+      api_struct = Struct()
+      setattr(target_struct, short_api_name, api_struct)
+      service_api = getattr(api_module, api_name)
+      initialized_service_api = service_api(api_client)
+      for member_name in dir(initialized_service_api):
+          if member_name.startswith('_') or member_name.endswith('_with_http_info'):
+              continue
+
+          bound_member = getattr(initialized_service_api, member_name)
+          setattr(api_struct, member_name, bound_member)
+
+
 class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
@@ -56,6 +84,7 @@ class Client(object):
     self._host = host
     config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
+    _add_generated_apis(self, kfp_server_api.api, api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
