@@ -15,6 +15,9 @@
 name: dataproc_create_cluster
 description: |
   Creates a DataProc cluster under a project.
+metadata:
+  labels:
+    pipelines.kubeflow.org/component-type: gcp-connector
 inputs:
   - name: project_id
     description: >-
@@ -78,7 +81,5 @@ implementation:
       --cluster, {inputValue: cluster},
       --wait_interval, {inputValue: wait_interval}
     ]
-    env:
-      KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       cluster_name: /tmp/kfp/output/dataproc/cluster_name.txt

@@ -16,6 +16,9 @@ name: dataproc_submit_hadoop_job
 description: >-
   Submits a Cloud Dataproc job for running Apache Hadoop MapReduce jobs on 
   Apache Hadoop YARN.
+metadata:
+  labels:
+    pipelines.kubeflow.org/component-type: gcp-connector
 inputs:
   - name: project_id
     description: >-
@@ -88,7 +91,5 @@ implementation:
       --job, {inputValue: job},
       --wait_interval, {inputValue: wait_interval}
     ]
-    env:
-      KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       job_id: /tmp/kfp/output/dataproc/job_id.txt
