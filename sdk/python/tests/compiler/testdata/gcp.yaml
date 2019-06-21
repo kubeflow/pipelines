@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: test-gcp-settings-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: test-gcp-settings
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - echo $KFP_POD_NAME
+      command:
+      - sh
+      - -c
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      - name: CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE
+        value: /secret/gcp-credentials/user-gcp-sa.json
+      image: library/bash
+      volumeMounts:
+      - mountPath: /secret/gcp-credentials
+        name: gcp-credentials-user-gcp-sa
+    metadata:
+      labels:
+        pipelines.kubeflow.org/component-type: gcp-connector
+    name: echo
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        optional: true
+        path: /mlpipeline-ui-metadata.json
+      - name: mlpipeline-metrics
+        optional: true
+        path: /mlpipeline-metrics.json
+  - dag:
+      tasks:
+      - name: echo
+        template: echo
+    name: test-gcp-settings
+  volumes:
+  - name: gcp-credentials-user-gcp-sa
+    secret:
+      secretName: user-gcp-sa

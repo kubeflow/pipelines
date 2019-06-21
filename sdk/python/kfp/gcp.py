@@ -108,3 +108,29 @@ def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoS
     return task
 
   return _set_preemptible
+
+def set_gcp_settings(secret_name='user-gcp-sa'):
+    def _set_gcp_settings(op):
+        if op.pod_labels and op.pod_labels['pipelines.kubeflow.org/component-type'] == 'gcp-connector':
+            from kubernetes import client as k8s_client
+            op.container.add_env_variable(
+                k8s_client.V1EnvVar(
+                    name='KFP_POD_NAME', 
+                    value_from=k8s_client.V1EnvVarSource(
+                        field_ref=k8s_client.V1ObjectFieldSelector(
+                            field_path='metadata.name'
+                        )
+                    )
+                )
+            ).add_env_variable(
+                k8s_client.V1EnvVar(
+                    name='KFP_NAMESPACE', 
+                    value_from=k8s_client.V1EnvVarSource(
+                        field_ref=k8s_client.V1ObjectFieldSelector(
+                            field_path='metadata.namespace'
+                        )
+                    )
+                )
+            )
+            op.apply(use_gcp_secret(secret_name=secret_name))
+    return _set_gcp_settings
