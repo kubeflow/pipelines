@@ -235,19 +235,47 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     from collections import OrderedDict
     parameter_to_type_name = OrderedDict((input.name, str(input.type)) for input in component_spec.inputs)
 
-    input_args_parsing_code_lines =(
-        "    '{arg_name}': {arg_type}(sys.argv[{arg_idx}]),".format(
-            arg_name=name_type[0],
-            arg_type=name_type[1] if name_type[1] in ['int', 'float', 'bool'] else 'str',
-            arg_idx=idx + 1
+    arg_parse_code_lines = [
+        'import argparse',
+        '_parser = argparse.ArgumentParser(prog={prog_repr}, description={description_repr})'.format(
+            prog_repr=repr(component_spec.name or ''),
+            description_repr=repr(component_spec.description or ''),
+        ),
+    ]
+    arguments = []
+    for input in component_spec.inputs:
+        param_flag = "--" + input.name.replace("_", "-")
+        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default={default_repr})'.format(
+            param_flag=param_flag,
+            param_var=input.name,
+            param_type=(input.type if input.type in ['int', 'float', 'bool'] else 'str'),
+            is_required=str(input.default is None), # TODO: Handle actual 'None' defaults!
+            default_repr=repr(str(input.default)) if input.default is not None else None,
         )
-        for idx, name_type in enumerate(parameter_to_type_name.items())
-    )
+        arg_parse_code_lines.append(line)
+        arguments.append(param_flag)
+        arguments.append(InputValuePlaceholder(input.name))
 
-    output_files_parsing_code_lines = (
-        '    sys.argv[{}],'.format(idx + len(parameter_to_type_name) + 1)
-        for idx in range(len(extra_output_external_names))
-    )
+    if component_spec.outputs:
+        param_flag="----output-paths"
+        output_param_var="_output_paths"
+        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type=str, nargs={nargs})'.format(
+            param_flag=param_flag,
+            param_var=output_param_var,
+            nargs=len(component_spec.outputs),
+        )
+        arg_parse_code_lines.append(line)
+        arguments.append(param_flag)
+        arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
+
+    arg_parse_code_lines.extend([
+        '_parsed_args = vars(_parser.parse_args())',
+    ])
+
+    if component_spec.outputs:
+        arg_parse_code_lines.extend([
+            '_output_files = _parsed_args.pop("_output_paths")',
+        ])
 
     full_source = \
 '''\
@@ -255,15 +283,9 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
 
 {func_code}
 
-import sys
-_args = {{
-{input_args_parsing_code}
-}}
-_output_files = [
-{output_files_parsing_code}
-]
+{arg_parse_code}
 
-_outputs = {func_name}(**_args)
+_outputs = {func_name}(**_parsed_args)
 
 if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
     _outputs = [_outputs]
@@ -277,8 +299,7 @@ for idx, filename in enumerate(_output_files):
         func_name=func.__name__,
         func_code=func_code,
         extra_code=extra_code,
-        input_args_parsing_code='\n'.join(input_args_parsing_code_lines),
-        output_files_parsing_code='\n'.join(output_files_parsing_code_lines),
+        arg_parse_code='\n'.join(arg_parse_code_lines),
     )
 
     #Removing consecutive blank lines
