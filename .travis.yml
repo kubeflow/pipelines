@@ -63,10 +63,11 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/component_sdk/python
         - ./run_test.sh
     - language: python
-      python: "3.6"
-      env: TOXENV=py36
-      install: pip3 install jsonschema==3.0.1
-      script:
+      python: "3.5"
+      env: TOXENV=py35
+      script: &1
+        # Additional dependencies
+        - pip3 install jsonschema==3.0.1
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python3 setup.py install
@@ -74,9 +75,18 @@ matrix:
         - python tests/compiler/main.py
         - $TRAVIS_BUILD_DIR/sdk/python/tests/run_tests.sh
 
-        #Test loading all component.yaml definitions
+        # Test loading all component.yaml definitions
         - $TRAVIS_BUILD_DIR/components/test_load_all_components.sh
 
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/component_sdk/python
         - ./run_test.sh
+    - language: python
+      python: "3.6"
+      env: TOXENV=py36
+      script: *1
+    - language: python
+      python: "3.7"
+      env: TOXENV=py37
+      dist: xenial # required for Python >= 3.7
+      script: *1
