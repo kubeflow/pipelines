@@ -64,37 +64,50 @@ def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str]
         func_pickle = base64.b64encode(cloudpickle.dumps(func, pickle.DEFAULT_PROTOCOL))
     finally:
         sys.modules.update(old_modules)
-    func_code = '{func_name} = pickle.loads(base64.b64decode({func_pickle}))'.format(
+
+    function_loading_code = '''\
+import sys
+try:
+    import cloudpickle as _cloudpickle
+except ImportError:
+    import subprocess
+    try:
+        print("cloudpickle is not installed. Installing it globally", file=sys.stderr)
+        subprocess.run([sys.executable, "-m", "pip", "install", "cloudpickle==1.1.1", "--quiet"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)
+        print("Installed cloudpickle globally", file=sys.stderr)
+    except:
+        print("Failed to install cloudpickle globally. Installing for the current user.", file=sys.stderr)
+        subprocess.run([sys.executable, "-m", "pip", "install", "cloudpickle==1.1.1", "--user", "--quiet"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)
+        print("Installed cloudpickle for the current user", file=sys.stderr)
+        # Enable loading from user-installed package directory. Python does not add it to sys.path if it was empty at start. Running pip does not refresh `sys.path`.
+        import site
+        sys.path.append(site.getusersitepackages())
+    import cloudpickle as _cloudpickle
+    print("cloudpickle loaded successfully after installing.", file=sys.stderr)
+''' + '''
+pickler_python_version = {pickler_python_version}
+current_python_version = tuple(sys.version_info)
+if (
+    current_python_version[0] != pickler_python_version[0] or
+    current_python_version[1] < pickler_python_version[1] or
+    current_python_version[0] == 3 and ((pickler_python_version[1] < 6) != (current_python_version[1] < 6))
+    ):
+    raise RuntimeError("Incompatible python versions: " + str(current_python_version) + " instead of " + str(pickler_python_version))
+
+if current_python_version != pickler_python_version:
+    print("Warning!: Different python versions. The code may crash! Current environment python version: " + str(current_python_version) + ". Component code python version: " + str(pickler_python_version), file=sys.stderr)
+
+import base64
+import pickle
+
+{func_name} = pickle.loads(base64.b64decode({func_pickle}))
+'''.format(
         func_name=func.__name__,
-        func_pickle=repr(func_pickle)
+        func_pickle=repr(func_pickle),
+        pickler_python_version=repr(tuple(sys.version_info)),
     )
 
-    code_lines = [
-        'try:',
-        '    import cloudpickle as _cloudpickle',
-        'except ImportError:',
-        '    import subprocess',
-        '    import sys',
-        '    try:',
-        '        print("cloudpickle is not installed. Installing it globally", file=sys.stderr)',
-        '        subprocess.run([sys.executable, "-m", "pip", "install", "cloudpickle==1.1.1", "--quiet"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)',
-        '        print("Installed cloudpickle globally", file=sys.stderr)',
-        '    except:',
-        '        print("Failed to install cloudpickle globally. Installing for the current user.", file=sys.stderr)',
-        '        subprocess.run([sys.executable, "-m", "pip", "install", "cloudpickle==1.1.1", "--user", "--quiet"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)',
-        '        print("Installed cloudpickle for the current user", file=sys.stderr)',
-        '        import site',
-        '        sys.path.append(site.getusersitepackages())', # Enable loading from user-installed package directory. Python does not add it to sys.path if it was empty at start. Running pip does not refresh `sys.path`.
-        '    import cloudpickle as _cloudpickle',
-        '    print("cloudpickle loaded successfully after installing.", file=sys.stderr)',
-        '',
-        'import base64',
-        'import pickle',
-        '',
-        func_code,
-    ]
-
-    return '\n'.join(code_lines)
+    return function_loading_code
 
 
 def _capture_function_code_using_source_copy(func) -> str:	
