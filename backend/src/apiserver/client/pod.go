@@ -15,27 +15,29 @@
 package client
 
 import (
+	"time"
+
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	kubeclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
-func CreatePodClient() (*kubeclient.Client, error) {
-	client, err := kubeclient.New(&restclient.Config{
 
-	})
+func CreatePodClient() (*kubernetes.Clientset, error) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
 	return client, nil
 }
 
-func CreatePodClientOrFatal() *kubeclient.Client{
-	var podClient *kubeclient.Client
+func CreatePodClientOrFatal(initConnectionTimeout time.Duration) *kubernetes.Clientset {
+	var podClient *kubernetes.Clientset
 	var err error
 	var operation = func() error {
 		podClient, err = CreatePodClient()

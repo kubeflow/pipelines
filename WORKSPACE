@@ -959,5 +959,17 @@ go_repository(
 go_repository(
     name = "com_github_gorilla_websocket",
     importpath = "github.com/gorilla/websocket",
-    tag = "v1.2.0",
+    tag = "v1.4.0",
+)
+
+go_repository(
+    name = "com_github_kubernetes_client_go",
+    importpath = "github.com/kubernetes/client-go",
+    tag = "v11.0.0",
+)
+
+go_repository(
+    name = "io_k8s_sigs_testing_frameworks",
+    importpath = "sigs.k8s.io/testing_frameworks",
+    tag = "v0.1.1",
 )
