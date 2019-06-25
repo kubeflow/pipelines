@@ -15,6 +15,7 @@
 package client
 
 import (
+	"k8s.io/client-go/kubernetes/typed/core/v1"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -24,7 +25,7 @@ import (
 )
 
 
-func CreatePodClient() (*kubernetes.Clientset, error) {
+func CreatePodClient(namespace string) (v1.PodInterface, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err.Error())
@@ -33,14 +34,14 @@ func CreatePodClient() (*kubernetes.Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
-	return client, nil
+	return client.CoreV1().Pods(namespace), nil
 }
 
-func CreatePodClientOrFatal(initConnectionTimeout time.Duration) *kubernetes.Clientset {
-	var podClient *kubernetes.Clientset
+func CreatePodClientOrFatal(namespace string, initConnectionTimeout time.Duration) v1.PodInterface {
+	var podInterface v1.PodInterface
 	var err error
 	var operation = func() error {
-		podClient, err = CreatePodClient()
+		podInterface, err = CreatePodClient(namespace)
 		if err != nil {
 			return err
 		}
@@ -51,5 +52,5 @@ func CreatePodClientOrFatal(initConnectionTimeout time.Duration) *kubernetes.Cli
 	if err := backoff.Retry(operation, b); err != nil {
 		glog.Fatalf("Failed to create Pod client. Error: %v", err)
 	}
-	return podClient
+	return podInterface
 }
