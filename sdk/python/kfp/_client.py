@@ -31,6 +31,34 @@ from .compiler import _k8s_helper
 
 from ._auth import get_auth_token
 
+
+def _add_generated_apis(target_struct, api_module, api_client):
+  '''Initializes a hierarchical API object based on the generated API module.
+  PipelineServiceApi.create_pipeline becomes target_struct.pipelines.create_pipeline
+  '''
+  Struct = type('Struct', (), {})
+
+  def camel_case_to_snake_case(name):
+      import re
+      return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+  for api_name in dir(api_module):
+      if not api_name.endswith('ServiceApi'):
+          continue
+
+      short_api_name = camel_case_to_snake_case(api_name[0:-len('ServiceApi')]) + 's'
+      api_struct = Struct()
+      setattr(target_struct, short_api_name, api_struct)
+      service_api = getattr(api_module, api_name)
+      initialized_service_api = service_api(api_client)
+      for member_name in dir(initialized_service_api):
+          if member_name.startswith('_') or member_name.endswith('_with_http_info'):
+              continue
+
+          bound_member = getattr(initialized_service_api, member_name)
+          setattr(api_struct, member_name, bound_member)
+
+
 class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
@@ -56,8 +84,10 @@ class Client(object):
     self._host = host
     config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
+    _add_generated_apis(self, kfp_server_api.api, api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
+    self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
 
   def _load_config(self, host, client_id, namespace):
     config = kfp_server_api.configuration.Configuration()
@@ -352,3 +382,19 @@ class Client(object):
     workflow = get_run_response.pipeline_runtime.workflow_manifest
     workflow_json = json.loads(workflow)
     return workflow_json
+
+  def upload_pipeline(self, pipeline_package_path, pipeline_name=None):
+    """Uploads the pipeline to the Kubeflow Pipelines cluster.
+    Args:
+      pipeline_package_path: Local path to the pipeline package.
+      pipeline_name: Optional. Name of the pipeline to be shown in the UI.
+    Returns:
+      Server response object containing pipleine id and other information.
+    """
+
+    response = self._upload_api.upload_pipeline(pipeline_package_path, name=pipeline_name)
+    if self._is_ipython():
+      import IPython
+      html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
+      IPython.display.display(IPython.display.HTML(html))
+    return response
