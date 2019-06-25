@@ -70,7 +70,7 @@ class PipelineVolume(V1Volume):
 
         if not name_provided:
             self.name = "pvolume-%s" % hashlib.sha256(
-                bytes(str(self.to_dict()), "utf-8")
+                bytes(str(sorted(self.to_dict().items())), "utf-8")
             ).hexdigest()
         self.dependent_names = []
 
