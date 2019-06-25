@@ -784,3 +784,14 @@ implementation:
     """Test pipeline input_artifact_raw_value."""
     self._test_py_compile_yaml('input_artifact_raw_value')
 
+  def test_pipeline_name_same_as_task_name(self):
+    def some_name():
+      dsl.ContainerOp(
+        name='some_name',
+        image='alpine:latest',
+      )
+
+    workflow_dict = compiler.Compiler()._compile(some_name)
+    template_names = set(template['name'] for template in workflow_dict['spec']['templates'])
+    self.assertGreater(len(template_names), 1)
+    self.assertEqual(template_names, {'some-name', 'some-name-2'})
