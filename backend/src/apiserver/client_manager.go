@@ -33,7 +33,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
+	podclient "github.com/kubernetes/client-go/kubernetes/typed/core/v1"
 	minio "github.com/minio/minio-go"
+	kubeclient "k8s.io/kubernetes/pkg/client/unversioned"
 
 	"ml_metadata/metadata_store/mlmetadata"
 	mlpb "ml_metadata/proto/metadata_store_go_proto"
@@ -65,6 +67,7 @@ type ClientManager struct {
 	objectStore            storage.ObjectStoreInterface
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
+	podClient							 podclient.PodInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 
@@ -144,6 +147,8 @@ func (c *ClientManager) init() {
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+
+	c.podClient = client.CreatePodClientOrFatal()
 
 	metadataStore := initMetadataStore()
 	runStore := storage.NewRunStore(db, c.time, metadataStore)
