@@ -538,6 +538,11 @@ class Compiler(object):
 
     # The whole pipeline workflow
     pipeline_name = pipeline.name or 'Pipeline'
+    # Workaround for pipeline name clashing with container template names
+    # TODO: Make sure template names cannot clash at all (container, DAG, workflow)
+    template_names = set(template['name'].lower() ==  for template in templates)
+    from ..components._naming import _make_name_unique_by_adding_index
+    pipeline_name = _make_name_unique_by_adding_index(pipeline_name, template_names, '-')
     workflow = {
       'apiVersion': 'argoproj.io/v1alpha1',
       'kind': 'Workflow',
