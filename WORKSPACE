@@ -65,14 +65,14 @@ new_git_repository(
 go_repository(
     name = "io_k8s_client_go",
     build_file_proto_mode = "disable_global",
-    commit = "59698c7d9724",
+    tag = "kubernetes-1.13.4",
     importpath = "k8s.io/client-go",
 )
 
 go_repository(
     name = "io_k8s_apimachinery",
     build_file_proto_mode = "disable_global",
-    commit = "103fd098999d",
+    tag = "kubernetes-1.13.4",
     importpath = "k8s.io/apimachinery",
 )
 
@@ -85,14 +85,14 @@ go_repository(
 go_repository(
     name = "io_k8s_sigs_controller_runtime",
     build_extra_args = ["-exclude=vendor"],
-    commit = "5558165425ef",
+    tag = "v0.1.12",
     importpath = "sigs.k8s.io/controller-runtime",
 )
 
 go_repository(
     name = "io_k8s_api",
     build_file_proto_mode = "disable_global",
-    commit = "2d6f90ab1293",
+    tag = "kubernetes-1.13.4",
     importpath = "k8s.io/api",
 )
 
