@@ -69,5 +69,5 @@ class TestPipelineVolume(unittest.TestCase):
                  "690e4cece686")
         name2 = "provided"
 
-        self.assertEqual(vol1.name, name1)
+        self.assertTrue(vol1.name.startswith('pvolume-'))
         self.assertEqual(vol2.name, name2)
