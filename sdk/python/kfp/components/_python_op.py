@@ -64,37 +64,73 @@ def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str]
         func_pickle = base64.b64encode(cloudpickle.dumps(func, pickle.DEFAULT_PROTOCOL))
     finally:
         sys.modules.update(old_modules)
-    func_code = '{func_name} = pickle.loads(base64.b64decode({func_pickle}))'.format(
+
+    function_loading_code = '''\
+import sys
+try:
+    import cloudpickle as _cloudpickle
+except ImportError:
+    import subprocess
+    try:
+        print("cloudpickle is not installed. Installing it globally", file=sys.stderr)
+        subprocess.run([sys.executable, "-m", "pip", "install", "cloudpickle==1.1.1", "--quiet"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)
+        print("Installed cloudpickle globally", file=sys.stderr)
+    except:
+        print("Failed to install cloudpickle globally. Installing for the current user.", file=sys.stderr)
+        subprocess.run([sys.executable, "-m", "pip", "install", "cloudpickle==1.1.1", "--user", "--quiet"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)
+        print("Installed cloudpickle for the current user", file=sys.stderr)
+        # Enable loading from user-installed package directory. Python does not add it to sys.path if it was empty at start. Running pip does not refresh `sys.path`.
+        import site
+        sys.path.append(site.getusersitepackages())
+    import cloudpickle as _cloudpickle
+    print("cloudpickle loaded successfully after installing.", file=sys.stderr)
+''' + '''
+pickler_python_version = {pickler_python_version}
+current_python_version = tuple(sys.version_info)
+if (
+    current_python_version[0] != pickler_python_version[0] or
+    current_python_version[1] < pickler_python_version[1] or
+    current_python_version[0] == 3 and ((pickler_python_version[1] < 6) != (current_python_version[1] < 6))
+    ):
+    raise RuntimeError("Incompatible python versions: " + str(current_python_version) + " instead of " + str(pickler_python_version))
+
+if current_python_version != pickler_python_version:
+    print("Warning!: Different python versions. The code may crash! Current environment python version: " + str(current_python_version) + ". Component code python version: " + str(pickler_python_version), file=sys.stderr)
+
+import base64
+import pickle
+
+{func_name} = pickle.loads(base64.b64decode({func_pickle}))
+'''.format(
         func_name=func.__name__,
-        func_pickle=repr(func_pickle)
+        func_pickle=repr(func_pickle),
+        pickler_python_version=repr(tuple(sys.version_info)),
     )
 
-    code_lines = [
-        'try:',
-        '    import cloudpickle as _cloudpickle',
-        'except ImportError:',
-        '    import subprocess',
-        '    import sys',
-        '    try:',
-        '        print("cloudpickle is not installed. Installing it globally", file=sys.stderr)',
-        '        subprocess.run([sys.executable, "-m", "pip", "install", "cloudpickle==1.1.1", "--quiet"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)',
-        '        print("Installed cloudpickle globally", file=sys.stderr)',
-        '    except:',
-        '        print("Failed to install cloudpickle globally. Installing for the current user.", file=sys.stderr)',
-        '        subprocess.run([sys.executable, "-m", "pip", "install", "cloudpickle==1.1.1", "--user", "--quiet"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)',
-        '        print("Installed cloudpickle for the current user", file=sys.stderr)',
-        '        import site',
-        '        sys.path.append(site.getusersitepackages())', # Enable loading from user-installed package directory. Python does not add it to sys.path if it was empty at start. Running pip does not refresh `sys.path`.
-        '    import cloudpickle as _cloudpickle',
-        '    print("cloudpickle loaded successfully after installing.", file=sys.stderr)',
-        '',
-        'import base64',
-        'import pickle',
-        '',
-        func_code,
-    ]
+    return function_loading_code
 
-    return '\n'.join(code_lines)
+
+def _capture_function_code_using_source_copy(func) -> str:	
+    import inspect	
+
+    #Source code can include decorators line @python_op. Remove them
+    (func_code_lines, _) = inspect.getsourcelines(func)
+    while func_code_lines[0].lstrip().startswith('@'): #decorator
+        del func_code_lines[0]
+
+    #Function might be defined in some indented scope (e.g. in another function).
+    #We need to handle this and properly dedent the function source code
+    first_line = func_code_lines[0]
+    indent = len(first_line) - len(first_line.lstrip())
+    func_code_lines = [line[indent:] for line in func_code_lines]
+
+    #TODO: Add support for copying the NamedTuple subclass declaration code
+    #Adding NamedTuple import if needed
+    if hasattr(inspect.signature(func).return_annotation, '_fields'): #NamedTuple
+        func_code_lines.insert(0, '\n')
+        func_code_lines.insert(0, 'from typing import NamedTuple\n')
+
+    return ''.join(func_code_lines) #Lines retain their \n endings
 
 
 def _extract_component_interface(func) -> ComponentSpec:
@@ -161,7 +197,7 @@ def _extract_component_interface(func) -> ComponentSpec:
     return component_spec
 
 
-def _func_to_component_spec(func, extra_code='', base_image=_default_base_image, modules_to_capture: List[str] = None) -> ComponentSpec:
+def _func_to_component_spec(func, extra_code='', base_image=_default_base_image, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
     '''Takes a self-contained python function and converts it to component
 
     Args:
@@ -170,6 +206,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
                     Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         extra_code: Optional. Python source code that gets placed before the function code. Can be used as workaround to define types used in function signature.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured.
+        use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
     '''
     decorator_base_image = getattr(func, '_component_base_image', None)
     if decorator_base_image is not None:
@@ -187,7 +224,10 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     arguments.extend(InputValuePlaceholder(input.name) for input in component_spec.inputs)
     arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
 
-    func_code = _capture_function_code_using_cloudpickle(func, modules_to_capture)
+    if use_code_pickling:
+        func_code = _capture_function_code_using_cloudpickle(func, modules_to_capture)
+    else:
+        func_code = _capture_function_code_using_source_copy(func)
 
     extra_output_names = [output.name for output in component_spec.outputs]
     extra_output_external_names = [name + '_file' for name in extra_output_names]
@@ -195,19 +235,47 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     from collections import OrderedDict
     parameter_to_type_name = OrderedDict((input.name, str(input.type)) for input in component_spec.inputs)
 
-    input_args_parsing_code_lines =(
-        "    '{arg_name}': {arg_type}(sys.argv[{arg_idx}]),".format(
-            arg_name=name_type[0],
-            arg_type=name_type[1] if name_type[1] in ['int', 'float', 'bool'] else 'str',
-            arg_idx=idx + 1
+    arg_parse_code_lines = [
+        'import argparse',
+        '_parser = argparse.ArgumentParser(prog={prog_repr}, description={description_repr})'.format(
+            prog_repr=repr(component_spec.name or ''),
+            description_repr=repr(component_spec.description or ''),
+        ),
+    ]
+    arguments = []
+    for input in component_spec.inputs:
+        param_flag = "--" + input.name.replace("_", "-")
+        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default={default_repr})'.format(
+            param_flag=param_flag,
+            param_var=input.name,
+            param_type=(input.type if input.type in ['int', 'float', 'bool'] else 'str'),
+            is_required=str(input.default is None), # TODO: Handle actual 'None' defaults!
+            default_repr=repr(str(input.default)) if input.default is not None else None,
         )
-        for idx, name_type in enumerate(parameter_to_type_name.items())
-    )
+        arg_parse_code_lines.append(line)
+        arguments.append(param_flag)
+        arguments.append(InputValuePlaceholder(input.name))
 
-    output_files_parsing_code_lines = (
-        '    sys.argv[{}],'.format(idx + len(parameter_to_type_name) + 1)
-        for idx in range(len(extra_output_external_names))
-    )
+    if component_spec.outputs:
+        param_flag="----output-paths"
+        output_param_var="_output_paths"
+        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type=str, nargs={nargs})'.format(
+            param_flag=param_flag,
+            param_var=output_param_var,
+            nargs=len(component_spec.outputs),
+        )
+        arg_parse_code_lines.append(line)
+        arguments.append(param_flag)
+        arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
+
+    arg_parse_code_lines.extend([
+        '_parsed_args = vars(_parser.parse_args())',
+    ])
+
+    if component_spec.outputs:
+        arg_parse_code_lines.extend([
+            '_output_files = _parsed_args.pop("_output_paths")',
+        ])
 
     full_source = \
 '''\
@@ -215,15 +283,9 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
 
 {func_code}
 
-import sys
-_args = {{
-{input_args_parsing_code}
-}}
-_output_files = [
-{output_files_parsing_code}
-]
+{arg_parse_code}
 
-_outputs = {func_name}(**_args)
+_outputs = {func_name}(**_parsed_args)
 
 if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
     _outputs = [_outputs]
@@ -237,8 +299,7 @@ for idx, filename in enumerate(_output_files):
         func_name=func.__name__,
         func_code=func_code,
         extra_code=extra_code,
-        input_args_parsing_code='\n'.join(input_args_parsing_code_lines),
-        output_files_parsing_code='\n'.join(output_files_parsing_code_lines),
+        arg_parse_code='\n'.join(arg_parse_code_lines),
     )
 
     #Removing consecutive blank lines
@@ -256,11 +317,11 @@ for idx, filename in enumerate(_output_files):
     return component_spec
 
 
-def _func_to_component_dict(func, extra_code='', base_image=_default_base_image, modules_to_capture: List[str] = None):
-    return _func_to_component_spec(func, extra_code, base_image, modules_to_capture).to_dict()
+def _func_to_component_dict(func, extra_code='', base_image=_default_base_image, modules_to_capture: List[str] = None, use_code_pickling=False):
+    return _func_to_component_spec(func, extra_code, base_image, modules_to_capture, use_code_pickling).to_dict()
 
 
-def func_to_component_text(func, extra_code='', base_image=_default_base_image, modules_to_capture: List[str] = None):
+def func_to_component_text(func, extra_code='', base_image=_default_base_image, modules_to_capture: List[str] = None, use_code_pickling=False):
     '''
     Converts a Python function to a component definition and returns its textual representation
 
@@ -279,15 +340,16 @@ def func_to_component_text(func, extra_code='', base_image=_default_base_image, 
                     Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
-
+        use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
+    
     Returns:
         Textual representation of a component definition
     '''
-    component_dict = _func_to_component_dict(func, extra_code, base_image, modules_to_capture)
+    component_dict = _func_to_component_dict(func, extra_code, base_image, modules_to_capture, use_code_pickling)
     return dump_yaml(component_dict)
 
 
-def func_to_component_file(func, output_component_file, base_image=_default_base_image, extra_code='', modules_to_capture: List[str] = None) -> None:
+def func_to_component_file(func, output_component_file, base_image=_default_base_image, extra_code='', modules_to_capture: List[str] = None, use_code_pickling=False) -> None:
     '''
     Converts a Python function to a component definition and writes it to a file
 
@@ -307,14 +369,15 @@ def func_to_component_file(func, output_component_file, base_image=_default_base
                     Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
+        use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
     '''
 
-    component_yaml = func_to_component_text(func, extra_code, base_image, modules_to_capture)
-
+    component_yaml = func_to_component_text(func, extra_code, base_image, modules_to_capture, use_code_pickling)
+    
     Path(output_component_file).write_text(component_yaml)
 
 
-def func_to_container_op(func, output_component_file=None, base_image=_default_base_image, extra_code='', modules_to_capture: List[str] = None):
+def func_to_container_op(func, output_component_file=None, base_image=_default_base_image, extra_code='', modules_to_capture: List[str] = None, use_code_pickling=False):
     '''
     Converts a Python function to a component and returns a task (ContainerOp) factory
 
@@ -334,13 +397,14 @@ def func_to_container_op(func, output_component_file=None, base_image=_default_b
         output_component_file: Optional. Write a component definition to a local file. Can be used for sharing.
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
+        use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
 
     Returns:
         A factory function with a strongly-typed signature taken from the python function.
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp) that can run the original function in a container.
     '''
 
-    component_spec = _func_to_component_spec(func, extra_code, base_image, modules_to_capture)
+    component_spec = _func_to_component_spec(func, extra_code, base_image, modules_to_capture, use_code_pickling)
 
     output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:

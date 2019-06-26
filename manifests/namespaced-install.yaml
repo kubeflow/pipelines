@@ -239,38 +239,6 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: Role
 metadata:
-  name: ml-pipeline-viewer-controller-role
-  namespace: kubeflow
-rules:
-- apiGroups:
-  - '*'
-  resources:
-  - deployments
-  - services
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - viewers
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: Role
-metadata:
   labels:
     app: ml-pipeline
   name: ml-pipeline
@@ -383,6 +351,37 @@ rules:
   verbs:
   - '*'
 ---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: ml-pipeline-viewer-controller-role
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - deployments
+  - services
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - viewers
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -444,20 +443,6 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
-  name: ml-pipeline-viewer-crd-binding
-  namespace: kubeflow
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: ml-pipeline-viewer-controller-role
-subjects:
-- kind: ServiceAccount
-  name: ml-pipeline-viewer-crd-service-account
-  namespace: kubeflow
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: RoleBinding
-metadata:
   labels:
     app: ml-pipeline
   name: ml-pipeline
@@ -499,6 +484,19 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: proxy-agent-runner
+  namespace: kubeflow
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: ml-pipeline-viewer-crd-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ml-pipeline-viewer-controller-role
+subjects:
+- kind: ServiceAccount
+  name: ml-pipeline-viewer-crd-service-account
   namespace: kubeflow
 ---
 apiVersion: v1
@@ -654,7 +652,7 @@ spec:
       - env:
         - name: NAMESPACE
           value: kubeflow
-        image: gcr.io/ml-pipeline/persistenceagent:0.1.21
+        image: gcr.io/ml-pipeline/persistenceagent:0.1.22
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-persistenceagent
       serviceAccountName: ml-pipeline-persistenceagent
@@ -679,7 +677,7 @@ spec:
       - env:
         - name: NAMESPACE
           value: kubeflow
-        image: gcr.io/ml-pipeline/scheduledworkflow:0.1.21
+        image: gcr.io/ml-pipeline/scheduledworkflow:0.1.22
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-scheduledworkflow
       serviceAccountName: ml-pipeline-scheduledworkflow
@@ -704,7 +702,7 @@ spec:
       - env:
         - name: MINIO_NAMESPACE
           value: kubeflow
-        image: gcr.io/ml-pipeline/frontend:0.1.21
+        image: gcr.io/ml-pipeline/frontend:0.1.22
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-ui
         ports:
@@ -731,7 +729,7 @@ spec:
       - env:
         - name: MAX_NUM_VIEWERS
           value: "50"
-        image: gcr.io/ml-pipeline/viewer-crd-controller:0.1.21
+        image: gcr.io/ml-pipeline/viewer-crd-controller:0.1.22
         imagePullPolicy: Always
         name: ml-pipeline-viewer-crd
       serviceAccountName: ml-pipeline-viewer-crd-service-account
@@ -758,7 +756,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: gcr.io/ml-pipeline/api-server:0.1.21
+        image: gcr.io/ml-pipeline/api-server:0.1.22
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
         ports:
@@ -816,7 +814,7 @@ spec:
         app: proxy-agent
     spec:
       containers:
-      - image: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.21
+      - image: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.22
         imagePullPolicy: IfNotPresent
         name: proxy-agent
       serviceAccountName: proxy-agent-runner

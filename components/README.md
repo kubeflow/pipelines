@@ -1,9 +1,9 @@
 # Kubeflow pipeline components
 
 Kubeflow pipeline components are implementations of Kubeflow pipeline tasks. Each task takes
-one or more [artifacts](https://www.kubeflow.org/docs/guides/pipelines/pipelines-concepts/#step-output-artifacts)
+one or more [artifacts](https://www.kubeflow.org/docs/pipelines/overview/concepts/output-artifact/)
 as input and may produce one or more
-[artifacts](https://www.kubeflow.org/docs/guides/pipelines/pipelines-concepts/#step-output-artifacts) as output.
+[artifacts](https://www.kubeflow.org/docs/pipelines/overview/concepts/output-artifact/) as output.
 
 
 **Example: XGBoost DataProc components**
@@ -31,4 +31,5 @@ Note the naming convention for client code and runtime code&mdash;for a task nam
 * The `mytask.py` program contains the client code.
 * The `mytask` directory contains all the runtime code.
 
-See [how to build your own components](https://www.kubeflow.org/docs/guides/pipelines/build-component/)
+See how to [use the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/sdk-overview/)
+and [build your own components](https://www.kubeflow.org/docs/pipelines/sdk/build-component/).
