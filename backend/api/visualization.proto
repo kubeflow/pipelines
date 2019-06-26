@@ -75,22 +75,22 @@ message Visualization {
   string id = 1;
 
   // ID of pipeline that visualization is associated with.
-  // This is required when creating the pipeline through GenerateVisualization
+  // This is required when creating the pipeline through CreateVisualization
   // API.
   string pipeline = 2;
 
   // ID of the run that visualization is associated with.
-  // This is required when creating the pipeline through GenerateVisualization
+  // This is required when creating the pipeline through CreateVisualization
   // API.
   string run_id = 3;
 
   // ID of the component that visualization is associated with.
-  // This is required when creating the pipeline through GenerateVisualization
+  // This is required when creating the pipeline through CreateVisualization
   // API.
   string component_id = 4;
 
   // Type of visualization to be generated.
-  // This is required when creating the pipeline through GenerateVisualization
+  // This is required when creating the pipeline through CreateVisualization
   // API.
   enum Type {
     ROC_CURVE = 0;
@@ -98,7 +98,7 @@ message Visualization {
   Type type = 5;
 
   // Array of paths of data to be used during generation of visualizations.
-  // This is required when creating the pipeline through GenerateVisualization
+  // This is required when creating the pipeline through CreateVisualization
   // API.
   repeated string inputPaths = 6;
 
