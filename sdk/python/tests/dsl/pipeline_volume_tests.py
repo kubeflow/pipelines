@@ -68,6 +68,5 @@ class TestPipelineVolume(unittest.TestCase):
         name1 = ("pvolume-127ac63cf2013e9b95c192eb6a2c7d5a023ebeb51f6a114486e3"
                  "1216e083a563")
         name2 = "provided"
-
         self.assertEqual(vol1.name, name1)
         self.assertEqual(vol2.name, name2)
