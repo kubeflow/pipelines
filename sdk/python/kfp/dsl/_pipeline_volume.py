@@ -68,7 +68,6 @@ class PipelineVolume(V1Volume):
                 )
                 init_volume["persistent_volume_claim"] = pvc_volume_source
         super().__init__(**init_volume, **kwargs)
-
         if not name_provided:
             self.name = "pvolume-%s" % hashlib.sha256(
                 bytes(json.dumps(self.to_dict(), sort_keys=True), "utf-8")
