@@ -18,9 +18,6 @@ option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
 package api;
 
 import "google/api/annotations.proto";
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto";
-import "backend/api/parameter.proto";
 import "backend/api/error.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
@@ -59,7 +56,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 };
 
 service VisualizationService {
-  rpc GenerateVisualization(GenerateVisualizationRequest) returns (Visualization) {
+  rpc CreateVisualization(CreateVisualizationRequest) returns (Visualization) {
     option (google.api.http) = {
       post: "/apis/v1beta1/visualizations"
       body: "visualizaiton"
@@ -68,10 +65,8 @@ service VisualizationService {
 }
 
 // Create visualization by providing the pipeline ID, run ID, component ID,
-// type of visualization that is desired, and input data paths. Should a custom
-// visualization be specified, the customVisualization field (an array of python
-// commands) is also required.
-message GenerateVisualizationRequest {
+// type of visualization that is desired, and input data paths.
+message CreateVisualizationRequest {
   Visualization visualization = 1;
 }
 
@@ -87,19 +82,18 @@ message Visualization {
   // ID of the run that visualization is associated with.
   // This is required when creating the pipeline through GenerateVisualization
   // API.
-  string run = 3;
+  string run_id = 3;
 
   // ID of the component that visualization is associated with.
   // This is required when creating the pipeline through GenerateVisualization
   // API.
-  string component = 4;
+  string component_id = 4;
 
   // Type of visualization to be generated.
   // This is required when creating the pipeline through GenerateVisualization
   // API.
   enum Type {
-    CUSTOM = 0;
-    ROC_CURVE = 1;
+    ROC_CURVE = 0;
   };
   Type type = 5;
 
@@ -108,10 +102,8 @@ message Visualization {
   // API.
   repeated string inputPaths = 6;
 
-  // Array of python commands to be run if a custom visualization is specified.
-  // This is required when creating the pipeline through GenerateVisualization
-  // API and when type is specified as CUSTOM.
-  repeated string customVisualization = 7;
+  // Output. Path of visualization within artifact store.
+  string path = 7;
 
   // In case any error happens when generating visualizations, only
   // visualization ID and the error message are returned. Client has the
