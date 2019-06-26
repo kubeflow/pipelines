@@ -83,13 +83,13 @@ require (
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.39.3 // indirect
-	k8s.io/api v0.0.0-20180712090710-2d6f90ab1293
+	k8s.io/api kubernetes-1.13.4
 	k8s.io/apiextensions-apiserver v0.0.0-20190103235604-e7617803aceb // indirect
-	k8s.io/apimachinery v0.0.0-20180621070125-103fd098999d
+	k8s.io/apimachinery kubernetes-1.13.4
 	k8s.io/apiserver v0.0.0-20190112184317-d55c9aeff1eb // indirect
-	k8s.io/client-go v0.0.0-20180718001006-59698c7d9724
+	k8s.io/client-go kubernetes-1.13.4
 	k8s.io/klog v0.1.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20180719232738-d8ea2fe547a4 // indirect
 	k8s.io/kubernetes v1.11.1
-	sigs.k8s.io/controller-runtime v0.0.0-20181121180216-5558165425ef
+	sigs.k8s.io/controller-runtime v0.1.12
 )
