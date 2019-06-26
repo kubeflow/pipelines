@@ -72,16 +72,16 @@ func main() {
 	// Create a controller that is in charge of Viewer types, and also responds to
 	// changes to any deployment and services that is owned by any Viewer instance.
 	mgr, err := manager.New(cfg, manager.Options{Namespace: *namespace})
-	    if err != nil {
-	        log.Fatal(err)
-	    }
+	if err != nil {
+		log.Fatal(err)
+	}
 	
-    err = builder.ControllerManagedBy(mgr).
-        ForType(&viewerV1beta1.Viewer{}).
-        Owns(&appsv1.Deployment{}).
-        Owns(&corev1.Service{}).
-        WithConfig(cfg).
-        Complete(reconciler)
+	err = builder.ControllerManagedBy(mgr).
+		ForType(&viewerV1beta1.Viewer{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.Service{}).
+		WithConfig(cfg).
+		Complete(reconciler)
 
 	if err != nil {
 		log.Fatal(err)
