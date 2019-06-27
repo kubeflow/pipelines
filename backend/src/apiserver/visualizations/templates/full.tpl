@@ -94,11 +94,7 @@ div#notebook-container{
 
 {% block body %}
 <body>
-  <div tabindex="-1" id="notebook" class="border-box-sizing">
-    <div class="container" id="notebook-container">
-{{ super() }}
-    </div>
-  </div>
+  {{ super() }}
 </body>
 {%- endblock body %}
 
