@@ -33,6 +33,7 @@ go_library(
         "@google_ml_metadata//ml_metadata/metadata_store:metadata_store_go",  # keep
         "@google_ml_metadata//ml_metadata/proto:metadata_store_go_proto",  # keep
         "@google_ml_metadata//ml_metadata/proto:metadata_store_service_go_proto",  # keep
+        "@io_k8s_client_go//kubernetes/typed/core/v1:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
         "@org_golang_google_grpc//reflection:go_default_library",
     ],
