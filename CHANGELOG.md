@@ -1,5 +1,42 @@
 # Change Log
 
+## [0.1.21](https://github.com/kubeflow/pipelines/tree/0.1.21) (2019-05-29)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.20...0.1.21)
+
+**Merged pull requests:**
+
+- Cleanup code - Kaniko pod parameterization  [\#1394](https://github.com/kubeflow/pipelines/pull/1394) ([IronPan](https://github.com/IronPan))
+- expose configuration for setting the max number of tensorboard [\#1393](https://github.com/kubeflow/pipelines/pull/1393) ([IronPan](https://github.com/IronPan))
+- Fix naming from sagamaker to sagemaker [\#1386](https://github.com/kubeflow/pipelines/pull/1386) ([tiffanyfay](https://github.com/tiffanyfay))
+- typo [\#1385](https://github.com/kubeflow/pipelines/pull/1385) ([gaoning777](https://github.com/gaoning777))
+- SDK - Capturing function dependencies when creating lightweight components [\#1372](https://github.com/kubeflow/pipelines/pull/1372) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Added the argo-models to requirements.txt [\#1367](https://github.com/kubeflow/pipelines/pull/1367) ([Ark-kun](https://github.com/Ark-kun))
+- Do not render primitives as json [\#1366](https://github.com/kubeflow/pipelines/pull/1366) ([rileyjbauer](https://github.com/rileyjbauer))
+- Update CHANGELOG.md [\#1358](https://github.com/kubeflow/pipelines/pull/1358) ([IronPan](https://github.com/IronPan))
+- Fix docstring for \_ops\_group Condition [\#1356](https://github.com/kubeflow/pipelines/pull/1356) ([Reldan](https://github.com/Reldan))
+- update kfp ui rbac permission [\#1350](https://github.com/kubeflow/pipelines/pull/1350) ([IronPan](https://github.com/IronPan))
+- Trim the file extension from suggested pipeline names [\#1349](https://github.com/kubeflow/pipelines/pull/1349) ([rileyjbauer](https://github.com/rileyjbauer))
+- Pretty print inputs and outputs json [\#1348](https://github.com/kubeflow/pipelines/pull/1348) ([rileyjbauer](https://github.com/rileyjbauer))
+- Release components [\#1347](https://github.com/kubeflow/pipelines/pull/1347) ([gaoning777](https://github.com/gaoning777))
+- SDK/Compiler: Fix Ops after\(\) method to handle multiple arguments [\#1346](https://github.com/kubeflow/pipelines/pull/1346) ([elikatsis](https://github.com/elikatsis))
+- rename sample\_test to component\_test and sample\_test\_v2 to sample\_test [\#1341](https://github.com/kubeflow/pipelines/pull/1341) ([gaoning777](https://github.com/gaoning777))
+- Add HTTP/HTTPS support in FE [\#1339](https://github.com/kubeflow/pipelines/pull/1339) ([eran-nussbaum](https://github.com/eran-nussbaum))
+- \[kfp sdk\] Added examples for ArtifactLocation, ResourceOp, VolumeOp, and Sidecar. [\#1338](https://github.com/kubeflow/pipelines/pull/1338) ([eterna2](https://github.com/eterna2))
+- check if data and env format [\#1337](https://github.com/kubeflow/pipelines/pull/1337) ([cheyang](https://github.com/cheyang))
+- update proxy image build path [\#1336](https://github.com/kubeflow/pipelines/pull/1336) ([IronPan](https://github.com/IronPan))
+- SDK - Made description and name parameters optional in the @pipeline decorator [\#1335](https://github.com/kubeflow/pipelines/pull/1335) ([Ark-kun](https://github.com/Ark-kun))
+- add argo install in postsubmit [\#1333](https://github.com/kubeflow/pipelines/pull/1333) ([gaoning777](https://github.com/gaoning777))
+- Removes redundant npm install from FE Dockerfile [\#1332](https://github.com/kubeflow/pipelines/pull/1332) ([rileyjbauer](https://github.com/rileyjbauer))
+- \[Frontend\] minio client in API server can be configured with environment variables [\#1324](https://github.com/kubeflow/pipelines/pull/1324) ([eterna2](https://github.com/eterna2))
+- Add mpi job into arena launcher [\#1307](https://github.com/kubeflow/pipelines/pull/1307) ([cheyang](https://github.com/cheyang))
+- Adds metrics table to Compare page, creates Metric component [\#1284](https://github.com/kubeflow/pipelines/pull/1284) ([rileyjbauer](https://github.com/rileyjbauer))
+- Fix watson train component [\#1259](https://github.com/kubeflow/pipelines/pull/1259) ([mpoqq](https://github.com/mpoqq))
+- Added the auto-generated python SDK docs [\#1256](https://github.com/kubeflow/pipelines/pull/1256) ([Ark-kun](https://github.com/Ark-kun))
+- SDK - Removing unneeded uses of dsl.Pipeline [\#1229](https://github.com/kubeflow/pipelines/pull/1229) ([Ark-kun](https://github.com/Ark-kun))
+- SDK/DSL - ContainerOp.apply method now supports functions that do not return anything [\#1226](https://github.com/kubeflow/pipelines/pull/1226) ([Ark-kun](https://github.com/Ark-kun))
+- SDK/Compiler - Added the ability to apply a function to all ops in a pipeline [\#1209](https://github.com/kubeflow/pipelines/pull/1209) ([Ark-kun](https://github.com/Ark-kun))
+- \[Feature\] Supports parameterized S3Artifactory for Pipeline and ContainerOp in kfp package [\#1064](https://github.com/kubeflow/pipelines/pull/1064) ([eterna2](https://github.com/eterna2))
+
 ## [0.1.20](https://github.com/kubeflow/pipelines/tree/0.1.20) (2019-05-14)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.19...0.1.20)
 
