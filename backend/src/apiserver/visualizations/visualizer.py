@@ -14,9 +14,13 @@
 
 import argparse
 import os
+import json
 from tensorflow.python.lib.io import file_io
+import pandas as pd
+from sklearn.metrics import roc_curve
 from minio import Minio
-from minio.error import (ResponseError, BucketAlreadyOwnedByYou, BucketAlreadyExists)
+from minio.error import (ResponseError, BucketAlreadyOwnedByYou,
+                         BucketAlreadyExists)
 import exporter
 
 
@@ -40,13 +44,30 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='Visualization Generator')
     parser.add_argument("--type", type=str, default="roc",
                         help="Type of visualization to be generated.")
-    # Multiple inputs are providable like so:
-    # --inputs gs://roc.csv --input gs://roc_2.csv
-    # and this would become a list like so:
-    # args.inputs = ["gs://roc.csv", "gs://roc_2.csv"]
-    parser.add_argument("--inputs", type=list,
-                        help="Input path(s) for visualization")
+    parser.add_argument('--predictions', type=str,
+                        help='GCS path of prediction file pattern.')
     args = parser.parse_args()
+
+    schema_file = os.path.join(os.path.dirname(args.predictions), 'schema.json')
+    schema = json.loads(file_io.read_file_to_string(schema_file))
+    names = [x['name'] for x in schema]
+
+    dfs = []
+    files = file_io.get_matching_files(args.predictions)
+    for file in files:
+        with file_io.FileIO(file, 'r') as f:
+            dfs.append(pd.read_csv(f, names=names))
+
+    df = pd.concat(dfs)
+    df["target"] = df.apply(eval(
+        "lambda x: 1 if (x['target'] > x['fare'] * 0.2) else 0"), axis=1)
+    # df['target'] = df['target'].apply(lambda x: 1 if x == "true" else 0)
+    fpr, tpr, thresholds = roc_curve(df['target'], df["true"])
+    df_roc = pd.DataFrame({'fpr': fpr, 'tpr': tpr, 'thresholds': thresholds})
+    roc_file = os.path.join(os.getcwd(), 'roc.csv')
+    with open(roc_file, 'w') as f:
+        df_roc.to_csv(f, columns=["fpr", "tpr", "thresholds"], header=False,
+                      index=False)
 
     # minio client use these to retrieve minio objects/artifacts
     minio_access_key = "minio"
@@ -64,7 +85,7 @@ def main(argv=None):
     ensure_bucket_exists_or_raise(minio_client=minio_client)
 
     # Generate HTML and save it to a file
-    nb = exporter.code_to_notebook('/src/{}.py'.format(args.type))
+    nb = exporter.code_to_notebook('./{}.py'.format(args.type))
     html = exporter.generate_html_from_notebook(nb)
     output_path = os.path.join(os.getcwd(), 'output.html')
     output = open(output_path, 'w')
@@ -73,13 +94,14 @@ def main(argv=None):
 
     # Upload artifact to minio
     try:
-        with open(file_path, 'rb') as file_data:
-            file_stat = os.stat(file_path)
+        with open(output_path, 'rb') as file_data:
+            file_stat = os.stat(output_path)
             # add some sort of id to the visualization html file
-            minio_client.put_object('mlpipeline-visualizations', 'object.html', file_data, file_stat.st_size, content_type='text/html')
+            minio_client.put_object('mlpipeline-visualizations', 'object.html',
+                                    file_data, file_stat.st_size,
+                                    content_type='text/html')
     except ResponseError as err:
         raise
-
 
 
 if __name__ == "__main__":

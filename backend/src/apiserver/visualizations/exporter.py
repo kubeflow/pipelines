@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from nbconvert import HTMLExporter
 from nbconvert.preprocessors import ExecutePreprocessor
 from nbformat.v4 import new_notebook, new_code_cell
@@ -33,14 +34,14 @@ def code_to_notebook(filepath):
 # Exports a notebook to HTML and generates any required outputs.
 #
 # Returns the generated HTML as a string
-def generate_html_from_notebook(nb, type='full'):
-    # HTML gernerator and exporter object
+def generate_html_from_notebook(nb, template_file='full'):
+    # HTML generator and exporter object
     html_exporter = HTMLExporter()
-    html_exporter.template_file = type
+    html_exporter.template_file = template_file
 
     # Output generator object
     ep = ExecutePreprocessor(timeout=300, kernel_name='python')
-    ep.preprocess(nb, {'metadata': {'path': '/'}})
+    ep.preprocess(nb, {'metadata': {'path': os.getcwd()}})
 
     # Export all html and outputs
     (body, _) = html_exporter.from_notebook_node(nb)
