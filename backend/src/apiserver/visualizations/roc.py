@@ -12,19 +12,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import os
+import json
+from tensorflow.python.lib.io import file_io
 import pandas as pd
+from sklearn.metrics import roc_curve
 from bokeh.plotting import figure
 from bokeh.io import output_notebook, show
 from bokeh.models import HoverTool
 
-with open('roc.csv') as f:
-  df = pd.read_csv(f, names=['fpr', 'tpr', 'thresholds'])
+# Expected arguments:
+# predictions
+# trueclass
+#
+# Optional arguments:
+# target_lambda
 
+# Load data
+schema_file = os.path.join(os.path.dirname(predictions),
+                           'schema.json')
+schema = json.loads(file_io.read_file_to_string(schema_file))
+names = [x['name'] for x in schema]
+
+dfs = []
+files = file_io.get_matching_files(predictions)
+for file in files:
+    with file_io.FileIO(file, 'r') as f:
+        dfs.append(pd.read_csv(f, names=names))
+
+df = pd.concat(dfs)
+if target_lambda:
+    df['target'] = df.apply(eval(target_lambda), axis=1)
+else:
+    df['target'] = df['target'].apply(lambda x: 1 if x == trueclass else 0)
+fpr, tpr, thresholds = roc_curve(df['target'], df['true'])
+source = pd.DataFrame({'fpr': fpr, 'tpr': tpr, 'thresholds': thresholds})
+
+# Create visualization
 output_notebook()
 
 p = figure(width=500, height=500,
            tools="pan,wheel_zoom,box_zoom,reset,hover,previewsave")
-p.line('fpr', 'tpr', line_width=2, source=df)
+p.line('fpr', 'tpr', line_width=2, source=source)
 
 hover = p.select(dict(type=HoverTool))
 hover.tooltips = [("Threshold", "@thresholds")]

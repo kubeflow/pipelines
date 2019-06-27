@@ -15,32 +15,44 @@
 import os
 from nbconvert import HTMLExporter
 from nbconvert.preprocessors import ExecutePreprocessor
-from nbformat.v4 import new_notebook, new_code_cell
+from nbformat.v4 import new_code_cell
 
 
-custom_template = os.path.join(os.getcwd(), 'templates/full.tpl')
+# Takes provided command line arguments and creates a Notebook cell object with
+# the arguments as variables.
+#
+# Returns the generated Notebook cell
+def create_cell_from_args(args):
+    variables = ""
+    args = vars(args)
+    for key in args:
+        if args[key] is not None:
+            variables += "{} = \"{}\"\n".format(key, args[key])
+        else:
+            variables += "{} = {}\n".format(key, args[key])
+
+    return new_code_cell(variables)
 
 
-# Reads a python file, then creates a Notebook object with the
+# Reads a python file, then creates a Notebook cell object with the
 # lines of code from the python file.
 #
-# Returns the generated Notebook
-def code_to_notebook(filepath):
-    nb = new_notebook()
+# Returns the generated Notebook cell
+def create_cell_from_file(filepath):
     with open(filepath, 'r') as f:
         code = f.read()
 
-    nb.cells.append(new_code_cell(code))
-    return nb
+    return new_code_cell(code)
 
 
 # Exports a notebook to HTML and generates any required outputs.
 #
 # Returns the generated HTML as a string
-def generate_html_from_notebook(nb, template_file=custom_template):
+def generate_html_from_notebook(nb):
     # HTML generator and exporter object
     html_exporter = HTMLExporter()
-    html_exporter.template_file = template_file
+    html_exporter.template_file = os.path.join(os.getcwd(),
+                                               'templates/full.tpl')
 
     # Output generator object
     ep = ExecutePreprocessor(timeout=300, kernel_name='python')
