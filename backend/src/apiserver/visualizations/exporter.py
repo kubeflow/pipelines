@@ -18,6 +18,9 @@ from nbconvert.preprocessors import ExecutePreprocessor
 from nbformat.v4 import new_notebook, new_code_cell
 
 
+custom_template = os.path.join(os.getcwd(), 'templates/full.tpl')
+
+
 # Reads a python file, then creates a Notebook object with the
 # lines of code from the python file.
 #
@@ -34,7 +37,7 @@ def code_to_notebook(filepath):
 # Exports a notebook to HTML and generates any required outputs.
 #
 # Returns the generated HTML as a string
-def generate_html_from_notebook(nb, template_file='full'):
+def generate_html_from_notebook(nb, template_file=custom_template):
     # HTML generator and exporter object
     html_exporter = HTMLExporter()
     html_exporter.template_file = template_file
