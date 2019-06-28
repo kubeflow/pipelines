@@ -17,14 +17,14 @@ images:
 - name: mysql
   newTag: "5.6"
 - name: gcr.io/ml-pipeline/api-server
-  newTag: 0.1.22
+  newTag: 0.1.23
 - name: gcr.io/ml-pipeline/persistenceagent
-  newTag: 0.1.22
+  newTag: 0.1.23
 - name: gcr.io/ml-pipeline/scheduledworkflow
-  newTag: 0.1.22
+  newTag: 0.1.23
 - name: gcr.io/ml-pipeline/frontend
-  newTag: 0.1.22
+  newTag: 0.1.23
 - name: gcr.io/ml-pipeline/viewer-crd-controller
-  newTag: 0.1.22
+  newTag: 0.1.23
 - name: gcr.io/ml-pipeline/inverse-proxy-agent
-  newTag: 0.1.22
+  newTag: 0.1.23
