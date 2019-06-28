@@ -88,8 +88,8 @@ message Visualization {
   // API.
   repeated string inputPaths = 3;
 
-  // Output. Path of visualization within artifact store.
-  string path = 4;
+  // Output. Generated visualization html.
+  string html = 4;
 
   // In case any error happens when generating visualizations, only
   // visualization ID and the error message are returned. Client has the
