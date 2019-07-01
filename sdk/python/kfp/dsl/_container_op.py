@@ -983,7 +983,6 @@ class ContainerOp(BaseOp):
                 for name in file_outputs.keys()
             }
 
-        self.output = None
         if len(self.outputs) == 1:
             self.output = list(self.outputs.values())[0]
 
