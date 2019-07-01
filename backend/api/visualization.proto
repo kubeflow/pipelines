@@ -85,11 +85,16 @@ message Visualization {
   // API.
   string inputPath = 2;
 
+  // Command line arguments to be used during generation of visualizations.
+  // This is required when creating the pipeline through CreateVisualization
+  // API.
+  repeated string arguments = 3;
+
   // Output. Generated visualization html.
-  string html = 3;
+  string html = 4;
 
   // In case any error happens when generating visualizations, only
   // visualization ID and the error message are returned. Client has the
   // flexibility of choosing how to handle the error.
-  string error = 4;
+  string error = 5;
 }
