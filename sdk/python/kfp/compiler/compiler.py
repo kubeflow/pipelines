@@ -256,7 +256,8 @@ class Compiler(object):
               else:
                 outputs[g].add((full_name, upstream_groups[i+1]))
           elif not is_condition_param:
-            inputs[group.name].add((full_name, None))
+            for g in op_groups[group.name]:
+              inputs[g].add((full_name, None))
       for subgroup in group.groups:
         _get_inputs_outputs_recursive_opsgroup(subgroup)
     _get_inputs_outputs_recursive_opsgroup(root_group)
