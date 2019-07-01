@@ -37,20 +37,20 @@ class PrintOp(dsl.ContainerOp):
     )
 
 @dsl._component.graph_component
-def flip_component(flip_result):
+def flip_component(flip_result, maxVal):
   with dsl.Condition(flip_result == 'heads'):
     print_flip = PrintOp(flip_result)
     flipA = FlipCoinOp().after(print_flip)
-    flip_component(flipA.output)
+    flip_component(flipA.output, maxVal)
 
 @dsl.pipeline(
     name='pipeline flip coin',
     description='shows how to use dsl.Condition.'
 )
-def flipcoin():
+def flipcoin(maxVal=12):
   flipA = FlipCoinOp()
   flipB = FlipCoinOp()
-  flip_loop = flip_component(flipA.output)
+  flip_loop = flip_component(flipA.output, maxVal)
   flip_loop.after(flipB)
   PrintOp('cool, it is over. %s' % flipA.output).after(flip_loop)
 
