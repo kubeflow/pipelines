@@ -237,7 +237,7 @@ rules:
 - apiGroups:
   - kubeflow.org
   resources:
-  - scheduledworkflows
+  - viewers
   verbs:
   - create
   - get
