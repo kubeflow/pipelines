@@ -98,7 +98,7 @@ outputs:
     type: GCSPath
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:d4960d3379af4735fd04dc7167fab5fff82d0f22
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:2d0d8619507743ec4ff1e213735a8f82d3913281
     args: [
       kfp_component.google.ml_engine, train,
       --project_id, {inputValue: project_id},
