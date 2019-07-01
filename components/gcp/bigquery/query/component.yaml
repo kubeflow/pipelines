@@ -61,6 +61,7 @@ implementation:
       --project_id, {inputValue: project_id},
       --dataset_id, {inputValue: dataset_id},
       --table_id, {inputValue: table_id},
+      --dataset_location, {inputValue: dataset_location},
       --output_gcs_path, {inputValue: output_gcs_path},
       --job_config, {inputValue: job_config}
     ]
