@@ -18,9 +18,11 @@ import logging
 import json
 import os
 import tarfile
+import tempfile
 import zipfile
 import yaml
 from datetime import datetime
+from typing import Mapping, Callable
 
 import kfp_server_api
 
@@ -28,6 +30,34 @@ from .compiler import compiler
 from .compiler import _k8s_helper
 
 from ._auth import get_auth_token
+
+
+def _add_generated_apis(target_struct, api_module, api_client):
+  '''Initializes a hierarchical API object based on the generated API module.
+  PipelineServiceApi.create_pipeline becomes target_struct.pipelines.create_pipeline
+  '''
+  Struct = type('Struct', (), {})
+
+  def camel_case_to_snake_case(name):
+      import re
+      return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+  for api_name in dir(api_module):
+      if not api_name.endswith('ServiceApi'):
+          continue
+
+      short_api_name = camel_case_to_snake_case(api_name[0:-len('ServiceApi')]) + 's'
+      api_struct = Struct()
+      setattr(target_struct, short_api_name, api_struct)
+      service_api = getattr(api_module, api_name)
+      initialized_service_api = service_api(api_client)
+      for member_name in dir(initialized_service_api):
+          if member_name.startswith('_') or member_name.endswith('_with_http_info'):
+              continue
+
+          bound_member = getattr(initialized_service_api, member_name)
+          setattr(api_struct, member_name, bound_member)
+
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
@@ -54,8 +84,10 @@ class Client(object):
     self._host = host
     config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
+    _add_generated_apis(self, kfp_server_api.api, api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
+    self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
 
   def _load_config(self, host, client_id, namespace):
     config = kfp_server_api.configuration.Configuration()
@@ -255,6 +287,43 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return response.run
 
+  def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None):
+    '''Runs pipeline on KFP-enabled Kubernetes cluster.
+    This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
+
+    Args:
+      pipeline_func: A function that describes a pipeline by calling components and composing them into execution graph.
+      arguments: Arguments to the pipeline function provided as a dict.
+      run_name: Optional. Name of the run to be shown in the UI.
+      experiment_name: Optional. Name of the experiment to add the run to.
+    '''
+
+    class RunPipelineResult:
+      def __init__(self, client, run_info):
+        self._client = client
+        self.run_info = run_info
+        self.run_id = run_info.id
+
+      def wait_for_run_completion(self, timeout=None):
+        timeout = timeout or datetime.datetime.max - datetime.datetime.min
+        return self._client.wait_for_run_completion(timeout)
+
+      def __str__(self):
+        return '<RunPipelineResult(run_id={})>'.format(self.run_id)
+
+    #TODO: Check arguments against the pipeline function
+    pipeline_name = pipeline_func.__name__
+    experiment_name = experiment_name or 'Default'
+    run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+    experiment = self.create_experiment(name=experiment_name)
+    try:
+      (_, pipeline_package_path) = tempfile.mkstemp(suffix='.zip')
+      compiler.Compiler().compile(pipeline_func, pipeline_package_path)
+      run_info = self.run_pipeline(experiment.id, run_name, pipeline_package_path, arguments)
+      return RunPipelineResult(self, run_info)
+    finally:
+      os.remove(pipeline_package_path)
+
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List runs.
     Args:
@@ -313,3 +382,19 @@ class Client(object):
     workflow = get_run_response.pipeline_runtime.workflow_manifest
     workflow_json = json.loads(workflow)
     return workflow_json
+
+  def upload_pipeline(self, pipeline_package_path, pipeline_name=None):
+    """Uploads the pipeline to the Kubeflow Pipelines cluster.
+    Args:
+      pipeline_package_path: Local path to the pipeline package.
+      pipeline_name: Optional. Name of the pipeline to be shown in the UI.
+    Returns:
+      Server response object containing pipleine id and other information.
+    """
+
+    response = self._upload_api.upload_pipeline(pipeline_package_path, name=pipeline_name)
+    if self._is_ipython():
+      import IPython
+      html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
+      IPython.display.display(IPython.display.HTML(html))
+    return response

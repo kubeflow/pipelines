@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from kfp.compiler._k8s_helper import K8sHelper
 from kfp.dsl import ArtifactLocation
 from kubernetes.client.models import V1SecretKeySelector
 
@@ -35,7 +36,7 @@ class TestArtifactLocation(unittest.TestCase):
         "endpoint": "s3.amazonaws.com",
         "insecure": False,
         "region": "ap-southeast-1",
-        "access_key_secret": {"name": "s3-secret", "key": "accesskey"}, 
+        "access_key_secret": {"name": "s3-secret", "key": "accesskey"},
         "secret_key_secret": {"name": "s3-secret", "key": "secretkey"}
     }
 
@@ -52,7 +53,7 @@ class TestArtifactLocation(unittest.TestCase):
     # should trigger pending deprecation warning about not having a default
     # artifact_location if artifact_location is not provided.
     artifact = ArtifactLocation.create_artifact_for_s3(
-        None, 
+        None,
         name="foo",
         path="path/to",
         key="key")
@@ -70,7 +71,7 @@ class TestArtifactLocation(unittest.TestCase):
         secret_key_secret=V1SecretKeySelector(name="s3-secret", key="secretkey")
     )
     artifact = ArtifactLocation.create_artifact_for_s3(
-        artifact_location, 
+        artifact_location,
         name="foo",
         path="path/to",
         key="key")
@@ -86,16 +87,17 @@ class TestArtifactLocation(unittest.TestCase):
     self.assertEqual(artifact.s3.secret_key_secret.key, "secretkey")
 
   def test_create_artifact_for_s3_with_dict(self):
-    artifact_location_dict = ArtifactLocation.s3(
+    # use the K8sHelper to mimick the compiler
+    artifact_location_dict = K8sHelper.convert_k8s_obj_to_json(ArtifactLocation.s3(
         bucket="foo",
         endpoint="s3.amazonaws.com",
         insecure=False,
         region="ap-southeast-1",
         access_key_secret={"name": "s3-secret", "key": "accesskey"},
         secret_key_secret=V1SecretKeySelector(name="s3-secret", key="secretkey")
-    ).to_dict()
+    ))
     artifact = ArtifactLocation.create_artifact_for_s3(
-        artifact_location_dict, 
+        artifact_location_dict,
         name="foo",
         path="path/to",
         key="key")

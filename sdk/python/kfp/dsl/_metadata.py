@@ -71,14 +71,8 @@ class TypeMeta(BaseMeta):
   @staticmethod
   def deserialize(payload):
     '''deserialize expects two types of input: dict and str
-    1) If the payload is a string of a dict serialization, convert it back to a dict
-    2) If the payload is a string, the type is named as such with no properties.
-    3) If the payload is a dict, the type name and properties are extracted. '''
-    try:
-      import ast
-      payload = ast.literal_eval(payload)
-    except:
-      pass
+    1) If the payload is a string, the type is named as such with no properties.
+    2) If the payload is a dict, the type name and properties are extracted. '''
     return TypeMeta.from_dict_or_str(payload)
 
 class ParameterMeta(BaseMeta):

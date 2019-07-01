@@ -157,8 +157,8 @@ def _create_task_factory_from_component_dict(component_dict, component_filename=
     return _create_task_factory_from_component_spec(component_spec, component_filename, component_ref)
 
 
-_inputs_dir = '/inputs'
-_outputs_dir = '/outputs'
+_inputs_dir = '/tmp/inputs'
+_outputs_dir = '/tmp/outputs'
 _single_io_file_name = 'data'
 
 

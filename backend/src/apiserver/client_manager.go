@@ -17,6 +17,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -42,7 +43,10 @@ const (
 	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
 	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
+	mysqlUser             = "DBConfig.User"
+	mysqlPassword         = "DBConfig.Password"
 	mysqlServicePort      = "MYSQL_SERVICE_PORT"
+
 	podNamespace          = "POD_NAMESPACE"
 	dbName                = "mlpipeline"
 	initConnectionTimeout = "InitConnectionTimeout"
@@ -164,7 +168,8 @@ func initMetadataStore() *metadata.Store {
 				Host:     proto.String(getStringConfig(mysqlServiceHost)),
 				Port:     proto.Uint32(uint32(port)),
 				Database: proto.String("mlmetadata"),
-				User:     proto.String("root"),
+				User:     proto.String(getStringConfigWithDefault(mysqlUser, "root")),
+				Password: proto.String(getStringConfigWithDefault(mysqlPassword, "")),
 			},
 		},
 	}
@@ -218,7 +223,8 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 // Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True
 func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	mysqlConfig := client.CreateMySQLConfig(
-		"root",
+		getStringConfigWithDefault(mysqlUser, "root"),
+		getStringConfigWithDefault(mysqlPassword, ""),
 		getStringConfig(mysqlServiceHost),
 		getStringConfig(mysqlServicePort),
 		"")
@@ -258,8 +264,10 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
 	// Create minio client.
-	minioServiceHost := getStringConfig(minioServiceHost)
-	minioServicePort := getStringConfig(minioServicePort)
+	minioServiceHost := getStringConfigWithDefault(
+		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
+	minioServicePort := getStringConfigWithDefault(
+		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
 	accessKey := getStringConfig("ObjectStoreConfig.AccessKey")
 	secretKey := getStringConfig("ObjectStoreConfig.SecretAccessKey")
 	bucketName := getStringConfig("ObjectStoreConfig.BucketName")
