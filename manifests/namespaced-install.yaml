@@ -78,12 +78,6 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ml-pipeline-viewer-crd
-  namespace: kubeflow
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
   name: ml-pipeline-ui
   namespace: kubeflow
 ---
@@ -205,39 +199,6 @@ rules:
   - kubeflow.org
   resources:
   - scheduledworkflows
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: Role
-metadata:
-  labels:
-    app: ml-pipeline-viewer-crd-role
-  name: ml-pipeline-viewer-crd-role
-  namespace: kubeflow
-rules:
-- apiGroups:
-  - argoproj.io
-  resources:
-  - viewers
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - viewers
   verbs:
   - create
   - get
@@ -461,20 +422,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: ml-pipeline-scheduledworkflow
-  namespace: kubeflow
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: RoleBinding
-metadata:
-  name: ml-pipeline-viewer-crd-binding
-  namespace: kubeflow
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: ml-pipeline-viewer-crd-role
-subjects:
-- kind: ServiceAccount
-  name: ml-pipeline-viewer-crd
   namespace: kubeflow
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -739,31 +686,6 @@ apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   labels:
-    app: ml-pipeline-viewer-crd
-  name: ml-pipeline-viewer-crd
-  namespace: kubeflow
-spec:
-  selector:
-    matchLabels:
-      app: ml-pipeline-viewer-crd
-  template:
-    metadata:
-      labels:
-        app: ml-pipeline-viewer-crd
-    spec:
-      containers:
-      - env:
-        - name: NAMESPACE
-          value: kubeflow
-        image: gcr.io/ml-pipeline/viewer-crd-controller:0.1.22
-        imagePullPolicy: IfNotPresent
-        name: ml-pipeline-viewer-crd
-      serviceAccountName: ml-pipeline-viewer-crd
----
-apiVersion: apps/v1beta2
-kind: Deployment
-metadata:
-  labels:
     app: ml-pipeline-ui
   name: ml-pipeline-ui
   namespace: kubeflow
@@ -807,6 +729,8 @@ spec:
       - env:
         - name: MAX_NUM_VIEWERS
           value: "50"
+        - name: NAMESPACE
+          value: kubeflow
         image: gcr.io/ml-pipeline/viewer-crd-controller:0.1.22
         imagePullPolicy: Always
         name: ml-pipeline-viewer-crd
