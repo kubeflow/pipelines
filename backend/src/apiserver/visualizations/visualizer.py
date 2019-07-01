@@ -51,6 +51,8 @@ def main(argv=None):
                         help='a lambda function as a string to determine ' +
                              'positive or negative. For example, "lambda x: ' +
                              'x[\'a\'] and x[\'b\']".')
+    parser.add_argument('--true_score_column', type=str, default='true',
+                        help='The name of the column for positive probability.')
     args = parser.parse_args()
 
     # minio client use these to retrieve minio objects/artifacts

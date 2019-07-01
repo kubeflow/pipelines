@@ -24,10 +24,14 @@ from bokeh.models import HoverTool
 
 # Expected arguments:
 # predictions
-# trueclass
 #
 # Optional arguments:
 # target_lambda
+#
+# trueclass
+# true_score_column
+#
+# either target_lambda OR trueclass AND true_score_column are required
 
 # Load data
 schema_file = os.path.join(os.path.dirname(predictions),
@@ -46,7 +50,7 @@ if target_lambda:
     df['target'] = df.apply(eval(target_lambda), axis=1)
 else:
     df['target'] = df['target'].apply(lambda x: 1 if x == trueclass else 0)
-fpr, tpr, thresholds = roc_curve(df['target'], df['true'])
+fpr, tpr, thresholds = roc_curve(df['target'], df[true_score_column])
 source = pd.DataFrame({'fpr': fpr, 'tpr': tpr, 'thresholds': thresholds})
 
 # Create visualization
