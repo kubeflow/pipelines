@@ -68,7 +68,7 @@ def kubeflow_training(output, project,
     ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
     if use_gpu:
-        training.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:d4960d3379af4735fd04dc7167fab5fff82d0f22',
+        training.image = 'gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer-gpu:2d0d8619507743ec4ff1e213735a8f82d3913281',
         training.set_gpu_limit(1)
 
     prediction = dataflow_tf_predict_op(
