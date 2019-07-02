@@ -365,18 +365,3 @@ class Client(object):
     workflow_json = json.loads(workflow)
     return workflow_json
 
-
-if __name__ == '__main__':
-  # host = 'http://kfpfull.endpoints.kb-experiment.cloud.goog/pipeline'
-  host = 'http://127.0.0.1:8080/pipeline'
-  client_id = '327938891142-3snc4cbbk2h2o4quv8auv8sr1hks0ems.apps.googleusercontent.com'
-  client = Client(
-    host=host,
-    client_id=client_id,
-    namespace='kubeflow',
-  )
-  client.create_experiment('blah')
-  # exp = client.get_experiment(experiment_name='blah')
-  # print(exp)
-  pipelines = client.list_pipelines()
-  print(pipelines)
