@@ -246,8 +246,8 @@ class Compiler(object):
                 inputs[g].add((full_name, upstream_groups[0]))
               # There is no need to pass the condition param as argument to the downstream ops.
               #TODO: this might also apply to ops. add a TODO here and think about it.
-              elif i == len(downstream_groups) - 1 and is_condition_param:
-                continue
+              #elif i == len(downstream_groups) - 1 and is_condition_param:
+              #  continue
               else:
                 inputs[g].add((full_name, None))
             for i, g in enumerate(upstream_groups):
@@ -255,7 +255,7 @@ class Compiler(object):
                 outputs[g].add((full_name, None))
               else:
                 outputs[g].add((full_name, upstream_groups[i+1]))
-          elif not is_condition_param:
+          else:
             for g in op_groups[group.name]:
               inputs[g].add((full_name, None))
       for subgroup in group.groups:
@@ -427,11 +427,16 @@ class Compiler(object):
             # The value comes from its parent.
             # Special handling for recursive subgroup: argument name comes from the existing opsgroup
             if is_recursive_subgroup:
+              found = False
               for index, input in enumerate(sub_group.inputs):
                 if param_name == self._pipelineparam_full_name(input):
+                  found = True
                   break
-              referenced_input = sub_group.recursive_ref.inputs[index]
-              full_name = self._pipelineparam_full_name(referenced_input)
+              if found:
+                referenced_input = sub_group.recursive_ref.inputs[index]
+                full_name = self._pipelineparam_full_name(referenced_input)
+              else:
+                full_name = param_name
               arguments.append({
                   'name': full_name,
                   'value': '{{inputs.parameters.%s}}' % param_name
