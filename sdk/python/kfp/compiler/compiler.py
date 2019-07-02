@@ -226,7 +226,6 @@ class Compiler(object):
           if not op.is_exit_handler:
             for g in op_groups[op.name]:
               inputs[g].add((full_name, None))
-
     # Generate the input/output for recursive opsgroups
     # It propagates the recursive opsgroups IO to their ancester opsgroups
     def _get_inputs_outputs_recursive_opsgroup(group):
@@ -256,13 +255,11 @@ class Compiler(object):
                 outputs[g].add((full_name, None))
               else:
                 outputs[g].add((full_name, upstream_groups[i+1]))
-          else:
-            if not op.is_exit_handler:
-              for g in op_groups[op.name]:
-                inputs[g].add((full_name, None))
+          elif not is_condition_param:
+            for g in op_groups[group.name]:
+              inputs[g].add((full_name, None))
       for subgroup in group.groups:
         _get_inputs_outputs_recursive_opsgroup(subgroup)
-
     _get_inputs_outputs_recursive_opsgroup(root_group)
     return inputs, outputs
 

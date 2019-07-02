@@ -311,7 +311,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                     <div>
                       <div className={css.outputTitle}>Metrics</div>
                       <div className={padding(20, 'lt')}>
-                        <CompareTable {...CompareUtils.singleRunToMetricsCompareProps(runMetadata, workflow)}/>
+                        <CompareTable {...CompareUtils.singleRunToMetricsCompareProps(runMetadata, workflow)} />
                       </div>
                     </div>
                   )}
@@ -611,10 +611,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         const projectId = await Apis.getProjectId();
         const clusterName = await Apis.getClusterName();
         this.setStateSafe({
-          legacyStackdriverUrl: `https://pantheon.corp.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_id:"${selectedNodeDetails.id}"`,
+          legacyStackdriverUrl: `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_id:"${selectedNodeDetails.id}"`,
           logsBannerMessage: 'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
           logsBannerMode: 'warning',
-          stackdriverK8sLogsUrl: `https://pantheon.corp.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`,
+          stackdriverK8sLogsUrl: `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`,
         });
       } catch (fetchSystemInfoErr) {
         const errorMessage = await errorToMessage(err);
