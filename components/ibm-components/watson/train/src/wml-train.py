@@ -136,7 +136,7 @@ def train(args):
     # Get training details
     training_details = client.training.get_details(run_uid)
     with open("/tmp/training_uid", "w") as f:
-        training_uid = details['entity']['training_results_reference']['location']['model_location']
+        training_uid = training_details['entity']['training_results_reference']['location']['model_location']
         f.write(training_uid)
     f.close()
 
