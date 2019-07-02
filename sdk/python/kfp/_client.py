@@ -26,10 +26,11 @@ from typing import Mapping, Callable
 
 import kfp_server_api
 
-from .compiler import compiler
-from .compiler import _k8s_helper
+from kfp.compiler import compiler
+from kfp.compiler import _k8s_helper
 
-from ._auth import get_auth_token
+from kfp._auth import get_auth_token
+
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
@@ -52,12 +53,12 @@ class Client(object):
           https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
       client_id: The client ID used by Identity-Aware Proxy.
     """
-
     self._host = host
     config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
+    self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
 
   def _load_config(self, host, client_id, namespace):
     config = kfp_server_api.configuration.Configuration()
@@ -68,7 +69,7 @@ class Client(object):
     if host and client_id:
       # fetch IAP auth token
       token = get_auth_token(client_id)
-    
+
     if token:
       config.api_key['authorization'] = token
       config.api_key_prefix['authorization'] = 'Bearer'
@@ -142,7 +143,7 @@ class Client(object):
       logging.info('Creating experiment {}.'.format(name))
       experiment = kfp_server_api.models.ApiExperiment(name=name)
       experiment = self._experiment_api.create_experiment(body=experiment)
-    
+
     if self._is_ipython():
       import IPython
       html = \
@@ -193,7 +194,7 @@ class Client(object):
       yaml_files = [file for file in file_list if file.endswith('.yaml')]
       if len(yaml_files) == 0:
         raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
-      
+
       if 'pipeline.yaml' in yaml_files:
         return 'pipeline.yaml'
       else:
@@ -217,6 +218,17 @@ class Client(object):
         return yaml.safe_load(f)
     else:
       raise ValueError('The package_file '+ package_file + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
+
+  def list_pipelines(self, page_token='', page_size=10, sort_by=''):
+    """List pipelines.
+    Args:
+      page_token: token for starting of the page.
+      page_size: size of the page.
+      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+    Returns:
+      A response object including a list of pipelines and next page token.
+    """
+    return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
   def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None):
     """Run a specified pipeline.
@@ -243,13 +255,13 @@ class Client(object):
     reference = kfp_server_api.models.ApiResourceReference(key, kfp_server_api.models.ApiRelationship.OWNER)
     spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
-        workflow_manifest=pipeline_json_string, 
+        workflow_manifest=pipeline_json_string,
         parameters=api_params)
     run_body = kfp_server_api.models.ApiRun(
         pipeline_spec=spec, resource_references=[reference], name=job_name)
 
     response = self._run_api.create_run(body=run_body)
-    
+
     if self._is_ipython():
       import IPython
       html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
@@ -352,3 +364,19 @@ class Client(object):
     workflow = get_run_response.pipeline_runtime.workflow_manifest
     workflow_json = json.loads(workflow)
     return workflow_json
+
+
+if __name__ == '__main__':
+  # host = 'http://kfpfull.endpoints.kb-experiment.cloud.goog/pipeline'
+  host = 'http://127.0.0.1:8080/pipeline'
+  client_id = '327938891142-3snc4cbbk2h2o4quv8auv8sr1hks0ems.apps.googleusercontent.com'
+  client = Client(
+    host=host,
+    client_id=client_id,
+    namespace='kubeflow',
+  )
+  client.create_experiment('blah')
+  # exp = client.get_experiment(experiment_name='blah')
+  # print(exp)
+  pipelines = client.list_pipelines()
+  print(pipelines)
