@@ -467,6 +467,13 @@ exports[`RunDetails loads the run's outputs in the output tab 1`] = `
       <div
         className=""
       >
+        <span>
+          No metrics found for this run.
+        </span>
+        <Component
+          orientation="vertical"
+        />
+        <Component />
         <div
           key="0"
         >
@@ -483,10 +490,10 @@ exports[`RunDetails loads the run's outputs in the output tab 1`] = `
             maxDimension={400}
             title="step1"
           />
-          <Component />
           <Component
             orientation="vertical"
           />
+          <Component />
         </div>
       </div>
     </div>
@@ -1133,7 +1140,7 @@ exports[`RunDetails logs tab shows warning banner and link to Stackdriver in log
                     Logs can still be viewed in either 
                     <a
                       className="link unstyled"
-                      href="https://pantheon.corp.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_id:\\"node1\\""
+                      href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_id:\\"node1\\""
                       target="_blank"
                     >
                       Legacy Stackdriver
@@ -1141,7 +1148,7 @@ exports[`RunDetails logs tab shows warning banner and link to Stackdriver in log
                      or in 
                     <a
                       className="link unstyled"
-                      href="https://pantheon.corp.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
+                      href="https://console.cloud.google.com/logs/viewer?project=test-project-id&interval=NO_LIMIT&advancedFilter=resource.type%3D\\"k8s_container\\"%0Aresource.labels.cluster_name:\\"test-cluster-name\\"%0Aresource.labels.pod_name:\\"node1\\""
                       target="_blank"
                     >
                       Stackdriver Kubernetes Monitoring
@@ -2324,9 +2331,14 @@ exports[`RunDetails switches to run output tab, shows empty message 1`] = `
       <div
         className=""
       >
-        <span
-          className="absoluteCenter"
-        >
+        <span>
+          No metrics found for this run.
+        </span>
+        <Component
+          orientation="vertical"
+        />
+        <Component />
+        <span>
           No output artifacts found for this run.
         </span>
       </div>

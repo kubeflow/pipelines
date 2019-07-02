@@ -54,13 +54,14 @@ outputs:
     type: GCSPath
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1d55a27cf8b69696f3ab5c10687edf2fde0068c7
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:2d0d8619507743ec4ff1e213735a8f82d3913281
     args: [
       kfp_component.google.bigquery, query,
       --query, {inputValue: query},
       --project_id, {inputValue: project_id},
       --dataset_id, {inputValue: dataset_id},
       --table_id, {inputValue: table_id},
+      --dataset_location, {inputValue: dataset_location},
       --output_gcs_path, {inputValue: output_gcs_path},
       --job_config, {inputValue: job_config}
     ]

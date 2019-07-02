@@ -13,7 +13,8 @@
 // limitations under the License.
 
 // @ts-ignore
-import { Config, Core_v1Api } from '@kubernetes/client-node';
+import {Core_v1Api, Custom_objectsApi, KubeConfig} from '@kubernetes/client-node';
+import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import * as Utils from './utils';
 
@@ -22,94 +23,97 @@ import * as Utils from './utils';
 const namespaceFilePath = '/var/run/secrets/kubernetes.io/serviceaccount/namespace';
 let namespace = '';
 let k8sV1Client: Core_v1Api | null = null;
+let k8sV1CustomObjectClient: Custom_objectsApi | null = null;
+
+// Constants for creating customer resource Viewer.
+const viewerGroup = 'kubeflow.org';
+const viewerVersion = 'v1beta1';
+const viewerPlural = 'viewers';
 
 export const isInCluster = fs.existsSync(namespaceFilePath);
 
 if (isInCluster) {
   namespace = fs.readFileSync(namespaceFilePath, 'utf-8');
-  k8sV1Client = Config.defaultClient();
+  const kc = new KubeConfig();
+  kc.loadFromDefault();
+  k8sV1Client = kc.makeApiClient(Core_v1Api);
+  k8sV1CustomObjectClient = kc.makeApiClient(Custom_objectsApi);
+}
+
+function getNameOfViewerResource(logdir: string): string {
+  // TODO: find some hash function with shorter resulting message.
+  return 'viewer-' + crypto.SHA1(logdir);
 }
 
 /**
- * Creates a new Tensorboard pod.
+ * Create Tensorboard instance via CRD with the given logdir if there is no
+ * existing Tensorboard instance.
  */
-export async function newTensorboardPod(logdir: string): Promise<void> {
-  if (!k8sV1Client) {
-    throw new Error('Cannot access kubernetes API');
+export async function newTensorboardInstance(logdir: string): Promise<void> {
+  if (!k8sV1CustomObjectClient) {
+    throw new Error('Cannot access kubernetes Custom Object API');
   }
-  const currentPod = await getTensorboardAddress(logdir);
+  const currentPod = await getTensorboardInstance(logdir);
   if (currentPod) {
     return;
   }
 
-  // TODO: take the configuration below to a separate file
-  const pod = {
-    kind: 'Pod',
+  const body = {
+    apiVersion: viewerGroup + '/' + viewerVersion,
+    kind: 'Viewer',
     metadata: {
-      generateName: 'tensorboard-',
+      name: getNameOfViewerResource(logdir),
+      namespace: namespace,
     },
     spec: {
-      containers: [{
-        args: [
-          'tensorboard',
-          '--logdir',
-          logdir,
-        ],
-        image: 'tensorflow/tensorflow',
-        name: 'tensorflow',
-        ports: [{
-          containerPort: 6006,
-        }],
-        env: [{
-          name: 'GOOGLE_APPLICATION_CREDENTIALS',
-          value: '/secret/gcp-credentials/user-gcp-sa.json'
-        }],
-        volumeMounts: [{
-          mountPath: '/secret/gcp-credentials',
-          name: 'gcp-credentials',
-        }],
-      }],
-      volumes: [{
-        name: 'gcp-credentials',
-        secret: {
-          secretName: 'user-gcp-sa',
-        },
-      }],
-    },
+      type: 'tensorboard',
+      tensorboardSpec: {
+        logDir: logdir,
+      }, 
+    }
   };
-
-  await k8sV1Client.createNamespacedPod(namespace, pod as any);
+  await k8sV1CustomObjectClient.createNamespacedCustomObject(viewerGroup,
+    viewerVersion, namespace, viewerPlural, body);
 }
 
 /**
- * Finds a running Tensorboard pod with the given logdir as an argument and
- * returns its pod IP and port.
+ * Finds a running Tensorboard instance created via CRD with the given logdir
+ * and returns its dns address.
  */
-export async function getTensorboardAddress(logdir: string): Promise<string> {
-  if (!k8sV1Client) {
-    throw new Error('Cannot access kubernetes API');
+export async function getTensorboardInstance(logdir: string): Promise<string> {
+  if (!k8sV1CustomObjectClient) {
+    throw new Error('Cannot access kubernetes Custom Object API');
   }
-  const pods = (await k8sV1Client.listNamespacedPod(namespace)).body.items;
-  const args = ['tensorboard', '--logdir', logdir];
-  const pod = pods.find((p) =>
-    p.status.phase === 'Running' &&
-    !p.metadata.deletionTimestamp && // Terminating/terminated pods have this set
-    !!p.spec.containers.find((c) => Utils.equalArrays(c.args, args)));
-  return pod && pod.status.podIP ? `http://${pod.status.podIP}:6006` : '';
+
+  return await (k8sV1CustomObjectClient.getNamespacedCustomObject(
+    viewerGroup, viewerVersion, namespace, viewerPlural,
+    getNameOfViewerResource(logdir))).then(
+      // Viewer CRD pod has tensorboard instance running at port 6006 while
+      // viewer CRD service has tensorboard instance running at port 80. Since
+      // we return service address here (instead of pod address), so use 80.
+      (viewer: any) => (
+        viewer && viewer.body &&
+        viewer.body.spec.tensorboardSpec.logDir == logdir &&
+        viewer.body.spec.type == 'tensorboard') ?
+          `http://${viewer.body.metadata.name}-service.${namespace}.svc.cluster.local:80/tensorboard/${viewer.body.metadata.name}/` : '',
+      // No existing custom object with the given name, i.e., no existing
+      // tensorboard instance.
+      (error: any) => ''
+    );
 }
 
 /**
- * Polls every second for a running Tensorboard pod with the given logdir, and
- * returns the address of one if found, or rejects if a timeout expires.
+ * Polls every second for a running Tensorboard instance with the given logdir,
+ * and returns the address of one if found, or rejects if a timeout expires.
  */
-export function waitForTensorboard(logdir: string, timeout: number): Promise<string> {
+export function waitForTensorboardInstance(logdir: string, timeout: number): Promise<string> {
   const start = Date.now();
   return new Promise((resolve, reject) => {
     setInterval(async () => {
       if (Date.now() - start > timeout) {
         reject('Timed out waiting for tensorboard');
       }
-      const tensorboardAddress = await getTensorboardAddress(logdir);
+      const tensorboardAddress = await getTensorboardInstance(logdir);
       if (tensorboardAddress) {
         resolve(encodeURIComponent(tensorboardAddress));
       }
@@ -124,6 +128,6 @@ export function getPodLogs(podName: string): Promise<string> {
   return (k8sV1Client.readNamespacedPodLog(podName, namespace, 'main') as any)
     .then(
       (response: any) => (response && response.body) ? response.body.toString() : '',
-      (error: any) => { throw new Error(JSON.stringify(error.body)); }
+      (error: any) => {throw new Error(JSON.stringify(error.body));}
     );
 }
