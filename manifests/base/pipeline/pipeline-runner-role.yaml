@@ -20,10 +20,10 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - persistentvolumes
   - persistentvolumeclaims
   verbs:
-  - create
-  - delete
+  - '*'
 - apiGroups:
   - argoproj.io
   resources:
