@@ -13,8 +13,6 @@
 # limitations under the License.
 
 from kubernetes.client import V1Toleration
-from typing import Callable, List
-from .dsl._container_op import BaseOp
 
 
 def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-gcp-sa.json', volume_name=None, secret_volume_mount_path='/secret/gcp-credentials'):
@@ -110,35 +108,3 @@ def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoS
     return task
 
   return _set_preemptible
-
-def configure_gcp_connector(
-    op_transformers: List[Callable[[BaseOp], BaseOp]] = [use_gcp_secret()]) -> Callable[[BaseOp], BaseOp]:
-    """Configure GCP settings for GCP connector components.
-    """
-    def _set_gcp_settings(op: BaseOp) -> BaseOp:
-        if op.pod_labels and op.pod_labels['pipelines.kubeflow.org/component-type'] == 'gcp-connector':
-            from kubernetes import client as k8s_client
-            op.container.add_env_variable(
-                k8s_client.V1EnvVar(
-                    name='KFP_POD_NAME', 
-                    value_from=k8s_client.V1EnvVarSource(
-                        field_ref=k8s_client.V1ObjectFieldSelector(
-                            field_path='metadata.name'
-                        )
-                    )
-                )
-            ).add_env_variable(
-                k8s_client.V1EnvVar(
-                    name='KFP_NAMESPACE', 
-                    value_from=k8s_client.V1EnvVarSource(
-                        field_ref=k8s_client.V1ObjectFieldSelector(
-                            field_path='metadata.namespace'
-                        )
-                    )
-                )
-            )
-            if op_transformers:
-                for op_transformer in op_transformers:
-                    op.apply(op_transformer)
-            return op
-    return _set_gcp_settings

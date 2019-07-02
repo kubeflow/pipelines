@@ -549,5 +549,5 @@ implementation:
       if container:
         self.assertEqual(template['retryStrategy']['limit'], 5)
 
-  def test_gcp_settings(self):
-    self._test_py_compile_yaml('gcp')
+  def test_add_pod_env(self):
+    self._test_py_compile_yaml('add_pod_env')

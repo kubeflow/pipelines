@@ -14,21 +14,19 @@
 
 import kfp
 import kfp.dsl as dsl
-import kfp.gcp as gcp
 
 @dsl.pipeline(
-  name='Test gcp settings',
-  description='Test gcp settings'
+  name='Test adding pod env',
+  description='Test adding pod env'
 )
-def test_gcp_settings():
+def test_add_pod_env():
     op = dsl.ContainerOp(
      name='echo',
      image='library/bash',
      command=['sh', '-c'],
      arguments=['echo $KFP_POD_NAME']).add_pod_label(
-         'pipelines.kubeflow.org/component-type', 'gcp-connector'
-     ) 
-    dsl.get_pipeline_conf().add_op_transformer(gcp.configure_gcp_connector())
+         'add-pod-env', 'true'
+     )
     
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(test_gcp_settings, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(test_add_pod_env, __file__ + '.yaml')
