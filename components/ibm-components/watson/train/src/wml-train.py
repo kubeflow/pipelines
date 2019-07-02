@@ -132,7 +132,7 @@ def train(args):
         time.sleep(20)
         status = client.training.get_status( run_uid )
     print(status)
-    
+
     # Get training details
     training_details = client.training.get_details(run_uid)
     with open("/tmp/training_uid", "w") as f:
