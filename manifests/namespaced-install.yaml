@@ -759,6 +759,8 @@ spec:
       - env:
         - name: MAX_NUM_VIEWERS
           value: "50"
+        - name: NAMESPACE
+          value: kubeflow
         image: gcr.io/ml-pipeline/viewer-crd-controller:0.1.23
         imagePullPolicy: Always
         name: ml-pipeline-viewer-crd
