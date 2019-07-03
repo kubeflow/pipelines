@@ -28,6 +28,7 @@ inputs:
   - {name: author_name,       description: 'Name of this training job author', default: 'default-author'}
 outputs:
   - {name: run_uid,           description: 'UID for the Watson Machine Learning training-runs'}
+  - {name: training_uid,      description: 'Training Location UID for the Watson Machine Learning training-runs'}
 implementation:
   container:
     image: docker.io/aipipeline/wml-train:latest
@@ -47,3 +48,4 @@ implementation:
     ]
     fileOutputs:
       run_uid: /tmp/run_uid
+      training_uid: /tmp/training_uid
