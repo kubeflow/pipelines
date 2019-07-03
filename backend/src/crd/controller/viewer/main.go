@@ -32,6 +32,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // Needed for GCP authentication.
 )
@@ -42,6 +43,9 @@ var (
 	maxNumViewers = flag.Int("max_num_viewers", 50,
 		"Maximum number of viewer instances allowed within "+
 			"the cluster before the controller starts deleting the oldest one.")
+	namespace = flag.String("namespace", "kubeflow",
+		"Namespace within which CRD controller is running. Default is "+
+			"kubeflow.")
 )
 
 func main() {
@@ -67,7 +71,13 @@ func main() {
 
 	// Create a controller that is in charge of Viewer types, and also responds to
 	// changes to any deployment and services that is owned by any Viewer instance.
-	mgr, err := builder.SimpleController().
+	mgr, err := manager.New(cfg, manager.Options{Namespace: *namespace})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = builder.SimpleController().
+		WithManager(mgr).
 		ForType(&viewerV1beta1.Viewer{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
