@@ -13,6 +13,7 @@ patchesStrategicMerge:
 - workflow-controller-configmap.yaml
 - ml-pipeline-persistenceagent-deployment-patch.yaml
 - ml-pipeline-scheduledworkflow-deployment-patch.yaml
+- ml-pipeline-viewer-crd-deployment-patch.yaml
 - ml-pipeline-ui-deployment-patch.yaml
 
 vars:
