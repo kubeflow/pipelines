@@ -334,6 +334,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline recursive."""
     self._test_py_compile_yaml('recursive_while')
 
+  def test_py_compile_ttl_after_finished(self):
+    """Test ttl after finished for pipeline."""
+    self._test_py_compile_yaml('ttl_after_finished')
+
   def test_py_resourceop_basic(self):
     """Test pipeline resourceop_basic."""
     self._test_py_compile_yaml('resourceop_basic')

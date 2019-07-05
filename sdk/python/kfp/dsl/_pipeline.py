@@ -57,6 +57,7 @@ class PipelineConf():
   def __init__(self):
     self.image_pull_secrets = []
     self.timeout = 0
+    self.ttl_seconds_after_finished = -1
     self.artifact_location = None
     self.op_transformers = []
 
@@ -79,6 +80,15 @@ class PipelineConf():
     """
     self.timeout = seconds
     return self
+
+  def set_ttl_seconds_after_finished(self, seconds: int):
+    """Configures the ttl after the pipeline has finished.
+
+    Args:
+      seconds: number of seconds for the workflow to be garbage collected after it is finished.
+    """
+    self.ttl_seconds_after_finished = seconds
+    return self   
 
   def set_artifact_location(self, artifact_location):
     """Configures the pipeline level artifact location.
