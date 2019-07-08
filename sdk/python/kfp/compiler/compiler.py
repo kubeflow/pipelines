@@ -23,6 +23,7 @@ import yaml
 from .. import dsl
 from ._k8s_helper import K8sHelper
 from ._op_to_template import _op_to_template
+from ._default_transformers import add_pod_env
 
 from ..dsl._metadata import TypeMeta, _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
@@ -649,7 +650,9 @@ class Compiler(object):
       sanitized_ops[sanitized_name] = op
     p.ops = sanitized_ops
 
-    workflow = self._create_pipeline_workflow(args_list_with_defaults, p, p.conf.op_transformers)
+    op_transformers = [add_pod_env]
+    op_transformers.extend(p.conf.op_transformers)
+    workflow = self._create_pipeline_workflow(args_list_with_defaults, p, op_transformers)
     return workflow
 
   def compile(self, pipeline_func, package_path, type_check=True):
