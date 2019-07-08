@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: test-adding-pod-env-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: test-adding-pod-env
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - echo $KFP_POD_NAME
+      command:
+      - sh
+      - -c
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      image: library/bash
+    metadata:
+      labels:
+        add-pod-env: 'true'
+    name: echo
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        optional: true
+        path: /mlpipeline-ui-metadata.json
+      - name: mlpipeline-metrics
+        optional: true
+        path: /mlpipeline-metrics.json
+  - dag:
+      tasks:
+      - name: echo
+        template: echo
+    name: test-adding-pod-env
