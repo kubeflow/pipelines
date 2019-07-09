@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // @ts-ignore
-import {Core_v1Api, Custom_objectsApi, KubeConfig} from '@kubernetes/client-node';
+import {Core_v1Api, Custom_objectsApi, KubeConfig, V1SecretVolumeSource} from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import * as Utils from './utils';
@@ -69,7 +69,30 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
       type: 'tensorboard',
       tensorboardSpec: {
         logDir: logdir,
-      }, 
+      },
+      podTemplateSpec: {
+        spec: {
+          containers: [{
+            env: [{
+              name: "GOOGLE_APPLICATION_CREDENTIALS",
+              value: "/secret/gcp-credentials/user-gcp-sa.json"
+            }],
+            volumeMounts: [{
+              name: "gcp-credentials",
+              mountPath: "/secret/gcp-credentials/user-gcp-sa.json",
+              readOnly: true
+            }]
+          }],
+          volumes: [{
+            name: "gcp-credentials",
+            volumeSource: {
+              secret: {
+                secretName: "user-gcp-sa"
+              }
+            }
+          }]
+        }
+      }
     }
   };
   await k8sV1CustomObjectClient.createNamespacedCustomObject(viewerGroup,
