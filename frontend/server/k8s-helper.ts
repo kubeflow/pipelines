@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // @ts-ignore
-import {Core_v1Api, Custom_objectsApi, KubeConfig, V1SecretVolumeSource} from '@kubernetes/client-node';
+import {Core_v1Api, Custom_objectsApi, KubeConfig} from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import * as Utils from './utils';
