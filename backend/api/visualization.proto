@@ -59,7 +59,7 @@ service VisualizationService {
   rpc CreateVisualization(CreateVisualizationRequest) returns (Visualization) {
     option (google.api.http) = {
       post: "/apis/v1beta1/visualizations"
-      body: "visualizaiton"
+      body: "visualization"
     };
   }
 }
