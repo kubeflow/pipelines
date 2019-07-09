@@ -65,6 +65,7 @@ describe('NewRun', () => {
     return {
       id: 'some-mock-pipeline-id',
       name: 'some mock pipeline name',
+      parameters: [],
     };
   }
 
@@ -1030,6 +1031,45 @@ describe('NewRun', () => {
       instance._pipelineSelectorClosed(true);
       await TestUtils.flushPromises();
       expect(tree).toMatchSnapshot();
+    });
+
+    it('trims whitespace from the pipeline params', async () => {
+      tree = shallow(<TestNewRun {...generateProps()} />);
+      await TestUtils.flushPromises();
+
+      // Select a pipeline with parameters
+      const pipelineWithParams = newMockPipeline();
+      pipelineWithParams.id = 'pipeline-with-params';
+      pipelineWithParams.parameters = [
+        { name: 'param-1', value: '  whitespace on either side  ' },
+        { name: 'param-2', value: 'value 2' },
+      ];
+      getPipelineSpy.mockImplementationOnce(() => pipelineWithParams);
+      tree.setState({ unconfirmedSelectedPipeline: pipelineWithParams });
+      const instance = tree.instance() as TestNewRun;
+      instance._pipelineSelectorClosed(true);
+      tree.find('#startNewRunBtn').simulate('click');
+      await TestUtils.flushPromises();
+
+      expect(startRunSpy).toHaveBeenCalledTimes(1);
+      expect(startRunSpy).toHaveBeenLastCalledWith({
+        description: '',
+        name: '',
+        pipeline_spec: {
+          parameters: [
+            { name: 'param-1', value: 'whitespace on either side' },
+            { name: 'param-2', value: 'value 2' },
+          ],
+          pipeline_id: 'pipeline-with-params',
+        },
+        resource_references: [{
+          key: {
+            id: MOCK_EXPERIMENT.id,
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
+        }]
+      });
     });
 
     it('sets the page to a busy state upon clicking \'Start\'', async () => {
