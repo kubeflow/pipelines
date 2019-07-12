@@ -17,7 +17,7 @@ description: >-
   Submits a Cloud Dataproc job for running Apache Hive queries on YARN.
 metadata:
   labels:
-    pipelines.kubeflow.org/component-type: gcp-connector
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: >-
@@ -86,5 +86,7 @@ implementation:
       --job, {inputValue: job},
       --wait_interval, {inputValue: wait_interval}
     ]
+    env:	
+      KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       job_id: /tmp/kfp/output/dataproc/job_id.txt

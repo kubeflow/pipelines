@@ -17,7 +17,7 @@ description: |
   Deletes a DataProc cluster.
 metadata:
   labels:
-    pipelines.kubeflow.org/component-type: gcp-connector
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: >-
@@ -44,3 +44,5 @@ implementation:
       --name, {inputValue: name},
       --wait_interval, {inputValue: wait_interval}
     ]
+    env:	
+      KFP_POD_NAME: "{{pod.name}}"

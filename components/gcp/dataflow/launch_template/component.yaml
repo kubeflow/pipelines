@@ -17,7 +17,7 @@ description: |
   Launchs a dataflow job from template.
 metadata:
   labels:
-    pipelines.kubeflow.org/component-type: gcp-connector
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: 'Required. The ID of the Cloud Platform project that the job belongs to.'
@@ -72,5 +72,7 @@ implementation:
       --staging_dir, {inputValue: staging_dir},
       --wait_interval, {inputValue: wait_interval},
     ]
+    env:	
+      KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       job_id: /tmp/kfp/output/dataflow/job_id.txt

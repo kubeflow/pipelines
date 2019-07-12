@@ -18,7 +18,7 @@ description: |
   service and dump outputs to a Google Cloud Storage blob. 
 metadata:
   labels:
-    pipelines.kubeflow.org/component-type: gcp-connector
+    add-pod-env: 'true'
 inputs:
   - name: query
     description: 'The query used by Bigquery service to fetch the results.'
@@ -67,5 +67,7 @@ implementation:
       --output_gcs_path, {inputValue: output_gcs_path},
       --job_config, {inputValue: job_config}
     ]
+    env:	
+      KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       output_gcs_path: /tmp/kfp/output/bigquery/query-output-path.txt
