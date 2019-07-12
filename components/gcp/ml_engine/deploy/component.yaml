@@ -106,7 +106,7 @@ implementation:
       --set_default, {inputValue: set_default},
       --wait_interval, {inputValue: wait_interval},
     ]
-    env:	
+    env:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       model_uri: /tmp/kfp/output/ml_engine/model_uri.txt

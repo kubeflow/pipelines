@@ -81,7 +81,7 @@ implementation:
       --job_id_prefix, {inputValue: job_id_prefix},
       --wait_interval, {inputValue: wait_interval}
     ]
-    env:	
+    env:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       job_id: /tmp/kfp/output/ml_engine/job_id.txt

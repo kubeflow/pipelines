@@ -72,7 +72,7 @@ implementation:
       --staging_dir, {inputValue: staging_dir},
       --wait_interval, {inputValue: wait_interval},
     ]
-    env:	
+    env:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       job_id: /tmp/kfp/output/dataflow/job_id.txt

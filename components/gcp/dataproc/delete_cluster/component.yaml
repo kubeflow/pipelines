@@ -44,5 +44,5 @@ implementation:
       --name, {inputValue: name},
       --wait_interval, {inputValue: wait_interval}
     ]
-    env:	
+    env:
       KFP_POD_NAME: "{{pod.name}}"

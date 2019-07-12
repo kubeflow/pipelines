@@ -81,7 +81,7 @@ implementation:
       --cluster, {inputValue: cluster},
       --wait_interval, {inputValue: wait_interval}
     ]
-    env:	
+    env:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       cluster_name: /tmp/kfp/output/dataproc/cluster_name.txt
