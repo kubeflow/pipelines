@@ -298,13 +298,11 @@ class Compiler(object):
     # Generate dependencies based on the recursive opsgroups
     #TODO: refactor the following codes with the above
     def _get_dependency_opsgroup(group, dependencies):
-      upstream_op_names = set()
+      upstream_op_names = set([dependency.name for dependency in group.dependencies])
       if group.recursive_ref:
         for param in group.inputs + list(condition_params[group.name]):
           if param.op_name:
             upstream_op_names.add(param.op_name)
-      else:
-        upstream_op_names = set([dependency.name for dependency in group.dependencies])
 
       for op_name in upstream_op_names:
         if op_name in pipeline.ops:
