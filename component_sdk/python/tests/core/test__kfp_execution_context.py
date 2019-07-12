@@ -57,6 +57,17 @@ class KfpExecutionContextTest(unittest.TestCase):
     @mock.patch.dict('os.environ', {
         'KFP_POD_NAME': 'mock-pod-id'
     })
+    def test_init_succeed_when_load_pod_fail(self, 
+        mock_k8s_client, mock_load_config):
+        mock_k8s_client().read_namespaced_pod.side_effect = Exception()
+
+        with KfpExecutionContext() as ctx:
+            self.assertFalse(ctx.under_kfp_environment())
+            pass
+
+    @mock.patch.dict('os.environ', {
+        'KFP_POD_NAME': 'mock-pod-id'
+    })
     def test_init_succeed_no_argo_node_name(self, 
         mock_k8s_client, mock_load_config):
         mock_pod = mock_k8s_client().read_namespaced_pod.return_value
@@ -66,7 +77,8 @@ class KfpExecutionContextTest(unittest.TestCase):
             pass
 
     @mock.patch.dict('os.environ', {
-        'KFP_POD_NAME': 'mock-pod-id'
+        'KFP_POD_NAME': 'mock-pod-id',
+        'KFP_NAMESPACE': 'mock-namespace'
     })
     def test_init_succeed(self, 
         mock_k8s_client, mock_load_config):
@@ -77,6 +89,7 @@ class KfpExecutionContextTest(unittest.TestCase):
         with KfpExecutionContext() as ctx:
             self.assertTrue(ctx.under_kfp_environment())
             pass
+        mock_k8s_client().read_namespaced_pod.assert_called_with('mock-pod-id', 'mock-namespace')
 
     @mock.patch.dict('os.environ', {
         'KFP_POD_NAME': 'mock-pod-id'

@@ -18,6 +18,8 @@ import * as React from 'react';
 import Banner, { Mode } from '../components/Banner';
 import Buttons from '../lib/Buttons';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import CompareTable from '../components/CompareTable';
+import CompareUtils from '../lib/CompareUtils';
 import DetailsTable from '../components/DetailsTable';
 import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
@@ -110,6 +112,12 @@ export const css = stylesheet({
   link: {
     color: '#77abda'
   },
+  outputTitle: {
+    color: color.strong,
+    fontSize: fontsize.title,
+    fontWeight: 'bold',
+    paddingLeft: 20,
+  },
 });
 
 class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
@@ -157,12 +165,23 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public render(): JSX.Element {
-    const { allArtifactConfigs, graph, legacyStackdriverUrl, runFinished, runMetadata, selectedTab, selectedNodeDetails,
-      sidepanelSelectedTab, stackdriverK8sLogsUrl, workflow } = this.state;
+    const {
+      allArtifactConfigs,
+      graph,
+      legacyStackdriverUrl,
+      runFinished,
+      runMetadata,
+      selectedTab,
+      selectedNodeDetails,
+      sidepanelSelectedTab,
+      stackdriverK8sLogsUrl,
+      workflow
+    } = this.state;
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
     const nodeInputOutputParams = WorkflowParser.getNodeInputOutputParams(workflow, selectedNodeId);
+    const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
 
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
@@ -173,6 +192,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
               onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })} />
             <div className={commonCss.page}>
 
+              {/* Graph tab */}
               {selectedTab === 0 && <div className={classes(commonCss.page, css.graphPane)}>
                 {graph && <div className={commonCss.page}>
                   <Graph graph={graph} selectedNodeId={selectedNodeId}
@@ -284,24 +304,42 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                 )}
               </div>}
 
+              {/* Run outputs tab */}
               {selectedTab === 1 && (
                 <div className={padding()}>
-                  {!allArtifactConfigs.length && (
-                    <span className={commonCss.absoluteCenter}>
-                      No output artifacts found for this run.
+                  {hasMetrics && (
+                    <div>
+                      <div className={css.outputTitle}>Metrics</div>
+                      <div className={padding(20, 'lt')}>
+                        <CompareTable {...CompareUtils.singleRunToMetricsCompareProps(runMetadata, workflow)} />
+                      </div>
+                    </div>
+                  )}
+                  {!hasMetrics && (
+                    <span>
+                      No metrics found for this run.
                     </span>
                   )}
+
+                  <Separator orientation='vertical' />
+                  <Hr />
 
                   {allArtifactConfigs.map((annotatedConfig, i) => <div key={i}>
                     <PlotCard key={i} configs={[annotatedConfig.config]}
                       title={annotatedConfig.stepName} maxDimension={400} />
-                    <Hr />
                     <Separator orientation='vertical' />
+                    <Hr />
                   </div>
+                  )}
+                  {!allArtifactConfigs.length && (
+                    <span>
+                      No output artifacts found for this run.
+                    </span>
                   )}
                 </div>
               )}
 
+              {/* Config tab */}
               {selectedTab === 2 && (
                 <div className={padding()}>
                   <DetailsTable title='Run details' fields={this._getDetailsFields(workflow, runMetadata)} />
@@ -573,10 +611,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         const projectId = await Apis.getProjectId();
         const clusterName = await Apis.getClusterName();
         this.setStateSafe({
-          legacyStackdriverUrl: `https://pantheon.corp.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_id:"${selectedNodeDetails.id}"`,
+          legacyStackdriverUrl: `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_id:"${selectedNodeDetails.id}"`,
           logsBannerMessage: 'Warning: failed to retrieve pod logs. Possible reasons include cluster autoscaling or pod preemption',
           logsBannerMode: 'warning',
-          stackdriverK8sLogsUrl: `https://pantheon.corp.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`,
+          stackdriverK8sLogsUrl: `https://console.cloud.google.com/logs/viewer?project=${projectId}&interval=NO_LIMIT&advancedFilter=resource.type%3D"k8s_container"%0Aresource.labels.cluster_name:"${clusterName}"%0Aresource.labels.pod_name:"${selectedNodeDetails.id}"`,
         });
       } catch (fetchSystemInfoErr) {
         const errorMessage = await errorToMessage(err);
