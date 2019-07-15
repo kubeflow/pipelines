@@ -2,6 +2,8 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   name: scheduledworkflows.kubeflow.org
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   group: kubeflow.org
   names:
@@ -21,7 +23,7 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   labels:
-    ksonnet.io/component: pipeline
+    app.kubernetes.io/name: {{ .Release.Name }}
   name: viewers.kubeflow.org
 spec:
   group: kubeflow.org
@@ -42,6 +44,8 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   name: workflows.argoproj.io
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   group: argoproj.io
   names:
@@ -56,46 +60,64 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: argo
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ml-pipeline
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ml-pipeline-persistenceagent
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ml-pipeline-scheduledworkflow
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ml-pipeline-ui
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ml-pipeline-viewer-crd-service-account
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: pipeline-runner
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: proxy-agent-runner
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: argo-role
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 rules:
   - apiGroups:
       - ""
@@ -142,6 +164,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
     app: ml-pipeline
   name: ml-pipeline
 rules:
@@ -173,6 +196,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: ml-pipeline-persistenceagent-role
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 rules:
   - apiGroups:
       - argoproj.io
@@ -195,6 +220,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
     app: ml-pipeline-scheduledworkflow-role
   name: ml-pipeline-scheduledworkflow-role
 rules:
@@ -227,6 +253,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
     app: ml-pipeline-ui
   name: ml-pipeline-ui
 rules:
@@ -254,6 +281,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: pipeline-runner
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 rules:
   - apiGroups:
       - ""
@@ -322,6 +351,7 @@ kind: Role
 metadata:
   labels:
     app: proxy-agent-runner
+    app.kubernetes.io/name: {{ .Release.Name }}
   name: proxy-agent-runner
 rules:
   - apiGroups:
@@ -332,9 +362,11 @@ rules:
       - '*'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   name: ml-pipeline-viewer-controller-role
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 rules:
   - apiGroups:
       - '*'
@@ -366,6 +398,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: argo-binding
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -379,6 +413,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
     app: ml-pipeline
   name: ml-pipeline
 roleRef:
@@ -394,6 +429,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: ml-pipeline-persistenceagent-binding
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -407,6 +444,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: ml-pipeline-scheduledworkflow-binding
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -420,6 +459,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
     app: ml-pipeline-ui
   name: ml-pipeline-ui
 roleRef:
@@ -435,6 +475,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: pipeline-runner-binding
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -448,6 +490,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
     app: proxy-agent-runner
   name: proxy-agent-runner
 roleRef:
@@ -460,12 +503,14 @@ subjects:
     namespace: {{ .Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: ml-pipeline-viewer-crd-binding
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
+  kind: Role
   name: ml-pipeline-viewer-controller-role
 subjects:
   - kind: ServiceAccount
@@ -499,6 +544,8 @@ data:
 kind: ConfigMap
 metadata:
   name: workflow-controller-configmap
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 data:
@@ -507,12 +554,16 @@ data:
 kind: Secret
 metadata:
   name: mlpipeline-minio-artifact
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 type: Opaque
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: minio-service
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   ports:
     - port: 9000
@@ -520,11 +571,14 @@ spec:
       targetPort: 9000
   selector:
     app: minio
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: ml-pipeline
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   ports:
     - name: http
@@ -537,12 +591,14 @@ spec:
       targetPort: 8887
   selector:
     app: ml-pipeline
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
     app: ml-pipeline-ui
+    app.kubernetes.io/name: {{ .Release.Name }}
   name: ml-pipeline-ui
 spec:
   ports:
@@ -550,31 +606,39 @@ spec:
       targetPort: 3000
   selector:
     app: ml-pipeline-ui
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: mysql
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   ports:
     - port: 3306
   selector:
     app: mysql
+    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   name: minio
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   selector:
     matchLabels:
       app: minio
+      app.kubernetes.io/name: {{ .Release.Name }}
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
         app: minio
+        app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
         - args:
@@ -603,15 +667,18 @@ kind: Deployment
 metadata:
   labels:
     app: ml-pipeline
+    app.kubernetes.io/name: {{ .Release.Name }}
   name: ml-pipeline
 spec:
   selector:
     matchLabels:
       app: ml-pipeline
+      app.kubernetes.io/name: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: ml-pipeline
+        app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
         - env:
@@ -632,15 +699,18 @@ kind: Deployment
 metadata:
   labels:
     app: ml-pipeline-persistenceagent
+    app.kubernetes.io/name: {{ .Release.Name }}
   name: ml-pipeline-persistenceagent
 spec:
   selector:
     matchLabels:
       app: ml-pipeline-persistenceagent
+      app.kubernetes.io/name: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: ml-pipeline-persistenceagent
+        app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
         - env:
@@ -656,15 +726,18 @@ kind: Deployment
 metadata:
   labels:
     app: ml-pipeline-scheduledworkflow
+    app.kubernetes.io/name: {{ .Release.Name }}
   name: ml-pipeline-scheduledworkflow
 spec:
   selector:
     matchLabels:
       app: ml-pipeline-scheduledworkflow
+      app.kubernetes.io/name: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: ml-pipeline-scheduledworkflow
+        app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
         - env:
@@ -680,15 +753,18 @@ kind: Deployment
 metadata:
   labels:
     app: ml-pipeline-ui
+    app.kubernetes.io/name: {{ .Release.Name }}
   name: ml-pipeline-ui
 spec:
   selector:
     matchLabels:
       app: ml-pipeline-ui
+      app.kubernetes.io/name: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: ml-pipeline-ui
+        app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
         - env:
@@ -706,15 +782,18 @@ kind: Deployment
 metadata:
   labels:
     app: ml-pipeline-viewer-crd
+    app.kubernetes.io/name: {{ .Release.Name }}
   name: ml-pipeline-viewer-crd
 spec:
   selector:
     matchLabels:
       app: ml-pipeline-viewer-crd
+      app.kubernetes.io/name: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: ml-pipeline-viewer-crd
+        app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
         - env:
@@ -731,16 +810,20 @@ apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   name: mysql
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   selector:
     matchLabels:
       app: mysql
+      app.kubernetes.io/name: {{ .Release.Name }}
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
         app: mysql
+        app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
         - env:
@@ -764,15 +847,18 @@ kind: Deployment
 metadata:
   labels:
     app: proxy-agent
+    app.kubernetes.io/name: {{ .Release.Name }}
   name: proxy-agent
 spec:
   selector:
     matchLabels:
       app: proxy-agent
+      app.kubernetes.io/name: {{ .Release.Name }}
   template:
     metadata:
       labels:
         app: proxy-agent
+        app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
         - image: {{ .Values.images.proxyAgent }}
@@ -785,6 +871,7 @@ kind: Deployment
 metadata:
   labels:
     app: workflow-controller
+    app.kubernetes.io/name: {{ .Release.Name }}
   name: workflow-controller
 spec:
   progressDeadlineSeconds: 600
@@ -793,6 +880,7 @@ spec:
   selector:
     matchLabels:
       app: workflow-controller
+      app.kubernetes.io/name: {{ .Release.Name }}
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -803,6 +891,7 @@ spec:
       creationTimestamp: null
       labels:
         app: workflow-controller
+        app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
         - args:
@@ -836,6 +925,8 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: minio-pvc
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   accessModes:
     - ReadWriteOnce
@@ -847,6 +938,8 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pv-claim
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   accessModes:
     - ReadWriteOnce
