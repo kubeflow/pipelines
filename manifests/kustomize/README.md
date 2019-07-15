@@ -57,7 +57,7 @@ and open http://localhost:8080/
 # Uninstall
 You can uninstall Kubeflow Pipelines by running
 ```
-kubectl delete -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/namespaced-install.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/kustomize/namespaced-install.yaml
 ```
 
 Or if you deploy through kustomize
