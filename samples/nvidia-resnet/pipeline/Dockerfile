@@ -15,7 +15,7 @@
 FROM python:3.6
 
 # Install Kubeflow Pipelines
-RUN pip3 install https://storage.googleapis.com/ml-pipeline/release/latest/kfp.tar.gz --upgrade
+RUN pip3 install kfp --upgrade
 WORKDIR /workspace
 
 ENTRYPOINT ["python", "pipeline.py"]
