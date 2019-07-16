@@ -20,10 +20,18 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - persistentvolumes
   - persistentvolumeclaims
+  verbs:
+  - '*'
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
   verbs:
   - create
   - delete
+  - get
 - apiGroups:
   - argoproj.io
   resources:

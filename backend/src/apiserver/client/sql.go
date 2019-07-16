@@ -20,7 +20,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-func CreateMySQLConfig(user string, mysqlServiceHost string,
+func CreateMySQLConfig(user, password string, mysqlServiceHost string,
 	mysqlServicePort string, dbName string) *mysql.Config {
 	return &mysql.Config{
 		User:                 user,

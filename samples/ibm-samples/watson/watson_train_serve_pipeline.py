@@ -19,10 +19,10 @@ from kfp import dsl
 import ai_pipeline_params as params
 
 secret_name = 'kfp-creds'
-configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/ibm-components/commons/config/component.yaml')
-train_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/ibm-components/watson/train/component.yaml')
-store_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/ibm-components/watson/store/component.yaml')
-deploy_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/ibm-components/watson/deploy/component.yaml')
+configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/commons/config/component.yaml')
+train_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/train/component.yaml')
+store_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/store/component.yaml')
+deploy_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/deploy/component.yaml')
 
 # create pipelines
 
@@ -66,7 +66,7 @@ def kfp_wml_pipeline(
 
     # op3 - this operation stores the model trained above
     wml_store = store_op(
-                   wml_train.output,
+                   wml_train.outputs['run_uid'],
                    model_name
                   ).apply(params.use_ai_pipeline_params(secret_name))
 
