@@ -209,9 +209,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                           selectedTab={sidepanelSelectedTab}
                           onSwitch={this._loadSidePaneTab.bind(this)} />
 
-                        {this.state.sidepanelBusy &&
-                          <CircularProgress size={30} className={commonCss.absoluteCenter} />}
-
                         <div className={commonCss.page}>
                           {sidepanelSelectedTab === SidePaneTab.ARTIFACTS && (
                             <div className={commonCss.page}>
