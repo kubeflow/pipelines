@@ -514,7 +514,7 @@ data:
   config: |
     {
     namespace: kubeflow,
-    executorImage: argoproj/argoexec:v2.3.0,
+    executorImage: gcr.io/ml-pipeline/argoexec:v2.3.0,
     artifactRepository:
     {
         s3: {
@@ -629,7 +629,7 @@ spec:
           value: minio
         - name: MINIO_SECRET_KEY
           value: minio123
-        image: minio/minio:RELEASE.2018-02-09T22-40-05Z
+        image: gcr.io/ml-pipeline/minio:RELEASE.2018-02-09T22-40-05Z
         name: minio
         ports:
         - containerPort: 9000
@@ -796,7 +796,7 @@ spec:
       - env:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "true"
-        image: mysql:5.6
+        image: gcr.io/ml-pipeline/mysql:5.6
         name: mysql
         ports:
         - containerPort: 3306
@@ -861,7 +861,7 @@ spec:
         - --configmap
         - workflow-controller-configmap
         - --executor-image
-        - argoproj/argoexec:v2.3.0
+        - gcr.io/ml-pipeline/argoexec:v2.3.0
         command:
         - workflow-controller
         env:
@@ -870,7 +870,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: argoproj/workflow-controller:v2.3.0
+        image: gcr.io/ml-pipeline/workflow-controller:v2.3.0
         imagePullPolicy: IfNotPresent
         name: workflow-controller
         resources: {}
