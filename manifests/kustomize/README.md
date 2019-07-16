@@ -6,7 +6,7 @@ This folder contains Kubeflow Pipelines Kustomize manifests for a light weight d
 If you want to skip any customization, you can deploy Kubeflow Pipelines by running
 ```
 export PIPELINE_VERSION=master
-kubectl apply -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/namespaced-install.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/kustomize/namespaced-install.yaml
 ```
 
 You might lack the permission to create role and command might partially fail. If so, bind your account as cluster admin and rerun the same command.
@@ -57,7 +57,7 @@ and open http://localhost:8080/
 # Uninstall
 You can uninstall Kubeflow Pipelines by running
 ```
-kubectl delete -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/namespaced-install.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/kustomize/namespaced-install.yaml
 ```
 
 Or if you deploy through kustomize
