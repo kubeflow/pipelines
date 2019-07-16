@@ -1251,10 +1251,6 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
                   ]
                 }
               />
-              <WithStyles(CircularProgress)
-                className="absoluteCenter"
-                size={30}
-              />
               <div
                 className="page"
               >
