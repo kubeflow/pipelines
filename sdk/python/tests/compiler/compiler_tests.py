@@ -302,10 +302,6 @@ class TestCompiler(unittest.TestCase):
     """Test a pipeline with conditions."""
     self._test_py_compile_zip('coin')
 
-  def test_py_compile_immediate_value(self):
-    """Test a pipeline with immediate value parameter."""
-    self._test_py_compile_targz('immediate_value')
-
   def test_py_compile_default_value(self):
     """Test a pipeline with a parameter with default value."""
     self._test_py_compile_targz('default_value')
