@@ -360,9 +360,10 @@ rules:
   - '*'
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRole
+kind: Role
 metadata:
   name: ml-pipeline-viewer-controller-role
+  namespace: kubeflow
 rules:
 - apiGroups:
   - '*'
@@ -495,12 +496,13 @@ subjects:
   namespace: kubeflow
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: ml-pipeline-viewer-crd-binding
+  namespace: kubeflow
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
+  kind: Role
   name: ml-pipeline-viewer-controller-role
 subjects:
 - kind: ServiceAccount
