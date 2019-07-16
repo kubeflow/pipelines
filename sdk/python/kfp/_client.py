@@ -60,6 +60,9 @@ def _add_generated_apis(target_struct, api_module, api_client):
           setattr(api_struct, member_name, bound_member)
 
 
+KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
+KF_PIPELINES_UI_ENDPOINT_ENV = 'KF_PIPELINES_UI_ENDPOINT'
+
 class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
@@ -81,7 +84,8 @@ class Client(object):
           https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
       client_id: The client ID used by Identity-Aware Proxy.
     """
-    self._host = host
+
+    self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
     config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
     _add_generated_apis(self, kfp_server_api.api, api_client)
@@ -92,6 +96,7 @@ class Client(object):
 
   def _load_config(self, host, client_id, namespace):
     config = kfp_server_api.configuration.Configuration()
+    host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     if host:
       config.host = host
 
@@ -144,12 +149,12 @@ class Client(object):
     return True
 
   def _get_url_prefix(self):
-    if self._host:
+    if self._uihost:
       # User's own connection.
-      if self._host.startswith('http://') or self._host.startswith('https://'):
-        return self._host
+      if self._uihost.startswith('http://') or self._uihost.startswith('https://'):
+        return self._uihost
       else:
-        return 'http://' + self._host
+        return 'http://' + self._uihost
 
     # In-cluster pod. We could use relative URL.
     return '/pipeline'
