@@ -103,7 +103,7 @@ outputs:
     description: 'Tuned hyperparameters'
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190715-03
+    image: carowang/kfp-aws-sm-hpo:190716-01
     command: ['python']
     args: [
       hyperparameter_tuning.py,
