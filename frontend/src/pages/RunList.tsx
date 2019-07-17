@@ -328,7 +328,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     if (recurringRunId) {
       // TODO: It would be better to use name here, but that will require another n API calls at
       // this time.
-      displayRun.recurringRun = { id: recurringRunId };
+      displayRun.recurringRun = { id: recurringRunId, displayName: recurringRunId };
     }
   }
 
