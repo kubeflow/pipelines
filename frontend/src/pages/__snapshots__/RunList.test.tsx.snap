@@ -7884,6 +7884,7 @@ exports[`RunList shows link to recurring run config 1`] = `
             undefined,
             undefined,
             Object {
+              "displayName": "test-recurring-run-id",
               "id": "test-recurring-run-id",
             },
             "-",
