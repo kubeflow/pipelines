@@ -86,7 +86,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 mlengine_train_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/d0aa15dfb3ff618e8cd1b03f86804ec4307fd9c2/components/gcp/ml_engine/train/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/1f65a564d4d44fa5a0dc6c59929ca2211ebb3d1c/components/gcp/ml_engine/train/component.yaml')
 help(mlengine_train_op)
 ```
 

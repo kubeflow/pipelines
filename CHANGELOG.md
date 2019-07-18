@@ -1,11 +1,36 @@
 # Change Log
 
+## [0.1.24](https://github.com/kubeflow/pipelines/tree/0.1.24) (2019-07-12)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.23...0.1.24)
+
+**Merged pull requests:**
+
+- update manifest and sdk version [\#1617](https://github.com/kubeflow/pipelines/pull/1617) ([gaoning777](https://github.com/gaoning777))
+- fix dependency bug in the recursion support [\#1616](https://github.com/kubeflow/pipelines/pull/1616) ([gaoning777](https://github.com/gaoning777))
+- Release ac833a084b32324b56ca56e9109e05cde02816a4 [\#1614](https://github.com/kubeflow/pipelines/pull/1614) ([gaoning777](https://github.com/gaoning777))
+- Set user credentials when creating viewer  object [\#1603](https://github.com/kubeflow/pipelines/pull/1603) ([jingzhang36](https://github.com/jingzhang36))
+- List pipelines [\#1588](https://github.com/kubeflow/pipelines/pull/1588) ([kevinbache](https://github.com/kevinbache))
+- Update Watson training component to output model location UID [\#1587](https://github.com/kubeflow/pipelines/pull/1587) ([Tomcli](https://github.com/Tomcli))
+- fix recursion bug [\#1583](https://github.com/kubeflow/pipelines/pull/1583) ([gaoning777](https://github.com/gaoning777))
+- Release 2d0d8619507743ec4ff1e213735a8f82d3913281 [\#1581](https://github.com/kubeflow/pipelines/pull/1581) ([IronPan](https://github.com/IronPan))
+- Pass dataset\_location to container [\#1579](https://github.com/kubeflow/pipelines/pull/1579) ([hongye-sun](https://github.com/hongye-sun))
+- Add PV/PVC admin permission for pipeline runner [\#1576](https://github.com/kubeflow/pipelines/pull/1576) ([IronPan](https://github.com/IronPan))
+- Updates the changelog for the v0.1.23 release [\#1571](https://github.com/kubeflow/pipelines/pull/1571) ([rileyjbauer](https://github.com/rileyjbauer))
+- Manifests: Update pipeline-runner permissions [\#1570](https://github.com/kubeflow/pipelines/pull/1570) ([elikatsis](https://github.com/elikatsis))
+- Update manifests for 0.1.23 [\#1567](https://github.com/kubeflow/pipelines/pull/1567) ([rileyjbauer](https://github.com/rileyjbauer))
+- Add Visualization API endpoint [\#1565](https://github.com/kubeflow/pipelines/pull/1565) ([ajchili](https://github.com/ajchili))
+- Viewer CRD controller running under namespace [\#1562](https://github.com/kubeflow/pipelines/pull/1562) ([jingzhang36](https://github.com/jingzhang36))
+- Pipeline sample: Updated research notebook to use Seaborn [\#1546](https://github.com/kubeflow/pipelines/pull/1546) ([kweinmeister](https://github.com/kweinmeister))
+- add\_pod\_env op handler [\#1540](https://github.com/kubeflow/pipelines/pull/1540) ([hongye-sun](https://github.com/hongye-sun))
+- Step 7 auto-generated change log for release 0.1.21 [\#1527](https://github.com/kubeflow/pipelines/pull/1527) ([jingzhang36](https://github.com/jingzhang36))
+
+
 ## [0.1.23](https://github.com/kubeflow/pipelines/tree/0.1.23) (2019-06-26)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.22...0.1.23)
 
- **Merged pull requests:**
+**Merged pull requests:**
 
- - Sort keys in nested dictionaries for fixing unit tests [\#1558](https://github.com/kubeflow/pipelines/pull/1558) ([derekhh](https://github.com/derekhh))
+- Sort keys in nested dictionaries for fixing unit tests [\#1558](https://github.com/kubeflow/pipelines/pull/1558) ([derekhh](https://github.com/derekhh))
 - Use sorted\(dict.items\(\)\) for stable output [\#1554](https://github.com/kubeflow/pipelines/pull/1554) ([derekhh](https://github.com/derekhh))
 - Use GCP external Stackdriver links [\#1552](https://github.com/kubeflow/pipelines/pull/1552) ([derekhh](https://github.com/derekhh))
 - configurable timeout and namespace in docker magic [\#1550](https://github.com/kubeflow/pipelines/pull/1550) ([gaoning777](https://github.com/gaoning777))

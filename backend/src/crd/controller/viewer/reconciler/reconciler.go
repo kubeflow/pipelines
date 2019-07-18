@@ -91,7 +91,7 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 	}
 
 	// Check and maybe delete the oldest viewer before creating the next one.
-	if err := r.maybeDeleteOldestViewer(view.Spec.Type); err != nil {
+	if err := r.maybeDeleteOldestViewer(view.Spec.Type, view.Namespace); err != nil {
 		// Couldn't delete. Requeue.
 		return reconcile.Result{Requeue: true}, err
 	}
@@ -254,10 +254,10 @@ func serviceFrom(v *viewerV1beta1.Viewer, deploymentName string) *corev1.Service
 	}
 }
 
-func (r *Reconciler) maybeDeleteOldestViewer(t viewerV1beta1.ViewerType) error {
+func (r *Reconciler) maybeDeleteOldestViewer(t viewerV1beta1.ViewerType, namespace string) error {
 	list := &viewerV1beta1.ViewerList{}
 
-	if err := r.Client.List(context.Background(), &client.ListOptions{}, list); err != nil {
+	if err := r.Client.List(context.Background(), &client.ListOptions{Namespace: namespace}, list); err != nil {
 		return fmt.Errorf("failed to list viewers: %v", err)
 	}
 
