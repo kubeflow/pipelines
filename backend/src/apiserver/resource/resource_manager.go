@@ -219,6 +219,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
 				workflow.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
 			}
+			artifact.Archive = &workflowapi.ArchiveStrategy{None: &workflowapi.NoneStrategy{}}
 		}
 	}
 
