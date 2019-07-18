@@ -161,7 +161,7 @@ func (w *Workflow) HasScheduledWorkflowAsParent() bool {
 	return containsScheduledWorkflow(w.Workflow.OwnerReferences)
 }
 
-func (w *Workflow) GetSpec() *Workflow {
+func (w *Workflow) GetWorkflowSpec() *Workflow {
 	workflow := w.DeepCopy()
 	workflow.Status = workflowapi.WorkflowStatus{}
 	workflow.TypeMeta = metav1.TypeMeta{Kind: w.Kind, APIVersion: w.APIVersion}
