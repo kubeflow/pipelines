@@ -271,7 +271,7 @@ func TestSetLabels(t *testing.T) {
 	assert.Equal(t, expected, workflow.Get())
 }
 
-func TestGetSpec(t *testing.T) {
+func TestGetWorkflowSpec(t *testing.T) {
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "WORKFLOW_NAME",
@@ -292,7 +292,6 @@ func TestGetSpec(t *testing.T) {
 	expected := &workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "WORKFLOW_NAME",
-			Labels: map[string]string{"key": "value"},
 		},
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
