@@ -182,6 +182,7 @@ def _op_to_template(op: BaseOp):
                      op.artifact_location, 
                      name=name, 
                      path=path, 
+                     archive='none',
                      key='runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz'))
             for name, path in output_artifact_paths.items()
         ]
