@@ -334,10 +334,6 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline recursive."""
     self._test_py_compile_yaml('recursive_while')
 
-  def test_py_compile_ttl_after_finished(self):
-    """Test ttl after finished for pipeline."""
-    self._test_py_compile_yaml('ttl_after_finished')
-
   def test_py_resourceop_basic(self):
     """Test pipeline resourceop_basic."""
     self._test_py_compile_yaml('resourceop_basic')
@@ -530,6 +526,23 @@ implementation:
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     template = workflow_dict['spec']['templates'][0]
     self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'], 'Custom name')
+
+  def test_set_ttl_seconds_after_finished(self):
+    """Test a pipeline with ttl after finished."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_ttl_seconds_after_finished(86400)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['ttlSecondsAfterFinished'], 86400)
 
   def test_op_transformers(self):
     def some_op():
