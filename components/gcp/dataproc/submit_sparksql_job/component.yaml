@@ -15,6 +15,9 @@
 name: dataproc_submit_sparksql_job
 description: >-
   Submits a Cloud Dataproc job for running Apache Spark SQL queries.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: >-

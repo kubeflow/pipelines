@@ -15,6 +15,9 @@
 name: dataproc_submit_pyspark_job
 description: >-
   Submits a Cloud Dataproc job for running Apache PySpark applications on YARN.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: >-

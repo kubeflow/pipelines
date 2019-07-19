@@ -15,6 +15,9 @@
 name: dataproc_create_cluster
 description: |
   Creates a DataProc cluster under a project.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: >-

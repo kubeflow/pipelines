@@ -15,6 +15,9 @@
 name: Batch predict against a model with Cloud ML Engine
 description: |
   Creates a MLEngine batch prediction job.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: 'Required. The ID of the parent project of the job.'
