@@ -15,6 +15,9 @@
 name: dataproc_submit_hive_job
 description: >-
   Submits a Cloud Dataproc job for running Apache Hive queries on YARN.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: >-

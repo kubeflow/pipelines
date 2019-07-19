@@ -15,6 +15,9 @@
 name: dataproc_delete_cluster
 description: |
   Deletes a DataProc cluster.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: >-

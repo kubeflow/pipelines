@@ -15,6 +15,9 @@
 name: Launch Dataflow Template
 description: |
   Launchs a dataflow job from template.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: 'Required. The ID of the Cloud Platform project that the job belongs to.'
