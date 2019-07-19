@@ -274,7 +274,7 @@ def create_hyperparameter_tuning_job_request(args):
         logging.error('Please specify training image or algorithm name.')
         raise Exception('Could not create job request')
     if args['image'] and args['algorithm_name']:
-        logging.error('Both image and algorithm name inputted, only one allowed. Proceeding with image.')
+        logging.error('Both image and algorithm name inputted, only one should be specified. Proceeding with image.')
 
     if args['image']:
         request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = args['image']
@@ -300,7 +300,6 @@ def create_hyperparameter_tuning_job_request(args):
     else:
         request['TrainingJobDefinition']['AlgorithmSpecification'].pop('MetricDefinitions')
 
-    # TODO: clarify if both security group ids and subnets are required for vpc config
     ### Update or pop VPC configs
     if args['vpc_security_group_ids'] and args['vpc_subnets']:
         request['TrainingJobDefinition']['VpcConfig']['SecurityGroupIds'] = [args['vpc_security_group_ids']]
@@ -345,9 +344,7 @@ def create_hyperparameter_tuning_job_request(args):
                 logging.error('Must specify warm start type as either "IdenticalDataAndAlgorithm" or "TransferLearning".')
             if not args['parent_hpo_jobs']:
                 logging.error("Must specify at least one parent hyperparameter tuning job")
-            # TODO: determine what should actually happen here
-            # raise Exception('Could not create job request')
-            logging.info("Proceeding without warm start")
+            raise Exception('Could not make job request')
         request.pop('WarmStartConfig')
 
     ### Update tags
