@@ -102,7 +102,7 @@ outputs:
     description: 'Tuned hyperparameters'
 implementation:
   container:
-    image: carowang/kfp-aws-sm-hpo:190716-01
+    image: carowang/kfp-aws-sm-hpo:20190719-01
     command: ['python']
     args: [
       hyperparameter_tuning.py,
