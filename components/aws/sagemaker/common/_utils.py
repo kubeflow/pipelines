@@ -254,12 +254,7 @@ def create_hyperparameter_tuning_job_request(args):
     }
 
     ### Create a hyperparameter tuning job
-    if args['job_name']:
-        hpo_job_name = args['job_name']
-    else:
-        hpo_job_name = "HPOJob-" + strftime("%Y%m%d%H%M%S", gmtime()) + '-' + id_generator()
-
-    request['HyperParameterTuningJobName'] = hpo_job_name
+    request['HyperParameterTuningJobName'] = args['job_name']
 
     request['HyperParameterTuningJobConfig']['Strategy'] = args['strategy']
     request['HyperParameterTuningJobConfig']['HyperParameterTuningJobObjective']['Type'] = args['metric_type']
@@ -274,7 +269,6 @@ def create_hyperparameter_tuning_job_request(args):
     request['TrainingJobDefinition']['StaticHyperParameters'] = args['static_parameters']
     request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingInputMode'] = args['training_input_mode']
 
-    # TODO: determine if algorithm name or training image is used for algorithms from AWS marketplace
     ### Update training image (for BYOC) or algorithm resource name
     if not args['image'] and not args['algorithm_name']:
         logging.error('Please specify training image or algorithm name.')
@@ -324,13 +318,20 @@ def create_hyperparameter_tuning_job_request(args):
     request['TrainingJobDefinition']['OutputDataConfig']['S3OutputPath'] = args['output_location']
     request['TrainingJobDefinition']['OutputDataConfig']['KmsKeyId'] = args['output_encryption_key']
     request['TrainingJobDefinition']['ResourceConfig']['InstanceType'] = args['instance_type']
-    request['TrainingJobDefinition']['ResourceConfig']['InstanceCount'] = args['instance_count']
-    request['TrainingJobDefinition']['ResourceConfig']['VolumeSizeInGB'] = args['volume_size']
     request['TrainingJobDefinition']['ResourceConfig']['VolumeKmsKeyId'] = args['resource_encryption_key']
-    request['TrainingJobDefinition']['StoppingCondition']['MaxRuntimeInSeconds'] = args['max_run_time']
     request['TrainingJobDefinition']['EnableNetworkIsolation'] = args['network_isolation']
     request['TrainingJobDefinition']['EnableInterContainerTrafficEncryption'] = args['traffic_encryption']
     request['TrainingJobDefinition']['RoleArn'] = args['role']
+
+    ### Update InstanceCount, VolumeSizeInGB, and MaxRuntimeInSeconds if input is non-empty and > 0, otherwise use default values
+    if args['instance_count']:
+        request['TrainingJobDefinition']['ResourceConfig']['InstanceCount'] = args['instance_count']
+
+    if args['volume_size']:
+        request['TrainingJobDefinition']['ResourceConfig']['VolumeSizeInGB'] = args['volume_size']
+
+    if args['max_run_time']:
+        request['TrainingJobDefinition']['StoppingCondition']['MaxRuntimeInSeconds'] = args['max_run_time']
 
     ### Update or pop warm start configs
     if args['warm_start_type'] and args['parent_hpo_jobs']:

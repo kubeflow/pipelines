@@ -6,7 +6,6 @@ inputs:
     description: 'The region where the cluster launches.'
   - name: job_name
     description: 'The name of the tuning job. Must be unique within the same AWS account and AWS region.'
-    default: ''
   - name: role
     description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'
   - name: image

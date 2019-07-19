@@ -51,14 +51,14 @@ best_job_name | Best hyperparameter tuning training job name
 best_hyperparameters | Tuned hyperparameters
 
 # Requirements
-* Kubeflow pipelines SDK: https://www.kubeflow.org/docs/pipelines/sdk/install-sdk/
-* Kubeflow set-up
+* [Kubeflow pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/install-sdk/)
+* [Kubeflow set-up](https://www.kubeflow.org/docs/aws/deploy/install-kubeflow/)
 
 # Samples
 ## On its own
 K-Means algorithm tuning on MNIST dataset: /kubeflow/pipelines/samples/aws-samples/mnist-kmeans-sagemaker/kmeans-hpo-pipeline.py
 
-Follow the same steps as in the README for the MNIST classification pipeline:
+Follow the same steps as in the [README](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/README.md) for the [MNIST classification pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py):
 1. Get and store data in S3 buckets
 2. Prepare an IAM roles with permissions to run SageMaker jobs
 3. Add 'aws-secret' to your kubeflow namespace
@@ -73,4 +73,5 @@ dsl-compile --py kmeans-hpo-pipeline.py --output kmeans-hpo-pipeline.tar.gz
 MNIST Classification using K-Means pipeline: [Coming Soon]
 
 # Resources
-* Using Amazon built-in algorithms https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html
+* [Using Amazon built-in algorithms](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html)
+* [More information on request parameters](https://github.com/awsdocs/amazon-sagemaker-developer-guide/blob/master/doc_source/API_CreateHyperParameterTuningJob.md#request-parameters)

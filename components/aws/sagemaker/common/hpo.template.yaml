@@ -29,11 +29,11 @@ TrainingJobDefinition:
     S3OutputPath: ''
   ResourceConfig:
     InstanceType: ''
-    InstanceCount: 0
-    VolumeSizeInGB: 0
+    InstanceCount: 1
+    VolumeSizeInGB: 1
     VolumeKmsKeyId: ''
   StoppingCondition:
-    MaxRuntimeInSeconds: 0
+    MaxRuntimeInSeconds: 86400
   EnableNetworkIsolation: True
   EnableInterContainerTrafficEncryption: False
 WarmStartConfig:

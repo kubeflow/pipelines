@@ -27,11 +27,17 @@ def str_to_bool(s):
   else:
     raise argparse.ArgumentTypeError('"True" or "False" expected.')
 
+def str_to_int(s):
+  if s:
+    return int(s)
+  else:
+    return 0
+
 def main(argv=None):
   parser = argparse.ArgumentParser(description='SageMaker Hyperparameter Tuning Job')
   # Set required=True only if parameter is required in the request and there is no default value for it, where default values are based on default values in SageMaker UI
   parser.add_argument('--region', type=str, required=True, help='The region where the cluster launches.')
-  parser.add_argument('--job_name', type=str, required=False, help='The name of the tuning job. Must be unique within the same AWS account and AWS region.', default='')
+  parser.add_argument('--job_name', type=str, required=True, help='The name of the tuning job. Must be unique within the same AWS account and AWS region.')
   parser.add_argument('--role', type=str, required=True, help='The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.')
   parser.add_argument('--image', type=str, required=False, help='The registry path of the Docker image that contains the training algorithm.')
   parser.add_argument('--algorithm_name', type=str, required=False, help='The name of the resource algorithm to use for the hyperparameter tuning job.')
@@ -51,11 +57,11 @@ def main(argv=None):
   parser.add_argument('--instance_type', choices=['ml.m4.xlarge', 'ml.m4.2xlarge', 'ml.m4.4xlarge', 'ml.m4.10xlarge', 'ml.m4.16xlarge', 'ml.m5.large', 'ml.m5.xlarge', 'ml.m5.2xlarge', 'ml.m5.4xlarge',
     'ml.m5.12xlarge', 'ml.m5.24xlarge', 'ml.c4.xlarge', 'ml.c4.2xlarge', 'ml.c4.4xlarge', 'ml.c4.8xlarge', 'ml.p2.xlarge', 'ml.p2.8xlarge', 'ml.p2.16xlarge', 'ml.p3.2xlarge', 'ml.p3.8xlarge', 'ml.p3.16xlarge',
     'ml.c5.xlarge', 'ml.c5.2xlarge', 'ml.c5.4xlarge', 'ml.c5.9xlarge', 'ml.c5.18xlarge'], required=False, help='The ML compute instance type.', default='ml.m4.xlarge')
-  parser.add_argument('--instance_count', type=int, required=False, help='The number of ML compute instances to use in each training job.', default=1)
-  parser.add_argument('--volume_size', type=int, required=False, help='The size of the ML storage volume that you want to provision.', default=1)
-  parser.add_argument('--max_num_jobs', type=int, required=True, help='The maximum number of training jobs that a hyperparameter tuning job can launch.')
-  parser.add_argument('--max_parallel_jobs', type=int, required=True, help='The maximum number of concurrent training jobs that a hyperparameter tuning job can launch.')
-  parser.add_argument('--max_run_time', type=int, required=False, help='The maximum run time in seconds per training job.', default=86400)
+  parser.add_argument('--instance_count', type=str_to_int, required=False, help='The number of ML compute instances to use in each training job.', default=1)
+  parser.add_argument('--volume_size', type=str_to_int, required=False, help='The size of the ML storage volume that you want to provision.', default=1)
+  parser.add_argument('--max_num_jobs', type=str_to_int, required=True, help='The maximum number of training jobs that a hyperparameter tuning job can launch.')
+  parser.add_argument('--max_parallel_jobs', type=str_to_int, required=True, help='The maximum number of concurrent training jobs that a hyperparameter tuning job can launch.')
+  parser.add_argument('--max_run_time', type=str_to_int, required=False, help='The maximum run time in seconds per training job.', default=86400)
   parser.add_argument('--resource_encryption_key', type=str, required=False, help='The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).', default='')
   parser.add_argument('--vpc_security_group_ids', type=str, required=False, help='The VPC security group IDs, in the form sg-xxxxxxxx.')
   parser.add_argument('--vpc_subnets', type=str, required=False, help='The ID of the subnets in the VPC to which you want to connect your hpo job.')
