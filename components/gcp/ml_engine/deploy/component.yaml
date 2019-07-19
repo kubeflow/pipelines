@@ -16,6 +16,9 @@ name: Deploying a trained model to Cloud Machine Learning Engine
 description: |
   A Kubeflow Pipeline component to deploy a trained model from a Cloud Storage
   path to a Cloud Machine Learning Engine service.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: model_uri
     description: >-

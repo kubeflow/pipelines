@@ -16,6 +16,9 @@ name: Submitting a Cloud ML training job as a pipeline step
 description: |
   A Kubeflow Pipeline component to submit a Cloud Machine Learning (Cloud ML) 
   Engine training job as a step in a pipeline.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: 'Required. The ID of the parent project of the job.'
