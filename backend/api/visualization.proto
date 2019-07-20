@@ -85,10 +85,11 @@ message Visualization {
   // API.
   string inputPath = 2;
 
-  // Command line arguments to be used during generation of visualizations.
+  // Variables to be used during generation of a visualization.
+  // This should be provided as a JSON string.
   // This is required when creating the pipeline through CreateVisualization
   // API.
-  repeated string arguments = 3;
+  string arguments = 3;
 
   // Output. Generated visualization html.
   string html = 4;
