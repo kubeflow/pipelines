@@ -73,6 +73,11 @@ matrix:
         - python tests/compiler/main.py
         - $TRAVIS_BUILD_DIR/sdk/python/tests/run_tests.sh
 
+        # Visualization test dependencies
+        - pip3 install jupyter_client==5.2.4 nbconvert==5.5.0 nbformat==4.4.0 snapshottest==0.5.1
+        # Visualization test
+        - python3 backend/src/apiserver/visualization/test_exporter.py
+
         # Test loading all component.yaml definitions
         - $TRAVIS_BUILD_DIR/components/test_load_all_components.sh
 
