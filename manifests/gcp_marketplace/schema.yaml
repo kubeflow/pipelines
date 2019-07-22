@@ -9,6 +9,11 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
+  images.version:
+    type: string
+    default: 0.1.23
+    x-google-marketplace:
+      type: VERSION
 
 required:
   - name
