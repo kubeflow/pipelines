@@ -69,8 +69,8 @@ matrix:
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python3 setup.py install
-        - python3 tests/dsl/main.py
-        - python3 tests/compiler/main.py
+        - python tests/dsl/main.py
+        - python tests/compiler/main.py
         - $TRAVIS_BUILD_DIR/sdk/python/tests/run_tests.sh
 
         # Test loading all component.yaml definitions
