@@ -16,7 +16,7 @@
 import unittest
 from kubernetes.client.models import V1EnvVar, V1VolumeMount
 
-from kfp.dsl import Pipeline, PipelineParam, ContainerOp, InitContainer, Sidecar
+from kfp.dsl import Pipeline, PipelineParam, ContainerOp, UserContainer, Sidecar
 
 
 class TestContainerOp(unittest.TestCase):
@@ -27,12 +27,12 @@ class TestContainerOp(unittest.TestCase):
     param2 = PipelineParam('param2')
     op1 = (ContainerOp(name='op1', image='image',
         arguments=['%s hello %s %s' % (param1, param2, param1)],
-        init_containers=[InitContainer(name='initcontainer0', image='initimage0')],
+        init_containers=[UserContainer(name='initcontainer0', image='initimage0')],
         sidecars=[Sidecar(name='sidecar0', image='image0')],
         container_kwargs={'env': [V1EnvVar(name='env1', value='value1')]},
         file_outputs={'out1': '/tmp/b'})
-          .add_init_container(InitContainer(name='initcontainer1', image='initimage1'))
-          .add_init_container(InitContainer(name='initcontainer2', image='initimage2'))
+          .add_init_container(UserContainer(name='initcontainer1', image='initimage1'))
+          .add_init_container(UserContainer(name='initcontainer2', image='initimage2'))
           .add_sidecar(Sidecar(name='sidecar1', image='image1'))
           .add_sidecar(Sidecar(name='sidecar2', image='image2')))
       

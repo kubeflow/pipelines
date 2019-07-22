@@ -541,114 +541,25 @@ class Container(V1Container):
         return self
 
 
-class Sidecar(Container):
+class UserContainer(Container):
     """
-    Represents an argo workflow sidecar (io.argoproj.workflow.v1alpha1.UserContainer)
-    to be used in `sidecars` property in argo's workflow template 
-    (io.argoproj.workflow.v1alpha1.Template). 
-
-    `Sidecar` inherits from `Container` class with an addition of `mirror_volume_mounts`
-    attribute (`mirrorVolumeMounts` property).
-
-    See https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
-
-    Example
-
-        from kfp.dsl import ContainerOp, Sidecar
-
-        # creates a `ContainerOp` and adds a redis `Sidecar`
-        op = (ContainerOp(name='foo-op', image='busybox:latest')
-                .add_sidecar(
-                    Sidecar(name='redis', image='redis:alpine')))
-
-    """
-    """
-    Attributes:
-      swagger_types (dict): The key is attribute name
-                            and the value is attribute type.
-      attribute_map (dict): The key is attribute name
-                            and the value is json key in definition.
-    """
-    # adds `mirror_volume_mounts` to `Sidecar` swagger definition
-    # NOTE inherits definition from `V1Container` rather than `Container`
-    #      because `Container` has no `name` property.
-    swagger_types = dict(
-        **V1Container.swagger_types, mirror_volume_mounts='bool')
-
-    attribute_map = dict(
-        **V1Container.attribute_map, mirror_volume_mounts='mirrorVolumeMounts')
-
-    def __init__(self,
-        name: str,
-        image: str,
-        command: StringOrStringList = None,
-        args: StringOrStringList = None,
-        mirror_volume_mounts: bool = None,
-        **kwargs):
-        """Creates a new instance of `Sidecar`.
-        
-        Args:
-            name {str}: unique name for the sidecar container
-            image {str}: image to use for the sidecar container, e.g. redis:alpine
-            command {StringOrStringList}: entrypoint array.  Not executed within a shell.
-            args {StringOrStringList}: arguments to the entrypoint. 
-            mirror_volume_mounts {bool}: MirrorVolumeMounts will mount the same 
-                volumes specified in the main container to the sidecar (including artifacts), 
-                at the same mountPaths. This enables dind daemon to partially see the same 
-                filesystem as the main container in order to use features such as docker 
-                volume binding
-            **kwargs: keyword arguments available for `Container` 
-
-        """
-        super().__init__(
-            name=name,
-            image=image,
-            command=as_string_list(command),
-            args=as_string_list(args),
-            **kwargs)
-
-        self.mirror_volume_mounts = mirror_volume_mounts
-
-    def set_mirror_volume_mounts(self, mirror_volume_mounts=True):
-        """
-        Setting mirrorVolumeMounts to true will mount the same volumes specified 
-        in the main container to the sidecar (including artifacts), at the same 
-        mountPaths. This enables dind daemon to partially see the same filesystem 
-        as the main container in order to use features such as docker volume 
-        binding.
-        
-        Args:
-            mirror_volume_mounts: boolean flag
-        """
-
-        self.mirror_volume_mounts = mirror_volume_mounts
-        return self
-
-    @property
-    def inputs(self):
-        """A list of PipelineParam found in the Sidecar object."""
-        return _pipeline_param.extract_pipelineparams_from_any(self)
-
-
-class InitContainer(Container):
-    """
-    Represents an argo workflow initContainer (io.argoproj.workflow.v1alpha1.UserContainer)
-    to be used in `InitContainer` property in argo's workflow template
+    Represents an argo workflow UserContainer (io.argoproj.workflow.v1alpha1.UserContainer)
+    to be used in `UserContainer` property in argo's workflow template
     (io.argoproj.workflow.v1alpha1.Template).
 
-    `InitContainer` inherits from `Container` class with an addition of `mirror_volume_mounts`
+    `UserContainer` inherits from `Container` class with an addition of `mirror_volume_mounts`
     attribute (`mirrorVolumeMounts` property).
 
     See https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
 
     Example
 
-        from kfp.dsl import ContainerOp, InitContainer
+        from kfp.dsl import ContainerOp, UserContainer
 
-        # creates a `ContainerOp` and adds a redis `InitContainer`
+        # creates a `ContainerOp` and adds a redis init container
         op = (ContainerOp(name='foo-op', image='busybox:latest')
                 .add_initContainer(
-                    InitContainer(name='redis', image='redis:alpine')))
+                    UserContainer(name='redis', image='redis:alpine')))
 
     """
     """
@@ -658,7 +569,7 @@ class InitContainer(Container):
       attribute_map (dict): The key is attribute name
                             and the value is json key in definition.
     """
-    # adds `mirror_volume_mounts` to `InitContainer` swagger definition
+    # adds `mirror_volume_mounts` to `UserContainer` swagger definition
     # NOTE inherits definition from `V1Container` rather than `Container`
     #      because `Container` has no `name` property.
     swagger_types = dict(
@@ -674,11 +585,11 @@ class InitContainer(Container):
         args: StringOrStringList = None,
         mirror_volume_mounts: bool = None,
         **kwargs):
-        """Creates a new instance of `InitContainer`.
+        """Creates a new instance of `UserContainer`.
 
         Args:
-            name {str}: unique name for the init container
-            image {str}: image to use for the init container, e.g. redis:alpine
+            name {str}: unique name for the user container
+            image {str}: image to use for the user container, e.g. redis:alpine
             command {StringOrStringList}: entrypoint array.  Not executed within a shell.
             args {StringOrStringList}: arguments to the entrypoint.
             mirror_volume_mounts {bool}: MirrorVolumeMounts will mount the same
@@ -715,8 +626,41 @@ class InitContainer(Container):
 
     @property
     def inputs(self):
-        """A list of PipelineParam found in the InitContainer object."""
+        """A list of PipelineParam found in the UserContainer object."""
         return _pipeline_param.extract_pipelineparams_from_any(self)
+
+
+class Sidecar(UserContainer):
+
+    def __init__(self,
+        name: str,
+        image: str,
+        command: StringOrStringList = None,
+        args: StringOrStringList = None,
+        mirror_volume_mounts: bool = None,
+        **kwargs):
+        """Creates a new instance of `Sidecar`.
+
+        Args:
+            name {str}: unique name for the sidecar container
+            image {str}: image to use for the sidecar container, e.g. redis:alpine
+            command {StringOrStringList}: entrypoint array.  Not executed within a shell.
+            args {StringOrStringList}: arguments to the entrypoint.
+            mirror_volume_mounts {bool}: MirrorVolumeMounts will mount the same
+                volumes specified in the main container to the sidecar (including artifacts),
+                at the same mountPaths. This enables dind daemon to partially see the same
+                filesystem as the main container in order to use features such as docker
+                volume binding
+            **kwargs: keyword arguments available for `Container`
+
+        """
+        super().__init__(
+            name=name,
+            image=image,
+            command=command,
+            args=args,
+            mirror_volume_mounts=mirror_volume_mounts,
+            **kwargs)
 
 
 def _make_hash_based_id_for_op(op):
@@ -741,7 +685,7 @@ class BaseOp(object):
 
     def __init__(self,
                  name: str,
-                 init_containers: List[InitContainer] = None,
+                 init_containers: List[UserContainer] = None,
                  sidecars: List[Sidecar] = None,
                  is_exit_handler: bool = False):
         """Create a new instance of BaseOp
@@ -911,7 +855,7 @@ class BaseOp(object):
         self.timeout = seconds
         return self
 
-    def add_init_container(self, init_container: InitContainer):
+    def add_init_container(self, init_container: UserContainer):
         """Add a init container to the Op.
 
         Args:
@@ -995,7 +939,7 @@ class ContainerOp(BaseOp):
                  image: str,
                  command: StringOrStringList = None,
                  arguments: StringOrStringList = None,
-                 init_containers: List[InitContainer] = None,
+                 init_containers: List[UserContainer] = None,
                  sidecars: List[Sidecar] = None,
                  container_kwargs: Dict = None,
                  file_outputs: Dict[str, str] = None,

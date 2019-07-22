@@ -554,7 +554,7 @@ implementation:
     self._test_py_compile_yaml('add_pod_env')
 
   def test_init_container(self):
-    echo = dsl.InitContainer(
+    echo = dsl.UserContainer(
       name='echo',
       image='alpine:latest',
       command=['echo', 'bye'])
