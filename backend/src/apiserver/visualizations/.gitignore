@@ -1,3 +1,4 @@
 *.html
 *.csv
 *.json
+__init__.py
