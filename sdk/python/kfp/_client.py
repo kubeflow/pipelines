@@ -388,6 +388,13 @@ class Client(object):
       time.sleep(5)
     return get_run_response
 
+  def delete_run(self, run_id):
+    """Delete run.
+    Args:
+      id of the run.
+    """
+    return self._run_api.delete_run(id=run_id)
+
   def _get_workflow_json(self, run_id):
     """Get the workflow json.
     Args:
