@@ -20,21 +20,10 @@ RUN tar -C /usr/local/gcloud -xf /tmp/google-cloud-sdk.tar.gz
 RUN /usr/local/gcloud/google-cloud-sdk/install.sh
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
-RUN pip3 install google-api-python-client \
-                pandas \
-                scikit-learn \
-                tensorflow==1.13.1 \
-                tensorflow-model-analysis==0.13.1 \
-                tensorflow-data-validation \
-                jupyter_client \
-                ipykernel \
-                nbconvert \
-                nbformat \
-                bokeh \
-                gcsfs
-
 WORKDIR /src
 
-COPY ./src/apiserver/visualizations /src
+COPY src/apiserver/visualization /src
+
+RUN pip3 install -r requirements.txt
 
 ENTRYPOINT [ "python3", "server.py" ]
