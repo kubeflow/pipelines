@@ -290,6 +290,10 @@ class TestCompiler(unittest.TestCase):
     """Test basic sequential pipeline."""
     self._test_py_compile_zip('basic')
 
+  def test_py_compile_with_init_container(self):
+    """Test pipeline with init_container."""
+    self._test_py_compile_yaml('init_container')
+
   def test_py_compile_with_sidecar(self):
     """Test pipeline with sidecar."""
     self._test_py_compile_yaml('sidecar')
