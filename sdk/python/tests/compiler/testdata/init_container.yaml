@@ -27,54 +27,18 @@ spec:
           - name: mlpipeline-metrics
             path: "/mlpipeline-metrics.json"
             optional: true
-        parameters:
-          - name: download-downloaded
-            valueFrom:
-              path: "/tmp/results.txt"
-      name: download
+      name: hello
       initContainers:
-        - image: hashicorp/http-echo
+        - image: alpine:latest
           name: echo
-          args:
-            - -text="hello world"
+          command: ["echo", "bye"]
       container:
-        image: busybox
-        args:
-          - sleep 10; wget localhost:5678 -O /tmp/results.txt
-        command:
-          - sh
-          - "-c"
-    - outputs:
-        artifacts:
-          - name: mlpipeline-ui-metadata
-            path: "/mlpipeline-ui-metadata.json"
-            optional: true
-          - name: mlpipeline-metrics
-            path: "/mlpipeline-metrics.json"
-            optional: true
-      name: echo
-      inputs:
-        parameters:
-          - name: download-downloaded
-      container:
-        image: library/bash
-        args:
-          - echo {{inputs.parameters.download-downloaded}}
-        command:
-          - sh
-          - "-c"
+        image: alpine:latest
+        command: ["echo", "hello"]
     - name: initcontainer
       dag:
         tasks:
-          - name: download
-            template: download
-          - arguments:
-              parameters:
-                - name: download-downloaded
-                  value: "{{tasks.download.outputs.parameters.download-downloaded}}"
-            name: echo
-            dependencies:
-              - download
-            template: echo
+          - name: hello
+            template: hello
   serviceAccountName: pipeline-runner
   entrypoint: initcontainer

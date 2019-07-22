@@ -21,19 +21,11 @@ def init_container_pipeline():
 
   echo = dsl.InitContainer(
       name='echo',
-      image='hashicorp/http-echo',
-      args=['-text="hello world"'])
+      image='alpine:latest',
+      command=['echo', 'bye'])
 
   op1 = dsl.ContainerOp(
-      name='download',
-      image='busybox',
-      command=['sh', '-c'],
-      arguments=['sleep 10; wget localhost:5678 -O /tmp/results.txt'],
-      init_containers=[echo],
-      file_outputs={'downloaded': '/tmp/results.txt'})
-
-  op2 = dsl.ContainerOp(
-      name='echo',
-      image='library/bash',
-      command=['sh', '-c'],
-      arguments=['echo %s' % op1.output])
+      name='hello',
+      image='alpine:latest',
+      command=['echo', 'hello'],
+      init_containers=[echo])
