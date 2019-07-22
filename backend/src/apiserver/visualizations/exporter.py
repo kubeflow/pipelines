@@ -58,12 +58,12 @@ def create_cell_from_file(filepath):
 # Exports a notebook to HTML and generates any required outputs.
 #
 # Returns the generated HTML as a string.
-def generate_html_from_notebook(nb):
+def generate_html_from_notebook(nb, template_type='full'):
     # HTML generator and exporter object
     html_exporter = HTMLExporter()
     dirname = os.path.dirname(__file__)
-    html_exporter.template_file = os.path.join(dirname,
-                                               'templates/full.tpl')
+    template_file = 'templates/{}.tpl'.format(template_type)
+    html_exporter.template_file = os.path.join(dirname, template_file)
     # Output generator object
     ep.preprocess(nb, {'metadata': {'path': os.getcwd()}}, km)
 
