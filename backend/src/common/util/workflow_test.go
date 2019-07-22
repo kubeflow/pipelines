@@ -302,7 +302,7 @@ func TestGetWorkflowSpec(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, workflow.GetSpec().Get())
+	assert.Equal(t, expected, workflow.GetWorkflowSpec().Get())
 }
 
 func TestVerifyParameters(t *testing.T) {
