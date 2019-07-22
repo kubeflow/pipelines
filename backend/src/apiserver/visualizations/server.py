@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import argparse
+import os
 import shlex
 
 import tornado.ioloop
 import tornado.web
-from .exporter import *
+import exporter
 from nbformat.v4 import new_notebook
 
 
@@ -39,10 +40,10 @@ class VisualizationHandler(tornado.web.RequestHandler):
         args = parser.parse_args(shlex.split(
             self.get_body_argument("arguments")))
         nb = new_notebook()
-        nb.cells.append(create_cell_from_args(args.arguments))
-        nb.cells.append(create_cell_from_file(
+        nb.cells.append(exporter.create_cell_from_args(args.arguments))
+        nb.cells.append(exporter.create_cell_from_file(
             os.path.join(dirname, '{}.py'.format(args.type))))
-        html = generate_html_from_notebook(nb)
+        html = exporter.generate_html_from_notebook(nb)
         self.write(html)
 
 
