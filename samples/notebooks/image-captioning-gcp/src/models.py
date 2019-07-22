@@ -100,4 +100,3 @@ class RNN_Decoder(tf.keras.Model):
 
     def reset_state(self, batch_size):
         return tf.zeros((batch_size, self.units))
-        
