@@ -249,12 +249,16 @@ def _op_to_template(op: BaseOp):
     if processed_op.timeout:
         template['activeDeadlineSeconds'] = processed_op.timeout
 
+    # initContainers
+    if processed_op.init_containers:
+        template['initContainers'] = processed_op.init_containers
+
     # sidecars
     if processed_op.sidecars:
         template['sidecars'] = processed_op.sidecars
 
     # Display name
     if processed_op.display_name:
-        template.setdefault('metadata', {}).setdefault('annotations', {})['kubeflow.org/pipelines/task_display_name'] = processed_op.display_name
+        template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/task_display_name'] = processed_op.display_name
 
     return template

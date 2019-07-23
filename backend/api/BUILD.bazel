@@ -15,6 +15,7 @@ proto_library(
         "report.proto",
         "resource_reference.proto",
         "run.proto",
+        "visualization.proto",
     ],
     visibility = ["//visibility:public"],
     deps = [

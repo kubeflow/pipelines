@@ -13,10 +13,10 @@
 // limitations under the License.
 
 import * as express from 'express';
-import { Application, static as StaticHandler } from 'express';
+import {Application, static as StaticHandler} from 'express';
 import * as fs from 'fs';
 import * as proxy from 'http-proxy-middleware';
-import { Client as MinioClient } from 'minio';
+import {Client as MinioClient} from 'minio';
 import fetch from 'node-fetch';
 import * as path from 'path';
 import * as process from 'process';
@@ -25,7 +25,7 @@ import * as tar from 'tar';
 import * as k8sHelper from './k8s-helper';
 import proxyMiddleware from './proxy-middleware';
 import { Storage } from '@google-cloud/storage';
-import { Stream } from 'stream';
+import {Stream} from 'stream';
 
 const BASEPATH = '/pipeline';
 
@@ -260,9 +260,9 @@ const getTensorboardHandler = async (req, res) => {
   }
 
   try {
-    res.send(await k8sHelper.getTensorboardAddress(logdir));
+    res.send(await k8sHelper.getTensorboardInstance(logdir));
   } catch (err) {
-    res.status(500).send('Failed to list Tensorboard pods: ' + err);
+    res.status(500).send('Failed to list Tensorboard pods: ' + JSON.stringify(err));
   }
 };
 
@@ -278,11 +278,11 @@ const createTensorboardHandler = async (req, res) => {
   }
 
   try {
-    await k8sHelper.newTensorboardPod(logdir);
-    const tensorboardAddress = await k8sHelper.waitForTensorboard(logdir, 60 * 1000);
+    await k8sHelper.newTensorboardInstance(logdir);
+    const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, 60 * 1000);
     res.send(tensorboardAddress);
   } catch (err) {
-    res.status(500).send('Failed to start Tensorboard app: ' + err);
+    res.status(500).send('Failed to start Tensorboard app: ' + JSON.stringify(err));
   }
 };
 

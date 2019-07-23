@@ -15,6 +15,9 @@
 name: Launch Python
 description: |
   Launch a self-executing beam python file.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: python_file_path
     description: 'The gcs or local path to the python file to run.'
@@ -48,7 +51,7 @@ outputs:
     type: String
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:1d55a27cf8b69696f3ab5c10687edf2fde0068c7
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:ac833a084b32324b56ca56e9109e05cde02816a4
     args: [
       kfp_component.google.dataflow, launch_python,
       --python_file_path, {inputValue: python_file_path},

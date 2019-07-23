@@ -590,7 +590,9 @@ class NewRun extends Page<{}, NewRunState> {
       description: this.state.description,
       name: this.state.runName,
       pipeline_spec: {
-        parameters: this.state.pipeline.parameters,
+        parameters: (this.state.pipeline.parameters || []).map(p => {
+          p.value = (p.value || '').trim(); return p;
+        }),
         pipeline_id: this.state.usePipelineFromRun ? undefined : this.state.pipeline.id,
         workflow_manifest: this.state.usePipelineFromRun
           ? JSON.stringify(this.state.pipelineFromRun)

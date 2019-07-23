@@ -3,7 +3,6 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_test(
     name = "go_default_test",
     srcs = [
-        "cli_test.go",
         "experiment_api_test.go",
         "job_api_test.go",
         "pipeline_api_test.go",
@@ -21,7 +20,6 @@ go_test(
         "//backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service:go_default_library",
         "//backend/api/go_http_client/run_client/run_service:go_default_library",
         "//backend/api/go_http_client/run_model:go_default_library",
-        "//backend/src/cmd/ml/cmd:go_default_library",
         "//backend/src/common/client/api_server:go_default_library",
         "//backend/src/common/util:go_default_library",
         "//backend/test:go_default_library",
