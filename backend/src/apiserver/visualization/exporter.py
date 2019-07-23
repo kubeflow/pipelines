@@ -35,7 +35,7 @@ ep = ExecutePreprocessor(timeout=300, kernel_name='python3')
 def create_cell_from_args(args):
     variables = ""
     args = json.loads(args)
-    for key in args:
+    for key in sorted(args.keys()):
         if isinstance(args[key], (type(None), bool)):
             variables += "{} = {}\n".format(key, args[key])
         else:
