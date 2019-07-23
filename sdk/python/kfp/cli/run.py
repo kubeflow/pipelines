@@ -101,3 +101,11 @@ def _print_runs(runs):
     headers = ['run id', 'name', 'status', 'created at']
     data = [[run.id, run.name, run.status, run.created_at.isoformat()] for run in runs]
     print(tabulate(data, headers=headers, tablefmt='grid'))
+
+@run.command()
+@click.argument('run-id')
+@click.pass_context
+def delete(ctx, run_id):
+    """delete a KFP run"""
+    client = ctx.obj['client']
+    client.delete_run(run_id)
