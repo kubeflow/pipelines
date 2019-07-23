@@ -41,7 +41,7 @@ setuptools,https://raw.githubusercontent.com/pypa/setuptools/master/LICENSE,MIT
 tornado,https://raw.githubusercontent.com/tornadoweb/tornado/stable/LICENSE,Apache Software License 2.0
 traitlets,https://raw.githubusercontent.com/ipython/traitlets/master/COPYING.md,BSD
 subprocess32,https://raw.githubusercontent.com/google/python-subprocess32/master/LICENSE,Python Software Foundation License
-jinja2,https://raw.githubusercontent.com/pallets/jinja/master/LICENSE,BSD
+jinja2,https://raw.githubusercontent.com/pallets/jinja/master/LICENSE.rst,BSD
 html5lib,https://raw.githubusercontent.com/html5lib/html5lib-python/master/LICENSE,MIT
 opencv-python,https://raw.githubusercontent.com/skvark/opencv-python/master/LICENSE.txt,MIT
 httplib2,https://raw.githubusercontent.com/httplib2/httplib2/master/LICENSE,MIT
@@ -135,7 +135,7 @@ functools32,https://raw.githubusercontent.com/michilu/python-functools32/master/
 grpc-google-iam-v1,https://raw.githubusercontent.com/googleapis/googleapis/master/LICENSE,Apache 2.0
 ipython-genutils,https://raw.githubusercontent.com/ipython/ipython_genutils/master/COPYING.md,BSD
 ipywidgets,https://raw.githubusercontent.com/jupyter-widgets/ipywidgets/master/LICENSE,3-Clause BSD
-Jinja2,https://raw.githubusercontent.com/pallets/jinja/master/LICENSE,BSD
+Jinja2,https://raw.githubusercontent.com/pallets/jinja/master/LICENSE.rst,BSD
 jsonschema,https://raw.githubusercontent.com/Julian/jsonschema/master/COPYING,MIT
 jupyter,https://raw.githubusercontent.com/jupyter/notebook/master/COPYING.md,BSD
 notebook,https://raw.githubusercontent.com/jupyter/notebook/master/COPYING.md,BSD
