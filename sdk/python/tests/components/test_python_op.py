@@ -126,7 +126,7 @@ class PythonOpTestCase(unittest.TestCase):
             return ExtraClass().class_method(a) + extra_func(b)
 
         func = main_func
-        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
+        op = comp.func_to_container_op(func, use_code_pickling=True)
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
@@ -146,27 +146,27 @@ class PythonOpTestCase(unittest.TestCase):
             raise AssertionError("f2 should not be captured, because it's not a dependency.")
 
         expected_func = lambda a, b: a + b
-        op = comp.func_to_container_op(main_func)
+        op = comp.func_to_container_op(main_func, use_code_pickling=True)
 
         self.helper_test_2_in_1_out_component_using_local_call(expected_func, op)
 
     def test_func_to_container_op_call_other_func_global(self):
         func = module_func_with_deps
-        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
+        op = comp.func_to_container_op(func, use_code_pickling=True)
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
     def test_func_to_container_op_with_imported_func(self):
         from .test_data.module1 import module_func_with_deps as module1_func_with_deps
         func = module1_func_with_deps
-        op = comp.func_to_container_op(func)
+        op = comp.func_to_container_op(func, use_code_pickling=True)
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
     def test_func_to_container_op_with_imported_func2(self):
         from .test_data.module2_which_depends_on_module1 import module2_func_with_deps as module2_func_with_deps
         func = module2_func_with_deps
-        op = comp.func_to_container_op(func, modules_to_capture=[
+        op = comp.func_to_container_op(func, use_code_pickling=True, modules_to_capture=[
             'tests.components.test_data.module1',
             'tests.components.test_data.module2_which_depends_on_module1'
         ])

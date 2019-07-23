@@ -15,6 +15,9 @@
 name: dataproc_submit_spark_job
 description: >-
   Submits a Cloud Dataproc job for running Apache Spark applications on YARN.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: >-
@@ -71,7 +74,7 @@ outputs:
     type: String
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:6554e133dd453c62aea05ebb57a04f897c11d070
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:ac833a084b32324b56ca56e9109e05cde02816a4
     args: [
       kfp_component.google.dataproc, submit_spark_job,
       --project_id, {inputValue: project_id},

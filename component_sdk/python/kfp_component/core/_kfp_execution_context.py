@@ -23,8 +23,9 @@ import re
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
-KF_NAMESPACE = 'kubeflow'
+DEFAULT_NAMESPACE = 'kubeflow'
 KFP_POD_ENV_NAME = 'KFP_POD_NAME'
+KFP_NAMESPACE_ENV_NAME = 'KFP_NAMESPACE'
 ARGO_EXECUTION_CONTROL_ANNOTATION = 'workflows.argoproj.io/execution'
 ARGO_NODE_NAME_ANNOTATION = 'workflows.argoproj.io/node-name'
 
@@ -74,6 +75,7 @@ class KfpExecutionContext:
 
     def _load_kfp_environment(self):
         self._pod_name = os.environ.get(KFP_POD_ENV_NAME, None)
+        self._namespace = os.environ.get(KFP_NAMESPACE_ENV_NAME, DEFAULT_NAMESPACE)
         if not self._pod_name:
             self._k8s_client = None
         else:
@@ -148,5 +150,9 @@ class KfpExecutionContext:
     def _get_pod(self):
         logging.info('Fetching latest pod metadata: {}.'.format(
             self._pod_name))
-        return self._k8s_client.read_namespaced_pod(
-            self._pod_name, KF_NAMESPACE)
+        try:
+            return self._k8s_client.read_namespaced_pod(
+                self._pod_name, self._namespace)
+        except Exception as e:
+            logging.error('Failed to get pod: {}'.format(e))
+            return None

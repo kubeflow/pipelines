@@ -525,7 +525,7 @@ implementation:
 
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     template = workflow_dict['spec']['templates'][0]
-    self.assertEqual(template['metadata']['annotations']['kubeflow.org/pipelines/task_display_name'], 'Custom name')
+    self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'], 'Custom name')
 
   def test_op_transformers(self):
     def some_op():
@@ -548,3 +548,6 @@ implementation:
       container = template.get('container', None)
       if container:
         self.assertEqual(template['retryStrategy']['limit'], 5)
+
+  def test_add_pod_env(self):
+    self._test_py_compile_yaml('add_pod_env')
