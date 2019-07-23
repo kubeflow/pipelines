@@ -19,7 +19,7 @@ import shlex
 import tornado.ioloop
 import tornado.web
 import exporter
-from nbformat.v4 import new_notebook
+from nbformat.v4 import new_notebook, new_code_cell
 
 
 dirname = os.path.dirname(__file__)
@@ -27,6 +27,9 @@ dirname = os.path.dirname(__file__)
 parser = argparse.ArgumentParser(description='Visualization Generator')
 parser.add_argument('--type', type=str, default='roc',
                     help='Type of visualization to be generated.')
+parser.add_argument('--input_path', type=str,
+                    help='Path of data to be used for generating ' +
+                         'visualization.')
 parser.add_argument('--arguments', type=str, default='{}',
                     help='JSON string of arguments to be provided to ' +
                          'visualizations.')
@@ -39,8 +42,12 @@ class VisualizationHandler(tornado.web.RequestHandler):
     def post(self):
         args = parser.parse_args(shlex.split(
             self.get_body_argument("arguments")))
+        if args.input_path is None:
+            return self.send_error(400, reason="No input_path specified.")
         nb = new_notebook()
         nb.cells.append(exporter.create_cell_from_args(args.arguments))
+        input_path = "input_path = \"{}\"".format(args.input_path)
+        nb.cells.append(new_code_cell(input_path))
         nb.cells.append(exporter.create_cell_from_file(
             os.path.join(dirname, '{}.py'.format(args.type))))
         html = exporter.generate_html_from_notebook(nb)
