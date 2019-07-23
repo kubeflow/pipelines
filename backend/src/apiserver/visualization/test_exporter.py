@@ -35,9 +35,9 @@ class TestExporterMethods(snapshottest.TestCase):
 
     def test_create_cell_from_args_with_multiple_args(self):
         self.maxDiff = None
-        args = "{\"input_path\": \"gs://ml-pipeline/data.csv\", " \
-               "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * " \
-               "0.2)\"} "
+        args = ("{\"input_path\": \"gs://ml-pipeline/data.csv\", "
+                "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * "
+                "0.2)\"}")
         cell = exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
@@ -52,7 +52,9 @@ class TestExporterMethods(snapshottest.TestCase):
         args = "{\"x\": 2}"
         nb.cells.append(exporter.create_cell_from_args(args))
         nb.cells.append(new_code_cell("print(x)"))
-        html = exporter.generate_html_from_notebook(nb, template_type='basic')
+        html = exporter.generate_html_from_notebook(
+            nb,
+            template_type=exporter.TemplateType.basic)
         self.assertMatchSnapshot(html)
 
 

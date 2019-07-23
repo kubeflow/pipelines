@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
+from enum import Enum
 import json
 import os
 from nbconvert import HTMLExporter
 from nbconvert.preprocessors import ExecutePreprocessor
+from nbformat import NotebookNode
 from nbformat.v4 import new_code_cell
 from jupyter_client import KernelManager
 
@@ -28,14 +31,32 @@ km.start_kernel()
 ep = ExecutePreprocessor(timeout=300, kernel_name='python3')
 
 
+# Visualization Template types:
+# - Basic: Uses the basic.tpl file within the templates directory to generate
+# a visualization that contains no styling and minimal HTML tags. This is ideal
+# for testing as it reduces size of generated visualization. However, for usage
+# with actual visualizations it is not ideal due to its lack of javascript and
+# styling which can limit usability of a visualization.
+# - Full: Uses the full.tpl file within the template directory to generate a
+# visualization that can be viewed as a standalone web page. The full.tpl file
+# utilizes the basic.tpl file for visualizations then wraps that output with
+# additional tags for javascript and style support. This is ideal for generating
+# visualizations that will be displayed via the frontend.
+class TemplateType(Enum):
+    basic = 'basic'
+    full = 'full'
+
+
 # Takes provided command line arguments and creates a Notebook cell object with
 # the arguments as variables.
 #
 # Returns the generated Notebook cell.
-def create_cell_from_args(args):
+def create_cell_from_args(args: argparse.Namespace) -> NotebookNode:
     variables = ""
     args = json.loads(args)
     for key in sorted(args.keys()):
+        # Check type of variable to maintain type when converting from JSON to
+        # notebook cell
         if isinstance(args[key], (type(None), bool)):
             variables += "{} = {}\n".format(key, args[key])
         else:
@@ -48,7 +69,7 @@ def create_cell_from_args(args):
 # lines of code from the python file.
 #
 # Returns the generated Notebook cell.
-def create_cell_from_file(filepath):
+def create_cell_from_file(filepath: str) -> NotebookNode:
     with open(filepath, 'r') as f:
         code = f.read()
 
@@ -58,13 +79,15 @@ def create_cell_from_file(filepath):
 # Exports a notebook to HTML and generates any required outputs.
 #
 # Returns the generated HTML as a string.
-def generate_html_from_notebook(nb, template_type='full'):
+def generate_html_from_notebook(
+        nb: NotebookNode,
+        template_type: TemplateType = TemplateType.full) -> str:
     # HTML generator and exporter object
     html_exporter = HTMLExporter()
     dirname = os.path.dirname(__file__)
-    template_file = 'templates/{}.tpl'.format(template_type)
+    template_file = 'templates/{}.tpl'.format(template_type.value)
     html_exporter.template_file = os.path.join(dirname, template_file)
-    # Output generator object
+    # Output generator
     ep.preprocess(nb, {'metadata': {'path': os.getcwd()}}, km)
 
     # Export all html and outputs
