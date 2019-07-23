@@ -319,6 +319,21 @@ describe('RunList', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('shows link to recurring run config', async () => {
+    mockNRuns(1, {
+      run: {
+        resource_references: [{
+          key: { id: 'test-recurring-run-id', type: ApiResourceType.JOB }
+        }]
+      }
+    });
+    const props = generateProps();
+    tree = shallow(<RunList {...props} />);
+    await (tree.instance() as RunListTest)._loadRuns({});
+    expect(props.onError).not.toHaveBeenCalled();
+    expect(tree).toMatchSnapshot();
+  });
+
   it('shows experiment name', async () => {
     mockNRuns(1, {
       run: {
@@ -370,6 +385,10 @@ describe('RunList', () => {
 
   it('handles no pipeline name', () => {
     expect(getMountedInstance()._pipelineCustomRenderer({ value: { /* no displayName */ showLink: true }, id: 'run-id' })).toMatchSnapshot();
+  });
+
+  it('renders pipeline name as link to its details page', () => {
+    expect(getMountedInstance()._recurringRunCustomRenderer({ value: { id: 'recurring-run-id', }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('renders experiment name as link to its details page', () => {
