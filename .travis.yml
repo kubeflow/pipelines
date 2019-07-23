@@ -74,10 +74,9 @@ matrix:
         - $TRAVIS_BUILD_DIR/sdk/python/tests/run_tests.sh
 
         # Visualization test dependencies
-        - pip3 install ipykernel==5.1.1 jupyter==1.0.0 jupyter_client==5.2.4 nbconvert==5.5.0 nbformat==4.4.0 snapshottest==0.5.1
+        - pip3 install ipykernel==5.1.1 jupyter_client==5.2.4 nbconvert==5.5.0 nbformat==4.4.0 snapshottest==0.5.1
         # Visualization test
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
-        - jupyter kernelspec list
         - python3 test_exporter.py
 
         # Test loading all component.yaml definitions
