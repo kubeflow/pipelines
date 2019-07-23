@@ -1,6 +1,6 @@
 # Image Captioning TF 2.0
 
-## About
+## Overview
 This notebook is an example of how to convert an existing Tensorflow notebook into a Kubeflow pipeline using jupyter notebook.  Specifically, this notebook takes an example tensorflow notebook, [image captioning with attention](https://colab.sandbox.google.com/github/tensorflow/docs/blob/master/site/en/r2/tutorials/text/image_captioning.ipynb), and creates a kubeflow pipeline.  This pipeline produces a model that can generate captions for images.
 
 ### Example generated captions
@@ -20,6 +20,19 @@ This pipeline requires a GCS bucket.  If you haven't already, [create a GCS buck
 
 ### Upload the notebook in the Kubeflow UI
 In order to run this pipeline, make sure to upload the notebook to your notebook server in the Kubeflow UI.  You can clone this repo in the Jupyter notebook server by connecting to the notebook server and then selecting New > Terminal.  In the terminal type `git clone https://github.com/kubeflow/pipelines.git`.
+
+### Create base image
+In order to run this pipeline, you need to first build the docker base image and upload it to a container registry.  This can be done with the following commands:
+
+`git clone https://github.com/kubeflow/pipelines.git`
+
+`cd pipelines/samples/notebooks/image-captioning-gcp/src`
+
+`docker build -t img-cap .` 
+
+`docker tag img-cap gcr.io/[PROJECT-ID]/img-cap:latest`
+
+`docker push gcr.io/[PROJECT ID]/img-cap:latest`
 
 ### Download dataset
 To download the dataset, run the first few cells in the notebook.
