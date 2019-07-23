@@ -14,7 +14,7 @@ def add_common_labels(param):
     description="Test that parameters used in Op transformation functions as pod labels "
                 "would be correcly identified and set as arguments in he generated yaml"
 )
-def param_substitutions(param = dsl.PipelineParam(name='param')):
+def param_substitutions(param):
     dsl.get_pipeline_conf().op_transformers.append(add_common_labels(param))
 
     op = dsl.ContainerOp(
