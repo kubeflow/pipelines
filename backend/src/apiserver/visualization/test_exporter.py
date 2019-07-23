@@ -25,7 +25,7 @@ class TestExporterMethods(snapshottest.TestCase):
         self.maxDiff = None
         args = "{}"
         cell = exporter.create_cell_from_args(args)
-        self.assertEqual(cell.source, "")
+        self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_args_with_one_arg(self):
         self.maxDiff = None
