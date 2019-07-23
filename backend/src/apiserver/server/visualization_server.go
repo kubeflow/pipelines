@@ -80,7 +80,7 @@ func (s *VisualizationServer) createPythonArgumentsFromRequest(request *go_clien
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("--type %s --input_path %s --arguments '%s'", visualizationType, request.Visualization.InputPath, arguments), nil
+	return fmt.Sprintf("--type %s --input_path '%s' --arguments '%s'", visualizationType, request.Visualization.InputPath, arguments), nil
 }
 
 // GenerateVisualizationFromRequest communicates with the python visualization

@@ -119,7 +119,7 @@ func TestCreatePythonArgumentsFromRequest(t *testing.T) {
 		Visualization: visualization,
 	}
 	pythonArguments, err := server.createPythonArgumentsFromRequest(request)
-	assert.Equal(t, "--type roc_curve --input_path gs://ml-pipeline/roc/data.csv --arguments '{}'", pythonArguments)
+	assert.Equal(t, "--type roc_curve --input_path 'gs://ml-pipeline/roc/data.csv' --arguments '{}'", pythonArguments)
 	assert.Nil(t, err)
 }
 
