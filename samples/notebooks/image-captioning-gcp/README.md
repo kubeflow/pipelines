@@ -22,7 +22,7 @@ This pipeline requires a GCS bucket.  If you haven't already, [create a GCS buck
 In order to run this pipeline, make sure to upload the notebook to your notebook server in the Kubeflow UI.  You can clone this repo in the Jupyter notebook server by connecting to the notebook server and then selecting New > Terminal.  In the terminal type `git clone https://github.com/kubeflow/pipelines.git`.
 
 ### Create base image
-In order to run this pipeline, you need to first build the docker base image and upload it to a container registry.  This can be done with the following commands:
+In order to run this pipeline, you need to first build the docker base image and upload it to a container registry.  This can be done locally with the following commands:
 
 `git clone https://github.com/kubeflow/pipelines.git`
 
