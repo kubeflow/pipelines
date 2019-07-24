@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import PurePath
+
 class GCSHelper(object):
   """ GCSHelper manages the connection with the GCS storage """
 
