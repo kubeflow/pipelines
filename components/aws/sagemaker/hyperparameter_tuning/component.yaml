@@ -6,6 +6,7 @@ inputs:
     description: 'The region where the cluster launches.'
   - name: job_name
     description: 'The name of the tuning job. Must be unique within the same AWS account and AWS region.'
+    default: ''
   - name: role
     description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'
   - name: image
@@ -102,7 +103,7 @@ outputs:
     description: 'Tuned hyperparameters'
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190724-01
+    image: carowang/kubeflow-pipeline-aws-sm:20190724-02
     command: ['python']
     args: [
       hyperparameter_tuning.py,

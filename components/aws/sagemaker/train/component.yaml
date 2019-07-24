@@ -43,7 +43,7 @@ inputs:
     description: 'The maximum run time in seconds for the training job.'
     default: '86400'
   - name: model_artifact_path
-    description: 'Identifies the S3 path where you want Amazon SageMaker to store the model artifacts.'}
+    description: 'Identifies the S3 path where you want Amazon SageMaker to store the model artifacts.'
   - name: output_encryption_key
     description: 'The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts.'
     default: ''
@@ -67,7 +67,7 @@ outputs:
   - {name: job_name,              description: 'Training job name'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190724-01
+    image: carowang/kubeflow-pipeline-aws-sm:20190724-02
     command: ['python']
     args: [
       train.py,

@@ -79,23 +79,23 @@ def create_training_job_request(args):
         logging.error('Both image and algorithm name inputted, only one should be specified. Proceeding with image.')
 
     if args['image']:
-        request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = args['image']
-        request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
+        request['AlgorithmSpecification']['TrainingImage'] = args['image']
+        request['AlgorithmSpecification'].pop('AlgorithmName')
     else:
         # TODO: determine if users can make custom algorithm resources that have the same name as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
-            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
-            request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
+            request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
+            request['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         # Just to give the user more leeway for built-in algorithm name inputs
         elif algo_name in built_in_algos.values():
-            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
-            request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
+            request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
+            request['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         else:
-            request['TrainingJobDefinition']['AlgorithmSpecification']['AlgorithmName'] = args['algorithm_name']
-            request['TrainingJobDefinition']['AlgorithmSpecification'].pop('TrainingImage')
+            request['AlgorithmSpecification']['AlgorithmName'] = args['algorithm_name']
+            request['AlgorithmSpecification'].pop('TrainingImage')
 
     ### Update metric definitions
     if args['metric_definitions']:
@@ -127,13 +127,13 @@ def create_training_job_request(args):
 
     ### Update InstanceCount, VolumeSizeInGB, and MaxRuntimeInSeconds if input is non-empty and > 0, otherwise use default values
     if args['instance_count']:
-        request['TrainingJobDefinition']['ResourceConfig']['InstanceCount'] = args['instance_count']
+        request['ResourceConfig']['InstanceCount'] = args['instance_count']
 
     if args['volume_size']:
-        request['TrainingJobDefinition']['ResourceConfig']['VolumeSizeInGB'] = args['volume_size']
+        request['ResourceConfig']['VolumeSizeInGB'] = args['volume_size']
 
     if args['max_run_time']:
-        request['TrainingJobDefinition']['StoppingCondition']['MaxRuntimeInSeconds'] = args['max_run_time']
+        request['StoppingCondition']['MaxRuntimeInSeconds'] = args['max_run_time']
 
     ### Update tags
     for key, val in args['tags'].items():
@@ -290,7 +290,7 @@ def create_transform_job_request(batch_job_name, args):
         request['DataProcessing']['JoinSource'] = args['join_source']
 
     ### Update tags
-    if args['tags'] != '':
+    if not args['tags'] is None:
         for key, val in args['tags'].items():
             request['Tags'].append({'Key': key, 'Value': val})
 
@@ -343,7 +343,7 @@ def create_hyperparameter_tuning_job_request(args):
         request = yaml.safe_load(f)
 
     ### Create a hyperparameter tuning job
-    request['HyperParameterTuningJobName'] = args['job_name']
+    request['HyperParameterTuningJobName'] = args['job_name'] if args['job_name'] else "HPOJob-" + strftime("%Y%m%d%H%M%S", gmtime()) + '-' + id_generator()
 
     request['HyperParameterTuningJobConfig']['Strategy'] = args['strategy']
     request['HyperParameterTuningJobConfig']['HyperParameterTuningJobObjective']['Type'] = args['metric_type']
