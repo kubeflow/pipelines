@@ -302,10 +302,6 @@ class TestCompiler(unittest.TestCase):
     """Test a pipeline with conditions."""
     self._test_py_compile_zip('coin')
 
-  def test_py_compile_immediate_value(self):
-    """Test a pipeline with immediate value parameter."""
-    self._test_py_compile_targz('immediate_value')
-
   def test_py_compile_default_value(self):
     """Test a pipeline with a parameter with default value."""
     self._test_py_compile_targz('default_value')
@@ -546,19 +542,19 @@ implementation:
 
   def test_op_transformers(self):
     def some_op():
-        return dsl.ContainerOp(
-            name='sleep',
-            image='busybox',
-            command=['sleep 1'],
-        )
+      return dsl.ContainerOp(
+          name='sleep',
+          image='busybox',
+          command=['sleep 1'],
+      )
 
     @dsl.pipeline(name='some_pipeline', description='')
     def some_pipeline():
-        task1 = some_op()
-        task2 = some_op()
-        task3 = some_op()
+      task1 = some_op()
+      task2 = some_op()
+      task3 = some_op()
 
-        dsl.get_pipeline_conf().op_transformers.append(lambda op: op.set_retry(5))
+      dsl.get_pipeline_conf().op_transformers.append(lambda op: op.set_retry(5))
 
     workflow_dict = compiler.Compiler()._compile(some_pipeline)
     for template in workflow_dict['spec']['templates']:
@@ -568,3 +564,26 @@ implementation:
 
   def test_add_pod_env(self):
     self._test_py_compile_yaml('add_pod_env')
+
+  def test_init_container(self):
+    echo = dsl.UserContainer(
+      name='echo',
+      image='alpine:latest',
+      command=['echo', 'bye'])
+
+    @dsl.pipeline(name='InitContainer', description='A pipeline with init container.')
+    def init_container_pipeline():
+      dsl.ContainerOp(
+        name='hello',
+        image='alpine:latest',
+        command=['echo', 'hello'],
+        init_containers=[echo])
+
+    workflow_dict = compiler.Compiler()._compile(init_container_pipeline)
+    for template in workflow_dict['spec']['templates']:
+      init_containers = template.get('initContainers', None)
+      if init_containers:
+        self.assertEqual(len(init_containers),1)
+        init_container = init_containers[0]
+        self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})
+

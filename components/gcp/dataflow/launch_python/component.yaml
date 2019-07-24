@@ -15,6 +15,9 @@
 name: Launch Python
 description: |
   Launch a self-executing beam python file.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: python_file_path
     description: 'The gcs or local path to the python file to run.'

@@ -18,6 +18,8 @@ go_library(
         "resource_reference.pb.go",
         "run.pb.go",
         "run.pb.gw.go",
+        "visualization.pb.go",
+        "visualization.pb.gw.go",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/api/go_client",
     visibility = ["//visibility:public"],

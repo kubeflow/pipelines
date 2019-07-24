@@ -20,10 +20,6 @@ RUN easy_install pip
 RUN pip install boto3==1.9.169 sagemaker pathlib2 pyyaml==3.12
 
 COPY hyperparameter_tuning/src/hyperparameter_tuning.py .
-COPY train/src/train.py .
-COPY deploy/src/deploy.py .
-COPY model/src/create_model.py .
-COPY batch_transform/src/batch_transform.py .
 
 COPY common /app/common/
 

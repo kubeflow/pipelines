@@ -161,10 +161,12 @@ func (w *Workflow) HasScheduledWorkflowAsParent() bool {
 	return containsScheduledWorkflow(w.Workflow.OwnerReferences)
 }
 
-func (w *Workflow) GetSpec() *Workflow {
-	spec := w.DeepCopy()
-	spec.Status = workflowapi.WorkflowStatus{}
-	return NewWorkflow(spec)
+func (w *Workflow) GetWorkflowSpec() *Workflow {
+	workflow := w.DeepCopy()
+	workflow.Status = workflowapi.WorkflowStatus{}
+	workflow.TypeMeta = metav1.TypeMeta{Kind: w.Kind, APIVersion: w.APIVersion}
+	workflow.ObjectMeta = metav1.ObjectMeta{Name: w.Name, GenerateName: w.GenerateName}
+	return NewWorkflow(workflow)
 }
 
 // OverrideName sets the name of a Workflow.
