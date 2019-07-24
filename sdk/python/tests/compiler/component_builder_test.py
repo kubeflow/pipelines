@@ -28,7 +28,6 @@ import inspect
 from collections import OrderedDict, namedtuple
 from typing import NamedTuple
 
-
 GCS_BASE = 'gs://kfp-testing/'
 
 class TestVersionedDependency(unittest.TestCase):
@@ -433,7 +432,6 @@ if __name__ == "__main__":
   wrapper_sample_component_func_four(**args)
 '''
     self.assertEqual(golden, generated_codes)
-
 
   def test_generate_entrypoint_python2(self):
     """ Test entrypoint generation for python2"""

@@ -493,7 +493,6 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
   if output_is_named_tuple:
     output_names = return_ann._fields
 
-
   component_spec = ComponentSpec(
       name=component_name,
       description=component_description,
