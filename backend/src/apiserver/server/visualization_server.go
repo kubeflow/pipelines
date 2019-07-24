@@ -40,7 +40,7 @@ func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_cli
 	}
 	// Manually set Arguments to empty JSON if nothing is provided. This is done
 	// because visualizations such as TFDV and TFMA only require an InputPath to
-	// provided for a visualization to be generated. If no JSON is provided
+	// be provided for a visualization to be generated. If no JSON is provided
 	// json.Valid will fail without this check as an empty string is provided for
 	// those visualizations.
 	if len(request.Visualization.Arguments) == 0 {
