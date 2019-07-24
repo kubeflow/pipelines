@@ -30,6 +30,28 @@ from sagemaker.amazon.amazon_estimator import get_image_uri
 import logging
 logging.getLogger().setLevel(logging.INFO)
 
+built_in_algos = {
+    'blazingtext': 'blazingtext',
+    'deepar forecasting': 'forecasting-deepar',
+    'factorization machines': 'factorization-machines',
+    'image classification': 'image-classification',
+    'ip insights': 'ipinsights',
+    'k-means': 'kmeans',
+    'k-nearest neighbors': 'knn',
+    'k-nn': 'knn',
+    'lda': 'lda',
+    'linear learner': 'linear-learner',
+    'neural topic model': 'ntm',
+    'object2vec': 'object2vec',
+    'object detection': 'object-detection',
+    'pca': 'pca',
+    'random cut forest': 'randomcutforest',
+    'semantic segmentation': 'semantic-segmentation',
+    'sequence to sequence': 'seq2seq',
+    'seq2seq modeling': 'seq2seq',
+    'xgboost': 'xgboost'
+}
+
 def get_client(region=None):
     """Builds a client to the AWS SageMaker API."""
     client = boto3.client('sagemaker', region_name=region)
@@ -38,51 +60,102 @@ def get_client(region=None):
 def get_sagemaker_role():
   return get_execution_role()
 
-def create_training_job(client, image, instance_type, instance_count, volume_size, data_location, output_location, role):
-  """Create a Sagemaker training job."""
-  job_name = 'TrainingJob-' + strftime("%Y%m%d%H%M%S", gmtime()) + '-' + id_generator()
+def create_training_job_request(args):
+    with open('/app/common/train.template.yaml', 'r') as f:
+        request = yaml.safe_load(f)
 
-  create_training_params = \
-  {
-      "AlgorithmSpecification": {
-          "TrainingImage": image,
-          "TrainingInputMode": "File"
-      },
-      "RoleArn": role,
-      "OutputDataConfig": {
-          "S3OutputPath": output_location
-      },
-      "ResourceConfig": {
-          "InstanceCount": instance_count,
-          "InstanceType": instance_type,
-          "VolumeSizeInGB": volume_size
-      },
-      "TrainingJobName": job_name,
-      "HyperParameters": {
-          "k": "10",
-          "feature_dim": "784",
-          "mini_batch_size": "500"
-      },
-      "StoppingCondition": {
-          "MaxRuntimeInSeconds": 60 * 60
-      },
-      "InputDataConfig": [
-          {
-              "ChannelName": "train",
-              "DataSource": {
-                  "S3DataSource": {
-                      "S3DataType": "S3Prefix",
-                      "S3Uri": data_location,
-                      "S3DataDistributionType": "FullyReplicated"
-                  }
-              },
-              "CompressionType": "None",
-              "RecordWrapperType": "None"
-          }
-      ]
-  }
-  client.create_training_job(**create_training_params)
-  return job_name
+    job_name = args['job_name'] if args['job_name'] else 'TrainingJob-' + strftime("%Y%m%d%H%M%S", gmtime()) + '-' + id_generator()
+
+    request['TrainingJobName'] = job_name
+    request['RoleArn'] = args['role']
+    request['HyperParameters'] = args['hyperparameters']
+    request['AlgorithmSpecification']['TrainingInputMode'] = args['training_input_mode']
+
+    ### Update training image (for BYOC and built-in algorithms) or algorithm resource name
+    if not args['image'] and not args['algorithm_name']:
+        logging.error('Please specify training image or algorithm name.')
+        raise Exception('Could not create job request')
+    if args['image'] and args['algorithm_name']:
+        logging.error('Both image and algorithm name inputted, only one should be specified. Proceeding with image.')
+
+    if args['image']:
+        request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = args['image']
+        request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
+    else:
+        # TODO: determine if users can make custom algorithm resources that have the same name as built-in algorithm names
+        algo_name = args['algorithm_name'].lower().strip()
+        if algo_name in built_in_algos.keys():
+            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
+            request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
+            logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
+        # Just to give the user more leeway for built-in algorithm name inputs
+        elif algo_name in built_in_algos.values():
+            request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
+            request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
+            logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
+        else:
+            request['TrainingJobDefinition']['AlgorithmSpecification']['AlgorithmName'] = args['algorithm_name']
+            request['TrainingJobDefinition']['AlgorithmSpecification'].pop('TrainingImage')
+
+    ### Update metric definitions
+    if args['metric_definitions']:
+        for key, val in args['metric_definitions'].items():
+            request['AlgorithmSpecification']['MetricDefinitions'].append({'Name': key, 'Regex': val})
+    else:
+        request['AlgorithmSpecification'].pop('MetricDefinitions')
+
+    ### Update or pop VPC configs
+    if args['vpc_security_group_ids'] and args['vpc_subnets']:
+        request['VpcConfig']['SecurityGroupIds'] = [args['vpc_security_group_ids']]
+        request['VpcConfig']['Subnets'] = [args['vpc_subnets']]
+    else:
+        request.pop('VpcConfig')
+
+    ### Update input channels, must have at least one specified
+    if len(args['channels']) > 0:
+        request['InputDataConfig'] = args['channels']
+    else:
+        logging.error("Must specify at least one input channel.")
+        raise Exception('Could not make job request')
+
+    request['OutputDataConfig']['S3OutputPath'] = args['model_artifact_path']
+    request['OutputDataConfig']['KmsKeyId'] = args['output_encryption_key']
+    request['ResourceConfig']['InstanceType'] = args['instance_type']
+    request['ResourceConfig']['VolumeKmsKeyId'] = args['resource_encryption_key']
+    request['EnableNetworkIsolation'] = args['network_isolation']
+    request['EnableInterContainerTrafficEncryption'] = args['traffic_encryption']
+
+    ### Update InstanceCount, VolumeSizeInGB, and MaxRuntimeInSeconds if input is non-empty and > 0, otherwise use default values
+    if args['instance_count']:
+        request['TrainingJobDefinition']['ResourceConfig']['InstanceCount'] = args['instance_count']
+
+    if args['volume_size']:
+        request['TrainingJobDefinition']['ResourceConfig']['VolumeSizeInGB'] = args['volume_size']
+
+    if args['max_run_time']:
+        request['TrainingJobDefinition']['StoppingCondition']['MaxRuntimeInSeconds'] = args['max_run_time']
+
+    ### Update tags
+    for key, val in args['tags'].items():
+        request['Tags'].append({'Key': key, 'Value': val})
+
+    return request
+
+
+def create_training_job(client, args):
+  """Create a Sagemaker training job."""
+  request = create_training_job_request(args)
+  try:
+      client.create_training_job(**request)
+      training_job_name = request['TrainingJobName']
+      logging.info("Created Training Job with name: " + job_name)
+      logging.info("Training job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/jobs/{}"
+        .format(args['region'], args['region'], training_job_name))
+      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/ \
+        TrainingJobs;prefix={};streamFilter=typeLogStreamPrefix".format(args['region'], args['region'], training_job_name))
+      return training_job_name
+  except ClientError as e:
+      raise Exception(e.response['Error']['Message'])
 
 
 def deploy_model(client, model_name):
@@ -153,52 +226,90 @@ def create_endpoint(client, endpoint_config_name):
 
 def wait_for_training_job(client, job_name):
   status = client.describe_training_job(TrainingJobName=job_name)['TrainingJobStatus']
-  print(status)
+  logging.info(status)
   try:
     client.get_waiter('training_job_completed_or_stopped').wait(TrainingJobName=job_name)
   finally:
     status = client.describe_training_job(TrainingJobName=job_name)['TrainingJobStatus']
-    print("Training job ended with status: " + status)
+    logging.info("Training job ended with status: " + status)
     if status == 'Failed':
         message = client.describe_training_job(TrainingJobName=job_name)['FailureReason']
-        print('Training failed with the following error: {}'.format(message))
+        logging.info('Training failed with the following error: {}'.format(message))
         raise Exception('Training job failed')
 
-def create_transform_job(client, model_name, input_location, output_location):
-  batch_job_name = 'BatchTransform' + model_name[model_name.index('-'):]
+def create_transform_job_request(batch_job_name, args):
+    with open('/app/common/transform.template.yaml', 'r') as f:
+        request = yaml.safe_load(f)
 
-  ### Create a transform job
-  request = \
-  {
-      "TransformJobName": batch_job_name,
-      "ModelName": model_name,
-      "MaxConcurrentTransforms": 4,
-      "MaxPayloadInMB": 6,
-      "BatchStrategy": "MultiRecord",
-      "TransformOutput": {
-          "S3OutputPath": output_location
-      },
-      "TransformInput": {
-          "DataSource": {
-              "S3DataSource": {
-                  "S3DataType": "S3Prefix",
-                  "S3Uri": input_location
-              }
-          },
-          "ContentType": "text/csv",
-          "SplitType": "Line",
-          "CompressionType": "None"
-      },
-      "TransformResources": {
-          "InstanceType": "ml.m4.xlarge",
-          "InstanceCount": 1
-      }
-  }
+    job_name = args['job_name'] if args['job_name'] else 'BatchTransform' + args['model_name'][args['model_name'].index('-'):]
+    request['TransformJobName'] = job_name
 
-  client.create_transform_job(**request)
+    request['TransformJobName'] = args['model_name']
 
-  print("Created Transform job with name: ", batch_job_name)
-  return batch_job_name
+    if args['max_concurrent']:
+        request['MaxConcurrentTransforms'] = args['max_concurrent']
+
+    if args['max_payload'] or args['max_payload'] == 0:
+        request['MaxPayloadInMB'] = args['max_payload']
+
+    if args['batch_strategy']:
+        request['BatchStrategy'] = args['batch_strategy']
+    else:
+        request.pop('BatchStrategy')
+
+    request['Environment'] = args['environment']
+
+    if args['data_type']:
+        request['TransformInput']['DataSource']['S3DataSource']['S3DataType'] = args['data_type']
+
+    request['TransformInput']['DataSource']['S3DataSource']['S3Uri'] = args['input_location']
+    request['TransformInput']['ContentType'] = args['content_type']
+
+    if args['compression_type']:
+        request['TransformInput']['CompressionType'] = args['compression_type']
+
+    if args['split_type']:
+        request['TransformInput']['SplitType'] = args['split_type']
+
+    request['TransformOutput']['S3OutputPath'] = args['output_location']
+    request['TransformOutput']['Accept'] = args['accept']
+    request['TransformOutput']['KmsKeyId'] = args['output_encryption_key']
+
+    if args['assemble_with']:
+        request['TransformOutput']['AssembleWith'] = args['assemble_with']
+    else:
+        request['TransformOutput'].pop('AssembleWith')
+
+    request['TransformResources']['InstanceType'] = args['instance_type']
+    request['TransformResources']['InstanceCount'] = args['instance_count']
+    request['TransformResources']['VolumeKmsKeyId'] = args['resource_encryption_key']
+    request['DataProcessing']['InputFilter'] = args['input_filter']
+    request['DataProcessing']['OutputFilter'] = args['output_filter']
+
+    if args['join_source']:
+        request['DataProcessing']['JoinSource'] = args['join_source']
+
+    ### Update tags
+    if args['tags'] != '':
+        for key, val in args['tags'].items():
+            request['Tags'].append({'Key': key, 'Value': val})
+
+    return request
+
+
+def create_transform_job(client, args):
+  request = create_transform_job_request(args)
+  try:
+      client.create_transform_job(**request)
+      batch_job_name = request['TransformJobName']
+      logging.info("Created Transform Job with name: " + batch_job_name)
+      logging.info("Transform job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/jobs/{}"
+        .format(args['region'], args['region'], batch_job_name))
+      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/ \
+        TransformJobs;prefix={};streamFilter=typeLogStreamPrefix".format(args['region'], args['region'], batch_job_name))
+      return batch_job_name
+  except ClientError as e:
+      raise Exception(e.response['Error']['Message'])
 
 
 def wait_for_transform_job(client, batch_job_name):
@@ -206,14 +317,14 @@ def wait_for_transform_job(client, batch_job_name):
   while(True):
     response = client.describe_transform_job(TransformJobName=batch_job_name)
     status = response['TransformJobStatus']
-    if  status == 'Completed':
-      print("Transform job ended with status: " + status)
+    if status == 'Completed':
+      logging.info("Transform job ended with status: " + status)
       break
     if status == 'Failed':
       message = response['FailureReason']
-      print('Transform failed with the following error: {}'.format(message))
+      logging.info('Transform failed with the following error: {}'.format(message))
       raise Exception('Transform job failed')
-    print("Transform job is still in status: " + status)
+    logging.info("Transform job is still in status: " + status)
     time.sleep(30)
 
 def print_tranformation_job_result(output_location):
@@ -224,34 +335,12 @@ def print_tranformation_job_result(output_location):
   s3_client.download_file(bucket, output_key, 'valid-result')
   with open('valid-result') as f:
     results = f.readlines()
-  print("Sample transform result: {}".format(results[0]))
+  logging.info("Sample transform result: {}".format(results[0]))
 
 
 def create_hyperparameter_tuning_job_request(args):
     with open('/app/common/hpo.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
-
-    built_in_algos = {
-        'blazingtext': 'blazingtext',
-        'deepar forecasting': 'forecasting-deepar',
-        'factorization machines': 'factorization-machines',
-        'image classification': 'image-classification',
-        'ip insights': 'ipinsights',
-        'k-means': 'kmeans',
-        'k-nearest neighbors': 'knn',
-        'k-nn': 'knn',
-        'lda': 'lda',
-        'linear learner': 'linear-learner',
-        'neural topic model': 'ntm',
-        'object2vec': 'object2vec',
-        'object detection': 'object-detection',
-        'pca': 'pca',
-        'random cut forest': 'randomcutforest',
-        'semantic segmentation': 'semantic-segmentation',
-        'sequence to sequence': 'seq2seq',
-        'seq2seq modeling': 'seq2seq',
-        'xgboost': 'xgboost'
-    }
 
     ### Create a hyperparameter tuning job
     request['HyperParameterTuningJobName'] = args['job_name']
@@ -285,10 +374,12 @@ def create_hyperparameter_tuning_job_request(args):
         if algo_name in built_in_algos.keys():
             request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
+            logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         # Just to give the user more leeway for built-in algorithm name inputs
         elif algo_name in built_in_algos.values():
             request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
+            logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
         else:
             request['TrainingJobDefinition']['AlgorithmSpecification']['AlgorithmName'] = args['algorithm_name']
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('TrainingImage')
@@ -361,7 +452,10 @@ def create_hyperparameter_tuning_job(client, args):
         job_arn = client.create_hyper_parameter_tuning_job(**request)
         hpo_job_name = request['HyperParameterTuningJobName']
         logging.info("Created Hyperparameter Training Job with name: " + hpo_job_name)
-        logging.info("URL: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/hyper-tuning-jobs/{}".format(args['region'], args['region'], hpo_job_name))
+        logging.info("HPO job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/hyper-tuning-jobs/{}"
+            .format(args['region'], args['region'], hpo_job_name))
+        logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/ \
+            TrainingJobs;prefix={};streamFilter=typeLogStreamPrefix".format(args['region'], args['region'], hpo_job_name))
         return hpo_job_name
     except ClientError as e:
         raise Exception(e.response['Error']['Message'])
@@ -395,3 +489,24 @@ def get_best_training_job_and_hyperparameters(client, hpo_job_name):
 
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
   return ''.join(random.choice(chars) for _ in range(size))
+
+
+def str_to_bool(s):
+  if s.lower() == 'true':
+    return True
+  elif s.lower() == 'false':
+    return False
+  else:
+    raise argparse.ArgumentTypeError('"True" or "False" expected.')
+
+def str_to_int(s):
+  if s:
+    return int(s)
+  else:
+    return 0
+
+def str_to_json(s):
+  if s != '':
+      return json.loads(s)
+  else:
+      return None

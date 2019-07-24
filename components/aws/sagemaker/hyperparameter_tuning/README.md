@@ -11,7 +11,7 @@ For hyperparameter tuning jobs using AWS SageMaker.
 Argument        | Description                 | Optional   | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------| :----------| :----------     | :----------|
 region | The region where the cluster launches | No | String | | |
-job_name | The name of the tuning job. Must be unique within the same AWS account and AWS region | Yes | String | | |
+job_name | The name of the tuning job. Must be unique within the same AWS account and AWS region | No | String | | |
 image | The registry path of the Docker image that contains the training algorithm | No | String | | |
 role | The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf | No | String | | |
 algorithm_name | The name of the algorithm resource to use for the hyperparameter tuning job; only specify this parameter if training image is not specified | Yes | String | | |
