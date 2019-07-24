@@ -324,7 +324,6 @@ class ImageBuilder(object):
         if types[field] not in [int, float, str, bool]:
           raise Exception('Output type not supported and supported types are [int, float, str, bool]')
     
-    
     # inputs is a dictionary with key of argument name and value of type class
     # output is a type class, e.g. int, str, bool ,float, NamedTuple.
 
@@ -393,7 +392,6 @@ class ImageBuilder(object):
     if python_version == 'python2':
       src_lines[start_line_num] = 'def ' + component_func.__name__ + '(' + ', '.join((inspect.getfullargspec(component_func).args)) + '):'
     dedecorated_component_src = '\n'.join(src_lines[start_line_num:])
-
     if output_is_named_tuple:
       dedecorated_component_src = 'from typing import NamedTuple\n' + dedecorated_component_src
 
