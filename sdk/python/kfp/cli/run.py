@@ -108,4 +108,4 @@ def _print_runs(runs):
 def delete(ctx, run_id):
     """delete a KFP run"""
     client = ctx.obj['client']
-    client.delete_run(run_id)
+    client.runs.delete_run(run_id)
