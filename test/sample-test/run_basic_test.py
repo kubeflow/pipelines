@@ -102,7 +102,7 @@ def main():
     exit(1)
 
   ###### Delete Job ######
-  client.delete_run(run_id)
+  #TODO: add deletion when the backend API offers the interface.
 
   ###### Write out the test result in junit xml ######
   utils.write_junit_xml(test_name, args.result, test_cases)
