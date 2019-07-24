@@ -24,35 +24,6 @@ from collections import OrderedDict
 from pathlib import PurePath, Path
 from ..components._components import _create_task_factory_from_component_spec
 
-class GCSHelper(object):
-  """ GCSHelper manages the connection with the GCS storage """
-
-  @staticmethod
-  def get_blob_from_gcs_uri(gcs_path):
-    from google.cloud import storage
-    pure_path = PurePath(gcs_path)
-    gcs_bucket = pure_path.parts[1]
-    gcs_blob = '/'.join(pure_path.parts[2:])
-    client = storage.Client()
-    bucket = client.get_bucket(gcs_bucket)
-    blob = bucket.blob(gcs_blob)
-    return blob
-
-  @staticmethod
-  def upload_gcs_file(local_path, gcs_path):
-    blob = GCSHelper.get_blob_from_gcs_uri(gcs_path)
-    blob.upload_from_filename(local_path)
-
-  @staticmethod
-  def remove_gcs_blob(gcs_path):
-    blob = GCSHelper.get_blob_from_gcs_uri(gcs_path)
-    blob.delete()
-
-  @staticmethod
-  def download_gcs_blob(local_path, gcs_path):
-    blob = GCSHelper.get_blob_from_gcs_uri(gcs_path)
-    blob.download_to_filename(local_path)
-
 class VersionedDependency(object):
   """ DependencyVersion specifies the versions """
   def __init__(self, name, version=None, min_version=None, max_version=None):
@@ -94,7 +65,6 @@ class VersionedDependency(object):
 
   def has_versions(self):
     return (self.has_min_version()) or (self.has_max_version())
-
 
 class DependencyHelper(object):
   """ DependencyHelper manages software dependency information """
@@ -375,6 +345,7 @@ class ImageBuilder(object):
     return complete_component_code
 
   def _build_image_from_tarball(self, local_tarball_path, namespace, timeout):
+    from ._gcs_helper import GCSHelper
     GCSHelper.upload_gcs_file(local_tarball_path, self._gcs_path)
     kaniko_spec = self._generate_kaniko_spec(namespace=namespace,
                                              arc_dockerfile_name=self._arc_dockerfile_name,
