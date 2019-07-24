@@ -53,6 +53,7 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select a run to clone',
       id: 'cloneBtn',
+      style: { minWidth: 100 },
       title: 'Clone run',
       tooltip: 'Create a copy from this run\s initial state',
     };
@@ -74,6 +75,7 @@ export default class Buttons {
       disabled: true,
       disabledTitle: 'Select multiple runs to compare',
       id: 'compareBtn',
+      style: { minWidth: 125 },
       title: 'Compare runs',
       tooltip: 'Compare up to 10 selected runs',
     };
@@ -114,7 +116,6 @@ export default class Buttons {
       tooltip: 'Enable the run\'s trigger',
     };
   }
-
   public expandSections(action: () => void): ToolbarActionConfig {
     return {
       action,
@@ -131,6 +132,7 @@ export default class Buttons {
       icon: AddIcon,
       id: 'newExperimentBtn',
       outlined: true,
+      style: { minWidth: 185 },
       title: 'Create experiment',
       tooltip: 'Create a new experiment',
     };
@@ -143,6 +145,7 @@ export default class Buttons {
       id: 'createNewRunBtn',
       outlined: true,
       primary: true,
+      style: { minWidth: 130 },
       title: 'Create run',
       tooltip: 'Create a new run',
     };
@@ -155,6 +158,7 @@ export default class Buttons {
       id: 'createNewRunBtn',
       outlined: true,
       primary: true,
+      style: { minWidth: 130 },
       title: 'Create run',
       tooltip: 'Create a new run',
     };
@@ -166,6 +170,7 @@ export default class Buttons {
       icon: AddIcon,
       id: 'createNewRecurringRunBtn',
       outlined: true,
+      style: { minWidth: 195 },
       title: 'Create recurring run',
       tooltip: 'Create a new recurring run',
     };
@@ -210,6 +215,7 @@ export default class Buttons {
       icon: AddIcon,
       id: 'uploadBtn',
       outlined: true,
+      style: { minWidth: 160 },
       title: 'Upload pipeline',
       tooltip: 'Upload pipeline',
     };

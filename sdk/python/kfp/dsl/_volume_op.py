@@ -41,7 +41,7 @@ class VolumeOp(ResourceOp):
                  resource_name: str = None,
                  size: str = None,
                  storage_class: str = None,
-                 modes: List[str] = VOLUME_MODE_RWM,
+                 modes: List[str] = None,
                  annotations: Dict[str, str] = None,
                  data_source=None,
                  **kwargs):
@@ -112,7 +112,7 @@ class VolumeOp(ResourceOp):
             requests={"storage": size}
         )
         pvc_spec = V1PersistentVolumeClaimSpec(
-            access_modes=modes,
+            access_modes=modes or VOLUME_MODE_RWM,
             resources=requested_resources,
             storage_class_name=storage_class,
             data_source=data_source

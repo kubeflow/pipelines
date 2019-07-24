@@ -6,7 +6,7 @@ data:
   config: |
     {
     namespace: $(NAMESPACE),
-    executorImage: argoproj/argoexec:v2.3.0,
+    executorImage: gcr.io/ml-pipeline/argoexec:v2.3.0,
     artifactRepository:
     {
         s3: {

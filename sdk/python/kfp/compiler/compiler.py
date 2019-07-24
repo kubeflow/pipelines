@@ -23,6 +23,7 @@ import yaml
 from .. import dsl
 from ._k8s_helper import K8sHelper
 from ._op_to_template import _op_to_template
+from ._default_transformers import add_pod_env
 
 from ..dsl._metadata import TypeMeta, _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
@@ -297,13 +298,11 @@ class Compiler(object):
     # Generate dependencies based on the recursive opsgroups
     #TODO: refactor the following codes with the above
     def _get_dependency_opsgroup(group, dependencies):
-      upstream_op_names = set()
+      upstream_op_names = set([dependency.name for dependency in group.dependencies])
       if group.recursive_ref:
         for param in group.inputs + list(condition_params[group.name]):
           if param.op_name:
             upstream_op_names.add(param.op_name)
-      else:
-        upstream_op_names = set([dependency.name for dependency in group.dependencies])
 
       for op_name in upstream_op_names:
         if op_name in pipeline.ops:
@@ -546,6 +545,10 @@ class Compiler(object):
         'serviceAccountName': 'pipeline-runner'
       }
     }
+    # set ttl after workflow finishes
+    if pipeline.conf.ttl_seconds_after_finished >= 0:
+      workflow['spec']['ttlSecondsAfterFinished'] = pipeline.conf.ttl_seconds_after_finished
+
     if len(pipeline.conf.image_pull_secrets) > 0:
       image_pull_secrets = []
       for image_pull_secret in pipeline.conf.image_pull_secrets:
@@ -649,7 +652,9 @@ class Compiler(object):
       sanitized_ops[sanitized_name] = op
     p.ops = sanitized_ops
 
-    workflow = self._create_pipeline_workflow(args_list_with_defaults, p, p.conf.op_transformers)
+    op_transformers = [add_pod_env]
+    op_transformers.extend(p.conf.op_transformers)
+    workflow = self._create_pipeline_workflow(args_list_with_defaults, p, op_transformers)
     return workflow
 
   def compile(self, pipeline_func, package_path, type_check=True):

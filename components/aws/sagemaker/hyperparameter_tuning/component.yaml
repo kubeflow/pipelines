@@ -1,0 +1,145 @@
+name: 'SageMaker - Hyperparameter Tuning'
+description: |
+  Hyperparameter Tuning Jobs in SageMaker
+inputs:
+  - name: region
+    description: 'The region where the cluster launches.'
+  - name: job_name
+    description: 'The name of the tuning job. Must be unique within the same AWS account and AWS region.'
+  - name: role
+    description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'
+  - name: image
+    description: 'The registry path of the Docker image that contains the training algorithm.'
+    default: ''
+  - name: algorithm_name
+    description: 'The name of the algorithm resource to use for the hyperparameter tuning job. Do not specify a value for this if using training image.'
+    default: ''
+  - name: training_input_mode
+    description: 'The input mode that the algorithm supports. File or Pipe.'
+    default: 'File'
+  - name: metric_definitions
+    description: 'The dictionary of name-regex pairs specify the metrics that the algorithm emits.'
+    default: '{}'
+  - name: strategy
+    description: 'How hyperparameter tuning chooses the combinations of hyperparameter values to use for the training job it launches.'
+    default: 'Bayesian'
+  - name: metric_name
+    description: 'The name of the metric to use for the objective metric.'
+  - name: metric_type
+    description: 'Whether to minimize or maximize the objective metric.'
+  - name: early_stopping_type
+    description: 'Whether to use early stopping for training jobs launched by the tuning job.'
+    default: 'Off'
+  - name: static_parameters
+    description: 'The values of hyperparameters that do not change for the tuning job.'
+    default: '{}'
+  - name: integer_parameters
+    description: 'The array of IntegerParameterRange objects that specify ranges of integer hyperparameters that you want to search.'
+    default: '[]'
+  - name: continuous_parameters
+    description: 'The array of ContinuousParameterRange objects that specify ranges of continuous hyperparameters that you want to search.'
+    default: '[]'
+  - name: categorical_parameters
+    description: 'The array of CategoricalParameterRange objects that specify ranges of categorical hyperparameters that you want to search.'
+    default: '[]'
+  - name: channels
+    description: 'A list of dicts specifying the input channels. Must have at least one.'
+    default: '[{}]'
+  - name: shuffle_config_seed_8
+    description: 'Determines the shuffling order.'
+    default: '0'
+  - name: output_location
+    description: 'The Amazon S3 path where you want Amazon SageMaker to store the model artifacts is from the best training job.'
+  - name: output_encryption_key
+    description: 'The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts.'
+    default: ''
+  - name: instance_type
+    description: 'The ML compute instance type.'
+    default: 'ml.m4.xlarge'
+  - name: instance_count
+    description: 'The number of ML compute instances to use in each training job.'
+    default: '1'
+  - name: volume_size
+    description: 'The size of the ML storage volume that you want to provision.'
+    default: '1'
+  - name: max_num_jobs
+    description: 'The maximum number of training jobs that a hyperparameter tuning job can launch.'
+  - name: max_parallel_jobs
+    description: 'The maximum number of concurrent training jobs that a hyperparameter tuning job can launch.'
+  - name: max_run_time
+    description: 'The maximum run time in seconds per training job.'
+    default: '86400'
+  - name: resource_encryption_key
+    description: 'The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).'
+    default: ''
+  - name: vpc_security_group_ids
+    description: 'The VPC security group IDs, in the form sg-xxxxxxxx.'
+    default: ''
+  - name: vpc_subnets
+    description: 'The ID of the subnets in the VPC to which you want to connect your hpo job.'
+    default: ''
+  - name: network_isolation
+    description: 'Isolates the training container.'
+    default: 'True'
+  - name: traffic_encryption
+    description: 'Encrypts all communications between ML compute instances in distributed training.'
+    default: 'False'
+  - name: warm_start_type
+    description: 'Specifies either "IdenticalDataAndAlgorithm" or "TransferLearning"'
+    default: ''
+  - name: parent_hpo_jobs
+    description: 'List of previously completed or stopped hyperparameter tuning jobs to be used as a starting point.'
+    default: ''
+  - name: tags
+    description: 'Key-value pairs, to categorize AWS resources.'
+    default: '{}'
+outputs:
+  - name: model_artifact_url
+    description: 'Model artifacts url'
+  - name: best_job_name
+    description: 'Best training job in the hyperparameter tuning job'
+  - name: best_hyperparameters
+    description: 'Tuned hyperparameters'
+implementation:
+  container:
+    image: carowang/kfp-aws-sm-hpo:20190719-01
+    command: ['python']
+    args: [
+      hyperparameter_tuning.py,
+      --region, {inputValue: region},
+      --job_name, {inputValue: job_name},
+      --role, {inputValue: role},
+      --image, {inputValue: image},
+      --algorithm_name, {inputValue: algorithm_name},
+      --training_input_mode, {inputValue: training_input_mode},
+      --metric_definitions, {inputValue: metric_definitions},
+      --strategy, {inputValue: strategy},
+      --metric_name, {inputValue: metric_name},
+      --metric_type, {inputValue: metric_type},
+      --early_stopping_type, {inputValue: early_stopping_type},
+      --static_parameters, {inputValue: static_parameters},
+      --integer_parameters, {inputValue: integer_parameters},
+      --continuous_parameters, {inputValue: continuous_parameters},
+      --categorical_parameters, {inputValue: categorical_parameters},
+      --channels, {inputValue: channels},
+      --output_location, {inputValue: output_location},
+      --output_encryption_key, {inputValue: output_encryption_key},
+      --instance_type, {inputValue: instance_type},
+      --instance_count, {inputValue: instance_count},
+      --volume_size, {inputValue: volume_size},
+      --max_num_jobs, {inputValue: max_num_jobs},
+      --max_parallel_jobs, {inputValue: max_parallel_jobs},
+      --resource_encryption_key, {inputValue: resource_encryption_key},
+      --max_run_time, {inputValue: max_run_time},
+      --vpc_security_group_ids, {inputValue: vpc_security_group_ids},
+      --vpc_subnets, {inputValue: vpc_subnets},
+      --network_isolation, {inputValue: network_isolation},
+      --traffic_encryption, {inputValue: traffic_encryption},
+      --warm_start_type, {inputValue: warm_start_type},
+      --parent_hpo_jobs, {inputValue: parent_hpo_jobs},
+      --tags, {inputValue: tags}
+    ]
+    fileOutputs:
+      model_artifact_url: /tmp/model_artifact_url.txt
+      best_job_name: /tmp/best_job_name.txt
+      best_hyperparameters: /tmp/best_hyperparameters.txt

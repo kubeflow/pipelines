@@ -294,9 +294,9 @@ class PythonOpTestCase(unittest.TestCase):
                 description='A pipeline that performs arithmetic calculations.'
             )
             def calc_pipeline(
-                a1=dsl.PipelineParam('a1'),
-                a2=dsl.PipelineParam('a2', value='7'),
-                a3=dsl.PipelineParam('a3', value='17'),
+                a1,
+                a2='7',
+                a3='17',
             ):
                 task_1 = add_op(a1, a2)
                 task_2 = add_op2(a1, a2)

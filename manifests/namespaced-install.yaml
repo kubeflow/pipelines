@@ -66,12 +66,6 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: ml-pipeline
-  namespace: kubeflow
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
   name: ml-pipeline-persistenceagent
   namespace: kubeflow
 ---
@@ -91,6 +85,12 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ml-pipeline-viewer-crd-service-account
+  namespace: kubeflow
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline
   namespace: kubeflow
 ---
 apiVersion: v1
@@ -148,38 +148,6 @@ rules:
   - get
   - list
   - watch
-  - update
-  - patch
-  - delete
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: Role
-metadata:
-  labels:
-    app: ml-pipeline
-  name: ml-pipeline
-  namespace: kubeflow
-rules:
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflows
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - scheduledworkflows
-  verbs:
-  - create
-  - get
-  - list
   - update
   - patch
   - delete
@@ -271,6 +239,38 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: Role
 metadata:
+  labels:
+    app: ml-pipeline
+  name: ml-pipeline
+  namespace: kubeflow
+rules:
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - scheduledworkflows
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: Role
+metadata:
   name: pipeline-runner
   namespace: kubeflow
 rules:
@@ -291,10 +291,18 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - persistentvolumes
   - persistentvolumeclaims
+  verbs:
+  - '*'
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
   verbs:
   - create
   - delete
+  - get
 - apiGroups:
   - argoproj.io
   resources:
@@ -352,9 +360,10 @@ rules:
   - '*'
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRole
+kind: Role
 metadata:
   name: ml-pipeline-viewer-controller-role
+  namespace: kubeflow
 rules:
 - apiGroups:
   - '*'
@@ -394,22 +403,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: argo
-  namespace: kubeflow
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: RoleBinding
-metadata:
-  labels:
-    app: ml-pipeline
-  name: ml-pipeline
-  namespace: kubeflow
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: ml-pipeline
-subjects:
-- kind: ServiceAccount
-  name: ml-pipeline
   namespace: kubeflow
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -459,6 +452,22 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
+  labels:
+    app: ml-pipeline
+  name: ml-pipeline
+  namespace: kubeflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ml-pipeline
+subjects:
+- kind: ServiceAccount
+  name: ml-pipeline
+  namespace: kubeflow
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
   name: pipeline-runner-binding
   namespace: kubeflow
 roleRef:
@@ -487,12 +496,13 @@ subjects:
   namespace: kubeflow
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: ml-pipeline-viewer-crd-binding
+  namespace: kubeflow
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
+  kind: Role
   name: ml-pipeline-viewer-controller-role
 subjects:
 - kind: ServiceAccount
@@ -504,7 +514,7 @@ data:
   config: |
     {
     namespace: kubeflow,
-    executorImage: argoproj/argoexec:v2.3.0,
+    executorImage: gcr.io/ml-pipeline/argoexec:v2.3.0,
     artifactRepository:
     {
         s3: {
@@ -554,6 +564,20 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    app: ml-pipeline-ui
+  name: ml-pipeline-ui
+  namespace: kubeflow
+spec:
+  ports:
+  - port: 80
+    targetPort: 3000
+  selector:
+    app: ml-pipeline-ui
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: ml-pipeline
   namespace: kubeflow
 spec:
@@ -568,20 +592,6 @@ spec:
     targetPort: 8887
   selector:
     app: ml-pipeline
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: ml-pipeline-ui
-  name: ml-pipeline-ui
-  namespace: kubeflow
-spec:
-  ports:
-  - port: 80
-    targetPort: 3000
-  selector:
-    app: ml-pipeline-ui
 ---
 apiVersion: v1
 kind: Service
@@ -619,7 +629,7 @@ spec:
           value: minio
         - name: MINIO_SECRET_KEY
           value: minio123
-        image: minio/minio:RELEASE.2018-02-09T22-40-05Z
+        image: gcr.io/ml-pipeline/minio:RELEASE.2018-02-09T22-40-05Z
         name: minio
         ports:
         - containerPort: 9000
@@ -631,36 +641,6 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: minio-pvc
----
-apiVersion: apps/v1beta2
-kind: Deployment
-metadata:
-  labels:
-    app: ml-pipeline
-  name: ml-pipeline
-  namespace: kubeflow
-spec:
-  selector:
-    matchLabels:
-      app: ml-pipeline
-  template:
-    metadata:
-      labels:
-        app: ml-pipeline
-    spec:
-      containers:
-      - env:
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        image: gcr.io/ml-pipeline/api-server:0.1.23
-        imagePullPolicy: IfNotPresent
-        name: ml-pipeline-api-server
-        ports:
-        - containerPort: 8888
-        - containerPort: 8887
-      serviceAccountName: ml-pipeline
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
@@ -682,7 +662,7 @@ spec:
       - env:
         - name: NAMESPACE
           value: kubeflow
-        image: gcr.io/ml-pipeline/persistenceagent:0.1.23
+        image: gcr.io/ml-pipeline/persistenceagent:0.1.24
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-persistenceagent
       serviceAccountName: ml-pipeline-persistenceagent
@@ -707,7 +687,7 @@ spec:
       - env:
         - name: NAMESPACE
           value: kubeflow
-        image: gcr.io/ml-pipeline/scheduledworkflow:0.1.23
+        image: gcr.io/ml-pipeline/scheduledworkflow:0.1.24
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-scheduledworkflow
       serviceAccountName: ml-pipeline-scheduledworkflow
@@ -732,7 +712,7 @@ spec:
       - env:
         - name: MINIO_NAMESPACE
           value: kubeflow
-        image: gcr.io/ml-pipeline/frontend:0.1.23
+        image: gcr.io/ml-pipeline/frontend:0.1.24
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-ui
         ports:
@@ -757,14 +737,44 @@ spec:
     spec:
       containers:
       - env:
-        - name: MAX_NUM_VIEWERS
-          value: "50"
         - name: NAMESPACE
           value: kubeflow
-        image: gcr.io/ml-pipeline/viewer-crd-controller:0.1.23
+        - name: MAX_NUM_VIEWERS
+          value: "50"
+        image: gcr.io/ml-pipeline/viewer-crd-controller:0.1.24
         imagePullPolicy: Always
         name: ml-pipeline-viewer-crd
       serviceAccountName: ml-pipeline-viewer-crd-service-account
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    app: ml-pipeline
+  name: ml-pipeline
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline
+    spec:
+      containers:
+      - env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: gcr.io/ml-pipeline/api-server:0.1.24
+        imagePullPolicy: IfNotPresent
+        name: ml-pipeline-api-server
+        ports:
+        - containerPort: 8888
+        - containerPort: 8887
+      serviceAccountName: ml-pipeline
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
@@ -786,7 +796,7 @@ spec:
       - env:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "true"
-        image: mysql:5.6
+        image: gcr.io/ml-pipeline/mysql:5.6
         name: mysql
         ports:
         - containerPort: 3306
@@ -816,7 +826,7 @@ spec:
         app: proxy-agent
     spec:
       containers:
-      - image: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.23
+      - image: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.24
         imagePullPolicy: IfNotPresent
         name: proxy-agent
       serviceAccountName: proxy-agent-runner
@@ -851,7 +861,7 @@ spec:
         - --configmap
         - workflow-controller-configmap
         - --executor-image
-        - argoproj/argoexec:v2.3.0
+        - gcr.io/ml-pipeline/argoexec:v2.3.0
         command:
         - workflow-controller
         env:
@@ -860,7 +870,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: argoproj/workflow-controller:v2.3.0
+        image: gcr.io/ml-pipeline/workflow-controller:v2.3.0
         imagePullPolicy: IfNotPresent
         name: workflow-controller
         resources: {}
