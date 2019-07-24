@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.compiler._component_builder import GCSHelper
 from kfp.compiler._component_builder import DockerfileHelper
 from kfp.compiler._component_builder import CodeGenerator
 from kfp.compiler._component_builder import ImageBuilder
