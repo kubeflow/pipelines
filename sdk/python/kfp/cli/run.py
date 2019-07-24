@@ -108,4 +108,11 @@ def _print_runs(runs):
 def delete(ctx, run_id):
     """delete a KFP run"""
     client = ctx.obj['client']
-    client.runs.delete_run(run_id)
+    # KFP backend API DeleteRun() returns google.protobuf.Empty
+    # swagger-generated API spec has this return type translated
+    # to ERRORUNKNOWN, which triggers exception. So we catch
+    # and skip it.
+    try:
+        client.runs.delete_run(run_id)
+    except:
+        pass

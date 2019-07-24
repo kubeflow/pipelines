@@ -45,6 +45,7 @@ setup(
     install_requires=REQUIRES,
     packages=[
         'kfp',
+        'kfp.cli',
         'kfp.compiler',
         'kfp.components',
         'kfp.components.structures',
