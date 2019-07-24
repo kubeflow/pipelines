@@ -72,57 +72,6 @@ func TestValidateCreateVisualizationRequest_ArgumentsNotValidJSON(t *testing.T) 
 	assert.Contains(t, err.Error(), "A visualization requires valid JSON to be provided as Arguments. Received {")
 }
 
-func TestGetArgumentsAsJSONFromRequest(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := NewVisualizationServer(manager)
-	visualization := &go_client.Visualization{
-		Type:      go_client.Visualization_ROC_CURVE,
-		InputPath: "gs://ml-pipeline/roc/data.csv",
-		Arguments: "{\"is_generated\": \"True\"}",
-	}
-	request := &go_client.CreateVisualizationRequest{
-		Visualization: visualization,
-	}
-	arguments, err := server.getArgumentsAsJSONFromRequest(request)
-	assert.Equal(t, []byte("{\"is_generated\":\"True\"}"), arguments)
-	assert.Nil(t, err)
-}
-
-func TestGetArgumentsAsJSONFromRequest_ArgumentsNotValidJSON(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := NewVisualizationServer(manager)
-	visualization := &go_client.Visualization{
-		Type:      go_client.Visualization_ROC_CURVE,
-		InputPath: "gs://ml-pipeline/roc/data.csv",
-		Arguments: "{",
-	}
-	request := &go_client.CreateVisualizationRequest{
-		Visualization: visualization,
-	}
-	arguments, err := server.getArgumentsAsJSONFromRequest(request)
-	assert.Nil(t, arguments)
-	assert.Contains(t, err.Error(), "Unable to parse provided JSON.")
-}
-
-func TestCreatePythonArgumentsFromRequest(t *testing.T) {
-	clients, manager, _ := initWithExperiment(t)
-	defer clients.Close()
-	server := NewVisualizationServer(manager)
-	visualization := &go_client.Visualization{
-		Type:      go_client.Visualization_ROC_CURVE,
-		InputPath: "gs://ml-pipeline/roc/data.csv",
-		Arguments: "{}",
-	}
-	request := &go_client.CreateVisualizationRequest{
-		Visualization: visualization,
-	}
-	pythonArguments, err := server.createPythonArgumentsFromRequest(request)
-	assert.Equal(t, "--type roc_curve --input_path 'gs://ml-pipeline/roc/data.csv' --arguments '{}'", pythonArguments)
-	assert.Nil(t, err)
-}
-
 func TestGenerateVisualization(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()

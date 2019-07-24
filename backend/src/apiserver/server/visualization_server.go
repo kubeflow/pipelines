@@ -52,45 +52,12 @@ func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_cli
 	return nil
 }
 
-// getArgumentsAsJSONFromRequest will convert the values within a
-// go_client.CreateVisualizationRequest object to valid JSON that can be used to
-// pass arguments to the python visualization service.
-// It returns the generated JSON as an array of bytes and any error that is
-// encountered.
-func (s *VisualizationServer) getArgumentsAsJSONFromRequest(request *go_client.CreateVisualizationRequest) ([]byte, error) {
-	var arguments map[string]interface{}
-	if err := json.Unmarshal([]byte(request.Visualization.Arguments), &arguments); err != nil {
-		return nil, util.Wrap(err, "Unable to parse provided JSON.")
-	}
-	args, err := json.Marshal(arguments)
-	if err != nil {
-		return nil, util.Wrap(err, "Unable to compose provided JSON as string.")
-	}
-	return args, nil
-}
-
-// createPythonArgumentsFromRequest converts the values within a
-// go_client.CreateVisualizationRequest object to those expected by the python
-// visualization service.
-// It returns the converted values as a string and any error that is
-// encountered.
-func (s *VisualizationServer) createPythonArgumentsFromRequest(request *go_client.CreateVisualizationRequest) (string, error) {
-	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
-	arguments, err := s.getArgumentsAsJSONFromRequest(request)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("--type %s --input_path '%s' --arguments '%s'", visualizationType, request.Visualization.InputPath, arguments), nil
-}
-
 // generateVisualizationFromRequest communicates with the python visualization
 // service to generate HTML visualizations from a request.
 // It returns the generated HTML as a string and any error that is encountered.
 func (s *VisualizationServer) generateVisualizationFromRequest(request *go_client.CreateVisualizationRequest) ([]byte, error) {
-	arguments, err := s.createPythonArgumentsFromRequest(request)
-	if err != nil {
-		return nil, err
-	}
+	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
+	arguments := fmt.Sprintf("--type %s --input_path %s --arguments '%s'", visualizationType, request.Visualization.InputPath, request.Visualization.Arguments)
 	resp, err := http.PostForm(s.serviceURL, url.Values{"arguments": {arguments}})
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to initialize visualization request.")
