@@ -140,7 +140,7 @@ func TestGenerateVisualization(t *testing.T) {
 	request := &go_client.CreateVisualizationRequest{
 		Visualization: visualization,
 	}
-	body, err := server.GenerateVisualizationFromRequest(request)
+	body, err := server.generateVisualizationFromRequest(request)
 	assert.Equal(t, []byte("roc_curve"), body)
 	assert.Nil(t, err)
 }
@@ -162,7 +162,7 @@ func TestGenerateVisualization_ServerError(t *testing.T) {
 	request := &go_client.CreateVisualizationRequest{
 		Visualization: visualization,
 	}
-	body, err := server.GenerateVisualizationFromRequest(request)
+	body, err := server.generateVisualizationFromRequest(request)
 	assert.Nil(t, body)
 	assert.Equal(t, "500 Internal Server Error", err.Error())
 }

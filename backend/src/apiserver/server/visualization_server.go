@@ -22,7 +22,7 @@ func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *
 	if err := s.validateCreateVisualizationRequest(request); err != nil {
 		return nil, err
 	}
-	body, err := s.GenerateVisualizationFromRequest(request)
+	body, err := s.generateVisualizationFromRequest(request)
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +83,10 @@ func (s *VisualizationServer) createPythonArgumentsFromRequest(request *go_clien
 	return fmt.Sprintf("--type %s --input_path '%s' --arguments '%s'", visualizationType, request.Visualization.InputPath, arguments), nil
 }
 
-// GenerateVisualizationFromRequest communicates with the python visualization
+// generateVisualizationFromRequest communicates with the python visualization
 // service to generate HTML visualizations from a request.
 // It returns the generated HTML as a string and any error that is encountered.
-func (s *VisualizationServer) GenerateVisualizationFromRequest(request *go_client.CreateVisualizationRequest) ([]byte, error) {
+func (s *VisualizationServer) generateVisualizationFromRequest(request *go_client.CreateVisualizationRequest) ([]byte, error) {
 	arguments, err := s.createPythonArgumentsFromRequest(request)
 	if err != nil {
 		return nil, err
