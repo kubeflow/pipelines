@@ -7,14 +7,7 @@ This sample is based on the [Train a Model with a Built-in Algorithm and Deploy 
 The sample trains and deploy a model based on the [MNIST dataset](http://www.deeplearning.net/tutorial/gettingstarted.html).
 
 
-You can create a s3 bucket and follow these instructions to `data` and `valid_data.csv` to your buckets.
-
-```shell
-aws s3 cp s3://kubeflow-pipeline-data/mnist_kmeans_example/data s3://your_bucket/mnist_kmeans_example/data
-aws s3 cp s3://kubeflow-pipeline-data/mnist_kmeans_example/input/valid_data.csv s3://your_bucket/mnist_kmeans_example/input/
-```
-
-`data` and `valid_data.csv` are already prepared by us, if you want to start from scratch, please follow instructions to prepare your datasets and upload to your s3 buckets.
+Create a s3 bucket and use the following python script to copy `train_data`, `test_data`, and `valid_data.csv` to your buckets.
 
 ```python
 import pickle, gzip, numpy, urllib.request, json
@@ -47,8 +40,7 @@ buf.seek(0)
 boto3.resource('s3').Bucket(bucket).Object(train_data_key).upload_fileobj(buf)
 
 # Convert the test data into the format required by the SageMaker KMeans algorithm
-buf = io.BytesIO()
-write_numpy_to_dense_tensor(buf, train_set[0], train_set[1])
+write_numpy_to_dense_tensor(buf, test_set[0], test_set[1])
 buf.seek(0)
 
 boto3.resource('s3').Bucket(bucket).Object(test_data_key).upload_fileobj(buf)

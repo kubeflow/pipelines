@@ -71,7 +71,7 @@ outputs:
   - {name: output_location,    description: 'S3 URI of the transform job results.'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190724-03
+    image: carowang/kfp-aws-sm-transform:20190725-01
     command: ['python']
     args: [
       batch_transform.py,

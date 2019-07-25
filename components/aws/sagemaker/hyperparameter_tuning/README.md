@@ -11,7 +11,7 @@ For hyperparameter tuning jobs using AWS SageMaker.
 Argument        | Description                 | Optional   | Data type  | Accepted values | Default    |
 :---            | :----------                 | :----------| :----------| :----------     | :----------|
 region | The region where the cluster launches | No | String | | |
-job_name | The name of the tuning job. Must be unique within the same AWS account and AWS region | Yes | String | | |
+job_name | The name of the tuning job. Must be unique within the same AWS account and AWS region | Yes | String | | HPOJob-[datetime]-[random id] |
 image | The registry path of the Docker image that contains the training algorithm | No | String | | |
 role | The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf | No | String | | |
 algorithm_name | The name of the algorithm resource to use for the hyperparameter tuning job; only specify this parameter if training image is not specified | Yes | String | | |
@@ -56,9 +56,9 @@ best_hyperparameters | Tuned hyperparameters
 
 # Samples
 ## On its own
-K-Means algorithm tuning on MNIST dataset: /kubeflow/pipelines/samples/aws-samples/mnist-kmeans-sagemaker/kmeans-hpo-pipeline.py
+K-Means algorithm tuning on MNIST dataset: [pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/kmeans-hpo-pipeline.py)
 
-Follow the same steps as in the [README](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/README.md) for the [MNIST classification pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py):
+Follow the steps as in the [README](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/README.md) with some modification:
 1. Get and store data in S3 buckets
 2. Prepare an IAM roles with permissions to run SageMaker jobs
 3. Add 'aws-secret' to your kubeflow namespace
@@ -70,7 +70,7 @@ dsl-compile --py kmeans-hpo-pipeline.py --output kmeans-hpo-pipeline.tar.gz
 6. Once the pipeline completes, you can see the outputs under 'Output parameters' in the HPO component's Input/Output section.
 
 ## Integrated into a pipeline
-MNIST Classification using K-Means pipeline: [Coming Soon]
+MNIST Classification using K-Means pipeline: [Pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py) | [Steps](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/README.md)
 
 # Resources
 * [Using Amazon built-in algorithms](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html)
