@@ -22,6 +22,7 @@ import PagedTable from './PagedTable';
 import ROCCurve from './ROCCurve';
 import TensorboardViewer from './Tensorboard';
 import { PlotType, ViewerConfig } from './Viewer';
+import VisualizationCreator from './VisualizationCreator';
 
 export const componentMap = {
   [PlotType.CONFUSION_MATRIX]: ConfusionMatrix,
@@ -30,6 +31,7 @@ export const componentMap = {
   [PlotType.TABLE]: PagedTable,
   [PlotType.TENSORBOARD]: TensorboardViewer,
   [PlotType.WEB_APP]: HTMLViewer,
+  [PlotType.VISUALIZATION_CREATOR]: VisualizationCreator
 };
 
 interface ViewerContainerProps {

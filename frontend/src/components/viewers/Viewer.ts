@@ -23,6 +23,7 @@ export enum PlotType {
   TABLE = 'table',
   TENSORBOARD = 'tensorboard',
   WEB_APP = 'web-app',
+  VISUALIZATION_CREATOR = 'visualization-creator',
 }
 
 // Interface to be extended by each viewer implementation, so it's possible to
