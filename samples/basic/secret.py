@@ -34,8 +34,8 @@ def use_secret_json_op():
       image='google/cloud-sdk:latest',
       command=['sh', '-c'],
       arguments=[
-          'gcloud auth activate-service-account --key-file /secret/gcp-credentials/user-gcp-sa.json']
-      )
+          'gcloud auth activate-service-account --key-file /secret/gcp-credentials/user-gcp-sa.json'
+          ])
 
 
 @dsl.pipeline(
