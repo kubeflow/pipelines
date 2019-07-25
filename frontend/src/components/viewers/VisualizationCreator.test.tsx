@@ -21,12 +21,12 @@ import VisualizationCreator, { VisualizationCreatorConfig } from './Visualizatio
 import { ApiVisualizationType } from '../../apis/visualization';
 
 describe('VisualizationCreator', () => {
-  it('does not break when no configs are provided', () => {
+  it('does not render component when no config is provided', () => {
     const tree = shallow(<VisualizationCreator configs={[]} />);
     expect(tree).toMatchSnapshot();
   });
 
-  it('does not break when isBusy and onGenerate are not provided', () => {
+  it('renders component when empty config is provided', () => {
     const config: VisualizationCreatorConfig = {
       type: PlotType.VISUALIZATION_CREATOR,
     };
@@ -34,7 +34,7 @@ describe('VisualizationCreator', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('does not break when isBusy is not provided', () => {
+  it('renders component when isBusy is not provided', () => {
     const config: VisualizationCreatorConfig = {
       onGenerate: jest.fn(),
       type: PlotType.VISUALIZATION_CREATOR,
@@ -43,7 +43,7 @@ describe('VisualizationCreator', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('does not break when onGenerate is not provided', () => {
+  it('renders component when onGenerate is not provided', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
       type: PlotType.VISUALIZATION_CREATOR,
@@ -52,7 +52,7 @@ describe('VisualizationCreator', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('does not break when all parameters in config are provided', () => {
+  it('renders component when all parameters in config are provided', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
       onGenerate: jest.fn(),

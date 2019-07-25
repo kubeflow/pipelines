@@ -68,7 +68,9 @@ exports[`VisualizationCreator disables all select and input fields when busy 1`]
 </div>
 `;
 
-exports[`VisualizationCreator does not break when all parameters in config are provided 1`] = `
+exports[`VisualizationCreator does not render component when no config is provided 1`] = `""`;
+
+exports[`VisualizationCreator renders component when all parameters in config are provided 1`] = `
 <div
   style={
     Object {
@@ -136,7 +138,7 @@ exports[`VisualizationCreator does not break when all parameters in config are p
 </div>
 `;
 
-exports[`VisualizationCreator does not break when isBusy and onGenerate are not provided 1`] = `
+exports[`VisualizationCreator renders component when empty config is provided 1`] = `
 <div
   style={
     Object {
@@ -204,7 +206,7 @@ exports[`VisualizationCreator does not break when isBusy and onGenerate are not 
 </div>
 `;
 
-exports[`VisualizationCreator does not break when isBusy is not provided 1`] = `
+exports[`VisualizationCreator renders component when isBusy is not provided 1`] = `
 <div
   style={
     Object {
@@ -272,9 +274,7 @@ exports[`VisualizationCreator does not break when isBusy is not provided 1`] = `
 </div>
 `;
 
-exports[`VisualizationCreator does not break when no configs are provided 1`] = `""`;
-
-exports[`VisualizationCreator does not break when onGenerate is not provided 1`] = `
+exports[`VisualizationCreator renders component when onGenerate is not provided 1`] = `
 <div
   style={
     Object {
