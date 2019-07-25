@@ -276,7 +276,9 @@ class ImageBuilder(object):
   def _prepare_buildfiles(self, docker_filename, python_filename=None, requirement_filename=None):
     """ _prepare_buildfiles generates the tarball with all the build files
     Args:
-      TODO
+      docker_filename (str): docker filename
+      python_filename (str): python filename
+      requirement_filename (str): requirement filename
     """
     file_lists =  {self._arc_docker_filename:docker_filename}
     if python_filename is not None:
