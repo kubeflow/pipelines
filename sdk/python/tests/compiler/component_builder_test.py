@@ -25,7 +25,7 @@ import yaml
 import tarfile
 from pathlib import Path
 import inspect
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from typing import NamedTuple
 
 GCS_BASE = 'gs://kfp-testing/'
@@ -303,6 +303,7 @@ def sample_component_func_three() -> float:
 
 def sample_component_func_four() -> NamedTuple(
     'output', [('a', float), ('b', str)]):
+  from collections import namedtuple
   output = namedtuple('output', ['a', 'b'])
   return output(1.0, 'test')
 
@@ -412,6 +413,7 @@ if __name__ == "__main__":
 from typing import NamedTuple
 def sample_component_func_four() -> NamedTuple(
     'output', [('a', float), ('b', str)]):
+  from collections import namedtuple
   output = namedtuple('output', ['a', 'b'])
   return output(1.0, 'test')
 

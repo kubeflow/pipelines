@@ -325,7 +325,7 @@ class ImageBuilder(object):
           raise Exception('Output type not supported and supported types are [int, float, str, bool]')
     
     # inputs is a dictionary with key of argument name and value of type class
-    # output is a type class, e.g. int, str, bool ,float, NamedTuple.
+    # output is a type class, e.g. int, str, bool, float, NamedTuple.
 
     # Follow the same indentation with the component source codes.
     component_src = inspect.getsource(component_func)
