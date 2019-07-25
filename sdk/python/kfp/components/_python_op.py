@@ -38,7 +38,7 @@ class OutputFile(Generic[T], str):
     pass
 
 #TODO: Replace this image name with another name once people decide what to replace it with.
-_default_base_image='tensorflow/tensorflow:1.11.0-py3'
+_default_base_image='tensorflow/tensorflow:1.13.2-py3'
 
 
 def _python_function_name_to_component_name(name):
