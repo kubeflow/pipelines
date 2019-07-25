@@ -35,9 +35,9 @@ def process_args():
       required=True,
       help='GCS bucket path to store temporary assets from build process')
   parser.add_argument(
-      '--target_image_name',
-      default='component_build',
-      help='Name for the image that will be built by component build')
+      '--target_image',
+      default='component_build:latest',
+      help='Name:tag for the image that will be built by component build')
   parser.add_argument(
       '--container_repo',
       default=None,
@@ -56,26 +56,34 @@ def add(a: float, b: float) -> float:
   print('Adding two values %s and %s' %(a, b))
   return a + b
 
+add_op = None
+
+
+@dsl.pipeline(
+    name='Component build pipeline',
+    description='A simple pipeline to demonstrate component build.'
+)
+def component_build_pipeline(var1=1.0, var2=2.0):
+  add_task = add_op(var1, var2)
+
 
 def main():
   args = process_args()
 
   # Using the build component to create a new docker image with add func code
+  global add_op
   add_op = compiler.build_python_component(
       component_func=add,
       staging_gcs_path=args.output_path,
-      # You can add additional dependencies to the image
+      # You can add add3 tional dependencies to the image
       dependency=[kfp.compiler.VersionedDependency(
           name='google-api-python-client', version='1.7.0')],
       base_image='python:alpine3.6',
-      target_image=args.target_image)
-
-  @dsl.pipeline(
-      name='Component build pipeline',
-      description='A simple pipeline to demonstrate component build.'
-  )
-  def component_build_pipeline(var1=1.0, var2=2.0):
-    add_op(var1, var2)
+      target_image= ''.join([
+          args.container_repo,
+          '/',
+          args.target_image
+          ]))
 
   kfp.compiler.Compiler().compile(component_build_pipeline, __file__ + '.zip')
 
