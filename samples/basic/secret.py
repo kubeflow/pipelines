@@ -24,7 +24,7 @@ def gcs_read_op(url):
       name='Access GCS using auth token',
       image='google/cloud-sdk:latest',
       command=['sh', '-c'],
-      arguments=['gsutil ls '+str(url)]
+      arguments=['gsutil ls ' + str(url)]
       )
 
 
@@ -45,7 +45,7 @@ def use_secret_json_op():
 
 
 def secret_op_pipeline(url='gs://ml-pipeline-playground/shakespeare1.txt'):
-  """A pipeline that requires secret to access cloud hosted resouces."""
+  """A pipeline that uses secret to access cloud hosted resouces."""
 
   gcs_read_task = gcs_read_op(url).apply(
     use_gcp_secret('user-gcp-sa'))
