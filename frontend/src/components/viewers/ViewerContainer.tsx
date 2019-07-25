@@ -30,8 +30,8 @@ export const componentMap = {
   [PlotType.ROC]: ROCCurve,
   [PlotType.TABLE]: PagedTable,
   [PlotType.TENSORBOARD]: TensorboardViewer,
+  [PlotType.VISUALIZATION_CREATOR]: VisualizationCreator,
   [PlotType.WEB_APP]: HTMLViewer,
-  [PlotType.VISUALIZATION_CREATOR]: VisualizationCreator
 };
 
 interface ViewerContainerProps {

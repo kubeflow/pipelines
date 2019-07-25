@@ -28,17 +28,17 @@ import { ApiVisualizationType } from '../../apis/visualization';
 export interface VisualizationCreatorConfig extends ViewerConfig {
   // Whether there is currently a visualization being generated or not.
   isBusy?: boolean;
-  // Function to be called when a visualization with the provided arguments,
-  // inputPath, and visualization type needs to be generated.
+  // Function called to generate a visualization.
   onGenerate?: (visualizationArguments: string, inputPath: string, type: ApiVisualizationType) => void;
 }
 
 interface VisualizationCreatorProps {
   configs: VisualizationCreatorConfig[];
-  maxDimension?: number;
+  maxWidth?: number;
 }
 
 interface VisualizationCreatorState {
+  // arguments is expected to be a JSON object in string form.
   arguments: string;
   inputPath: string;
   selectedType?: ApiVisualizationType;
@@ -79,7 +79,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
 
     return <div
       style={{
-        width: this.props.maxDimension || 600
+        width: this.props.maxWidth || 600
       }}>
       <FormControl style={{ width: '100%' }}>
         <InputLabel htmlFor='visualization-type-selector'>Type</InputLabel>
@@ -110,10 +110,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
 
           Object.keys(ApiVisualizationType) = ['CURVE', 'ROC_CURVE'];
 
-          This occurs due to the dictation of the any type. Without it the
-          following would occur:
-
-          Object.keys(ApiVisualizationType) = ['CURVE'];
+          This occurs due to the dictation of the any type.
         */}
           {Object.keys(ApiVisualizationType)
             .filter((_, i: number) => i % 2 === 0)

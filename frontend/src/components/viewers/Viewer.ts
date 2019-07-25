@@ -22,8 +22,8 @@ export enum PlotType {
   ROC = 'roc',
   TABLE = 'table',
   TENSORBOARD = 'tensorboard',
-  WEB_APP = 'web-app',
   VISUALIZATION_CREATOR = 'visualization-creator',
+  WEB_APP = 'web-app',
 }
 
 // Interface to be extended by each viewer implementation, so it's possible to
