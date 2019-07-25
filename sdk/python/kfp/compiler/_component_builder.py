@@ -93,7 +93,8 @@ class DependencyHelper(object):
     """ write the python packages to a requirement file
     the generated file follows the order of which the packages are added """
     with open(target_file, 'w') as f:
-      for name, version in self.python_packages.items():
+      for name in sorted(self.python_packages.keys()):
+        version = self.python_packages[name]
         version_str = ''
         if version.has_min_version():
           version_str += ' >= ' + version.min_version + ','
@@ -170,7 +171,7 @@ class CodeGenerator(object):
     return line_sep.join(self._code) + line_sep
 
 #TODO: currently it supports single output, future support for multiple return values
-def _func_to_entrypoint(self, component_func, python_version='python3'):
+def _func_to_entrypoint(component_func, python_version='python3'):
   '''
   args:
     python_version (str): choose python2 or python3, default is python3
