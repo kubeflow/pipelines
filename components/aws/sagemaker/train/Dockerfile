@@ -21,9 +21,8 @@ RUN pip install boto3==1.9.169 sagemaker pathlib2 pyyaml==3.12
 
 COPY train/src/train.py .
 
-COPY common/__init__.py /app/common/
-COPY common/_utils.py /app/common/
-COPY common/train.template.yaml /app/common/
+COPY train/train.template.yaml /app/common/
+COPY common /app/common/
 
 ENV PYTHONPATH /app
 

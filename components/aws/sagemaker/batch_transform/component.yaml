@@ -19,7 +19,7 @@ inputs:
     description: 'The number of records to include in a mini-batch for an HTTP inference request.'
     default: ''
   - name: environment
-    description: 'The environment variables to set in the Docker container. Up to 16 key-value entries in the map.'
+    description: 'The dictionary of the environment variables to set in the Docker container. Up to 16 key-value entries in the map.'
     default: '{}'
   - name: input_location
     description: 'The S3 location of the data source that is associated with a channel.'
@@ -71,7 +71,7 @@ outputs:
   - {name: output_location,    description: 'S3 URI of the transform job results.'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190724-02
+    image: carowang/kubeflow-pipeline-aws-sm:20190724-03
     command: ['python']
     args: [
       batch_transform.py,

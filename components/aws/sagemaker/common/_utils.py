@@ -148,11 +148,11 @@ def create_training_job(client, args):
   try:
       client.create_training_job(**request)
       training_job_name = request['TrainingJobName']
-      logging.info("Created Training Job with name: " + job_name)
+      logging.info("Created Training Job with name: " + training_job_name)
       logging.info("Training job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/jobs/{}"
         .format(args['region'], args['region'], training_job_name))
-      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/ \
-        TrainingJobs;prefix={};streamFilter=typeLogStreamPrefix".format(args['region'], args['region'], training_job_name))
+      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/TrainingJobs;prefix={};streamFilter=typeLogStreamPrefix"
+        .format(args['region'], args['region'], training_job_name))
       return training_job_name
   except ClientError as e:
       raise Exception(e.response['Error']['Message'])
@@ -224,27 +224,28 @@ def create_endpoint(client, endpoint_config_name):
       print('Create endpoint failed with the following error: {}'.format(message))
       raise Exception('Endpoint creation did not succeed')
 
-def wait_for_training_job(client, job_name):
-  status = client.describe_training_job(TrainingJobName=job_name)['TrainingJobStatus']
-  logging.info(status)
-  try:
-    client.get_waiter('training_job_completed_or_stopped').wait(TrainingJobName=job_name)
-  finally:
-    status = client.describe_training_job(TrainingJobName=job_name)['TrainingJobStatus']
-    logging.info("Training job ended with status: " + status)
+def wait_for_training_job(client, training_job_name):
+  while(True):
+    response = client.describe_training_job(TrainingJobName=training_job_name)
+    status = response['TrainingJobStatus']
+    if status == 'Completed':
+      logging.info("Training job ended with status: " + status)
+      break
     if status == 'Failed':
-        message = client.describe_training_job(TrainingJobName=job_name)['FailureReason']
-        logging.info('Training failed with the following error: {}'.format(message))
-        raise Exception('Training job failed')
+      message = response['FailureReason']
+      logging.info('Training failed with the following error: {}'.format(message))
+      raise Exception('Training job failed')
+    logging.info("Training job is still in status: " + status)
+    time.sleep(30)
 
-def create_transform_job_request(batch_job_name, args):
+def create_transform_job_request(args):
     with open('/app/common/transform.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
     job_name = args['job_name'] if args['job_name'] else 'BatchTransform' + args['model_name'][args['model_name'].index('-'):]
-    request['TransformJobName'] = job_name
 
-    request['TransformJobName'] = args['model_name']
+    request['TransformJobName'] = job_name
+    request['ModelName'] = args['model_name']
 
     if args['max_concurrent']:
         request['MaxConcurrentTransforms'] = args['max_concurrent']
@@ -305,8 +306,8 @@ def create_transform_job(client, args):
       logging.info("Created Transform Job with name: " + batch_job_name)
       logging.info("Transform job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/jobs/{}"
         .format(args['region'], args['region'], batch_job_name))
-      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/ \
-        TransformJobs;prefix={};streamFilter=typeLogStreamPrefix".format(args['region'], args['region'], batch_job_name))
+      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/TransformJobs;prefix={};streamFilter=typeLogStreamPrefix"
+        .format(args['region'], args['region'], batch_job_name))
       return batch_job_name
   except ClientError as e:
       raise Exception(e.response['Error']['Message'])
@@ -454,8 +455,8 @@ def create_hyperparameter_tuning_job(client, args):
         logging.info("Created Hyperparameter Training Job with name: " + hpo_job_name)
         logging.info("HPO job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/hyper-tuning-jobs/{}"
             .format(args['region'], args['region'], hpo_job_name))
-        logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/ \
-            TrainingJobs;prefix={};streamFilter=typeLogStreamPrefix".format(args['region'], args['region'], hpo_job_name))
+        logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/TrainingJobs;prefix={};streamFilter=typeLogStreamPrefix"
+            .format(args['region'], args['region'], hpo_job_name))
         return hpo_job_name
     except ClientError as e:
         raise Exception(e.response['Error']['Message'])
@@ -505,8 +506,14 @@ def str_to_int(s):
   else:
     return 0
 
-def str_to_json(s):
+def str_to_json_dict(s):
   if s != '':
       return json.loads(s)
   else:
-      return None
+      return {}
+
+def str_to_json_list(s):
+  if s != '':
+      return json.loads(s)
+  else:
+      return []

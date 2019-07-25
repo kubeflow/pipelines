@@ -25,10 +25,10 @@ def main(argv=None):
   parser.add_argument('--role', type=str, required=True, help='The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.')
   parser.add_argument('--image', type=str, required=True, help='The registry path of the Docker image that contains the training algorithm.', default='')
   parser.add_argument('--algorithm_name', type=str, required=False, help='The name of the resource algorithm to use for the training job.', default='')
-  parser.add_argument('--metric_definitions', type=_utils.str_to_json, required=False, help='The dictionary of name-regex pairs specify the metrics that the algorithm emits.', default='{}')
+  parser.add_argument('--metric_definitions', type=_utils.str_to_json_dict, required=False, help='The dictionary of name-regex pairs specify the metrics that the algorithm emits.', default='{}')
   parser.add_argument('--training_input_mode', choices=['File', 'Pipe'], help='The input mode that the algorithm supports. File or Pipe.', default='File')
-  parser.add_argument('--hyperparameters', type=_utils.str_to_json, help='Dictionary of hyperparameters for the the algorithm.', default='{}')
-  parser.add_argument('--channels', type=_utils.str_to_json, required=True, help='A list of dicts specifying the input channels. Must have at least one.', default='[{}]')
+  parser.add_argument('--hyperparameters', type=_utils.str_to_json_dict, help='Dictionary of hyperparameters for the the algorithm.', default='{}')
+  parser.add_argument('--channels', type=_utils.str_to_json_list, required=True, help='A list of dicts specifying the input channels. Must have at least one.')
   parser.add_argument('--instance_type', required=True, choices=['ml.m4.xlarge', 'ml.m4.2xlarge', 'ml.m4.4xlarge', 'ml.m4.10xlarge', 'ml.m4.16xlarge', 'ml.m5.large', 'ml.m5.xlarge', 'ml.m5.2xlarge', 'ml.m5.4xlarge',
     'ml.m5.12xlarge', 'ml.m5.24xlarge', 'ml.c4.xlarge', 'ml.c4.2xlarge', 'ml.c4.4xlarge', 'ml.c4.8xlarge', 'ml.p2.xlarge', 'ml.p2.8xlarge', 'ml.p2.16xlarge', 'ml.p3.2xlarge', 'ml.p3.8xlarge', 'ml.p3.16xlarge',
     'ml.c5.xlarge', 'ml.c5.2xlarge', 'ml.c5.4xlarge', 'ml.c5.9xlarge', 'ml.c5.18xlarge'], help='The ML compute instance type.', default='ml.m4.xlarge')
@@ -42,7 +42,7 @@ def main(argv=None):
   parser.add_argument('--vpc_subnets', type=str, required=False, help='The ID of the subnets in the VPC to which you want to connect your hpo job.')
   parser.add_argument('--network_isolation', type=_utils.str_to_bool, required=False, help='Isolates the training container.', default=True)
   parser.add_argument('--traffic_encryption', type=_utils.str_to_bool, required=False, help='Encrypts all communications between ML compute instances in distributed training.', default=False)
-  parser.add_argument('--tags', type=_utils.str_to_json, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
+  parser.add_argument('--tags', type=_utils.str_to_json_dict, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)

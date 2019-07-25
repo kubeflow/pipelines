@@ -45,10 +45,6 @@ inputs:
     default: '[]'
   - name: channels
     description: 'A list of dicts specifying the input channels. Must have at least one.'
-    default: '[{}]'
-  - name: shuffle_config_seed_8
-    description: 'Determines the shuffling order.'
-    default: '0'
   - name: output_location
     description: 'The Amazon S3 path where you want Amazon SageMaker to store the model artifacts is from the best training job.'
   - name: output_encryption_key
@@ -103,7 +99,7 @@ outputs:
     description: 'Tuned hyperparameters'
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190724-02
+    image: carowang/kubeflow-pipeline-aws-sm:20190724-03
     command: ['python']
     args: [
       hyperparameter_tuning.py,

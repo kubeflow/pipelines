@@ -27,7 +27,7 @@ def main(argv=None):
   parser.add_argument('--max_concurrent', type=_utils.str_to_int, required=False, help='The maximum number of parallel requests that can be sent to each instance in a transform job.', default='0')
   parser.add_argument('--max_payload', type=_utils.str_to_int, required=False, help='The maximum allowed size of the payload, in MB.', default='6')
   parser.add_argument('--batch_strategy', choices=['MultiRecord', 'SingleRecord', ''], required=False, help='The number of records to include in a mini-batch for an HTTP inference request.', default='')
-  parser.add_argument('--environment', type=_utils.str_to_json, required=False, help='The maximum allowed size of the payload, in MB.', default='{}')
+  parser.add_argument('--environment', type=_utils.str_to_json_dict, required=False, help='The dictionary of the environment variables to set in the Docker container. Up to 16 key-value entries in the map.', default='{}')
   parser.add_argument('--input_location', type=str, required=True, help='The S3 location of the data source that is associated with a channel.')
   parser.add_argument('--data_type', choices=['ManifestFile', 'S3Prefix', 'AugmentedManifestFile', ''], required=False, help='Data type of the input. Can be ManifestFile, S3Prefix, or AugmentedManifestFile.', default='S3Prefix')
   parser.add_argument('--content_type', type=str, required=False, help='The multipurpose internet mail extension (MIME) type of the data.', default='')
@@ -45,7 +45,7 @@ def main(argv=None):
     'ml.c5.xlarge', 'ml.c5.2xlarge', 'ml.c5.4xlarge', 'ml.c5.9xlarge', 'ml.c5.18xlarge'], required=True, help='The ML compute instance type for the transform job.', default='ml.m4.xlarge')
   parser.add_argument('--instance_count', type=_utils.str_to_int, required=False, help='The number of ML compute instances to use in the transform job.')
   parser.add_argument('--resource_encryption_key', type=str, required=False, help='The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).', default='')
-  parser.add_argument('--tags', type=_utils.str_to_json, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
+  parser.add_argument('--tags', type=_utils.str_to_json_dict, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
   parser.add_argument('--output_location_file', type=str, required=True, help='File path where the program will write the Amazon S3 URI of the transform job results.')
 
   args = parser.parse_args()

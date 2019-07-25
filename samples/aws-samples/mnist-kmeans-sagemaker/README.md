@@ -32,16 +32,26 @@ import io
 import boto3
 
 bucket = 'bucket-name' # Use the name of your s3 bucket here
-data_key = 'mnist_kmeans_example/data'
-data_location = 's3://{}/{}'.format(bucket, data_key)
-print('training data will be uploaded to: {}'.format(data_location))
+train_data_key = 'mnist_kmeans_example/train_data'
+test_data_key = 'mnist_kmeans_example/test_data'
+train_data_location = 's3://{}/{}'.format(bucket, train_data_key)
+test_data_location = 's3://{}/{}'.format(bucket, test_data_key)
+print('training data will be uploaded to: {}'.format(train_data_location))
+print('training data will be uploaded to: {}'.format(test_data_location))
 
 # Convert the training data into the format required by the SageMaker KMeans algorithm
 buf = io.BytesIO()
 write_numpy_to_dense_tensor(buf, train_set[0], train_set[1])
 buf.seek(0)
 
-boto3.resource('s3').Bucket(bucket).Object(data_key).upload_fileobj(buf)
+boto3.resource('s3').Bucket(bucket).Object(train_data_key).upload_fileobj(buf)
+
+# Convert the test data into the format required by the SageMaker KMeans algorithm
+buf = io.BytesIO()
+write_numpy_to_dense_tensor(buf, train_set[0], train_set[1])
+buf.seek(0)
+
+boto3.resource('s3').Bucket(bucket).Object(test_data_key).upload_fileobj(buf)
 
 # Convert the valid data into the format required by the SageMaker KMeans algorithm
 numpy.savetxt('valid-data.csv', valid_set[0], delimiter=',', fmt='%g')
@@ -87,7 +97,7 @@ Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compi
 The pipeline requires several arguments, replace `role_arn` and data path with your settings.
 
 Once the pipeline done, you can go to `batch_transform_ouput` to check your batch prediction results.
-You will have an model enpoint in service. Please remember to clean it up.
+You will have an model endpoint in service. Please remember to clean it up.
 
 
 ## Prediction
@@ -117,6 +127,9 @@ print(result)
 ```
 
 ## Components source
+
+Hyperparameter Tuning:
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/hyperparameter_tuning/src)
 
 Training:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/train/src)

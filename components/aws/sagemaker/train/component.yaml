@@ -26,7 +26,6 @@ inputs:
     default: '{}'
   - name: channels
     description: 'A list of dicts specifying the input channels. Must have at least one.'
-    default: '[{}]'
   - name: instance_type
     description: 'The ML compute instance type.'
     default: 'ml.m4.xlarge'
@@ -67,7 +66,7 @@ outputs:
   - {name: job_name,              description: 'Training job name'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190724-02
+    image: carowang/kubeflow-pipeline-aws-sm:20190724-03
     command: ['python']
     args: [
       train.py,
