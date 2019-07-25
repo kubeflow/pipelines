@@ -80,7 +80,7 @@ class ContainerBuilder(object):
       tarball.add(dir_name)
 
 
-  def build(self, local_dir, docker_filename, timeout, namespace):
+  def build(self, local_dir, docker_filename, target_image, timeout, namespace):
     # Prepare build context
     with tempfile.TemporaryDirectory() as local_build_dir:
       from ._gcs_helper import GCSHelper
@@ -95,7 +95,7 @@ class ContainerBuilder(object):
       kaniko_spec = self._generate_kaniko_spec(namespace=namespace,
                                                context=context,
                                                docker_filename=docker_filename,
-                                               target_image=self._target_image)
+                                               target_image=target_image)
       logging.info('Start a kaniko job for build.')
       from ._k8s_helper import K8sHelper
       k8s_helper = K8sHelper()

@@ -411,7 +411,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
                                    base_image +
                                    ' and push the image to ' +
                                    target_image)
-    builder = ComponentBuilder(gcs_base=staging_gcs_path, target_image=target_image)
+    builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image)
     builder.build_image_from_func(component_func, namespace=namespace,
                                   base_image=base_image, timeout=timeout,
                                   python_version=python_version, dependency=dependency)
@@ -430,6 +430,6 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
   """
   _configure_logger(logging.getLogger())
-  builder = ComponentBuilder(gcs_base=staging_gcs_path, target_image=target_image)
+  builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image)
   builder.build_image_from_dockerfile(docker_filename=dockerfile_path, timeout=timeout, namespace=namespace)
   logging.info('Build image complete.')
