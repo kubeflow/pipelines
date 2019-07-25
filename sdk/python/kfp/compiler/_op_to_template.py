@@ -172,7 +172,7 @@ def _op_to_template(op: BaseOp):
 
     if isinstance(op, dsl.ContainerOp):
         # default output artifacts
-        output_artifact_paths = OrderedDict(op.output_artifact_paths)
+        output_artifact_paths = OrderedDict(op._output_artifact_paths)
         output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
         output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
 

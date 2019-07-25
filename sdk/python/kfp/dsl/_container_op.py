@@ -1023,7 +1023,7 @@ class ContainerOp(BaseOp):
 
         # attributes specific to `ContainerOp`
         self.file_outputs = file_outputs
-        self.output_artifact_paths = output_artifact_paths or {}
+        self._output_artifact_paths = output_artifact_paths or {}
         self.artifact_location = artifact_location
 
         self._metadata = None
