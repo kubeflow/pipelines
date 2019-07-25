@@ -96,6 +96,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
           onChange={(e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
             this.setState({ selectedType: e.target.value as ApiVisualizationType });
           }}
+          disabled={isBusy}
         >
           {/*
           Due to the swagger API definition generation, getting the keys within
@@ -120,9 +121,10 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
         </Select>
       </FormControl>
 
-      <Input label='Input Path' variant={'outlined'} value={inputPath}
+      <Input label='Input Path' variant={'outlined'} value={inputPath} disabled={isBusy}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.setState({ inputPath: e.target.value })} />
-      <Input label='Arguments (optional)' multiline={true} variant='outlined' value={_arguments}
+      <Input label='Arguments (optional)' multiline={true} variant='outlined'
+        value={_arguments} disabled={isBusy}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.setState({ arguments: e.target.value })} />
       <BusyButton title='Generate Visualization' busy={isBusy} disabled={!canGenerate}
         onClick={() => {

@@ -197,6 +197,18 @@ describe('VisualizationCreator', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('disables all select and input fields when busy', () => {
+    const config: VisualizationCreatorConfig = {
+      isBusy: true,
+      type: PlotType.VISUALIZATION_CREATOR,
+    };
+    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    // toMatchSnapshot is used rather than three individual checks for the
+    // disabled prop due to an issue where the Input components are not
+    // selectable by tree.find().
+    expect(tree).toMatchSnapshot();
+  });
+
   it('returns friendly display name', () => {
     expect(VisualizationCreator.prototype.getDisplayName()).toBe('Visualization Creator');
   });

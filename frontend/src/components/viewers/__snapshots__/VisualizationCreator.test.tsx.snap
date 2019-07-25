@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`VisualizationCreator does not break when all parameters in config are provided 1`] = `
+exports[`VisualizationCreator disables all select and input fields when busy 1`] = `
 <div
   style={
     Object {
@@ -21,6 +21,7 @@ exports[`VisualizationCreator does not break when all parameters in config are p
       Type
     </WithStyles(WithFormControlContext(InputLabel))>
     <WithStyles(WithFormControlContext(Select))
+      disabled={true}
       inputProps={
         Object {
           "id": "visualization-type-selector",
@@ -44,12 +45,82 @@ exports[`VisualizationCreator does not break when all parameters in config are p
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
+    disabled={true}
     label="Input Path"
     onChange={[Function]}
     value=""
     variant="outlined"
   />
   <Component
+    disabled={true}
+    label="Arguments (optional)"
+    multiline={true}
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <BusyButton
+    busy={true}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
+exports[`VisualizationCreator does not break when all parameters in config are provided 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+    >
+      <WithStyles(MenuItem)
+        key="CURVE"
+        value="CURVE"
+      >
+        CURVE
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Input Path"
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <Component
+    disabled={false}
     label="Arguments (optional)"
     multiline={true}
     onChange={[Function]}
@@ -86,6 +157,7 @@ exports[`VisualizationCreator does not break when isBusy and onGenerate are not 
       Type
     </WithStyles(WithFormControlContext(InputLabel))>
     <WithStyles(WithFormControlContext(Select))
+      disabled={false}
       inputProps={
         Object {
           "id": "visualization-type-selector",
@@ -109,12 +181,14 @@ exports[`VisualizationCreator does not break when isBusy and onGenerate are not 
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
+    disabled={false}
     label="Input Path"
     onChange={[Function]}
     value=""
     variant="outlined"
   />
   <Component
+    disabled={false}
     label="Arguments (optional)"
     multiline={true}
     onChange={[Function]}
@@ -151,6 +225,7 @@ exports[`VisualizationCreator does not break when isBusy is not provided 1`] = `
       Type
     </WithStyles(WithFormControlContext(InputLabel))>
     <WithStyles(WithFormControlContext(Select))
+      disabled={false}
       inputProps={
         Object {
           "id": "visualization-type-selector",
@@ -174,12 +249,14 @@ exports[`VisualizationCreator does not break when isBusy is not provided 1`] = `
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
+    disabled={false}
     label="Input Path"
     onChange={[Function]}
     value=""
     variant="outlined"
   />
   <Component
+    disabled={false}
     label="Arguments (optional)"
     multiline={true}
     onChange={[Function]}
@@ -218,6 +295,7 @@ exports[`VisualizationCreator does not break when onGenerate is not provided 1`]
       Type
     </WithStyles(WithFormControlContext(InputLabel))>
     <WithStyles(WithFormControlContext(Select))
+      disabled={false}
       inputProps={
         Object {
           "id": "visualization-type-selector",
@@ -241,12 +319,14 @@ exports[`VisualizationCreator does not break when onGenerate is not provided 1`]
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
+    disabled={false}
     label="Input Path"
     onChange={[Function]}
     value=""
     variant="outlined"
   />
   <Component
+    disabled={false}
     label="Arguments (optional)"
     multiline={true}
     onChange={[Function]}
@@ -283,6 +363,7 @@ exports[`VisualizationCreator renders the provided arguments correctly 1`] = `
       Type
     </WithStyles(WithFormControlContext(InputLabel))>
     <WithStyles(WithFormControlContext(Select))
+      disabled={false}
       inputProps={
         Object {
           "id": "visualization-type-selector",
@@ -306,12 +387,14 @@ exports[`VisualizationCreator renders the provided arguments correctly 1`] = `
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
+    disabled={false}
     label="Input Path"
     onChange={[Function]}
     value=""
     variant="outlined"
   />
   <Component
+    disabled={false}
     label="Arguments (optional)"
     multiline={true}
     onChange={[Function]}
@@ -348,6 +431,7 @@ exports[`VisualizationCreator renders the provided input path correctly 1`] = `
       Type
     </WithStyles(WithFormControlContext(InputLabel))>
     <WithStyles(WithFormControlContext(Select))
+      disabled={false}
       inputProps={
         Object {
           "id": "visualization-type-selector",
@@ -371,12 +455,14 @@ exports[`VisualizationCreator renders the provided input path correctly 1`] = `
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
+    disabled={false}
     label="Input Path"
     onChange={[Function]}
     value="gs://ml-pipeline/data.csv"
     variant="outlined"
   />
   <Component
+    disabled={false}
     label="Arguments (optional)"
     multiline={true}
     onChange={[Function]}
@@ -413,6 +499,7 @@ exports[`VisualizationCreator renders the selected visualization type correctly 
       Type
     </WithStyles(WithFormControlContext(InputLabel))>
     <WithStyles(WithFormControlContext(Select))
+      disabled={false}
       inputProps={
         Object {
           "id": "visualization-type-selector",
@@ -437,12 +524,14 @@ exports[`VisualizationCreator renders the selected visualization type correctly 
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
+    disabled={false}
     label="Input Path"
     onChange={[Function]}
     value=""
     variant="outlined"
   />
   <Component
+    disabled={false}
     label="Arguments (optional)"
     multiline={true}
     onChange={[Function]}
