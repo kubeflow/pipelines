@@ -25,6 +25,9 @@ exports[`AllRunsList renders all runs 1`] = `
             "id": "createNewRunBtn",
             "outlined": true,
             "primary": true,
+            "style": Object {
+              "minWidth": 130,
+            },
             "title": "Create run",
             "tooltip": "Create a new run",
           },
@@ -33,6 +36,9 @@ exports[`AllRunsList renders all runs 1`] = `
             "icon": [Function],
             "id": "newExperimentBtn",
             "outlined": true,
+            "style": Object {
+              "minWidth": 185,
+            },
             "title": "Create experiment",
             "tooltip": "Create a new experiment",
           },
@@ -41,6 +47,9 @@ exports[`AllRunsList renders all runs 1`] = `
             "disabled": true,
             "disabledTitle": "Select multiple runs to compare",
             "id": "compareBtn",
+            "style": Object {
+              "minWidth": 125,
+            },
             "title": "Compare runs",
             "tooltip": "Compare up to 10 selected runs",
           },
@@ -49,6 +58,9 @@ exports[`AllRunsList renders all runs 1`] = `
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
+            "style": Object {
+              "minWidth": 100,
+            },
             "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },

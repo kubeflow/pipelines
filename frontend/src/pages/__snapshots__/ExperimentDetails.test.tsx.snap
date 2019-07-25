@@ -88,6 +88,9 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "id": "createNewRunBtn",
             "outlined": true,
             "primary": true,
+            "style": Object {
+              "minWidth": 130,
+            },
             "title": "Create run",
             "tooltip": "Create a new run",
           },
@@ -96,6 +99,9 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "icon": [Function],
             "id": "createNewRecurringRunBtn",
             "outlined": true,
+            "style": Object {
+              "minWidth": 195,
+            },
             "title": "Create recurring run",
             "tooltip": "Create a new recurring run",
           },
@@ -104,6 +110,9 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "disabled": true,
             "disabledTitle": "Select multiple runs to compare",
             "id": "compareBtn",
+            "style": Object {
+              "minWidth": 125,
+            },
             "title": "Compare runs",
             "tooltip": "Compare up to 10 selected runs",
           },
@@ -112,6 +121,9 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
+            "style": Object {
+              "minWidth": 100,
+            },
             "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
@@ -442,6 +454,9 @@ exports[`ExperimentDetails removes all description text after second newline and
             "id": "createNewRunBtn",
             "outlined": true,
             "primary": true,
+            "style": Object {
+              "minWidth": 130,
+            },
             "title": "Create run",
             "tooltip": "Create a new run",
           },
@@ -450,6 +465,9 @@ exports[`ExperimentDetails removes all description text after second newline and
             "icon": [Function],
             "id": "createNewRecurringRunBtn",
             "outlined": true,
+            "style": Object {
+              "minWidth": 195,
+            },
             "title": "Create recurring run",
             "tooltip": "Create a new recurring run",
           },
@@ -458,6 +476,9 @@ exports[`ExperimentDetails removes all description text after second newline and
             "disabled": true,
             "disabledTitle": "Select multiple runs to compare",
             "id": "compareBtn",
+            "style": Object {
+              "minWidth": 125,
+            },
             "title": "Compare runs",
             "tooltip": "Compare up to 10 selected runs",
           },
@@ -466,6 +487,9 @@ exports[`ExperimentDetails removes all description text after second newline and
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
+            "style": Object {
+              "minWidth": 100,
+            },
             "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
@@ -783,6 +807,9 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "id": "createNewRunBtn",
             "outlined": true,
             "primary": true,
+            "style": Object {
+              "minWidth": 130,
+            },
             "title": "Create run",
             "tooltip": "Create a new run",
           },
@@ -791,6 +818,9 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "icon": [Function],
             "id": "createNewRecurringRunBtn",
             "outlined": true,
+            "style": Object {
+              "minWidth": 195,
+            },
             "title": "Create recurring run",
             "tooltip": "Create a new recurring run",
           },
@@ -799,6 +829,9 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "disabled": true,
             "disabledTitle": "Select multiple runs to compare",
             "id": "compareBtn",
+            "style": Object {
+              "minWidth": 125,
+            },
             "title": "Compare runs",
             "tooltip": "Compare up to 10 selected runs",
           },
@@ -807,6 +840,9 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
+            "style": Object {
+              "minWidth": 100,
+            },
             "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
@@ -1122,6 +1158,9 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "id": "createNewRunBtn",
             "outlined": true,
             "primary": true,
+            "style": Object {
+              "minWidth": 130,
+            },
             "title": "Create run",
             "tooltip": "Create a new run",
           },
@@ -1130,6 +1169,9 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "icon": [Function],
             "id": "createNewRecurringRunBtn",
             "outlined": true,
+            "style": Object {
+              "minWidth": 195,
+            },
             "title": "Create recurring run",
             "tooltip": "Create a new recurring run",
           },
@@ -1138,6 +1180,9 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "disabled": true,
             "disabledTitle": "Select multiple runs to compare",
             "id": "compareBtn",
+            "style": Object {
+              "minWidth": 125,
+            },
             "title": "Compare runs",
             "tooltip": "Compare up to 10 selected runs",
           },
@@ -1146,6 +1191,9 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "disabled": true,
             "disabledTitle": "Select a run to clone",
             "id": "cloneBtn",
+            "style": Object {
+              "minWidth": 100,
+            },
             "title": "Clone run",
             "tooltip": "Create a copy from this runs initial state",
           },
