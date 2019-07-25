@@ -45,8 +45,6 @@ interface VisualizationCreatorState {
 }
 
 class VisualizationCreator extends Viewer<VisualizationCreatorProps, VisualizationCreatorState> {
-  private _config = this.props.configs[0];
-
   constructor(props: VisualizationCreatorProps) {
     super(props);
     this.state = {
@@ -60,13 +58,15 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
   }
 
   public render(): JSX.Element | null {
+    const { configs } = this.props;
+    const config = configs[0];
     const { arguments: _arguments, inputPath, selectedType } = this.state;
 
-    if (!this._config) {
+    if (!config) {
       return null;
     }
 
-    const { isBusy = false, onGenerate } = this._config;
+    const { isBusy = false, onGenerate } = config;
 
     // Only allow a visualization to be generated if one is not already being
     // generated (as indicated by the isBusy tag), and if there is an inputPath
