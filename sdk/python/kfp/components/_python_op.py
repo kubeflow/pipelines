@@ -249,7 +249,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     arguments = []
     for input in component_spec.inputs:
         param_flag = "--" + input.name.replace("_", "-")
-        is_required = not input.optional and input.default is None
+        is_required = not input.optional #TODO: Make all parameters with default values optional in argparse so that the complex defaults can be preserved.
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default={default_repr})'.format(
             param_flag=param_flag,
             param_var=input.name,
