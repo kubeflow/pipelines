@@ -44,7 +44,7 @@ class TestContainerBuild(unittest.TestCase):
       temp_files = temp_tarball_handle.getmembers()
       self.assertTrue(len(temp_files) == 2)
       for temp_file in temp_files:
-        self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
+        self.assertTrue(temp_file.name in ['test_data_one.tmp', 'test_data_two.tmp'])
 
     # clean up
     os.remove(temp_tarball)

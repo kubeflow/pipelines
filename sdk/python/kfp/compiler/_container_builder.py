@@ -74,15 +74,14 @@ class ContainerBuilder(object):
 
   def _wrap_dir_in_tarball(self, tarball_path, dir_name):
     """ _wrap_files_in_tarball creates a tarball for all the files in the directory"""
+    old_wd = os.getcwd()
+    os.chdir(dir_name)
     if not tarball_path.endswith('.tar.gz'):
       raise ValueError('the tarball path should end with .tar.gz')
     with tarfile.open(tarball_path, 'w:gz') as tarball:
-      for r, d, f in os.walk(dir_name):
-        for dir in d:
-          print(dir)
-          tarball.add(os.path.join(r, dir))
-        for file in f:
-          tarball.add(os.path.join(r, file))
+      for f in os.listdir(dir_name):
+        tarball.add(f)
+    os.chdir(old_wd)
 
 
   def build(self, local_dir, docker_filename, target_image, timeout, namespace):
