@@ -122,20 +122,13 @@ cd ${BASE_DIR}
 
 # Install argo
 echo "install argo"
-ARGO_VERSION=v2.2.0
+ARGO_VERSION=v2.3.0
 mkdir -p ~/bin/
 export PATH=~/bin/:$PATH
 curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
 chmod +x ~/bin/argo
 
 echo "Run the sample tests..."
-
-# Generate Python package
-cd ${BASE_DIR}/sdk/python
-./build.sh /tmp/kfp.tar.gz
-
-# Install python client, including DSL compiler.
-pip3 install /tmp/kfp.tar.gz
 
 # Run the tests
 if [ "$TEST_NAME" == 'tf-training' ]; then
@@ -224,19 +217,6 @@ elif [ "$TEST_NAME" == "exithandler" ]; then
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_EXIT_HANDLER_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_EXIT_HANDLER_TEST_RESULT}
-elif [ "$TEST_NAME" == "immediatevalue" ]; then
-  SAMPLE_IMMEDIATE_VALUE_TEST_RESULT=junit_SampleImmediateValueOutput.xml
-  SAMPLE_IMMEDIATE_VALUE_TEST_OUTPUT=${RESULTS_GCS_DIR}
-
-  # Compile samples
-  cd ${BASE_DIR}/samples/basic
-  dsl-compile --py immediate_value.py --output immediate_value.zip
-
-  cd "${TEST_DIR}"
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/immediate_value.zip --result $SAMPLE_IMMEDIATE_VALUE_TEST_RESULT --output $SAMPLE_IMMEDIATE_VALUE_TEST_OUTPUT --testname immediatevalue --namespace ${NAMESPACE}
-
-  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
-  gsutil cp ${SAMPLE_IMMEDIATE_VALUE_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_IMMEDIATE_VALUE_TEST_RESULT}
 elif [ "$TEST_NAME" == "paralleljoin" ]; then
   SAMPLE_PARALLEL_JOIN_TEST_RESULT=junit_SampleParallelJoinOutput.xml
   SAMPLE_PARALLEL_JOIN_TEST_OUTPUT=${RESULTS_GCS_DIR}

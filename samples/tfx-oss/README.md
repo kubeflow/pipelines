@@ -21,8 +21,8 @@ then activate the environment.
 Install TensorFlow, TFX and Kubeflow Pipelines SDK
 ```
 pip install tensorflow --upgrade
-pip install https://storage.googleapis.com/ml-pipeline/tfx/tfx-0.12.0rc0-py2.py3-none-any.whl 
-pip install https://storage.googleapis.com/ml-pipeline/release/0.1.10/kfp.tar.gz --upgrade
+pip install tfx 
+pip install kfp --upgrade
 ```
 
 Clone TFX github repo
@@ -58,4 +58,4 @@ Configure
 python tfx/tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
 ```
 This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz
-Upload this file to the Pipelines Cluster and crate a run.
+Upload this file to the Pipelines Cluster and create a run.

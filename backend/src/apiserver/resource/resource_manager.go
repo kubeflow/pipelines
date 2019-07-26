@@ -443,7 +443,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 			FinishedAtInSec:  workflow.FinishedAt(),
 			Conditions:       workflow.Condition(),
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
+				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{

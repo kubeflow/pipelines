@@ -47,11 +47,11 @@
 # cat <<EOT > ~/vcap.json
 # {
 #    "credentials": {
-#              "tenant_id": "s12345676",
-#              "tenant_id_full": "s123567-890",
-#              "cluster_master_url": "https://169.54.219.20",
-#              "instance_id": "1ed3b844-f507-44ae-aa1b-9e6f8a79d781",
-#              "tenant_secret": "e407f6f4-0c37-4428-bd16-e66caa73bb4b",
+#              "tenant_id": "xxxxxx",
+#              "tenant_id_full": "xxxxxx",
+#              "cluster_master_url": "https://x.x.x.x",
+#              "instance_id": "xxxxxx",
+#              "tenant_secret": "xxxxx",
 #              "plan": "ibm.SparkService.PayGoPersonal"
 #          }
 #    }
@@ -64,7 +64,7 @@
 #    --vcap ~/vcap.json \
 #    --deploy-mode cluster \
 #    --class com.ibm.sparkservice.App \
-#    --master https://169.54.219.20 \
+#    --master https://x.x.x.x\
 #    --jars /path/to/mock-library-1.0.jar,/path/to/mock-utils-1.0.jar \
 #    ~/mock-app-1.0.jar
 #

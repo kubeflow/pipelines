@@ -43,7 +43,7 @@ def query(query, project_id, dataset_id=None, table_id=None,
     Returns:
         The API representation of the completed query job.
     """
-    client = bigquery.Client(project=project_id)
+    client = bigquery.Client(project=project_id, location=dataset_location)
     if not job_config:
         job_config = bigquery.QueryJobConfig()
         job_config.create_disposition = bigquery.job.CreateDisposition.CREATE_IF_NEEDED

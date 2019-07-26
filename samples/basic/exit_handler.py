@@ -30,12 +30,13 @@ def gcs_download_op(url):
     )
 
 
-def echo_op(text):
+def echo_op(text, is_exit_handler=False):
     return dsl.ContainerOp(
         name='echo',
         image='library/bash:4.4.23',
         command=['sh', '-c'],
-        arguments=['echo "$0"', text]
+        arguments=['echo "$0"', text],
+        is_exit_handler=is_exit_handler
     )
 
 
@@ -46,7 +47,7 @@ def echo_op(text):
 def download_and_print(url='gs://ml-pipeline-playground/shakespeare1.txt'):
     """A sample pipeline showing exit handler."""
 
-    exit_task = echo_op('exit!')
+    exit_task = echo_op('exit!', is_exit_handler=True)
 
     with dsl.ExitHandler(exit_task):
         download_task = gcs_download_op(url)

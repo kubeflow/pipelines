@@ -70,12 +70,9 @@ class TypeMeta(BaseMeta):
 
   @staticmethod
   def deserialize(payload):
-    # If the payload is a string of a dict serialization, convert it back to a dict
-    try:
-      import ast
-      payload = ast.literal_eval(payload)
-    except:
-      pass
+    '''deserialize expects two types of input: dict and str
+    1) If the payload is a string, the type is named as such with no properties.
+    2) If the payload is a dict, the type name and properties are extracted. '''
     return TypeMeta.from_dict_or_str(payload)
 
 class ParameterMeta(BaseMeta):
@@ -138,6 +135,9 @@ def _annotation_to_typemeta(annotation):
   '''_annotation_to_type_meta converts an annotation to an instance of TypeMeta
   Args:
     annotation(BaseType/str/dict): input/output annotations
+      BaseType: registered in kfp.dsl.types
+      str: either a string of a dict serialization or a string of the type name
+      dict: type name and properties. note that the properties values can be dict.
   Returns:
     TypeMeta
     '''
@@ -157,6 +157,10 @@ def _annotation_to_typemeta(annotation):
 def _extract_component_metadata(func):
   '''Creates component metadata structure instance based on the function signature.'''
 
+  # Importing here to prevent circular import failures
+  #TODO: Change _pipeline_param to stop importing _metadata
+  from ._pipeline_param import PipelineParam
+
   import inspect
   fullargspec = inspect.getfullargspec(func)
   annotations = fullargspec.annotations
@@ -172,6 +176,8 @@ def _extract_component_metadata(func):
   for arg in fullargspec.args:
     arg_type = TypeMeta()
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
+    if isinstance(arg_default, PipelineParam):
+      arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
     inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
@@ -199,6 +205,10 @@ def _extract_component_metadata(func):
 def _extract_pipeline_metadata(func):
   '''Creates pipeline metadata structure instance based on the function signature.'''
 
+  # Importing here to prevent circular import failures
+  #TODO: Change _pipeline_param to stop importing _metadata
+  from ._pipeline_param import PipelineParam
+
   import inspect
   fullargspec = inspect.getfullargspec(func)
   args = fullargspec.args
@@ -219,8 +229,18 @@ def _extract_pipeline_metadata(func):
   for arg in args:
     arg_type = TypeMeta()
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
+    if isinstance(arg_default, PipelineParam):
+      arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
+    if 'openapi_schema_validator' in arg_type.properties and arg_default is not None:
+      from jsonschema import validate
+      import json
+      schema_object = arg_type.properties['openapi_schema_validator']
+      if isinstance(schema_object, str):
+        # In case the property value for the schema validator is a string instead of a dict.
+        schema_object = json.loads(arg_type.properties['openapi_schema_validator'])
+      validate(instance=arg_default, schema=schema_object)
     pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
 
   #TODO: add descriptions to the metadata

@@ -1,10 +1,10 @@
-FROM selenium/standalone-chrome
+FROM selenium/standalone-chrome:3.141.59-oxygen
 
 USER root
 
 WORKDIR /src
 
-COPY . . 
+COPY . .
 
 RUN apt-get update -y && apt-get install -y curl && \
     curl -sL https://deb.nodesource.com/setup_8.x | bash - && \

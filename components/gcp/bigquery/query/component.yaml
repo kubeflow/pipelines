@@ -16,6 +16,9 @@ name: Bigquery - Query
 description: |
   A Kubeflow Pipeline component to submit a query to Google Cloud Bigquery 
   service and dump outputs to a Google Cloud Storage blob. 
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: query
     description: 'The query used by Bigquery service to fetch the results.'
@@ -54,13 +57,14 @@ outputs:
     type: GCSPath
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:6554e133dd453c62aea05ebb57a04f897c11d070
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:fe639f41661d8e17fcda64ff8242127620b80ba0
     args: [
       kfp_component.google.bigquery, query,
       --query, {inputValue: query},
       --project_id, {inputValue: project_id},
       --dataset_id, {inputValue: dataset_id},
       --table_id, {inputValue: table_id},
+      --dataset_location, {inputValue: dataset_location},
       --output_gcs_path, {inputValue: output_gcs_path},
       --job_config, {inputValue: job_config}
     ]

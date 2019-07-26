@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as Storage from '@google-cloud/storage';
 import * as express from 'express';
-import { Application, static as StaticHandler } from 'express';
+import {Application, static as StaticHandler} from 'express';
 import * as fs from 'fs';
 import * as proxy from 'http-proxy-middleware';
-import { Client as MinioClient } from 'minio';
+import {Client as MinioClient} from 'minio';
 import fetch from 'node-fetch';
 import * as path from 'path';
 import * as process from 'process';
@@ -25,7 +24,8 @@ import * as process from 'process';
 import * as tar from 'tar';
 import * as k8sHelper from './k8s-helper';
 import proxyMiddleware from './proxy-middleware';
-import { Stream } from 'stream';
+import { Storage } from '@google-cloud/storage';
+import {Stream} from 'stream';
 
 const BASEPATH = '/pipeline';
 
@@ -171,7 +171,7 @@ const artifactsHandler = async (req, res) => {
         matchingFiles.forEach((f, i) => {
           const buffer: Buffer[] = [];
           f.createReadStream()
-            .on('data', (data) => buffer.push(data))
+            .on('data', (data) => buffer.push(Buffer.from(data)))
             .on('end', () => {
               contents += Buffer.concat(buffer).toString().trim() + '\n';
               if (i === matchingFiles.length - 1) {
@@ -260,9 +260,9 @@ const getTensorboardHandler = async (req, res) => {
   }
 
   try {
-    res.send(await k8sHelper.getTensorboardAddress(logdir));
+    res.send(await k8sHelper.getTensorboardInstance(logdir));
   } catch (err) {
-    res.status(500).send('Failed to list Tensorboard pods: ' + err);
+    res.status(500).send('Failed to list Tensorboard pods: ' + JSON.stringify(err));
   }
 };
 
@@ -278,11 +278,11 @@ const createTensorboardHandler = async (req, res) => {
   }
 
   try {
-    await k8sHelper.newTensorboardPod(logdir);
-    const tensorboardAddress = await k8sHelper.waitForTensorboard(logdir, 60 * 1000);
+    await k8sHelper.newTensorboardInstance(logdir);
+    const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, 60 * 1000);
     res.send(tensorboardAddress);
   } catch (err) {
-    res.status(500).send('Failed to start Tensorboard app: ' + err);
+    res.status(500).send('Failed to start Tensorboard app: ' + JSON.stringify(err));
   }
 };
 

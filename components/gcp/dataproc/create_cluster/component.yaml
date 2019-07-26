@@ -15,6 +15,9 @@
 name: dataproc_create_cluster
 description: |
   Creates a DataProc cluster under a project.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: >-
@@ -65,7 +68,7 @@ outputs:
     type: String
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:6554e133dd453c62aea05ebb57a04f897c11d070
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:fe639f41661d8e17fcda64ff8242127620b80ba0
     args: [
       kfp_component.google.dataproc, create_cluster,
       --project_id, {inputValue: project_id},

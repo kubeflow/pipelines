@@ -40,7 +40,7 @@ type APIJob struct {
 	// Optional input field. Describing the purpose of the job
 	Description string `json:"description,omitempty"`
 
-	// enabled
+	// Input. Whether the job is enabled or not.
 	Enabled bool `json:"enabled,omitempty"`
 
 	// In case any error happens retrieving a job field, only job ID

@@ -14,8 +14,13 @@
 
 import logging
 import time
+import json
 
 from googleapiclient import errors
+
+from kfp_component.core import display
+from ._client import MLEngineClient
+from .. import common as gcp_common
 
 def wait_existing_version(ml_client, version_name, wait_interval):
     while True:
@@ -62,3 +67,81 @@ def wait_for_operation_done(ml_client, operation_name, action, wait_interval):
             error.get('message', 'Unknown message'),
         ))
     return operation
+
+def wait_for_job_done(ml_client, project_id, job_id, wait_interval):
+    """Waits for a CMLE job done.
+
+    Args:
+        ml_client: CMLE google api client
+        project_id: the ID of the project which has the job
+        job_id: the ID of the job to wait
+        wait_interval: the interval in seconds to wait between polls.
+
+    Returns:
+        The completed job.
+
+    Raises:
+        RuntimeError if the job finishes with failed or cancelled state.
+    """
+    metadata_dumped = False
+    while True:
+        job = ml_client.get_job(project_id, job_id)
+        print(job)
+        if not metadata_dumped:
+            _dump_job_metadata(project_id, job_id, job)
+            metadata_dumped = True
+        if job.get('state', None) in ['SUCCEEDED', 'FAILED', 'CANCELLED']:
+            break
+        # Move to config from flag
+        logging.info('job status is {}, wait for {}s'.format(
+            job.get('state', None), wait_interval))
+        time.sleep(wait_interval)
+
+    _dump_job(job)
+
+    if job['state'] != 'SUCCEEDED':
+        raise RuntimeError('Job failed with state {}. Error: {}'.format(
+            job['state'], job.get('errorMessage', '')))
+    return job
+
+def _dump_job_metadata(project_id, job_id, job):
+    display.display(display.Link(
+        'https://console.cloud.google.com/mlengine/jobs/{}?project={}'.format(
+            job_id, project_id),
+        'Job Details'
+    ))
+    display.display(display.Link(
+        'https://console.cloud.google.com/logs/viewer?project={}&resource=ml_job/job_id/{}&interval=NO_LIMIT'.format(
+            project_id, job_id),
+        'Logs'
+    ))
+    if 'trainingInput' in job and 'jobDir' in job['trainingInput']:
+        display.display(display.Tensorboard(
+            job['trainingInput']['jobDir']))
+
+def _dump_job(job):
+    logging.info('Dumping job: {}'.format(job))
+    gcp_common.dump_file('/tmp/kfp/output/ml_engine/job.json', json.dumps(job))
+    gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_id.txt', job['jobId'])
+    job_dir = ''
+    if 'trainingInput' in job and 'jobDir' in job['trainingInput']:
+        job_dir = job['trainingInput']['jobDir']
+    gcp_common.dump_file('/tmp/kfp/output/ml_engine/job_dir.txt', 
+        job_dir)
+
+def cancel_job(ml_client, project_id, job_id):
+    """Cancels a CMLE job.
+
+    Args:
+        ml_client: CMLE google api client
+        project_id: the ID of the project which has the job
+        job_id: the ID of the job to cancel
+    """
+    try:
+        logging.info('Cancelling job {}.'.format(job_id))
+        ml_client.cancel_job(project_id, job_id)
+        logging.info('Cancelled job {}.'.format(job_id))
+    except errors.HttpError as e:
+        # Best effort to cancel the job
+        logging.error('Failed to cancel the job: {}'.format(e))
+        pass
