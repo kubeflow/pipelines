@@ -41,7 +41,7 @@ def kubeflow_training(output, project,
     preprocess_mode='local',
     predict_mode='local',
 ):
-    output_template = str(output) + '/{{workflow.uid}}/{{pod.name}}/data'
+    output_template = str(output) + '/' + dsl.task_id_placeholder + '/data'
 
     # set the flag to use GPU trainer
     use_gpu = False
