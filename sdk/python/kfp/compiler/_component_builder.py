@@ -128,11 +128,9 @@ def _generate_dockerfile(filename, base_image, entrypoint_filename, python_versi
   with open(filename, 'w') as f:
     f.write('FROM ' + base_image + '\n')
     if python_version is 'python3':
-      f.write('RUN apt-get update -y && \
-              apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
+      f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
     else:
-      f.write('RUN apt-get update -y && \
-              apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
+      f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
     if requirement_filename is not None:
       f.write('ADD ' + requirement_filename + ' /ml/requirements.txt\n')
       if python_version is 'python3':
@@ -141,9 +139,9 @@ def _generate_dockerfile(filename, base_image, entrypoint_filename, python_versi
         f.write('RUN pip install -r /ml/requirements.txt\n')
     f.write('ADD ' + entrypoint_filename + ' /ml/main.py\n')
     if python_version is 'python3':
-      f.write('ENTRYPOINT ["python3 -u ", "/ml/main.py"]')
+      f.write('ENTRYPOINT ["python3 -u", "/ml/main.py"]')
     else:
-      f.write('ENTRYPOINT ["python -u ", "/ml/main.py"]')
+      f.write('ENTRYPOINT ["python -u", "/ml/main.py"]')
 
 class CodeGenerator(object):
   """ CodeGenerator helps to generate python codes with identation """
