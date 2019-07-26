@@ -274,9 +274,10 @@ class ImageBuilder(object):
       for key, value in files.items():
         tarball.add(value, arcname=key)
 
-  def _prepare_buildfiles(self, docker_filename, python_filename=None, requirement_filename=None):
+  def _prepare_buildfiles(self, local_tarball_path, docker_filename, python_filename=None, requirement_filename=None):
     """ _prepare_buildfiles generates the tarball with all the build files
     Args:
+      local_tarball_path (str): generated tarball file
       docker_filename (str): docker filename
       python_filename (str): python filename
       requirement_filename (str): requirement filename
@@ -286,7 +287,7 @@ class ImageBuilder(object):
       file_lists[self._arc_python_filename] = python_filename
     if requirement_filename is not None:
       file_lists[self._arc_requirement_filename] = requirement_filename
-    self._wrap_files_in_tarball(self._tarball_filename, file_lists)
+    self._wrap_files_in_tarball(local_tarball_path, file_lists)
 
   def _check_gcs_path(self, gcs_path):
     """ _check_gcs_path check both the path validity and write permissions """
@@ -375,7 +376,7 @@ class ImageBuilder(object):
       # Prepare build files
       logging.info('Generate build files.')
       local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
-      self._prepare_buildfiles(local_docker_filepath, local_python_filepath, local_requirement_filepath)
+      self._prepare_buildfiles(local_tarball_path, local_docker_filepath, local_python_filepath, local_requirement_filepath)
       self._build_image(local_tarball_path, namespace, timeout)
 
   def build_image_from_dockerfile(self, docker_filename, timeout, namespace):
@@ -384,7 +385,7 @@ class ImageBuilder(object):
       # Prepare build files
       logging.info('Generate build files.')
       local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
-      self._prepare_buildfiles(docker_filename=docker_filename)
+      self._prepare_buildfiles(local_tarball_path, docker_filename=docker_filename)
       self._build_image(local_tarball_path, namespace, timeout)
 
 def _configure_logger(logger):
