@@ -139,9 +139,9 @@ def _generate_dockerfile(filename, base_image, entrypoint_filename, python_versi
         f.write('RUN pip install -r /ml/requirements.txt\n')
     f.write('ADD ' + entrypoint_filename + ' /ml/main.py\n')
     if python_version is 'python3':
-      f.write('ENTRYPOINT ["python3 -u", "/ml/main.py"]')
+      f.write('ENTRYPOINT ["python3", "-u", "/ml/main.py"]')
     else:
-      f.write('ENTRYPOINT ["python -u", "/ml/main.py"]')
+      f.write('ENTRYPOINT ["python", "-u", "/ml/main.py"]')
 
 class CodeGenerator(object):
   """ CodeGenerator helps to generate python codes with identation """
