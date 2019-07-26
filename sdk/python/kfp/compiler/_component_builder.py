@@ -93,8 +93,7 @@ class DependencyHelper(object):
     """ write the python packages to a requirement file
     the generated file follows the order of which the packages are added """
     with open(target_file, 'w') as f:
-      for name in sorted(self.python_packages.keys()):
-        version = self.python_packages[name]
+      for name, version in self.python_packages.items():
         version_str = ''
         if version.has_min_version():
           version_str += ' >= ' + version.min_version + ','

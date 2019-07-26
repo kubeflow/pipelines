@@ -77,9 +77,9 @@ class TestDependencyHelper(unittest.TestCase):
     dependency_helper.generate_pip_requirements(temp_file)
 
     golden_requirement_payload = '''\
+tensorflow >= 0.10.0, <= 0.11.0
 kubernetes >= 0.6.0
 pytorch <= 0.3.0
-tensorflow >= 0.10.0, <= 0.11.0
 '''
     with open(temp_file, 'r') as f:
       target_requirement_payload = f.read()
@@ -101,9 +101,9 @@ tensorflow >= 0.10.0, <= 0.11.0
     dependency_helper.add_python_package(dependency=VersionedDependency(name='pytorch', version='0.3.0'))
     dependency_helper.generate_pip_requirements(temp_file)
     golden_requirement_payload = '''\
+tensorflow >= 0.12.0
 kubernetes >= 0.6.0
 pytorch >= 0.3.0, <= 0.3.0
-tensorflow >= 0.12.0
 '''
     with open(temp_file, 'r') as f:
       target_requirement_payload = f.read()
@@ -187,14 +187,14 @@ ENTRYPOINT ["python", "/ml/main.py"]'''
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     temp_file = os.path.join(test_data_dir, 'test_requirements.tmp')
 
-    dependencies = {
+    dependencies = [
         VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'),
         VersionedDependency(name='kubernetes', min_version='0.6.0'),
-    }
+    ]
     _dependency_to_requirements(dependencies, filename=temp_file)
     golden_payload = '''\
-kubernetes >= 0.6.0
 tensorflow >= 0.10.0, <= 0.11.0
+kubernetes >= 0.6.0
 '''
     with open(temp_file, 'r') as f:
       target_payload = f.read()
