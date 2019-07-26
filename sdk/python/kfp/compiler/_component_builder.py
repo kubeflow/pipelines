@@ -134,7 +134,7 @@ def _generate_dockerfile(filename, base_image, entrypoint_filename, python_versi
     if requirement_filename is not None:
       f.write('ADD ' + requirement_filename + ' /ml/requirements.txt\n')
       if python_version is 'python3':
-        f.write('RUN pip3 install -r /ml/' + requirement_filename + '\n')
+        f.write('RUN pip3 install -r /ml/requirements.txt\n')
       else:
         f.write('RUN pip install -r /ml/requirements.txt\n')
     f.write('ADD ' + entrypoint_filename + ' /ml/main.py\n')
