@@ -136,7 +136,7 @@ func (w *Workflow) ScheduledAtInSecOr0() int64 {
 }
 
 func (w *Workflow) FinishedAt() int64 {
-	if w.Status.FinishedAt.IsZero(){
+	if w.Status.FinishedAt.IsZero() {
 		// If workflow is not finished
 		return 0
 	}
@@ -165,7 +165,13 @@ func (w *Workflow) GetWorkflowSpec() *Workflow {
 	workflow := w.DeepCopy()
 	workflow.Status = workflowapi.WorkflowStatus{}
 	workflow.TypeMeta = metav1.TypeMeta{Kind: w.Kind, APIVersion: w.APIVersion}
-	workflow.ObjectMeta = metav1.ObjectMeta{Name: w.Name, GenerateName: w.GenerateName}
+	// To prevent collisions, clear name, set GenerateName to first 200 runes of previous name.
+	nameRunes := []rune(w.Name)
+	length := len(nameRunes)
+	if length > 200 {
+		length = 200
+	}
+	workflow.ObjectMeta = metav1.ObjectMeta{GenerateName: string(nameRunes[:length])}
 	return NewWorkflow(workflow)
 }
 
