@@ -77,7 +77,12 @@ class ContainerBuilder(object):
     if not tarball_path.endswith('.tar.gz'):
       raise ValueError('the tarball path should end with .tar.gz')
     with tarfile.open(tarball_path, 'w:gz') as tarball:
-      tarball.add(dir_name)
+      for r, d, f in os.walk(dir_name):
+        for dir in d:
+          print(dir)
+          tarball.add(os.path.join(r, dir))
+        for file in f:
+          tarball.add(os.path.join(r, file))
 
 
   def build(self, local_dir, docker_filename, target_image, timeout, namespace):

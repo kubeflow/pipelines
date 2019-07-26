@@ -14,7 +14,6 @@
 
 from kfp.compiler._component_builder import _generate_dockerfile, _dependency_to_requirements, _func_to_entrypoint
 from kfp.compiler._component_builder import CodeGenerator
-from kfp.compiler._component_builder import ImageBuilder
 from kfp.compiler._component_builder import VersionedDependency
 from kfp.compiler._component_builder import DependencyHelper
 
@@ -25,8 +24,6 @@ import tarfile
 from pathlib import Path
 import inspect
 from collections import OrderedDict
-
-GCS_BASE = 'gs://kfp-testing/'
 
 class TestVersionedDependency(unittest.TestCase):
 
@@ -332,48 +329,3 @@ class TestCodeGenerator(unittest.TestCase):
     codegen.writeline('print("hello")')
     generated_codes = codegen.end()
     self.assertEqual(generated_codes, inspect.getsource(hello))
-
-class TestImageBuild(unittest.TestCase):
-
-  def test_wrap_files_in_tarball(self):
-    """ Test wrap files in a tarball """
-
-    # prepare
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    temp_file_one = os.path.join(test_data_dir, 'test_data_one.tmp')
-    temp_file_two = os.path.join(test_data_dir, 'test_data_two.tmp')
-    temp_tarball = os.path.join(test_data_dir, 'test_data.tmp.tar.gz')
-    with open(temp_file_one, 'w') as f:
-      f.write('temporary file one content')
-    with open(temp_file_two, 'w') as f:
-      f.write('temporary file two content')
-
-    # check
-    builder = ImageBuilder(gcs_base=GCS_BASE, target_image='')
-    builder._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two})
-    self.assertTrue(os.path.exists(temp_tarball))
-    with tarfile.open(temp_tarball) as temp_tarball_handle:
-      temp_files = temp_tarball_handle.getmembers()
-      self.assertTrue(len(temp_files) == 2)
-      for temp_file in temp_files:
-        self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
-
-    # clean up
-    os.remove(temp_file_one)
-    os.remove(temp_file_two)
-    os.remove(temp_tarball)
-
-  def test_generate_kaniko_yaml(self):
-    """ Test generating the kaniko job yaml """
-
-    # prepare
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-
-    # check
-    builder = ImageBuilder(gcs_base=GCS_BASE, target_image='')
-    generated_yaml = builder._generate_kaniko_spec(namespace='default', arc_dockerfile_name='dockerfile',
-                                                   gcs_path='gs://mlpipeline/kaniko_build.tar.gz', target_image='gcr.io/mlpipeline/kaniko_image:latest')
-    with open(os.path.join(test_data_dir, 'kaniko.basic.yaml'), 'r') as f:
-      golden = yaml.safe_load(f)
-
-    self.assertEqual(golden, generated_yaml)
