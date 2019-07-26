@@ -62,6 +62,18 @@ exports[`ViewerContainer renders a viewer of type TENSORBOARD 1`] = `
 />
 `;
 
+exports[`ViewerContainer renders a viewer of type VISUALIZATION_CREATOR 1`] = `
+<VisualizationCreator
+  configs={
+    Array [
+      Object {
+        "type": "visualization-creator",
+      },
+    ]
+  }
+/>
+`;
+
 exports[`ViewerContainer renders a viewer of type WEB_APP 1`] = `
 <HTMLViewer
   configs={
