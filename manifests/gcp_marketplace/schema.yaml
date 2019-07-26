@@ -9,11 +9,17 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
-  images.version:
+  image.mysql:
     type: string
-    default: 0.1.23
+    default: $REGISTRY/mysql:5.6
     x-google-marketplace:
-      type: VERSION
+      type: IMAGE
+
+  IMAGE_AIRFLOWOPERATOR:
+    type: string
+    default: $REGISTRY:$TAG
+    x-google-marketplace:
+      type: IMAGE
 
 required:
   - name
