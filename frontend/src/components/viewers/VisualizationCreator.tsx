@@ -116,7 +116,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
           {Object.keys(ApiVisualizationType)
             .filter((_, i: number) => i % 2 === 0)
             .map((key: string) => (
-              <MenuItem key={key} value={key}>{key}</MenuItem>
+              <MenuItem key={key} value={ApiVisualizationType[key]}>{key}</MenuItem>
             ))}
         </Select>
       </FormControl>

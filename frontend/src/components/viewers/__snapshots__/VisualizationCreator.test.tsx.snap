@@ -38,7 +38,7 @@ exports[`VisualizationCreator disables all select and input fields when busy 1`]
     >
       <WithStyles(MenuItem)
         key="CURVE"
-        value="CURVE"
+        value="ROC_CURVE"
       >
         CURVE
       </WithStyles(MenuItem)>
@@ -108,7 +108,7 @@ exports[`VisualizationCreator renders component when all parameters in config ar
     >
       <WithStyles(MenuItem)
         key="CURVE"
-        value="CURVE"
+        value="ROC_CURVE"
       >
         CURVE
       </WithStyles(MenuItem)>
@@ -176,7 +176,7 @@ exports[`VisualizationCreator renders component when empty config is provided 1`
     >
       <WithStyles(MenuItem)
         key="CURVE"
-        value="CURVE"
+        value="ROC_CURVE"
       >
         CURVE
       </WithStyles(MenuItem)>
@@ -244,7 +244,7 @@ exports[`VisualizationCreator renders component when isBusy is not provided 1`] 
     >
       <WithStyles(MenuItem)
         key="CURVE"
-        value="CURVE"
+        value="ROC_CURVE"
       >
         CURVE
       </WithStyles(MenuItem)>
@@ -312,7 +312,7 @@ exports[`VisualizationCreator renders component when onGenerate is not provided 
     >
       <WithStyles(MenuItem)
         key="CURVE"
-        value="CURVE"
+        value="ROC_CURVE"
       >
         CURVE
       </WithStyles(MenuItem)>
@@ -380,7 +380,7 @@ exports[`VisualizationCreator renders the provided arguments correctly 1`] = `
     >
       <WithStyles(MenuItem)
         key="CURVE"
-        value="CURVE"
+        value="ROC_CURVE"
       >
         CURVE
       </WithStyles(MenuItem)>
@@ -448,7 +448,7 @@ exports[`VisualizationCreator renders the provided input path correctly 1`] = `
     >
       <WithStyles(MenuItem)
         key="CURVE"
-        value="CURVE"
+        value="ROC_CURVE"
       >
         CURVE
       </WithStyles(MenuItem)>
@@ -517,7 +517,7 @@ exports[`VisualizationCreator renders the selected visualization type correctly 
     >
       <WithStyles(MenuItem)
         key="CURVE"
-        value="CURVE"
+        value="ROC_CURVE"
       >
         CURVE
       </WithStyles(MenuItem)>
