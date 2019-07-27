@@ -98,9 +98,9 @@ tensorflow >= 0.10.0, <= 0.11.0
     dependency_helper.add_python_package(dependency=VersionedDependency(name='pytorch', version='0.3.0'))
     dependency_helper.generate_pip_requirements(temp_file)
     golden_requirement_payload = '''\
+tensorflow >= 0.12.0
 kubernetes >= 0.6.0
 pytorch >= 0.3.0, <= 0.3.0
-tensorflow >= 0.12.0
 '''
     with open(temp_file, 'r') as f:
       target_requirement_payload = f.read()
