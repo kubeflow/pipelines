@@ -135,14 +135,14 @@ def _generate_dockerfile(filename, base_image, entrypoint_filename, python_versi
     if requirement_filename is not None:
       f.write('ADD ' + requirement_filename + ' /ml/requirements.txt\n')
       if python_version is 'python3':
-        f.write('RUN pip3 install -r /ml/' + requirement_filename + '\n')
+        f.write('RUN pip3 install -r /ml/requirements.txt\n')
       else:
         f.write('RUN pip install -r /ml/requirements.txt\n')
     f.write('ADD ' + entrypoint_filename + ' /ml/main.py\n')
     if python_version is 'python3':
-      f.write('ENTRYPOINT ["python3", "/ml/main.py"]')
+      f.write('ENTRYPOINT ["python3", "-u", "/ml/main.py"]')
     else:
-      f.write('ENTRYPOINT ["python", "/ml/main.py"]')
+      f.write('ENTRYPOINT ["python", "-u", "/ml/main.py"]')
 
 class CodeGenerator(object):
   """ CodeGenerator helps to generate python codes with identation """
@@ -277,7 +277,6 @@ class ComponentBuilder(object):
     if requirement_filename is not None:
       dst_requirement_filepath = os.path.join(local_dir, self._arc_requirement_filename)
       shutil.copyfile(requirement_filename, dst_requirement_filepath)
-
 
   def build_image_from_func(self, component_func, namespace, base_image, timeout, dependency, python_version='python3'):
     """ build_image builds an image for the given python function

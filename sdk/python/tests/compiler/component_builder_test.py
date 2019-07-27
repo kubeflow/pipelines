@@ -139,14 +139,14 @@ class TestGenerator(unittest.TestCase):
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
 ADD main.py /ml/main.py
-ENTRYPOINT ["python3", "/ml/main.py"]'''
+ENTRYPOINT ["python3", "-u", "/ml/main.py"]'''
     golden_dockerfile_payload_two = '''\
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
 ADD requirements.txt /ml/requirements.txt
 RUN pip3 install -r /ml/requirements.txt
 ADD main.py /ml/main.py
-ENTRYPOINT ["python3", "/ml/main.py"]'''
+ENTRYPOINT ["python3", "-u", "/ml/main.py"]'''
 
     golden_dockerfile_payload_three = '''\
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
@@ -154,7 +154,7 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y -q python py
 ADD requirements.txt /ml/requirements.txt
 RUN pip install -r /ml/requirements.txt
 ADD main.py /ml/main.py
-ENTRYPOINT ["python", "/ml/main.py"]'''
+ENTRYPOINT ["python", "-u", "/ml/main.py"]'''
     # check
     _generate_dockerfile(filename=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
                          entrypoint_filename='main.py', python_version='python3')
@@ -184,14 +184,14 @@ ENTRYPOINT ["python", "/ml/main.py"]'''
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     temp_file = os.path.join(test_data_dir, 'test_requirements.tmp')
 
-    dependencies = {
+    dependencies = [
         VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'),
         VersionedDependency(name='kubernetes', min_version='0.6.0'),
-    }
+    ]
     _dependency_to_requirements(dependencies, filename=temp_file)
     golden_payload = '''\
-kubernetes >= 0.6.0
 tensorflow >= 0.10.0, <= 0.11.0
+kubernetes >= 0.6.0
 '''
     with open(temp_file, 'r') as f:
       target_payload = f.read()

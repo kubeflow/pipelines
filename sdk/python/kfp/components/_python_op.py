@@ -156,8 +156,12 @@ def _extract_component_interface(func) -> ComponentSpec:
         input_spec = InputSpec(
             name=parameter.name,
             type=type_struct,
-            default=str(parameter.default) if parameter.default is not inspect.Parameter.empty else None,
         )
+        if parameter.default is not inspect.Parameter.empty:
+            if parameter.default is None:
+                input_spec.optional = True
+            else:
+                input_spec.default = str(parameter.default)
         inputs.append(input_spec)
 
     #Analyzing the return type annotations.
@@ -245,16 +249,27 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     arguments = []
     for input in component_spec.inputs:
         param_flag = "--" + input.name.replace("_", "-")
+        is_required = not input.optional #TODO: Make all parameters with default values optional in argparse so that the complex defaults can be preserved.
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default={default_repr})'.format(
             param_flag=param_flag,
             param_var=input.name,
             param_type=(input.type if input.type in ['int', 'float', 'bool'] else 'str'),
-            is_required=str(input.default is None), # TODO: Handle actual 'None' defaults!
+            is_required=str(is_required),
             default_repr=repr(str(input.default)) if input.default is not None else None,
         )
         arg_parse_code_lines.append(line)
-        arguments.append(param_flag)
-        arguments.append(InputValuePlaceholder(input.name))
+        if is_required:
+            arguments.append(param_flag)
+            arguments.append(InputValuePlaceholder(input.name))
+        else:
+            arguments.append(
+                IfPlaceholder(
+                    IfPlaceholderStructure(
+                        condition=IsPresentPlaceholder(input.name),
+                        then_value=[param_flag, InputValuePlaceholder(input.name)],
+                    )
+                )
+            )
 
     if component_spec.outputs:
         param_flag="----output-paths"
