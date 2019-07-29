@@ -27,17 +27,9 @@ class ContainerBuilder(object):
     Args:
       gcs_staging (str): GCS blob that can store temporary build files
     """
-    if not self._check_gcs_path(gcs_staging):
-      raise ValueError('ContainerBuilder __init__ failure: cannot access the staging directory: ' + gcs_staging)
+    if not gcs_staging.startswith('gs://'):
+      raise ValueError('Error: {} should be a GCS path.'.format(gcs_staging))
     self._gcs_staging = gcs_staging
-
-  def _check_gcs_path(self, gcs_path):
-    """ _check_gcs_path check both the path validity and write permissions """
-    logging.info('Checking path: {}...'.format(gcs_path))
-    if not gcs_path.startswith('gs://'):
-      logging.error('Error: {} should be a GCS path.'.format(gcs_path))
-      return False
-    return True
 
   def _generate_kaniko_spec(self, namespace, context, docker_filename, target_image):
     """_generate_kaniko_yaml generates kaniko job yaml based on a template yaml """
