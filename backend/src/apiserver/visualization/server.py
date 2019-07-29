@@ -14,6 +14,7 @@
 
 import argparse
 import os
+from pathlib import Path
 import shlex
 
 import tornado.ioloop
@@ -46,8 +47,7 @@ class VisualizationHandler(tornado.web.RequestHandler):
 
     def post(self):
         # Parse arguments from request.
-        args = parser.parse_args(shlex.split(
-            self.get_body_argument("arguments")))
+        args = parser.parse_args(shlex.split(self.get_body_argument("arguments")))
         # Validate arguments from request.
         if args.type is None:
             return self.send_error(400, reason="No type specified.")
@@ -56,10 +56,8 @@ class VisualizationHandler(tornado.web.RequestHandler):
         # Create notebook with arguments from request.
         nb = new_notebook()
         nb.cells.append(exporter.create_cell_from_args(args.arguments))
-        input_path = "input_path = \"{}\"".format(args.input_path)
-        nb.cells.append(new_code_cell(input_path))
-        nb.cells.append(exporter.create_cell_from_file(
-            os.path.join(dirname, '{}.py'.format(args.type))))
+        nb.cells.append(new_code_cell(f'input_path = "{args.input_path}"'))
+        nb.cells.append(exporter.create_cell_from_file(Path(dirname) / f"{args.type}.py"))
         # Generate visualization (output for notebook).
         html = exporter.generate_html_from_notebook(nb)
         self.write(html)

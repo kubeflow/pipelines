@@ -12,31 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import json
-from tensorflow.python.lib.io import file_io
-import pandas as pd
-from sklearn.metrics import roc_curve
+from pathlib import Path
 from bokeh.layouts import row
 from bokeh.plotting import figure
 from bokeh.io import output_notebook, show
 from bokeh.models import HoverTool
 # gcsfs is required for pandas GCS integration.
 import gcsfs
+import pandas as pd
+from sklearn.metrics import roc_curve
+from tensorflow.python.lib.io import file_io
 
-# Load data.
 if is_generated is False:
     # Create data from specified csv file(s).
-    schema_file = os.path.join(os.path.dirname(input_path),
-                               'schema.json')
+    # The schema file provides column names for the csv file that will be used
+    # to generate the roc curve.
+    schema_file = Path(input_path) / 'schema.json'
     schema = json.loads(file_io.read_file_to_string(schema_file))
     names = [x['name'] for x in schema]
 
     dfs = []
     files = file_io.get_matching_files(input_path)
-    for file in files:
-        with file_io.FileIO(file, 'r') as f:
-            dfs.append(pd.read_csv(f, names=names))
+    for f in files:
+        dfs.append(pd.read_csv(f, names=names))
 
     df = pd.concat(dfs)
     if target_lambda:

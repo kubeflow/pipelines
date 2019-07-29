@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import unittest
-import snapshottest
 from nbformat.v4 import new_code_cell
 from nbformat.v4 import new_notebook
+import snapshottest
 import exporter
 
 
@@ -29,15 +29,15 @@ class TestExporterMethods(snapshottest.TestCase):
 
     def test_create_cell_from_args_with_one_arg(self):
         self.maxDiff = None
-        args = "{\"input_path\": \"gs://ml-pipeline/data.csv\"}"
+        args = '{"input_path": "gs://ml-pipeline/data.csv"}'
         cell = exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_args_with_multiple_args(self):
         self.maxDiff = None
-        args = ("{\"input_path\": \"gs://ml-pipeline/data.csv\", "
+        args = ('{"input_path": "gs://ml-pipeline/data.csv", '
                 "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * "
-                "0.2)\"}")
+                '0.2)"}')
         cell = exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
@@ -49,7 +49,7 @@ class TestExporterMethods(snapshottest.TestCase):
     def test_generate_html_from_notebook(self):
         self.maxDiff = None
         nb = new_notebook()
-        args = "{\"x\": 2}"
+        args = '{"x": 2}'
         nb.cells.append(exporter.create_cell_from_args(args))
         nb.cells.append(new_code_cell("print(x)"))
         html = exporter.generate_html_from_notebook(

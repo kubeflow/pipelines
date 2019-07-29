@@ -12,15 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+exporter.py provides utility functions for generating NotebookNode objects and
+converting those objects to HTML.
+"""
+
 import argparse
 from enum import Enum
 import json
 import os
+from pathlib import Path
+from typing import Text
+from jupyter_client import KernelManager
 from nbconvert import HTMLExporter
 from nbconvert.preprocessors import ExecutePreprocessor
 from nbformat import NotebookNode
 from nbformat.v4 import new_code_cell
-from jupyter_client import KernelManager
 
 # Create custom KernelManager.
 # This will circumvent issues where kernel is shutdown after preprocessing. Due
@@ -57,10 +64,10 @@ def create_cell_from_args(args: argparse.Namespace) -> NotebookNode:
     for key in sorted(args.keys()):
         # Check type of variable to maintain type when converting from JSON to
         # notebook cell
-        if isinstance(args[key], (type(None), bool)):
-            variables += "{} = {}\n".format(key, args[key])
+        if args[key] is None or isinstance(args[key], bool):
+            variables += f"{key} = {args[key]}\n"
         else:
-            variables += "{} = \"{}\"\n".format(key, args[key])
+            variables += f'{key} = "{args[key]}"\n'
 
     return new_code_cell(variables)
 
@@ -69,7 +76,7 @@ def create_cell_from_args(args: argparse.Namespace) -> NotebookNode:
 # lines of code from the python file.
 #
 # Returns the generated Notebook cell.
-def create_cell_from_file(filepath: str) -> NotebookNode:
+def create_cell_from_file(filepath: Text) -> NotebookNode:
     with open(filepath, 'r') as f:
         code = f.read()
 
@@ -81,14 +88,15 @@ def create_cell_from_file(filepath: str) -> NotebookNode:
 # Returns the generated HTML as a string.
 def generate_html_from_notebook(
         nb: NotebookNode,
-        template_type: TemplateType = TemplateType.full) -> str:
+        template_type: TemplateType = TemplateType.full
+) -> Text:
     # HTML generator and exporter object
     html_exporter = HTMLExporter()
     dirname = os.path.dirname(__file__)
-    template_file = 'templates/{}.tpl'.format(template_type.value)
+    template_file = f"templates/{template_type.value}.tpl"
     html_exporter.template_file = os.path.join(dirname, template_file)
     # Output generator
-    ep.preprocess(nb, {'metadata': {'path': os.getcwd()}}, km)
+    ep.preprocess(nb, {"metadata": {"path": Path.cwd()}}, km)
 
     # Export all html and outputs
     body, _ = html_exporter.from_notebook_node(nb)
