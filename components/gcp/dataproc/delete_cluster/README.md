@@ -128,7 +128,7 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 
 ## References
 
-*   [Component Python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/dataproc/_delete_cluster.py)
+*   [Component Python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_delete_cluster.py)
 *   [Component Docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
 *   [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataproc/delete_cluster/sample.ipynb)
 *   [Dataproc delete cluster REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.clusters/delete)
