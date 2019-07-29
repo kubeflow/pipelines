@@ -23,8 +23,12 @@ class ContainerBuilder(object):
   ContainerBuilder helps build a container image
   """
   def __init__(self, gcs_staging):
+    """
+    Args:
+      gcs_staging (str): GCS blob that can store temporary build files
+    """
     if not self._check_gcs_path(gcs_staging):
-      raise Exception('ContainerBuilder __init__ failure.')
+      raise ValueError('ContainerBuilder __init__ failure: cannot access the staging directory: ' + gcs_staging)
     self._gcs_staging = gcs_staging
 
   def _check_gcs_path(self, gcs_path):
@@ -85,6 +89,14 @@ class ContainerBuilder(object):
 
 
   def build(self, local_dir, docker_filename, target_image, timeout, namespace):
+    """
+    Args:
+      local_dir (str): local directory that stores all the necessary build files
+      docker_filename (str): the dockerfile name that is in the local_dir
+      target_image (str): the target image tag to push the final image.
+      timeout (int): time out in seconds
+      namespace (str): kubernetes namespace where the build job is run
+    """
     # Prepare build context
     with tempfile.TemporaryDirectory() as local_build_dir:
       from ._gcs_helper import GCSHelper
