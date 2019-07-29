@@ -545,6 +545,10 @@ class Compiler(object):
         'serviceAccountName': 'pipeline-runner'
       }
     }
+    # set ttl after workflow finishes
+    if pipeline.conf.ttl_seconds_after_finished >= 0:
+      workflow['spec']['ttlSecondsAfterFinished'] = pipeline.conf.ttl_seconds_after_finished
+
     if len(pipeline.conf.image_pull_secrets) > 0:
       image_pull_secrets = []
       for image_pull_secret in pipeline.conf.image_pull_secrets:

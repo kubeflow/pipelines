@@ -136,7 +136,7 @@ func (w *Workflow) ScheduledAtInSecOr0() int64 {
 }
 
 func (w *Workflow) FinishedAt() int64 {
-	if w.Status.FinishedAt.IsZero(){
+	if w.Status.FinishedAt.IsZero() {
 		// If workflow is not finished
 		return 0
 	}
@@ -161,10 +161,18 @@ func (w *Workflow) HasScheduledWorkflowAsParent() bool {
 	return containsScheduledWorkflow(w.Workflow.OwnerReferences)
 }
 
-func (w *Workflow) GetSpec() *Workflow {
-	spec := w.DeepCopy()
-	spec.Status = workflowapi.WorkflowStatus{}
-	return NewWorkflow(spec)
+func (w *Workflow) GetWorkflowSpec() *Workflow {
+	workflow := w.DeepCopy()
+	workflow.Status = workflowapi.WorkflowStatus{}
+	workflow.TypeMeta = metav1.TypeMeta{Kind: w.Kind, APIVersion: w.APIVersion}
+	// To prevent collisions, clear name, set GenerateName to first 200 runes of previous name.
+	nameRunes := []rune(w.Name)
+	length := len(nameRunes)
+	if length > 200 {
+		length = 200
+	}
+	workflow.ObjectMeta = metav1.ObjectMeta{GenerateName: string(nameRunes[:length])}
+	return NewWorkflow(workflow)
 }
 
 // OverrideName sets the name of a Workflow.
