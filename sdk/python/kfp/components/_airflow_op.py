@@ -26,20 +26,39 @@ from ._python_op import _func_to_component_spec, _create_task_factory_from_compo
 _default_airflow_base_image = 'apache/airflow@sha256:7f60cbef6bf92b1f3a5b4e46044911ced39736a8c3858284d3c5a961b3ba8735'
 
 
-def create_component_from_airflow_op(op_class, base_image=_default_airflow_base_image, result_output_name='Result', variable_output_names=None, xcom_output_names=None, modules_to_capture: List[str] = None):
-    component_spec = _create_component_spec_from_airflow_op(op_class, base_image, result_output_name, variable_output_names, xcom_output_names, modules_to_capture)
+def create_component_from_airflow_op(
+    op_class: type,
+    base_image: str = _default_airflow_base_image,
+    variable_output_names: List[str] = None,
+    xcom_output_names: List[str] = None,
+    modules_to_capture: List[str] = None
+):
+    '''
+    Creates component function from an Airflow operator class.
+    The inputs of the component are the same as the operator constructor parameters.
+    By default the component has the following outputs: "Result", "Variables" and "XComs". "Variables" and "XComs" are serialized JSON maps of all variables and xcoms produced by the operator during the execution.
+    Use the variable_output_names and xcom_output_names parameters to output individual variables/xcoms as separate outputs.
+
+    Args:
+        op_class: Reference to the Airflow operator class (e.g. EmailOperator or BashOperator) to convert to componenent.
+        base_image: Optional. The container image to use for the component. Default is apache/airflow. The container image must have the same python version as the environment used to run create_component_from_airflow_op. The image should have python 3.5+ with airflow package installed.
+        variable_output_names: Optional. A list of Airflow "variables" produced by the operator that should be returned as separate outputs.
+        xcom_output_names: Optional. A list of Airflow "XComs" produced by the operator that should be returned as separate outputs.
+        modules_to_capture: Optional. A list of names of additional modules that the operator depends on. By default only the module containing the operator class is captured. If the operator class uses the code from another module, the name of that module can be specified in this list.
+    '''
+    component_spec = _create_component_spec_from_airflow_op(op_class, base_image, variable_output_names, xcom_output_names, modules_to_capture)
     task_factory = _create_task_factory_from_component_spec(component_spec)
     return task_factory
 
 
 def _create_component_spec_from_airflow_op(
-    op_class,
-    base_image,
-    result_output_name='Result',
-    variables_dict_output_name='Variables',
-    xcoms_dict_output_name='XComs',
-    variables_to_output=None,
-    xcoms_to_output=None,
+    op_class: type,
+    base_image: str = _default_airflow_base_image,
+    result_output_name: str = 'Result',
+    variables_dict_output_name: str = 'Variables',
+    xcoms_dict_output_name: str = 'XComs',
+    variables_to_output: List[str] = None,
+    xcoms_to_output: List[str] = None,
     modules_to_capture: List[str] = None,
 ):
     variables_output_names = variables_to_output or []
