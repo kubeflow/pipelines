@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.compiler._component_builder import DockerfileHelper
+from kfp.compiler._component_builder import _generate_dockerfile, _dependency_to_requirements, _func_to_entrypoint
 from kfp.compiler._component_builder import CodeGenerator
 from kfp.compiler._component_builder import ImageBuilder
 from kfp.compiler._component_builder import VersionedDependency
@@ -110,174 +110,6 @@ pytorch >= 0.3.0, <= 0.3.0
     self.assertEqual(target_requirement_payload, golden_requirement_payload)
     os.remove(temp_file)
 
-
-class TestDockerfileHelper(unittest.TestCase):
-
-  def test_wrap_files_in_tarball(self):
-    """ Test wrap files in a tarball """
-
-    # prepare
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    temp_file_one = os.path.join(test_data_dir, 'test_data_one.tmp')
-    temp_file_two = os.path.join(test_data_dir, 'test_data_two.tmp')
-    temp_tarball = os.path.join(test_data_dir, 'test_data.tmp.tar.gz')
-    with open(temp_file_one, 'w') as f:
-      f.write('temporary file one content')
-    with open(temp_file_two, 'w') as f:
-      f.write('temporary file two content')
-
-    # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name='')
-    docker_helper._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two})
-    self.assertTrue(os.path.exists(temp_tarball))
-    with tarfile.open(temp_tarball) as temp_tarball_handle:
-      temp_files = temp_tarball_handle.getmembers()
-      self.assertTrue(len(temp_files) == 2)
-      for temp_file in temp_files:
-        self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
-
-    # clean up
-    os.remove(temp_file_one)
-    os.remove(temp_file_two)
-    os.remove(temp_tarball)
-
-  def test_generate_dockerfile(self):
-    """ Test generate dockerfile """
-
-    # prepare
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    target_dockerfile = os.path.join(test_data_dir, 'component.temp.dockerfile')
-    golden_dockerfile_payload_one = '''\
-FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
-ADD main.py /ml/
-ENTRYPOINT ["python3", "/ml/main.py"]'''
-    golden_dockerfile_payload_two = '''\
-FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
-ADD requirements.txt /ml/
-RUN pip3 install -r /ml/requirements.txt
-ADD main.py /ml/
-ENTRYPOINT ["python3", "/ml/main.py"]'''
-
-    golden_dockerfile_payload_three = '''\
-FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools
-ADD requirements.txt /ml/
-RUN pip install -r /ml/requirements.txt
-ADD main.py /ml/
-ENTRYPOINT ["python", "/ml/main.py"]'''
-    # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name=target_dockerfile)
-    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
-                                               python_filepath='main.py', has_requirement_file=False, python_version='python3')
-    with open(target_dockerfile, 'r') as f:
-      target_dockerfile_payload = f.read()
-    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_one)
-    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
-                                               python_filepath='main.py', has_requirement_file=True, python_version='python3')
-    with open(target_dockerfile, 'r') as f:
-      target_dockerfile_payload = f.read()
-    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_two)
-    docker_helper._generate_dockerfile_with_py(target_file=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
-                                               python_filepath='main.py', has_requirement_file=True, python_version='python2')
-    with open(target_dockerfile, 'r') as f:
-      target_dockerfile_payload = f.read()
-    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_three)
-
-    self.assertRaises(ValueError, docker_helper._generate_dockerfile_with_py, target_file=target_dockerfile,
-                      base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', python_filepath='main.py',
-                      has_requirement_file=True, python_version='python4')
-
-    # clean up
-    os.remove(target_dockerfile)
-
-  def test_prepare_docker_with_py(self):
-    """ Test the whole prepare docker from python function """
-
-    # prepare
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    python_filepath = os.path.join(test_data_dir, 'basic.py')
-    local_tarball_path = os.path.join(test_data_dir, 'test_docker.tar.gz')
-
-    # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
-    docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
-                                                 base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
-                                                 local_tarball_path=local_tarball_path, python_version='python3')
-    with tarfile.open(local_tarball_path) as temp_tarball_handle:
-      temp_files = temp_tarball_handle.getmembers()
-      self.assertTrue(len(temp_files) == 2)
-      for temp_file in temp_files:
-        self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
-
-    # clean up
-    os.remove(local_tarball_path)
-
-  def test_prepare_docker_with_py_and_dependency(self):
-    """ Test the whole prepare docker from python function and dependencies """
-
-    # prepare
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    python_filepath = os.path.join(test_data_dir, 'basic.py')
-    local_tarball_path = os.path.join(test_data_dir, 'test_docker.tar.gz')
-
-    # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
-    dependencies = {
-      VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'),
-      VersionedDependency(name='kubernetes', min_version='0.6.0'),
-    }
-    docker_helper.prepare_docker_tarball_with_py(arc_python_filename='main.py', python_filepath=python_filepath,
-                                                 base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.8.0',
-                                                 local_tarball_path=local_tarball_path, python_version='python3',
-                                                 dependency=dependencies)
-    with tarfile.open(local_tarball_path) as temp_tarball_handle:
-      temp_files = temp_tarball_handle.getmembers()
-      self.assertTrue(len(temp_files) == 3)
-      for temp_file in temp_files:
-        self.assertTrue(temp_file.name in ['dockerfile', 'main.py', 'requirements.txt'])
-
-      # clean up
-    os.remove(local_tarball_path)
-
-  def test_prepare_docker_tarball(self):
-    """ Test the whole prepare docker tarball """
-
-    # prepare
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-    dockerfile_path = os.path.join(test_data_dir, 'component.target.dockerfile')
-    Path(dockerfile_path).touch()
-    local_tarball_path = os.path.join(test_data_dir, 'test_docker.tar.gz')
-
-    # check
-    docker_helper = DockerfileHelper(arc_dockerfile_name='dockerfile')
-    docker_helper.prepare_docker_tarball(dockerfile_path=dockerfile_path, local_tarball_path=local_tarball_path)
-    with tarfile.open(local_tarball_path) as temp_tarball_handle:
-      temp_files = temp_tarball_handle.getmembers()
-      self.assertTrue(len(temp_files) == 1)
-      for temp_file in temp_files:
-        self.assertTrue(temp_file.name in ['dockerfile'])
-
-    # clean up
-    os.remove(local_tarball_path)
-    os.remove(dockerfile_path)
-
-# hello function is used by the TestCodeGenerator to verify the auto generated python function
-def hello():
-  print("hello")
-
-class TestCodeGenerator(unittest.TestCase):
-  def test_codegen(self):
-    """ Test code generator a function"""
-    codegen = CodeGenerator(indentation='  ')
-    codegen.begin()
-    codegen.writeline('def hello():')
-    codegen.indent()
-    codegen.writeline('print("hello")')
-    generated_codes = codegen.end()
-    self.assertEqual(generated_codes, inspect.getsource(hello))
-
 def sample_component_func(a: str, b: int) -> float:
   result = 3.45
   if a == "succ":
@@ -299,22 +131,75 @@ def sample_component_func_two(a: str, b: int) -> float:
 def sample_component_func_three() -> float:
   return 1.0
 
-class TestImageBuild(unittest.TestCase):
-
-  def test_generate_kaniko_yaml(self):
-    """ Test generating the kaniko job yaml """
+class TestGenerator(unittest.TestCase):
+  def test_generate_dockerfile(self):
+    """ Test generate dockerfile """
 
     # prepare
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    target_dockerfile = os.path.join(test_data_dir, 'component.temp.dockerfile')
+    golden_dockerfile_payload_one = '''\
+FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
+ADD main.py /ml/main.py
+ENTRYPOINT ["python3", "-u", "/ml/main.py"]'''
+    golden_dockerfile_payload_two = '''\
+FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
+ADD requirements.txt /ml/requirements.txt
+RUN pip3 install -r /ml/requirements.txt
+ADD main.py /ml/main.py
+ENTRYPOINT ["python3", "-u", "/ml/main.py"]'''
 
+    golden_dockerfile_payload_three = '''\
+FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
+RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools
+ADD requirements.txt /ml/requirements.txt
+RUN pip install -r /ml/requirements.txt
+ADD main.py /ml/main.py
+ENTRYPOINT ["python", "-u", "/ml/main.py"]'''
     # check
-    builder = ImageBuilder(gcs_base=GCS_BASE, target_image='')
-    generated_yaml = builder._generate_kaniko_spec(namespace='default', arc_dockerfile_name='dockerfile',
-                                                   gcs_path='gs://mlpipeline/kaniko_build.tar.gz', target_image='gcr.io/mlpipeline/kaniko_image:latest')
-    with open(os.path.join(test_data_dir, 'kaniko.basic.yaml'), 'r') as f:
-      golden = yaml.safe_load(f)
+    _generate_dockerfile(filename=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+                         entrypoint_filename='main.py', python_version='python3')
+    with open(target_dockerfile, 'r') as f:
+      target_dockerfile_payload = f.read()
+    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_one)
+    _generate_dockerfile(filename=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+                         entrypoint_filename='main.py', python_version='python3', requirement_filename='requirements.txt')
+    with open(target_dockerfile, 'r') as f:
+      target_dockerfile_payload = f.read()
+    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_two)
+    _generate_dockerfile(filename=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+                         entrypoint_filename='main.py', python_version='python2', requirement_filename='requirements.txt')
+    with open(target_dockerfile, 'r') as f:
+      target_dockerfile_payload = f.read()
+    self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_three)
 
-    self.assertEqual(golden, generated_yaml)
+    self.assertRaises(ValueError, _generate_dockerfile, filename=target_dockerfile,
+                      base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', entrypoint_filename='main.py',
+                      python_version='python4', requirement_filename='requirements.txt')
+
+    # clean up
+    os.remove(target_dockerfile)
+
+  def test_generate_requirement(self):
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    temp_file = os.path.join(test_data_dir, 'test_requirements.tmp')
+
+    dependencies = [
+        VersionedDependency(name='tensorflow', min_version='0.10.0', max_version='0.11.0'),
+        VersionedDependency(name='kubernetes', min_version='0.6.0'),
+    ]
+    _dependency_to_requirements(dependencies, filename=temp_file)
+    golden_payload = '''\
+tensorflow >= 0.10.0, <= 0.11.0
+kubernetes >= 0.6.0
+'''
+    with open(temp_file, 'r') as f:
+      target_payload = f.read()
+    self.assertEqual(target_payload, golden_payload)
+    os.remove(temp_file)
 
   def test_generate_entrypoint(self):
     """ Test entrypoint generation """
@@ -323,8 +208,7 @@ class TestImageBuild(unittest.TestCase):
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
 
     # check
-    builder = ImageBuilder(gcs_base=GCS_BASE, target_image='')
-    generated_codes = builder._generate_entrypoint(component_func=sample_component_func)
+    generated_codes = _func_to_entrypoint(component_func=sample_component_func)
     golden = '''\
 def sample_component_func(a: str, b: int) -> float:
   result = 3.45
@@ -351,7 +235,7 @@ if __name__ == "__main__":
 '''
     self.assertEqual(golden, generated_codes)
 
-    generated_codes = builder._generate_entrypoint(component_func=sample_component_func_two)
+    generated_codes = _func_to_entrypoint(component_func=sample_component_func_two)
     golden = '''\
 def sample_component_func_two(a: str, b: int) -> float:
   result = 3.45
@@ -378,7 +262,7 @@ if __name__ == "__main__":
 '''
     self.assertEqual(golden, generated_codes)
 
-    generated_codes = builder._generate_entrypoint(component_func=sample_component_func_three)
+    generated_codes = _func_to_entrypoint(component_func=sample_component_func_three)
     golden = '''\
 def sample_component_func_three() -> float:
   return 1.0
@@ -407,8 +291,7 @@ if __name__ == "__main__":
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
 
     # check
-    builder = ImageBuilder(gcs_base=GCS_BASE, target_image='')
-    generated_codes = builder._generate_entrypoint(component_func=sample_component_func_two, python_version='python2')
+    generated_codes = _func_to_entrypoint(component_func=sample_component_func_two, python_version='python2')
     golden = '''\
 def sample_component_func_two(a, b):
   result = 3.45
@@ -434,3 +317,63 @@ if __name__ == "__main__":
   wrapper_sample_component_func_two(**args)
 '''
     self.assertEqual(golden, generated_codes)
+
+# hello function is used by the TestCodeGenerator to verify the auto generated python function
+def hello():
+  print("hello")
+
+class TestCodeGenerator(unittest.TestCase):
+  def test_codegen(self):
+    """ Test code generator a function"""
+    codegen = CodeGenerator(indentation='  ')
+    codegen.begin()
+    codegen.writeline('def hello():')
+    codegen.indent()
+    codegen.writeline('print("hello")')
+    generated_codes = codegen.end()
+    self.assertEqual(generated_codes, inspect.getsource(hello))
+
+class TestImageBuild(unittest.TestCase):
+
+  def test_wrap_files_in_tarball(self):
+    """ Test wrap files in a tarball """
+
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    temp_file_one = os.path.join(test_data_dir, 'test_data_one.tmp')
+    temp_file_two = os.path.join(test_data_dir, 'test_data_two.tmp')
+    temp_tarball = os.path.join(test_data_dir, 'test_data.tmp.tar.gz')
+    with open(temp_file_one, 'w') as f:
+      f.write('temporary file one content')
+    with open(temp_file_two, 'w') as f:
+      f.write('temporary file two content')
+
+    # check
+    builder = ImageBuilder(gcs_base=GCS_BASE, target_image='')
+    builder._wrap_files_in_tarball(temp_tarball, {'dockerfile':temp_file_one, 'main.py':temp_file_two})
+    self.assertTrue(os.path.exists(temp_tarball))
+    with tarfile.open(temp_tarball) as temp_tarball_handle:
+      temp_files = temp_tarball_handle.getmembers()
+      self.assertTrue(len(temp_files) == 2)
+      for temp_file in temp_files:
+        self.assertTrue(temp_file.name in ['dockerfile', 'main.py'])
+
+    # clean up
+    os.remove(temp_file_one)
+    os.remove(temp_file_two)
+    os.remove(temp_tarball)
+
+  def test_generate_kaniko_yaml(self):
+    """ Test generating the kaniko job yaml """
+
+    # prepare
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+
+    # check
+    builder = ImageBuilder(gcs_base=GCS_BASE, target_image='')
+    generated_yaml = builder._generate_kaniko_spec(namespace='default', arc_dockerfile_name='dockerfile',
+                                                   gcs_path='gs://mlpipeline/kaniko_build.tar.gz', target_image='gcr.io/mlpipeline/kaniko_image:latest')
+    with open(os.path.join(test_data_dir, 'kaniko.basic.yaml'), 'r') as f:
+      golden = yaml.safe_load(f)
+
+    self.assertEqual(golden, generated_yaml)
