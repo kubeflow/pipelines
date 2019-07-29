@@ -97,9 +97,11 @@ outputs:
     description: 'Best training job in the hyperparameter tuning job'
   - name: best_hyperparameters
     description: 'Tuned hyperparameters'
+  - name: training_image
+    description: 'The registry path of the Docker image that contains the training algorithm'
 implementation:
   container:
-    image: carowang/kfp-aws-sm-hpo:20190725-01
+    image: carowang/kubeflow-pipeline-aws-sm:20190728-01
     command: ['python']
     args: [
       hyperparameter_tuning.py,
@@ -140,3 +142,4 @@ implementation:
       model_artifact_url: /tmp/model_artifact_url.txt
       best_job_name: /tmp/best_job_name.txt
       best_hyperparameters: /tmp/best_hyperparameters.txt
+      training_image: /tmp/training_image.txt

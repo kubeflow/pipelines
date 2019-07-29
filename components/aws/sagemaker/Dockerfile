@@ -27,6 +27,8 @@ COPY batch_transform/src/batch_transform.py .
 
 COPY hyperparameter_tuning/hpo.template.yaml /app/common/
 COPY train/train.template.yaml /app/common/
+COPY model/model.template.yaml /app/common/
+COPY deploy/endpoint_config.template.yaml /app/common/
 COPY batch_transform/transform.template.yaml /app/common/
 COPY common /app/common/
 

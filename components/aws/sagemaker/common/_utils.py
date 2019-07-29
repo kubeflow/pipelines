@@ -12,8 +12,8 @@
 
 
 import datetime
-import os
 import subprocess
+import argparse
 from time import gmtime, strftime
 import time
 import string
@@ -24,7 +24,6 @@ from urlparse import urlparse
 
 import boto3
 from botocore.exceptions import ClientError
-from sagemaker import get_execution_role
 from sagemaker.amazon.amazon_estimator import get_image_uri
 
 import logging
@@ -57,8 +56,6 @@ def get_client(region=None):
     client = boto3.client('sagemaker', region_name=region)
     return client
 
-def get_sagemaker_role():
-  return get_execution_role()
 
 def create_training_job_request(args):
     with open('/app/common/train.template.yaml', 'r') as f:
@@ -158,9 +155,9 @@ def create_training_job(client, args):
       raise Exception(e.response['Error']['Message'])
 
 
-def deploy_model(client, model_name):
-  endpoint_config_name = create_endpoint_config(client, model_name)
-  endpoint_name = create_endpoint(client, endpoint_config_name)
+def deploy_model(client, args):
+  endpoint_config_name = create_endpoint_config(client, args)
+  endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
   return endpoint_name
 
 
@@ -169,59 +166,155 @@ def get_model_artifacts_from_job(client, job_name):
   model_artifact_url = info['ModelArtifacts']['S3ModelArtifacts']
   return model_artifact_url
 
-def create_model(client, model_artifact_url, model_name, image, role):
-  primary_container = {
-      'Image': image,
-      'ModelDataUrl': model_artifact_url
-  }
+def get_image_from_job(client, job_name):
+    info = client.describe_training_job(TrainingJobName=job_name)
+    try:
+        image = info['AlgorithmSpecification']['TrainingImage']
+    except:
+        algorithm_name = info['AlgorithmSpecification']['AlgorithmName']
+        image = client.describe_algorithm(AlgorithmName=algorithm_name)['TrainingSpecification']['TrainingImage']
 
-  create_model_response = client.create_model(
-      ModelName = model_name,
-      ExecutionRoleArn = role,
-      PrimaryContainer = primary_container)
+    return image
 
-  print("Model Config Arn: " + create_model_response['ModelArn'])
-  return create_model_response['ModelArn']
+def create_model(client, args):
+    with open('/app/common/model.template.yaml', 'r') as f:
+        request = yaml.safe_load(f)
 
-def create_endpoint_config(client, model_name):
-  endpoint_config_name = 'EndpointConfig' + model_name[model_name.index('-'):]
-  print(endpoint_config_name)
-  create_endpoint_config_response = client.create_endpoint_config(
-    EndpointConfigName = endpoint_config_name,
-    ProductionVariants=[{
-        'InstanceType':'ml.m4.xlarge',
-        'InitialInstanceCount':1,
-        'ModelName': model_name,
-        'VariantName':'AllTraffic'}])
+    request['ModelName'] = args['model_name']
+    request['PrimaryContainer']['Environment'] = args['environment']
 
-  print("Endpoint Config Arn: " + create_endpoint_config_response['EndpointConfigArn'])
-  return endpoint_config_name
+    if args['secondary_containers']:
+        request['Containers'] = args['secondary_containers']
+        request.pop('PrimaryContainer')
+    else:
+        request.pop('Containers')
+        ### Update primary container and handle input errors
+        if args['container_host_name']:
+            request['PrimaryContainer']['ContainerHostname'] = args['container_host_name']
+        else:
+            request['PrimaryContainer'].pop('ContainerHostname')
+
+        if (args['image'] or args['model_artifact_url']) and args['model_package']:
+            logging.error("Please specify an image AND model artifact url, OR a model package name.")
+            raise Exception("Could not make create model request.")
+        elif args['model_package']:
+            request['PrimaryContainer']['ModelPackageName'] = args['model_package']
+            request['PrimaryContainer'].pop('Image')
+            request['PrimaryContainer'].pop('ModelDataUrl')
+        else:
+            if args['image'] and args['model_artifact_url']:
+                request['PrimaryContainer']['Image'] = args['image']
+                request['PrimaryContainer']['ModelDataUrl'] = args['model_artifact_url']
+                request['PrimaryContainer'].pop('ModelPackageName')
+            else:
+                logging.error("Please specify an image AND model artifact url.")
+                raise Exception("Could not make create model request.")
+
+    request['ExecutionRoleArn'] = args['role']
+    request['EnableNetworkIsolation'] = args['network_isolation']
+
+    ### Update or pop VPC configs
+    if args['vpc_security_group_ids'] and args['vpc_subnets']:
+        request['VpcConfig']['SecurityGroupIds'] = [args['vpc_security_group_ids']]
+        request['VpcConfig']['Subnets'] = [args['vpc_subnets']]
+    else:
+        request.pop('VpcConfig')
+
+    ### Update tags
+    for key, val in args['tags'].items():
+        request['Tags'].append({'Key': key, 'Value': val})
+
+    create_model_response = client.create_model(**request)
+
+    logging.info("Model Config Arn: " + create_model_response['ModelArn'])
+    return create_model_response['ModelArn']
+
+def create_endpoint_config(client, args):
+    with open('/app/common/endpoint_config.template.yaml', 'r') as f:
+        request = yaml.safe_load(f)
+
+    endpoint_config_name = args['endpoint_config_name'] if args['endpoint_config_name'] else 'EndpointConfig' + args['model_name_1'][args['model_name_1'].index('-'):]
+    request['EndpointConfigName'] = endpoint_config_name
+
+    if args['resource_encryption_key']:
+        request['KmsKeyId'] = args['resource_encryption_key']
+    else:
+        request.pop('KmsKeyId')
+
+    if not args['model_name_1']:
+        logging.error("Must specify at least one model (model name) to host.")
+        raise Exception("Could not create endpoint config.")
+
+    for i in range(len(request['ProductionVariants']), 0, -1):
+        if args['model_name_' + str(i)]:
+            request['ProductionVariants'][i-1]['ModelName'] = args['model_name_' + str(i)]
+            if args['variant_name_' + str(i)]:
+                request['ProductionVariants'][i-1]['VariantName'] = args['variant_name_' + str(i)]
+            if args['initial_instance_count_' + str(i)]:
+                request['ProductionVariants'][i-1]['InitialInstanceCount'] = args['initial_instance_count_' + str(i)]
+            if args['instance_type_' + str(i)]:
+                request['ProductionVariants'][i-1]['InstanceType'] = args['instance_type_' + str(i)]
+            if args['initial_variant_weight_' + str(i)]:
+                request['ProductionVariants'][i-1]['InitialVariantWeight'] = args['initial_variant_weight_' + str(i)]
+            if args['accelerator_type_' + str(i)]:
+                request['ProductionVariants'][i-1]['AcceleratorType'] = args['accelerator_type_' + str(i)]
+            else:
+                request['ProductionVariants'][i-1].pop('AcceleratorType')
+        else:
+            request['ProductionVariants'].pop(i-1)
+
+    ### Update tags
+    for key, val in args['endpoint_config_tags'].items():
+        request['Tags'].append({'Key': key, 'Value': val})
+
+    try:
+        create_endpoint_config_response = client.create_endpoint_config(**request)
+        logging.info("Endpoint configuration in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/endpointConfig/{}"
+            .format(args['region'], args['region'], endpoint_config_name))
+        logging.info("Endpoint Config Arn: " + create_endpoint_config_response['EndpointConfigArn'])
+        return endpoint_config_name
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
 
 
-def create_endpoint(client, endpoint_config_name):
-  endpoint_name = 'Endpoint' + endpoint_config_name[endpoint_config_name.index('-'):]
-  print(endpoint_name)
-  create_endpoint_response = client.create_endpoint(
-      EndpointName=endpoint_name,
-      EndpointConfigName=endpoint_config_name)
-  print(create_endpoint_response['EndpointArn'])
+def create_endpoint(client, region, endpoint_name, endpoint_config_name, endpoint_tags):
+  endpoint_name = endpoint_name if endpoint_name else 'Endpoint' + endpoint_config_name[endpoint_config_name.index('-'):]
 
-  resp = client.describe_endpoint(EndpointName=endpoint_name)
-  status = resp['EndpointStatus']
-  print("Status: " + status)
+  ### Update tags
+  tags=[]
+  for key, val in endpoint_tags.items():
+      tags.append({'Key': key, 'Value': val})
+
+  try:
+      create_endpoint_response = client.create_endpoint(
+          EndpointName=endpoint_name,
+          EndpointConfigName=endpoint_config_name,
+          Tags=tags)
+      logging.info("Created endpoint with name: " + endpoint_name)
+      logging.info("Endpoint in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/endpoints/{}"
+          .format(region, region, endpoint_name))
+      logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/Endpoints/{};streamFilter=typeLogStreamPrefix"
+          .format(region, region, endpoint_name))
+      return endpoint_name
+  except ClientError as e:
+      raise Exception(e.response['Error']['Message'])
+
+
+def wait_for_endpoint_creation(client, endpoint_name):
+  status = client.describe_endpoint(EndpointName=endpoint_name)['EndpointStatus']
+  logging.info("Status: " + status)
 
   try:
     client.get_waiter('endpoint_in_service').wait(EndpointName=endpoint_name)
   finally:
     resp = client.describe_endpoint(EndpointName=endpoint_name)
     status = resp['EndpointStatus']
-    print("Arn: " + resp['EndpointArn'])
-    print("Create endpoint ended with status: " + status)
-    return endpoint_name
+    logging.info("Endpoint Arn: " + resp['EndpointArn'])
+    logging.info("Create endpoint ended with status: " + status)
 
     if status != 'InService':
       message = client.describe_endpoint(EndpointName=endpoint_name)['FailureReason']
-      print('Create endpoint failed with the following error: {}'.format(message))
+      logging.info('Create endpoint failed with the following error: {}'.format(message))
       raise Exception('Endpoint creation did not succeed')
 
 def wait_for_training_job(client, training_job_name):
@@ -370,13 +463,13 @@ def create_hyperparameter_tuning_job_request(args):
         request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = args['image']
         request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
     else:
-        # TODO: determine if users can make custom algorithm resources that have the same name as built-in algorithm names
+        # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
             request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
             logging.warning('Algorithm name is found as an Amazon built-in algorithm. Using built-in algorithm.')
-        # Just to give the user more leeway for built-in algorithm name inputs
+        # To give the user more leeway for built-in algorithm name inputs
         elif algo_name in built_in_algos.values():
             request['TrainingJobDefinition']['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], algo_name)
             request['TrainingJobDefinition']['AlgorithmSpecification'].pop('AlgorithmName')
@@ -493,9 +586,9 @@ def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
 
 
 def str_to_bool(s):
-  if s.lower() == 'true':
+  if s.lower().strip() == 'true':
     return True
-  elif s.lower() == 'false':
+  elif s.lower().strip() == 'false':
     return False
   else:
     raise argparse.ArgumentTypeError('"True" or "False" expected.')
@@ -505,6 +598,12 @@ def str_to_int(s):
     return int(s)
   else:
     return 0
+
+def str_to_float(s):
+  if s:
+    return float(s)
+  else:
+    return 0.0
 
 def str_to_json_dict(s):
   if s != '':

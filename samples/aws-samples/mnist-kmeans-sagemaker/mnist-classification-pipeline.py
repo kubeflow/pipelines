@@ -130,15 +130,16 @@ def mnist_classification(region='us-west-2',
 
     create_model = sagemaker_model_op(
         region=region,
-        image=image,
-        model_artifact_url=training.outputs['model_artifact_url'],
         model_name=training.outputs['job_name'],
+        image=training.outputs['training_image'],
+        model_artifact_url=training.outputs['model_artifact_url'],
+        network_isolation=network_isolation,
         role=role_arn
     ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
 
     prediction = sagemaker_deploy_op(
         region=region,
-        model_name=create_model.output
+        model_name_1=create_model.output,
     ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
 
     batch_transform = sagemaker_batch_transform_op(

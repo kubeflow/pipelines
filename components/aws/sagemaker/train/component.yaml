@@ -64,9 +64,10 @@ inputs:
 outputs:
   - {name: model_artifact_url,    description: 'Model artifacts url'}
   - {name: job_name,              description: 'Training job name'}
+  - {name: training_image,         description: 'The registry path of the Docker image that contains the training algorithm'}
 implementation:
   container:
-    image: carowang/kfp-aws-sm-train:20190725-01
+    image: carowang/kubeflow-pipeline-aws-sm:20190728-01
     command: ['python']
     args: [
       train.py,
@@ -95,3 +96,4 @@ implementation:
     fileOutputs:
       model_artifact_url: /tmp/model_artifact_url.txt
       job_name: /tmp/job_name.txt
+      training_image: /tmp/training_image.txt
