@@ -268,7 +268,7 @@ rules:
   - patch
   - delete
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
@@ -391,41 +391,6 @@ rules:
   verbs:
   - '*'
 ---
-<<<<<<< HEAD:manifests/kustomize/namespaced-install.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: ml-pipeline-viewer-controller-role
-  namespace: kubeflow
-rules:
-- apiGroups:
-  - '*'
-  resources:
-  - deployments
-  - services
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - viewers
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
----
-=======
->>>>>>> upstream/master:manifests/namespaced-install.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -498,7 +463,7 @@ subjects:
   name: ml-pipeline-viewer-crd-service-account
   namespace: kubeflow
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
@@ -544,23 +509,6 @@ subjects:
   name: proxy-agent-runner
   namespace: kubeflow
 ---
-<<<<<<< HEAD:manifests/kustomize/namespaced-install.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: ml-pipeline-viewer-crd-binding
-  namespace: kubeflow
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: ml-pipeline-viewer-controller-role
-subjects:
-- kind: ServiceAccount
-  name: ml-pipeline-viewer-crd-service-account
-  namespace: kubeflow
----
-=======
->>>>>>> upstream/master:manifests/namespaced-install.yaml
 apiVersion: v1
 data:
   config: |
