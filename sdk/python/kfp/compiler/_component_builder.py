@@ -278,7 +278,7 @@ class ComponentBuilder(object):
       dst_requirement_filepath = os.path.join(local_dir, self._arc_requirement_filename)
       shutil.copyfile(requirement_filename, dst_requirement_filepath)
 
-  def build_image_from_func(self, component_func, namespace, base_image, timeout, dependency, python_version='python3'):
+  def build_image_from_func(self, component_func, base_image, timeout, dependency, python_version='python3'):
     """ build_image builds an image for the given python function
     args:
       python_version (str): choose python2 or python3, default is python3
@@ -302,13 +302,13 @@ class ComponentBuilder(object):
 
       # Prepare build files
       logging.info('Generate build files.')
-      self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout, namespace)
+      self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
 
-  def build_image_from_dockerfile(self, docker_filename, timeout, namespace):
+  def build_image_from_dockerfile(self, docker_filename, timeout):
     """ build_image_from_dockerfile builds an image based on the dockerfile """
     with tempfile.TemporaryDirectory() as local_build_dir:
       self._prepare_files(local_build_dir, docker_filename)
-      self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout, namespace)
+      self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
 
 def _configure_logger(logger):
   """ _configure_logger configures the logger such that the info level logs
