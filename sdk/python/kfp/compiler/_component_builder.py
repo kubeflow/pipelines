@@ -254,11 +254,11 @@ def _func_to_entrypoint(component_func, python_version='python3'):
 
 class ComponentBuilder(object):
   """ Component Builder. """
-  def __init__(self, gcs_staging, target_image):
+  def __init__(self, gcs_staging, target_image, namespace):
     self._arc_docker_filename = 'dockerfile'
     self._arc_python_filename = 'main.py'
     self._arc_requirement_filename = 'requirements.txt'
-    self._container_builder = ContainerBuilder(gcs_staging)
+    self._container_builder = ContainerBuilder(gcs_staging, namespace)
     self._target_image = target_image
 
   def _prepare_files(self, local_dir, docker_filename, python_filename=None, requirement_filename=None):
@@ -410,8 +410,8 @@ def build_python_component(component_func, target_image, base_image=None, depend
                                    base_image +
                                    ' and push the image to ' +
                                    target_image)
-    builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image)
-    builder.build_image_from_func(component_func, namespace=namespace,
+    builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
+    builder.build_image_from_func(component_func,
                                   base_image=base_image, timeout=timeout,
                                   python_version=python_version, dependency=dependency)
     logging.info('Build component complete.')
@@ -429,6 +429,6 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
   """
   _configure_logger(logging.getLogger())
-  builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image)
-  builder.build_image_from_dockerfile(docker_filename=dockerfile_path, timeout=timeout, namespace=namespace)
+  builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
+  builder.build_image_from_dockerfile(docker_filename=dockerfile_path, timeout=timeout)
   logging.info('Build image complete.')

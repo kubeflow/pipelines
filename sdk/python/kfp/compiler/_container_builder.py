@@ -22,7 +22,7 @@ class ContainerBuilder(object):
   """
   ContainerBuilder helps build a container image
   """
-  def __init__(self, gcs_staging):
+  def __init__(self, gcs_staging, namespace):
     """
     Args:
       gcs_staging (str): GCS blob that can store temporary build files
@@ -30,14 +30,15 @@ class ContainerBuilder(object):
     if not gcs_staging.startswith('gs://'):
       raise ValueError('Error: {} should be a GCS path.'.format(gcs_staging))
     self._gcs_staging = gcs_staging
+    self._namespace = namespace
 
-  def _generate_kaniko_spec(self, namespace, context, docker_filename, target_image):
+  def _generate_kaniko_spec(self, context, docker_filename, target_image):
     """_generate_kaniko_yaml generates kaniko job yaml based on a template yaml """
     content = {
         'apiVersion': 'v1',
         'metadata': {
             'generateName': 'kaniko-',
-            'namespace': namespace,
+            'namespace': self._namespace,
         },
         'kind': 'Pod',
         'spec': {
@@ -80,14 +81,13 @@ class ContainerBuilder(object):
     os.chdir(old_wd)
 
 
-  def build(self, local_dir, docker_filename, target_image, timeout, namespace):
+  def build(self, local_dir, docker_filename, target_image, timeout):
     """
     Args:
       local_dir (str): local directory that stores all the necessary build files
       docker_filename (str): the dockerfile name that is in the local_dir
       target_image (str): the target image tag to push the final image.
       timeout (int): time out in seconds
-      namespace (str): kubernetes namespace where the build job is run
     """
     # Prepare build context
     with tempfile.TemporaryDirectory() as local_build_dir:
@@ -100,8 +100,7 @@ class ContainerBuilder(object):
       GCSHelper.upload_gcs_file(local_tarball_path, context)
 
       # Run kaniko job
-      kaniko_spec = self._generate_kaniko_spec(namespace=namespace,
-                                               context=context,
+      kaniko_spec = self._generate_kaniko_spec(context=context,
                                                docker_filename=docker_filename,
                                                target_image=target_image)
       logging.info('Start a kaniko job for build.')
