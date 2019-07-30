@@ -63,7 +63,7 @@ spec:
           - name: test-results-gcs-dir
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: test-name
-            value: "tf-training"
+            value: "{{item.test-name}}"
         withItems:
         - { test-name: 'tf-training' }
         - { test-name: 'tfx' }
@@ -71,7 +71,6 @@ spec:
         - { test-name: 'notebook-tfx' }
         - { test-name: 'notebook-lightweight' }
         - { test-name: 'notebook-typecheck' }
-        -
   # Build and push image
   - name: build-image-by-dockerfile
     inputs:
