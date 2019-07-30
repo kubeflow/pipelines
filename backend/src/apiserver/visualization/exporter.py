@@ -28,14 +28,6 @@ from nbconvert.preprocessors import ExecutePreprocessor
 from nbformat import NotebookNode
 from nbformat.v4 import new_code_cell
 
-# Create custom KernelManager.
-# This will circumvent issues where kernel is shutdown after preprocessing. Due
-# to the shutdown, latency would be introduced because a kernel must be started
-# per visualization.
-km = KernelManager()
-km.start_kernel()
-ep = ExecutePreprocessor(timeout=300, kernel_name='python3')
-
 
 # Visualization Template types:
 # - Basic: Uses the basic.tpl file within the templates directory to generate
@@ -53,53 +45,75 @@ class TemplateType(Enum):
     full = 'full'
 
 
-# Takes provided command line arguments and creates a Notebook cell object with
-# the arguments as variables.
-#
-# Returns the generated Notebook cell.
-def create_cell_from_args(args: argparse.Namespace) -> NotebookNode:
-    variables = ""
-    args = json.loads(args)
-    for key in sorted(args.keys()):
-        # Check type of variable to maintain type when converting from JSON to
-        # notebook cell
-        if args[key] is None or isinstance(args[key], bool):
-            variables += "{} = {}\n".format(key, args[key])
-        else:
-            variables += '{} = "{}"\n'.format(key, args[key])
+class Exporter:
 
-    return new_code_cell(variables)
-
-
-# Reads a python file, then creates a Notebook cell object with the
-# lines of code from the python file.
-#
-# Returns the generated Notebook cell.
-def create_cell_from_file(filepath: Text) -> NotebookNode:
-    with open(filepath, 'r') as f:
-        code = f.read()
-
-    return new_code_cell(code)
-
-
-# Exports a notebook to HTML and generates any required outputs.
-#
-# Returns the generated HTML as a string.
-def generate_html_from_notebook(
-        nb: NotebookNode,
+    def __init__(
+        self,
+        timeout: int = 100,
         template_type: TemplateType = TemplateType.full
-) -> Text:
-    # HTML generator and exporter object
-    html_exporter = HTMLExporter()
-    template_file = "templates/{}.tpl".format(template_type.value)
-    html_exporter.template_file = str(Path.cwd() / template_file)
-    # Output generator
-    ep.preprocess(nb, {"metadata": {"path": Path.cwd()}}, km)
+    ):
+        self.timeout = timeout
+        self.template_type = template_type
+        # Create custom KernelManager.
+        # This will circumvent issues where kernel is shutdown after
+        # preprocessing. Due to the shutdown, latency would be introduced
+        # because a kernel must be started per visualization.
+        self.km = KernelManager()
+        self.km.start_kernel()
+        self.ep = ExecutePreprocessor(
+            timeout=self.timeout,
+            kernel_name='python3')
 
-    # Export all html and outputs
-    body, _ = html_exporter.from_notebook_node(nb)
-    return body
+    def __del__(self):
+        self.shutdown_kernel()
 
+    # Takes provided command line arguments and creates a Notebook cell object
+    # with the arguments as variables.
+    #
+    # Returns the generated Notebook cell.
+    @staticmethod
+    def create_cell_from_args(args: argparse.Namespace) -> NotebookNode:
+        variables = ""
+        args = json.loads(args)
+        for key in sorted(args.keys()):
+            # Check type of variable to maintain type when converting from JSON
+            # to notebook cell
+            if args[key] is None or isinstance(args[key], bool):
+                variables += "{} = {}\n".format(key, args[key])
+            else:
+                variables += '{} = "{}"\n'.format(key, args[key])
 
-def shutdown_kernel():
-    km.shutdown_kernel()
+        return new_code_cell(variables)
+
+    # Reads a python file, then creates a Notebook cell object with the
+    # lines of code from the python file.
+    #
+    # Returns the generated Notebook cell.
+    @staticmethod
+    def create_cell_from_file(filepath: Text) -> NotebookNode:
+        with open(filepath, 'r') as f:
+            code = f.read()
+
+        return new_code_cell(code)
+
+    # Exports a notebook to HTML and generates any required outputs.
+    #
+    # Returns the generated HTML as a string.
+    def generate_html_from_notebook(
+            self,
+            nb: NotebookNode,
+            template_type: TemplateType = TemplateType.full
+    ) -> Text:
+        # HTML generator and exporter object
+        html_exporter = HTMLExporter()
+        template_file = "templates/{}.tpl".format(template_type.value)
+        html_exporter.template_file = str(Path.cwd() / template_file)
+        # Output generator
+        self.ep.preprocess(nb, {"metadata": {"path": Path.cwd()}}, self.km)
+
+        # Export all html and outputs
+        body, _ = html_exporter.from_notebook_node(nb)
+        return body
+
+    def shutdown_kernel(self):
+        self.km.shutdown_kernel()

@@ -15,6 +15,7 @@
 import argparse
 import importlib
 from pathlib import Path
+from typing import Text
 import shlex
 from nbformat.v4 import new_notebook, new_code_cell
 import tornado.ioloop
@@ -22,48 +23,89 @@ import tornado.web
 
 exporter = importlib.import_module("exporter")
 
-# All necessary arguments required to generate visualizations.
-parser = argparse.ArgumentParser(description='Visualization Generator')
-# Type of visualization to be generated.
-parser.add_argument('--type', type=str,
-                    help='Type of visualization to be generated.')
-# Path of data to be used to generate visualization.
-parser.add_argument('--input_path', type=str,
-                    help='Path of data to be used for generating ' +
-                         'visualization.')
-# Additional arguments to be used when generating a visualization (provided as a
-# string representation of JSON).
-parser.add_argument('--arguments', type=str, default='{}',
-                    help='JSON string of arguments to be provided to ' +
-                         'visualizations.')
+parser = argparse.ArgumentParser(description="Server Arguments")
+parser.add_argument("--timeout", type=int, default=100,
+                    help="Amount of time a visualization can run for before " +
+                         "being stopped.")
 
 
 class VisualizationHandler(tornado.web.RequestHandler):
+
+    # initialize is used over __init__ due to tornado specs for RequestHandler.
+    def initialize(self, timeout: int):
+        # All necessary arguments required to generate visualizations.
+        self.requestParser = argparse.ArgumentParser(
+            description="Visualization Generator")
+        # Type of visualization to be generated.
+        self.requestParser.add_argument("--type", type=str,
+                                        help="Type of visualization to be " +
+                                             "generated.")
+        # Path of data to be used to generate visualization.
+        self.requestParser.add_argument("--input_path", type=str,
+                                        help="Path of data to be used for " +
+                                             "generating visualization.")
+        # Additional arguments to be used when generating a visualization
+        # (provided as a string representation of JSON).
+        self.requestParser.add_argument("--arguments", type=str, default="{}",
+                                        help="JSON string of arguments to be " +
+                                             "provided to visualizations.")
+        self.Exporter = exporter.Exporter(timeout)
+
+    # Parses provided arguments in request.
+    #
+    # Returns request arguments as if they were obtained as command line
+    # arguments.
+    def get_arguments_from_body(self) -> argparse.Namespace:
+        split_arguments = shlex.split(self.get_body_argument("arguments"))
+        return self.requestParser.parse_args(split_arguments)
+
+    # Sends a 400 error to a client if their request is invalid.
+    def validate_request_arguments(self, arguments: argparse.Namespace):
+        if arguments.type is None:
+            return self.send_error(400, reason="No type specified.")
+        if arguments.input_path is None:
+            return self.send_error(400, reason="No input_path specified.")
+
+    # Creates notebook from request.
+    #
+    # Returns created notebook.
+    def generate_notebook_from_arguments(
+        self,
+        arguments: Text,
+        input_path: Text,
+        visualization_type: Text
+    ):
+        nb = new_notebook()
+        nb.cells.append(self.Exporter.create_cell_from_args(arguments))
+        nb.cells.append(new_code_cell('input_path = "{}"'.format(input_path)))
+        visualization_file = str(Path.cwd() / "{}.py".format(visualization_type))
+        nb.cells.append(self.Exporter.create_cell_from_file(visualization_file))
+        return nb
+
+    # Health check route.
     def get(self):
         self.write("alive")
 
+    # Visualization route.
     def post(self):
         # Parse arguments from request.
-        args = parser.parse_args(shlex.split(self.get_body_argument("arguments")))
+        request_arguments = self.get_arguments_from_body()
         # Validate arguments from request.
-        if args.type is None:
-            return self.send_error(400, reason="No type specified.")
-        if args.input_path is None:
-            return self.send_error(400, reason="No input_path specified.")
+        self.validate_request_arguments(request_arguments)
         # Create notebook with arguments from request.
-        nb = new_notebook()
-        nb.cells.append(exporter.create_cell_from_args(args.arguments))
-        nb.cells.append(new_code_cell('input_path = "{}"'.format(args.input_path)))
-        visualization_file = str(Path.cwd() / "{}.py".format(args.type))
-        nb.cells.append(exporter.create_cell_from_file(visualization_file))
+        nb = self.generate_notebook_from_arguments(
+            request_arguments.arguments,
+            request_arguments.input_path,
+            request_arguments.type)
         # Generate visualization (output for notebook).
-        html = exporter.generate_html_from_notebook(nb)
+        html = self.Exporter.generate_html_from_notebook(nb)
         self.write(html)
 
 
 if __name__ == "__main__":
+    args = parser.parse_args()
     application = tornado.web.Application([
-        (r"/", VisualizationHandler),
+        (r"/", VisualizationHandler, dict(timeout=args.timeout)),
     ])
     application.listen(8888)
     tornado.ioloop.IOLoop.current().start()

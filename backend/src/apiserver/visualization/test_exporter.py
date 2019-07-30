@@ -23,16 +23,19 @@ exporter = importlib.import_module("exporter")
 
 class TestExporterMethods(snapshottest.TestCase):
 
+    def setUp(self):
+        self.Exporter = exporter.Exporter()
+
     def test_create_cell_from_args_with_no_args(self):
         self.maxDiff = None
         args = "{}"
-        cell = exporter.create_cell_from_args(args)
+        cell = self.Exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_args_with_one_arg(self):
         self.maxDiff = None
         args = '{"input_path": "gs://ml-pipeline/data.csv"}'
-        cell = exporter.create_cell_from_args(args)
+        cell = self.Exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_args_with_multiple_args(self):
@@ -40,21 +43,21 @@ class TestExporterMethods(snapshottest.TestCase):
         args = ('{"input_path": "gs://ml-pipeline/data.csv", '
                 "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * "
                 '0.2)"}')
-        cell = exporter.create_cell_from_args(args)
+        cell = self.Exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_file(self):
         self.maxDiff = None
-        cell = exporter.create_cell_from_file("tfdv.py")
+        cell = self.Exporter.create_cell_from_file("tfdv.py")
         self.assertMatchSnapshot(cell.source)
 
     def test_generate_html_from_notebook(self):
         self.maxDiff = None
         nb = new_notebook()
         args = '{"x": 2}'
-        nb.cells.append(exporter.create_cell_from_args(args))
+        nb.cells.append(self.Exporter.create_cell_from_args(args))
         nb.cells.append(new_code_cell("print(x)"))
-        html = exporter.generate_html_from_notebook(
+        html = self.Exporter.generate_html_from_notebook(
             nb,
             template_type=exporter.TemplateType.basic)
         self.assertMatchSnapshot(html)
@@ -62,4 +65,3 @@ class TestExporterMethods(snapshottest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-    exporter.shutdown_kernel()

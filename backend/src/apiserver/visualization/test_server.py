@@ -15,8 +15,8 @@
 import importlib
 from typing import Text
 import unittest
-import tornado
-from tornado.testing import AsyncHTTPTestCase
+import tornado.testing
+import tornado.web
 
 server = importlib.import_module("server")
 
@@ -26,10 +26,10 @@ def wrap_error_in_html(error: Text) -> bytes:
     return bytes(html, "utf-8")
 
 
-class TestServerEndpoints(AsyncHTTPTestCase):
+class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
     def get_app(self):
         return tornado.web.Application([
-            (r"/", server.VisualizationHandler),
+            (r"/", server.VisualizationHandler, dict(timeout=100)),
         ])
 
     def test_healthcheck(self):
