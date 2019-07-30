@@ -78,6 +78,7 @@ matrix:
         # Visualization test dependencies
         - pip3 install -r requirements-test.txt
         - python3 test_exporter.py
+        - python3 test_server.py
 
         # Test loading all component.yaml definitions
         - $TRAVIS_BUILD_DIR/components/test_load_all_components.sh
