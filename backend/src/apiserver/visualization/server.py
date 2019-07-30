@@ -13,17 +13,13 @@
 # limitations under the License.
 
 import argparse
-import os
 from pathlib import Path
 import shlex
-
+from nbformat.v4 import new_notebook, new_code_cell
 import tornado.ioloop
 import tornado.web
 import exporter
-from nbformat.v4 import new_notebook, new_code_cell
 
-
-dirname = os.path.dirname(__file__)
 
 # All necessary arguments required to generate visualizations.
 parser = argparse.ArgumentParser(description='Visualization Generator')
@@ -57,7 +53,8 @@ class VisualizationHandler(tornado.web.RequestHandler):
         nb = new_notebook()
         nb.cells.append(exporter.create_cell_from_args(args.arguments))
         nb.cells.append(new_code_cell(f'input_path = "{args.input_path}"'))
-        nb.cells.append(exporter.create_cell_from_file(Path(dirname) / f"{args.type}.py"))
+        visualization_file = str(Path.cwd() / f"{args.type}.py")
+        nb.cells.append(exporter.create_cell_from_file(visualization_file))
         # Generate visualization (output for notebook).
         html = exporter.generate_html_from_notebook(nb)
         self.write(html)

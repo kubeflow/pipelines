@@ -1,3 +1,8 @@
+"""
+exporter.py provides utility functions for generating NotebookNode objects and
+converting those objects to HTML.
+"""
+
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,15 +17,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-exporter.py provides utility functions for generating NotebookNode objects and
-converting those objects to HTML.
-"""
-
 import argparse
 from enum import Enum
 import json
-import os
 from pathlib import Path
 from typing import Text
 from jupyter_client import KernelManager
@@ -92,9 +91,8 @@ def generate_html_from_notebook(
 ) -> Text:
     # HTML generator and exporter object
     html_exporter = HTMLExporter()
-    dirname = os.path.dirname(__file__)
     template_file = f"templates/{template_type.value}.tpl"
-    html_exporter.template_file = os.path.join(dirname, template_file)
+    html_exporter.template_file = str(Path.cwd() / template_file)
     # Output generator
     ep.preprocess(nb, {"metadata": {"path": Path.cwd()}}, km)
 
