@@ -1,0 +1,114 @@
+Jinja2,https://github.com/pallets/jinja/blob/master/LICENSE.rst,BSD-3
+Keras-Applications,https://github.com/keras-team/keras-applications/blob/master/LICENSE,MIT
+Keras-Preprocessing,https://github.com/keras-team/keras-preprocessing/blob/master/LICENSE,MIT
+Markdown,https://github.com/Python-Markdown/markdown/blob/master/LICENSE.md,BSD-3
+MarkupSafe,https://github.com/pallets/markupsafe/blob/master/LICENSE.rst,BSD-3
+Pillow,https://github.com/python-pillow/Pillow/blob/master/LICENSE,PIL
+PyYAML,https://github.com/yaml/pyyaml/blob/master/LICENSE,MIT
+Pygments,https://bitbucket.org/birkenfeld/pygments-main/src/default/LICENSE,BSD-2
+Send2Trash,https://github.com/hsoft/send2trash/blob/master/LICENSE,BSD-3
+Werkzeug,https://github.com/pallets/werkzeug/blob/master/LICENSE.rst,BSD-3
+absl-py,https://github.com/abseil/abseil-py/blob/master/LICENSE,Apache 2.0
+apache-beam,https://github.com/apache/beam/blob/master/LICENSE,Apache 2.0
+astor,https://github.com/berkerpeksag/astor/blob/master/LICENSE,BSD-3
+attrs,https://github.com/python-attrs/attrs/blob/master/LICENSE,MIT
+avro-python3,https://github.com/apache/avro/blob/master/LICENSE.txt,Apache 2.0
+backcall,https://github.com/takluyver/backcall/blob/master/LICENSE,BSD-3
+bleach,https://github.com/mozilla/bleach/blob/master/LICENSE,Apache 2.0
+bokeh,https://github.com/bokeh/bokeh/blob/master/LICENSE.txt,BSD-3
+cachetools,https://github.com/tkem/cachetools/blob/master/LICENSE,MIT
+certifi,https://github.com/certifi/python-certifi/blob/master/LICENSE,MPL 2.0
+chardet,https://github.com/chardet/chardet/blob/master/LICENSE,LGPL
+crcmod,http://crcmod.sourceforge.net/intro.html#license,MIT
+decorator,https://github.com/micheles/decorator/blob/master/LICENSE.txt,BSD-2
+defusedxml,https://github.com/tiran/defusedxml/blob/master/LICENSE,PSF
+dill,https://github.com/uqfoundation/dill/blob/master/LICENSE,BSD-3
+docopt,https://github.com/docopt/docopt/blob/master/LICENSE-MIT,MIT
+entrypoints,https://github.com/takluyver/entrypoints/blob/master/LICENSE,MIT
+fastavro,https://github.com/fastavro/fastavro/blob/master/LICENSE,MIT
+fasteners,https://github.com/harlowja/fasteners/blob/master/LICENSE,Apache 2.0
+future,https://python-future.org/credits.html#licence,MIT
+gast,https://github.com/serge-sans-paille/gast/blob/master/LICENSE,BSD-3
+gcsfs,https://github.com/dask/gcsfs/blob/master/LICENSE.txt,BSD-3
+google-api-core,https://github.com/googleapis/google-cloud-python/blob/master/LICENSE,Apache 2.0
+google-api-python-client,https://github.com/googleapis/google-api-python-client/blob/master/LICENSE,Apache 2.0
+google-apitools,https://github.com/google/apitools/blob/master/LICENSE,Apache 2.0
+google-auth,https://github.com/googleapis/google-auth-library-python/blob/master/LICENSE,Apache 2.0
+google-auth-httplib2,https://github.com/GoogleCloudPlatform/google-auth-library-python-httplib2/blob/master/LICENSE,Apache 2.0
+google-auth-oauthlib,https://github.com/googleapis/google-auth-library-python-oauthlib/blob/master/LICENSE,Apache 2.0
+google-cloud-bigquery,https://github.com/googleapis/google-cloud-python/blob/master/LICENSE,Apache 2.0
+google-cloud-bigtable,https://github.com/googleapis/google-cloud-python/blob/master/LICENSE,Apache 2.0
+google-cloud-core,https://github.com/googleapis/google-cloud-python/blob/master/LICENSE,Apache 2.0
+google-cloud-datastore,https://github.com/googleapis/google-cloud-python/blob/master/LICENSE,Apache 2.0
+google-cloud-pubsub,https://github.com/googleapis/google-cloud-python/blob/master/LICENSE,Apache 2.0
+google-resumable-media,https://github.com/googleapis/google-resumable-media-python/blob/master/LICENSE,Apache 2.0
+googleapis-common-protos,https://github.com/googleapis/api-common-protos/blob/master/LICENSE,Apache 2.0
+grpc-google-iam-v1,https://github.com/googleapis/googleapis/blob/master/LICENSE,Apache 2.0
+grpcio,https://github.com/grpc/grpc/blob/master/LICENSE,Apache 2.0
+h5py,https://github.com/h5py/h5py/blob/master/LICENSE,BSD-3
+hdfs,https://github.com/mtth/hdfs/blob/master/LICENSE,MIT
+httplib2,https://github.com/httplib2/httplib2/blob/master/LICENSE,MIT
+idna,https://github.com/kjd/idna/blob/master/LICENSE.rst,BSD-3
+ipykernel,https://github.com/ipython/ipykernel/blob/master/COPYING.md,BSD-3
+ipython,https://github.com/ipython/ipython/blob/master/LICENSE,BSD-3
+ipython-genutils,https://github.com/ipython/ipython_genutils/blob/master/COPYING.md,BSD-3
+ipywidgets,https://github.com/jupyter-widgets/ipywidgets/blob/master/LICENSE,BSD-3
+jedi,https://github.com/davidhalter/jedi/blob/master/LICENSE.txt,MIT
+joblib,https://github.com/joblib/joblib/blob/master/LICENSE.txt,BSD-3
+jsonschema,https://github.com/Julian/jsonschema/blob/master/COPYING,MIT
+jupyter,https://github.com/jupyter/jupyter/blob/master/LICENSE,BSD-3
+jupyter-client,https://github.com/jupyter/jupyter_client/blob/master/COPYING.md,BSD-3
+jupyter-console,https://github.com/jupyter/jupyter_console/blob/master/COPYING.md,BSD-3
+jupyter-core,https://github.com/jupyter/jupyter_core/blob/master/COPYING.md,BSD-3
+mistune,https://github.com/lepture/mistune/blob/master/LICENSE,BSD-3
+mock,https://github.com/testing-cabal/mock/blob/master/LICENSE.txt,BSD-2
+monotonic,https://github.com/atdt/monotonic/blob/master/LICENSE,Apache 2.0
+nbconvert,https://github.com/jupyter/nbconvert/blob/master/LICENSE,BSD-3
+nbformat,https://github.com/jupyter/nbformat/blob/master/COPYING.md,BSD-3
+notebook,https://github.com/jupyter/notebook/blob/master/COPYING.md,BSD-3
+numpy,https://github.com/numpy/numpy/blob/master/LICENSE.txt,BSD-3
+oauth2client,https://github.com/googleapis/oauth2client/blob/master/LICENSE,Apache 2.0
+oauthlib,https://github.com/oauthlib/oauthlib/blob/master/LICENSE,BSD-3
+packaging,https://creativecommons.org/licenses/by-sa/3.0/,CC by-SA 3
+pandas,https://github.com/pandas-dev/pandas/blob/master/LICENSE,BSD-3
+pandocfilters,https://github.com/jgm/pandocfilters/blob/master/LICENSE,BSD-3
+parso,https://github.com/davidhalter/parso/blob/master/LICENSE.txt,MIT
+pexpect,https://github.com/pexpect/pexpect/blob/master/LICENSE,ISC
+pickleshare,https://github.com/pickleshare/pickleshare/blob/master/LICENSE,MIT
+prometheus-client,https://github.com/prometheus/client_python/blob/master/LICENSE,Apache 2.0
+prompt-toolkit,https://github.com/prompt-toolkit/python-prompt-toolkit/blob/master/LICENSE,BSD-3
+protobuf,https://github.com/protocolbuffers/protobuf/blob/master/LICENSE,BSD-3
+ptyprocess,https://github.com/pexpect/ptyprocess/blob/master/LICENSE,ISC
+pyarrow,https://github.com/apache/arrow/blob/master/LICENSE.txt,Apache 2.0
+pyasn1,https://github.com/etingof/pyasn1/blob/master/LICENSE.rst,BSD-2
+pyasn1-modules,https://github.com/etingof/pyasn1-modules/blob/master/LICENSE.txt,BSD-2
+pydot,https://github.com/pydot/pydot/blob/master/LICENSE,MIT
+pyparsing,https://github.com/pyparsing/pyparsing/blob/master/LICENSE,MIT
+pyrsistent,https://github.com/tobgu/pyrsistent/blob/master/LICENCE.mit,MIT
+python-dateutil,https://github.com/dateutil/dateutil/blob/master/LICENSE,Apache 2.0
+pytz,http://pytz.sourceforge.net/index.html#license,MIT
+pyzmq,https://github.com/zeromq/pyzmq/blob/master/COPYING.BSD,BSD-3
+qtconsole,https://github.com/jupyter/qtconsole/blob/master/LICENSE,BSD-3
+requests,https://github.com/psf/requests/blob/master/LICENSE,Apache 2.0
+requests-oauthlib,https://github.com/requests/requests-oauthlib/blob/master/LICENSE,ISC
+rsa,https://github.com/sybrenstuvel/python-rsa/blob/master/LICENSE,Apache 2.0
+scikit-learn,https://github.com/scikit-learn/scikit-learn/blob/master/COPYING,BSD-3
+scipy,https://github.com/scipy/scipy/blob/master/LICENSE.txt,BSD-3
+six,https://github.com/benjaminp/six/blob/master/LICENSE,MIT
+tensorboard,https://github.com/tensorflow/tensorboard/blob/master/LICENSE,Apache 2.0
+tensorflow,https://github.com/tensorflow/tensorflow/blob/master/LICENSE,Apache 2.0
+tensorflow-data-validation,https://github.com/tensorflow/data-validation/blob/master/LICENSE,Apache 2.0
+tensorflow-estimator,https://github.com/tensorflow/estimator/blob/master/LICENSE,Apache 2.0
+tensorflow-metadata,https://github.com/tensorflow/metadata/blob/master/LICENSE,Apache 2.0
+tensorflow-model-analysis,https://github.com/tensorflow/model-analysis/blob/master/LICENSE,Apache 2.0
+tensorflow-transform,https://github.com/tensorflow/transform/blob/master/LICENSE,Apache 2.0
+termcolor,https://github.com/tartley/colorama/blob/master/LICENSE.txt,BSD-3
+terminado,https://github.com/jupyter/terminado/blob/master/LICENSE,BSD
+testpath,https://github.com/jupyter/testpath/blob/master/LICENSE,BSD-3
+tornado,https://github.com/tornadoweb/tornado/blob/master/LICENSE,Apache 2.0
+traitlets,https://github.com/ipython/traitlets/blob/master/COPYING.md,BSD-3
+uritemplate,https://github.com/python-hyper/uritemplate/blob/master/LICENSE,Apache 2.0 & BSD
+urllib3,https://github.com/urllib3/urllib3/blob/master/LICENSE.txt,MIT
+wcwidth,https://github.com/jquast/wcwidth/blob/master/LICENSE.txt,MIT
+webencodings,https://github.com/gsnedders/python-webencodings/blob/master/LICENSE,BSD-3
+widgetsnbextension,https://github.com/jupyter-widgets/ipywidgets/blob/master/widgetsnbextension/LICENSE,BSD-3

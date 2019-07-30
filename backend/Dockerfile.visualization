@@ -26,4 +26,6 @@ COPY src/apiserver/visualization /src
 
 RUN pip3 install -r requirements.txt
 
+RUN ./license.sh third_party_licenses.csv /usr/licenses
+
 ENTRYPOINT [ "python3", "server.py" ]

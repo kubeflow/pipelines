@@ -2,3 +2,4 @@
 *.csv
 *.json
 __init__.py
+!third_party_licenses.csv
