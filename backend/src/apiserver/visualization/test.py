@@ -3,6 +3,7 @@ test.py is used for test_server.py as a way to test the tornado web server
 without having a reliance on the validity of visualizations. It does not serve
 as a valid visualization and is only used for testing purposes.
 """
+
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
