@@ -13,13 +13,14 @@
 # limitations under the License.
 
 import argparse
+import importlib
 from pathlib import Path
 import shlex
 from nbformat.v4 import new_notebook, new_code_cell
 import tornado.ioloop
 import tornado.web
-import exporter
 
+exporter = importlib.import_module("exporter")
 
 # All necessary arguments required to generate visualizations.
 parser = argparse.ArgumentParser(description='Visualization Generator')

@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import importlib
 import unittest
 from nbformat.v4 import new_code_cell
 from nbformat.v4 import new_notebook
 import snapshottest
-import exporter
+
+exporter = importlib.import_module("exporter")
 
 
 class TestExporterMethods(snapshottest.TestCase):
