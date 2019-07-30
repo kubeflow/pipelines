@@ -64,9 +64,9 @@ def create_cell_from_args(args: argparse.Namespace) -> NotebookNode:
         # Check type of variable to maintain type when converting from JSON to
         # notebook cell
         if args[key] is None or isinstance(args[key], bool):
-            variables += f"{key} = {args[key]}\n"
+            variables += "{} = {}\n".format(key, args[key])
         else:
-            variables += f'{key} = "{args[key]}"\n'
+            variables += '{} = "{}"\n'.format(key, args[key])
 
     return new_code_cell(variables)
 
@@ -91,7 +91,7 @@ def generate_html_from_notebook(
 ) -> Text:
     # HTML generator and exporter object
     html_exporter = HTMLExporter()
-    template_file = f"templates/{template_type.value}.tpl"
+    template_file = "templates/{}.tpl".format(template_type.value)
     html_exporter.template_file = str(Path.cwd() / template_file)
     # Output generator
     ep.preprocess(nb, {"metadata": {"path": Path.cwd()}}, km)

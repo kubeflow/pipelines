@@ -53,8 +53,8 @@ class VisualizationHandler(tornado.web.RequestHandler):
         # Create notebook with arguments from request.
         nb = new_notebook()
         nb.cells.append(exporter.create_cell_from_args(args.arguments))
-        nb.cells.append(new_code_cell(f'input_path = "{args.input_path}"'))
-        visualization_file = str(Path.cwd() / f"{args.type}.py")
+        nb.cells.append(new_code_cell('input_path = "{}"'.format(args.input_path)))
+        visualization_file = str(Path.cwd() / "{}.py".format(args.type))
         nb.cells.append(exporter.create_cell_from_file(visualization_file))
         # Generate visualization (output for notebook).
         html = exporter.generate_html_from_notebook(nb)
