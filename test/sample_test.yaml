@@ -50,91 +50,28 @@ spec:
             value: test/sample-test/Dockerfile
           - name: image-name
             value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-    - - name: run-tf-training-tests
+    - - name: run-sample-tests-loop
         template: run-sample-tests
         arguments:
           parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
+          - name: sample-tests-image
+            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
+          - name: target-image-prefix
+            value: "{{inputs.parameters.target-image-prefix}}"
+          - name: test-results-gcs-dir
+            value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: test-name
             value: "tf-training"
-      - name: run-tfx-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "tfx"
-      - name: run-xgboost-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "xgboost"
-      - name: run-notebook-tfx-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "notebook-tfx"
-      - name: run-notebook-lightweight-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "notebook-lightweight"
-      - name: run-notebook-typecheck-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "notebook-typecheck"
-
+        withItems:
+        - { test-name: 'tf-training' }
+        - { test-name: 'tfx' }
+        - { test-name: 'xgboost' }
+        - { test-name: 'notebook-tfx' }
+        - { test-name: 'notebook-lightweight' }
+        - { test-name: 'notebook-typecheck' }
+        -
   # Build and push image
   - name: build-image-by-dockerfile
     inputs:
@@ -188,9 +125,9 @@ spec:
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
       args: [
+        "--namespace", "{{inputs.parameters.namespace}}",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}",
-        "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",
       ]
       env:
