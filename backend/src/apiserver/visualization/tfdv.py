@@ -14,6 +14,12 @@
 
 import tensorflow_data_validation as tfdv
 
+# The following variables are provided through dependency injection. These
+# variables come from the specified input path and arguments provided by the
+# API post request.
+#
+# input_path
+
 train_stats = tfdv.generate_statistics_from_csv(data_location=input_path)
 
 tfdv.visualize_statistics(train_stats)

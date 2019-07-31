@@ -41,8 +41,8 @@ from nbformat.v4 import new_code_cell
 # additional tags for javascript and style support. This is ideal for generating
 # visualizations that will be displayed via the frontend.
 class TemplateType(Enum):
-    basic = 'basic'
-    full = 'full'
+    BASIC = 'basic'
+    FULL = 'full'
 
 
 class Exporter:
@@ -50,7 +50,7 @@ class Exporter:
     def __init__(
         self,
         timeout: int = 100,
-        template_type: TemplateType = TemplateType.full
+        template_type: TemplateType = TemplateType.FULL
     ):
         self.timeout = timeout
         self.template_type = template_type
@@ -99,14 +99,10 @@ class Exporter:
     # Exports a notebook to HTML and generates any required outputs.
     #
     # Returns the generated HTML as a string.
-    def generate_html_from_notebook(
-            self,
-            nb: NotebookNode,
-            template_type: TemplateType = TemplateType.full
-    ) -> Text:
+    def generate_html_from_notebook(self, nb: NotebookNode) -> Text:
         # HTML generator and exporter object
         html_exporter = HTMLExporter()
-        template_file = "templates/{}.tpl".format(template_type.value)
+        template_file = "templates/{}.tpl".format(self.template_type.value)
         html_exporter.template_file = str(Path.cwd() / template_file)
         # Output generator
         self.ep.preprocess(nb, {"metadata": {"path": Path.cwd()}}, self.km)

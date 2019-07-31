@@ -24,9 +24,13 @@ import tornado.web
 exporter = importlib.import_module("exporter")
 
 parser = argparse.ArgumentParser(description="Server Arguments")
-parser.add_argument("--timeout", type=int, default=100,
-                    help="Amount of time a visualization can run for before " +
-                         "being stopped.")
+parser.add_argument(
+    "--timeout",
+    type=int,
+    default=100,
+    help="Amount of time in seconds that a visualization can run for before " +
+         "being stopped."
+)
 
 
 class VisualizationHandler(tornado.web.RequestHandler):
@@ -35,21 +39,29 @@ class VisualizationHandler(tornado.web.RequestHandler):
     def initialize(self, timeout: int):
         # All necessary arguments required to generate visualizations.
         self.requestParser = argparse.ArgumentParser(
-            description="Visualization Generator")
+            description="Visualization Generator"
+        )
         # Type of visualization to be generated.
-        self.requestParser.add_argument("--type", type=str,
-                                        help="Type of visualization to be " +
-                                             "generated.")
+        self.requestParser.add_argument(
+            "--type",
+            type=str,
+            help="Type of visualization to be generated."
+        )
         # Path of data to be used to generate visualization.
-        self.requestParser.add_argument("--input_path", type=str,
-                                        help="Path of data to be used for " +
-                                             "generating visualization.")
+        self.requestParser.add_argument(
+            "--input_path",
+            type=str,
+            help="Path of data to be used for generating visualization."
+        )
         # Additional arguments to be used when generating a visualization
         # (provided as a string representation of JSON).
-        self.requestParser.add_argument("--arguments", type=str, default="{}",
-                                        help="JSON string of arguments to be " +
-                                             "provided to visualizations.")
-        self.Exporter = exporter.Exporter(timeout)
+        self.requestParser.add_argument(
+            "--arguments",
+            type=str,
+            default="{}",
+            help="JSON string of arguments to be provided to visualizations."
+        )
+        self.exporter = exporter.Exporter(timeout)
 
     # Parses provided arguments in request.
     #
@@ -76,10 +88,10 @@ class VisualizationHandler(tornado.web.RequestHandler):
         visualization_type: Text
     ):
         nb = new_notebook()
-        nb.cells.append(self.Exporter.create_cell_from_args(arguments))
+        nb.cells.append(self.exporter.create_cell_from_args(arguments))
         nb.cells.append(new_code_cell('input_path = "{}"'.format(input_path)))
         visualization_file = str(Path.cwd() / "{}.py".format(visualization_type))
-        nb.cells.append(self.Exporter.create_cell_from_file(visualization_file))
+        nb.cells.append(self.exporter.create_cell_from_file(visualization_file))
         return nb
 
     # Health check route.
@@ -96,9 +108,10 @@ class VisualizationHandler(tornado.web.RequestHandler):
         nb = self.generate_notebook_from_arguments(
             request_arguments.arguments,
             request_arguments.input_path,
-            request_arguments.type)
+            request_arguments.type
+        )
         # Generate visualization (output for notebook).
-        html = self.Exporter.generate_html_from_notebook(nb)
+        html = self.exporter.generate_html_from_notebook(nb)
         self.write(html)
 
 

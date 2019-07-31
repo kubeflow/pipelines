@@ -24,42 +24,41 @@ exporter = importlib.import_module("exporter")
 class TestExporterMethods(snapshottest.TestCase):
 
     def setUp(self):
-        self.Exporter = exporter.Exporter()
+        self.exporter = exporter.Exporter(template_type=exporter.TemplateType.BASIC)
 
     def test_create_cell_from_args_with_no_args(self):
         self.maxDiff = None
         args = "{}"
-        cell = self.Exporter.create_cell_from_args(args)
+        cell = self.exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_args_with_one_arg(self):
         self.maxDiff = None
         args = '{"input_path": "gs://ml-pipeline/data.csv"}'
-        cell = self.Exporter.create_cell_from_args(args)
+        cell = self.exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_args_with_multiple_args(self):
         self.maxDiff = None
-        args = ('{"input_path": "gs://ml-pipeline/data.csv", '
-                "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * "
-                '0.2)"}')
-        cell = self.Exporter.create_cell_from_args(args)
+        args = (
+            '{"input_path": "gs://ml-pipeline/data.csv", '
+            "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * '0.2)\"}"
+        )
+        cell = self.exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_file(self):
         self.maxDiff = None
-        cell = self.Exporter.create_cell_from_file("tfdv.py")
+        cell = self.exporter.create_cell_from_file("tfdv.py")
         self.assertMatchSnapshot(cell.source)
 
     def test_generate_html_from_notebook(self):
         self.maxDiff = None
         nb = new_notebook()
         args = '{"x": 2}'
-        nb.cells.append(self.Exporter.create_cell_from_args(args))
+        nb.cells.append(self.exporter.create_cell_from_args(args))
         nb.cells.append(new_code_cell("print(x)"))
-        html = self.Exporter.generate_html_from_notebook(
-            nb,
-            template_type=exporter.TemplateType.basic)
+        html = self.exporter.generate_html_from_notebook(nb)
         self.assertMatchSnapshot(html)
 
 

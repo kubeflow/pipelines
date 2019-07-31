@@ -24,6 +24,16 @@ import pandas as pd
 from sklearn.metrics import roc_curve
 from tensorflow.python.lib.io import file_io
 
+# The following variables are provided through dependency injection. These
+# variables come from the specified input path and arguments provided by the
+# API post request.
+#
+# is_generated
+# input_path
+# target_lambda
+# trueclass
+# true_score_column
+
 if is_generated is False:
     # Create data from specified csv file(s).
     # The schema file provides column names for the csv file that will be used
@@ -46,8 +56,11 @@ if is_generated is False:
     source = pd.DataFrame({'fpr': fpr, 'tpr': tpr, 'thresholds': thresholds})
 else:
     # Load data from generated csv file.
-    source = pd.read_csv(input_path, header=None, names=['fpr', 'tpr',
-                                                         'thresholds'])
+    source = pd.read_csv(
+        input_path,
+        header=None,
+        names=['fpr', 'tpr', 'thresholds']
+    )
 
 # Create visualization.
 output_notebook()
