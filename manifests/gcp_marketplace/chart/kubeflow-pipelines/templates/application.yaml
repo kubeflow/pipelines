@@ -2,6 +2,7 @@ apiVersion: app.k8s.io/v1beta1
 kind: Application
 metadata:
   name: "{{ .Release.Name }}"
+  namespace: "{{ .Release.Namespace }}"
   annotations:
     kubernetes-engine.cloud.google.com/icon: >-
       data:image/png;base64,{{ .Files.Get "logo.png" | b64enc }}
@@ -33,11 +34,7 @@ spec:
     - group: rbac.authorization.k8s.io/v1
       kind: Role
     - group: rbac.authorization.k8s.io/v1
-      kind: ClusterRole
-    - group: rbac.authorization.k8s.io/v1
       kind: RoleBinding
-    - group: rbac.authorization.k8s.io/v1
-      kind: ClusterRoleBinding
     - group: v1
       kind: Service
     - group: v1
