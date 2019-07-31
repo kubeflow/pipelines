@@ -215,10 +215,7 @@ def _func_to_entrypoint(component_func, python_version='python3'):
   func_signature = 'def ' + new_func_name + '('
   for input_arg in input_args:
     func_signature += input_arg + ','
-  if output_is_named_tuple:
-    func_signature += '_output_files'
-  else:
-    func_signature += '_output_file'
+  func_signature = func_signature + '_output_files' if output_is_named_tuple else '_output_file'
   func_signature += '):'
   codegen.writeline(func_signature)
 
