@@ -302,10 +302,6 @@ class TestCompiler(unittest.TestCase):
     """Test a pipeline with conditions."""
     self._test_py_compile_zip('coin')
 
-  def test_py_compile_immediate_value(self):
-    """Test a pipeline with immediate value parameter."""
-    self._test_py_compile_targz('immediate_value')
-
   def test_py_compile_default_value(self):
     """Test a pipeline with a parameter with default value."""
     self._test_py_compile_targz('default_value')
@@ -527,6 +523,22 @@ implementation:
     template = workflow_dict['spec']['templates'][0]
     self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'], 'Custom name')
 
+  def test_set_ttl_seconds_after_finished(self):
+    """Test a pipeline with ttl after finished."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_ttl_seconds_after_finished(86400)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['ttlSecondsAfterFinished'], 86400)
 
   def test_op_transformers(self):
     def some_op():
