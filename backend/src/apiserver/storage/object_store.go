@@ -107,7 +107,6 @@ func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error
 	if err != nil {
 		return util.Wrap(err, "Failed to read from a yaml file.")
 	}
-
 	err = yaml.Unmarshal(bytes, o)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to unmarshal %v: %v", filePath, err.Error())
