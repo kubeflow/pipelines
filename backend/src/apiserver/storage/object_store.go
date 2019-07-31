@@ -16,6 +16,7 @@ package storage
 
 import (
 	"bytes"
+	"regexp"
 
 	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -77,7 +78,16 @@ func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(reader)
-	return buf.Bytes(), nil
+
+	bytes := buf.Bytes()
+
+	// Remove single part signature if exists
+	if m.disableMultipart {
+		re := regexp.MustCompile(`\w+;chunk-signature=\w+`)
+		bytes = []byte(re.ReplaceAllString(string(bytes), ""))
+	}
+
+	return bytes, nil
 }
 
 func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
@@ -97,8 +107,6 @@ func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error
 	if err != nil {
 		return util.Wrap(err, "Failed to read from a yaml file.")
 	}
-
-	bytes = RemoveAwsS3SigFromTemplate(bytes)
 
 	err = yaml.Unmarshal(bytes, o)
 	if err != nil {

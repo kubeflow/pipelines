@@ -185,8 +185,6 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 
 	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
 
-	template = storage.RemoveAwsS3SigFromTemplate(template)
-
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
@@ -201,8 +199,6 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 	}
 	var workflow util.Workflow
-
-	workflowSpecManifestBytes = storage.RemoveAwsS3SigFromTemplate(workflowSpecManifestBytes)
 
 	if err = json.Unmarshal(workflowSpecManifestBytes, &workflow); err != nil {
 		return nil, util.NewInternalServerError(err,
