@@ -59,8 +59,6 @@ interface NewRunState {
   pipeline?: ApiPipeline;
   // This represents a pipeline from a run that is being cloned, or if a user is creating a run from
   // a pipeline that was not uploaded to the system (as in the case of runs created from notebooks).
-  // By storing this here instead of in the 'pipeline' field, we won't lose it if the user selects a
-  // different pipeline.
   workflowFromRun?: Workflow;
   // TODO: this is only here to properly display the name in the text field.
   // There is definitely a way to do this that doesn't necessitate this being in state.
