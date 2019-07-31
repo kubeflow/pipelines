@@ -23,9 +23,10 @@ import DialogContent from '@material-ui/core/DialogContent';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
+import NewRunParameters from '../components/NewRunParameters';
 import Radio from '@material-ui/core/Radio';
-import RunUtils from '../lib/RunUtils';
 import ResourceSelector from './ResourceSelector';
+import RunUtils from '../lib/RunUtils';
 import { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
 import { ApiExperiment } from '../apis/experiment';
@@ -349,7 +350,7 @@ class NewRun extends Page<{}, NewRunState> {
     const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
     const originalRecurringRunId = urlParser.get(QUERY_PARAMS.cloneFromRecurringRun);
     // If we are not cloning from an existing run, we may have an embedded pipeline from a run from
-    // a notebook. This is a somewhat hidden path but can be reached via the following steps:
+    // a notebook. This is a somewhat hidden path that can be reached via the following steps:
     // 1. Create a pipeline and run it from a notebook
     // 2. Click [View Pipeline] for this run from one of the list pages
     //    (Now you will be viewing a pipeline details page for a pipeline that hasn't been uploaded)
@@ -390,7 +391,11 @@ class NewRun extends Page<{}, NewRunState> {
       if (possiblePipelineId) {
         try {
           const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
-          this.setStateSafe({ pipeline, pipelineName: (pipeline && pipeline.name) || '' });
+          this.setStateSafe({
+            parameters: pipeline.parameters || [],
+            pipeline,
+            pipelineName: (pipeline && pipeline.name) || ''
+          });
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
@@ -472,6 +477,12 @@ class NewRun extends Page<{}, NewRunState> {
       pageTitle: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
     });
     this.setStateSafe({ isRecurringRun });
+  }
+
+  protected _handleParamChange(index: number, value: string): void {
+    const { parameters } = this.state;
+    parameters[index].value = value;
+    this.setStateSafe({ parameters });
   }
 
   private async _prepareFormFromEmbeddedPipeline(embeddedPipelineRunId: string): Promise<void> {
@@ -658,12 +669,6 @@ class NewRun extends Page<{}, NewRunState> {
         open: true,
       });
     });
-  }
-
-  private _handleParamChange(index: number, value: string): void {
-    const { parameters } = this.state;
-    parameters[index].value = value;
-    this.setStateSafe({ parameters });
   }
 
   private _getCloneName(oldName: string): string {
