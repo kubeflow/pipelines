@@ -14,7 +14,10 @@
 
 package storage
 
-import "path"
+import (
+	"path"
+	"regexp"
+)
 
 const (
 	pipelineFolder = "pipelines"
@@ -23,4 +26,11 @@ const (
 // CreatePipelinePath creates object store path to a pipeline spec.
 func CreatePipelinePath(pipelineID string) string {
 	return path.Join(pipelineFolder, pipelineID)
+}
+
+func RemoveAwsS3SigFromTemplate(template []byte) []byte {
+	re := regexp.MustCompile(`\w+;chunk-signature=\w+`)
+	removeSigTemplate := re.ReplaceAllString(string(template), "")
+
+	return []byte(removeSigTemplate)
 }

@@ -37,14 +37,24 @@ type ObjectStoreInterface interface {
 
 // Managing pipeline using Minio
 type MinioObjectStore struct {
-	minioClient MinioClientInterface
-	bucketName  string
+	minioClient      MinioClientInterface
+	bucketName       string
+	disableMultipart bool
 }
 
 func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
+
+	var parts int64
+
+	if m.disableMultipart {
+		parts = int64(len(file))
+	} else {
+		parts = multipartDefaultSize
+	}
+
 	_, err := m.minioClient.PutObject(
 		m.bucketName, filePath, bytes.NewReader(file),
-		multipartDefaultSize, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+		parts, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to store %v", filePath)
 	}
@@ -87,6 +97,9 @@ func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error
 	if err != nil {
 		return util.Wrap(err, "Failed to read from a yaml file.")
 	}
+
+	bytes = RemoveAwsS3SigFromTemplate(bytes)
+
 	err = yaml.Unmarshal(bytes, o)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to unmarshal %v: %v", filePath, err.Error())
@@ -98,6 +111,6 @@ func buildPath(folder, file string) string {
 	return folder + "/" + file
 }
 
-func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string) *MinioObjectStore {
-	return &MinioObjectStore{minioClient: minioClient, bucketName: bucketName}
+func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string, disableMultipart bool) *MinioObjectStore {
+	return &MinioObjectStore{minioClient: minioClient, bucketName: bucketName, disableMultipart: disableMultipart}
 }

@@ -184,6 +184,9 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	}
 
 	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
+
+	template = storage.RemoveAwsS3SigFromTemplate(template)
+
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
@@ -198,6 +201,9 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 	}
 	var workflow util.Workflow
+
+	workflowSpecManifestBytes = storage.RemoveAwsS3SigFromTemplate(workflowSpecManifestBytes)
+
 	if err = json.Unmarshal(workflowSpecManifestBytes, &workflow); err != nil {
 		return nil, util.NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow bytes: %s", string(workflowSpecManifestBytes))
@@ -606,7 +612,7 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 	artifactPath := workflow.FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
 	if artifactPath == "" {
 		return nil, util.NewResourceNotFoundError(
-			"arifact", common.CreateArtifactPath(runID, nodeID, artifactName))
+			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
 	return r.objectStore.GetFile(artifactPath)
 }
