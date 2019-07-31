@@ -36,12 +36,14 @@ parser.add_argument(
 
 
 class VisualizationHandler(tornado.web.RequestHandler):
+    """Custom RequestHandler that generates visualizations via post requests.
+    """
 
     def initialize(self, timeout: int):
-        """Initializes custom RequestHandler that generates visualizations.
+        """Creates custom RequestHandler that processes visualization requests.
 
         The initialize function is used rather than the __init__ function due to
-        tornado specs for RequestHandler.
+        tornado specs for a RequestHandler.
 
         Args:
             timeout (int): Amount of time in seconds that a visualization can
