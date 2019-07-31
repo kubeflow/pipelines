@@ -171,8 +171,8 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     const pageTitle = run ? run.name! : runId;
 
     const toolbarActions = [...this.props.toolbarProps.actions];
-    toolbarActions[1].disabled = !!run.enabled;
-    toolbarActions[2].disabled = !run.enabled;
+    toolbarActions[2].disabled = !!run.enabled;
+    toolbarActions[3].disabled = !run.enabled;
 
     this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 

@@ -17,7 +17,7 @@
 import * as React from 'react';
 import NewRun from './NewRun';
 import TestUtils from '../TestUtils';
-import { shallow, ShallowWrapper, ReactWrapper, mount } from 'enzyme';
+import { shallow, ShallowWrapper, ReactWrapper } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
