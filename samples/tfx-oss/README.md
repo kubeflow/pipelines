@@ -21,7 +21,7 @@ then activate the environment.
 Install TensorFlow, TFX and Kubeflow Pipelines SDK
 ```
 pip install tensorflow --upgrade
-pip install https://storage.googleapis.com/ml-pipeline/tfx/tfx-0.12.0rc0-py2.py3-none-any.whl 
+pip install tfx 
 pip install kfp --upgrade
 ```
 

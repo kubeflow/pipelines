@@ -1,11 +1,80 @@
 # Change Log
 
+## [0.1.25](https://github.com/kubeflow/pipelines/tree/0.1.25) (2019-07-26)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.24...0.1.25)
+
+**Merged pull requests:**
+
+- Increase version in namespaced-install.yaml too [\#1684](https://github.com/kubeflow/pipelines/pull/1684) ([jingzhang36](https://github.com/jingzhang36))
+- Add visualization API service to frontend [\#1675](https://github.com/kubeflow/pipelines/pull/1675) ([ajchili](https://github.com/ajchili))
+- Increase KFP version in \(1\) sdk/python/setup.py \(2\) component\_sdk/python/setup.py \(3\) manifests/base/kustomization.yaml [\#1674](https://github.com/kubeflow/pipelines/pull/1674) ([jingzhang36](https://github.com/jingzhang36))
+- Release fe639f41661d8e17fcda64ff8242127620b80ba0 [\#1672](https://github.com/kubeflow/pipelines/pull/1672) ([jingzhang36](https://github.com/jingzhang36))
+- Adding kfp.cil to kfp setup.py. [\#1666](https://github.com/kubeflow/pipelines/pull/1666) ([hongye-sun](https://github.com/hongye-sun))
+- Fix exit handler sample [\#1665](https://github.com/kubeflow/pipelines/pull/1665) ([hongye-sun](https://github.com/hongye-sun))
+- Add visualization swagger files to frontend [\#1663](https://github.com/kubeflow/pipelines/pull/1663) ([ajchili](https://github.com/ajchili))
+- move gcshelper out of component\_builder [\#1658](https://github.com/kubeflow/pipelines/pull/1658) ([gaoning777](https://github.com/gaoning777))
+- Remove redundant import. [\#1656](https://github.com/kubeflow/pipelines/pull/1656) ([numerology](https://github.com/numerology))
+- Fix broken license link [\#1655](https://github.com/kubeflow/pipelines/pull/1655) ([hongye-sun](https://github.com/hongye-sun))
+- update kaniko executor version to speed up image build [\#1652](https://github.com/kubeflow/pipelines/pull/1652) ([gaoning777](https://github.com/gaoning777))
+- add init container for container op [\#1650](https://github.com/kubeflow/pipelines/pull/1650) ([IronPan](https://github.com/IronPan))
+- update python test to use python3 [\#1649](https://github.com/kubeflow/pipelines/pull/1649) ([IronPan](https://github.com/IronPan))
+- Add visualization server and unit tests for visualization server [\#1647](https://github.com/kubeflow/pipelines/pull/1647) ([ajchili](https://github.com/ajchili))
+- Sets min widths for buttons to avoid text wrapping [\#1637](https://github.com/kubeflow/pipelines/pull/1637) ([rileyjbauer](https://github.com/rileyjbauer))
+- Changed arguments parameter type and built visualization pb and swagger files [\#1636](https://github.com/kubeflow/pipelines/pull/1636) ([ajchili](https://github.com/ajchili))
+- Add recurring run column to run lists [\#1635](https://github.com/kubeflow/pipelines/pull/1635) ([rileyjbauer](https://github.com/rileyjbauer))
+- update persistent agence to only store the argo spec [\#1634](https://github.com/kubeflow/pipelines/pull/1634) ([IronPan](https://github.com/IronPan))
+- Add OWNERS file in aws components and examples [\#1633](https://github.com/kubeflow/pipelines/pull/1633) ([Jeffwan](https://github.com/Jeffwan))
+- Samples - Cleaned up unnecessary usage of PipelineParam [\#1631](https://github.com/kubeflow/pipelines/pull/1631) ([Ark-kun](https://github.com/Ark-kun))
+- Samples - Removed the immediate\_value sample [\#1630](https://github.com/kubeflow/pipelines/pull/1630) ([Ark-kun](https://github.com/Ark-kun))
+- Add SageMaker HPO component and sample usage in a pipeline [\#1628](https://github.com/kubeflow/pipelines/pull/1628) ([carolynwang](https://github.com/carolynwang))
+- propagate database password when init db connection [\#1627](https://github.com/kubeflow/pipelines/pull/1627) ([IronPan](https://github.com/IronPan))
+- SDK - Lightweight - Added support for "None" default values [\#1626](https://github.com/kubeflow/pipelines/pull/1626) ([Ark-kun](https://github.com/Ark-kun))
+- Removed duplicate CircularProgress within UI [\#1625](https://github.com/kubeflow/pipelines/pull/1625) ([ajchili](https://github.com/ajchili))
+- viewer controller is now namespaced so no need for cluster role [\#1623](https://github.com/kubeflow/pipelines/pull/1623) ([jingzhang36](https://github.com/jingzhang36))
+- switch third party images to GCR [\#1622](https://github.com/kubeflow/pipelines/pull/1622) ([IronPan](https://github.com/IronPan))
+- update changelog [\#1618](https://github.com/kubeflow/pipelines/pull/1618) ([gaoning777](https://github.com/gaoning777))
+- Update samples to use the latest versions of the python SDK [\#1607](https://github.com/kubeflow/pipelines/pull/1607) ([gaoning777](https://github.com/gaoning777))
+- Trims whitespace from pipeline params on creation of new run [\#1605](https://github.com/kubeflow/pipelines/pull/1605) ([rileyjbauer](https://github.com/rileyjbauer))
+- SDK/DSL: Fix bug when specifying custom resource for VolumeOp [\#1595](https://github.com/kubeflow/pipelines/pull/1595) ([elikatsis](https://github.com/elikatsis))
+- \[Feature\] Set ttlSecondsAfterFinished in argo workflow with PipelineConf [\#1594](https://github.com/kubeflow/pipelines/pull/1594) ([eterna2](https://github.com/eterna2))
+- Delete go CLI  [\#1592](https://github.com/kubeflow/pipelines/pull/1592) ([IronPan](https://github.com/IronPan))
+- Added image captioning sample to samples/notebooks [\#1591](https://github.com/kubeflow/pipelines/pull/1591) ([zanedurante](https://github.com/zanedurante))
+- tox.ini: Add flake8 tests to find Python syntax errors and undefined names [\#1577](https://github.com/kubeflow/pipelines/pull/1577) ([cclauss](https://github.com/cclauss))
+- Add gcp-connector label and remove pod name [\#1542](https://github.com/kubeflow/pipelines/pull/1542) ([hongye-sun](https://github.com/hongye-sun))
+- Remove legacy hardcoded version of TFX [\#1502](https://github.com/kubeflow/pipelines/pull/1502) ([IreneGi](https://github.com/IreneGi))
+- add support for flexible config \(via env var\) for the pipline service and UI, fix broken links \(pointed to API vs UI service\) [\#1293](https://github.com/kubeflow/pipelines/pull/1293) ([yaronha](https://github.com/yaronha))
+
+## [0.1.24](https://github.com/kubeflow/pipelines/tree/0.1.24) (2019-07-12)
+[Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.23...0.1.24)
+
+**Merged pull requests:**
+
+- update manifest and sdk version [\#1617](https://github.com/kubeflow/pipelines/pull/1617) ([gaoning777](https://github.com/gaoning777))
+- fix dependency bug in the recursion support [\#1616](https://github.com/kubeflow/pipelines/pull/1616) ([gaoning777](https://github.com/gaoning777))
+- Release ac833a084b32324b56ca56e9109e05cde02816a4 [\#1614](https://github.com/kubeflow/pipelines/pull/1614) ([gaoning777](https://github.com/gaoning777))
+- Set user credentials when creating viewer  object [\#1603](https://github.com/kubeflow/pipelines/pull/1603) ([jingzhang36](https://github.com/jingzhang36))
+- List pipelines [\#1588](https://github.com/kubeflow/pipelines/pull/1588) ([kevinbache](https://github.com/kevinbache))
+- Update Watson training component to output model location UID [\#1587](https://github.com/kubeflow/pipelines/pull/1587) ([Tomcli](https://github.com/Tomcli))
+- fix recursion bug [\#1583](https://github.com/kubeflow/pipelines/pull/1583) ([gaoning777](https://github.com/gaoning777))
+- Release 2d0d8619507743ec4ff1e213735a8f82d3913281 [\#1581](https://github.com/kubeflow/pipelines/pull/1581) ([IronPan](https://github.com/IronPan))
+- Pass dataset\_location to container [\#1579](https://github.com/kubeflow/pipelines/pull/1579) ([hongye-sun](https://github.com/hongye-sun))
+- Add PV/PVC admin permission for pipeline runner [\#1576](https://github.com/kubeflow/pipelines/pull/1576) ([IronPan](https://github.com/IronPan))
+- Updates the changelog for the v0.1.23 release [\#1571](https://github.com/kubeflow/pipelines/pull/1571) ([rileyjbauer](https://github.com/rileyjbauer))
+- Manifests: Update pipeline-runner permissions [\#1570](https://github.com/kubeflow/pipelines/pull/1570) ([elikatsis](https://github.com/elikatsis))
+- Update manifests for 0.1.23 [\#1567](https://github.com/kubeflow/pipelines/pull/1567) ([rileyjbauer](https://github.com/rileyjbauer))
+- Add Visualization API endpoint [\#1565](https://github.com/kubeflow/pipelines/pull/1565) ([ajchili](https://github.com/ajchili))
+- Viewer CRD controller running under namespace [\#1562](https://github.com/kubeflow/pipelines/pull/1562) ([jingzhang36](https://github.com/jingzhang36))
+- Pipeline sample: Updated research notebook to use Seaborn [\#1546](https://github.com/kubeflow/pipelines/pull/1546) ([kweinmeister](https://github.com/kweinmeister))
+- add\_pod\_env op handler [\#1540](https://github.com/kubeflow/pipelines/pull/1540) ([hongye-sun](https://github.com/hongye-sun))
+- Step 7 auto-generated change log for release 0.1.21 [\#1527](https://github.com/kubeflow/pipelines/pull/1527) ([jingzhang36](https://github.com/jingzhang36))
+
+
 ## [0.1.23](https://github.com/kubeflow/pipelines/tree/0.1.23) (2019-06-26)
 [Full Changelog](https://github.com/kubeflow/pipelines/compare/0.1.22...0.1.23)
 
- **Merged pull requests:**
+**Merged pull requests:**
 
- - Sort keys in nested dictionaries for fixing unit tests [\#1558](https://github.com/kubeflow/pipelines/pull/1558) ([derekhh](https://github.com/derekhh))
+- Sort keys in nested dictionaries for fixing unit tests [\#1558](https://github.com/kubeflow/pipelines/pull/1558) ([derekhh](https://github.com/derekhh))
 - Use sorted\(dict.items\(\)\) for stable output [\#1554](https://github.com/kubeflow/pipelines/pull/1554) ([derekhh](https://github.com/derekhh))
 - Use GCP external Stackdriver links [\#1552](https://github.com/kubeflow/pipelines/pull/1552) ([derekhh](https://github.com/derekhh))
 - configurable timeout and namespace in docker magic [\#1550](https://github.com/kubeflow/pipelines/pull/1550) ([gaoning777](https://github.com/gaoning777))

@@ -16,7 +16,7 @@
 import unittest
 from kubernetes.client.models import V1EnvVar, V1VolumeMount
 
-from kfp.dsl import Pipeline, PipelineParam, ContainerOp, Sidecar
+from kfp.dsl import Pipeline, PipelineParam, ContainerOp, UserContainer, Sidecar
 
 
 class TestContainerOp(unittest.TestCase):
@@ -27,9 +27,12 @@ class TestContainerOp(unittest.TestCase):
     param2 = PipelineParam('param2')
     op1 = (ContainerOp(name='op1', image='image',
         arguments=['%s hello %s %s' % (param1, param2, param1)],
+        init_containers=[UserContainer(name='initcontainer0', image='initimage0')],
         sidecars=[Sidecar(name='sidecar0', image='image0')],
         container_kwargs={'env': [V1EnvVar(name='env1', value='value1')]},
         file_outputs={'out1': '/tmp/b'})
+          .add_init_container(UserContainer(name='initcontainer1', image='initimage1'))
+          .add_init_container(UserContainer(name='initcontainer2', image='initimage2'))
           .add_sidecar(Sidecar(name='sidecar1', image='image1'))
           .add_sidecar(Sidecar(name='sidecar2', image='image2')))
       
@@ -37,6 +40,8 @@ class TestContainerOp(unittest.TestCase):
     self.assertCountEqual(list(op1.outputs.keys()), ['out1'])
     self.assertCountEqual([x.op_name for x in op1.outputs.values()], [op1.name])
     self.assertEqual(op1.output.name, 'out1')
+    self.assertCountEqual([init_container.name for init_container in op1.init_containers], ['initcontainer0', 'initcontainer1', 'initcontainer2'])
+    self.assertCountEqual([init_container.image for init_container in op1.init_containers], ['initimage0', 'initimage1', 'initimage2'])
     self.assertCountEqual([sidecar.name for sidecar in op1.sidecars], ['sidecar0', 'sidecar1', 'sidecar2'])
     self.assertCountEqual([sidecar.image for sidecar in op1.sidecars], ['image0', 'image1', 'image2'])
     self.assertCountEqual([env.name for env in op1.container.env], ['env1'])

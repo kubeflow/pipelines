@@ -7,14 +7,7 @@ This sample is based on the [Train a Model with a Built-in Algorithm and Deploy 
 The sample trains and deploy a model based on the [MNIST dataset](http://www.deeplearning.net/tutorial/gettingstarted.html).
 
 
-You can create a s3 bucket and follow these instructions to `data` and `valid_data.csv` to your buckets.
-
-```shell
-aws s3 cp s3://kubeflow-pipeline-data/mnist_kmeans_example/data s3://your_bucket/mnist_kmeans_example/data
-aws s3 cp s3://kubeflow-pipeline-data/mnist_kmeans_example/input/valid_data.csv s3://your_bucket/mnist_kmeans_example/input/
-```
-
-`data` and `valid_data.csv` are already prepared by us, if you want to start from scratch, please follow instructions to prepare your datasets and upload to your s3 buckets.
+Create a s3 bucket and use the following python script to copy `train_data`, `test_data`, and `valid_data.csv` to your buckets.
 
 ```python
 import pickle, gzip, numpy, urllib.request, json
@@ -32,16 +25,25 @@ import io
 import boto3
 
 bucket = 'bucket-name' # Use the name of your s3 bucket here
-data_key = 'mnist_kmeans_example/data'
-data_location = 's3://{}/{}'.format(bucket, data_key)
-print('training data will be uploaded to: {}'.format(data_location))
+train_data_key = 'mnist_kmeans_example/train_data'
+test_data_key = 'mnist_kmeans_example/test_data'
+train_data_location = 's3://{}/{}'.format(bucket, train_data_key)
+test_data_location = 's3://{}/{}'.format(bucket, test_data_key)
+print('training data will be uploaded to: {}'.format(train_data_location))
+print('training data will be uploaded to: {}'.format(test_data_location))
 
 # Convert the training data into the format required by the SageMaker KMeans algorithm
 buf = io.BytesIO()
 write_numpy_to_dense_tensor(buf, train_set[0], train_set[1])
 buf.seek(0)
 
-boto3.resource('s3').Bucket(bucket).Object(data_key).upload_fileobj(buf)
+boto3.resource('s3').Bucket(bucket).Object(train_data_key).upload_fileobj(buf)
+
+# Convert the test data into the format required by the SageMaker KMeans algorithm
+write_numpy_to_dense_tensor(buf, test_set[0], test_set[1])
+buf.seek(0)
+
+boto3.resource('s3').Bucket(bucket).Object(test_data_key).upload_fileobj(buf)
 
 # Convert the valid data into the format required by the SageMaker KMeans algorithm
 numpy.savetxt('valid-data.csv', valid_set[0], delimiter=',', fmt='%g')
@@ -87,7 +89,7 @@ Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compi
 The pipeline requires several arguments, replace `role_arn` and data path with your settings.
 
 Once the pipeline done, you can go to `batch_transform_ouput` to check your batch prediction results.
-You will have an model enpoint in service. Please remember to clean it up.
+You will have an model endpoint in service. Please remember to clean it up.
 
 
 ## Prediction
@@ -117,6 +119,9 @@ print(result)
 ```
 
 ## Components source
+
+Hyperparameter Tuning:
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/hyperparameter_tuning/src)
 
 Training:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/train/src)

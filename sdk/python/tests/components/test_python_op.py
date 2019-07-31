@@ -270,6 +270,15 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(component_spec.inputs[0].default, '3')
         self.assertEqual(component_spec.inputs[1].default, '5')
 
+    def test_handling_default_value_of_none(self):
+        def assert_is_none(a, b, arg=None) -> int:
+            assert arg is None
+            return 1
+
+        func = assert_is_none
+        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
     def test_end_to_end_python_component_pipeline_compilation(self):
         import kfp.components as comp
 
@@ -294,9 +303,9 @@ class PythonOpTestCase(unittest.TestCase):
                 description='A pipeline that performs arithmetic calculations.'
             )
             def calc_pipeline(
-                a1=dsl.PipelineParam('a1'),
-                a2=dsl.PipelineParam('a2', value='7'),
-                a3=dsl.PipelineParam('a3', value='17'),
+                a1,
+                a2='7',
+                a3='17',
             ):
                 task_1 = add_op(a1, a2)
                 task_2 = add_op2(a1, a2)

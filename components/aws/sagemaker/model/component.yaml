@@ -2,24 +2,63 @@ name: 'Sagemaker - Create Model'
 description: |
   Create Models in SageMaker
 inputs:
-  - {name: region,              description: 'The region where the training job launches.'}
-  - {name: image,               description: 'The Amazon EC2 Container Registry (Amazon ECR) path where inference code is stored.'}
-  - {name: model_artifact_url,  description: 'S3 path where Amazon SageMaker to store the model artifacts.'}
-  - {name: model_name,          description: 'The name of the new model.'}
-  - {name: role,                description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'}
+  - name: region
+    description: 'The region where the training job launches.'
+  - name: model_name
+    description: 'The name of the new model.'
+  - name: role
+    description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'
+  - name: container_host_name
+    description: 'When a ContainerDefinition is part of an inference pipeline, this value uniquely identifies the container for the purposes of logging and metrics.'
+    default: ''
+  - name: image
+    description: 'The Amazon EC2 Container Registry (Amazon ECR) path where inference code is stored.'
+    default: ''
+  - name: model_artifact_url
+    description: 'S3 path where Amazon SageMaker to store the model artifacts.'
+    default: ''
+  - name: environment
+    description: 'The dictionary of the environment variables to set in the Docker container. Up to 16 key-value entries in the map.'
+    default: '{}'
+  - name: model_package
+    description: 'The name or Amazon Resource Name (ARN) of the model package to use to create the model.'
+    default: ''
+  - name: secondary_containers
+    description: 'A list of dicts that specifies the additional containers in the inference pipeline.'
+    default: '[]'
+  - name: vpc_security_group_ids
+    description: 'The VPC security group IDs, in the form sg-xxxxxxxx.'
+    default: ''
+  - name: vpc_subnets
+    description: 'The ID of the subnets in the VPC to which you want to connect your hpo job.'
+    default: ''
+  - name: network_isolation
+    description: 'Isolates the training container.'
+    default: 'True'
+  - name: tags
+    description: 'Key-value pairs to categorize AWS resources.'
+    default: '{}'
 outputs:
   - {name: model_name,          description: 'The model name Sagemaker created'}
 implementation:
   container:
-    image: seedjeffwan/kubeflow-pipeline-aws-sm:20190501-05
+    image: carowang/kubeflow-pipeline-aws-sm:20190728-01
     command: ['python']
     args: [
       create_model.py,
       --region, {inputValue: region},
+      --model_name, {inputValue: model_name},
+      --role, {inputValue: role},
+      --container_host_name, {inputValue: container_host_name},
       --image, {inputValue: image},
       --model_artifact_url, {inputValue: model_artifact_url},
-      --model_name, {inputValue: model_name},
-      --role, {inputValue: role}
+      --environment, {inputValue: environment},
+      --model_package, {inputValue: model_package},
+      --secondary_containers, {inputValue: secondary_containers},
+      --vpc_security_group_ids, {inputValue: vpc_security_group_ids},
+      --vpc_subnets, {inputValue: vpc_subnets},
+      --network_isolation, {inputValue: network_isolation},
+      --tags, {inputValue: tags}
     ]
     fileOutputs:
       model_name: /tmp/model_name.txt

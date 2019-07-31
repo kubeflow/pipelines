@@ -249,6 +249,10 @@ def _op_to_template(op: BaseOp):
     if processed_op.timeout:
         template['activeDeadlineSeconds'] = processed_op.timeout
 
+    # initContainers
+    if processed_op.init_containers:
+        template['initContainers'] = processed_op.init_containers
+
     # sidecars
     if processed_op.sidecars:
         template['sidecars'] = processed_op.sidecars
