@@ -14,9 +14,7 @@
 
 package storage
 
-import (
-	"path"
-)
+import "path"
 
 const (
 	pipelineFolder = "pipelines"
