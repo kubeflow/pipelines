@@ -19,184 +19,120 @@ metadata:
 spec:
   entrypoint: sample-test
   volumes:
-  - name: gcp-credentials
-    secret:
-      secretName: user-gcp-sa
+    - name: gcp-credentials
+      secret:
+        secretName: user-gcp-sa
   arguments:
     parameters:
-    - name: image-build-context-gcs-uri
-    - name: target-image-prefix
-    - name: test-results-gcs-dir
-    - name: sample-tests-image-suffix
-      value: sample-tests
-    - name: namespace
-      value: kubeflow
-  templates:
-  - name: sample-test
-    inputs:
-      parameters:
+      - name: image-build-context-gcs-uri
       - name: target-image-prefix
       - name: test-results-gcs-dir
       - name: sample-tests-image-suffix
+        value: sample-tests
       - name: namespace
-    steps:
-    - - name: build-sample-tests-image
-        template: build-image-by-dockerfile
-        arguments:
-          parameters:
+        value: kubeflow
+  templates:
+    - name: sample-test
+      inputs:
+        parameters:
+          - name: target-image-prefix
+          - name: test-results-gcs-dir
+          - name: sample-tests-image-suffix
+          - name: namespace
+      steps:
+        - - name: build-sample-tests-image
+            template: build-image-by-dockerfile
+            arguments:
+              parameters:
+                - name: docker-path
+                  value: .
+                - name: docker-file
+                  value: test/sample-test/Dockerfile
+                - name: image-name
+                  value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
+        - - name: run-sample-tests-loop
+            template: run-sample-tests
+            arguments:
+              parameters:
+                - name: namespace
+                  value: "{{inputs.parameters.namespace}}"
+                - name: sample-tests-image
+                  value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
+                - name: target-image-prefix
+                  value: "{{inputs.parameters.target-image-prefix}}"
+                - name: test-results-gcs-dir
+                  value: "{{inputs.parameters.test-results-gcs-dir}}"
+                - name: test-name
+                  value: "{{item}}"
+            withItems:
+              - tf-training
+              - tfx
+              - xgboost
+              - notebook-tfx
+              - notebook-lightweight
+              - notebook-typecheck
+    # Build and push image
+    - name: build-image-by-dockerfile
+      inputs:
+        parameters:
+          # GCS URI prefix pointing to a .tar.gz archive of Docker build context
+          - name: image-build-context-gcs-uri
+            value: "{{workflow.parameters.image-build-context-gcs-uri}}"
+          # The relative code path to the Dockerfile
           - name: docker-path
-            value: .
+          # Name of the Docker file to use. "Dockerfile" by default
           - name: docker-file
-            value: test/sample-test/Dockerfile
+            value: Dockerfile
           - name: image-name
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-    - - name: run-tf-training-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "tf-training"
-      - name: run-tfx-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "tfx"
-      - name: run-xgboost-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "xgboost"
-      - name: run-notebook-tfx-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "notebook-tfx"
-      - name: run-notebook-lightweight-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "notebook-lightweight"
-      - name: run-notebook-typecheck-tests
-        template: run-sample-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: target-image-prefix
-            value: "{{inputs.parameters.target-image-prefix}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.sample-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "notebook-typecheck"
+      outputs:
+        parameters:
+          - name: strict-image-name
+            valueFrom:
+              path: /outputs/strict-image-name/file
+      container:
+        image: gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4
+        imagePullPolicy: 'Always'
+        args: [
+          "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
+          "--docker_path", "{{inputs.parameters.docker-path}}",
+          "--docker_file", "{{inputs.parameters.docker-file}}",
+          "--image_name", "{{inputs.parameters.image-name}}",
+        ]
+        env:
+          - name: DOCKER_HOST
+            value: 127.0.0.1
+          - name: GOOGLE_APPLICATION_CREDENTIALS
+            value: /secret/gcp-credentials/user-gcp-sa.json
+        volumeMounts:
+          - name: gcp-credentials
+            mountPath: /secret/gcp-credentials
+      sidecars:
+        - name: dind
+          image: docker:17.10-dind
+          securityContext:
+            privileged: true
+          mirrorVolumeMounts: true
 
-  # Build and push image
-  - name: build-image-by-dockerfile
-    inputs:
-      parameters:
-      # GCS URI prefix pointing to a .tar.gz archive of Docker build context
-      - name: image-build-context-gcs-uri
-        value: "{{workflow.parameters.image-build-context-gcs-uri}}"
-      # The relative code path to the Dockerfile
-      - name: docker-path
-      # Name of the Docker file to use. "Dockerfile" by default
-      - name: docker-file
-        value: Dockerfile
-      - name: image-name
-    outputs:
-      parameters:
-        - name: strict-image-name
-          valueFrom:
-            path: /outputs/strict-image-name/file
-    container:
-      image: gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4
-      imagePullPolicy: 'Always'
-      args: [
-        "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
-        "--docker_path", "{{inputs.parameters.docker-path}}",
-        "--docker_file", "{{inputs.parameters.docker-file}}",
-        "--image_name", "{{inputs.parameters.image-name}}",
-      ]
-      env:
-      - name: DOCKER_HOST
-        value: 127.0.0.1
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
-    sidecars:
-    - name: dind
-      image: docker:17.10-dind
-      securityContext:
-        privileged: true
-      mirrorVolumeMounts: true
-
-  - name: run-sample-tests
-    inputs:
-      parameters:
-      - name: test-results-gcs-dir
-      - name: target-image-prefix
-      - name: sample-tests-image
-      - name: namespace
-      - name: test-name
-    container:
-      image: "{{inputs.parameters.sample-tests-image}}"
-      args: [
-        "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
-        "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}",
-        "--namespace", "{{inputs.parameters.namespace}}",
-        "--test-name", "{{inputs.parameters.test-name}}",
-      ]
-      env:
-      - name: GOOGLE_APPLICATION_CREDENTIALS
-        value: /secret/gcp-credentials/user-gcp-sa.json
-      volumeMounts:
-      - name: gcp-credentials
-        mountPath: /secret/gcp-credentials
+    - name: run-sample-tests
+      inputs:
+        parameters:
+          - name: test-results-gcs-dir
+          - name: target-image-prefix
+          - name: sample-tests-image
+          - name: namespace
+          - name: test-name
+      container:
+        image: "{{inputs.parameters.sample-tests-image}}"
+        args: [
+          "--namespace", "{{inputs.parameters.namespace}}",
+          "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
+          "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}",
+          "--test-name", "{{inputs.parameters.test-name}}",
+        ]
+        env:
+          - name: GOOGLE_APPLICATION_CREDENTIALS
+            value: /secret/gcp-credentials/user-gcp-sa.json
+        volumeMounts:
+          - name: gcp-credentials
+            mountPath: /secret/gcp-credentials
 
