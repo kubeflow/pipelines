@@ -17,6 +17,8 @@ import importlib
 from pathlib import Path
 from typing import Text
 import shlex
+
+from nbformat import NotebookNode
 from nbformat.v4 import new_notebook, new_code_cell
 import tornado.ioloop
 import tornado.web
@@ -35,8 +37,16 @@ parser.add_argument(
 
 class VisualizationHandler(tornado.web.RequestHandler):
 
-    # initialize is used over __init__ due to tornado specs for RequestHandler.
     def initialize(self, timeout: int):
+        """Initializes custom RequestHandler that generates visualizations.
+
+        The initialize function is used rather than the __init__ function due to
+        tornado specs for RequestHandler.
+
+        Args:
+            timeout (int): Amount of time in seconds that a visualization can
+            run for before being stopped.
+        """
         # All necessary arguments required to generate visualizations.
         self.requestParser = argparse.ArgumentParser(
             description="Visualization Generator"
@@ -63,30 +73,47 @@ class VisualizationHandler(tornado.web.RequestHandler):
         )
         self.exporter = exporter.Exporter(timeout)
 
-    # Parses provided arguments in request.
-    #
-    # Returns request arguments as if they were obtained as command line
-    # arguments.
     def get_arguments_from_body(self) -> argparse.Namespace:
+        """Converts arguments from post request to argparser.Namespace format.
+
+        This is done because arguments, by default are provided in the
+        x-www-form-urlencoded format. This format is difficult to parse compared
+        to argparser.Namespace, which is a dict.
+
+        Returns:
+            Arguments provided from post request as arparser.Namespace object.
+        """
         split_arguments = shlex.split(self.get_body_argument("arguments"))
         return self.requestParser.parse_args(split_arguments)
 
-    # Sends a 400 error to a client if their request is invalid.
     def validate_request_arguments(self, arguments: argparse.Namespace):
+        """Validates arguments from post request and sends error if invalid.
+
+        Args:
+            arguments: x-www-form-urlencoded formatted arguments.
+        """
         if arguments.type is None:
             return self.send_error(400, reason="No type specified.")
         if arguments.input_path is None:
             return self.send_error(400, reason="No input_path specified.")
 
-    # Creates notebook from request.
-    #
-    # Returns created notebook.
     def generate_notebook_from_arguments(
         self,
-        arguments: Text,
+        arguments: argparse.Namespace,
         input_path: Text,
         visualization_type: Text
-    ):
+    ) -> NotebookNode:
+        """Generates a NotebookNode from provided arguments.
+
+        Args:
+            arguments: x-www-form-urlencoded formatted arguments.
+            input_path: Path or path pattern to be used as data reference for
+            visualization.
+            visualization_type: Name of visualization to be generated.
+
+        Returns:
+                NotebookNode that contains all parameters from a post request.
+        """
         nb = new_notebook()
         nb.cells.append(self.exporter.create_cell_from_args(arguments))
         nb.cells.append(new_code_cell('input_path = "{}"'.format(input_path)))
@@ -94,12 +121,14 @@ class VisualizationHandler(tornado.web.RequestHandler):
         nb.cells.append(self.exporter.create_cell_from_file(visualization_file))
         return nb
 
-    # Health check route.
     def get(self):
+        """Health check.
+        """
         self.write("alive")
 
-    # Visualization route.
     def post(self):
+        """Generates visualization based on provided arguments.
+        """
         # Parse arguments from request.
         request_arguments = self.get_arguments_from_body()
         # Validate arguments from request.

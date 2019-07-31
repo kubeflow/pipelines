@@ -46,6 +46,29 @@ class TemplateType(Enum):
 
 
 class Exporter:
+    """Handler for interaction with NotebookNodes, including output generation.
+
+    Initializes Exporter with default timeout (100 seconds) and template (FULL)
+    and handles instantiation of km and ep variables for usage when generating
+    NotebookNodes and their outputs.
+
+    Args:
+        timeout (int): Amount of time in seconds that a visualization can run
+        for before being stopped.
+        template_type (TemplateType): Type of template to use when generating
+        visualization output.
+
+    Attributes:
+        timeout (int): Amount of time in seconds that a visualization can run
+        for before being stopped.
+        template_type (TemplateType): Type of template to use when generating
+        visualization output.
+        km (KernelManager): Custom KernelManager that stays alive between
+        visualizations.
+        ep (ExecutePreprocessor): Process that is responsible for generating
+        outputs from NotebookNodes.
+
+    """
 
     def __init__(
         self,
@@ -62,17 +85,23 @@ class Exporter:
         self.km.start_kernel()
         self.ep = ExecutePreprocessor(
             timeout=self.timeout,
-            kernel_name='python3')
+            kernel_name='python3'
+        )
 
     def __del__(self):
-        self.shutdown_kernel()
+        self._shutdown_kernel()
 
-    # Takes provided command line arguments and creates a Notebook cell object
-    # with the arguments as variables.
-    #
-    # Returns the generated Notebook cell.
     @staticmethod
     def create_cell_from_args(args: argparse.Namespace) -> NotebookNode:
+        """Creates a NotebookNode object with provided arguments as variables.
+
+        Args:
+            args: Arguments that need to be injected into a NotebookNode.
+
+        Returns:
+            NotebookNode with provided arguments as variables.
+
+        """
         variables = ""
         args = json.loads(args)
         for key in sorted(args.keys()):
@@ -85,21 +114,32 @@ class Exporter:
 
         return new_code_cell(variables)
 
-    # Reads a python file, then creates a Notebook cell object with the
-    # lines of code from the python file.
-    #
-    # Returns the generated Notebook cell.
     @staticmethod
     def create_cell_from_file(filepath: Text) -> NotebookNode:
+        """Creates a NotebookNode object with provided file as code in node.
+
+        Args:
+            filepath: Path to file that should be used.
+
+        Returns:
+            NotebookNode with specified file as code within node.
+
+        """
         with open(filepath, 'r') as f:
             code = f.read()
 
         return new_code_cell(code)
 
-    # Exports a notebook to HTML and generates any required outputs.
-    #
-    # Returns the generated HTML as a string.
     def generate_html_from_notebook(self, nb: NotebookNode) -> Text:
+        """Converts a provided NotebookNode to HTML.
+
+        Args:
+            nb: NotebookNode that should be converted to HTML.
+
+        Returns:
+            HTML from converted NotebookNode as a string.
+
+        """
         # HTML generator and exporter object
         html_exporter = HTMLExporter()
         template_file = "templates/{}.tpl".format(self.template_type.value)
@@ -111,5 +151,5 @@ class Exporter:
         body, _ = html_exporter.from_notebook_node(nb)
         return body
 
-    def shutdown_kernel(self):
+    def _shutdown_kernel(self):
         self.km.shutdown_kernel()
