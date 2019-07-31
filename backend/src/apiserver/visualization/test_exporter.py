@@ -42,7 +42,7 @@ class TestExporterMethods(snapshottest.TestCase):
         self.maxDiff = None
         args = (
             '{"input_path": "gs://ml-pipeline/data.csv", '
-            "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * '0.2)\"}"
+            "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * 0.2)\"}"
         )
         cell = self.exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
