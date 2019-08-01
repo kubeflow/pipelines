@@ -35,11 +35,9 @@ def echo2_op(text2):
 
 
 @dsl.pipeline(
-    name='Execution ordere pipeline',
+    name='Execution order pipeline',
     description='A pipeline to demonstrate execution order management.'
 )
-
-
 def execution_order_pipeline(text1='message 1', text2='message 2'):
   """A two step pipeline with an explicitly defined execution order."""
   step1_task = echo1_op(text1)
