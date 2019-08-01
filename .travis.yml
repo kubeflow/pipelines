@@ -58,7 +58,7 @@ matrix:
       env: TOXENV=py27
       script:
         # Component SDK tests
-        - cd $TRAVIS_BUILD_DIR/component_sdk/python
+        - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
     - language: python
       python: "3.5"
@@ -77,7 +77,7 @@ matrix:
         - $TRAVIS_BUILD_DIR/components/test_load_all_components.sh
 
         # Component SDK tests
-        - cd $TRAVIS_BUILD_DIR/component_sdk/python
+        - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
     - language: python
       python: "3.6"

@@ -185,7 +185,7 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 ```
 
 ## References
-* [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/bigquery/_query.py)
+* [Component python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/bigquery/_query.py)
 * [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
 * [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/bigquery/query/sample.ipynb)
 * [BigQuery query REST API](https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query)
