@@ -132,7 +132,11 @@ message CreateRunRequest {
 }
 
 message ResubmitRunRequest {
+  // The ID of the run to resubmit
   string id = 1;
+
+  // Name of the new run.
+  string name = 2;
 }
 
 message GetRunRequest {
