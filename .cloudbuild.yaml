@@ -31,7 +31,7 @@ steps:
 # Build the Python Component SDK
 - name: 'python:2-alpine'
   entrypoint: '/bin/sh'
-  args: ['-c', 'cd /workspace/component_sdk/python;python setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp-component.tar.gz']
+  args: ['-c', 'cd /workspace/components/gcp/container/component_sdk/python;python setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp-component.tar.gz']
   id:   'preparePythonComponentSDK'
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp-component.tar.gz']
