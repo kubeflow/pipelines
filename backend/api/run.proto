@@ -67,6 +67,12 @@ service RunService {
     };
   }
 
+  rpc ResubmitRun(ResubmitRunRequest) returns (RunDetail) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{id}:resubmit"
+    };
+  }
+
   rpc GetRun(GetRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs/{run_id}"
@@ -123,6 +129,10 @@ service RunService {
 
 message CreateRunRequest {
   Run run = 1;
+}
+
+message ResubmitRunRequest {
+  string id = 1;
 }
 
 message GetRunRequest {
