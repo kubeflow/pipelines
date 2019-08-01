@@ -15,7 +15,6 @@
 package resource
 
 import (
-	"fmt"
 	"github.com/argoproj/argo/errors"
 	"github.com/argoproj/argo/pkg/apis/workflow"
 	wfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -175,9 +174,7 @@ func formulateResubmitWorkflow(wf *wfv1.Workflow) (*wfv1.Workflow, error) {
 	for _, node := range wf.Status.Nodes {
 		switch node.Phase {
 		case wfv1.NodeSucceeded, wfv1.NodeSkipped:
-			originalID := node.ID
 			node.Name = replaceRegexp.ReplaceAllString(node.Name, newWF.ObjectMeta.Name)
-			node.ID = newWF.NodeID(node.Name)
 			node.BoundaryID = convertNodeID(&newWF, replaceRegexp, node.BoundaryID, wf.Status.Nodes)
 			node.StartedAt = metav1.Time{Time: time.Now().UTC()}
 			node.FinishedAt = node.StartedAt
@@ -194,7 +191,6 @@ func formulateResubmitWorkflow(wf *wfv1.Workflow) (*wfv1.Workflow, error) {
 			if node.Type == wfv1.NodeTypePod {
 				node.Phase = wfv1.NodeSkipped
 				node.Type = wfv1.NodeTypeSkipped
-				node.Message = fmt.Sprintf("original pod: %s", originalID)
 			}
 			newWF.Status.Nodes[node.ID] = node
 		case wfv1.NodeError, wfv1.NodeFailed, wfv1.NodeRunning:
