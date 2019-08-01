@@ -49,7 +49,7 @@ const (
 	mysqlServicePort = "MYSQL_SERVICE_PORT"
 
 	podNamespace          = "POD_NAMESPACE"
-	dbName                = "mlpipeline"
+	dbName                = "DBConfig.dbName"
 	initConnectionTimeout = "InitConnectionTimeout"
 )
 
@@ -256,7 +256,8 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 	// Create database if not exist
 	operation = func() error {
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s",
+			getStringConfigWithDefault(dbName, "mlpipeline")))
 		if err != nil {
 			return err
 		}
@@ -267,7 +268,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	err = backoff.Retry(operation, b)
 
 	util.TerminateIfError(err)
-	mysqlConfig.DBName = dbName
+	mysqlConfig.DBName = getStringConfigWithDefault(dbName, "mlpipeline")
 	return mysqlConfig.FormatDSN()
 }
 
