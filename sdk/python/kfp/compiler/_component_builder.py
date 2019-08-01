@@ -170,7 +170,6 @@ class CodeGenerator(object):
     line_sep = '\n'
     return line_sep.join(self._code) + line_sep
 
-#TODO: currently it supports single output, future support for multiple return values
 def _func_to_entrypoint(component_func, python_version='python3'):
   '''
   args:
@@ -183,15 +182,27 @@ def _func_to_entrypoint(component_func, python_version='python3'):
   annotations = fullargspec[6]
   input_args = fullargspec[0]
   inputs = {}
+  output = None
+  if 'return' in annotations.keys():
+    output = annotations['return']
+  output_is_named_tuple = hasattr(output, '_fields')
+  
   for key, value in annotations.items():
     if key != 'return':
       inputs[key] = value
   if len(input_args) != len(inputs):
     raise Exception('Some input arguments do not contain annotations.')
-  if 'return' in  annotations and annotations['return'] not in [int, float, str, bool]:
+  if 'return' in  annotations and annotations['return'] not in [int, 
+        float, str, bool] and not output_is_named_tuple:
     raise Exception('Output type not supported and supported types are [int, float, str, bool]')
+  if output_is_named_tuple:
+      types = output._field_types
+      for field in output._fields: #Make sure all elements are supported
+        if types[field] not in [int, float, str, bool]:
+          raise Exception('Output type not supported and supported types are [int, float, str, bool]')
+  
   # inputs is a dictionary with key of argument name and value of type class
-  # output is a type class, e.g. str and int.
+  # output is a type class, e.g. int, str, bool, float, NamedTuple.
 
   # Follow the same indentation with the component source codes.
   component_src = inspect.getsource(component_func)
@@ -205,12 +216,15 @@ def _func_to_entrypoint(component_func, python_version='python3'):
   func_signature = 'def ' + new_func_name + '('
   for input_arg in input_args:
     func_signature += input_arg + ','
-  func_signature += '_output_file):'
+  func_signature = func_signature + '_output_files' if output_is_named_tuple else func_signature + '_output_file'
+  func_signature += '):'
   codegen.writeline(func_signature)
 
   # Call user function
   codegen.indent()
   call_component_func = 'output = ' + component_func.__name__ + '('
+  if output_is_named_tuple:
+    call_component_func = call_component_func.replace('output', 'outputs')
   for input_arg in input_args:
     call_component_func += inputs[input_arg].__name__ + '(' + input_arg + '),'
   call_component_func = call_component_func.rstrip(',')
@@ -219,6 +233,9 @@ def _func_to_entrypoint(component_func, python_version='python3'):
 
   # Serialize output
   codegen.writeline('import os')
+  if output_is_named_tuple:
+    codegen.writeline('for _output_file, output in zip(_output_files, outputs):')
+    codegen.indent()
   codegen.writeline('os.makedirs(os.path.dirname(_output_file))')
   codegen.writeline('with open(_output_file, "w") as data:')
   codegen.indent()
@@ -231,7 +248,10 @@ def _func_to_entrypoint(component_func, python_version='python3'):
   codegen.writeline('parser = argparse.ArgumentParser(description="Parsing arguments")')
   for input_arg in input_args:
     codegen.writeline('parser.add_argument("' + input_arg + '", type=' + inputs[input_arg].__name__ + ')')
-  codegen.writeline('parser.add_argument("_output_file", type=str)')
+  if output_is_named_tuple:
+    codegen.writeline('parser.add_argument("_output_files", type=str, nargs=' + str(len(annotations['return']._fields)) + ')')
+  else:
+    codegen.writeline('parser.add_argument("_output_file", type=str)')
   codegen.writeline('args = vars(parser.parse_args())')
   codegen.writeline('')
   codegen.writeline('if __name__ == "__main__":')
@@ -248,6 +268,8 @@ def _func_to_entrypoint(component_func, python_version='python3'):
   if python_version == 'python2':
     src_lines[start_line_num] = 'def ' + component_func.__name__ + '(' + ', '.join((inspect.getfullargspec(component_func).args)) + '):'
   dedecorated_component_src = '\n'.join(src_lines[start_line_num:])
+  if output_is_named_tuple:
+    dedecorated_component_src = 'from typing import NamedTuple\n' + dedecorated_component_src
 
   complete_component_code = dedecorated_component_src + '\n' + wrapper_code + '\n' + codegen.end()
   return complete_component_code
@@ -345,17 +367,24 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
   #TODO: Humanize the input/output names
   input_names = inspect.getfullargspec(component_func)[0]
 
-  output_name = 'output'
+  return_ann = inspect.signature(component_func).return_annotation
+  output_is_named_tuple = hasattr(return_ann, '_fields')
+
+  output_names = ['output']
+  if output_is_named_tuple:
+    output_names = return_ann._fields
+
   component_spec = ComponentSpec(
       name=component_name,
       description=component_description,
-      inputs=[InputSpec(name=input_name, type='str') for input_name in input_names], #TODO: Chnage type to actual type
-      outputs=[OutputSpec(name=output_name)],
+      inputs=[InputSpec(name=input_name, type='str') for input_name in input_names], #TODO: Change type to actual type
+       outputs=[OutputSpec(name=output_name, type='str') for output_name in output_names],
       implementation=ContainerImplementation(
           container=ContainerSpec(
               image=target_image,
               #command=['python3', program_file], #TODO: Include the command line
-              args=[InputValuePlaceholder(input_name) for input_name in input_names] + [OutputPathPlaceholder(output_name)],
+              args=[InputValuePlaceholder(input_name) for input_name in input_names] + 
+                [OutputPathPlaceholder(output_name) for output_name in output_names],
           )
       )
   )
