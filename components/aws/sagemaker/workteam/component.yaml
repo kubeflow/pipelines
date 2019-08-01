@@ -1,0 +1,41 @@
+name: 'SageMaker - Private Workforce'
+description: |
+  Private workforce in SageMaker
+inputs:
+  - name: region
+    description: 'The region where the cluster launches.'
+  - name: team_name
+    description: 'The name of your work team.'
+  - name: description
+    description: 'A description of the work team.'
+  - name: user_pool
+    description: 'An identifier for a user pool. The user pool must be in the same region as the service that you are calling.'
+  - name: user_groups
+    description: 'An identifier for a user group.'
+  - name: client_id
+    description: 'An identifier for an application client. You must create the app client ID using Amazon Cognito.'
+  - name: sns_topic
+    description: 'The ARN for the SNS topic to which notifications should be published.'
+    default: ''
+  - name: tags
+    description: 'Key-value pairs to categorize AWS resources.'
+    default: '{}'
+outputs:
+  - {name: workteam_arn, description: 'The ARN of the workteam.'}
+implementation:
+  container:
+    image: carowang/kubeflow-pipeline-aws-sm:20190801-01
+    command: ['python']
+    args: [
+      workteam.py,
+      --region, {inputValue: region},
+      --team_name, {inputValue: team_name},
+      --description, {inputValue: description},
+      --user_pool, {inputValue: user_pool},
+      --user_groups, {inputValue: user_groups},
+      --client_id, {inputValue: client_id},
+      --sns_topic, {inputValue: sns_topic},
+      --tags, {inputValue: tags},
+    ]
+    fileOutputs:
+      workteam_arn: /tmp/workteam_arn.txt
