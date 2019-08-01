@@ -174,7 +174,7 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 ```
 
 ## References
-*   [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/dataproc/_submit_hive_job.py)
+*   [Component python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_hive_job.py)
 *   [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
 *   [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataproc/submit_hive_job/sample.ipynb)
 *   [Dataproc HiveJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/HiveJob)
