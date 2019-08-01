@@ -1,5 +1,4 @@
-#!/bin/bash -e
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-mkdir -p ./build
-rsync -arvp --exclude=.tox "component_sdk/python"/ ./build/
-cp ../../license.sh ./build/
-cp ../../third_party_licenses.csv ./build/
+import tensorflow_data_validation as tfdv
 
-../../build_image.sh -l ml-pipeline-gcp "$@"
-rm -rf ./build
+# The following variables are provided through dependency injection. These
+# variables come from the specified input path and arguments provided by the
+# API post request.
+#
+# input_path
+
+train_stats = tfdv.generate_statistics_from_csv(data_location=input_path)
+
+tfdv.visualize_statistics(train_stats)

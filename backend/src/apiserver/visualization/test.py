@@ -1,5 +1,10 @@
-#!/bin/bash -e
-# Copyright 2018 Google LLC
+"""
+test.py is used for test_server.py as a way to test the tornado web server
+without having a reliance on the validity of visualizations. It does not serve
+as a valid visualization and is only used for testing purposes.
+"""
+
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +18,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-mkdir -p ./build
-rsync -arvp --exclude=.tox "component_sdk/python"/ ./build/
-cp ../../license.sh ./build/
-cp ../../third_party_licenses.csv ./build/
-
-../../build_image.sh -l ml-pipeline-gcp "$@"
-rm -rf ./build
+x = 2
+print(x)
