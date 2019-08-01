@@ -62,6 +62,19 @@ describe('VisualizationCreator', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('has a disabled BusyButton if selectedType is an undefined', () => {
+    const config: VisualizationCreatorConfig = {
+      isBusy: false,
+      onGenerate: jest.fn(),
+      type: PlotType.VISUALIZATION_CREATOR,
+    };
+    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    tree.setState({
+      source: 'gs://ml-pipeline/data.csv',
+    });
+    expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
+  });
+
   it('has a disabled BusyButton if source is an empty string', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,

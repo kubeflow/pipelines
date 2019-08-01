@@ -74,6 +74,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
     // is provided.
     const canGenerate = !isBusy &&
       !!source.length &&
+      !!selectedType &&
       !!onGenerate;
 
     return <div
