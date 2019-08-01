@@ -24,7 +24,7 @@ exporter = importlib.import_module("exporter")
 class TestExporterMethods(snapshottest.TestCase):
 
     def setUp(self):
-        self.exporter = exporter.Exporter(template_type=exporter.TemplateType.BASIC)
+        self.exporter = exporter.Exporter(100, exporter.TemplateType.BASIC)
 
     def test_create_cell_from_args_with_no_args(self):
         self.maxDiff = None

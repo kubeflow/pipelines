@@ -29,7 +29,7 @@ def wrap_error_in_html(error: Text) -> bytes:
 class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
     def get_app(self):
         return tornado.web.Application([
-            (r"/", server.VisualizationHandler, dict(timeout=100)),
+            (r"/", server.VisualizationHandler),
         ])
 
     def test_healthcheck(self):

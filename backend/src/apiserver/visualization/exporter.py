@@ -48,16 +48,6 @@ class TemplateType(Enum):
 class Exporter:
     """Handler for interaction with NotebookNodes, including output generation.
 
-    Initializes Exporter with default timeout (100 seconds) and template (FULL)
-    and handles instantiation of km and ep variables for usage when generating
-    NotebookNodes and their outputs.
-
-    Args:
-        timeout (int): Amount of time in seconds that a visualization can run
-        for before being stopped.
-        template_type (TemplateType): Type of template to use when generating
-        visualization output.
-
     Attributes:
         timeout (int): Amount of time in seconds that a visualization can run
         for before being stopped.
@@ -75,6 +65,17 @@ class Exporter:
         timeout: int = 100,
         template_type: TemplateType = TemplateType.FULL
     ):
+        """
+        Initializes Exporter with default timeout (100 seconds) and template
+        (FULL) and handles instantiation of km and ep variables for usage when
+        generating NotebookNodes and their outputs.
+
+        Args:
+            timeout (int): Amount of time in seconds that a visualization can
+            run for before being stopped.
+            template_type (TemplateType): Type of template to use when
+            generating visualization output.
+        """
         self.timeout = timeout
         self.template_type = template_type
         # Create custom KernelManager.
@@ -87,9 +88,6 @@ class Exporter:
             timeout=self.timeout,
             kernel_name='python3'
         )
-
-    def __del__(self):
-        self._shutdown_kernel()
 
     @staticmethod
     def create_cell_from_args(args: argparse.Namespace) -> NotebookNode:
@@ -146,10 +144,6 @@ class Exporter:
         html_exporter.template_file = str(Path.cwd() / template_file)
         # Output generator
         self.ep.preprocess(nb, {"metadata": {"path": Path.cwd()}}, self.km)
-
         # Export all html and outputs
         body, _ = html_exporter.from_notebook_node(nb)
         return body
-
-    def _shutdown_kernel(self):
-        self.km.shutdown_kernel()

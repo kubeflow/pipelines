@@ -34,20 +34,19 @@ parser.add_argument(
          "being stopped."
 )
 
+args = parser.parse_args()
+_exporter = exporter.Exporter(args.timeout)
+
 
 class VisualizationHandler(tornado.web.RequestHandler):
     """Custom RequestHandler that generates visualizations via post requests.
     """
 
-    def initialize(self, timeout: int):
+    def initialize(self):
         """Creates custom RequestHandler that processes visualization requests.
 
         The initialize function is used rather than the __init__ function due to
         tornado specs for a RequestHandler.
-
-        Args:
-            timeout (int): Amount of time in seconds that a visualization can
-            run for before being stopped.
         """
         # All necessary arguments required to generate visualizations.
         self.requestParser = argparse.ArgumentParser(
@@ -73,7 +72,6 @@ class VisualizationHandler(tornado.web.RequestHandler):
             default="{}",
             help="JSON string of arguments to be provided to visualizations."
         )
-        self.exporter = exporter.Exporter(timeout)
 
     def get_arguments_from_body(self) -> argparse.Namespace:
         """Converts arguments from post request to argparser.Namespace format.
@@ -88,16 +86,23 @@ class VisualizationHandler(tornado.web.RequestHandler):
         split_arguments = shlex.split(self.get_body_argument("arguments"))
         return self.requestParser.parse_args(split_arguments)
 
-    def validate_request_arguments(self, arguments: argparse.Namespace):
+    def is_valid_request_arguments(self, arguments: argparse.Namespace) -> bool:
         """Validates arguments from post request and sends error if invalid.
 
         Args:
-            arguments: x-www-form-urlencoded formatted arguments.
+            arguments: x-www-form-urlencoded formatted arguments
+
+        Returns:
+            Boolean value representing if provided arguments are valid.
         """
         if arguments.type is None:
-            return self.send_error(400, reason="No type specified.")
+            self.send_error(400, reason="No type specified.")
+            return False
         if arguments.input_path is None:
-            return self.send_error(400, reason="No input_path specified.")
+            self.send_error(400, reason="No input_path specified.")
+            return False
+
+        return True
 
     def generate_notebook_from_arguments(
         self,
@@ -117,10 +122,10 @@ class VisualizationHandler(tornado.web.RequestHandler):
                 NotebookNode that contains all parameters from a post request.
         """
         nb = new_notebook()
-        nb.cells.append(self.exporter.create_cell_from_args(arguments))
+        nb.cells.append(_exporter.create_cell_from_args(arguments))
         nb.cells.append(new_code_cell('input_path = "{}"'.format(input_path)))
         visualization_file = str(Path.cwd() / "{}.py".format(visualization_type))
-        nb.cells.append(self.exporter.create_cell_from_file(visualization_file))
+        nb.cells.append(_exporter.create_cell_from_file(visualization_file))
         return nb
 
     def get(self):
@@ -134,22 +139,21 @@ class VisualizationHandler(tornado.web.RequestHandler):
         # Parse arguments from request.
         request_arguments = self.get_arguments_from_body()
         # Validate arguments from request.
-        self.validate_request_arguments(request_arguments)
-        # Create notebook with arguments from request.
-        nb = self.generate_notebook_from_arguments(
-            request_arguments.arguments,
-            request_arguments.input_path,
-            request_arguments.type
-        )
-        # Generate visualization (output for notebook).
-        html = self.exporter.generate_html_from_notebook(nb)
-        self.write(html)
+        if self.is_valid_request_arguments(request_arguments):
+            # Create notebook with arguments from request.
+            nb = self.generate_notebook_from_arguments(
+                request_arguments.arguments,
+                request_arguments.input_path,
+                request_arguments.type
+            )
+            # Generate visualization (output for notebook).
+            html = _exporter.generate_html_from_notebook(nb)
+            self.write(html)
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
     application = tornado.web.Application([
-        (r"/", VisualizationHandler, dict(timeout=args.timeout)),
+        (r"/", VisualizationHandler),
     ])
     application.listen(8888)
     tornado.ioloop.IOLoop.current().start()
