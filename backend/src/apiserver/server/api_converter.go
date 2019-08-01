@@ -128,7 +128,7 @@ func toApiRun(run *model.Run) *api.Run {
 			PipelineManifest: run.PipelineSpecManifest,
 			Parameters:       params,
 		},
-		ResourceReferences: toApiResourceReferences(run.ResourceReferences),
+		ResourceReferences: ToApiResourceReferences(run.ResourceReferences),
 	}
 }
 
@@ -174,7 +174,7 @@ func ToApiJob(job *model.Job) *api.Job {
 			PipelineManifest: job.PipelineSpecManifest,
 			Parameters:       params,
 		},
-		ResourceReferences: toApiResourceReferences(job.ResourceReferences),
+		ResourceReferences: ToApiResourceReferences(job.ResourceReferences),
 	}
 }
 
@@ -197,7 +197,7 @@ func ToApiRunMetric(metric *model.RunMetric) *api.RunMetric {
 	}
 }
 
-func toApiResourceReferences(references []*model.ResourceReference) []*api.ResourceReference {
+func ToApiResourceReferences(references []*model.ResourceReference) []*api.ResourceReference {
 	var apiReferences []*api.ResourceReference
 	for _, ref := range references {
 		apiReferences = append(apiReferences, &api.ResourceReference{

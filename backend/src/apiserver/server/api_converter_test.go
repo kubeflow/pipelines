@@ -482,5 +482,5 @@ func TestToApiResourceReferences(t *testing.T) {
 		{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
 			Relationship: api.Relationship_OWNER},
 	}
-	assert.Equal(t, expectedApiResourceReferences, toApiResourceReferences(resourceReferences))
+	assert.Equal(t, expectedApiResourceReferences, ToApiResourceReferences(resourceReferences))
 }
