@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -40,7 +41,29 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 }
 
 func (s *RunServer) ResubmitRun(ctx context.Context, request *api.ResubmitRunRequest) (*api.RunDetail, error) {
-	run, err := s.resourceManager.ResubmitRun(request.Id, request.Name)
+	// Get old run details.
+	runDetails, err := s.resourceManager.GetRun(request.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	var workflow util.Workflow
+	if err := json.Unmarshal([]byte( runDetails.WorkflowRuntimeManifest), &workflow); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the old run")
+	}
+
+	// Formulate the new argo workflow.
+	newWorkflow, err := formulateResubmitWorkflow(workflow.Workflow)
+	workflowManifest, err := json.Marshal(newWorkflow)
+
+	newRun := &api.Run{
+		Name:               request.Name,
+		Description:        runDetails.Description,
+		ResourceReferences: ToApiResourceReferences(runDetails.ResourceReferences),
+		PipelineSpec:       &api.PipelineSpec{WorkflowManifest: string(workflowManifest)},
+	}
+
+	run, err := s.resourceManager.CreateRun(newRun)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to resubmit the run.")
 	}

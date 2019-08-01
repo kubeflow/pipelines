@@ -246,32 +246,6 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	return r.runStore.CreateRun(runDetail)
 }
 
-func (r *ResourceManager) ResubmitRun(oldRunId string, newRunName string) (*model.RunDetail, error){
-	// Get old run details.
-	runDetails, err := r.GetRun(oldRunId)
-	if err != nil {
-		return nil, err
-	}
-
-	var workflow util.Workflow
-	if err := json.Unmarshal([]byte( runDetails.WorkflowRuntimeManifest), &workflow); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the old run")
-	}
-
-	// Formulate the new argo workflow.
-	newWorkflow, err := formulateResubmitWorkflow(workflow.Workflow)
-	workflowManifest, err := json.Marshal(newWorkflow)
-
-	newRun := &api.Run{
-		Name:               newRunName,
-		Description:        runDetails.Description,
-		ResourceReferences: server.ToApiResourceReferences(runDetails.ResourceReferences),
-		PipelineSpec:       &api.PipelineSpec{WorkflowManifest: string(workflowManifest)},
-	}
-
-	return r.CreateRun(newRun)
-}
-
 func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 	return r.runStore.GetRun(runId)
 }
