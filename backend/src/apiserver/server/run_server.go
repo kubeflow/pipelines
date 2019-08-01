@@ -16,13 +16,21 @@ package server
 
 import (
 	"context"
-
+	"encoding/json"
+	"fmt"
+	"github.com/argoproj/argo/errors"
+	"github.com/argoproj/argo/pkg/apis/workflow"
+	wfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	wfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"math/rand"
+	"regexp"
+	"strings"
+	"time"
 )
 
 type RunServer struct {
@@ -41,18 +49,51 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	return ToApiRunDetail(run), nil
 }
 
-func (s *RunServer) Rerun(ctx context.Context, request *api.RerunRequest) {
-	oldRunId := ""
-	run, err := s.resourceManager.GetRun(oldRunId)
+func (s *RunServer) ResubmitRun(ctx context.Context, request *api.ResubmitRunRequest) (*api.RunDetail, error) {
+	oldRunId := request.Id
+	runDetails, err := s.resourceManager.GetRun(oldRunId)
+	if err != nil {
+		return nil, err
+	}
 
-	// get run manifest
-	// call FormulateResubmitWorkflow
-	// create a new run
+	// Verify valid workflow template
+	var workflow util.Workflow
+	if err := json.Unmarshal([]byte( runDetails.WorkflowRuntimeManifest), &workflow); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the old run")
+	}
+	newWorkflow, err := FormulateResubmitWorkflow(workflow.Workflow)
+	workflowManifest, err := json.Marshal(newWorkflow)
 
+	newRun := &api.Run{Name: "todo", Description: runDetails.Description, ResourceReferences: toApiResourceReferences(runDetails.ResourceReferences),
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: string(workflowManifest)}}
+
+	run, err := s.resourceManager.CreateRun(newRun)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a new run.")
+	}
+	return ToApiRunDetail(run), nil
+}
+
+const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+func randString(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+// convertNodeID converts an old nodeID to a new nodeID
+func convertNodeID(newWf *wfv1.Workflow, regex *regexp.Regexp, oldNodeID string, oldNodes map[string]wfv1.NodeStatus) string {
+	node := oldNodes[oldNodeID]
+	newNodeName := regex.ReplaceAllString(node.Name, newWf.ObjectMeta.Name)
+	return newWf.NodeID(newNodeName)
 }
 
 // FormulateResubmitWorkflow formulate a new workflow from a previous workflow optionally re-using successful nodes
-func FormulateResubmitWorkflow(wf *wfv1.Workflow, memoized bool) (*wfv1.Workflow, error) {
+func FormulateResubmitWorkflow(wf *wfv1.Workflow) (*wfv1.Workflow, error) {
 	newWF := wfv1.Workflow{}
 	newWF.TypeMeta = wf.TypeMeta
 
@@ -65,14 +106,7 @@ func FormulateResubmitWorkflow(wf *wfv1.Workflow, memoized bool) (*wfv1.Workflow
 	// When resubmitting workflow with memoized nodes, we need to use a predetermined workflow name
 	// in order to formulate the node statuses. Which means we cannot reuse metadata.generateName
 	// The following simulates the behavior of generateName
-	if memoized {
-		switch wf.Status.Phase {
-		case wfv1.NodeFailed, wfv1.NodeError:
-		default:
-			return nil, errors.Errorf(errors.CodeBadRequest, "workflow must be Failed/Error to resubmit in memoized mode")
-		}
-		newWF.ObjectMeta.Name = newWF.ObjectMeta.GenerateName + randString(5)
-	}
+	newWF.ObjectMeta.Name = newWF.ObjectMeta.GenerateName + randString(5)
 
 	// carry over the unmodified spec
 	newWF.Spec = wf.Spec
@@ -80,7 +114,7 @@ func FormulateResubmitWorkflow(wf *wfv1.Workflow, memoized bool) (*wfv1.Workflow
 	// carry over user labels and annotations from previous workflow.
 	// skip any argoproj.io labels except for the controller instanceID label.
 	for key, val := range wf.ObjectMeta.Labels {
-		if strings.HasPrefix(key, workflow.FullName+"/") && key != LabelKeyControllerInstanceID {
+		if strings.HasPrefix(key, workflow.FullName+"/") && key != workflow.FullName+"/controller-instanceid" {
 			continue
 		}
 		if newWF.ObjectMeta.Labels == nil {
@@ -93,10 +127,6 @@ func FormulateResubmitWorkflow(wf *wfv1.Workflow, memoized bool) (*wfv1.Workflow
 			newWF.ObjectMeta.Annotations = make(map[string]string)
 		}
 		newWF.ObjectMeta.Annotations[key] = val
-	}
-
-	if !memoized {
-		return &newWF, nil
 	}
 
 	// Iterate the previous nodes. If it was successful Pod carry it forward
