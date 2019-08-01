@@ -620,7 +620,6 @@ def create_workteam(client, args):
         raise Exception(e.response['Error']['Message'])
 
 
-
 def create_labeling_job_request(args):
     with open('/app/common/gt.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
