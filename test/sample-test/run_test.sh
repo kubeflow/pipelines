@@ -13,6 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# This script is picked by PROW for testing purpose.
 
 set -xe
 
@@ -111,7 +113,8 @@ if [ -z "$RESULTS_GCS_DIR" ]; then
 fi
 
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
-  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+  gcloud auth activate-service-account \
+  --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
 
 GITHUB_REPO=kubeflow/pipelines
@@ -125,7 +128,8 @@ echo "install argo"
 ARGO_VERSION=v2.3.0
 mkdir -p ~/bin/
 export PATH=~/bin/:$PATH
-curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
+curl -sSL -o ~/bin/argo "https://github.com/argoproj/argo/releases/download/\
+$ARGO_VERSION/argo-linux-amd64"
 chmod +x ~/bin/argo
 
 echo "Run the sample tests..."
@@ -135,24 +139,36 @@ if [ "$TEST_NAME" == 'tf-training' ]; then
   SAMPLE_KUBEFLOW_TEST_RESULT=junit_SampleKubeflowOutput.xml
   SAMPLE_KUBEFLOW_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
-  #TODO: convert the sed commands to sed -e 's|gcr.io/ml-pipeline/|gcr.io/ml-pipeline-test/' and tag replacement. 
-  # Compile samples
+  #TODO: convert the sed commands to sed -e 's|gcr.io/ml-pipeline/|gcr.io/
+  # ml-pipeline-test/' and tag replacement.
+  # Compile samples.
   cd ${BASE_DIR}/samples/kubeflow-tf
 
-  if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" kubeflow-training-classification.py
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" kubeflow-training-classification.py
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" kubeflow-training-classification.py
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" kubeflow-training-classification.py
+  if [ -n "${DATAFLOW_TFT_IMAGE}" ]; then
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+\
+    |${DATAFLOW_TFT_IMAGE}|g" kubeflow-training-classification.py
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\
+    \([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" \
+    kubeflow-training-classification.py
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict\
+    :\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" \
+    kubeflow-training-classification.py
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix\\
+    :\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" \
+    kubeflow-training-classification.py
   fi
 
-  dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.zip
+  dsl-compile --py kubeflow-training-classification.py --output \
+  kubeflow-training-classification.zip
 
   cd "${TEST_DIR}"
-  python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/kubeflow-tf/kubeflow-training-classification.zip --result $SAMPLE_KUBEFLOW_TEST_RESULT --output $SAMPLE_KUBEFLOW_TEST_OUTPUT --namespace ${NAMESPACE}
+  python3 run_kubeflow_test.py --input "${BASE_DIR}/samples/kubeflow-tf/\
+  kubeflow-training-classification.zip" --result $SAMPLE_KUBEFLOW_TEST_RESULT \
+  --output $SAMPLE_KUBEFLOW_TEST_OUTPUT --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
-  gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}
+  gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} \
+  ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}
 elif [ "$TEST_NAME" == "tfx" ]; then
   SAMPLE_TFX_TEST_RESULT=junit_SampleTFXOutput.xml
   SAMPLE_TFX_TEST_OUTPUT=${RESULTS_GCS_DIR}
@@ -162,16 +178,26 @@ elif [ "$TEST_NAME" == "tfx" ]; then
 
   dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.yaml
 
-  if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
+  if [ -n "${DATAFLOW_TFT_IMAGE}" ]; then
     # Update the image tag in the yaml.
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" taxi-cab-classification-pipeline.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" taxi-cab-classification-pipeline.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFDV_IMAGE}|g" taxi-cab-classification-pipeline.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFMA_IMAGE}|g" taxi-cab-classification-pipeline.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" taxi-cab-classification-pipeline.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DEPLOYER_IMAGE}|g" taxi-cab-classification-pipeline.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" taxi-cab-classification-pipeline.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+\
+    |${DATAFLOW_TFT_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\
+    \([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" \
+    taxi-cab-classification-pipeline.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+\
+    |${DATAFLOW_TFDV_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+\
+    |${DATAFLOW_TFMA_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.\
+    -]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-\
+    ]\)\+|${KUBEFLOW_DEPLOYER_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\
+    \([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" \
+    taxi-cab-classification-pipeline.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\\
+    +|${LOCAL_ROC_IMAGE}|g" taxi-cab-classification-pipeline.yaml
   fi
 
   cd "${TEST_DIR}"
@@ -252,15 +278,24 @@ elif [ "$TEST_NAME" == "xgboost" ]; then
 
   dsl-compile --py xgboost-training-cm.py --output xgboost-training-cm.yaml
 
-  if [ -n "${DATAPROC_CREATE_CLUSTER_IMAGE}" ];then
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_DELETE_CLUSTER_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_ANALYZE_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRANSFORM_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-train:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRAIN_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_PREDICT_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" xgboost-training-cm.yaml
+  if [ -n "${DATAPROC_CREATE_CLUSTER_IMAGE}" ]; then
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\
+    \([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" \
+    xgboost-training-cm.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0\
+    -9_.-]\)\+|${DATAPROC_DELETE_CLUSTER_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:\([a-zA-Z0\
+    -9_.-]\)\+|${DATAPROC_ANALYZE_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:\([a-zA-Z0\
+    -9_.-]\)\+|${DATAPROC_TRANSFORM_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-train:\([a-zA-Z0\
+    -9_.-]\)\+|${DATAPROC_TRAIN_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:\([a-zA-Z0\
+    -9_.-]\)\+|${DATAPROC_PREDICT_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0\
+    -9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0\
+    -9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" xgboost-training-cm.yaml
   fi
   cd "${TEST_DIR}"
   python3 run_xgboost_test.py --input ${BASE_DIR}/samples/xgboost-spark/xgboost-training-cm.yaml --result $SAMPLE_XGBOOST_TEST_RESULT --output $SAMPLE_XGBOOST_TEST_OUTPUT --namespace ${NAMESPACE}
@@ -278,7 +313,7 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   cd ${BASE_DIR}/samples/notebooks
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
-  if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
+  if [ -n "${DATAFLOW_TFT_IMAGE}" ]; then
     papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
       -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE ${TARGET_IMAGE_PREFIX}pusher:dev -p TARGET_IMAGE_TWO ${TARGET_IMAGE_PREFIX}pusher_two:dev \
       -p KFP_PACKAGE /tmp/kfp.tar.gz -p DEPLOYER_MODEL ${DEPLOYER_MODEL}  \
