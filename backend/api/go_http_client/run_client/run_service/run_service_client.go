@@ -242,6 +242,35 @@ func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runti
 }
 
 /*
+ResubmitRun resubmit run API
+*/
+func (a *Client) ResubmitRun(params *ResubmitRunParams, authInfo runtime.ClientAuthInfoWriter) (*ResubmitRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewResubmitRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ResubmitRun",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/runs/{id}:resubmit",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ResubmitRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ResubmitRunOK), nil
+
+}
+
+/*
 TerminateRun terminate run API
 */
 func (a *Client) TerminateRun(params *TerminateRunParams, authInfo runtime.ClientAuthInfoWriter) (*TerminateRunOK, error) {
