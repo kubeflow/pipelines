@@ -75,7 +75,10 @@ for the resubmit run operation typically these are written to a http.Request
 */
 type ResubmitRunParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the run to resubmit
+
+	*/
 	ID string
 
 	timeout    time.Duration

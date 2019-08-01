@@ -197,6 +197,7 @@
         "parameters": [
           {
             "name": "id",
+            "description": "The ID of the run to resubmit",
             "in": "path",
             "required": true,
             "type": "string"
