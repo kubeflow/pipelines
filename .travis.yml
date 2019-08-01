@@ -73,6 +73,13 @@ matrix:
         - python3 tests/compiler/main.py
         - $TRAVIS_BUILD_DIR/sdk/python/tests/run_tests.sh
 
+        # Visualization test
+        - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
+        # Visualization test dependencies
+        - pip3 install -r requirements-test.txt
+        - python3 test_exporter.py
+        - python3 test_server.py
+
         # Test loading all component.yaml definitions
         - $TRAVIS_BUILD_DIR/components/test_load_all_components.sh
 
