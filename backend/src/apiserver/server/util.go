@@ -15,11 +15,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"io"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/url"
 	"regexp"
 	"strings"
-	"time"
 )
 
 // These are valid conditions of a ScheduledWorkflow.
@@ -299,9 +297,8 @@ func formulateResubmitWorkflow(wf *wfv1.Workflow, randomString util.RandomString
 		switch node.Phase {
 		case wfv1.NodeSucceeded, wfv1.NodeSkipped:
 			node.Name = replaceRegexp.ReplaceAllString(node.Name, newWF.ObjectMeta.Name)
+			node.ID = newWF.NodeID(node.Name)
 			node.BoundaryID = convertNodeID(&newWF, replaceRegexp, node.BoundaryID, wf.Status.Nodes)
-			node.StartedAt = metav1.Time{Time: time.Now().UTC()}
-			node.FinishedAt = node.StartedAt
 			newChildren := make([]string, len(node.Children))
 			for i, childID := range node.Children {
 				newChildren[i] = convertNodeID(&newWF, replaceRegexp, childID, wf.Status.Nodes)

@@ -1,14 +1,12 @@
 package server
 
 import (
-	"encoding/json"
-	wfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
+	"github.com/ghodss/yaml"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"strings"
 	"testing"
@@ -335,32 +333,6 @@ func TestValidatePipelineSpec_ParameterTooLong(t *testing.T) {
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
 }
 
-// TestResubmitWorkflowWithOnExit ensures we do not carry over the onExit node even if successful
-func TestResubmitWorkflowWithOnExit(t *testing.T) {
-	wfName := "test-wf"
-	onExitName := wfName + ".onExit"
-	wf := wfv1.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-wf",
-		},
-		Status: wfv1.WorkflowStatus{
-			Phase: wfv1.NodeFailed,
-			Nodes: map[string]wfv1.NodeStatus{},
-		},
-	}
-	onExitID := wf.NodeID(onExitName)
-	wf.Status.Nodes[onExitID] = wfv1.NodeStatus{
-		Name:  onExitName,
-		Phase: wfv1.NodeSucceeded,
-	}
-	newWF, err := formulateResubmitWorkflow(&wf)
-	assert.Nil(t, err)
-	newWFOnExitName := newWF.ObjectMeta.Name + ".onExit"
-	newWFOneExitID := newWF.NodeID(newWFOnExitName)
-	_, ok := newWF.Status.Nodes[newWFOneExitID]
-	assert.False(t, ok)
-}
-
 func TestResubmitWorkflowWith(t *testing.T) {
 	wf := `
 apiVersion: argoproj.io/v1alpha1
@@ -451,9 +423,68 @@ status:
 `
 
 	var workflow util.Workflow
-	err := json.Unmarshal([]byte( wf), &workflow)
+	err := yaml.Unmarshal([]byte( wf), &workflow)
 	assert.Nil(t, err)
 	newWf, err := formulateResubmitWorkflow(workflow.Workflow, util.NewFakeRandomString("12345"))
-	newWfString := util.NewWorkflow(newWf).ToStringForStore()
-	assert.Equal(t,newWfString, "")
+
+	newWfString, err := yaml.Marshal(newWf)
+	assert.Nil(t, err)
+	expectedNewWfString := `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: resubmit-
+  name: resubmit-12345
+spec:
+  arguments: {}
+  entrypoint: rand-fail-dag
+  templates:
+  - dag:
+      tasks:
+      - arguments: {}
+        name: A
+        template: random-fail
+      - arguments: {}
+        dependencies:
+        - A
+        name: B
+        template: random-fail
+    inputs: {}
+    metadata: {}
+    name: rand-fail-dag
+    outputs: {}
+  - container:
+      args:
+      - import random; import sys; exit_code = random.choice([0, 0, 1]); print('exiting
+        with code {}'.format(exit_code)); sys.exit(exit_code)
+      command:
+      - python
+      - -c
+      image: python:alpine3.6
+      name: ""
+      resources: {}
+    inputs: {}
+    metadata: {}
+    name: random-fail
+    outputs: {}
+status:
+  finishedAt: null
+  nodes:
+    resubmit-hl9ft-3929423573:
+      boundaryID: resubmit-12345
+      children:
+      - resubmit-12345-1346000326
+      displayName: A
+      finishedAt: "2019-08-02T07:15:16Z"
+      id: resubmit-hl9ft-3929423573
+      name: resubmit-12345.A
+      phase: Skipped
+      startedAt: "2019-08-02T07:15:15Z"
+      templateName: random-fail
+      type: Skipped
+  startedAt: null
+`
+
+	assert.Equal(t, expectedNewWfString,string(newWfString))
 }
