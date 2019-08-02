@@ -57,7 +57,7 @@ class PipelineConf():
   def __init__(self):
     self.image_pull_secrets = []
     self.timeout = 0
-    self.ttl_seconds_after_finished = -1
+    self.ttl_seconds_after_finished = 604800 # 7 days
     self.artifact_location = None
     self.op_transformers = []
 
