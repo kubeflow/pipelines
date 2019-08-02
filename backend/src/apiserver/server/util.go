@@ -258,16 +258,17 @@ func formulateResubmitWorkflow(wf *wfv1.Workflow, randomString util.RandomString
 	newWF := wfv1.Workflow{}
 	newWF.TypeMeta = wf.TypeMeta
 
+	var namePrefix string
 	// Resubmitted workflow will use generated names
 	if wf.ObjectMeta.GenerateName != "" {
-		newWF.ObjectMeta.GenerateName = wf.ObjectMeta.GenerateName
+		namePrefix = wf.ObjectMeta.GenerateName
 	} else {
-		newWF.ObjectMeta.GenerateName = wf.ObjectMeta.Name + "-"
+		namePrefix = wf.ObjectMeta.Name + "-"
 	}
 	// When resubmitting workflow with memoized nodes, we need to use a predetermined workflow name
 	// in order to formulate the node statuses. Which means we cannot reuse metadata.generateName
 	// The following simulates the behavior of generateName
-	newWF.ObjectMeta.Name = newWF.ObjectMeta.GenerateName + randomString.Get(5)
+	newWF.ObjectMeta.Name = namePrefix + randomString.Get(5)
 
 	// carry over the unmodified spec
 	newWF.Spec = wf.Spec
@@ -318,6 +319,7 @@ func formulateResubmitWorkflow(wf *wfv1.Workflow, randomString util.RandomString
 			// do not add this status to the node. pretend as if this node never existed.
 			// NOTE: NodeRunning shouldn't really happen except in weird scenarios where controller
 			// mismanages state (e.g. panic when operating on a workflow)
+			continue
 		default:
 			return nil, errors.InternalErrorf("Workflow cannot be resubmitted with nodes in %s phase", node, node.Phase)
 		}

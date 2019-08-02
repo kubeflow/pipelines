@@ -434,7 +434,6 @@ status:
 kind: Workflow
 metadata:
   creationTimestamp: null
-  generateName: resubmit-
   name: resubmit-12345
 spec:
   arguments: {}

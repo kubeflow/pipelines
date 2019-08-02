@@ -33,19 +33,19 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 
 	"ml_metadata/metadata_store/mlmetadata"
 	mlpb "ml_metadata/proto/metadata_store_go_proto"
 )
 
 const (
-	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
-	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
-	mysqlUser             = "DBConfig.User"
-	mysqlPassword         = "DBConfig.Password"
-	mysqlServicePort      = "MYSQL_SERVICE_PORT"
+	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
+	mysqlServiceHost = "MYSQL_SERVICE_HOST"
+	mysqlUser        = "DBConfig.User"
+	mysqlPassword    = "DBConfig.Password"
+	mysqlServicePort = "MYSQL_SERVICE_PORT"
 
 	podNamespace          = "POD_NAMESPACE"
 	dbName                = "mlpipeline"
@@ -67,7 +67,7 @@ type ClientManager struct {
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
-	randomString 					 util.RandomStringInterface
+	randomString           util.RandomStringInterface
 
 	MetadataStore *mlmetadata.Store
 }
@@ -120,10 +120,9 @@ func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 	return c.uuid
 }
 
-func (c *ClientManager) RandomString() util.RandomStringInterface{
+func (c *ClientManager) RandomString() util.RandomStringInterface {
 	return c.randomString
 }
-
 
 func (c *ClientManager) init() {
 	glog.Infof("Initializing client manager")
