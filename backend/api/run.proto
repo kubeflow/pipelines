@@ -70,7 +70,7 @@ service RunService {
   rpc ResubmitRun(ResubmitRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{id}:resubmit"
-      body: "name"
+      body: "*"
     };
   }
 
