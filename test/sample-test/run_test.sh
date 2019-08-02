@@ -158,7 +158,7 @@ check_notebook_result() {
   ipython $1.py
   EXIT_CODE=$?
   cd ${TEST_DIR}
-  python3 check_notebook_results.py --experiment notebook-tfx-test --testname \
+  python3 check_notebook_results.py --experiment "$1-test$" --testname \
   $1 --result ${SAMPLE_TEST_RESULT} --namespace ${NAMESPACE} \
   --exit-code ${EXIT_CODE}
 
@@ -280,9 +280,9 @@ elif [[ "${TEST_NAME}" == "xgboost-training-cm" ]]; then
 
   check_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "notebook-tfx" ]]; then
-  preparation ${TEST_NAME}
 
-  # CMLE model name format: A name should start with a letter and contain only letters, numbers and underscores.
+  # CMLE model name format: A name should start with a letter and contain only
+  # letters, numbers and underscores.
   DEPLOYER_MODEL=`cat /proc/sys/kernel/random/uuid`
   DEPLOYER_MODEL=Notebook_tfx_taxi_`echo ${DEPLOYER_MODEL//-/_}`
 
@@ -290,62 +290,52 @@ elif [[ "${TEST_NAME}" == "notebook-tfx" ]]; then
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
-    papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
-      -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE ${TARGET_IMAGE_PREFIX}pusher:dev -p TARGET_IMAGE_TWO ${TARGET_IMAGE_PREFIX}pusher_two:dev \
+    papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR \
+    ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
+      -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE \
+      ${TARGET_IMAGE_PREFIX}pusher:dev -p TARGET_IMAGE_TWO \
+      ${TARGET_IMAGE_PREFIX}pusher_two:dev \
       -p KFP_PACKAGE /tmp/kfp.tar.gz -p DEPLOYER_MODEL ${DEPLOYER_MODEL}  \
-      -p DATAFLOW_TFDV_IMAGE ${DATAFLOW_TFDV_IMAGE} -p DATAFLOW_TFT_IMAGE ${DATAFLOW_TFT_IMAGE} -p DATAFLOW_TFMA_IMAGE ${DATAFLOW_TFMA_IMAGE} -p DATAFLOW_TF_PREDICT_IMAGE ${DATAFLOW_PREDICT_IMAGE} \
-      -p KUBEFLOW_TF_TRAINER_IMAGE ${KUBEFLOW_DNNTRAINER_IMAGE} -p KUBEFLOW_DEPLOYER_IMAGE ${KUBEFLOW_DEPLOYER_IMAGE} \
-      -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
-      -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 KubeFlow\ Pipeline\ Using\ TFX\ OSS\ Components.ipynb notebook-tfx.ipynb
+      -p DATAFLOW_TFDV_IMAGE ${DATAFLOW_TFDV_IMAGE} -p DATAFLOW_TFT_IMAGE \
+      ${DATAFLOW_TFT_IMAGE} -p DATAFLOW_TFMA_IMAGE ${DATAFLOW_TFMA_IMAGE} -p \
+      DATAFLOW_TF_PREDICT_IMAGE ${DATAFLOW_PREDICT_IMAGE} \
+      -p KUBEFLOW_TF_TRAINER_IMAGE ${KUBEFLOW_DNNTRAINER_IMAGE} -p \
+      KUBEFLOW_DEPLOYER_IMAGE ${KUBEFLOW_DEPLOYER_IMAGE} \
+      -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv \
+      -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
+      -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 KubeFlow\ Pipeline\ Using\ TFX\ OSS\ \
+      Components.ipynb notebook-tfx.ipynb
   else
-    papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
-      -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE ${TARGET_IMAGE_PREFIX}pusher:dev -p TARGET_IMAGE_TWO ${TARGET_IMAGE_PREFIX}pusher_two:dev \
+    papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p \
+    OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
+      -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE \
+      ${TARGET_IMAGE_PREFIX}pusher:dev -p TARGET_IMAGE_TWO \
+      ${TARGET_IMAGE_PREFIX}pusher_two:dev \
       -p KFP_PACKAGE /tmp/kfp.tar.gz -p DEPLOYER_MODEL ${DEPLOYER_MODEL} \
-      -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
-      -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 KubeFlow\ Pipeline\ Using\ TFX\ OSS\ Components.ipynb notebook-tfx.ipynb
+      -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv \
+      -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
+      -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 KubeFlow\ Pipeline\ Using\ TFX\ OSS\ \
+      Components.ipynb notebook-tfx.ipynb
   fi
-  jupyter nbconvert --to python notebook-tfx.ipynb
-  pip3 install tensorflow==1.8.0
-  ipython notebook-tfx.py
-  EXIT_CODE=$?
-  cd "${TEST_DIR}"
-  python3 check_notebook_results.py --experiment notebook-tfx-test --testname notebooktfx --result $SAMPLE_NOTEBOOK_TFX_TEST_RESULT --namespace ${NAMESPACE} --exit-code ${EXIT_CODE}
 
-  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
-  gsutil cp $SAMPLE_NOTEBOOK_TFX_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_TFX_TEST_RESULT
-
-  #Clean CMLE models. Not needed because we cleaned them up inside notebook.
-  # python3 clean_cmle_models.py --project ml-pipeline-test --model ${DEV_DEPLOYER_MODEL} --version ${MODEL_VERSION}
-  # python3 clean_cmle_models.py --project ml-pipeline-test --model ${PROD_DEPLOYER_MODEL} --version ${MODEL_VERSION}
+  check_notebook_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "notebook-lightweight" ]]; then
-  preparation ${TEST_NAME}
 
   cd ${BASE_DIR}/samples/core/lightweight_component
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
-  papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  Lightweight\ Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
-  jupyter nbconvert --to python notebook-lightweight.ipynb
-  pip3 install tensorflow==1.8.0
-  ipython notebook-lightweight.py
-  EXIT_CODE=$?
-  cd "${TEST_DIR}"
-  python3 check_notebook_results.py --experiment notebook-lightweight --testname notebooklightweight --result $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT --namespace ${NAMESPACE} --exit-code ${EXIT_CODE}
+  papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p \
+  PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  Lightweight\ \
+  Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
 
-  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
-  gsutil cp $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT
+  check_notebook_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "notebook-typecheck" ]]; then
-  preparation ${TEST_NAME}
 
   cd ${BASE_DIR}/samples/core/dsl_static_type_checking
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
-  papermill --prepare-only -p KFP_PACKAGE /tmp/kfp.tar.gz  DSL\ Static\ Type\ Checking.ipynb notebook-typecheck.ipynb
-  jupyter nbconvert --to python notebook-typecheck.ipynb
-  ipython notebook-typecheck.py
-  EXIT_CODE=$?
-  cd "${TEST_DIR}"
-  python3 check_notebook_results.py --testname notebooktypecheck --result $SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT --exit-code ${EXIT_CODE}
+  papermill --prepare-only -p KFP_PACKAGE /tmp/kfp.tar.gz  DSL\ Static\ Type\ \
+  Checking.ipynb notebook-typecheck.ipynb
 
-  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
-  gsutil cp $SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT
+  check_notebook_result ${TEST_NAME}
 fi

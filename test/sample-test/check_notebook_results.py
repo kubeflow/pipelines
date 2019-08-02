@@ -18,38 +18,39 @@ import utils
 
 ###### Input/Output Instruction ######
 # args:
-#   experiment: where the test run belong, only necessary when a job is submitted.
+#   experiment: where the test run belong, only necessary when a job is
+#               submitted.
 #   namespace: where the pipeline system is deployed.
 #   testname: test name in the json xml
 #   result: name of the file that stores the test result
 #   exit_code: the exit code of the bash command that runs the test.
+
 
 # Parsing the input arguments
 def parse_arguments():
   """Parse command line arguments."""
 
   parser = argparse.ArgumentParser()
-  parser.add_argument('--experiment',
-                      type=str,
-                      help='The experiment name')
-  parser.add_argument('--namespace',
-                      type=str,
-                      default='kubeflow',
-                      help="namespace of the deployed pipeline system. Default: kubeflow")
-  parser.add_argument('--testname',
-                      type=str,
-                      required=True,
-                      help="Test name")
-  parser.add_argument('--result',
-                      type=str,
-                      required=True,
-                      help='The path of the test result that will be exported.')
-  parser.add_argument('--exit-code',
-                      type=str,
-                      required=True,
-                      help='The exit code of the bash command that runs the test.')
+  parser.add_argument('--experiment', type=str, help='The experiment name')
+  parser.add_argument(
+      '--namespace',
+      type=str,
+      default='kubeflow',
+      help='namespace of the deployed pipeline system. Default: kubeflow')
+  parser.add_argument('--testname', type=str, required=True, help='Test name')
+  parser.add_argument(
+      '--result',
+      type=str,
+      required=True,
+      help='The path of the test result that will be exported.')
+  parser.add_argument(
+      '--exit-code',
+      type=str,
+      required=True,
+      help='The exit code of the bash command that runs the test.')
   args = parser.parse_args()
   return args
+
 
 def main():
   args = parse_arguments()
@@ -57,7 +58,9 @@ def main():
   test_name = args.testname + ' Sample Test'
 
   ###### Write the script exit code log ######
-  utils.add_junit_test(test_cases, 'test script execution', (args.exit_code == '0'), 'test script failure with exit code: ' + args.exit_code)
+  utils.add_junit_test(test_cases, 'test script execution',
+                       (args.exit_code == '0'),
+                       'test script failure with exit code: ' + args.exit_code)
 
   if args.experiment is not None:
     ###### Initialization ######
@@ -68,20 +71,23 @@ def main():
     experiment_id = client.get_experiment(experiment_name=args.experiment).id
 
     ###### Get runs ######
-    list_runs_response = client.list_runs(page_size=1000, experiment_id=experiment_id)
+    list_runs_response = client.list_runs(
+        page_size=1000, experiment_id=experiment_id)
 
     ###### Check all runs ######
     for run in list_runs_response.runs:
       run_id = run.id
       response = client.wait_for_run_completion(run_id, 1200)
-      succ = (response.run.status.lower()=='succeeded')
-      utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure')
+      succ = (response.run.status.lower() == 'succeeded')
+      utils.add_junit_test(test_cases, 'job completion', succ,
+                           'waiting for job completion failure')
 
       ###### Output Argo Log for Debugging ######
       workflow_json = client._get_workflow_json(run_id)
       workflow_id = workflow_json['metadata']['name']
-      argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(args.namespace, workflow_id))
-      print("=========Argo Workflow Log=========")
+      argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(
+          args.namespace, workflow_id))
+      print('=========Argo Workflow Log=========')
       print(argo_log)
 
       if not succ:
@@ -91,5 +97,6 @@ def main():
   ###### Write out the test result in junit xml ######
   utils.write_junit_xml(test_name, args.result, test_cases)
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
   main()
