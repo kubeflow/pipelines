@@ -77,7 +77,10 @@ func TestResubmitRun(t *testing.T) {
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedWorkflow.GenerateName = testWorkflow.Workflow.Name + "-"
 	expectedWorkflow.Name = testWorkflow.Workflow.Name + "-abcde"
-	expectedWorkflow.UID = "workflow1"
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+		{Name: "param1", Value: util.StringPointer("world")}}
+
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Name:         "resubmit",
@@ -97,7 +100,7 @@ func TestResubmitRun(t *testing.T) {
 			},
 		},
 		PipelineRuntime: &api.PipelineRuntime{
-			WorkflowManifest: util.NewWorkflow(expectedWorkflow).ToStringForStore(),
+			WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 		},
 	}
 	assert.Equal(t, expectedRunDetail, *newRunDetail)
