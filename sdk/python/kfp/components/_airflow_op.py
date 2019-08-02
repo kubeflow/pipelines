@@ -23,7 +23,7 @@ from typing import List
 from ._python_op import _func_to_component_spec, _create_task_factory_from_component_spec
 
 
-_default_airflow_base_image = 'apache/airflow@sha256:7f60cbef6bf92b1f3a5b4e46044911ced39736a8c3858284d3c5a961b3ba8735'
+_default_airflow_base_image = 'apache/airflow:master-python3.6-ci' #TODO: Update a production release image once they become available: https://cwiki.apache.org/confluence/display/AIRFLOW/AIP-10+Multi-layered+and+multi-stage+official+Airflow+CI+image#AIP-10Multi-layeredandmulti-stageofficialAirflowCIimage-ProposedsetupoftheDockerHubandTravisCI . See https://issues.apache.org/jira/browse/AIRFLOW-5093
 
 
 def create_component_from_airflow_op(
