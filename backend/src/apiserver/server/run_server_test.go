@@ -75,6 +75,7 @@ func TestResubmitRun(t *testing.T) {
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
+	testWorkflow.Workflow.Name = testWorkflow.Workflow.Name + "-abcde"
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:           "workflow1",
@@ -84,7 +85,7 @@ func TestResubmitRun(t *testing.T) {
 			ScheduledAt:  &timestamp.Timestamp{},
 			FinishedAt:   &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
-				WorkflowManifest: testWorkflow.ToStringForStore(),
+				WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 			},
 			ResourceReferences: []*api.ResourceReference{

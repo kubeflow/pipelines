@@ -28,6 +28,7 @@ import (
 
 const (
 	DefaultFakeUUID = "123e4567-e89b-12d3-a456-426655440000"
+	DefaultRandomString = "abcde"
 )
 
 type FakeClientManager struct {
@@ -44,10 +45,11 @@ type FakeClientManager struct {
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
 	time                        util.TimeInterface
 	uuid                        util.UUIDGeneratorInterface
+	randomString                util.RandomStringInterface
 }
 
-func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
-	*FakeClientManager, error) {
+func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface, randomString util.RandomStringInterface) (
+		*FakeClientManager, error) {
 
 	if time == nil {
 		glog.Fatalf("The time parameter must not be null.") // Must never happen
@@ -78,6 +80,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
 		time:                        time,
 		uuid:                        uuid,
+		randomString:                randomString,
 	}, nil
 }
 
@@ -95,7 +98,8 @@ func initFakeMetadataStore() *metadata.Store {
 
 func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
 	uuid := util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil)
-	fakeStore, err := NewFakeClientManager(time, uuid)
+	randomString := util.NewFakeRandomString(DefaultRandomString)
+	fakeStore, err := NewFakeClientManager(time, uuid, randomString)
 	if err != nil {
 		glog.Fatalf("The fake store doesn't create successfully. Fail fast.")
 	}
@@ -120,6 +124,10 @@ func (f *FakeClientManager) Time() util.TimeInterface {
 
 func (f *FakeClientManager) UUID() util.UUIDGeneratorInterface {
 	return f.uuid
+}
+
+func (f *FakeClientManager) RandomString() util.RandomStringInterface {
+	return f.randomString
 }
 
 func (f *FakeClientManager) DB() *storage.DB {

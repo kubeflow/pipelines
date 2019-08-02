@@ -49,6 +49,7 @@ type ClientManagerInterface interface {
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
+	RandomString() util.RandomStringInterface
 }
 
 type ResourceManager struct {
@@ -64,6 +65,7 @@ type ResourceManager struct {
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
 	time                    util.TimeInterface
 	uuid                    util.UUIDGeneratorInterface
+	randomString 						util.RandomStringInterface
 }
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
@@ -80,6 +82,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
 		time:                    clientManager.Time(),
 		uuid:                    clientManager.UUID(),
+		randomString:            clientManager.RandomString(),
 	}
 }
 
