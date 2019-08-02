@@ -221,25 +221,45 @@ elif [[ "${TEST_NAME}" == "tfx-cab-classification" ]]; then
   if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
     # Update the image tag in the yaml.
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+\
-    |${DATAFLOW_TFT_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    |${DATAFLOW_TFT_IMAGE}|g" ${TEST_NAME}.yaml
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\
-    \([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" \
-    taxi-cab-classification-pipeline.yaml
+    \([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" ${TEST_NAME}.yaml
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+\
-    |${DATAFLOW_TFDV_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    |${DATAFLOW_TFDV_IMAGE}|g" ${TEST_NAME}.yaml
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+\
-    |${DATAFLOW_TFMA_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    |${DATAFLOW_TFMA_IMAGE}|g" ${TEST_NAME}.yaml
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.\
-    -]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    -]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" ${TEST_NAME}.yaml
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-\
-    ]\)\+|${KUBEFLOW_DEPLOYER_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    ]\)\+|${KUBEFLOW_DEPLOYER_IMAGE}|g" ${TEST_NAME}.yaml
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\
-    \([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" \
-    taxi-cab-classification-pipeline.yaml
+    \([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" ${TEST_NAME}.yaml
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\\
-    +|${LOCAL_ROC_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    +|${LOCAL_ROC_IMAGE}|g" ${TEST_NAME}.yaml
   fi
 
+  check_result ${TEST_NAME}
+elif [[ "${TEST_NAME}" == "xgboost-training-cm" ]]; then
+  dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
+  if [[ -n "${DATAPROC_CREATE_CLUSTER_IMAGE}" ]]; then
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\
+    \([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" \
+    ${TEST_NAME}.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0\
+    -9_.-]\)\+|${DATAPROC_DELETE_CLUSTER_IMAGE}|g" ${TEST_NAME}.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:\([a-zA-Z0\
+    -9_.-]\)\+|${DATAPROC_ANALYZE_IMAGE}|g" ${TEST_NAME}.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:\([a-zA-Z0\
+    -9_.-]\)\+|${DATAPROC_TRANSFORM_IMAGE}|g" ${TEST_NAME}.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-train:\([a-zA-Z0\
+    -9_.-]\)\+|${DATAPROC_TRAIN_IMAGE}|g" ${TEST_NAME}.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:\([a-zA-Z0\
+    -9_.-]\)\+|${DATAPROC_PREDICT_IMAGE}|g" ${TEST_NAME}.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0\
+    -9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" ${TEST_NAME}.yaml
+    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0\
+    -9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" ${TEST_NAME}.yaml
+  fi
   check_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "sequential" ]]; then
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
@@ -255,29 +275,6 @@ elif [[ "${TEST_NAME}" == "parallel_join" ]]; then
   check_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "recursion" ]]; then
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
-  check_result ${TEST_NAME}
-elif [[ "${TEST_NAME}" == "xgboost-training-cm" ]]; then
-  dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
-  if [[ -n "${DATAPROC_CREATE_CLUSTER_IMAGE}" ]]; then
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\
-    \([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" \
-    xgboost-training-cm.yaml
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0\
-    -9_.-]\)\+|${DATAPROC_DELETE_CLUSTER_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:\([a-zA-Z0\
-    -9_.-]\)\+|${DATAPROC_ANALYZE_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:\([a-zA-Z0\
-    -9_.-]\)\+|${DATAPROC_TRANSFORM_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-train:\([a-zA-Z0\
-    -9_.-]\)\+|${DATAPROC_TRAIN_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:\([a-zA-Z0\
-    -9_.-]\)\+|${DATAPROC_PREDICT_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0\
-    -9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" xgboost-training-cm.yaml
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0\
-    -9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" xgboost-training-cm.yaml
-  fi
-
   check_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "notebook-tfx" ]]; then
 
