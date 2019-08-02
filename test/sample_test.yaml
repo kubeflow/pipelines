@@ -65,9 +65,9 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - tf-training
-              - tfx
-              - xgboost
+              - kubeflow-training-classification
+              - tfx-cab-classification
+              - xgboost-training-cm
               - notebook-tfx
               - notebook-lightweight
               - notebook-typecheck
