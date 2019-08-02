@@ -1,18 +1,16 @@
 package server
 
 import (
-	"testing"
-
-	"strings"
-
-	"os"
-
-	"io/ioutil"
-
+	wfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
+	"strings"
+	"testing"
 )
 
 func TestGetPipelineName_QueryStringNotEmpty(t *testing.T) {
@@ -334,4 +332,30 @@ func TestValidatePipelineSpec_ParameterTooLong(t *testing.T) {
 	err := ValidatePipelineSpec(manager, spec)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
+}
+
+// TestResubmitWorkflowWithOnExit ensures we do not carry over the onExit node even if successful
+func TestResubmitWorkflowWithOnExit(t *testing.T) {
+	wfName := "test-wf"
+	onExitName := wfName + ".onExit"
+	wf := wfv1.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-wf",
+		},
+		Status: wfv1.WorkflowStatus{
+			Phase: wfv1.NodeFailed,
+			Nodes: map[string]wfv1.NodeStatus{},
+		},
+	}
+	onExitID := wf.NodeID(onExitName)
+	wf.Status.Nodes[onExitID] = wfv1.NodeStatus{
+		Name:  onExitName,
+		Phase: wfv1.NodeSucceeded,
+	}
+	newWF, err := formulateResubmitWorkflow(&wf)
+	assert.Nil(t, err)
+	newWFOnExitName := newWF.ObjectMeta.Name + ".onExit"
+	newWFOneExitID := newWF.NodeID(newWFOnExitName)
+	_, ok := newWF.Status.Nodes[newWFOneExitID]
+	assert.False(t, ok)
 }
