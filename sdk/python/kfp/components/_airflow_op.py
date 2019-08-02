@@ -99,8 +99,11 @@ def _create_component_spec_from_airflow_op(
 
     # Hacking the function signature so that correct component interface is generated
     import inspect
+    parameters = inspect.signature(op_class).parameters.values()
+    #Filtering out `*args` and `**kwargs` parameters that some operators have
+    parameters = [param for param in parameters if param.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD]
     sig = inspect.Signature(
-        parameters=inspect.signature(op_class).parameters.values(),
+        parameters=parameters,
         return_annotation=returnType,
     )
     _run_airflow_op_closure.__signature__ = sig
