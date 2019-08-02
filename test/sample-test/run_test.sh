@@ -139,8 +139,8 @@ check_result() {
   #TODO: basic tests use .zip but other use .yaml, need consistency. Plan to
   # unify them into .yaml.
   python3 run_sample_test.py --input ${WORK_DIR}/$1.yaml \
-  --result ${SAMPLE_TEST_RESULT} --output ${SAMPLE_TEST_OUTPUT} --testname $1 -\
-  -namespace ${NAMESPACE}
+  --result ${SAMPLE_TEST_RESULT} --output ${SAMPLE_TEST_OUTPUT} --testname $1 \
+  --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TEST_OUTPUT}
