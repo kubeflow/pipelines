@@ -72,20 +72,21 @@ func TestResubmitRun(t *testing.T) {
 	assert.Nil(t, err)
 
 	newRunDetail, err := server.ResubmitRun(nil, &api.ResubmitRunRequest{Id: runDetail.Run.Id, Name: "resubmit"})
-	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+	expectedWorkflow := testWorkflow.DeepCopy()
+	expectedWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
-	testWorkflow.Workflow.Name = testWorkflow.Workflow.Name + "-abcde"
+	expectedWorkflow.GenerateName = testWorkflow.Workflow.Name + "-"
+	expectedWorkflow.Name = testWorkflow.Workflow.Name + "-abcde"
+	expectedWorkflow.UID = "workflow1"
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
-			Id:           "workflow1",
 			Name:         "resubmit",
 			StorageState: api.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:    &timestamp.Timestamp{Seconds: 3},
 			ScheduledAt:  &timestamp.Timestamp{},
 			FinishedAt:   &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
-				WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+				WorkflowManifest: util.NewWorkflow(expectedWorkflow).ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 			},
 			ResourceReferences: []*api.ResourceReference{
@@ -96,7 +97,7 @@ func TestResubmitRun(t *testing.T) {
 			},
 		},
 		PipelineRuntime: &api.PipelineRuntime{
-			WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+			WorkflowManifest: util.NewWorkflow(expectedWorkflow).ToStringForStore(),
 		},
 	}
 	assert.Equal(t, expectedRunDetail, *newRunDetail)
