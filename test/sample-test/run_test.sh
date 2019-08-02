@@ -124,7 +124,8 @@ TEST_DIR=${BASE_DIR}/test/sample-test
 preparation() {
   SAMPLE_TEST_RESULT="junit_Sample$1Output.xml"
   SAMPLE_TEST_OUTPUT=${RESULTS_GCS_DIR}
-  cd ${BASE_DIR}/samples/core/$1
+  WORK_DIR=${BASE_DIR}/samples/core/$1
+  cd ${WORK_DIR}
 }
 
 ################################################################################
@@ -135,9 +136,10 @@ preparation() {
 ################################################################################
 check_result() {
   cd "${TEST_DIR}"
-  #TODO: basic tests use .zip but other use .yaml, need consistency.
-  python3 run_$1_test.py --input ${BASE_DIR}/samples/core/$1/$1.zip --result \
-  ${SAMPLE_TEST_RESULT} --output ${SAMPLE_TEST_OUTPUT} --testname $1 -\
+  #TODO: basic tests use .zip but other use .yaml, need consistency. Plan to
+  # unify them into .yaml.
+  python3 run_sample_test.py --input ${WORK_DIR}/$1.yaml \
+  --result ${SAMPLE_TEST_RESULT} --output ${SAMPLE_TEST_OUTPUT} --testname $1 -\
   -namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
@@ -155,7 +157,7 @@ check_notebook_result() {
   pip3 install tensorflow==1.8.0
   ipython $1.py
   EXIT_CODE=$?
-  cd "${TEST_DIR}"
+  cd ${TEST_DIR}
   python3 check_notebook_results.py --experiment notebook-tfx-test --testname \
   $1 --result ${SAMPLE_TEST_RESULT} --namespace ${NAMESPACE} \
   --exit-code ${EXIT_CODE}
@@ -189,9 +191,9 @@ chmod +x ~/bin/argo
 echo "Run the sample tests..."
 
 # Run the tests
-if [[ "${TEST_NAME}" == 'tf-training' ]]; then
-  preparation ${TEST_NAME}
+preparation ${TEST_NAME}
 
+if [[ "${TEST_NAME}" == 'kubeflow-training-classification' ]]; then
   #TODO: convert the sed commands to sed -e 's|gcr.io/ml-pipeline/|gcr.io/
   # ml-pipeline-test/' and tag replacement.
   # Compile samples.
@@ -210,30 +212,11 @@ if [[ "${TEST_NAME}" == 'tf-training' ]]; then
     kubeflow-training-classification.py
   fi
 
-  dsl-compile --py kubeflow-training-classification.py --output \
-  kubeflow-training-classification.zip
+  dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
+  check_result ${TEST_NAME}
+elif [[ "${TEST_NAME}" == "tfx-cab-classification" ]]; then
 
-  cd "${TEST_DIR}"
-  python3 run_kubeflow_test.py --input "${BASE_DIR}/samples/kubeflow-tf/kubefl\
-  ow-training-classification.zip" --result ${SAMPLE_KUBEFLOW_TEST_RESULT} \
-  --output ${SAMPLE_KUBEFLOW_TEST_OUTPUT} --namespace ${NAMESPACE}
-  python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/core/kubeflow-tf/kubeflow-training-classification.zip --result $SAMPLE_KUBEFLOW_TEST_RESULT --output $SAMPLE_KUBEFLOW_TEST_OUTPUT --namespace ${NAMESPACE}
-
-  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
-  gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} \
-  ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}
-elif [[ "${TEST_NAME}" == "tfx" ]]; then
-  preparation ${TEST_NAME}
-  gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}
-elif [ "$TEST_NAME" == "tfx" ]; then
-  SAMPLE_TFX_TEST_RESULT=junit_SampleTFXOutput.xml
-  SAMPLE_TFX_TEST_OUTPUT=${RESULTS_GCS_DIR}
-
-  # Compile samples
-  cd ${BASE_DIR}/samples/core/tfx
-
-  dsl-compile --py taxi-cab-classification-pipeline.py --output \
-  taxi-cab-classification-pipeline.yaml
+  dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
 
   if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
     # Update the image tag in the yaml.
@@ -257,35 +240,24 @@ elif [ "$TEST_NAME" == "tfx" ]; then
     +|${LOCAL_ROC_IMAGE}|g" taxi-cab-classification-pipeline.yaml
   fi
 
-  cd "${TEST_DIR}"
-  python3 run_tfx_test.py --input ${BASE_DIR}/samples/core/tfx/taxi-cab-classification-pipeline.yaml --result $SAMPLE_TFX_TEST_RESULT --output $SAMPLE_TFX_TEST_OUTPUT --namespace ${NAMESPACE}
-  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
-  gsutil cp ${SAMPLE_TFX_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TFX_TEST_RESULT}
+  check_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "sequential" ]]; then
-  preparation ${TEST_NAME}
-  dsl-compile --py sequential.py --output sequential.zip
+  dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   check_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "condition" ]]; then
-  preparation ${TEST_NAME}
-  dsl-compile --py condition.py --output condition.zip
+  dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   check_result ${TEST_NAME}
-elif [[ "${TEST_NAME}" == "exithandler" ]]; then
-  preparation ${TEST_NAME}
-  dsl-compile --py exit_handler.py --output exit_handler.zip
+elif [[ "${TEST_NAME}" == "exit_handler" ]]; then
+  dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   check_result ${TEST_NAME}
-elif [[ "${TEST_NAME}" == "paralleljoin" ]]; then
-  preparation ${TEST_NAME}
-  dsl-compile --py parallel_join.py --output parallel_join.zip
+elif [[ "${TEST_NAME}" == "parallel_join" ]]; then
+  dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   check_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "recursion" ]]; then
-  preparation ${TEST_NAME}
-  dsl-compile --py recursion.py --output recursion.tar.gz
+  dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   check_result ${TEST_NAME}
-elif [[ "${TEST_NAME}" == "xgboost" ]]; then
-  preparation ${TEST_NAME}
-
-  dsl-compile --py xgboost-training-cm.py --output xgboost-training-cm.yaml
-
+elif [[ "${TEST_NAME}" == "xgboost-training-cm" ]]; then
+  dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   if [[ -n "${DATAPROC_CREATE_CLUSTER_IMAGE}" ]]; then
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\
     \([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" \
@@ -305,11 +277,8 @@ elif [[ "${TEST_NAME}" == "xgboost" ]]; then
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0\
     -9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" xgboost-training-cm.yaml
   fi
-  cd "${TEST_DIR}"
-  python3 run_xgboost_test.py --input ${BASE_DIR}/samples/core/xgboost-spark/xgboost-training-cm.yaml --result $SAMPLE_XGBOOST_TEST_RESULT --output $SAMPLE_XGBOOST_TEST_OUTPUT --namespace ${NAMESPACE}
 
-  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
-  gsutil cp ${SAMPLE_XGBOOST_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_XGBOOST_TEST_RESULT}
+  check_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "notebook-tfx" ]]; then
   preparation ${TEST_NAME}
 
