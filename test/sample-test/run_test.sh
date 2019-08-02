@@ -193,7 +193,7 @@ echo "Run the sample tests..."
 # Run the tests
 preparation ${TEST_NAME}
 
-if [[ "${TEST_NAME}" == 'kubeflow-training-classification' ]]; then
+if [[ "${TEST_NAME}" == "kubeflow-training-classification" ]]; then
   #TODO: convert the sed commands to sed -e 's|gcr.io/ml-pipeline/|gcr.io/
   # ml-pipeline-test/' and tag replacement.
   # Compile samples.
