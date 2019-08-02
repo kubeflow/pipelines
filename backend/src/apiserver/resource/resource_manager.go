@@ -90,6 +90,10 @@ func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
+func (r *ResourceManager) GetRandomString() util.RandomStringInterface {
+	return r.randomString
+}
+
 func (r *ResourceManager) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
 	return r.experimentStore.CreateExperiment(experiment)
 }
