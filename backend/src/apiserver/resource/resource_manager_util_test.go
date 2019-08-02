@@ -145,7 +145,7 @@ func TestToCrdPeriodicSchedule_NilEndTime(t *testing.T) {
 	})
 }
 
-func TestResubmitWorkflowWith(t *testing.T) {
+func TestRetryWorkflowWith(t *testing.T) {
 	wf := `
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
@@ -246,8 +246,16 @@ status:
 			`apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  creationTimestamp: null
-  name: resubmit-12345
+  creationTimestamp: "2019-08-02T07:15:14Z"
+  generateName: resubmit-
+  generation: 1
+  labels:
+    workflows.argoproj.io/phase: Running
+  name: resubmit-hl9ft
+  namespace: kubeflow
+  resourceVersion: "13488984"
+  selfLink: /apis/argoproj.io/v1alpha1/namespaces/kubeflow/workflows/resubmit-hl9ft
+  uid: 4628dce4-b4f5-11e9-b75e-42010a8001b8
 spec:
   arguments: {}
   entrypoint: rand-fail-dag
@@ -283,20 +291,34 @@ spec:
 status:
   finishedAt: null
   nodes:
-    resubmit-12345-1329222707:
-      boundaryID: resubmit-12345
+    resubmit-hl9ft:
       children:
-      - resubmit-12345-1346000326
+      - resubmit-hl9ft-3929423573
+      displayName: resubmit-hl9ft
+      finishedAt: null
+      id: resubmit-hl9ft
+      name: resubmit-hl9ft
+      phase: Running
+      startedAt: "2019-08-02T07:15:14Z"
+      templateName: rand-fail-dag
+      type: DAG
+    resubmit-hl9ft-3929423573:
+      boundaryID: resubmit-hl9ft
+      children:
+      - resubmit-hl9ft-3879090716
       displayName: A
       finishedAt: "2019-08-02T07:15:16Z"
-      id: resubmit-12345-1329222707
-      name: resubmit-12345.A
-      phase: Skipped
+      id: resubmit-hl9ft-3929423573
+      name: resubmit-hl9ft.A
+      phase: Succeeded
       startedAt: "2019-08-02T07:15:15Z"
       templateName: random-fail
-      type: Skipped
-  startedAt: null
+      type: Pod
+  phase: Running
+  startedAt: "2019-08-02T07:15:14Z"
 `
 
 	assert.Equal(t, expectedNewWfString,string(newWfString))
 }
+
+
