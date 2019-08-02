@@ -84,7 +84,7 @@ func TestResubmitRun(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRuntimeWorkflow.Name = "workflow-name-0"
-	expectedWorkflow.UID = ""
+	expectedRuntimeWorkflow.UID = ""
 
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
