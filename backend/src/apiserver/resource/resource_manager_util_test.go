@@ -16,7 +16,7 @@ package resource
 
 import (
 	"github.com/ghodss/yaml"
-	"github.com/kubeflow/pipelines/bazel-pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"testing"
 	"time"
 
