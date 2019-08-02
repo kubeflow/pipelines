@@ -77,6 +77,8 @@ message Visualization {
   // API.
   enum Type {
     ROC_CURVE = 0;
+    TFDV = 1;
+    TABLE = 2;
   };
   Type type = 1;
 

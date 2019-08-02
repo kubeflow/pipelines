@@ -53,6 +53,7 @@ ipykernel,https://github.com/ipython/ipykernel/blob/master/COPYING.md,BSD-3
 ipython,https://github.com/ipython/ipython/blob/master/LICENSE,BSD-3
 ipython-genutils,https://github.com/ipython/ipython_genutils/blob/master/COPYING.md,BSD-3
 ipywidgets,https://github.com/jupyter-widgets/ipywidgets/blob/master/LICENSE,BSD-3
+itables,https://github.com/mwouts/itables/blob/master/LICENSE,MIT
 jedi,https://github.com/davidhalter/jedi/blob/master/LICENSE.txt,MIT
 joblib,https://github.com/joblib/joblib/blob/master/LICENSE.txt,BSD-3
 jsonschema,https://github.com/Julian/jsonschema/blob/master/COPYING,MIT
@@ -83,6 +84,7 @@ pyarrow,https://github.com/apache/arrow/blob/master/LICENSE.txt,Apache 2.0
 pyasn1,https://github.com/etingof/pyasn1/blob/master/LICENSE.rst,BSD-2
 pyasn1-modules,https://github.com/etingof/pyasn1-modules/blob/master/LICENSE.txt,BSD-2
 pydot,https://github.com/pydot/pydot/blob/master/LICENSE,MIT
+pymongo,https://github.com/mongodb/mongo-python-driver/blob/master/LICENSE,Apache 2.0
 pyparsing,https://github.com/pyparsing/pyparsing/blob/master/LICENSE,MIT
 pyrsistent,https://github.com/tobgu/pyrsistent/blob/master/LICENCE.mit,MIT
 python-dateutil,https://github.com/dateutil/dateutil/blob/master/LICENSE,Apache 2.0
