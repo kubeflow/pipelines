@@ -241,7 +241,8 @@ status:
 
 	newWfString, err := yaml.Marshal(newWf)
 	assert.Nil(t, err)
-	assert.Nil(t, nodes)
+	assert.Equal(t, []string{"resubmit-hl9ft-3879090716"},nodes)
+
 	expectedNewWfString :=
 			`apiVersion: argoproj.io/v1alpha1
 kind: Workflow

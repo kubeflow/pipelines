@@ -24,6 +24,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
+const (
+	LabelKeyWorkflowRunId = "pipeline/runid"
+)
+
 // Workflow is a type to help manipulate Workflow objects.
 type Workflow struct {
 	*workflowapi.Workflow

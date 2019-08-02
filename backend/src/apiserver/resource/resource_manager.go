@@ -32,6 +32,7 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
+	apierr "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -197,6 +198,12 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 	}
+	uuid, err := r.uuid.NewRandom()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to generate run ID.")
+	}
+	runId := uuid.String()
+
 	var workflow util.Workflow
 	if err = json.Unmarshal(workflowSpecManifestBytes, &workflow); err != nil {
 		return nil, util.NewInternalServerError(err,
@@ -210,6 +217,8 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
+	// Add label to the workflow so it can be persisted by persistent agent later.
+	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
@@ -235,7 +244,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Store run metadata into database
-	runDetail, err := ToModelRunDetail(apiRun, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
+	runDetail, err := ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert run model")
 	}
@@ -332,7 +341,7 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	}
 
 	var workflow util.Workflow
-	if err := json.Unmarshal([]byte( runDetail.WorkflowRuntimeManifest), &workflow); err != nil {
+	if err := json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &workflow); err != nil {
 		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
 	}
 
@@ -342,6 +351,17 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	}
 
 	_, err = r.workflowClient.Update(newWorkflow)
+	if err == nil {
+		return nil
+	}
+	// The Argo workflow might already be garbage collected.
+	// In that case, creating a new workflow will revive the run and Persistent Agent will continue
+	// Sync the status of the new workflow to the original run.
+	if !apierr.IsNotFound(err) {
+		return util.NewInternalServerError(err, "Retry run failed.")
+	}
+
+	_, err = r.workflowClient.Create(newWorkflow)
 	if err != nil {
 		return util.NewInternalServerError(err, "Retry run failed.")
 	}
@@ -443,7 +463,11 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 }
 
 func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
-	runId := string(workflow.UID)
+	if _, ok := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
+		// Skip reporting if the workflow doesn't have the run id label
+		return nil
+	}
+	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
 
 	if jobId == "" {
