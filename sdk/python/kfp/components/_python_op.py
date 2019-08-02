@@ -287,10 +287,9 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
         '_parsed_args = vars(_parser.parse_args())',
     ])
 
-    if component_spec.outputs:
-        arg_parse_code_lines.extend([
-            '_output_files = _parsed_args.pop("_output_paths")',
-        ])
+    arg_parse_code_lines.extend([
+        '_output_files = _parsed_args.pop("_output_paths", [])',
+    ])
 
     full_source = \
 '''\
