@@ -1,7 +1,8 @@
 {
   "DBConfig": {
     "DriverName": "mysql",
-    "DataSourceName": ""
+    "DataSourceName": "",
+    "DBName": "mlpipline"
   },
   "ObjectStoreConfig":{
     "AccessKey": "minio",
