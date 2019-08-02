@@ -94,7 +94,9 @@
     "apiVisualizationType": {
       "type": "string",
       "enum": [
-        "ROC_CURVE"
+        "ROC_CURVE",
+        "TFDV",
+        "TABLE"
       ],
       "default": "ROC_CURVE",
       "description": "Type of visualization to be generated.\nThis is required when creating the pipeline through CreateVisualization\nAPI."
