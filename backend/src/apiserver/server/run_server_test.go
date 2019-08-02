@@ -71,7 +71,7 @@ func TestRetryRun(t *testing.T) {
 	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
-	newRunDetail, err := server.RetryRun(nil, &api.ResubmitRunRequest{Id: runDetail.Run.Id, Name: "resubmit"})
+	newRunDetail, err := server.RetryRun(nil, &api.RetryRunRequest{RunId: runDetail.Run.Id})
 
 	expectedWorkflow := testWorkflow.DeepCopy()
 	expectedWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
