@@ -24,32 +24,42 @@ def gcs_read_op(url):
       name='Access GCS using auth token',
       image='google/cloud-sdk:latest',
       command=['sh', '-c'],
-      arguments=['gsutil ls ' + str(url)]
+      arguments=[
+        'gsutil ls "$0" && echo "$1"',
+        url,
+        'Auth token is located at /secret/gcp-credentials/user-gcp-sa.json'
+        ]
       )
 
 
-def use_secret_json_op():
-  return dsl.ContainerOp(
-      name='view auth token location',
-      image='google/cloud-sdk:latest',
-      command=['sh', '-c'],
-      arguments=[
-          'gcloud auth activate-service-account --key-file /secret/gcp-credentials/user-gcp-sa.json'
-          ])
+def use_gcp_api_op():
+    return dsl.ContainerOp(
+        name='Using Google Cloud APIs with Auth',
+        image='google/cloud-sdk:latest',
+        command=[
+            'sh', '-c',
+            'pip install google-cloud-storage && "$0" "$*"',
+            'python', '-c', '''
+from google.cloud import storage
+storage_client = storage.Client()
+buckets = storage_client.list_buckets()
+print("List of buckets:")
+for bucket in buckets:
+    print(bucket.name)
+    '''
+        ])
 
 
 @dsl.pipeline(
     name='Secret pipeline',
     description='A pipeline to demonstrate mounting and use of secretes.'
 )
-
-
 def secret_op_pipeline(url='gs://ml-pipeline-playground/shakespeare1.txt'):
   """A pipeline that uses secret to access cloud hosted resouces."""
 
   gcs_read_task = gcs_read_op(url).apply(
     use_gcp_secret('user-gcp-sa'))
-  use_secret_json_task = use_secret_json_op().apply(
+  use_gcp_api_task = use_gcp_api_op().apply(
     use_gcp_secret('user-gcp-sa'))
 
 
