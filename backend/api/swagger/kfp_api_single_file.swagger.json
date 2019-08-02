@@ -204,11 +204,10 @@
           },
           {
             "name": "body",
-            "description": "Name of the new run.",
             "in": "body",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/definitions/apiResubmitRunRequest"
             }
           }
         ],
@@ -1168,6 +1167,19 @@
         "JOB"
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
+    },
+    "apiResubmitRunRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "The ID of the run to resubmit"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the new run."
+        }
+      }
     },
     "apiRun": {
       "type": "object",

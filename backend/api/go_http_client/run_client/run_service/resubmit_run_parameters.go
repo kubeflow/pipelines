@@ -29,6 +29,8 @@ import (
 	cr "github.com/go-openapi/runtime/client"
 
 	strfmt "github.com/go-openapi/strfmt"
+
+	run_model "github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 )
 
 // NewResubmitRunParams creates a new ResubmitRunParams object
@@ -75,11 +77,8 @@ for the resubmit run operation typically these are written to a http.Request
 */
 type ResubmitRunParams struct {
 
-	/*Body
-	  Name of the new run.
-
-	*/
-	Body string
+	/*Body*/
+	Body *run_model.APIResubmitRunRequest
 	/*ID
 	  The ID of the run to resubmit
 
@@ -125,13 +124,13 @@ func (o *ResubmitRunParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the resubmit run params
-func (o *ResubmitRunParams) WithBody(body string) *ResubmitRunParams {
+func (o *ResubmitRunParams) WithBody(body *run_model.APIResubmitRunRequest) *ResubmitRunParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the resubmit run params
-func (o *ResubmitRunParams) SetBody(body string) {
+func (o *ResubmitRunParams) SetBody(body *run_model.APIResubmitRunRequest) {
 	o.Body = body
 }
 
@@ -154,8 +153,10 @@ func (o *ResubmitRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 	}
 	var res []error
 
-	if err := r.SetBodyParam(o.Body); err != nil {
-		return err
+	if o.Body != nil {
+		if err := r.SetBodyParam(o.Body); err != nil {
+			return err
+		}
 	}
 
 	// path param id
