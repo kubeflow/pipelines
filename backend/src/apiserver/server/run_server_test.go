@@ -72,14 +72,19 @@ func TestResubmitRun(t *testing.T) {
 	assert.Nil(t, err)
 
 	newRunDetail, err := server.ResubmitRun(nil, &api.ResubmitRunRequest{Id: runDetail.Run.Id, Name: "resubmit"})
+
 	expectedWorkflow := testWorkflow.DeepCopy()
 	expectedWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedWorkflow.GenerateName = testWorkflow.Workflow.Name + "-"
 	expectedWorkflow.Name = testWorkflow.Workflow.Name + "-abcde"
+	expectedWorkflow.UID = ""
+
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRuntimeWorkflow.Name = "workflow-name-0"
+	expectedWorkflow.UID = ""
 
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
