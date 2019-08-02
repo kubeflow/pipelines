@@ -21,8 +21,11 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	apierr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"regexp"
 	"strings"
 	"time"
@@ -136,7 +139,7 @@ func formulateRetryWorkflow(wf *wfv1.Workflow) (*wfv1.Workflow, []string, error)
 	// Iterate the previous nodes. If it was successful Pod carry it forward
 	newWF.Status.Nodes = make(map[string]wfv1.NodeStatus)
 	onExitNodeName := wf.ObjectMeta.Name + ".onExit"
-	var nodes []string
+	var podsToDelete []string
 	for _, node := range wf.Status.Nodes {
 		switch node.Phase {
 		case wfv1.NodeSucceeded, wfv1.NodeSkipped:
@@ -159,8 +162,27 @@ func formulateRetryWorkflow(wf *wfv1.Workflow) (*wfv1.Workflow, []string, error)
 			return nil, nil, errors.InternalErrorf("Workflow cannot be retried with node %s in %s phase", node, node.Phase)
 		}
 		if node.Type == wfv1.NodeTypePod {
-			nodes = append(nodes, node.ID)
+			podsToDelete = append(podsToDelete, node.ID)
 		}
 	}
-	return newWF, nodes, nil
+	return newWF, podsToDelete, nil
+}
+
+func deletePods(podsToDelete []string, namespace string) error {
+	restConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to delete pods.")
+	}
+
+	clientSet, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to delete pods.")
+	}
+	for _, podId := range podsToDelete {
+		err := clientSet.CoreV1().Pods(namespace).Delete(podId, &metav1.DeleteOptions{})
+		if err != nil && !apierr.IsNotFound(err) {
+			return util.NewInternalServerError(err, "Failed to delete pods.")
+		}
+	}
+	return nil
 }

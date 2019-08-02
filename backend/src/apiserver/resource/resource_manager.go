@@ -335,12 +335,15 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	if err := json.Unmarshal([]byte( runDetail.WorkflowRuntimeManifest), &workflow); err != nil {
 		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
 	}
-	newWorkflow, _, err := formulateRetryWorkflow(workflow.Workflow)
+
+	newWorkflow, podsToDelete, err := formulateRetryWorkflow(workflow.Workflow)
+	if err = deletePods(podsToDelete, newWorkflow.ObjectMeta.Namespace); err != nil {
+		return util.NewInternalServerError(err, "Retry run failed")
+	}
 
 	_, err = r.workflowClient.Update(newWorkflow)
-
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to retry the run")
+		return util.NewInternalServerError(err, "Retry run failed.")
 	}
 	return nil
 }
