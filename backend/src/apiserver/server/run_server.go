@@ -53,7 +53,7 @@ func (s *RunServer) ResubmitRun(ctx context.Context, request *api.ResubmitRunReq
 	}
 
 	// Formulate the new argo workflow.
-	newWorkflow, err := formulateResubmitWorkflow(workflow.Workflow)
+	newWorkflow, err := formulateResubmitWorkflow(workflow.Workflow, util.NewRandomString())
 	workflowManifest, err := json.Marshal(newWorkflow)
 
 	newRun := &api.Run{

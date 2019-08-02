@@ -16,7 +16,6 @@ import (
 	"io"
 	"io/ioutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"math/rand"
 	"net/url"
 	"regexp"
 	"strings"
@@ -28,8 +27,6 @@ const (
 	MaxFileNameLength = 100
 	MaxFileLength     = 32 << 20 // 32Mb
 )
-
-const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 // This method extract the common logic of naming the pipeline.
 // API caller can either explicitly name the pipeline through query string ?name=foobar
@@ -250,13 +247,6 @@ func ValidatePipelineSpec(resourceManager *resource.ResourceManager, spec *api.P
 	return nil
 }
 
-func randString(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
 
 // convertNodeID converts an old nodeID to a new nodeID
 func convertNodeID(newWf *wfv1.Workflow, regex *regexp.Regexp, oldNodeID string, oldNodes map[string]wfv1.NodeStatus) string {
@@ -266,7 +256,7 @@ func convertNodeID(newWf *wfv1.Workflow, regex *regexp.Regexp, oldNodeID string,
 }
 
 // FormulateResubmitWorkflow formulate a new workflow from a previous workflow optionally re-using successful nodes
-func formulateResubmitWorkflow(wf *wfv1.Workflow) (*wfv1.Workflow, error) {
+func formulateResubmitWorkflow(wf *wfv1.Workflow, randomString util.RandomStringInterface) (*wfv1.Workflow, error) {
 	newWF := wfv1.Workflow{}
 	newWF.TypeMeta = wf.TypeMeta
 
@@ -279,7 +269,7 @@ func formulateResubmitWorkflow(wf *wfv1.Workflow) (*wfv1.Workflow, error) {
 	// When resubmitting workflow with memoized nodes, we need to use a predetermined workflow name
 	// in order to formulate the node statuses. Which means we cannot reuse metadata.generateName
 	// The following simulates the behavior of generateName
-	newWF.ObjectMeta.Name = newWF.ObjectMeta.GenerateName + randString(5)
+	newWF.ObjectMeta.Name = newWF.ObjectMeta.GenerateName + randomString.Get(5)
 
 	// carry over the unmodified spec
 	newWF.Spec = wf.Spec
