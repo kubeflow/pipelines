@@ -105,7 +105,7 @@ def _create_component_spec_from_airflow_op(
     )
     _run_airflow_op_closure.__signature__ = sig
 
-    return _func_to_component_spec(_run_airflow_op_closure, base_image=base_image, modules_to_capture=modules_to_capture)
+    return _func_to_component_spec(_run_airflow_op_closure, base_image=base_image, use_code_pickling=True, modules_to_capture=modules_to_capture)
 
 
 def _run_airflow_op(Op, *op_args, **op_kwargs):
