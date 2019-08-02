@@ -35,7 +35,7 @@ def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume=None, v
     if secret_file_path_in_volume == None:
         secret_file_path_in_volume = '/' + secret_name + '.json'
 
-    if volume_name == None:
+    if volume_name is None:
         volume_name = 'gcp-credentials-' + secret_name
 
     else:
