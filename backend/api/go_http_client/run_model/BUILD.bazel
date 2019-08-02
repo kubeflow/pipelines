@@ -14,7 +14,6 @@ go_library(
         "api_resource_key.go",
         "api_resource_reference.go",
         "api_resource_type.go",
-        "api_resubmit_run_request.go",
         "api_run.go",
         "api_run_detail.go",
         "api_run_metric.go",

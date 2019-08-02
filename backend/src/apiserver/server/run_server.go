@@ -16,7 +16,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -36,48 +35,6 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	run, err := s.resourceManager.CreateRun(request.Run)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a new run.")
-	}
-	return ToApiRunDetail(run), nil
-}
-
-func (s *RunServer) ResubmitRun(ctx context.Context, request *api.ResubmitRunRequest) (*api.RunDetail, error) {
-	// Get old run details.
-	runDetails, err := s.resourceManager.GetRun(request.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	var workflow util.Workflow
-	if err := json.Unmarshal([]byte( runDetails.WorkflowRuntimeManifest), &workflow); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the old run")
-	}
-
-	// Formulate the new argo workflow.
-	newWorkflow, err := formulateResubmitWorkflow(workflow.Workflow, s.resourceManager.GetRandomString())
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to resubmit the old run.")
-	}
-
-	workflowManifest, err := json.Marshal(newWorkflow)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to resubmit the old run.")
-	}
-
-	parameters, err := toApiParameters(runDetails.PipelineSpec.Parameters)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to resubmit the old run.")
-	}
-
-	newRun := &api.Run{
-		Name:               request.Name,
-		Description:        runDetails.Description,
-		ResourceReferences: toApiResourceReferences(runDetails.ResourceReferences),
-		PipelineSpec:       &api.PipelineSpec{WorkflowManifest: string(workflowManifest), Parameters: parameters},
-	}
-
-	run, err := s.resourceManager.CreateRun(newRun)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to resubmit the run.")
 	}
 	return ToApiRunDetail(run), nil
 }
@@ -182,6 +139,15 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunR
 		return nil, err
 	}
 	return &empty.Empty{}, nil
+}
+
+func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.RetryRun(request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+
 }
 
 func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {

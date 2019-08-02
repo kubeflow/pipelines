@@ -242,23 +242,23 @@ func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runti
 }
 
 /*
-ResubmitRun resubmit run API
+RetryRun retry run API
 */
-func (a *Client) ResubmitRun(params *ResubmitRunParams, authInfo runtime.ClientAuthInfoWriter) (*ResubmitRunOK, error) {
+func (a *Client) RetryRun(params *RetryRunParams, authInfo runtime.ClientAuthInfoWriter) (*RetryRunOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewResubmitRunParams()
+		params = NewRetryRunParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ResubmitRun",
+		ID:                 "RetryRun",
 		Method:             "POST",
-		PathPattern:        "/apis/v1beta1/runs/{id}:resubmit",
+		PathPattern:        "/apis/v1beta1/runs/{run_id}/retry",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ResubmitRunReader{formats: a.formats},
+		Reader:             &RetryRunReader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -266,7 +266,7 @@ func (a *Client) ResubmitRun(params *ResubmitRunParams, authInfo runtime.ClientA
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ResubmitRunOK), nil
+	return result.(*RetryRunOK), nil
 
 }
 

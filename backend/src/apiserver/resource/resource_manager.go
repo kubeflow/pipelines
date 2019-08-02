@@ -49,7 +49,6 @@ type ClientManagerInterface interface {
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
-	RandomString() util.RandomStringInterface
 }
 
 type ResourceManager struct {
@@ -65,7 +64,6 @@ type ResourceManager struct {
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
 	time                    util.TimeInterface
 	uuid                    util.UUIDGeneratorInterface
-	randomString            util.RandomStringInterface
 }
 
 func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
@@ -82,16 +80,11 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
 		time:                    clientManager.Time(),
 		uuid:                    clientManager.UUID(),
-		randomString:            clientManager.RandomString(),
 	}
 }
 
 func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
-}
-
-func (r *ResourceManager) GetRandomString() util.RandomStringInterface {
-	return r.randomString
 }
 
 func (r *ResourceManager) CreateExperiment(experiment *model.Experiment) (*model.Experiment, error) {
@@ -317,7 +310,7 @@ func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) e
 func (r *ResourceManager) TerminateRun(runId string) error {
 	runDetail, err := r.checkRunExist(runId)
 	if err != nil {
-		return util.Wrap(err, "Delete run failed")
+		return util.Wrap(err, "Terminate run failed")
 	}
 
 	err = r.runStore.TerminateRun(runId)
@@ -326,7 +319,30 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 	}
 
 	err = TerminateWorkflow(r.workflowClient, runDetail.Run.Name)
-	return util.Wrap(err, "Terminate run failed")
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to terminate the run")
+	}
+	return nil
+}
+
+func (r *ResourceManager) RetryRun(runId string) error {
+	runDetail, err := r.checkRunExist(runId)
+	if err != nil {
+		return util.Wrap(err, "Retry run failed")
+	}
+
+	var workflow util.Workflow
+	if err := json.Unmarshal([]byte( runDetail.WorkflowRuntimeManifest), &workflow); err != nil {
+		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
+	}
+	newWorkflow, _, err := formulateRetryWorkflow(workflow.Workflow)
+
+	_, err = r.workflowClient.Update(newWorkflow)
+
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to retry the run")
+	}
+	return nil
 }
 
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {

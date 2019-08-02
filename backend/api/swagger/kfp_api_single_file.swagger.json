@@ -177,45 +177,6 @@
         ]
       }
     },
-    "/apis/v1beta1/runs/{id}:resubmit": {
-      "post": {
-        "operationId": "ResubmitRun",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiRunDetail"
-            }
-          },
-          "default": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/apiStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "description": "The ID of the run to resubmit",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/apiResubmitRunRequest"
-            }
-          }
-        ],
-        "tags": [
-          "RunService"
-        ]
-      }
-    },
     "/apis/v1beta1/runs/{id}:unarchive": {
       "post": {
         "operationId": "UnarchiveRun",
@@ -311,6 +272,36 @@
           {
             "name": "artifact_name",
             "description": "The name of the artifact.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
+    "/apis/v1beta1/runs/{run_id}/retry": {
+      "post": {
+        "operationId": "RetryRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "run_id",
             "in": "path",
             "required": true,
             "type": "string"
@@ -1167,19 +1158,6 @@
         "JOB"
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
-    },
-    "apiResubmitRunRequest": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "title": "The ID of the run to resubmit"
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the new run."
-        }
-      }
     },
     "apiRun": {
       "type": "object",

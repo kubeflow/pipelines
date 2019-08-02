@@ -9,7 +9,6 @@ go_library(
         "json.go",
         "label.go",
         "pointer.go",
-        "random_string.go",
         "scheduled_workflow.go",
         "service.go",
         "string.go",

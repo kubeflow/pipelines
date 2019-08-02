@@ -67,7 +67,6 @@ type ClientManager struct {
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
-	randomString           util.RandomStringInterface
 
 	MetadataStore *mlmetadata.Store
 }
@@ -120,10 +119,6 @@ func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 	return c.uuid
 }
 
-func (c *ClientManager) RandomString() util.RandomStringInterface {
-	return c.randomString
-}
-
 func (c *ClientManager) init() {
 	glog.Infof("Initializing client manager")
 
@@ -134,9 +129,6 @@ func (c *ClientManager) init() {
 
 	// UUID generator
 	c.uuid = util.NewUUIDGenerator()
-
-	// Random String generator
-	c.randomString = util.NewRandomString()
 
 	c.db = db
 	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid)

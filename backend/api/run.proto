@@ -67,13 +67,6 @@ service RunService {
     };
   }
 
-  rpc ResubmitRun(ResubmitRunRequest) returns (RunDetail) {
-    option (google.api.http) = {
-      post: "/apis/v1beta1/runs/{id}:resubmit"
-      body: "*"
-    };
-  }
-
   rpc GetRun(GetRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs/{run_id}"
@@ -126,18 +119,16 @@ service RunService {
       post: "/apis/v1beta1/runs/{run_id}/terminate"
     };
   }
+
+  rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{run_id}/retry"
+    };
+  }
 }
 
 message CreateRunRequest {
   Run run = 1;
-}
-
-message ResubmitRunRequest {
-  // The ID of the run to resubmit
-  string id = 1;
-
-  // Name of the new run.
-  string name = 2;
 }
 
 message GetRunRequest {
@@ -162,6 +153,10 @@ message ListRunsRequest {
 }
 
 message TerminateRunRequest {
+  string run_id = 1;
+}
+
+message RetryRunRequest {
   string run_id = 1;
 }
 
