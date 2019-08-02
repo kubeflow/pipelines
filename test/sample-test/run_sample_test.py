@@ -78,6 +78,7 @@ def main():
 
   ###### Create Job ######
   job_name = args.testname + '_sample'
+  ###### Test-specific parameters #######
   if args.testname == 'tfx-cab-classification':
     params = {
         'output':
@@ -115,6 +116,7 @@ def main():
         'workers': '2'
     }
   else:
+    # Basic tests require no additional params.
     params = {}
 
   response = client.run_pipeline(experiment_id, job_name, args.input, params)
