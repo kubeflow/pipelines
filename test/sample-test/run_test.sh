@@ -111,6 +111,7 @@ GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/python/src/github.com/${GITHUB_REPO}
 TEST_DIR=${BASE_DIR}/test/sample-test
 
+#TODO(numerology): For utility functions, check the paths after gaoning777 merges his PR.
 ################################################################################
 # Utility function to setup working dir, input and output locations.
 # Globals:
@@ -195,12 +196,20 @@ if [[ "${TEST_NAME}" == 'tf-training' ]]; then
   python3 run_kubeflow_test.py --input "${BASE_DIR}/samples/kubeflow-tf/kubefl\
   ow-training-classification.zip" --result ${SAMPLE_KUBEFLOW_TEST_RESULT} \
   --output ${SAMPLE_KUBEFLOW_TEST_OUTPUT} --namespace ${NAMESPACE}
+  python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/core/kubeflow-tf/kubeflow-training-classification.zip --result $SAMPLE_KUBEFLOW_TEST_RESULT --output $SAMPLE_KUBEFLOW_TEST_OUTPUT --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} \
   ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}
 elif [[ "${TEST_NAME}" == "tfx" ]]; then
   preparation ${TEST_NAME}
+  gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}
+elif [ "$TEST_NAME" == "tfx" ]; then
+  SAMPLE_TFX_TEST_RESULT=junit_SampleTFXOutput.xml
+  SAMPLE_TFX_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  # Compile samples
+  cd ${BASE_DIR}/samples/core/tfx
 
   dsl-compile --py taxi-cab-classification-pipeline.py --output \
   taxi-cab-classification-pipeline.yaml
@@ -228,7 +237,7 @@ elif [[ "${TEST_NAME}" == "tfx" ]]; then
   fi
 
   cd "${TEST_DIR}"
-  python3 run_tfx_test.py --input ${BASE_DIR}/samples/tfx/taxi-cab-classification-pipeline.yaml --result $SAMPLE_TFX_TEST_RESULT --output $SAMPLE_TFX_TEST_OUTPUT --namespace ${NAMESPACE}
+  python3 run_tfx_test.py --input ${BASE_DIR}/samples/core/tfx/taxi-cab-classification-pipeline.yaml --result $SAMPLE_TFX_TEST_RESULT --output $SAMPLE_TFX_TEST_OUTPUT --namespace ${NAMESPACE}
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_TFX_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TFX_TEST_RESULT}
 elif [[ "${TEST_NAME}" == "sequential" ]]; then
@@ -276,7 +285,7 @@ elif [[ "${TEST_NAME}" == "xgboost" ]]; then
     -9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" xgboost-training-cm.yaml
   fi
   cd "${TEST_DIR}"
-  python3 run_xgboost_test.py --input ${BASE_DIR}/samples/xgboost-spark/xgboost-training-cm.yaml --result $SAMPLE_XGBOOST_TEST_RESULT --output $SAMPLE_XGBOOST_TEST_OUTPUT --namespace ${NAMESPACE}
+  python3 run_xgboost_test.py --input ${BASE_DIR}/samples/core/xgboost-spark/xgboost-training-cm.yaml --result $SAMPLE_XGBOOST_TEST_RESULT --output $SAMPLE_XGBOOST_TEST_OUTPUT --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_XGBOOST_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_XGBOOST_TEST_RESULT}
@@ -287,6 +296,7 @@ elif [[ "${TEST_NAME}" == "notebook-tfx" ]]; then
   DEPLOYER_MODEL=`cat /proc/sys/kernel/random/uuid`
   DEPLOYER_MODEL=Notebook_tfx_taxi_`echo ${DEPLOYER_MODEL//-/_}`
 
+  cd ${BASE_DIR}/samples/core/kubeflow_pipeline_using_TFX_OSS_components
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
@@ -320,6 +330,7 @@ elif [[ "${TEST_NAME}" == "notebook-tfx" ]]; then
 elif [[ "${TEST_NAME}" == "notebook-lightweight" ]]; then
   preparation ${TEST_NAME}
 
+  cd ${BASE_DIR}/samples/core/lightweight_component
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  Lightweight\ Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
@@ -335,6 +346,7 @@ elif [[ "${TEST_NAME}" == "notebook-lightweight" ]]; then
 elif [[ "${TEST_NAME}" == "notebook-typecheck" ]]; then
   preparation ${TEST_NAME}
 
+  cd ${BASE_DIR}/samples/core/dsl_static_type_checking
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   papermill --prepare-only -p KFP_PACKAGE /tmp/kfp.tar.gz  DSL\ Static\ Type\ Checking.ipynb notebook-typecheck.ipynb
