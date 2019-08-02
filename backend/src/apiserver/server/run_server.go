@@ -71,7 +71,7 @@ func (s *RunServer) ResubmitRun(ctx context.Context, request *api.ResubmitRunReq
 	newRun := &api.Run{
 		Name:               request.Name,
 		Description:        runDetails.Description,
-		ResourceReferences: ToApiResourceReferences(runDetails.ResourceReferences),
+		ResourceReferences: toApiResourceReferences(runDetails.ResourceReferences),
 		PipelineSpec:       &api.PipelineSpec{WorkflowManifest: string(workflowManifest), Parameters: parameters},
 	}
 
