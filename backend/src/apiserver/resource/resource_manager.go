@@ -17,7 +17,6 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"strconv"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
