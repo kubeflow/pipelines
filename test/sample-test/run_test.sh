@@ -111,7 +111,8 @@ GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/python/src/github.com/${GITHUB_REPO}
 TEST_DIR=${BASE_DIR}/test/sample-test
 
-#TODO(numerology): For utility functions, check the paths after gaoning777 merges his PR.
+#TODO(numerology): For utility functions, check the paths after gaoning777
+# merges his PR.
 ################################################################################
 # Utility function to setup working dir, input and output locations.
 # Globals:
@@ -123,17 +124,18 @@ TEST_DIR=${BASE_DIR}/test/sample-test
 preparation() {
   SAMPLE_TEST_RESULT="junit_Sample$1Output.xml"
   SAMPLE_TEST_OUTPUT=${RESULTS_GCS_DIR}
-  cd ${BASE_DIR}/samples/$1
+  cd ${BASE_DIR}/samples/core/$1
 }
 
 ################################################################################
 # Utility function to generate formatted result, and move it to a place for PROW
 # to pick up.
 # Arguments:
-# Test name.
+#   Test name.
 ################################################################################
 check_result() {
   cd "${TEST_DIR}"
+  #TODO: basic tests use .zip but other use .yaml, need consistency.
   python3 run_$1_test.py --input ${BASE_DIR}/samples/core/$1/$1.zip --result \
   ${SAMPLE_TEST_RESULT} --output ${SAMPLE_TEST_OUTPUT} --testname $1 -\
   -namespace ${NAMESPACE}
@@ -142,7 +144,26 @@ check_result() {
   gsutil cp ${SAMPLE_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TEST_OUTPUT}
 }
 
+################################################################################
+# Utility function to prepare and validate the results for sample test based on
+# ipynb.
+# Arguments:
+#   Test name.
+################################################################################
+check_notebook_result() {
+  jupyter nbconvert --to python $1.ipynb
+  pip3 install tensorflow==1.8.0
+  ipython $1.py
+  EXIT_CODE=$?
+  cd "${TEST_DIR}"
+  python3 check_notebook_results.py --experiment notebook-tfx-test --testname \
+  $1 --result ${SAMPLE_TEST_RESULT} --namespace ${NAMESPACE} \
+  --exit-code ${EXIT_CODE}
 
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp ${SAMPLE_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TEST_RESULT}
+  # Need to make sure CMLE models are cleaned inside the notebook.
+}
 
 if [[ -z "$RESULTS_GCS_DIR" ]]; then
   usage
