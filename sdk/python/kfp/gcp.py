@@ -32,7 +32,7 @@ def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume=None, v
     """
 
     # permitted values for secret_name = ['admin-gcp-sa', 'user-gcp-sa']
-    if secret_file_path_in_volume == None:
+    if secret_file_path_in_volume is None:
         secret_file_path_in_volume = '/' + secret_name + '.json'
 
     if volume_name is None:
