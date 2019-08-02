@@ -75,6 +75,11 @@ for the resubmit run operation typically these are written to a http.Request
 */
 type ResubmitRunParams struct {
 
+	/*Body
+	  Name of the new run.
+
+	*/
+	Body string
 	/*ID
 	  The ID of the run to resubmit
 
@@ -119,6 +124,17 @@ func (o *ResubmitRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithBody adds the body to the resubmit run params
+func (o *ResubmitRunParams) WithBody(body string) *ResubmitRunParams {
+	o.SetBody(body)
+	return o
+}
+
+// SetBody adds the body to the resubmit run params
+func (o *ResubmitRunParams) SetBody(body string) {
+	o.Body = body
+}
+
 // WithID adds the id to the resubmit run params
 func (o *ResubmitRunParams) WithID(id string) *ResubmitRunParams {
 	o.SetID(id)
@@ -137,6 +153,10 @@ func (o *ResubmitRunParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.R
 		return err
 	}
 	var res []error
+
+	if err := r.SetBodyParam(o.Body); err != nil {
+		return err
+	}
 
 	// path param id
 	if err := r.SetPathParam("id", o.ID); err != nil {

@@ -429,8 +429,8 @@ status:
 
 	newWfString, err := yaml.Marshal(newWf)
 	assert.Nil(t, err)
-	expectedNewWfString := `
-apiVersion: argoproj.io/v1alpha1
+	expectedNewWfString :=
+`apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   creationTimestamp: null
@@ -471,13 +471,13 @@ spec:
 status:
   finishedAt: null
   nodes:
-    resubmit-hl9ft-3929423573:
+    resubmit-12345-1329222707:
       boundaryID: resubmit-12345
       children:
       - resubmit-12345-1346000326
       displayName: A
       finishedAt: "2019-08-02T07:15:16Z"
-      id: resubmit-hl9ft-3929423573
+      id: resubmit-12345-1329222707
       name: resubmit-12345.A
       phase: Skipped
       startedAt: "2019-08-02T07:15:15Z"

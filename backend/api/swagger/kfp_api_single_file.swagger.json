@@ -201,6 +201,15 @@
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "body",
+            "description": "Name of the new run.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "tags": [

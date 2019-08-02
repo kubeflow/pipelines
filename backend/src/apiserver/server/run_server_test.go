@@ -56,6 +56,51 @@ func TestCreateRun(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, *runDetail)
 }
 
+func TestResubmitRun(t *testing.T) {
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager)
+	run := &api.Run{
+		Name:               "123",
+		ResourceReferences: validReference,
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}
+	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+
+	newRunDetail, err := server.ResubmitRun(nil, &api.ResubmitRunRequest{Id: runDetail.Run.Id, Name: "resubmit"})
+	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRunDetail := api.RunDetail{
+		Run: &api.Run{
+			Id:           "workflow1",
+			Name:         "resubmit",
+			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			ScheduledAt:  &timestamp.Timestamp{},
+			FinishedAt:   &timestamp.Timestamp{},
+			PipelineSpec: &api.PipelineSpec{
+				WorkflowManifest: testWorkflow.ToStringForStore(),
+				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			},
+			ResourceReferences: []*api.ResourceReference{
+				{
+					Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		PipelineRuntime: &api.PipelineRuntime{
+			WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+		},
+	}
+	assert.Equal(t, expectedRunDetail, *newRunDetail)
+}
+
 func TestListRun(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()

@@ -54,13 +54,25 @@ func (s *RunServer) ResubmitRun(ctx context.Context, request *api.ResubmitRunReq
 
 	// Formulate the new argo workflow.
 	newWorkflow, err := formulateResubmitWorkflow(workflow.Workflow, util.NewRandomString())
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to resubmit the old run.")
+	}
+
 	workflowManifest, err := json.Marshal(newWorkflow)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to resubmit the old run.")
+	}
+
+	parameters, err := toApiParameters(runDetails.PipelineSpec.Parameters)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to resubmit the old run.")
+	}
 
 	newRun := &api.Run{
 		Name:               request.Name,
 		Description:        runDetails.Description,
 		ResourceReferences: ToApiResourceReferences(runDetails.ResourceReferences),
-		PipelineSpec:       &api.PipelineSpec{WorkflowManifest: string(workflowManifest)},
+		PipelineSpec:       &api.PipelineSpec{WorkflowManifest: string(workflowManifest), Parameters: parameters},
 	}
 
 	run, err := s.resourceManager.CreateRun(newRun)
