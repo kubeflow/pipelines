@@ -46,7 +46,13 @@ def create_component_from_airflow_op(
         xcom_output_names: Optional. A list of Airflow "XComs" produced by the operator that should be returned as separate outputs.
         modules_to_capture: Optional. A list of names of additional modules that the operator depends on. By default only the module containing the operator class is captured. If the operator class uses the code from another module, the name of that module can be specified in this list.
     '''
-    component_spec = _create_component_spec_from_airflow_op(op_class, base_image, variable_output_names, xcom_output_names, modules_to_capture)
+    component_spec = _create_component_spec_from_airflow_op(
+        op_class=op_class,
+        base_image=base_image,
+        variables_to_output=variable_output_names,
+        xcoms_to_output=xcom_output_names,
+        modules_to_capture=modules_to_capture,
+    )
     task_factory = _create_task_factory_from_component_spec(component_spec)
     return task_factory
 
