@@ -91,25 +91,8 @@ func TestListRun(t *testing.T) {
 		},
 	}
 	listRunsResponse, err := server.ListRuns(nil, &api.ListRunsRequest{})
+	assert.Equal(t, 1, len(listRunsResponse.Runs))
 	assert.Equal(t, expectedRun, listRunsResponse.Runs[0])
-
-	run2 := &api.Run{
-		Name: "456",
-		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow2.ToStringForStore(),
-			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
-		},
-		ResourceReferences: []*api.ResourceReference{
-			{
-				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
-				Relationship: api.Relationship_OWNER,
-			},
-		},
-	}
-	_, err = server.CreateRun(nil, &api.CreateRunRequest{Run: run2})
-	assert.Nil(t, err)
-	listRunsResponse, err = server.ListRuns(nil, &api.ListRunsRequest{})
-	assert.Equal(t, 2, len(listRunsResponse.Runs))
 }
 
 func TestValidateCreateRunRequest(t *testing.T) {

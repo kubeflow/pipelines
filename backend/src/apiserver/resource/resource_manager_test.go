@@ -260,7 +260,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID:  "workflow1",
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 					ResourceType:  common.Run,
 					ReferenceUUID: experiment.UUID,
 					ReferenceType: common.Experiment,
@@ -925,6 +925,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
 			UID:       "WORKFLOW_1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "WORKFLOW_1"},
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
@@ -935,7 +936,6 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t
 		},
 	})
 	err = manager.ReportWorkflowResource(workflow)
-	println(err.Error())
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Experiment not found")
