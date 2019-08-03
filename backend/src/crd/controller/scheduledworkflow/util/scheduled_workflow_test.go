@@ -565,7 +565,7 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 				},
 			},
 		},
-	}, commonutil.NewFakeUUIDGeneratorOrFatal("123", nil)}
+	}, commonutil.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655440001", nil)}
 
 	result, err := schedule.NewWorkflow(scheduledEpoch, nowEpoch)
 	assert.Nil(t, err)
@@ -578,7 +578,7 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "SCHEDULE1-1-3321103997",
 			Labels: map[string]string{
-				"pipeline/runid": "123",
+				"pipeline/runid": "123e4567-e89b-12d3-a456-426655440001",
 				"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
 				"scheduledworkflows.kubeflow.org/scheduledWorkflowName":      "SCHEDULE1",
 				"scheduledworkflows.kubeflow.org/workflowEpoch":              strconv.Itoa(int(scheduledEpoch)),
@@ -640,7 +640,7 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 				},
 			},
 		},
-	}, commonutil.NewFakeUUIDGeneratorOrFatal("123", nil)}
+	}, commonutil.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655440001", nil)}
 
 	result, err := schedule.NewWorkflow(scheduledEpoch, nowEpoch)
 	assert.Nil(t, err)
@@ -652,7 +652,7 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "SCHEDULE1-1-3321103997",
 			Labels: map[string]string{
-				"pipeline/runid": "123",
+				"pipeline/runid": "123e4567-e89b-12d3-a456-426655440001",
 				"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
 				"scheduledworkflows.kubeflow.org/scheduledWorkflowName":      "SCHEDULE1",
 				"scheduledworkflows.kubeflow.org/workflowEpoch":              strconv.Itoa(int(scheduledEpoch)),

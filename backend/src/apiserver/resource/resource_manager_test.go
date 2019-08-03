@@ -1111,6 +1111,7 @@ func TestReadArtifact_Succeed(t *testing.T) {
 			Name:              "MY_NAME",
 			Namespace:         "MY_NAMESPACE",
 			UID:               "run-1",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1beta1",
