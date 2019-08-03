@@ -497,14 +497,14 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID:  string(workflow.UID),
+					ResourceUUID:  runId,
 					ResourceType:  common.Run,
 					ReferenceUUID: jobId,
 					ReferenceType: common.Job,
 					Relationship:  common.Creator,
 				},
 				{
-					ResourceUUID:  string(workflow.UID),
+					ResourceUUID:  runId,
 					ResourceType:  common.Run,
 					ReferenceUUID: experimentRef.ReferenceUUID,
 					ReferenceType: common.Experiment,

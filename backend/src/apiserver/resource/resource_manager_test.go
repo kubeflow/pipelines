@@ -245,7 +245,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "workflow1",
+			UUID:           "123e4567-e89b-12d3-a456-426655440000",
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),

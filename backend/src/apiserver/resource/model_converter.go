@@ -41,7 +41,7 @@ func ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, workf
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to parse the parameter.")
 	}
-	resourceReferences, err := toModelResourceReferences(string(workflow.UID), common.Run, run.ResourceReferences)
+	resourceReferences, err := toModelResourceReferences(runId, common.Run, run.ResourceReferences)
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
