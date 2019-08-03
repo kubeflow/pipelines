@@ -578,7 +578,7 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "SCHEDULE1-1-3321103997",
 			Labels: map[string]string{
-				"pipeline/runid": "true",
+				"pipeline/runid": "123",
 				"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
 				"scheduledworkflows.kubeflow.org/scheduledWorkflowName":      "SCHEDULE1",
 				"scheduledworkflows.kubeflow.org/workflowEpoch":              strconv.Itoa(int(scheduledEpoch)),
@@ -611,7 +611,7 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 	nowEpoch := int64(11 * hour)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
-	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
+	schedule := ScheduledWorkflow{&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "SCHEDULE1",
 			CreationTimestamp: creationTimestamp,
@@ -640,10 +640,10 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 				},
 			},
 		},
-	})
+	}, commonutil.NewFakeUUIDGeneratorOrFatal("123", nil)}
 
-	result := schedule.NewWorkflow(scheduledEpoch, nowEpoch)
-
+	result, err := schedule.NewWorkflow(scheduledEpoch, nowEpoch)
+	assert.Nil(t, err)
 	expected := &workflowapi.Workflow{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Workflow",
@@ -652,6 +652,7 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "SCHEDULE1-1-3321103997",
 			Labels: map[string]string{
+				"pipeline/runid": "123",
 				"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
 				"scheduledworkflows.kubeflow.org/scheduledWorkflowName":      "SCHEDULE1",
 				"scheduledworkflows.kubeflow.org/workflowEpoch":              strconv.Itoa(int(scheduledEpoch)),
