@@ -243,6 +243,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRuntimeWorkflow.Labels[util.LabelKeyWorkflowRunId] = "123e4567-e89b-12d3-a456-426655440000"
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:           "123e4567-e89b-12d3-a456-426655440000",
@@ -282,9 +283,10 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRuntimeWorkflow.Labels[util.LabelKeyWorkflowRunId] = "123e4567-e89b-12d3-a456-426655440000"
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "workflow1",
+			UUID:           "123e4567-e89b-12d3-a456-426655440000",
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -296,7 +298,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID:  "workflow1",
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
 					ReferenceType: common.Experiment,
@@ -332,7 +334,7 @@ func TestCreateRun_NoExperiment(t *testing.T) {
 	runDetail, err := manager.CreateRun(apiRun)
 	assert.Nil(t, err)
 	expectedRunDetail := []*model.ResourceReference{{
-		ResourceUUID: "workflow1",
+		ResourceUUID: "123e4567-e89b-12d3-a456-426655440000",
 		ResourceType: common.Run,
 		// Experiment is now set
 		ReferenceUUID: DefaultFakeUUID,
@@ -820,7 +822,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	runDetail, err := manager.GetRun(run.UUID)
 	assert.Nil(t, err)
 	expectedRun := model.Run{
-		UUID:           "workflow1",
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "run1",
 		Name:           "workflow-name",
 		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -832,7 +834,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID:  "workflow1",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Run,
 				ReferenceUUID: DefaultFakeUUID,
 				ReferenceType: common.Experiment,
@@ -853,6 +855,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
 			UID:       "WORKFLOW_1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "WORKFLOW_1"},
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
