@@ -68,9 +68,9 @@ spec:
               - kubeflow-training-classification
               - tfx-cab-classification
               - xgboost-training-cm
-              - notebook-tfx
-              - notebook-lightweight
-              - notebook-typecheck
+              - kubeflow_pipeline_using_TFX_OSS_components
+              - lightweight_component
+              - dsl_static_type_checking
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:

@@ -111,8 +111,6 @@ GITHUB_REPO=kubeflow/pipelines
 BASE_DIR=/python/src/github.com/${GITHUB_REPO}
 TEST_DIR=${BASE_DIR}/test/sample-test
 
-#TODO(numerology): For utility functions, check the paths after gaoning777
-# merges his PR.
 ################################################################################
 # Utility function to setup working dir, input and output locations.
 # Globals:
@@ -136,8 +134,6 @@ preparation() {
 ################################################################################
 check_result() {
   cd "${TEST_DIR}"
-  #TODO: basic tests use .zip but other use .yaml, need consistency. Plan to
-  # unify them into .yaml.
   python3 run_sample_test.py --input ${WORK_DIR}/$1.yaml \
   --result ${SAMPLE_TEST_RESULT} --output ${SAMPLE_TEST_OUTPUT} --testname $1 -\
   -namespace ${NAMESPACE}
@@ -200,7 +196,7 @@ if [[ "${TEST_NAME}" == "kubeflow-training-classification" ]]; then
 
   if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+\
-    |${DATAFLOW_TFT_IMAGE}|g" kubeflow-training-classification.py
+    |${DATAFLOW_TFT_IMAGE}|g" kubeflow_training_classification.py
     sed -i "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\
     \([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" \
     kubeflow-training-classification.py
@@ -215,7 +211,6 @@ if [[ "${TEST_NAME}" == "kubeflow-training-classification" ]]; then
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   check_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "tfx-cab-classification" ]]; then
-
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
 
   if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
@@ -276,8 +271,7 @@ elif [[ "${TEST_NAME}" == "parallel_join" ]]; then
 elif [[ "${TEST_NAME}" == "recursion" ]]; then
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   check_result ${TEST_NAME}
-elif [[ "${TEST_NAME}" == "notebook-tfx" ]]; then
-
+elif [[ "${TEST_NAME}" == "kubeflow_pipeline_using_TFX_OSS_components" ]]; then
   # CMLE model name format: A name should start with a letter and contain only
   # letters, numbers and underscores.
   DEPLOYER_MODEL=`cat /proc/sys/kernel/random/uuid`
@@ -316,9 +310,7 @@ elif [[ "${TEST_NAME}" == "notebook-tfx" ]]; then
   fi
 
   check_notebook_result ${TEST_NAME}
-elif [[ "${TEST_NAME}" == "notebook-lightweight" ]]; then
-
-  cd ${BASE_DIR}/samples/core/lightweight_component
+elif [[ "${TEST_NAME}" == "lightweight_component" ]]; then
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p \
@@ -326,7 +318,7 @@ elif [[ "${TEST_NAME}" == "notebook-lightweight" ]]; then
   Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
 
   check_notebook_result ${TEST_NAME}
-elif [[ "${TEST_NAME}" == "notebook-typecheck" ]]; then
+elif [[ "${TEST_NAME}" == "dsl_static_type_checking" ]]; then
 
   cd ${BASE_DIR}/samples/core/dsl_static_type_checking
   export LC_ALL=C.UTF-8
