@@ -41,11 +41,11 @@ const (
 // ScheduledWorkflow is a type to help manipulate ScheduledWorkflow objects.
 type ScheduledWorkflow struct {
 	*swfapi.ScheduledWorkflow
-	*commonutil.UUIDGenerator
+	uuid commonutil.UUIDGeneratorInterface
 }
 
 // NewScheduledWorkflow creates an instance of ScheduledWorkflow.
-func NewScheduledWorkflow(swf *swfapi.ScheduledWorkflow) *ScheduledWorkflow {
+func NewScheduledWorkflow(swf *swfapi.ScheduledWorkflow, ) *ScheduledWorkflow {
 	return &ScheduledWorkflow{
 		swf, commonutil.NewUUIDGenerator(),
 	}
@@ -189,7 +189,7 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	result.OverrideParameters(formattedParams)
 
 	result.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
-	uuid, err := s.UUIDGenerator.NewRandom()
+	uuid, err := s.uuid.NewRandom()
 	if err != nil {
 		return nil, err
 	}
