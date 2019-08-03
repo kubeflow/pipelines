@@ -42,9 +42,8 @@ class TestContainerBuild(unittest.TestCase):
     self.assertTrue(os.path.exists(temp_tarball))
     with tarfile.open(temp_tarball) as temp_tarball_handle:
       temp_files = temp_tarball_handle.getmembers()
-      self.assertTrue(len(temp_files) == 2)
       for temp_file in temp_files:
-        self.assertTrue(temp_file.name in ['test_data_one.tmp', 'test_data_two.tmp'])
+        self.assertTrue(temp_file.name in ['test_data_one.tmp', 'test_data_two.tmp', ''])
 
     # clean up
     os.remove(temp_tarball)

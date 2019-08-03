@@ -15,7 +15,7 @@
 package resource
 
 import (
-	"github.com/argoproj/argo/errors"
+	"errors"
 	wfv1 "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo/workflow/common"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -121,7 +121,7 @@ func formulateRetryWorkflow(wf *wfv1.Workflow) (*wfv1.Workflow, []string, error)
 	case wfv1.NodeFailed, wfv1.NodeError:
 		break
 	default:
-		return nil, nil, errors.Errorf(errors.CodeBadRequest, "workflow must be Failed/Error to retry")
+		return nil, nil, util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
 	}
 
 	newWF := wf.DeepCopy()
@@ -159,7 +159,9 @@ func formulateRetryWorkflow(wf *wfv1.Workflow) (*wfv1.Workflow, []string, error)
 			// do not add this status to the node. pretend as if this node never existed.
 		default:
 			// Do not allow retry of workflows with pods in Running/Pending phase
-			return nil, nil, errors.InternalErrorf("Workflow cannot be retried with node %s in %s phase", node, node.Phase)
+			return nil, nil, util.NewInternalServerError(
+				errors.New("workflow cannot be retried"),
+				"Workflow cannot be retried with node %s in %s phase", node, node.Phase)
 		}
 		if node.Type == wfv1.NodeTypePod {
 			podsToDelete = append(podsToDelete, node.ID)

@@ -238,9 +238,12 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Add a reference to the default experiment if run does not already have a containing experiment
-	err = r.setExperimentIfNotPresent(apiRun)
+	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.ResourceReferences)
 	if err != nil {
 		return nil, err
+	}
+	if ref != nil {
+		apiRun.ResourceReferences = append(apiRun.ResourceReferences, ref)
 	}
 
 	// Store run metadata into database
@@ -337,7 +340,7 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 func (r *ResourceManager) RetryRun(runId string) error {
 	runDetail, err := r.checkRunExist(runId)
 	if err != nil {
-		return util.Wrap(err, "Retry run failed")
+		return util.NewInvalidInputError("Run %s does not exist", runId)
 	}
 
 	var workflow util.Workflow
@@ -346,8 +349,11 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	}
 
 	newWorkflow, podsToDelete, err := formulateRetryWorkflow(workflow.Workflow)
+	if err != nil {
+		return util.Wrap(err, "Retry run failed.")
+	}
 	if err = deletePods(podsToDelete, newWorkflow.ObjectMeta.Namespace); err != nil {
-		return util.NewInternalServerError(err, "Retry run failed")
+		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
 	}
 
 	_, err = r.workflowClient.Update(newWorkflow)
@@ -358,12 +364,12 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	// In that case, creating a new workflow will revive the run and Persistent Agent will continue
 	// Sync the status of the new workflow to the original run.
 	if !apierr.IsNotFound(err) {
-		return util.NewInternalServerError(err, "Retry run failed.")
+		return util.NewInternalServerError(err, "Retry run failed. Workflow %s", util.NewWorkflow(newWorkflow).ToStringForStore())
 	}
 
 	_, err = r.workflowClient.Create(newWorkflow)
 	if err != nil {
-		return util.NewInternalServerError(err, "Retry run failed.")
+		return util.NewInternalServerError(err, "Retry run failed. Failed to recover the run to the cluster and continue.")
 	}
 	return nil
 }
@@ -411,6 +417,16 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
 	}
+
+	// Add a reference to the default experiment if run does not already have a containing experiment
+	ref, err := r.getDefaultExperimentIfNoExperiment(apiJob.ResourceReferences)
+	if err != nil {
+		return nil, err
+	}
+	if ref != nil {
+		apiJob.ResourceReferences = append(apiJob.ResourceReferences, ref)
+	}
+
 	job, err := ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(workflowSpecManifestBytes))
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
@@ -600,26 +616,26 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	return experiment.UUID, nil
 }
 
-// setExperimentIfNotPresent If the provided run does not include a reference to a containing
+// getDefaultExperimentIfNoExperiment If the provided run does not include a reference to a containing
 // experiment, then we fetch the default experiment's ID and create a reference to that.
-func (r *ResourceManager) setExperimentIfNotPresent(apiRun *api.Run) error {
+func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*api.ResourceReference) (*api.ResourceReference, error) {
 	// First check if there is already a referenced experiment
-	for _, ref := range apiRun.ResourceReferences {
+	for _, ref := range references {
 		if ref.Key.Type == api.ResourceType_EXPERIMENT && ref.Relationship == api.Relationship_OWNER {
-			return nil
+			return nil, nil
 		}
 	}
 
 	// Create reference to the default experiment
 	defaultExperimentId, err := r.GetDefaultExperimentId()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to retrieve default experiment")
+		return nil, util.NewInternalServerError(err, "Failed to retrieve default experiment")
 	}
 	if defaultExperimentId == "" {
 		glog.Info("No default experiment was found. Creating a new default experiment")
 		defaultExperimentId, err = r.CreateDefaultExperiment()
 		if defaultExperimentId == "" || err != nil {
-			return util.NewInternalServerError(err, "Failed to create new default experiment")
+			return nil, util.NewInternalServerError(err, "Failed to create new default experiment")
 		}
 	}
 	defaultExperimentRef := &api.ResourceReference{
@@ -629,9 +645,8 @@ func (r *ResourceManager) setExperimentIfNotPresent(apiRun *api.Run) error {
 		},
 		Relationship: api.Relationship_OWNER,
 	}
-	apiRun.ResourceReferences = append(apiRun.ResourceReferences, defaultExperimentRef)
 
-	return nil
+	return defaultExperimentRef, nil
 }
 
 func (r *ResourceManager) ReportMetric(metric *api.RunMetric, runUUID string) error {
@@ -656,7 +671,7 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 	artifactPath := workflow.FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
 	if artifactPath == "" {
 		return nil, util.NewResourceNotFoundError(
-			"arifact", common.CreateArtifactPath(runID, nodeID, artifactName))
+			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
 	return r.objectStore.GetFile(artifactPath)
 }
