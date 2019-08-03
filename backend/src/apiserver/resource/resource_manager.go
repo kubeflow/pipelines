@@ -618,7 +618,7 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 	artifactPath := workflow.FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
 	if artifactPath == "" {
 		return nil, util.NewResourceNotFoundError(
-			"arifact", common.CreateArtifactPath(runID, nodeID, artifactName))
+			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
 	return r.objectStore.GetFile(artifactPath)
 }
