@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from ._airflow_op import *
 from ._components import *
 from ._python_op import *
 from ._component_store import *
