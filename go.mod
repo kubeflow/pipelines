@@ -32,7 +32,7 @@ require (
 	github.com/google/btree v0.0.0-20180124185431-e89373fe6b4a // indirect
 	github.com/google/go-cmp v0.2.0
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
-	github.com/google/ml-metadata v0.0.0-20190214221617-0fb82dc56ff7
+	github.com/google/ml-metadata v0.13.2
 	github.com/google/pprof v0.0.0-20181206194817-3ea8567a2e57 // indirect
 	github.com/google/uuid v1.0.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
