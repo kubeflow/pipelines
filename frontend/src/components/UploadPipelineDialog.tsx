@@ -188,7 +188,8 @@ class UploadPipelineDialog extends React.Component<UploadPipelineDialogProps, Up
       dropzoneActive: false,
       file: files[0],
       fileName: files[0].name,
-      uploadPipelineName: files[0].name,
+      // Suggest all characters left of first . as pipeline name
+      uploadPipelineName: files[0].name.split('.')[0],
     });
   }
 

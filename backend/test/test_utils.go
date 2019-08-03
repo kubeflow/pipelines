@@ -19,8 +19,6 @@ import (
 	"os"
 	"time"
 
-	"flag"
-
 	"testing"
 
 	"net/http"
@@ -37,11 +35,7 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-var namespace = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
-var initializeTimeout = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
-var runIntegrationTests = flag.Bool("runIntegrationTests", false, "Whether to also run integration tests that call the service")
-
-func waitForReady(namespace string, initializeTimeout time.Duration) error {
+func WaitForReady(namespace string, initializeTimeout time.Duration) error {
 	var operation = func() error {
 		response, err := http.Get(fmt.Sprintf("http://ml-pipeline.%s.svc.cluster.local:8888/apis/v1beta1/healthz", namespace))
 		if err != nil {
@@ -63,7 +57,7 @@ func waitForReady(namespace string, initializeTimeout time.Duration) error {
 	return errors.Wrapf(err, "Waiting for ml pipeline API server failed after all attempts.")
 }
 
-func getClientConfig(namespace string) clientcmd.ClientConfig {
+func GetClientConfig(namespace string) clientcmd.ClientConfig {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	loadingRules.DefaultClientConfig = &clientcmd.DefaultClientConfig
 	overrides := clientcmd.ConfigOverrides{Context: clientcmdapi.Context{Namespace: namespace}}
@@ -71,7 +65,7 @@ func getClientConfig(namespace string) clientcmd.ClientConfig {
 		&overrides, os.Stdin)
 }
 
-func deleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
+func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 	pipelines, _, _, err := client.List(&pipelineparams.ListPipelinesParams{})
 	assert.Nil(t, err)
 	for _, p := range pipelines {
@@ -79,7 +73,7 @@ func deleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 	}
 }
 
-func deleteAllExperiments(client *api_server.ExperimentClient, t *testing.T) {
+func DeleteAllExperiments(client *api_server.ExperimentClient, t *testing.T) {
 	experiments, _, _, err := client.List(&experimentparams.ListExperimentParams{})
 	assert.Nil(t, err)
 	for _, e := range experiments {
@@ -87,7 +81,7 @@ func deleteAllExperiments(client *api_server.ExperimentClient, t *testing.T) {
 	}
 }
 
-func deleteAllRuns(client *api_server.RunClient, t *testing.T) {
+func DeleteAllRuns(client *api_server.RunClient, t *testing.T) {
 	runs, _, _, err := client.List(&runparams.ListRunsParams{})
 	assert.Nil(t, err)
 	for _, r := range runs {
@@ -95,7 +89,7 @@ func deleteAllRuns(client *api_server.RunClient, t *testing.T) {
 	}
 }
 
-func deleteAllJobs(client *api_server.JobClient, t *testing.T) {
+func DeleteAllJobs(client *api_server.JobClient, t *testing.T) {
 	jobs, _, _, err := client.List(&jobparams.ListJobsParams{})
 	assert.Nil(t, err)
 	for _, j := range jobs {

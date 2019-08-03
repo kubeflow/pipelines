@@ -14,6 +14,7 @@
 
 syntax = "proto3";
 
+option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
 package api;
 
 import "backend/api/error.proto";
@@ -112,6 +113,12 @@ service RunService {
       get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
     };
   }
+
+  rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{run_id}/terminate"
+    };
+  }
 }
 
 message CreateRunRequest {
@@ -137,6 +144,10 @@ message ListRunsRequest {
   // A base-64 encoded, JSON-serialized Filter protocol buffer (see
   // filter.proto).
   string filter = 5;
+}
+
+message TerminateRunRequest {
+  string run_id = 1;
 }
 
 message ListRunsResponse {
@@ -190,6 +201,9 @@ message Run {
   // supposed to run 2 month ago, the scheduled_at is 2 month ago,
   // v.s. created_at is the current time.
   google.protobuf.Timestamp scheduled_at = 7;
+
+  // Output. The time this run is finished.
+  google.protobuf.Timestamp finished_at = 13;
 
   // Output. The status of the run.
   // One of [Pending, Running, Succeeded, Skipped, Failed, Error]

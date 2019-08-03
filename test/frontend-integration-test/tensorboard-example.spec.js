@@ -116,7 +116,6 @@ describe('deploy tensorboard example run', () => {
     // Wait for a reasonable amount of time until the run is done
     while (attempts < maxAttempts && status.trim() !== 'Succeeded') {
       browser.pause(1000);
-      $('#refreshBtn').click();
       status = getValueFromDetailsTable('Status');
       attempts++;
     }

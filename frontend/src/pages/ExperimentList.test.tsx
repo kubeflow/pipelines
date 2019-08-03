@@ -22,7 +22,7 @@ import { ApiFilter, PredicateOp } from '../apis/filter';
 import { ApiResourceType, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { ExpandState } from '../components/CustomTable';
-import { NodePhase } from './Status';
+import { NodePhase } from '../lib/StatusUtils';
 import { PageProps } from './Page';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
@@ -30,6 +30,8 @@ import { range } from 'lodash';
 
 describe('ExperimentList', () => {
   let tree: ShallowWrapper | ReactWrapper;
+
+  jest.spyOn(console, 'log').mockImplementation(() => null);
 
   const updateBannerSpy = jest.fn();
   const updateDialogSpy = jest.fn();
@@ -229,15 +231,15 @@ describe('ExperimentList', () => {
 
   it('renders a list of runs for given experiment', async () => {
     tree = shallow(<ExperimentList {...generateProps()} />);
-    tree.setState({ displayExperiments: [{ last5Runs: [{ id: 'run1id' }, { id: 'run2id' }] }] });
+    tree.setState({ displayExperiments: [{ id: 'experiment1', last5Runs: [{ id: 'run1id' }, { id: 'run2id' }] }] });
     const runListTree = (tree.instance() as any)._getExpandedExperimentComponent(0);
-    expect(runListTree.props.runIdListMask).toEqual(['run1id', 'run2id']);
+    expect(runListTree.props.experimentIdMask).toEqual('experiment1');
   });
 
   it('navigates to new experiment page when Create experiment button is clicked', async () => {
     tree = TestUtils.mountWithRouter(<ExperimentList {...generateProps()} />);
     const createBtn = (tree.instance() as ExperimentList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Create an experiment');
+      .getInitialToolbarState().actions.find(b => b.title === 'Create experiment');
     await createBtn!.action();
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_EXPERIMENT);
   });
@@ -245,7 +247,7 @@ describe('ExperimentList', () => {
   it('always has new experiment button enabled', async () => {
     await mountWithNExperiments(1, 1);
     const calls = updateToolbarSpy.mock.calls[0];
-    expect(calls[0].actions.find((b: any) => b.title === 'Create an experiment')).not.toHaveProperty('disabled');
+    expect(calls[0].actions.find((b: any) => b.title === 'Create experiment')).not.toHaveProperty('disabled');
   });
 
   it('enables clone button when one run is selected', async () => {

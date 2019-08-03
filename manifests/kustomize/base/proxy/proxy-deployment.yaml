@@ -1,0 +1,20 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    app: proxy-agent
+  name: proxy-agent
+spec:
+  selector:
+    matchLabels:
+      app: proxy-agent
+  template:
+    metadata:
+      labels:
+        app: proxy-agent
+    spec:
+      containers:
+      - image: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.20
+        imagePullPolicy: IfNotPresent
+        name: proxy-agent
+      serviceAccountName: proxy-agent-runner

@@ -26,13 +26,9 @@ import { ApiPipeline } from '../apis/pipeline';
 import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
 
 class TestNewRun extends NewRun {
-  public async _experimentSelectorClosed(confirmed: boolean): Promise<void> {
-    return await super._experimentSelectorClosed(confirmed);
-  }
-
-  public async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
-    return await super._pipelineSelectorClosed(confirmed);
-  }
+  public _experimentSelectorClosed = super._experimentSelectorClosed;
+  public _pipelineSelectorClosed = super._pipelineSelectorClosed;
+  public _updateRecurringRunState = super._updateRecurringRunState;
 }
 
 describe('NewRun', () => {
@@ -69,6 +65,7 @@ describe('NewRun', () => {
     return {
       id: 'some-mock-pipeline-id',
       name: 'some mock pipeline name',
+      parameters: [],
     };
   }
 
@@ -189,6 +186,30 @@ describe('NewRun', () => {
     (tree.instance() as TestNewRun).handleChange('description')({ target: { value: 'run description' } });
 
     expect(tree.state()).toHaveProperty('description', 'run description');
+  });
+
+  it('changes title and form if the new run will recur, based on the radio buttons', async () => {
+    // Default props do not include isRecurring in query params
+    tree = shallow(<TestNewRun {...generateProps() as any} />);
+    await TestUtils.flushPromises();
+
+    (tree.instance() as TestNewRun)._updateRecurringRunState(true);
+    await TestUtils.flushPromises();
+
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('changes title and form to default state if the new run is a one-off, based on the radio buttons', async () => {
+    // Modify props to set page to recurring run form
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.isRecurring}=1`;
+    tree = shallow(<TestNewRun {...props} />);
+    await TestUtils.flushPromises();
+
+    (tree.instance() as TestNewRun)._updateRecurringRunState(false);
+    await TestUtils.flushPromises();
+
+    expect(tree).toMatchSnapshot();
   });
 
   it('exits to the AllRuns page if there is no associated experiment', async () => {
@@ -1010,6 +1031,45 @@ describe('NewRun', () => {
       instance._pipelineSelectorClosed(true);
       await TestUtils.flushPromises();
       expect(tree).toMatchSnapshot();
+    });
+
+    it('trims whitespace from the pipeline params', async () => {
+      tree = shallow(<TestNewRun {...generateProps()} />);
+      await TestUtils.flushPromises();
+
+      // Select a pipeline with parameters
+      const pipelineWithParams = newMockPipeline();
+      pipelineWithParams.id = 'pipeline-with-params';
+      pipelineWithParams.parameters = [
+        { name: 'param-1', value: '  whitespace on either side  ' },
+        { name: 'param-2', value: 'value 2' },
+      ];
+      getPipelineSpy.mockImplementationOnce(() => pipelineWithParams);
+      tree.setState({ unconfirmedSelectedPipeline: pipelineWithParams });
+      const instance = tree.instance() as TestNewRun;
+      instance._pipelineSelectorClosed(true);
+      tree.find('#startNewRunBtn').simulate('click');
+      await TestUtils.flushPromises();
+
+      expect(startRunSpy).toHaveBeenCalledTimes(1);
+      expect(startRunSpy).toHaveBeenLastCalledWith({
+        description: '',
+        name: '',
+        pipeline_spec: {
+          parameters: [
+            { name: 'param-1', value: 'whitespace on either side' },
+            { name: 'param-2', value: 'value 2' },
+          ],
+          pipeline_id: 'pipeline-with-params',
+        },
+        resource_references: [{
+          key: {
+            id: MOCK_EXPERIMENT.id,
+            type: ApiResourceType.EXPERIMENT,
+          },
+          relationship: ApiRelationship.OWNER,
+        }]
+      });
     });
 
     it('sets the page to a busy state upon clicking \'Start\'', async () => {

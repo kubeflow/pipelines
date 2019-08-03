@@ -18,6 +18,7 @@ import WorkflowParser, { StoragePath } from './WorkflowParser';
 import { Apis } from '../lib/Apis';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
+import { MarkdownViewerConfig } from '../components/viewers/MarkdownViewer';
 import { PagedTableConfig } from '../components/viewers/PagedTable';
 import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { ROCCurveConfig } from '../components/viewers/ROCCurve';
@@ -32,7 +33,7 @@ export interface PlotMetadata {
   predicted_col?: string;
   schema?: Array<{ type: string, name: string }>;
   source: string;
-  storage?: 'gcs';
+  storage?: 'gcs' | 'inline';
   target_col?: string;
   type: PlotType;
 }
@@ -69,6 +70,8 @@ export class OutputArtifactLoader {
         switch (metadata.type) {
           case (PlotType.CONFUSION_MATRIX):
             return await this.buildConfusionMatrixConfig(metadata);
+          case (PlotType.MARKDOWN):
+            return await this.buildMarkdownViewerConfig(metadata);
           case (PlotType.TABLE):
             return await this.buildPagedTableConfig(metadata);
           case (PlotType.TENSORBOARD):
@@ -188,6 +191,24 @@ export class OutputArtifactLoader {
     return {
       htmlContent,
       type: PlotType.WEB_APP,
+    };
+  }
+
+  public static async buildMarkdownViewerConfig(metadata: PlotMetadata): Promise<MarkdownViewerConfig> {
+    if (!metadata.source) {
+      throw new Error('Malformed metadata, property "source" is required.');
+    }
+    let markdownContent = '';
+    if (metadata.storage === 'inline') {
+      markdownContent = metadata.source;
+    } else {
+      const path = WorkflowParser.parseStoragePath(metadata.source);
+      markdownContent = await Apis.readFile(path);
+    }
+
+    return {
+      markdownContent,
+      type: PlotType.MARKDOWN,
     };
   }
 

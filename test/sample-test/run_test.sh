@@ -122,20 +122,13 @@ cd ${BASE_DIR}
 
 # Install argo
 echo "install argo"
-ARGO_VERSION=v2.2.0
+ARGO_VERSION=v2.3.0
 mkdir -p ~/bin/
 export PATH=~/bin/:$PATH
 curl -sSL -o ~/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64
 chmod +x ~/bin/argo
 
 echo "Run the sample tests..."
-
-# Generate Python package
-cd ${BASE_DIR}/sdk/python
-./build.sh /tmp/kfp.tar.gz
-
-# Install python client, including DSL compiler.
-pip3 install /tmp/kfp.tar.gz
 
 # Run the tests
 if [ "$TEST_NAME" == 'tf-training' ]; then
@@ -144,7 +137,7 @@ if [ "$TEST_NAME" == 'tf-training' ]; then
 
   #TODO: convert the sed commands to sed -e 's|gcr.io/ml-pipeline/|gcr.io/ml-pipeline-test/' and tag replacement. 
   # Compile samples
-  cd ${BASE_DIR}/samples/kubeflow-tf
+  cd ${BASE_DIR}/samples/core/kubeflow-tf
 
   if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
     sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" kubeflow-training-classification.py
@@ -153,10 +146,10 @@ if [ "$TEST_NAME" == 'tf-training' ]; then
     sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" kubeflow-training-classification.py
   fi
 
-  dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.tar.gz
+  dsl-compile --py kubeflow-training-classification.py --output kubeflow-training-classification.zip
 
   cd "${TEST_DIR}"
-  python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/kubeflow-tf/kubeflow-training-classification.tar.gz --result $SAMPLE_KUBEFLOW_TEST_RESULT --output $SAMPLE_KUBEFLOW_TEST_OUTPUT --namespace ${NAMESPACE}
+  python3 run_kubeflow_test.py --input ${BASE_DIR}/samples/core/kubeflow-tf/kubeflow-training-classification.zip --result $SAMPLE_KUBEFLOW_TEST_RESULT --output $SAMPLE_KUBEFLOW_TEST_OUTPUT --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_KUBEFLOW_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_KUBEFLOW_TEST_RESULT}
@@ -165,22 +158,24 @@ elif [ "$TEST_NAME" == "tfx" ]; then
   SAMPLE_TFX_TEST_OUTPUT=${RESULTS_GCS_DIR}
   
   # Compile samples
-  cd ${BASE_DIR}/samples/tfx
+  cd ${BASE_DIR}/samples/core/tfx
+
+  dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.yaml
 
   if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" taxi-cab-classification-pipeline.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" taxi-cab-classification-pipeline.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFDV_IMAGE}|g" taxi-cab-classification-pipeline.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFMA_IMAGE}|g" taxi-cab-classification-pipeline.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" taxi-cab-classification-pipeline.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DEPLOYER_IMAGE}|g" taxi-cab-classification-pipeline.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" taxi-cab-classification-pipeline.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" taxi-cab-classification-pipeline.py
+    # Update the image tag in the yaml.
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFDV_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFMA_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DEPLOYER_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" taxi-cab-classification-pipeline.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" taxi-cab-classification-pipeline.yaml
   fi
 
-  dsl-compile --py taxi-cab-classification-pipeline.py --output taxi-cab-classification-pipeline.tar.gz
   cd "${TEST_DIR}"
-  python3 run_tfx_test.py --input ${BASE_DIR}/samples/tfx/taxi-cab-classification-pipeline.tar.gz --result $SAMPLE_TFX_TEST_RESULT --output $SAMPLE_TFX_TEST_OUTPUT --namespace ${NAMESPACE}
+  python3 run_tfx_test.py --input ${BASE_DIR}/samples/core/tfx/taxi-cab-classification-pipeline.yaml --result $SAMPLE_TFX_TEST_RESULT --output $SAMPLE_TFX_TEST_OUTPUT --namespace ${NAMESPACE}
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_TFX_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TFX_TEST_RESULT}
 elif [ "$TEST_NAME" == "sequential" ]; then
@@ -188,11 +183,11 @@ elif [ "$TEST_NAME" == "sequential" ]; then
   SAMPLE_SEQUENTIAL_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
   # Compile samples
-  cd ${BASE_DIR}/samples/basic
-  dsl-compile --py sequential.py --output sequential.tar.gz
+  cd ${BASE_DIR}/samples/core/sequential
+  dsl-compile --py sequential.py --output sequential.zip
 
   cd "${TEST_DIR}"
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/sequential.tar.gz --result $SAMPLE_SEQUENTIAL_TEST_RESULT --output $SAMPLE_SEQUENTIAL_TEST_OUTPUT  --testname sequential --namespace ${NAMESPACE}
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/core/sequential/sequential.zip --result $SAMPLE_SEQUENTIAL_TEST_RESULT --output $SAMPLE_SEQUENTIAL_TEST_OUTPUT  --testname sequential --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_SEQUENTIAL_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_SEQUENTIAL_TEST_RESULT}
@@ -201,11 +196,11 @@ elif [ "$TEST_NAME" == "condition" ]; then
   SAMPLE_CONDITION_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
   # Compile samples
-  cd ${BASE_DIR}/samples/basic
-  dsl-compile --py condition.py --output condition.tar.gz
+  cd ${BASE_DIR}/samples/core/condition
+  dsl-compile --py condition.py --output condition.zip
 
   cd "${TEST_DIR}"
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/condition.tar.gz --result $SAMPLE_CONDITION_TEST_RESULT --output $SAMPLE_CONDITION_TEST_OUTPUT --testname condition --namespace ${NAMESPACE}
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/core/condition/condition.zip --result $SAMPLE_CONDITION_TEST_RESULT --output $SAMPLE_CONDITION_TEST_OUTPUT --testname condition --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_CONDITION_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_CONDITION_TEST_RESULT}
@@ -214,61 +209,61 @@ elif [ "$TEST_NAME" == "exithandler" ]; then
   SAMPLE_EXIT_HANDLER_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
   # Compile samples
-  cd ${BASE_DIR}/samples/basic
-  dsl-compile --py exit_handler.py --output exit_handler.tar.gz
+  cd ${BASE_DIR}/samples/core/exit_handler
+  dsl-compile --py exit_handler.py --output exit_handler.zip
 
   cd "${TEST_DIR}"
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/exit_handler.tar.gz --result $SAMPLE_EXIT_HANDLER_TEST_RESULT --output $SAMPLE_EXIT_HANDLER_TEST_OUTPUT --testname exithandler --namespace ${NAMESPACE}
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/core/exit_handler/exit_handler.zip --result $SAMPLE_EXIT_HANDLER_TEST_RESULT --output $SAMPLE_EXIT_HANDLER_TEST_OUTPUT --testname exithandler --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_EXIT_HANDLER_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_EXIT_HANDLER_TEST_RESULT}
-elif [ "$TEST_NAME" == "immediatevalue" ]; then
-  SAMPLE_IMMEDIATE_VALUE_TEST_RESULT=junit_SampleImmediateValueOutput.xml
-  SAMPLE_IMMEDIATE_VALUE_TEST_OUTPUT=${RESULTS_GCS_DIR}
-
-  # Compile samples
-  cd ${BASE_DIR}/samples/basic
-  dsl-compile --py immediate_value.py --output immediate_value.tar.gz
-
-  cd "${TEST_DIR}"
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/immediate_value.tar.gz --result $SAMPLE_IMMEDIATE_VALUE_TEST_RESULT --output $SAMPLE_IMMEDIATE_VALUE_TEST_OUTPUT --testname immediatevalue --namespace ${NAMESPACE}
-
-  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
-  gsutil cp ${SAMPLE_IMMEDIATE_VALUE_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_IMMEDIATE_VALUE_TEST_RESULT}
 elif [ "$TEST_NAME" == "paralleljoin" ]; then
   SAMPLE_PARALLEL_JOIN_TEST_RESULT=junit_SampleParallelJoinOutput.xml
   SAMPLE_PARALLEL_JOIN_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
   # Compile samples
-  cd ${BASE_DIR}/samples/basic
-  dsl-compile --py parallel_join.py --output parallel_join.tar.gz
+  cd ${BASE_DIR}/samples/core/parallel_join
+  dsl-compile --py parallel_join.py --output parallel_join.zip
 
   cd "${TEST_DIR}"
-  python3 run_basic_test.py --input ${BASE_DIR}/samples/basic/parallel_join.tar.gz --result $SAMPLE_PARALLEL_JOIN_TEST_RESULT --output $SAMPLE_PARALLEL_JOIN_TEST_OUTPUT --testname paralleljoin --namespace ${NAMESPACE}
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/core/parallel_join/parallel_join.zip --result $SAMPLE_PARALLEL_JOIN_TEST_RESULT --output $SAMPLE_PARALLEL_JOIN_TEST_OUTPUT --testname paralleljoin --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_PARALLEL_JOIN_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_PARALLEL_JOIN_TEST_RESULT}
+elif [ "$TEST_NAME" == "recursion" ]; then
+  SAMPLE_RECURSION_TEST_RESULT=junit_SampleRecursionOutput.xml
+  SAMPLE_RECURSION_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  # Compile samples
+  cd ${BASE_DIR}/samples/core/recursion
+  dsl-compile --py recursion.py --output recursion.tar.gz
+
+  cd "${TEST_DIR}"
+  python3 run_basic_test.py --input ${BASE_DIR}/samples/core/recursion/recursion.tar.gz --result $SAMPLE_RECURSION_TEST_RESULT --output $SAMPLE_RECURSION_TEST_OUTPUT --testname recursion --namespace ${NAMESPACE}
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp ${SAMPLE_RECURSION_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_RECURSION_TEST_RESULT}
 elif [ "$TEST_NAME" == "xgboost" ]; then
   SAMPLE_XGBOOST_TEST_RESULT=junit_SampleXGBoostOutput.xml
   SAMPLE_XGBOOST_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
   # Compile samples
-  cd ${BASE_DIR}/samples/xgboost-spark
+  cd ${BASE_DIR}/samples/core/xgboost-spark
+
+  dsl-compile --py xgboost-training-cm.py --output xgboost-training-cm.yaml
 
   if [ -n "${DATAPROC_CREATE_CLUSTER_IMAGE}" ];then
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_DELETE_CLUSTER_IMAGE}|g" xgboost-training-cm.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_ANALYZE_IMAGE}|g" xgboost-training-cm.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRANSFORM_IMAGE}|g" xgboost-training-cm.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-train:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRAIN_IMAGE}|g" xgboost-training-cm.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_PREDICT_IMAGE}|g" xgboost-training-cm.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" xgboost-training-cm.py
-    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" xgboost-training-cm.py
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_CREATE_CLUSTER_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_DELETE_CLUSTER_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_ANALYZE_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRANSFORM_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-train:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_TRAIN_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:\([a-zA-Z0-9_.-]\)\+|${DATAPROC_PREDICT_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" xgboost-training-cm.yaml
+    sed -i -e "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" xgboost-training-cm.yaml
   fi
-  dsl-compile --py xgboost-training-cm.py --output xgboost-training-cm.tar.gz
-
   cd "${TEST_DIR}"
-  python3 run_xgboost_test.py --input ${BASE_DIR}/samples/xgboost-spark/xgboost-training-cm.tar.gz --result $SAMPLE_XGBOOST_TEST_RESULT --output $SAMPLE_XGBOOST_TEST_OUTPUT --namespace ${NAMESPACE}
+  python3 run_xgboost_test.py --input ${BASE_DIR}/samples/core/xgboost-spark/xgboost-training-cm.yaml --result $SAMPLE_XGBOOST_TEST_RESULT --output $SAMPLE_XGBOOST_TEST_OUTPUT --namespace ${NAMESPACE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_XGBOOST_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_XGBOOST_TEST_RESULT}
@@ -280,7 +275,7 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   DEPLOYER_MODEL=`cat /proc/sys/kernel/random/uuid`
   DEPLOYER_MODEL=Notebook_tfx_taxi_`echo ${DEPLOYER_MODEL//-/_}`
 
-  cd ${BASE_DIR}/samples/notebooks
+  cd ${BASE_DIR}/samples/core/kubeflow_pipeline_using_TFX_OSS_components
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
@@ -301,8 +296,9 @@ elif [ "$TEST_NAME" == "notebook-tfx" ]; then
   jupyter nbconvert --to python notebook-tfx.ipynb
   pip3 install tensorflow==1.8.0
   ipython notebook-tfx.py
+  EXIT_CODE=$?
   cd "${TEST_DIR}"
-  python3 check_notebook_results.py --experiment notebook-tfx-test --testname notebooktfx --result $SAMPLE_NOTEBOOK_TFX_TEST_RESULT --namespace ${NAMESPACE}
+  python3 check_notebook_results.py --experiment notebook-tfx-test --testname notebooktfx --result $SAMPLE_NOTEBOOK_TFX_TEST_RESULT --namespace ${NAMESPACE} --exit-code ${EXIT_CODE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp $SAMPLE_NOTEBOOK_TFX_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_TFX_TEST_RESULT
@@ -314,16 +310,33 @@ elif [ "$TEST_NAME" == "notebook-lightweight" ]; then
   SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT=junit_SampleNotebookLightweightOutput.xml
   SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_OUTPUT=${RESULTS_GCS_DIR}
 
-  cd ${BASE_DIR}/samples/notebooks
+  cd ${BASE_DIR}/samples/core/lightweight_component
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  Lightweight\ Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
   jupyter nbconvert --to python notebook-lightweight.ipynb
   pip3 install tensorflow==1.8.0
   ipython notebook-lightweight.py
+  EXIT_CODE=$?
   cd "${TEST_DIR}"
-  python3 check_notebook_results.py --experiment notebook-lightweight --testname notebooklightweight --result $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT --namespace ${NAMESPACE}
+  python3 check_notebook_results.py --experiment notebook-lightweight --testname notebooklightweight --result $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT --namespace ${NAMESPACE} --exit-code ${EXIT_CODE}
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp $SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_LIGHTWEIGHT_TEST_RESULT
+elif [ "$TEST_NAME" == "notebook-typecheck" ]; then
+  SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT=junit_SampleNotebookTypecheckOutput.xml
+  SAMPLE_NOTEBOOK_TYPECHECK_TEST_OUTPUT=${RESULTS_GCS_DIR}
+
+  cd ${BASE_DIR}/samples/core/dsl_static_type_checking
+  export LC_ALL=C.UTF-8
+  export LANG=C.UTF-8
+  papermill --prepare-only -p KFP_PACKAGE /tmp/kfp.tar.gz  DSL\ Static\ Type\ Checking.ipynb notebook-typecheck.ipynb
+  jupyter nbconvert --to python notebook-typecheck.ipynb
+  ipython notebook-typecheck.py
+  EXIT_CODE=$?
+  cd "${TEST_DIR}"
+  python3 check_notebook_results.py --testname notebooktypecheck --result $SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT --exit-code ${EXIT_CODE}
+
+  echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
+  gsutil cp $SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT ${RESULTS_GCS_DIR}/$SAMPLE_NOTEBOOK_TYPECHECK_TEST_RESULT
 fi

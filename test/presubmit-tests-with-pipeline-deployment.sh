@@ -66,19 +66,18 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "presubmit test starts"
 source "${DIR}/test-prep.sh"
+
+# Deploy Kubeflow
 source "${DIR}/deploy-kubeflow.sh"
 
-# Install Argo
+# Install Argo CLI and test-runner service account
 source "${DIR}/install-argo.sh"
 
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
--p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
--p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
--p api-image="${GCR_IMAGE_BASE_DIR}/api" \
+-p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
 -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
 -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
 -p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \

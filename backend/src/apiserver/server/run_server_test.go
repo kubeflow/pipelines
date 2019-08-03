@@ -37,6 +37,7 @@ func TestCreateRun(t *testing.T) {
 			StorageState: api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:  &timestamp.Timestamp{},
+			FinishedAt:   &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
@@ -76,6 +77,7 @@ func TestListRun(t *testing.T) {
 		StorageState: api.Run_STORAGESTATE_AVAILABLE,
 		CreatedAt:    &timestamp.Timestamp{Seconds: 2},
 		ScheduledAt:  &timestamp.Timestamp{},
+		FinishedAt:   &timestamp.Timestamp{},
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
@@ -95,6 +97,12 @@ func TestListRun(t *testing.T) {
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow2.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
 		},
 	}
 	_, err = server.CreateRun(nil, &api.CreateRunRequest{Run: run2})

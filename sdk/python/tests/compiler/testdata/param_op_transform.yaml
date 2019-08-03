@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: parameters-in-op-transformation-functions-
+spec:
+  arguments:
+    parameters:
+    - name: param
+  entrypoint: parameters-in-op-transformation-functions
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      image: image
+    inputs:
+      parameters:
+      - name: param
+    metadata:
+      labels:
+        param: '{{inputs.parameters.param}}'
+    name: cop
+    outputs:
+      artifacts:
+      - name: mlpipeline-ui-metadata
+        optional: true
+        path: /mlpipeline-ui-metadata.json
+      - name: mlpipeline-metrics
+        optional: true
+        path: /mlpipeline-metrics.json
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: param
+            value: '{{inputs.parameters.param}}'
+        name: cop
+        template: cop
+    inputs:
+      parameters:
+      - name: param
+    name: parameters-in-op-transformation-functions

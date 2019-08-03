@@ -75,7 +75,10 @@ for the delete job operation typically these are written to a http.Request
 */
 type DeleteJobParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the job to be deleted
+
+	*/
 	ID string
 
 	timeout    time.Duration

@@ -9,11 +9,12 @@ RUN apk update && apk upgrade && \
 
 RUN GO111MODULE=on go build -o /bin/persistence_agent backend/src/agent/persistence/*.go
 
-FROM alpine:3.8
+FROM scratch
 WORKDIR /bin
 
 COPY --from=builder /bin/persistence_agent /bin/persistence_agent
 COPY --from=builder /go/src/github.com/kubeflow/pipelines/third_party/license.txt /bin/license.txt
 
-CMD persistence_agent \
-  --alsologtostderr=true
+ENV NAMESPACE ""
+
+CMD persistence_agent --alsologtostderr=true --namespace=${NAMESPACE}

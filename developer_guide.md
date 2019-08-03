@@ -29,6 +29,15 @@ $ gcloud auth configure-docker
 $ docker push gcr.io/<your-gcp-project>/scheduledworkflow:latest
 ```
 
+To build the viewer CRD controller image and upload it to GCR:
+```bash
+# Run in the repository root directory
+$ docker build -t gcr.io/<your-gcp-project>/viewer-crd-controller:latest -f backend/Dockerfile.viewercontroller .
+# Push to GCR
+$ gcloud auth configure-docker
+$ docker push gcr.io/<your-gcp-project>/viewer-crd-controller:latest
+```
+
 To build the persistence agent image and upload it to GCR:
 ```bash
 # Run in the repository root directory
@@ -71,14 +80,9 @@ pip install ./dsl/ --upgrade && python ./dsl/tests/main.py
 pip install ./dsl-compiler/ --upgrade && python ./dsl-compiler/tests/main.py
 ```
 
-## Integration test
+## Integration test & E2E test
 
-### API server
-Check [this](https://github.com/kubeflow/pipelines/blob/master/test/apiserver/README.md) page for more details.
-
-## E2E test
-TODO: Add instruction
-
+Check [this](https://github.com/kubeflow/pipelines/blob/master/test/README.md) page for more details.
 
 ## Troubleshooting
 
@@ -86,7 +90,7 @@ TODO: Add instruction
 
 You can inspect mysql database directly by running:
 ```bash
-kubectl run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- mysql -h mysql
+kubectl run -it --rm --image=gcr.io/ml-pipeline/mysql:5.6 --restart=Never mysql-client -- mysql -h mysql
 mysql> use mlpipeline;
 mysql> select * from jobs;
 ```
@@ -102,13 +106,17 @@ Secret Key:minio123
 
 **Q: I see an error of exceeding Github rate limit when deploying the system. What can I do?**
 
-See Ksonnet troubleshooting page [page](https://github.com/ksonnet/ksonnet/blob/master/docs/troubleshooting.md#github-rate-limiting-errors)
+See [Ksonnet troubleshooting page](https://github.com/ksonnet/ksonnet/blob/master/docs/troubleshooting.md#github-rate-limiting-errors)
 
 **Q: How do I check my API server log?**
 
 API server logs are located at /tmp directory of the pod. To SSH into the pod, run:
 ```bash
-kubectl exec -it -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE}) -- /bin/bash
+kubectl exec -it -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE}) -- /bin/sh
+```
+or
+```bash
+kubectl logs -n ${NAMESPACE} $(kubectl get pods -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' -n ${NAMESPACE})
 ```
 
 **Q: How to check my cluster status if I am using Minikube?**

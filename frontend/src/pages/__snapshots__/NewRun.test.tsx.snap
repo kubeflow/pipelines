@@ -337,6 +337,33 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -730,6 +757,33 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -751,6 +805,869 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
         onClick={[Function]}
       >
         Skip this step
+      </WithStyles(Button)>
+      <div
+        style={
+          Object {
+            "color": "red",
+          }
+        }
+      >
+        A pipeline must be selected
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`NewRun changes title and form if the new run will recur, based on the radio buttons 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="header"
+    >
+      Run details
+    </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="choosePipelineBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Pipeline"
+      required={true}
+      value=""
+      variant="outlined"
+    />
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "pipelineSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?experimentId=some-mock-experiment-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "some mock experiment name",
+                        "href": "/experiments/details/some-mock-experiment-id",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "pageTitle": "Start a recurring run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelPipelineSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="usePipelineBtn"
+          onClick={[Function]}
+        >
+          Use this pipeline
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?experimentId=some-mock-experiment-id",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                      Object {
+                        "displayName": "some mock experiment name",
+                        "href": "/experiments/details/some-mock-experiment-id",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "pageTitle": "Start a recurring run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
+    <Component
+      autoFocus={true}
+      label="Recurring run config name"
+      onChange={[Function]}
+      required={true}
+      value=""
+      variant="outlined"
+    />
+    <Component
+      label="Description (optional)"
+      multiline={true}
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+    <div>
+      This run will be associated with the following experiment
+    </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value="some mock experiment name"
+      variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
+      Run trigger
+    </div>
+    <div>
+      Choose a method by which new runs will be triggered
+    </div>
+    <Trigger
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
+      Run parameters
+    </div>
+    <div>
+      Parameters will appear after you select a pipeline
+    </div>
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={true}
+        id="startNewRunBtn"
+        onClick={[Function]}
+        title="Start"
+      />
+      <WithStyles(Button)
+        id="exitNewRunPageBtn"
+        onClick={[Function]}
+      >
+        Cancel
+      </WithStyles(Button)>
+      <div
+        style={
+          Object {
+            "color": "red",
+          }
+        }
+      >
+        A pipeline must be selected
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`NewRun changes title and form to default state if the new run is a one-off, based on the radio buttons 1`] = `
+<div
+  className="page"
+>
+  <div
+    className="scrollContainer"
+  >
+    <div
+      className="header"
+    >
+      Run details
+    </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="choosePipelineBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Pipeline"
+      required={true}
+      value=""
+      variant="outlined"
+    />
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "pipelineSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Pipeline name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Uploaded on",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No pipelines found. Upload a pipeline and then try again."
+          filterLabel="Filter pipelines"
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?recurring=1",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose a pipeline"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a recurring run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelPipelineSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="usePipelineBtn"
+          onClick={[Function]}
+        >
+          Use this pipeline
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
+    <WithStyles(Dialog)
+      PaperProps={
+        Object {
+          "id": "experimentSelectorDialog",
+        }
+      }
+      classes={
+        Object {
+          "paper": "selectorDialog",
+        }
+      }
+      onClose={[Function]}
+      open={false}
+    >
+      <WithStyles(DialogContent)>
+        <ResourceSelector
+          columns={
+            Array [
+              Object {
+                "flex": 1,
+                "label": "Experiment name",
+                "sortKey": "name",
+              },
+              Object {
+                "flex": 1.5,
+                "label": "Description",
+              },
+              Object {
+                "flex": 1,
+                "label": "Created at",
+                "sortKey": "created_at",
+              },
+            ]
+          }
+          emptyMessage="No experiments found. Create an experiment and then try again."
+          filterLabel="Filter experiments"
+          history={
+            Object {
+              "push": [MockFunction],
+              "replace": [MockFunction],
+            }
+          }
+          initialSortColumn="created_at"
+          listApi={[Function]}
+          location={
+            Object {
+              "pathname": "/runs/new",
+              "search": "?recurring=1",
+            }
+          }
+          match=""
+          selectionChanged={[Function]}
+          title="Choose an experiment"
+          toolbarProps={
+            Object {
+              "actions": Array [],
+              "breadcrumbs": Array [
+                Object {
+                  "displayName": "Experiments",
+                  "href": "/experiments",
+                },
+              ],
+              "pageTitle": "Start a new run",
+            }
+          }
+          updateBanner={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {},
+                ],
+              ],
+            }
+          }
+          updateDialog={[MockFunction]}
+          updateSnackbar={[MockFunction]}
+          updateToolbar={
+            [MockFunction] {
+              "calls": Array [
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "actions": Array [],
+                    "breadcrumbs": Array [
+                      Object {
+                        "displayName": "Experiments",
+                        "href": "/experiments",
+                      },
+                    ],
+                    "pageTitle": "Start a recurring run",
+                  },
+                ],
+                Array [
+                  Object {
+                    "pageTitle": "Start a new run",
+                  },
+                ],
+              ],
+            }
+          }
+        />
+      </WithStyles(DialogContent)>
+      <WithStyles(DialogActions)>
+        <WithStyles(Button)
+          color="secondary"
+          id="cancelExperimentSelectionBtn"
+          onClick={[Function]}
+        >
+          Cancel
+        </WithStyles(Button)>
+        <WithStyles(Button)
+          color="secondary"
+          disabled={true}
+          id="useExperimentBtn"
+          onClick={[Function]}
+        >
+          Use this experiment
+        </WithStyles(Button)>
+      </WithStyles(DialogActions)>
+    </WithStyles(Dialog)>
+    <Component
+      autoFocus={true}
+      label="Run name"
+      onChange={[Function]}
+      required={true}
+      value=""
+      variant="outlined"
+    />
+    <Component
+      label="Description (optional)"
+      multiline={true}
+      onChange={[Function]}
+      value=""
+      variant="outlined"
+    />
+    <div>
+      This run will be associated with the following experiment
+    </div>
+    <Component
+      InputProps={
+        Object {
+          "classes": Object {
+            "disabled": "nonEditableInput",
+          },
+          "endAdornment": <WithStyles(InputAdornment)
+            position="end"
+          >
+            <WithStyles(Button)
+              color="secondary"
+              id="chooseExperimentBtn"
+              onClick={[Function]}
+              style={
+                Object {
+                  "margin": 0,
+                  "padding": "3px 5px",
+                }
+              }
+            >
+              Choose
+            </WithStyles(Button)>
+          </WithStyles(InputAdornment)>,
+          "readOnly": true,
+        }
+      }
+      disabled={true}
+      label="Experiment"
+      required={true}
+      value=""
+      variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
+      Run parameters
+    </div>
+    <div>
+      Parameters will appear after you select a pipeline
+    </div>
+    <div
+      className="flex"
+    >
+      <BusyButton
+        busy={false}
+        className="buttonAction"
+        disabled={true}
+        id="startNewRunBtn"
+        onClick={[Function]}
+        title="Start"
+      />
+      <WithStyles(Button)
+        id="exitNewRunPageBtn"
+        onClick={[Function]}
+      >
+        Cancel
       </WithStyles(Button)>
       <div
         style={
@@ -1141,6 +2058,33 @@ exports[`NewRun cloning from a run shows pipeline selector when switching from e
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -1514,6 +2458,33 @@ exports[`NewRun cloning from a run shows switching controls when run has embedde
       required={true}
       value=""
       variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
     />
     <div
       className="header"
@@ -1897,6 +2868,33 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       required={true}
       value=""
       variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
     />
     <div
       className="header"
@@ -2294,6 +3292,33 @@ exports[`NewRun renders the new run page 1`] = `
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -2628,7 +3653,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
     </WithStyles(Dialog)>
     <Component
       autoFocus={true}
-      label="Run name"
+      label="Recurring run config name"
       onChange={[Function]}
       required={true}
       value=""
@@ -2679,7 +3704,37 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run trigger
+    </div>
+    <div>
+      Choose a method by which new runs will be triggered
     </div>
     <Trigger
       onChange={[Function]}
@@ -3096,6 +4151,33 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
       required={true}
       value=""
       variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
     />
     <div
       className="header"
@@ -3517,6 +4599,33 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -3533,7 +4642,6 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
         select={false}
         style={
           Object {
-            "height": 40,
             "maxWidth": 600,
           }
         }
@@ -3550,7 +4658,6 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
         select={false}
         style={
           Object {
-            "height": 40,
             "maxWidth": 600,
           }
         }
@@ -3940,6 +5047,33 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       required={true}
       value="some mock experiment name"
       variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
     />
     <div
       className="header"
@@ -4337,6 +5471,33 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -4353,7 +5514,6 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         select={false}
         style={
           Object {
-            "height": 40,
             "maxWidth": 600,
           }
         }
@@ -4370,7 +5530,6 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         select={false}
         style={
           Object {
-            "height": 40,
             "maxWidth": 600,
           }
         }
@@ -4766,6 +5925,33 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     <div
       className="header"
     >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
+    />
+    <div
+      className="header"
+    >
       Run parameters
     </div>
     <div>
@@ -5155,6 +6341,33 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       required={true}
       value="some mock experiment name"
       variant="outlined"
+    />
+    <div
+      className="header"
+    >
+      Run Type
+    </div>
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={true}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+        />
+      }
+      id="oneOffToggle"
+      label="One-off"
+      onChange={[Function]}
+    />
+    <WithStyles(WithFormControlContext(FormControlLabel))
+      checked={false}
+      control={
+        <WithStyles(Radio)
+          color="primary"
+          id="recurringToggle"
+        />
+      }
+      label="Recurring"
+      onChange={[Function]}
     />
     <div
       className="header"

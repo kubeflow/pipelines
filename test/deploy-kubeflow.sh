@@ -17,7 +17,8 @@
 set -ex
 
 TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
-TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_BASE_SHA:0:7}-${RANDOM}
+TEST_CLUSTER=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
+
 # Install ksonnet
 KS_VERSION="0.13.0"
 
@@ -26,23 +27,12 @@ tar -xzf ks_${KS_VERSION}_linux_amd64.tar.gz
 chmod +x ./ks_${KS_VERSION}_linux_amd64/ks
 mv ./ks_${KS_VERSION}_linux_amd64/ks /usr/local/bin/
 
-# Download kubeflow master
-KUBEFLOW_MASTER=${DIR}/kubeflow_master
-git clone https://github.com/kubeflow/kubeflow.git ${KUBEFLOW_MASTER}
-
 ## Download latest kubeflow release source code
 KUBEFLOW_SRC=${DIR}/kubeflow_latest_release
 mkdir ${KUBEFLOW_SRC}
 cd ${KUBEFLOW_SRC}
-export KUBEFLOW_TAG=v0.3.1
+export KUBEFLOW_TAG=pipelines
 curl https://raw.githubusercontent.com/kubeflow/kubeflow/${KUBEFLOW_TAG}/scripts/download.sh | bash
-
-## Override the pipeline config with code from master
-cp -r ${KUBEFLOW_MASTER}/kubeflow/pipeline ${KUBEFLOW_SRC}/kubeflow/pipeline
-cp -r ${KUBEFLOW_MASTER}/kubeflow/argo ${KUBEFLOW_SRC}/kubeflow/argo
-
-# TODO temporarily set KUBEFLOW_SRC as KUBEFLOW_MASTER. This should be deleted when latest release have the pipeline entry
-KUBEFLOW_SRC=${KUBEFLOW_MASTER}
 
 export CLIENT_ID=${RANDOM}
 export CLIENT_SECRET=${RANDOM}
