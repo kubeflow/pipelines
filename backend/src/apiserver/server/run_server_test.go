@@ -32,7 +32,7 @@ func TestCreateRun(t *testing.T) {
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
-			Id:           "workflow1",
+			Id:           "123e4567-e89b-12d3-a456-426655440000",
 			Name:         "123",
 			StorageState: api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
@@ -72,7 +72,7 @@ func TestListRun(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRun := &api.Run{
-		Id:           "workflow1",
+		Id:           "123e4567-e89b-12d3-a456-426655440000",
 		Name:         "123",
 		StorageState: api.Run_STORAGESTATE_AVAILABLE,
 		CreatedAt:    &timestamp.Timestamp{Seconds: 2},
