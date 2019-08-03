@@ -30,7 +30,7 @@ func TestCreateRun(t *testing.T) {
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
-	expectedRuntimeWorkflow.Labels[util.LabelKeyWorkflowRunId] = "123e4567-e89b-12d3-a456-426655440000"
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:           "123e4567-e89b-12d3-a456-426655440000",
