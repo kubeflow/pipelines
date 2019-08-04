@@ -246,8 +246,8 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	util.TerminateIfError(err)
 
 	// Create database if not exist
+	dbName := getStringConfig(mysqlDBName)
 	operation = func() error {
-		dbName := getStringConfig(mysqlDBName)
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
 		if err != nil {
 			return err
