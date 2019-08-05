@@ -73,7 +73,7 @@
         "type": {
           "$ref": "#/definitions/apiVisualizationType"
         },
-        "inputPath": {
+        "source": {
           "type": "string",
           "description": "Path pattern of input data to be used during generation of visualizations.\nThis is required when creating the pipeline through CreateVisualization\nAPI."
         },
