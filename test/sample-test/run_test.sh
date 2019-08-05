@@ -154,9 +154,17 @@ check_notebook_result() {
   ipython $1.py
   EXIT_CODE=$?
   cd ${TEST_DIR}
-  python3 check_notebook_results.py --experiment "$1-test" --testname \
-  $1 --result ${SAMPLE_TEST_RESULT} --namespace ${NAMESPACE} \
-  --exit-code ${EXIT_CODE}
+
+  if [[ $1 != "dsl_static_type_checking" ]]; then
+    # If the sample does not require pipeline running under a experiment, put it
+    # here.
+    python3 check_notebook_results.py --experiment "$1-test" --testname \
+    $1 --result ${SAMPLE_TEST_RESULT} --namespace ${NAMESPACE} \
+    --exit-code ${EXIT_CODE}
+  else
+    python3 check_notebook_results.py --testname $1 --result \
+    ${SAMPLE_TEST_RESULT} --exit-code ${EXIT_CODE}
+  fi
 
   echo "Copy the test results to GCS ${RESULTS_GCS_DIR}/"
   gsutil cp ${SAMPLE_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TEST_RESULT}
