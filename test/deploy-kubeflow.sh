@@ -25,7 +25,8 @@ KS_VERSION="0.13.0"
 curl -LO https://github.com/ksonnet/ksonnet/releases/download/v${KS_VERSION}/ks_${KS_VERSION}_linux_amd64.tar.gz
 tar -xzf ks_${KS_VERSION}_linux_amd64.tar.gz
 chmod +x ./ks_${KS_VERSION}_linux_amd64/ks
-mv ./ks_${KS_VERSION}_linux_amd64/ks /usr/local/bin/
+# Add ks to PATH
+PATH=$PATH:`pwd`/ks_${KS_VERSION}_linux_amd64
 
 ## Download latest kubeflow release source code
 KUBEFLOW_SRC=${DIR}/kubeflow_latest_release
