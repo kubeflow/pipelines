@@ -58,7 +58,7 @@ matrix:
       env: TOXENV=py27
       script:
         # Component SDK tests
-        - cd $TRAVIS_BUILD_DIR/component_sdk/python
+        - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
     - language: python
       python: "3.5"
@@ -73,11 +73,18 @@ matrix:
         - python3 tests/compiler/main.py
         - $TRAVIS_BUILD_DIR/sdk/python/tests/run_tests.sh
 
+        # Visualization test
+        - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
+        # Visualization test dependencies
+        - pip3 install -r requirements-test.txt
+        - python3 test_exporter.py
+        - python3 test_server.py
+
         # Test loading all component.yaml definitions
         - $TRAVIS_BUILD_DIR/components/test_load_all_components.sh
 
         # Component SDK tests
-        - cd $TRAVIS_BUILD_DIR/component_sdk/python
+        - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
     - language: python
       python: "3.6"
