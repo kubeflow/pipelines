@@ -53,7 +53,7 @@ active_learning_model_arn | ARN of the resulting active learning model
 
 # Samples
 ## Used in a pipeline with workteam creation and training
-Mini image classification demo: [Demo](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/ground_truth_pipeline_demo/)
+Mini image classification demo: [Demo](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/ground_truth_pipeline_demo/)
 
 # References
 * [Ground Truth documentation](https://docs.aws.amazon.com/sagemaker/latest/dg/sms.html)
