@@ -29,6 +29,14 @@ def main(argv=None):
   parser.add_argument('--training_input_mode', choices=['File', 'Pipe'], type=str.strip, help='The input mode that the algorithm supports. File or Pipe.', default='File')
   parser.add_argument('--hyperparameters', type=_utils.str_to_json_dict, help='Dictionary of hyperparameters for the the algorithm.', default='{}')
   parser.add_argument('--channels', type=_utils.str_to_json_list, required=True, help='A list of dicts specifying the input channels. Must have at least one.')
+  parser.add_argument('--data_location_1', type=str.strip, required=False, help='The S3 URI of the input data source for channel 1.', default='')
+  parser.add_argument('--data_location_2', type=str.strip, required=False, help='The S3 URI of the input data source for channel 2.', default='')
+  parser.add_argument('--data_location_3', type=str.strip, required=False, help='The S3 URI of the input data source for channel 3.', default='')
+  parser.add_argument('--data_location_4', type=str.strip, required=False, help='The S3 URI of the input data source for channel 4.', default='')
+  parser.add_argument('--data_location_5', type=str.strip, required=False, help='The S3 URI of the input data source for channel 5.', default='')
+  parser.add_argument('--data_location_6', type=str.strip, required=False, help='The S3 URI of the input data source for channel 6.', default='')
+  parser.add_argument('--data_location_7', type=str.strip, required=False, help='The S3 URI of the input data source for channel 7.', default='')
+  parser.add_argument('--data_location_8', type=str.strip, required=False, help='The S3 URI of the input data source for channel 8.', default='')
   parser.add_argument('--instance_type', required=True, choices=['ml.m4.xlarge', 'ml.m4.2xlarge', 'ml.m4.4xlarge', 'ml.m4.10xlarge', 'ml.m4.16xlarge', 'ml.m5.large', 'ml.m5.xlarge', 'ml.m5.2xlarge', 'ml.m5.4xlarge',
     'ml.m5.12xlarge', 'ml.m5.24xlarge', 'ml.c4.xlarge', 'ml.c4.2xlarge', 'ml.c4.4xlarge', 'ml.c4.8xlarge', 'ml.p2.xlarge', 'ml.p2.8xlarge', 'ml.p2.16xlarge', 'ml.p3.2xlarge', 'ml.p3.8xlarge', 'ml.p3.16xlarge',
     'ml.c5.xlarge', 'ml.c5.2xlarge', 'ml.c5.4xlarge', 'ml.c5.9xlarge', 'ml.c5.18xlarge'], type=str.strip, help='The ML compute instance type.', default='ml.m4.xlarge')

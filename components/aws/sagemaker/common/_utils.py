@@ -12,7 +12,6 @@
 
 
 import datetime
-import subprocess
 import argparse
 from time import gmtime, strftime
 import time
@@ -29,6 +28,7 @@ from sagemaker.amazon.amazon_estimator import get_image_uri
 import logging
 logging.getLogger().setLevel(logging.INFO)
 
+# Mappings are extracted from the first table in https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html
 built_in_algos = {
     'blazingtext': 'blazingtext',
     'deepar forecasting': 'forecasting-deepar',
@@ -58,6 +58,7 @@ def get_client(region=None):
 
 
 def create_training_job_request(args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_training_job
     with open('/app/common/train.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
@@ -111,6 +112,11 @@ def create_training_job_request(args):
     ### Update input channels, must have at least one specified
     if len(args['channels']) > 0:
         request['InputDataConfig'] = args['channels']
+        # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
+        #   Source: Input data configuration description in the SageMaker create training job form
+        for i in range(1, len(args['channels'] + 1)):
+            if args['data_location_' + str(i)]:
+                request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
         logging.error("Must specify at least one input channel.")
         raise Exception('Could not make job request')
@@ -155,16 +161,26 @@ def create_training_job(client, args):
       raise Exception(e.response['Error']['Message'])
 
 
-def deploy_model(client, args):
-  endpoint_config_name = create_endpoint_config(client, args)
-  endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
-  return endpoint_name
+def wait_for_training_job(client, training_job_name):
+  while(True):
+    response = client.describe_training_job(TrainingJobName=training_job_name)
+    status = response['TrainingJobStatus']
+    if status == 'Completed':
+      logging.info("Training job ended with status: " + status)
+      break
+    if status == 'Failed':
+      message = response['FailureReason']
+      logging.info('Training failed with the following error: {}'.format(message))
+      raise Exception('Training job failed')
+    logging.info("Training job is still in status: " + status)
+    time.sleep(30)
 
 
 def get_model_artifacts_from_job(client, job_name):
   info = client.describe_training_job(TrainingJobName=job_name)
   model_artifact_url = info['ModelArtifacts']['S3ModelArtifacts']
   return model_artifact_url
+
 
 def get_image_from_job(client, job_name):
     info = client.describe_training_job(TrainingJobName=job_name)
@@ -176,7 +192,9 @@ def get_image_from_job(client, job_name):
 
     return image
 
+
 def create_model(client, args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_model
     with open('/app/common/model.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
@@ -229,7 +247,15 @@ def create_model(client, args):
     logging.info("Model Config Arn: " + create_model_response['ModelArn'])
     return create_model_response['ModelArn']
 
+
+def deploy_model(client, args):
+  endpoint_config_name = create_endpoint_config(client, args)
+  endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
+  return endpoint_name
+
+
 def create_endpoint_config(client, args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint_config
     with open('/app/common/endpoint_config.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
@@ -278,6 +304,7 @@ def create_endpoint_config(client, args):
 
 
 def create_endpoint(client, region, endpoint_name, endpoint_config_name, endpoint_tags):
+  ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint
   endpoint_name = endpoint_name if endpoint_name else 'Endpoint' + endpoint_config_name[endpoint_config_name.index('-'):]
 
   ### Update tags
@@ -317,21 +344,9 @@ def wait_for_endpoint_creation(client, endpoint_name):
       logging.info('Create endpoint failed with the following error: {}'.format(message))
       raise Exception('Endpoint creation did not succeed')
 
-def wait_for_training_job(client, training_job_name):
-  while(True):
-    response = client.describe_training_job(TrainingJobName=training_job_name)
-    status = response['TrainingJobStatus']
-    if status == 'Completed':
-      logging.info("Training job ended with status: " + status)
-      break
-    if status == 'Failed':
-      message = response['FailureReason']
-      logging.info('Training failed with the following error: {}'.format(message))
-      raise Exception('Training job failed')
-    logging.info("Training job is still in status: " + status)
-    time.sleep(30)
 
 def create_transform_job_request(args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_transform_job
     with open('/app/common/transform.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
@@ -421,6 +436,7 @@ def wait_for_transform_job(client, batch_job_name):
     logging.info("Transform job is still in status: " + status)
     time.sleep(30)
 
+
 def print_tranformation_job_result(output_location):
   ### Fetch the transform output
   bucket = urlparse(output_location).netloc
@@ -433,6 +449,7 @@ def print_tranformation_job_result(output_location):
 
 
 def create_hyperparameter_tuning_job_request(args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_hyper_parameter_tuning_job
     with open('/app/common/hpo.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
@@ -495,6 +512,11 @@ def create_hyperparameter_tuning_job_request(args):
     ### Update input channels, must have at least one specified
     if len(args['channels']) > 0:
         request['TrainingJobDefinition']['InputDataConfig'] = args['channels']
+        # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
+        #   Source: Input data configuration description in the SageMaker create hyperparameter tuning job form
+        for i in range(1, len(args['channels'] + 1):
+            if args['data_location_' + str(i)]:
+                request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
         logging.error("Must specify at least one input channel.")
         raise Exception('Could not make job request')
@@ -579,6 +601,211 @@ def get_best_training_job_and_hyperparameters(client, hpo_job_name):
     train_hyperparameters = training_info['HyperParameters']
     train_hyperparameters.pop('_tuning_objective_metric')
     return best_job, train_hyperparameters
+
+
+def create_workteam(client, args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_workteam
+    """Create a workteam"""
+    with open('/app/common/workteam.template.yaml', 'r') as f:
+        request = yaml.safe_load(f)
+
+    request['WorkteamName'] = args['team_name']
+    request['Description'] = args['description']
+
+    if args['sns_topic']:
+    	request['NotificationConfiguration']['NotificationTopicArn'] = args['sns_topic']
+    else:
+        request.pop('NotificationConfiguration')
+
+    for group in [n.strip() for n in args['user_groups'].split(',')]:
+        request['MemberDefinitions'].append({'CognitoMemberDefinition': {'UserPool': args['user_pool'], 'UserGroup': group, 'ClientId': args['client_id']}})
+
+    for key, val in args['tags'].items():
+        request['Tags'].append({'Key': key, 'Value': val})
+
+    try:
+        response = client.create_workteam(**request)
+        portal = client.describe_workteam(WorkteamName=args['team_name'])['Workteam']['SubDomain']
+        logging.info("Labeling portal: " + portal)
+        return response['WorkteamArn']
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+
+def create_labeling_job_request(args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_labeling_job
+    with open('/app/common/gt.template.yaml', 'r') as f:
+        request = yaml.safe_load(f)
+
+    # Mapping are extracted from ARNs listed in https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_labeling_job
+    algorithm_arn_map = {'us-west-2': '081040173940',
+              'us-east-1': '432418664414',
+              'us-east-2': '266458841044',
+              'eu-west-1': '568282634449',
+              'ap-northeast-1': '477331159723',
+              'ap-southeast-1': '454466003867'}
+
+    task_map = {'bounding box': 'BoundingBox',
+              'image classification': 'ImageMultiClass',
+              'semantic segmentation': 'SemanticSegmentation',
+              'text classification': 'TextMultiClass'}
+
+    auto_labeling_map = {'bounding box': 'object-detection',
+              'image classification': 'image-classification',
+              'text classification': 'text-classification'}
+
+    task = args['task_type'].lower()
+
+    request['LabelingJobName'] = args['job_name'] if args['job_name'] else "LabelingJob-" + strftime("%Y%m%d%H%M%S", gmtime()) + '-' + id_generator()
+
+    if args['label_attribute_name']:
+        name_check = args['label_attribute_name'].split('-')[-1]
+        if task == 'semantic segmentation' and name_check == 'ref' or task != 'semantic segmentation' and name_check != 'metadata' and name_check != 'ref':
+            request['LabelAttributeName'] = args['label_attribute_name']
+        else:
+            logging.error('Invalid label attribute name. If task type is semantic segmentation, name must end in "-ref". Else, name must not end in "-ref" or "-metadata".')
+    else:
+        request['LabelAttributeName'] = args['job_name']
+
+    request['InputConfig']['DataSource']['S3DataSource']['ManifestS3Uri'] = args['manifest_location']
+    request['OutputConfig']['S3OutputPath'] = args['output_location']
+    request['OutputConfig']['KmsKeyId'] = args['output_encryption_key']
+    request['RoleArn'] = args['role']
+    request['LabelCategoryConfigS3Uri'] = args['label_category_config']
+
+    ### Update or pop stopping conditions
+    if not args['max_human_labeled_objects'] and not args['max_percent_objects']:
+        request.pop('StoppingConditions')
+    else:
+        if args['max_human_labeled_objects']:
+            request['StoppingConditions']['MaxHumanLabeledObjectCount'] = args['max_human_labeled_objects']
+        else:
+            request['StoppingConditions'].pop('MaxHumanLabeledObjectCount')
+        if args['max_percent_objects']:
+            request['StoppingConditions']['MaxPercentageOfInputDatasetLabeled'] = args['max_percent_objects']
+        else:
+            request['StoppingConditions'].pop('MaxPercentageOfInputDatasetLabeled')
+
+    ### Update or pop automatic labeling configs
+    if args['enable_auto_labeling']:
+        if task == 'image classification' or task == 'bounding box' or task == 'text classification':
+            labeling_algorithm_arn = 'arn:aws:sagemaker:{}:027400017018:labeling-job-algorithm-specification/image-classification'.format(args['region'], auto_labeling_map[task])
+            request['LabelingJobAlgorithmsConfig']['LabelingJobAlgorithmSpecificationArn'] = labeling_algorithm_arn
+            if args['initial_model_arn']:
+                request['LabelingJobAlgorithmsConfig']['InitialActiveLearningModelArn'] = args['initial_model_arn']
+            else:
+                request['LabelingJobAlgorithmsConfig'].pop('InitialActiveLearningModelArn')
+            request['LabelingJobAlgorithmsConfig']['LabelingJobResourceConfig']['VolumeKmsKeyId'] = args['resource_encryption_key']
+        else:
+            logging.error("Automated data labeling not available for semantic segmentation or custom algorithms. Proceeding without automated data labeling.")
+    else:
+        request.pop('LabelingJobAlgorithmsConfig')
+
+    ### Update pre-human and annotation consolidation task lambda functions
+    if task == 'image classification' or task == 'bounding box' or task == 'text classification' or task == 'semantic segmentation':
+        prehuman_arn = 'arn:aws:lambda:{}:{}:function:PRE-{}'.format(args['region'], algorithm_arn_map[args['region']], task_map[task])
+        acs_arn = 'arn:aws:lambda:{}:{}:function:ACS-{}'.format(args['region'], algorithm_arn_map[args['region']], task_map[task])
+        request['HumanTaskConfig']['PreHumanTaskLambdaArn'] = prehuman_arn
+        request['HumanTaskConfig']['AnnotationConsolidationConfig']['AnnotationConsolidationLambdaArn'] = acs_arn
+    elif task == 'custom' or task == '':
+        if args['pre_human_task_function'] and args['post_human_task_function']:
+            request['HumanTaskConfig']['PreHumanTaskLambdaArn'] = args['pre_human_task_function']
+            request['HumanTaskConfig']['AnnotationConsolidationConfig']['AnnotationConsolidationLambdaArn'] = args['post_human_task_function']
+        else:
+            logging.error("Must specify pre-human task lambda arn and annotation consolidation post-human task lambda arn.")
+    else:
+        logging.error("Task type must be Bounding Box, Image Classification, Semantic Segmentation, Text Classification, or Custom.")
+
+    request['HumanTaskConfig']['UiConfig']['UiTemplateS3Uri'] = args['ui_template']
+    request['HumanTaskConfig']['TaskTitle'] = args['title']
+    request['HumanTaskConfig']['TaskDescription'] = args['description']
+    request['HumanTaskConfig']['NumberOfHumanWorkersPerDataObject'] = args['num_workers_per_object']
+    request['HumanTaskConfig']['TaskTimeLimitInSeconds'] = args['time_limit']
+
+    if args['task_availibility']:
+        request['HumanTaskConfig']['TaskAvailabilityLifetimeInSeconds'] = args['task_availibility']
+    else:
+        request['HumanTaskConfig'].pop('TaskAvailabilityLifetimeInSeconds')
+
+    if args['max_concurrent_tasks']:
+        request['HumanTaskConfig']['MaxConcurrentTaskCount'] = args['max_concurrent_tasks']
+    else:
+        request['HumanTaskConfig'].pop('MaxConcurrentTaskCount')
+
+    if args['task_keywords']:
+    	for word in [n.strip() for n in args['task_keywords'].split(',')]:
+            request['HumanTaskConfig']['TaskKeywords'].append(word)
+    else:
+	    request['HumanTaskConfig'].pop('TaskKeywords')
+
+    ### Update worker configurations
+    if args['worker_type'].lower() == 'public':
+        if args['no_adult_content']:
+            request['InputConfig']['DataAttributes']['ContentClassifiers'].append('FreeOfAdultContent')
+        if args['no_ppi']:
+            request['InputConfig']['DataAttributes']['ContentClassifiers'].append('FreeOfPersonallyIdentifiableInformation')
+
+        request['HumanTaskConfig']['WorkteamArn'] = 'arn:aws:sagemaker:{}:394669845002:workteam/public-crowd/default'.format(args['region'])
+
+        dollars = int(args['workforce_task_price'])
+        cents = int(100 * (args['workforce_task_price'] - dollars))
+        tenth_of_cents = int((args['workforce_task_price'] * 1000) - (dollars * 1000) - (cents * 10))
+        request['HumanTaskConfig']['PublicWorkforceTaskPrice']['AmountInUsd']['Dollars'] = dollars
+        request['HumanTaskConfig']['PublicWorkforceTaskPrice']['AmountInUsd']['Cents'] = cents
+        request['HumanTaskConfig']['PublicWorkforceTaskPrice']['AmountInUsd']['TenthFractionsOfACent'] = tenth_of_cents
+    else:
+        request['InputConfig'].pop('DataAttributes')
+        request['HumanTaskConfig']['WorkteamArn'] = args['workteam_arn']
+        request['HumanTaskConfig'].pop('PublicWorkforceTaskPrice')
+
+    for key, val in args['tags'].items():
+        request['Tags'].append({'Key': key, 'Value': val})
+
+    return request
+
+
+def create_labeling_job(client, args):
+    """Create a SageMaker Ground Truth job"""
+    request = create_labeling_job_request(args)
+    try:
+        client.create_labeling_job(**request)
+        gt_job_name = request['LabelingJobName']
+        logging.info("Created Ground Truth Labeling Job with name: " + gt_job_name)
+        logging.info("Ground Truth job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/groundtruth?region={}#/labeling-jobs/details/{}"
+            .format(args['region'], args['region'], gt_job_name))
+        return gt_job_name
+    except ClientError as e:
+        raise Exception(e.response['Error']['Message'])
+
+
+def wait_for_labeling_job(client, labeling_job_name):
+    ### Wait until the job finishes
+    status = 'InProgress'
+    while(status == 'InProgress'):
+        response = client.describe_labeling_job(LabelingJobName=labeling_job_name)
+        status = response['LabelingJobStatus']
+        if status == 'Failed':
+            message = response['FailureReason']
+            logging.info('Labeling failed with the following error: {}'.format(message))
+            raise Exception('Labeling job failed')
+        logging.info("Labeling job is still in status: " + status)
+        time.sleep(30)
+
+    if status == 'Completed':
+        logging.info("Labeling job ended with status: " + status)
+    else:
+        raise Exception('Labeling job stopped')
+
+
+def get_labeling_job_outputs(client, labeling_job_name, auto_labeling):
+    ### Get and return labeling job outputs
+    info = client.describe_labeling_job(LabelingJobName=labeling_job_name)
+    output_manifest = info['LabelingJobOutput']['OutputDatasetS3Uri']
+    if auto_labeling:
+        active_learning_model_arn = info['LabelingJobOutput']['FinalActiveLearningModelArn']
+    else:
+        active_learning_model_arn = ''
+    return output_manifest, active_learning_model_arn
 
 
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):
