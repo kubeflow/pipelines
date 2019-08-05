@@ -353,12 +353,6 @@ func (r *ResourceManager) RetryRun(runId string) error {
 		return util.Wrap(err, "Retry run failed.")
 	}
 
-  // Update the run entry in the database first
-	err = r.runStore.UpdateRun(runId, newWorkflow.Condition(), newWorkflow.FinishedAt(), newWorkflow.ToStringForStore())
-	if err != nil {
-		return util.NewInternalServerError(err, "Retry run failed. Failed to update the workflow in the database.")
-	}
-
 	if err = deletePods(podsToDelete, newWorkflow.ObjectMeta.Namespace); err != nil {
 		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
 	}
