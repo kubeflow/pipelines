@@ -60,7 +60,7 @@ class VisualizationHandler(tornado.web.RequestHandler):
         )
         # Path of data to be used to generate visualization.
         self.requestParser.add_argument(
-            "--input_path",
+            "--source",
             type=str,
             help="Path of data to be used for generating visualization."
         )
@@ -98,8 +98,8 @@ class VisualizationHandler(tornado.web.RequestHandler):
         if arguments.type is None:
             self.send_error(400, reason="No type specified.")
             return False
-        if arguments.input_path is None:
-            self.send_error(400, reason="No input_path specified.")
+        if arguments.source is None:
+            self.send_error(400, reason="No source specified.")
             return False
 
         return True
@@ -107,7 +107,7 @@ class VisualizationHandler(tornado.web.RequestHandler):
     def generate_notebook_from_arguments(
         self,
         arguments: argparse.Namespace,
-        input_path: Text,
+        source: Text,
         visualization_type: Text
     ) -> NotebookNode:
         """Generates a NotebookNode from provided arguments.
@@ -123,7 +123,7 @@ class VisualizationHandler(tornado.web.RequestHandler):
         """
         nb = new_notebook()
         nb.cells.append(_exporter.create_cell_from_args(arguments))
-        nb.cells.append(new_code_cell('input_path = "{}"'.format(input_path)))
+        nb.cells.append(new_code_cell('source = "{}"'.format(source)))
         visualization_file = str(Path.cwd() / "{}.py".format(visualization_type))
         nb.cells.append(_exporter.create_cell_from_file(visualization_file))
         return nb
@@ -143,7 +143,7 @@ class VisualizationHandler(tornado.web.RequestHandler):
             # Create notebook with arguments from request.
             nb = self.generate_notebook_from_arguments(
                 request_arguments.arguments,
-                request_arguments.input_path,
+                request_arguments.source,
                 request_arguments.type
             )
             # Generate visualization (output for notebook).

@@ -46,8 +46,9 @@ exports[`VisualizationCreator disables all select and input fields when busy 1`]
   </WithStyles(FormControl)>
   <Component
     disabled={true}
-    label="Input Path"
+    label="Source"
     onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
     value=""
     variant="outlined"
   />
@@ -116,8 +117,9 @@ exports[`VisualizationCreator renders component when all parameters in config ar
   </WithStyles(FormControl)>
   <Component
     disabled={false}
-    label="Input Path"
+    label="Source"
     onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
     value=""
     variant="outlined"
   />
@@ -184,8 +186,9 @@ exports[`VisualizationCreator renders component when empty config is provided 1`
   </WithStyles(FormControl)>
   <Component
     disabled={false}
-    label="Input Path"
+    label="Source"
     onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
     value=""
     variant="outlined"
   />
@@ -252,8 +255,9 @@ exports[`VisualizationCreator renders component when isBusy is not provided 1`] 
   </WithStyles(FormControl)>
   <Component
     disabled={false}
-    label="Input Path"
+    label="Source"
     onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
     value=""
     variant="outlined"
   />
@@ -320,8 +324,9 @@ exports[`VisualizationCreator renders component when onGenerate is not provided 
   </WithStyles(FormControl)>
   <Component
     disabled={false}
-    label="Input Path"
+    label="Source"
     onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
     value=""
     variant="outlined"
   />
@@ -388,8 +393,9 @@ exports[`VisualizationCreator renders the provided arguments correctly 1`] = `
   </WithStyles(FormControl)>
   <Component
     disabled={false}
-    label="Input Path"
+    label="Source"
     onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
     value=""
     variant="outlined"
   />
@@ -410,7 +416,7 @@ exports[`VisualizationCreator renders the provided arguments correctly 1`] = `
 </div>
 `;
 
-exports[`VisualizationCreator renders the provided input path correctly 1`] = `
+exports[`VisualizationCreator renders the provided source correctly 1`] = `
 <div
   style={
     Object {
@@ -456,8 +462,9 @@ exports[`VisualizationCreator renders the provided input path correctly 1`] = `
   </WithStyles(FormControl)>
   <Component
     disabled={false}
-    label="Input Path"
+    label="Source"
     onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
     value="gs://ml-pipeline/data.csv"
     variant="outlined"
   />
@@ -525,8 +532,9 @@ exports[`VisualizationCreator renders the selected visualization type correctly 
   </WithStyles(FormControl)>
   <Component
     disabled={false}
-    label="Input Path"
+    label="Source"
     onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
     value=""
     variant="outlined"
   />
