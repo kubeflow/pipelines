@@ -16,15 +16,20 @@
 import gcsfs
 # itables is requires as importing it changes the way pandas DataFrames are
 # rendered.
-import itables
+import itables.interactive
+import itables.options as opts
 import pandas as pd
 
-try:
-    headers
-except NameError:
-    headers = None
+# Remove maxByte limit
+opts.maxBytes=0
 
 # Read data from file and write it to a DataFrame object.
-df = pd.read_csv(source, header=headers)
+try:
+    # If headers are provided, use them
+    df = pd.read_csv(source, header=headers)
+except NameError:
+    # If no headers are provided, use the first row as headers
+    df = pd.read_csv(source)
+
 # Display DataFrame as output.
 df
