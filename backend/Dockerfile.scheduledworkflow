@@ -17,4 +17,4 @@ COPY --from=builder /go/src/github.com/kubeflow/pipelines/third_party/license.tx
 
 ENV NAMESPACE ""
 
-CMD /bin/controller --alsologtostderr=true --namespace=${NAMESPACE}
+ENTRYPOINT ["/bin/controller", "--alsologtostderr=true", "--namespace=${NAMESPACE}"]

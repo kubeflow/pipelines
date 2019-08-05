@@ -21,4 +21,4 @@ COPY --from=builder /src/github.com/kubeflow/pipelines/third_party/license.txt /
 ENV MAX_NUM_VIEWERS "50"
 ENV NAMESPACE "kubeflow"
 
-CMD /bin/controller -alsologtostderr=true -max_num_viewers=${MAX_NUM_VIEWERS} --namespace=${NAMESPACE}
+ENTRYPOINT ["/bin/controller", "-alsologtostderr=true", "-max_num_viewers=${MAX_NUM_VIEWERS}", "--namespace=${NAMESPACE}"]

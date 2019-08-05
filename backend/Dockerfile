@@ -51,4 +51,4 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 EXPOSE 8888
 
 # Start the apiserver
-CMD apiserver --config=/config --sampleconfig=/config/sample_config.json -alsologtostderr=true
+ENTRYPOINT ["/bin/apiserver", "--config=/config", "--sampleconfig=/config/sample_config.json", "-alsologtostderr=true"]
