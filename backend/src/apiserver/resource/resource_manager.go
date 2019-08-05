@@ -352,6 +352,13 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	if err != nil {
 		return util.Wrap(err, "Retry run failed.")
 	}
+
+  // Update the run entry in the database first
+	err = r.runStore.UpdateRun(runId, newWorkflow.Condition(), newWorkflow.FinishedAt(), newWorkflow.ToStringForStore())
+	if err != nil {
+		return util.NewInternalServerError(err, "Retry run failed. Failed to update the workflow in the database.")
+	}
+
 	if err = deletePods(podsToDelete, newWorkflow.ObjectMeta.Namespace); err != nil {
 		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
 	}
@@ -360,6 +367,7 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	if err == nil {
 		return nil
 	}
+
 	// The Argo workflow might already be garbage collected.
 	// In that case, creating a new workflow will revive the run and Persistent Agent will continue
 	// Sync the status of the new workflow to the original run.
@@ -367,14 +375,13 @@ func (r *ResourceManager) RetryRun(runId string) error {
 		return util.NewInternalServerError(err, "Retry run failed. Workflow %s", newWorkflow.ToStringForStore())
 	}
 
+	// Remove resource version
+	newWorkflow.ResourceVersion = ""
 	_, err = r.workflowClient.Create(newWorkflow.Workflow)
 	if err != nil {
 		return util.NewInternalServerError(err, "Retry run failed. Failed to recover the run to the cluster and continue.")
 	}
-	err = r.runStore.UpdateRun(runId, newWorkflow.Condition(), newWorkflow.FinishedAt(), newWorkflow.ToStringForStore())
-	if err != nil {
-		return util.NewInternalServerError(err, "Retry run failed. Failed to update the workflow in the database.")
-	}
+
 	return nil
 }
 
