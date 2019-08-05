@@ -154,7 +154,7 @@ check_notebook_result() {
   ipython $1.py
   EXIT_CODE=$?
   cd ${TEST_DIR}
-  python3 check_notebook_results.py --experiment "$1-test$" --testname \
+  python3 check_notebook_results.py --experiment "$1-test" --testname \
   $1 --result ${SAMPLE_TEST_RESULT} --namespace ${NAMESPACE} \
   --exit-code ${EXIT_CODE}
 
