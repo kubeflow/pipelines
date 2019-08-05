@@ -28,6 +28,7 @@ from sagemaker.amazon.amazon_estimator import get_image_uri
 import logging
 logging.getLogger().setLevel(logging.INFO)
 
+# Mappings are extracted from the first table in https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html
 built_in_algos = {
     'blazingtext': 'blazingtext',
     'deepar forecasting': 'forecasting-deepar',
@@ -57,6 +58,7 @@ def get_client(region=None):
 
 
 def create_training_job_request(args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_training_job
     with open('/app/common/train.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
@@ -110,7 +112,9 @@ def create_training_job_request(args):
     ### Update input channels, must have at least one specified
     if len(args['channels']) > 0:
         request['InputDataConfig'] = args['channels']
-        for i in range(1, 9):
+        # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
+        #   Source: Input data configuration description in the SageMaker create training job form
+        for i in range(1, len(args['channels'] + 1)):
             if args['data_location_' + str(i)]:
                 request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
@@ -157,10 +161,19 @@ def create_training_job(client, args):
       raise Exception(e.response['Error']['Message'])
 
 
-def deploy_model(client, args):
-  endpoint_config_name = create_endpoint_config(client, args)
-  endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
-  return endpoint_name
+def wait_for_training_job(client, training_job_name):
+  while(True):
+    response = client.describe_training_job(TrainingJobName=training_job_name)
+    status = response['TrainingJobStatus']
+    if status == 'Completed':
+      logging.info("Training job ended with status: " + status)
+      break
+    if status == 'Failed':
+      message = response['FailureReason']
+      logging.info('Training failed with the following error: {}'.format(message))
+      raise Exception('Training job failed')
+    logging.info("Training job is still in status: " + status)
+    time.sleep(30)
 
 
 def get_model_artifacts_from_job(client, job_name):
@@ -181,6 +194,7 @@ def get_image_from_job(client, job_name):
 
 
 def create_model(client, args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_model
     with open('/app/common/model.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
@@ -234,7 +248,14 @@ def create_model(client, args):
     return create_model_response['ModelArn']
 
 
+def deploy_model(client, args):
+  endpoint_config_name = create_endpoint_config(client, args)
+  endpoint_name = create_endpoint(client, args['region'], args['endpoint_name'], endpoint_config_name, args['endpoint_tags'])
+  return endpoint_name
+
+
 def create_endpoint_config(client, args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint_config
     with open('/app/common/endpoint_config.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
@@ -283,6 +304,7 @@ def create_endpoint_config(client, args):
 
 
 def create_endpoint(client, region, endpoint_name, endpoint_config_name, endpoint_tags):
+  ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint
   endpoint_name = endpoint_name if endpoint_name else 'Endpoint' + endpoint_config_name[endpoint_config_name.index('-'):]
 
   ### Update tags
@@ -323,22 +345,8 @@ def wait_for_endpoint_creation(client, endpoint_name):
       raise Exception('Endpoint creation did not succeed')
 
 
-def wait_for_training_job(client, training_job_name):
-  while(True):
-    response = client.describe_training_job(TrainingJobName=training_job_name)
-    status = response['TrainingJobStatus']
-    if status == 'Completed':
-      logging.info("Training job ended with status: " + status)
-      break
-    if status == 'Failed':
-      message = response['FailureReason']
-      logging.info('Training failed with the following error: {}'.format(message))
-      raise Exception('Training job failed')
-    logging.info("Training job is still in status: " + status)
-    time.sleep(30)
-
-
 def create_transform_job_request(args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_transform_job
     with open('/app/common/transform.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
@@ -441,6 +449,7 @@ def print_tranformation_job_result(output_location):
 
 
 def create_hyperparameter_tuning_job_request(args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_hyper_parameter_tuning_job
     with open('/app/common/hpo.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
@@ -503,7 +512,9 @@ def create_hyperparameter_tuning_job_request(args):
     ### Update input channels, must have at least one specified
     if len(args['channels']) > 0:
         request['TrainingJobDefinition']['InputDataConfig'] = args['channels']
-        for i in range(1, 9):
+        # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
+        #   Source: Input data configuration description in the SageMaker create hyperparameter tuning job form
+        for i in range(1, len(args['channels'] + 1):
             if args['data_location_' + str(i)]:
                 request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
@@ -593,6 +604,7 @@ def get_best_training_job_and_hyperparameters(client, hpo_job_name):
 
 
 def create_workteam(client, args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_workteam
     """Create a workteam"""
     with open('/app/common/workteam.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
@@ -621,9 +633,11 @@ def create_workteam(client, args):
 
 
 def create_labeling_job_request(args):
+    ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_labeling_job
     with open('/app/common/gt.template.yaml', 'r') as f:
         request = yaml.safe_load(f)
 
+    # Mapping are extracted from ARNs listed in https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_labeling_job
     algorithm_arn_map = {'us-west-2': '081040173940',
               'us-east-1': '432418664414',
               'us-east-2': '266458841044',
