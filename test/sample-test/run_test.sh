@@ -273,8 +273,8 @@ elif [[ "${TEST_NAME}" == "kubeflow_pipeline_using_TFX_OSS_components" ]]; then
       KUBEFLOW_DEPLOYER_IMAGE ${KUBEFLOW_DEPLOYER_IMAGE} \
       -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv \
       -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
-      -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 KubeFlow\ Pipeline\ Using\ TFX\ OSS\ \
-      Components.ipynb notebook-tfx.ipynb
+      -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 \
+      "KubeFlow Pipeline Using TFX OSS Components.ipynb" "${TEST_NAME}.ipynb"
   else
     papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p \
     OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
@@ -284,17 +284,16 @@ elif [[ "${TEST_NAME}" == "kubeflow_pipeline_using_TFX_OSS_components" ]]; then
       -p KFP_PACKAGE /tmp/kfp.tar.gz -p DEPLOYER_MODEL ${DEPLOYER_MODEL} \
       -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv \
       -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
-      -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 KubeFlow\ Pipeline\ Using\ TFX\ OSS\ \
-      Components.ipynb notebook-tfx.ipynb
+      -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 \
+      "KubeFlow Pipeline Using TFX OSS Components.ipynb" "${TEST_NAME}.ipynb"
   fi
-
   check_notebook_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "lightweight_component" ]]; then
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p \
   PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  Lightweight\ \
-  Python\ components\ -\ basics.ipynb notebook-lightweight.ipynb
+  Python\ components\ -\ basics.ipynb "${TEST_NAME}.ipynb"
 
   check_notebook_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "dsl_static_type_checking" ]]; then
@@ -302,8 +301,8 @@ elif [[ "${TEST_NAME}" == "dsl_static_type_checking" ]]; then
   cd ${BASE_DIR}/samples/core/dsl_static_type_checking
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
-  papermill --prepare-only -p KFP_PACKAGE /tmp/kfp.tar.gz  DSL\ Static\ Type\ \
-  Checking.ipynb notebook-typecheck.ipynb
+  papermill --prepare-only -p KFP_PACKAGE /tmp/kfp.tar.gz \
+  "DSL Static Type Checking.ipynb" "${TEST_NAME}.ipynb"
 
   check_notebook_result ${TEST_NAME}
 fi
