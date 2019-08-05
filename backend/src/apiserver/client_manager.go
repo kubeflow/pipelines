@@ -145,10 +145,13 @@ func (c *ClientManager) init() {
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
 
-	_, err := c.db.Exec("DROP DATABASE IF EXISTS mlmetadata")
-	if err != nil {
-		glog.Fatalf("Failed to drop ML Metadata table: %s", err)
+  if *dropMLMDDB {
+		_, err := c.db.Exec("DROP DATABASE IF EXISTS mlmetadata")
+		if err != nil {
+			glog.Fatalf("Failed to drop ML Metadata table: %s", err)
+		}
 	}
+
 	metadataStore := initMetadataStore()
 	runStore := storage.NewRunStore(db, c.time, metadataStore)
 	c.runStore = runStore

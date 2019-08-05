@@ -45,6 +45,7 @@ var (
 	httpPortFlag     = flag.String("httpPortFlag", ":8888", "Http Proxy Port")
 	configPath       = flag.String("config", "", "Path to JSON file containing config")
 	sampleConfigPath = flag.String("sampleconfig", "", "Path to samples")
+	dropMLMDDB       = flag.Bool("drop_mlmd_db", false, "Whether to drop MLMD DB at start up.")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
