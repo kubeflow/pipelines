@@ -24,6 +24,7 @@ import tarfile
 from pathlib import Path
 import inspect
 from collections import OrderedDict
+from typing import NamedTuple
 
 class TestVersionedDependency(unittest.TestCase):
 
@@ -128,6 +129,12 @@ def sample_component_func_two(a: str, b: int) -> float:
 def sample_component_func_three() -> float:
   return 1.0
 
+def sample_component_func_four() -> NamedTuple(
+    'output', [('a', float), ('b', str)]):
+  from collections import namedtuple
+  output = namedtuple('output', ['a', 'b'])
+  return output(1.0, 'test')
+
 class TestGenerator(unittest.TestCase):
   def test_generate_dockerfile(self):
     """ Test generate dockerfile """
@@ -198,7 +205,7 @@ kubernetes >= 0.6.0
     self.assertEqual(target_payload, golden_payload)
     os.remove(temp_file)
 
-  def test_generate_entrypoint(self):
+  def test_func_to_entrypoint(self):
     """ Test entrypoint generation """
 
     # prepare
@@ -281,7 +288,34 @@ if __name__ == "__main__":
 '''
     self.assertEqual(golden, generated_codes)
 
-  def test_generate_entrypoint_python2(self):
+    generated_codes = _func_to_entrypoint(component_func=sample_component_func_four)
+    golden = '''\
+from typing import NamedTuple
+def sample_component_func_four() -> NamedTuple(
+    'output', [('a', float), ('b', str)]):
+  from collections import namedtuple
+  output = namedtuple('output', ['a', 'b'])
+  return output(1.0, 'test')
+
+def wrapper_sample_component_func_four(_output_files):
+  outputs = sample_component_func_four()
+  import os
+  for _output_file, output in zip(_output_files, outputs):
+    os.makedirs(os.path.dirname(_output_file))
+    with open(_output_file, "w") as data:
+      data.write(str(output))
+
+import argparse
+parser = argparse.ArgumentParser(description="Parsing arguments")
+parser.add_argument("_output_files", type=str, nargs=2)
+args = vars(parser.parse_args())
+
+if __name__ == "__main__":
+  wrapper_sample_component_func_four(**args)
+'''
+    self.assertEqual(golden, generated_codes)
+
+  def test_func_to_entrypoint_python2(self):
     """ Test entrypoint generation for python2"""
 
     # prepare

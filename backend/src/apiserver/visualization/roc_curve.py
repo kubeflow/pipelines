@@ -29,7 +29,7 @@ from tensorflow.python.lib.io import file_io
 # API post request.
 #
 # is_generated
-# input_path
+# source
 # target_lambda
 # trueclass
 # true_score_column
@@ -38,12 +38,12 @@ if is_generated is False:
     # Create data from specified csv file(s).
     # The schema file provides column names for the csv file that will be used
     # to generate the roc curve.
-    schema_file = Path(input_path) / 'schema.json'
+    schema_file = Path(source) / 'schema.json'
     schema = json.loads(file_io.read_file_to_string(schema_file))
     names = [x['name'] for x in schema]
 
     dfs = []
-    files = file_io.get_matching_files(input_path)
+    files = file_io.get_matching_files(source)
     for f in files:
         dfs.append(pd.read_csv(f, names=names))
 
@@ -57,7 +57,7 @@ if is_generated is False:
 else:
     # Load data from generated csv file.
     source = pd.read_csv(
-        input_path,
+        source,
         header=None,
         names=['fpr', 'tpr', 'thresholds']
     )
