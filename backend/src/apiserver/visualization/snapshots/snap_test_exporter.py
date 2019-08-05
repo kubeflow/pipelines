@@ -7,13 +7,13 @@ from snapshottest import Snapshot
 
 snapshots = Snapshot()
 
-snapshots['TestExporterMethods::test_create_cell_from_args_with_multiple_args 1'] = '''input_path = "gs://ml-pipeline/data.csv"
+snapshots['TestExporterMethods::test_create_cell_from_args_with_multiple_args 1'] = '''source = "gs://ml-pipeline/data.csv"
 target_lambda = "lambda x: (x[\'target\'] > x[\'fare\'] * 0.2)"
 '''
 
 snapshots['TestExporterMethods::test_create_cell_from_args_with_no_args 1'] = ''
 
-snapshots['TestExporterMethods::test_create_cell_from_args_with_one_arg 1'] = '''input_path = "gs://ml-pipeline/data.csv"
+snapshots['TestExporterMethods::test_create_cell_from_args_with_one_arg 1'] = '''source = "gs://ml-pipeline/data.csv"
 '''
 
 snapshots['TestExporterMethods::test_create_cell_from_file 1'] = '''# Copyright 2019 Google LLC
@@ -36,9 +36,9 @@ import tensorflow_data_validation as tfdv
 # variables come from the specified input path and arguments provided by the
 # API post request.
 #
-# input_path
+# source
 
-train_stats = tfdv.generate_statistics_from_csv(data_location=input_path)
+train_stats = tfdv.generate_statistics_from_csv(data_location=source)
 
 tfdv.visualize_statistics(train_stats)
 '''

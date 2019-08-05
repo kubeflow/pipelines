@@ -34,14 +34,14 @@ class TestExporterMethods(snapshottest.TestCase):
 
     def test_create_cell_from_args_with_one_arg(self):
         self.maxDiff = None
-        args = '{"input_path": "gs://ml-pipeline/data.csv"}'
+        args = '{"source": "gs://ml-pipeline/data.csv"}'
         cell = self.exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_args_with_multiple_args(self):
         self.maxDiff = None
         args = (
-            '{"input_path": "gs://ml-pipeline/data.csv", '
+            '{"source": "gs://ml-pipeline/data.csv", '
             "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * 0.2)\"}"
         )
         cell = self.exporter.create_cell_from_args(args)
