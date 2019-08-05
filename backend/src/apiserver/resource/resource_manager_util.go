@@ -116,7 +116,7 @@ func toParametersMap(apiParams []*api.Parameter) map[string]string {
 	return desiredParamsMap
 }
 
-func formulateRetryWorkflow(wf *wfv1.Workflow) (*wfv1.Workflow, []string, error) {
+func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error) {
 	switch wf.Status.Phase {
 	case wfv1.NodeFailed, wfv1.NodeError:
 		break
@@ -167,7 +167,7 @@ func formulateRetryWorkflow(wf *wfv1.Workflow) (*wfv1.Workflow, []string, error)
 			podsToDelete = append(podsToDelete, node.ID)
 		}
 	}
-	return newWF, podsToDelete, nil
+	return util.NewWorkflow(newWF), podsToDelete, nil
 }
 
 func deletePods(podsToDelete []string, namespace string) error {
