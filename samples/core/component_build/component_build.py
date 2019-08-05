@@ -24,7 +24,7 @@ def process_args():
   """Define arguments and assign default values to the ones that are not set.
 
   Returns:
-    args: The parsed namespace with defaults assigned to the flags.
+    parsed_args: The parsed namespace with defaults assigned to the flags.
   """
 
   parser = argparse.ArgumentParser(
@@ -42,21 +42,33 @@ def process_args():
       '--container_repo',
       default=None,
       required=True,
-      help='Repo path ex. gcr/oi/projecID/ for output of component build.')
-  args, _ = parser.parse_known_args()
-  return args
+      help='Repo path ex. gcr.oi/projecID for output of component build.')
+  parsed_args, _ = parser.parse_known_args()
+  return parsed_args
 
 
-@dsl.python_component(
-    name='add_op',
-    description='adds two numbers',
-)
+args = process_args()
+
+
 def add(a: float, b: float) -> float:
   """Calculates sum of two arguments."""
   print('Adding two values %s and %s' %(a, b))
   return a + b
 
-add_op = None
+
+# Using the build component to create a new docker image with add func code.
+add_op = compiler.build_python_component(
+    component_func=add,
+    staging_gcs_path=args.output_path,
+    # You can add additional dependencies to the image.
+    dependency=[kfp.compiler.VersionedDependency(
+        name='google-api-python-client', version='1.7.0')],
+    base_image='python:alpine3.6',
+    target_image= ''.join([
+        args.container_repo,
+        '/',
+        args.target_image
+        ]))
 
 
 @dsl.pipeline(
@@ -67,26 +79,4 @@ def component_build_pipeline(var1=1.0, var2=2.0):
   add_task = add_op(var1, var2)
 
 
-def main():
-  args = process_args()
-
-  # Using the build component to create a new docker image with add func code
-  global add_op
-  add_op = compiler.build_python_component(
-      component_func=add,
-      staging_gcs_path=args.output_path,
-      # You can add add3 tional dependencies to the image
-      dependency=[kfp.compiler.VersionedDependency(
-          name='google-api-python-client', version='1.7.0')],
-      base_image='python:alpine3.6',
-      target_image= ''.join([
-          args.container_repo,
-          '/',
-          args.target_image
-          ]))
-
-  kfp.compiler.Compiler().compile(component_build_pipeline, __file__ + '.zip')
-
-
-if __name__ == '__main__':
-  main()
+kfp.compiler.Compiler().compile(component_build_pipeline, __file__ + '.zip')
