@@ -6,6 +6,7 @@ inputs:
     description: 'The region where the cluster launches.'
   - name: job_name
     description: 'The name of the tuning job. Must be unique within the same AWS account and AWS region.'
+    default: ''
   - name: role
     description: 'The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.'
   - name: image
@@ -44,10 +45,6 @@ inputs:
     default: '[]'
   - name: channels
     description: 'A list of dicts specifying the input channels. Must have at least one.'
-    default: '[{}]'
-  - name: shuffle_config_seed_8
-    description: 'Determines the shuffling order.'
-    default: '0'
   - name: output_location
     description: 'The Amazon S3 path where you want Amazon SageMaker to store the model artifacts is from the best training job.'
   - name: output_encryption_key
@@ -100,9 +97,11 @@ outputs:
     description: 'Best training job in the hyperparameter tuning job'
   - name: best_hyperparameters
     description: 'Tuned hyperparameters'
+  - name: training_image
+    description: 'The registry path of the Docker image that contains the training algorithm'
 implementation:
   container:
-    image: carowang/kfp-aws-sm-hpo:20190719-01
+    image: carowang/kubeflow-pipeline-aws-sm:20190728-01
     command: ['python']
     args: [
       hyperparameter_tuning.py,
@@ -143,3 +142,4 @@ implementation:
       model_artifact_url: /tmp/model_artifact_url.txt
       best_job_name: /tmp/best_job_name.txt
       best_hyperparameters: /tmp/best_hyperparameters.txt
+      training_image: /tmp/training_image.txt

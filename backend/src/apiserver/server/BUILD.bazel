@@ -14,6 +14,7 @@ go_library(
         "run_server.go",
         "test_util.go",
         "util.go",
+        "visualization_server.go",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/server",
     visibility = ["//visibility:public"],
@@ -50,6 +51,7 @@ go_test(
         "run_metric_util_test.go",
         "run_server_test.go",
         "util_test.go",
+        "visualization_server_test.go",
     ],
     data = glob(["test/**/*"]),  # keep
     embed = [":go_default_library"],

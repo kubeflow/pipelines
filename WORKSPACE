@@ -50,8 +50,8 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 
 go_repository(
     name = "google_ml_metadata",
-    commit = "0fb82dc56ff7",
     importpath = "github.com/google/ml-metadata",
+    tag = "v0.13.2",
 )
 
 new_git_repository(
