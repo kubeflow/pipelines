@@ -139,7 +139,7 @@ spec:
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
-            value: "exithandler"
+            value: "exit_handler"
       - name: run-sequential-tests
         template: run-basic-e2e-tests
         arguments:
@@ -163,7 +163,7 @@ spec:
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
-            value: "paralleljoin"
+            value: "parallel_join"
       - name: run-recursive-tests
         template: run-basic-e2e-tests
         arguments:

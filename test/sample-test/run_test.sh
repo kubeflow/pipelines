@@ -260,7 +260,7 @@ elif [[ "${TEST_NAME}" == "kubeflow_pipeline_using_TFX_OSS_components" ]]; then
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
-    papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p OUTPUT_DIR \
+    papermill --prepare-only -p EXPERIMENT_NAME "${TEST_NAME}-test" -p OUTPUT_DIR \
     ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
       -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE \
       ${TARGET_IMAGE_PREFIX}pusher:dev -p TARGET_IMAGE_TWO \
@@ -276,7 +276,7 @@ elif [[ "${TEST_NAME}" == "kubeflow_pipeline_using_TFX_OSS_components" ]]; then
       -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 \
       "KubeFlow Pipeline Using TFX OSS Components.ipynb" "${TEST_NAME}.ipynb"
   else
-    papermill --prepare-only -p EXPERIMENT_NAME notebook-tfx-test -p \
+    papermill --prepare-only -p EXPERIMENT_NAME "${TEST_NAME}-test" -p \
     OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
       -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE \
       ${TARGET_IMAGE_PREFIX}pusher:dev -p TARGET_IMAGE_TWO \
@@ -291,9 +291,9 @@ elif [[ "${TEST_NAME}" == "kubeflow_pipeline_using_TFX_OSS_components" ]]; then
 elif [[ "${TEST_NAME}" == "lightweight_component" ]]; then
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
-  papermill --prepare-only -p EXPERIMENT_NAME notebook-lightweight -p \
-  PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  Lightweight\ \
-  Python\ components\ -\ basics.ipynb "${TEST_NAME}.ipynb"
+  papermill --prepare-only -p EXPERIMENT_NAME "${TEST_NAME}-test" -p \
+  PROJECT_NAME ml-pipeline-test -p KFP_PACKAGE /tmp/kfp.tar.gz  "Lightweight Python components - basics.ipynb" \
+  "${TEST_NAME}.ipynb"
 
   check_notebook_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "dsl_static_type_checking" ]]; then
