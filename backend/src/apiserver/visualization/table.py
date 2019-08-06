@@ -14,22 +14,32 @@
 
 # gcsfs is required for pandas GCS integration.
 import gcsfs
+from itables import show
 # itables is requires as importing it changes the way pandas DataFrames are
 # rendered.
 import itables.interactive
 import itables.options as opts
 import pandas as pd
+from tensorflow.python.lib.io import file_io
 
 # Remove maxByte limit
-opts.maxBytes=0
+opts.maxBytes = 0
+
+dfs = []
+files = file_io.get_matching_files(source)
 
 # Read data from file and write it to a DataFrame object.
-try:
-    # If headers are provided, use them
-    df = pd.read_csv(source, header=headers)
-except NameError:
+if variables['headers'] is not None:
+    # If headers are provided, do not set headers for DataFrames
+    for f in files:
+        dfs.append(pd.read_csv(f, header=None))
+else:
     # If no headers are provided, use the first row as headers
-    df = pd.read_csv(source)
+    for f in files:
+        dfs.append(pd.read_csv(f))
 
 # Display DataFrame as output.
-df
+df = pd.concat(dfs)
+if variables['headers'] is not None:
+    df.columns = variables['headers']
+show(df)
