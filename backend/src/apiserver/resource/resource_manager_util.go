@@ -24,8 +24,7 @@ import (
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"regexp"
 	"strings"
 	"time"
@@ -170,18 +169,9 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 	return util.NewWorkflow(newWF), podsToDelete, nil
 }
 
-func deletePods(podsToDelete []string, namespace string) error {
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to delete pods.")
-	}
-
-	clientSet, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to delete pods.")
-	}
+func deletePods(podClient corev1.PodInterface, podsToDelete []string, namespace string) error {
 	for _, podId := range podsToDelete {
-		err := clientSet.CoreV1().Pods(namespace).Delete(podId, &metav1.DeleteOptions{})
+		err := podClient.Delete(podId, &metav1.DeleteOptions{})
 		if err != nil && !apierr.IsNotFound(err) {
 			return util.NewInternalServerError(err, "Failed to delete pods.")
 		}

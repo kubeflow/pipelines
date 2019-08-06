@@ -17,6 +17,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"strconv"
 	"time"
@@ -65,6 +66,7 @@ type ClientManager struct {
 	objectStore            storage.ObjectStoreInterface
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
+	podClient 						 v1.PodInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 
@@ -111,6 +113,10 @@ func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWor
 	return c.swfClient
 }
 
+func (c *ClientManager) PodClient() v1.PodInterface {
+	return c.podClient
+}
+
 func (c *ClientManager) Time() util.TimeInterface {
 	return c.time
 }
@@ -143,6 +149,9 @@ func (c *ClientManager) init() {
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
+		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+
+	c.podClient = client.CreatePodClientOrFatal(
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
 
 	metadataStore := initMetadataStore()

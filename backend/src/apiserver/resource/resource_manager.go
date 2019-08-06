@@ -34,6 +34,8 @@ import (
 	"github.com/pkg/errors"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -48,6 +50,7 @@ type ClientManagerInterface interface {
 	ObjectStore() storage.ObjectStoreInterface
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
+	PodClient() corev1.PodInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
 }
@@ -63,6 +66,7 @@ type ResourceManager struct {
 	objectStore             storage.ObjectStoreInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
+	podClient               corev1.PodInterface
 	time                    util.TimeInterface
 	uuid                    util.UUIDGeneratorInterface
 }
@@ -79,6 +83,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
+		podClient:               clientManager.PodClient(),
 		time:                    clientManager.Time(),
 		uuid:                    clientManager.UUID(),
 	}
@@ -348,14 +353,14 @@ func (r *ResourceManager) RetryRun(runId string) error {
 		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
 	}
 
-	newWorkflow, podsToDelete, err := formulateRetryWorkflow(&workflow)
+	newWorkflow, _, err := formulateRetryWorkflow(&workflow)
 	if err != nil {
 		return util.Wrap(err, "Retry run failed.")
 	}
-
-	if err = deletePods(podsToDelete, newWorkflow.ObjectMeta.Namespace); err != nil {
-		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
-	}
+	//
+	//if err = deletePods(r.podClient, podsToDelete, newWorkflow.ObjectMeta.Namespace); err != nil {
+	//	return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
+	//}
 
 	_, err = r.workflowClient.Update(newWorkflow.Workflow)
 	if err == nil {
