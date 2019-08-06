@@ -17,9 +17,10 @@ converting those objects to HTML.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
+import uuid
 from enum import Enum
 import json
+import os
 from pathlib import Path
 from typing import Text
 from jupyter_client import KernelManager
@@ -90,27 +91,38 @@ class Exporter:
         )
 
     @staticmethod
-    def create_cell_from_args(args: argparse.Namespace) -> NotebookNode:
-        """Creates a NotebookNode object with provided arguments as variables.
+    def create_cell_from_args(variables: dict) -> NotebookNode:
+        """Creates NotebookNode object that loads provided variables from JSON.
+
+        Provided dict is saved to file. It is then loaded by the returned
+        NotebookNode to be used for visualization generation.
 
         Args:
-            args: Arguments that need to be injected into a NotebookNode.
+            variables: Arguments that need to be injected into a NotebookNode.
 
         Returns:
             NotebookNode with provided arguments as variables.
 
         """
-        variables = ""
-        args = json.loads(args)
-        for key in sorted(args.keys()):
-            # Check type of variable to maintain type when converting from JSON
-            # to notebook cell
-            if args[key] is None or isinstance(args[key], bool):
-                variables += "{} = {}\n".format(key, args[key])
-            else:
-                variables += '{} = "{}"\n'.format(key, args[key])
+        # Generates random file name to ensure variables for visualization are
+        # not overwritten by future visualizations.
+        file_name = "variables-{}.json".format(uuid.uuid4())
+        if os.path.exists(file_name):
+            os.remove(file_name)
+        with open(file_name, "w") as f:
+            json.dump(variables, f)
 
-        return new_code_cell(variables)
+        return new_code_cell("""
+        import json
+        import os
+        
+        variables = dict()
+        
+        with open("{}", "r") as f:
+            variables = json.load(f)
+        
+        os.remove("{}")
+        """.format(file_name, file_name))
 
     @staticmethod
     def create_cell_from_file(filepath: Text) -> NotebookNode:
