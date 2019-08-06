@@ -224,6 +224,11 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	workflow.OverrideParameters(parameters)
 	// Add label to the workflow so it can be persisted by persistent agent later.
 	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
+	// Replace {{workflow.uid}} with runId
+	err = workflow.ReplaceUID(runId)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
+	}
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
@@ -345,22 +350,25 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 func (r *ResourceManager) RetryRun(runId string) error {
 	runDetail, err := r.checkRunExist(runId)
 	if err != nil {
-		return util.NewInvalidInputError("Run %s does not exist", runId)
+		return util.Wrap(err, "Retry run failed")
 	}
 
+	if runDetail.WorkflowRuntimeManifest == "" {
+		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
+	}
 	var workflow util.Workflow
 	if err := json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &workflow); err != nil {
 		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
 	}
 
-	newWorkflow, _, err := formulateRetryWorkflow(&workflow)
+	newWorkflow, podsToDelete, err := formulateRetryWorkflow(&workflow)
 	if err != nil {
 		return util.Wrap(err, "Retry run failed.")
 	}
-	//
-	//if err = deletePods(r.podClient, podsToDelete, newWorkflow.ObjectMeta.Namespace); err != nil {
-	//	return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
-	//}
+
+	if err = deletePods(r.podClient, podsToDelete, newWorkflow.ObjectMeta.Namespace); err != nil {
+		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
+	}
 
 	_, err = r.workflowClient.Update(newWorkflow.Workflow)
 	if err == nil {
@@ -370,7 +378,7 @@ func (r *ResourceManager) RetryRun(runId string) error {
 	// The Argo workflow might already be garbage collected.
 	// In that case, creating a new workflow will revive the run and Persistent Agent will continue
 	// Sync the status of the new workflow to the original run.
-	if !apierr.IsNotFound(err) && apierr.IsInvalid(err) {
+	if !apierr.IsNotFound(err) && !apierr.IsInvalid(err) {
 		return util.NewInternalServerError(err, "Retry run failed. Workflow %s", newWorkflow.ToStringForStore())
 	}
 

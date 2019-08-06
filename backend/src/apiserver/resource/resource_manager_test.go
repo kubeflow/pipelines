@@ -124,6 +124,33 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 	return store, manager, runDetail
 }
 
+func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
+	store, manager, exp := initWithExperiment(t)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	runDetail, err := manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	updatedWorkflow.Status.Phase = v1alpha1.NodeFailed
+	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
+	manager.ReportWorkflowResource(updatedWorkflow)
+	return store, manager, runDetail
+}
+
 func createPipeline(name string) *model.Pipeline {
 	return &model.Pipeline{Name: name, Status: model.PipelineReady}
 }
@@ -577,6 +604,47 @@ func TestTerminateRun_DbFailure(t *testing.T) {
 	err := manager.TerminateRun(runDetail.UUID)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestRetryRun(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	actualRunDetail, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Contains(t, actualRunDetail.WorkflowRuntimeManifest, "Failed")
+
+	err = manager.RetryRun(runDetail.UUID)
+	assert.Nil(t, err)
+}
+
+func TestRetryRun_RunNotExist(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	err := manager.RetryRun("1")
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestRetryRun_FailedDeletePods(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	manager.podClient = FakeBadPodClient{}
+	err := manager.RetryRun(runDetail.UUID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "failed to delete pod")
+}
+
+func TestRetryRun_UpdateFailed(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	manager.workflowClient = &FakeBadWorkflowClient{}
+	err := manager.RetryRun(runDetail.UUID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "failed to update")
 }
 
 func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
