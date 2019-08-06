@@ -38,7 +38,7 @@ workteam_arn | ARN of the workteam
 
 # Samples
 ## In a pipeline with Ground Truth and training
-Mini image classification: [Demo](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/ground_truth_pipeline_demo/)
+Mini image classification: [Demo](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/ground_truth_pipeline_demo)
 
 # References
 * [Managing a private workforce](https://docs.aws.amazon.com/sagemaker/latest/dg/sms-workforce-management-private.html)
