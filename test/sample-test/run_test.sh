@@ -197,20 +197,9 @@ echo "Run the sample tests..."
 preparation ${TEST_NAME}
 
 if [[ "${TEST_NAME}" == "kubeflow-training-classification" ]]; then
-  #TODO: convert the sed commands to sed -e 's|gcr.io/ml-pipeline/|gcr.io/
-  # ml-pipeline-test/' and tag replacement.
-  # Compile samples.
-
-  if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" \
-    kubeflow_training_classification.py
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" \
-    kubeflow-training-classification.py
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" \
-    kubeflow-training-classification.py
-    sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" \
-    kubeflow-training-classification.py
-  fi
+  #TODO(numerology): convert the sed commands to sed -e
+  # 's|gcr.io/ml-pipeline/|gcr.io/ml-pipeline-test/' and tag replacement. Also
+  # let the postsubmit tests refer to yaml files.
 
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   check_result ${TEST_NAME}
