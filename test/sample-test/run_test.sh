@@ -151,7 +151,7 @@ check_result() {
 check_notebook_result() {
   jupyter nbconvert --to python $1.ipynb
   pip3 install tensorflow==1.8.0
-  python3 $1.py
+  ipython $1.py
   EXIT_CODE=$?
   cd ${TEST_DIR}
 
@@ -170,8 +170,6 @@ check_notebook_result() {
   gsutil cp ${SAMPLE_TEST_RESULT} ${RESULTS_GCS_DIR}/${SAMPLE_TEST_RESULT}
   # Need to make sure CMLE models are cleaned inside the notebook.
 }
-
-
 
 if [[ -z "$RESULTS_GCS_DIR" ]]; then
   usage
@@ -266,6 +264,7 @@ elif [[ "${TEST_NAME}" == "kubeflow_pipeline_using_TFX_OSS_components" ]]; then
   DEPLOYER_MODEL=`cat /proc/sys/kernel/random/uuid`
   DEPLOYER_MODEL=Notebook_tfx_taxi_`echo ${DEPLOYER_MODEL//-/_}`
 
+  cd ${BASE_DIR}/samples/core/kubeflow_pipeline_using_TFX_OSS_components
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
@@ -306,6 +305,8 @@ elif [[ "${TEST_NAME}" == "lightweight_component" ]]; then
 
   check_notebook_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "dsl_static_type_checking" ]]; then
+
+  cd ${BASE_DIR}/samples/core/dsl_static_type_checking
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   papermill --prepare-only -p KFP_PACKAGE /tmp/kfp.tar.gz \
