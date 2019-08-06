@@ -5,7 +5,7 @@ from kfp import components
 from kfp import dsl
 from kfp.aws import use_aws_secret
 
-sagemaker_hpo_op = components.load_component_from_file('../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml')
+sagemaker_hpo_op = components.load_component_from_file('../../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml')
 
 @dsl.pipeline(
     name='MNIST HPO test pipeline',

@@ -12,26 +12,18 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
     >
       Run details
     </div>
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={true}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-        />
-      }
-      label="Use pipeline from previous step"
-      onChange={[Function]}
-    />
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={false}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-        />
-      }
-      label="Select a pipeline from list"
-      onChange={[Function]}
-    />
+    <div>
+      <span>
+        Using pipeline from previous page
+         
+      </span>
+      <Link
+        replace={false}
+        to="/pipelines/details/?fromRun=some-mock-run-id"
+      >
+        [View pipeline]
+      </Link>
+    </div>
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -132,7 +124,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                         "href": "/experiments",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -258,7 +250,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                         "href": "/experiments",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -355,20 +347,17 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      This pipeline has no parameters
-    </div>
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={Array []}
+      titleMessage="This pipeline has no parameters"
+    />
     <div
       className="flex"
     >
@@ -548,7 +537,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -678,7 +667,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -775,20 +764,17 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      Parameters will appear after you select a pipeline
-    </div>
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={Array []}
+      titleMessage="Parameters will appear after you select a pipeline"
+    />
     <div
       className="flex"
     >
@@ -968,7 +954,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
                 Array [
@@ -1103,7 +1089,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
                 Array [
@@ -1205,9 +1191,9 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
@@ -1222,14 +1208,11 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
     <Trigger
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      Parameters will appear after you select a pipeline
-    </div>
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={Array []}
+      titleMessage="Parameters will appear after you select a pipeline"
+    />
     <div
       className="flex"
     >
@@ -1638,20 +1621,17 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      Parameters will appear after you select a pipeline
-    </div>
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={Array []}
+      titleMessage="Parameters will appear after you select a pipeline"
+    />
     <div
       className="flex"
     >
@@ -1678,846 +1658,6 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       >
         A pipeline must be selected
       </div>
-    </div>
-  </div>
-</div>
-`;
-
-exports[`NewRun cloning from a run shows pipeline selector when switching from embedded pipeline to select pipeline 1`] = `
-<div
-  className="page"
->
-  <div
-    className="scrollContainer"
-  >
-    <div
-      className="header"
-    >
-      Run details
-    </div>
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={false}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-        />
-      }
-      label="Use pipeline from cloned run"
-      onChange={[Function]}
-    />
-    <Link
-      replace={false}
-      to="/pipelines/details/?fromRun=some-mock-run-id"
-    >
-      [View pipeline]
-    </Link>
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={true}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-        />
-      }
-      label="Select a pipeline from list"
-      onChange={[Function]}
-    />
-    <Component
-      InputProps={
-        Object {
-          "classes": Object {
-            "disabled": "nonEditableInput",
-          },
-          "endAdornment": <WithStyles(InputAdornment)
-            position="end"
-          >
-            <WithStyles(Button)
-              color="secondary"
-              id="choosePipelineBtn"
-              onClick={[Function]}
-              style={
-                Object {
-                  "margin": 0,
-                  "padding": "3px 5px",
-                }
-              }
-            >
-              Choose
-            </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
-          "readOnly": true,
-        }
-      }
-      disabled={true}
-      label="Pipeline"
-      required={true}
-      value=""
-      variant="outlined"
-    />
-    <WithStyles(Dialog)
-      PaperProps={
-        Object {
-          "id": "pipelineSelectorDialog",
-        }
-      }
-      classes={
-        Object {
-          "paper": "selectorDialog",
-        }
-      }
-      onClose={[Function]}
-      open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "flex": 1,
-                "label": "Pipeline name",
-                "sortKey": "name",
-              },
-              Object {
-                "flex": 1.5,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Uploaded on",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
-          history={
-            Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?cloneFromRun=some-mock-run-id",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose a pipeline"
-          toolbarProps={
-            Object {
-              "actions": Array [],
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Array [],
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Array [],
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-              ],
-            }
-          }
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelPipelineSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="usePipelineBtn"
-          onClick={[Function]}
-        >
-          Use this pipeline
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
-    <WithStyles(Dialog)
-      PaperProps={
-        Object {
-          "id": "experimentSelectorDialog",
-        }
-      }
-      classes={
-        Object {
-          "paper": "selectorDialog",
-        }
-      }
-      onClose={[Function]}
-      open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "flex": 1,
-                "label": "Experiment name",
-                "sortKey": "name",
-              },
-              Object {
-                "flex": 1.5,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Created at",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
-          history={
-            Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?cloneFromRun=some-mock-run-id",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose an experiment"
-          toolbarProps={
-            Object {
-              "actions": Array [],
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Array [],
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Array [],
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-              ],
-            }
-          }
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelExperimentSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="useExperimentBtn"
-          onClick={[Function]}
-        >
-          Use this experiment
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
-    <Component
-      autoFocus={true}
-      label="Run name"
-      onChange={[Function]}
-      required={true}
-      value="Clone of some mock run name"
-      variant="outlined"
-    />
-    <Component
-      label="Description (optional)"
-      multiline={true}
-      onChange={[Function]}
-      value=""
-      variant="outlined"
-    />
-    <div>
-      This run will be associated with the following experiment
-    </div>
-    <Component
-      InputProps={
-        Object {
-          "classes": Object {
-            "disabled": "nonEditableInput",
-          },
-          "endAdornment": <WithStyles(InputAdornment)
-            position="end"
-          >
-            <WithStyles(Button)
-              color="secondary"
-              id="chooseExperimentBtn"
-              onClick={[Function]}
-              style={
-                Object {
-                  "margin": 0,
-                  "padding": "3px 5px",
-                }
-              }
-            >
-              Choose
-            </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
-          "readOnly": true,
-        }
-      }
-      disabled={true}
-      label="Experiment"
-      required={true}
-      value=""
-      variant="outlined"
-    />
-    <div
-      className="header"
-    >
-      Run Type
-    </div>
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={true}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-        />
-      }
-      id="oneOffToggle"
-      label="One-off"
-      onChange={[Function]}
-    />
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={false}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-          id="recurringToggle"
-        />
-      }
-      label="Recurring"
-      onChange={[Function]}
-    />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      Parameters will appear after you select a pipeline
-    </div>
-    <div
-      className="flex"
-    >
-      <BusyButton
-        busy={false}
-        className="buttonAction"
-        disabled={false}
-        id="startNewRunBtn"
-        onClick={[Function]}
-        title="Start"
-      />
-      <WithStyles(Button)
-        id="exitNewRunPageBtn"
-        onClick={[Function]}
-      >
-        Cancel
-      </WithStyles(Button)>
-      <div
-        style={
-          Object {
-            "color": "red",
-          }
-        }
-      />
-    </div>
-  </div>
-</div>
-`;
-
-exports[`NewRun cloning from a run shows switching controls when run has embedded pipeline, selects that pipeline by default, and hides pipeline selector 1`] = `
-<div
-  className="page"
->
-  <div
-    className="scrollContainer"
-  >
-    <div
-      className="header"
-    >
-      Run details
-    </div>
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={true}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-        />
-      }
-      label="Use pipeline from cloned run"
-      onChange={[Function]}
-    />
-    <Link
-      replace={false}
-      to="/pipelines/details/?fromRun=some-mock-run-id"
-    >
-      [View pipeline]
-    </Link>
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={false}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-        />
-      }
-      label="Select a pipeline from list"
-      onChange={[Function]}
-    />
-    <WithStyles(Dialog)
-      PaperProps={
-        Object {
-          "id": "pipelineSelectorDialog",
-        }
-      }
-      classes={
-        Object {
-          "paper": "selectorDialog",
-        }
-      }
-      onClose={[Function]}
-      open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "flex": 1,
-                "label": "Pipeline name",
-                "sortKey": "name",
-              },
-              Object {
-                "flex": 1.5,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Uploaded on",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No pipelines found. Upload a pipeline and then try again."
-          filterLabel="Filter pipelines"
-          history={
-            Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?cloneFromRun=some-mock-run-id",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose a pipeline"
-          toolbarProps={
-            Object {
-              "actions": Array [],
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Array [],
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Array [],
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-              ],
-            }
-          }
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelPipelineSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="usePipelineBtn"
-          onClick={[Function]}
-        >
-          Use this pipeline
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
-    <WithStyles(Dialog)
-      PaperProps={
-        Object {
-          "id": "experimentSelectorDialog",
-        }
-      }
-      classes={
-        Object {
-          "paper": "selectorDialog",
-        }
-      }
-      onClose={[Function]}
-      open={false}
-    >
-      <WithStyles(DialogContent)>
-        <ResourceSelector
-          columns={
-            Array [
-              Object {
-                "flex": 1,
-                "label": "Experiment name",
-                "sortKey": "name",
-              },
-              Object {
-                "flex": 1.5,
-                "label": "Description",
-              },
-              Object {
-                "flex": 1,
-                "label": "Created at",
-                "sortKey": "created_at",
-              },
-            ]
-          }
-          emptyMessage="No experiments found. Create an experiment and then try again."
-          filterLabel="Filter experiments"
-          history={
-            Object {
-              "push": [MockFunction],
-              "replace": [MockFunction],
-            }
-          }
-          initialSortColumn="created_at"
-          listApi={[Function]}
-          location={
-            Object {
-              "pathname": "/runs/new",
-              "search": "?cloneFromRun=some-mock-run-id",
-            }
-          }
-          match=""
-          selectionChanged={[Function]}
-          title="Choose an experiment"
-          toolbarProps={
-            Object {
-              "actions": Array [],
-              "breadcrumbs": Array [
-                Object {
-                  "displayName": "Experiments",
-                  "href": "/experiments",
-                },
-              ],
-              "pageTitle": "Start a new run",
-            }
-          }
-          updateBanner={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {},
-                ],
-              ],
-            }
-          }
-          updateDialog={[MockFunction]}
-          updateSnackbar={[MockFunction]}
-          updateToolbar={
-            [MockFunction] {
-              "calls": Array [
-                Array [
-                  Object {
-                    "actions": Array [],
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-                Array [
-                  Object {
-                    "actions": Array [],
-                    "breadcrumbs": Array [
-                      Object {
-                        "displayName": "Experiments",
-                        "href": "/experiments",
-                      },
-                    ],
-                    "pageTitle": "Start a new run",
-                  },
-                ],
-              ],
-            }
-          }
-        />
-      </WithStyles(DialogContent)>
-      <WithStyles(DialogActions)>
-        <WithStyles(Button)
-          color="secondary"
-          id="cancelExperimentSelectionBtn"
-          onClick={[Function]}
-        >
-          Cancel
-        </WithStyles(Button)>
-        <WithStyles(Button)
-          color="secondary"
-          disabled={true}
-          id="useExperimentBtn"
-          onClick={[Function]}
-        >
-          Use this experiment
-        </WithStyles(Button)>
-      </WithStyles(DialogActions)>
-    </WithStyles(Dialog)>
-    <Component
-      autoFocus={true}
-      label="Run name"
-      onChange={[Function]}
-      required={true}
-      value="Clone of some mock run name"
-      variant="outlined"
-    />
-    <Component
-      label="Description (optional)"
-      multiline={true}
-      onChange={[Function]}
-      value=""
-      variant="outlined"
-    />
-    <div>
-      This run will be associated with the following experiment
-    </div>
-    <Component
-      InputProps={
-        Object {
-          "classes": Object {
-            "disabled": "nonEditableInput",
-          },
-          "endAdornment": <WithStyles(InputAdornment)
-            position="end"
-          >
-            <WithStyles(Button)
-              color="secondary"
-              id="chooseExperimentBtn"
-              onClick={[Function]}
-              style={
-                Object {
-                  "margin": 0,
-                  "padding": "3px 5px",
-                }
-              }
-            >
-              Choose
-            </WithStyles(Button)>
-          </WithStyles(InputAdornment)>,
-          "readOnly": true,
-        }
-      }
-      disabled={true}
-      label="Experiment"
-      required={true}
-      value=""
-      variant="outlined"
-    />
-    <div
-      className="header"
-    >
-      Run Type
-    </div>
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={true}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-        />
-      }
-      id="oneOffToggle"
-      label="One-off"
-      onChange={[Function]}
-    />
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={false}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-          id="recurringToggle"
-        />
-      }
-      label="Recurring"
-      onChange={[Function]}
-    />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      This pipeline has no parameters
-    </div>
-    <div
-      className="flex"
-    >
-      <BusyButton
-        busy={false}
-        className="buttonAction"
-        disabled={false}
-        id="startNewRunBtn"
-        onClick={[Function]}
-        title="Start"
-      />
-      <WithStyles(Button)
-        id="exitNewRunPageBtn"
-        onClick={[Function]}
-      >
-        Cancel
-      </WithStyles(Button)>
-      <div
-        style={
-          Object {
-            "color": "red",
-          }
-        }
-      />
     </div>
   </div>
 </div>
@@ -2564,7 +1704,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       disabled={true}
       label="Pipeline"
       required={true}
-      value="some mock pipeline name"
+      value="original mock pipeline name"
       variant="outlined"
     />
     <WithStyles(Dialog)
@@ -2614,7 +1754,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?pipelineId=some-mock-pipeline-id",
+              "search": "?pipelineId=original-run-pipeline-id",
             }
           }
           match=""
@@ -2667,7 +1807,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                         "href": "/experiments",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -2740,7 +1880,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?pipelineId=some-mock-pipeline-id",
+              "search": "?pipelineId=original-run-pipeline-id",
             }
           }
           match=""
@@ -2793,7 +1933,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                         "href": "/experiments",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -2890,20 +2030,17 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      This pipeline has no parameters
-    </div>
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={Array []}
+      titleMessage="This pipeline has no parameters"
+    />
     <div
       className="flex"
     >
@@ -3083,7 +2220,7 @@ exports[`NewRun renders the new run page 1`] = `
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -3213,7 +2350,7 @@ exports[`NewRun renders the new run page 1`] = `
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -3310,20 +2447,17 @@ exports[`NewRun renders the new run page 1`] = `
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      Parameters will appear after you select a pipeline
-    </div>
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={Array []}
+      titleMessage="Parameters will appear after you select a pipeline"
+    />
     <div
       className="flex"
     >
@@ -3722,9 +2856,9 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
@@ -3739,14 +2873,11 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
     <Trigger
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      Parameters will appear after you select a pipeline
-    </div>
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={Array []}
+      titleMessage="Parameters will appear after you select a pipeline"
+    />
     <div
       className="flex"
     >
@@ -3790,32 +2921,18 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
     >
       Run details
     </div>
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={true}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-        />
-      }
-      label="Use pipeline from cloned run"
-      onChange={[Function]}
-    />
-    <Link
-      replace={false}
-      to="/pipelines/details/?fromRun=some-mock-run-id"
-    >
-      [View pipeline]
-    </Link>
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={false}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-        />
-      }
-      label="Select a pipeline from list"
-      onChange={[Function]}
-    />
+    <div>
+      <span>
+        Using pipeline from cloned run
+         
+      </span>
+      <Link
+        replace={false}
+        to="/pipelines/details/?fromRun=some-mock-run-id"
+      >
+        [View pipeline]
+      </Link>
+    </div>
     <WithStyles(Dialog)
       PaperProps={
         Object {
@@ -3933,7 +3050,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
                         "href": "/experiments",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Clone a run",
                   },
                 ],
               ],
@@ -4076,7 +3193,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
                         "href": "/experiments",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Clone a run",
                   },
                 ],
               ],
@@ -4157,36 +3274,14 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
     >
       Run Type
     </div>
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={true}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-        />
-      }
-      id="oneOffToggle"
-      label="One-off"
-      onChange={[Function]}
+    <span>
+      One-off
+    </span>
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={Array []}
+      titleMessage="This pipeline has no parameters"
     />
-    <WithStyles(WithFormControlContext(FormControlLabel))
-      checked={false}
-      control={
-        <WithStyles(Radio)
-          color="primary"
-          id="recurringToggle"
-        />
-      }
-      label="Recurring"
-      onChange={[Function]}
-    />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      This pipeline has no parameters
-    </div>
     <div
       className="flex"
     >
@@ -4216,7 +3311,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
 </div>
 `;
 
-exports[`NewRun starting a new run updates the pipeline in state when a user fills in its params 1`] = `
+exports[`NewRun starting a new run updates the parameters in state on handleParamChange 1`] = `
 <div
   className="page"
 >
@@ -4257,7 +3352,7 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
       disabled={true}
       label="Pipeline"
       required={true}
-      value="some mock pipeline name"
+      value="original mock pipeline name"
       variant="outlined"
     />
     <WithStyles(Dialog)
@@ -4313,7 +3408,7 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?pipelineId=some-mock-pipeline-id",
+              "search": "?pipelineId=original-run-pipeline-id",
             }
           }
           match=""
@@ -4377,7 +3472,7 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
                         "href": "/experiments",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -4456,7 +3551,7 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
           location={
             Object {
               "pathname": "/runs/new",
-              "search": "?pipelineId=some-mock-pipeline-id",
+              "search": "?pipelineId=original-run-pipeline-id",
             }
           }
           match=""
@@ -4520,7 +3615,7 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
                         "href": "/experiments",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -4617,54 +3712,28 @@ exports[`NewRun starting a new run updates the pipeline in state when a user fil
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      Specify parameters required by the pipeline
-    </div>
-    <div>
-      <TextField
-        className="textField"
-        id="newRunPipelineParam0"
-        key="0"
-        label="param-1"
-        onChange={[Function]}
-        required={false}
-        select={false}
-        style={
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={
+        Array [
           Object {
-            "maxWidth": 600,
-          }
-        }
-        value="test param value"
-        variant="outlined"
-      />
-      <TextField
-        className="textField"
-        id="newRunPipelineParam1"
-        key="1"
-        label="param-2"
-        onChange={[Function]}
-        required={false}
-        select={false}
-        style={
+            "name": "param-1",
+            "value": "test param value",
+          },
           Object {
-            "maxWidth": 600,
-          }
-        }
-        value="prefilled value"
-        variant="outlined"
-      />
-    </div>
+            "name": "param-2",
+            "value": "prefilled value",
+          },
+        ]
+      }
+      titleMessage="Specify parameters required by the pipeline"
+    />
     <div
       className="flex"
     >
@@ -4842,7 +3911,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -4972,7 +4041,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -5069,20 +4138,17 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      Parameters will appear after you select a pipeline
-    </div>
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={Array []}
+      titleMessage="Parameters will appear after you select a pipeline"
+    />
     <div
       className="flex"
     >
@@ -5155,7 +4221,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       disabled={true}
       label="Pipeline"
       required={true}
-      value="some mock pipeline name"
+      value="original mock pipeline name"
       variant="outlined"
     />
     <WithStyles(Dialog)
@@ -5262,7 +4328,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -5392,7 +4458,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -5489,54 +4555,28 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      Specify parameters required by the pipeline
-    </div>
-    <div>
-      <TextField
-        className="textField"
-        id="newRunPipelineParam0"
-        key="0"
-        label="param-1"
-        onChange={[Function]}
-        required={false}
-        select={false}
-        style={
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={
+        Array [
           Object {
-            "maxWidth": 600,
-          }
-        }
-        value="prefilled value 1"
-        variant="outlined"
-      />
-      <TextField
-        className="textField"
-        id="newRunPipelineParam1"
-        key="1"
-        label="param-2"
-        onChange={[Function]}
-        required={false}
-        select={false}
-        style={
+            "name": "param-1",
+            "value": "prefilled value 1",
+          },
           Object {
-            "maxWidth": 600,
-          }
-        }
-        value="prefilled value 2"
-        variant="outlined"
-      />
-    </div>
+            "name": "param-2",
+            "value": "prefilled value 2",
+          },
+        ]
+      }
+      titleMessage="Specify parameters required by the pipeline"
+    />
     <div
       className="flex"
     >
@@ -5609,7 +4649,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       disabled={true}
       label="Pipeline"
       required={true}
-      value="some mock pipeline name"
+      value="original mock pipeline name"
       variant="outlined"
     />
     <WithStyles(Dialog)
@@ -5716,7 +4756,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -5846,7 +4886,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -5943,20 +4983,17 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      This pipeline has no parameters
-    </div>
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={Array []}
+      titleMessage="This pipeline has no parameters"
+    />
     <div
       className="flex"
     >
@@ -6136,7 +5173,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -6266,7 +5303,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                         "href": "/experiments/details/some-mock-experiment-id",
                       },
                     ],
-                    "pageTitle": "Start a new run",
+                    "pageTitle": "Start a run",
                   },
                 ],
               ],
@@ -6363,20 +5400,17 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       control={
         <WithStyles(Radio)
           color="primary"
-          id="recurringToggle"
         />
       }
+      id="recurringToggle"
       label="Recurring"
       onChange={[Function]}
     />
-    <div
-      className="header"
-    >
-      Run parameters
-    </div>
-    <div>
-      Parameters will appear after you select a pipeline
-    </div>
+    <NewRunParameters
+      handleParamChange={[Function]}
+      initialParams={Array []}
+      titleMessage="Parameters will appear after you select a pipeline"
+    />
     <div
       className="flex"
     >

@@ -35,8 +35,8 @@ func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *
 // It returns an error if a go_client.Visualization object does not have valid
 // values.
 func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_client.CreateVisualizationRequest) error {
-	if len(request.Visualization.InputPath) == 0 {
-		return util.NewInvalidInputError("A visualization requires an InputPath to be provided. Received %s", request.Visualization.InputPath)
+	if len(request.Visualization.Source) == 0 {
+		return util.NewInvalidInputError("A visualization requires a Source to be provided. Received %s", request.Visualization.Source)
 	}
 	// Manually set Arguments to empty JSON if nothing is provided. This is done
 	// because visualizations such as TFDV and TFMA only require an InputPath to
@@ -57,7 +57,7 @@ func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_cli
 // It returns the generated HTML as a string and any error that is encountered.
 func (s *VisualizationServer) generateVisualizationFromRequest(request *go_client.CreateVisualizationRequest) ([]byte, error) {
 	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
-	arguments := fmt.Sprintf("--type %s --input_path %s --arguments '%s'", visualizationType, request.Visualization.InputPath, request.Visualization.Arguments)
+	arguments := fmt.Sprintf("--type %s --source %s --arguments '%s'", visualizationType, request.Visualization.Source, request.Visualization.Arguments)
 	resp, err := http.PostForm(s.serviceURL, url.Values{"arguments": {arguments}})
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to initialize visualization request.")
