@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import importlib
+import os
 import unittest
 from nbformat.v4 import new_code_cell
 from nbformat.v4 import new_notebook
@@ -25,27 +26,53 @@ class TestExporterMethods(snapshottest.TestCase):
 
     def setUp(self):
         self.exporter = exporter.Exporter(100, exporter.TemplateType.BASIC)
+        # Remove any leftover json files from testing/development. This is done
+        # to ensure that test_create_cell_from_args_deletes_file_on_execution
+        # is tested in a valid environment where no json files are present.
+        files = [x for x in os.listdir("./") if len(x) >= 5 and x[-5:] == ".json"]
+        for f in files:
+            os.remove(f)
+
+    def test_create_cell_from_args_deletes_file_on_execution(self):
+        self.maxDiff = None
+        nb = new_notebook()
+        args = {}
+        nb.cells.append(self.exporter.create_cell_from_args(args))
+        self.exporter.generate_html_from_notebook(nb)
+        self.assertEqual(
+            [x for x in os.listdir("./") if len(x) >= 5 and x[-5:] == ".json"],
+            []
+        )
 
     def test_create_cell_from_args_with_no_args(self):
         self.maxDiff = None
-        args = "{}"
-        cell = self.exporter.create_cell_from_args(args)
-        self.assertMatchSnapshot(cell.source)
+        nb = new_notebook()
+        args = {}
+        nb.cells.append(self.exporter.create_cell_from_args(args))
+        nb.cells.append(new_code_cell("print(variables)"))
+        html = self.exporter.generate_html_from_notebook(nb)
+        self.assertMatchSnapshot(html)
 
     def test_create_cell_from_args_with_one_arg(self):
         self.maxDiff = None
-        args = '{"source": "gs://ml-pipeline/data.csv"}'
-        cell = self.exporter.create_cell_from_args(args)
-        self.assertMatchSnapshot(cell.source)
+        nb = new_notebook()
+        args = {"source": "gs://ml-pipeline/data.csv"}
+        nb.cells.append(self.exporter.create_cell_from_args(args))
+        nb.cells.append(new_code_cell("print(variables)"))
+        html = self.exporter.generate_html_from_notebook(nb)
+        self.assertMatchSnapshot(html)
 
     def test_create_cell_from_args_with_multiple_args(self):
         self.maxDiff = None
-        args = (
-            '{"source": "gs://ml-pipeline/data.csv", '
-            "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * 0.2)\"}"
-        )
-        cell = self.exporter.create_cell_from_args(args)
-        self.assertMatchSnapshot(cell.source)
+        nb = new_notebook()
+        args = {
+            "source": "gs://ml-pipeline/data.csv",
+            "target_lambda": "lambda x: (x['target'] > x['fare'] * 0.2)"
+        }
+        nb.cells.append(self.exporter.create_cell_from_args(args))
+        nb.cells.append(new_code_cell("print(variables)"))
+        html = self.exporter.generate_html_from_notebook(nb)
+        self.assertMatchSnapshot(html)
 
     def test_create_cell_from_file(self):
         self.maxDiff = None
@@ -55,9 +82,9 @@ class TestExporterMethods(snapshottest.TestCase):
     def test_generate_html_from_notebook(self):
         self.maxDiff = None
         nb = new_notebook()
-        args = '{"x": 2}'
+        args = {"x": 2}
         nb.cells.append(self.exporter.create_cell_from_args(args))
-        nb.cells.append(new_code_cell("print(x)"))
+        nb.cells.append(new_code_cell("print(variables['x'])"))
         html = self.exporter.generate_html_from_notebook(nb)
         self.assertMatchSnapshot(html)
 

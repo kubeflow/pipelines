@@ -14,6 +14,7 @@
 
 import argparse
 import importlib
+import json
 from pathlib import Path
 from typing import Text
 import shlex
@@ -90,7 +91,7 @@ class VisualizationHandler(tornado.web.RequestHandler):
         """Validates arguments from post request and sends error if invalid.
 
         Args:
-            arguments: x-www-form-urlencoded formatted arguments
+            arguments: argparser.Namespace formatted arguments
 
         Returns:
             Boolean value representing if provided arguments are valid.
@@ -101,20 +102,25 @@ class VisualizationHandler(tornado.web.RequestHandler):
         if arguments.source is None:
             self.send_error(400, reason="No source specified.")
             return False
+        try:
+            json.loads(arguments.arguments)
+        except json.JSONDecodeError:
+            self.send_error(400, reason="Invalid JSON provided as arguments.")
+            return False
 
         return True
 
     def generate_notebook_from_arguments(
         self,
-        arguments: argparse.Namespace,
+        arguments: dict,
         source: Text,
         visualization_type: Text
     ) -> NotebookNode:
         """Generates a NotebookNode from provided arguments.
 
         Args:
-            arguments: x-www-form-urlencoded formatted arguments.
-            input_path: Path or path pattern to be used as data reference for
+            arguments: JSON object containing provided arguments.
+            source: Path or path pattern to be used as data reference for
             visualization.
             visualization_type: Name of visualization to be generated.
 
@@ -142,7 +148,7 @@ class VisualizationHandler(tornado.web.RequestHandler):
         if self.is_valid_request_arguments(request_arguments):
             # Create notebook with arguments from request.
             nb = self.generate_notebook_from_arguments(
-                request_arguments.arguments,
+                json.loads(request_arguments.arguments),
                 request_arguments.source,
                 request_arguments.type
             )
