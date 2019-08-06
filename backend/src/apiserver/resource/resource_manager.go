@@ -32,7 +32,6 @@ import (
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
-	apierr "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
@@ -370,23 +369,18 @@ func (r *ResourceManager) RetryRun(runId string) error {
 		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
 	}
 
-	_, err = r.workflowClient.Update(newWorkflow.Workflow)
-	if err == nil {
+	_, updateErr := r.workflowClient.Update(newWorkflow.Workflow)
+	if updateErr == nil {
 		return nil
-	}
-
-	// The Argo workflow might already be garbage collected.
-	// In that case, creating a new workflow will revive the run and Persistent Agent will continue
-	// Sync the status of the new workflow to the original run.
-	if !apierr.IsNotFound(err) && !apierr.IsInvalid(err) {
-		return util.NewInternalServerError(err, "Retry run failed. Workflow %s", newWorkflow.ToStringForStore())
 	}
 
 	// Remove resource version
 	newWorkflow.ResourceVersion = ""
-	_, err = r.workflowClient.Create(newWorkflow.Workflow)
-	if err != nil {
-		return util.NewInternalServerError(err, "Retry run failed. Failed to recover the run to the cluster and continue.")
+	_, createError := r.workflowClient.Create(newWorkflow.Workflow)
+	if createError != nil {
+		return util.NewInternalServerError(createError,
+			"Retry run failed. Failed to create or update the run. Update Error: %s, Create Error: %s",
+			updateErr.Error(), createError.Error())
 	}
 
 	return nil
