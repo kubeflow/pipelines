@@ -47,6 +47,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: [
+        buttons.cloneRecurringRun(() => this.state.run ? [this.state.run.id!] : [], true),
         buttons.refresh(this.refresh.bind(this)),
         buttons.enableRecurringRun(() => this.state.run ? this.state.run.id! : ''),
         buttons.disableRecurringRun(() => this.state.run ? this.state.run.id! : ''),
@@ -170,8 +171,8 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     const pageTitle = run ? run.name! : runId;
 
     const toolbarActions = [...this.props.toolbarProps.actions];
-    toolbarActions[1].disabled = !!run.enabled;
-    toolbarActions[2].disabled = !run.enabled;
+    toolbarActions[2].disabled = !!run.enabled;
+    toolbarActions[3].disabled = !run.enabled;
 
     this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 

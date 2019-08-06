@@ -1,0 +1,45 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NewRunParameters does not display any text fields if there are parameters 1`] = `
+<div>
+  <div
+    className="header"
+  >
+    Run parameters
+  </div>
+  <div>
+    This pipeline has no parameters
+  </div>
+</div>
+`;
+
+exports[`NewRunParameters shows parameters 1`] = `
+<div>
+  <div
+    className="header"
+  >
+    Run parameters
+  </div>
+  <div>
+    Specify parameters required by the pipeline
+  </div>
+  <div>
+    <TextField
+      className="textField"
+      id="newRunPipelineParam0"
+      key="0"
+      label="testParam"
+      onChange={[Function]}
+      required={false}
+      select={false}
+      style={
+        Object {
+          "maxWidth": 600,
+        }
+      }
+      value="testVal"
+      variant="outlined"
+    />
+  </div>
+</div>
+`;
