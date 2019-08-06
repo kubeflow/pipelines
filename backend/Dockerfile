@@ -50,5 +50,9 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 # Expose apiserver port
 EXPOSE 8888
 
+# Whether to drop MLMD database at startup. Set this to true if
+# server fails startup due to schema change in MLMD.
+ENV DROP_MLMD_DB "false"
+
 # Start the apiserver
-CMD apiserver --config=/config --sampleconfig=/config/sample_config.json -alsologtostderr=true
+CMD apiserver --config=/config --sampleconfig=/config/sample_config.json -alsologtostderr=true --drop_mlmd_db="$DROP_MLMD_DB"
