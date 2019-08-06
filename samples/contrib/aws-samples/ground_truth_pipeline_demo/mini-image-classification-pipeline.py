@@ -5,9 +5,9 @@ from kfp import components
 from kfp import dsl
 from kfp.aws import use_aws_secret
 
-sagemaker_workteam_op = components.load_component_from_file('../../../components/aws/sagemaker/workteam/component.yaml')
-sagemaker_gt_op = components.load_component_from_file('../../../components/aws/sagemaker/ground_truth/component.yaml')
-sagemaker_train_op = components.load_component_from_file('../../../components/aws/sagemaker/train/component.yaml')
+sagemaker_workteam_op = components.load_component_from_file('../../../../components/aws/sagemaker/workteam/component.yaml')
+sagemaker_gt_op = components.load_component_from_file('../../../../components/aws/sagemaker/ground_truth/component.yaml')
+sagemaker_train_op = components.load_component_from_file('../../../../components/aws/sagemaker/train/component.yaml')
 
 @dsl.pipeline(
     name='Ground Truth image classification test pipeline',
