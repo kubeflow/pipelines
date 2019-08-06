@@ -45,7 +45,7 @@ function clean_up {
   # delete the storage
   gcloud deployment-manager --project=${PROJECT} deployments delete ${KFAPP}-storage --quiet
 }
-# trap clean_up EXIT SIGINT SIGTERM
+trap clean_up EXIT SIGINT SIGTERM
 
 cd ${DIR}
 ${KUBEFLOW_SRC}/scripts/kfctl.sh init ${KFAPP} --platform ${PLATFORM} --project ${PROJECT} --skipInitProject
