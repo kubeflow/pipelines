@@ -52,7 +52,7 @@ args = process_args()
 
 def add(a: float, b: float) -> float:
   """Calculates sum of two arguments."""
-  print('Adding two values %s and %s' %(a, b))
+  print('Adding two values %s and %s' % (a, b))
   return a + b
 
 
