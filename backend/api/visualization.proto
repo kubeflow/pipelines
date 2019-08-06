@@ -83,7 +83,7 @@ message Visualization {
   // Path pattern of input data to be used during generation of visualizations.
   // This is required when creating the pipeline through CreateVisualization
   // API.
-  string inputPath = 2;
+  string source = 2;
 
   // Variables to be used during generation of a visualization.
   // This should be provided as a JSON string.

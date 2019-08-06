@@ -18,8 +18,8 @@ import tensorflow_data_validation as tfdv
 # variables come from the specified input path and arguments provided by the
 # API post request.
 #
-# input_path
+# source
 
-train_stats = tfdv.generate_statistics_from_csv(data_location=input_path)
+train_stats = tfdv.generate_statistics_from_csv(data_location=source)
 
 tfdv.visualize_statistics(train_stats)

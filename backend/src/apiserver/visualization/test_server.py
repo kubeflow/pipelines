@@ -45,17 +45,19 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(400, response.code)
         self.assertEqual(
             wrap_error_in_html("400: Bad Request"),
-            response.body)
+            response.body
+        )
 
     def test_create_visualization_fails_when_missing_type(self):
         response = self.fetch(
             "/",
             method="POST",
-            body="arguments=--input_path gs://ml-pipeline/data.csv")
+            body="arguments=--source gs://ml-pipeline/data.csv")
         self.assertEqual(400, response.code)
         self.assertEqual(
             wrap_error_in_html("400: No type specified."),
-            response.body)
+            response.body
+        )
 
     def test_create_visualization_fails_when_missing_input_path(self):
         response = self.fetch(
@@ -64,14 +66,15 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
             body='arguments=--type test')
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: No input_path specified."),
-            response.body)
+            wrap_error_in_html("400: No source specified."),
+            response.body
+        )
 
     def test_create_visualization(self):
         response = self.fetch(
             "/",
             method="POST",
-            body='arguments=--type test --input_path gs://ml-pipeline/data.csv')
+            body='arguments=--type test --source gs://ml-pipeline/data.csv')
         self.assertEqual(200, response.code)
 
 

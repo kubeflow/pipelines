@@ -29,6 +29,7 @@ class TestNewRun extends NewRun {
   public _experimentSelectorClosed = super._experimentSelectorClosed;
   public _pipelineSelectorClosed = super._pipelineSelectorClosed;
   public _updateRecurringRunState = super._updateRecurringRunState;
+  public _handleParamChange = super._handleParamChange;
 }
 
 describe('NewRun', () => {
@@ -63,8 +64,8 @@ describe('NewRun', () => {
 
   function newMockPipeline(): ApiPipeline {
     return {
-      id: 'some-mock-pipeline-id',
-      name: 'some mock pipeline name',
+      id: 'original-run-pipeline-id',
+      name: 'original mock pipeline name',
       parameters: [],
     };
   }
@@ -78,7 +79,8 @@ describe('NewRun', () => {
         id: 'some-mock-run-id',
         name: 'some mock run name',
         pipeline_spec: {
-          pipeline_id: 'original-run-pipeline-id'
+          pipeline_id: 'original-run-pipeline-id',
+          workflow_manifest: '{}',
         },
       },
     };
@@ -87,7 +89,7 @@ describe('NewRun', () => {
   function newMockRunWithEmbeddedPipeline(): ApiRunDetail {
     const runDetail = newMockRunDetail();
     delete runDetail.run!.pipeline_spec!.pipeline_id;
-    runDetail.run!.pipeline_spec!.workflow_manifest = '{"parameters": []}';
+    runDetail.run!.pipeline_spec!.workflow_manifest = '{"metadata": {"name": "embedded"}, "parameters": []}';
     return runDetail;
   }
 
@@ -149,7 +151,7 @@ describe('NewRun', () => {
     expect(updateToolbarSpy).toHaveBeenLastCalledWith({
       actions: [],
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-      pageTitle: 'Start a new run',
+      pageTitle: 'Start a run',
     });
   });
 
@@ -262,7 +264,7 @@ describe('NewRun', () => {
           href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, MOCK_EXPERIMENT.id!),
         },
       ],
-      pageTitle: 'Start a new run',
+      pageTitle: 'Start a run',
     });
   });
 
@@ -632,7 +634,7 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-        message: 'Could not find the cloned run\'s pipeline definition.',
+        message: 'Error: failed to read the clone run\'s pipeline definition. Click Details for more information.',
         mode: 'error',
       }));
     });
@@ -680,53 +682,13 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenCalledTimes(1);
-      expect(tree.state('pipelineFromRun')).toEqual({ parameters: [] });
-      expect(tree.state('usePipelineFromRun')).toBe(true);
-    });
-
-    it('shows switching controls when run has embedded pipeline, selects that pipeline by default,' +
-      ' and hides pipeline selector', async () => {
-        const props = generateProps();
-        props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
-
-        getRunSpy.mockImplementation(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
-
-        tree = shallow(<TestNewRun {...props} />);
-        await TestUtils.flushPromises();
-        expect(tree).toMatchSnapshot();
-      });
-
-    it('shows pipeline selector when switching from embedded pipeline to select pipeline', async () => {
-      const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
-
-      getRunSpy.mockImplementation(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
-
-      tree = shallow(<TestNewRun {...props} />);
-      await TestUtils.flushPromises();
-      tree.find('WithStyles(WithFormControlContext(FormControlLabel))').at(1).simulate('change');
-      expect(tree).toMatchSnapshot();
-    });
-
-    it('resets selected pipeline from embedded when switching to select from pipeline list, and back', async () => {
-      const props = generateProps();
-      props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id}`;
-
-      getRunSpy.mockImplementation(() => MOCK_RUN_WITH_EMBEDDED_PIPELINE);
-
-      tree = shallow(<TestNewRun {...props} />);
-      await TestUtils.flushPromises();
-      expect(tree.state('pipeline')).toEqual({ parameters: [] });
-      tree.find('WithStyles(WithFormControlContext(FormControlLabel))').at(1).simulate('change');
-      expect(tree.state('pipeline')).toBeUndefined();
-
-      tree.find('WithStyles(WithFormControlContext(FormControlLabel))').at(0).simulate('change');
-      expect(tree.state('pipeline')).toEqual({ parameters: [] });
+      expect(tree.state('workflowFromRun')).toEqual({ metadata: { name: 'embedded' }, parameters: [] });
+      expect(tree.state('useWorkflowFromRun')).toBe(true);
     });
 
     it('shows a page error if the original run\'s workflow_manifest is undefined', async () => {
       const runDetail = newMockRunDetail();
-      runDetail.pipeline_runtime!.workflow_manifest = undefined;
+      runDetail.run!.pipeline_spec!.workflow_manifest = undefined;
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
 
@@ -742,8 +704,8 @@ describe('NewRun', () => {
     });
 
     it('shows a page error if the original run\'s workflow_manifest is invalid JSON', async () => {
-      const runDetail = newMockRunDetail();
-      runDetail.pipeline_runtime!.workflow_manifest = 'not json';
+      const runDetail = newMockRunWithEmbeddedPipeline();
+      runDetail.run!.pipeline_spec!.workflow_manifest = 'not json';
       const props = generateProps();
       props.location.search = `?${QUERY_PARAMS.cloneFromRun}=${runDetail.run!.id}`;
 
@@ -753,7 +715,7 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
 
       expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-        message: 'Error: failed to parse the original run\'s runtime. Click Details for more information.',
+        message: 'Error: failed to read the clone run\'s pipeline definition. Click Details for more information.',
         mode: 'error',
       }));
     });
@@ -778,7 +740,7 @@ describe('NewRun', () => {
       tree = shallow(<TestNewRun {...props} />);
       await TestUtils.flushPromises();
 
-      expect(tree.state('pipeline')).toHaveProperty('parameters', originalRunPipelineParams);
+      expect(tree.state('parameters')).toEqual(originalRunPipelineParams);
     });
 
 
@@ -812,8 +774,8 @@ describe('NewRun', () => {
       tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
       await TestUtils.flushPromises();
 
-      expect(tree.state('usePipelineFromRun')).toBe(true);
-      expect(tree.state('usePipelineFromRunLabel')).toBe('Use pipeline from previous step');
+      expect(tree.state('useWorkflowFromRun')).toBe(true);
+      expect(tree.state('usePipelineFromRunLabel')).toBe('Using pipeline from previous page');
       expect(tree).toMatchSnapshot();
     });
 
@@ -824,15 +786,15 @@ describe('NewRun', () => {
       expect(getRunSpy).toHaveBeenLastCalledWith(MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.id);
     });
 
-    it('parses the embedded pipeline and stores it in state', async () => {
+    it('parses the embedded workflow and stores it in state', async () => {
       MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.pipeline_spec!.workflow_manifest = JSON.stringify(MOCK_PIPELINE);
 
       tree = shallow(<TestNewRun {...mockEmbeddedPipelineProps as any} />);
       await TestUtils.flushPromises();
 
-      expect(tree.state('pipeline')).toEqual(MOCK_PIPELINE);
-      expect(tree.state('pipelineFromRun')).toEqual(MOCK_PIPELINE);
-      expect(tree.state('pipelineName')).toEqual(MOCK_PIPELINE.name);
+      expect(tree.state('workflowFromRun')).toEqual(MOCK_PIPELINE);
+      expect(tree.state('parameters')).toEqual(MOCK_PIPELINE.parameters);
+      expect(tree.state('useWorkflowFromRun')).toBe(true);
     });
 
     it('displays a page error if it fails to parse the embedded pipeline', async () => {
@@ -909,7 +871,7 @@ describe('NewRun', () => {
       expect(tree.find('#startNewRunBtn').props()).toHaveProperty('disabled', true);
     });
 
-    it('sends a request to start a new run when \'Start\' is clicked', async () => {
+    it('sends a request to Start a run when \'Start\' is clicked', async () => {
       const props = generateProps();
       props.location.search =
         `?${QUERY_PARAMS.experimentId}=${MOCK_EXPERIMENT.id}`
@@ -942,7 +904,7 @@ describe('NewRun', () => {
       });
     });
 
-    it('updates the pipeline in state when a user fills in its params', async () => {
+    it('updates the parameters in state on handleParamChange', async () => {
       const props = generateProps();
       const pipeline = newMockPipeline();
       pipeline.parameters = [
@@ -957,8 +919,7 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
       (tree.instance() as TestNewRun).handleChange('runName')({ target: { value: 'test run name' } });
       // Fill in the first pipeline parameter
-      tree.find('#newRunPipelineParam0').simulate('change', { target: { value: 'test param value' } });
-      await TestUtils.flushPromises();
+      (tree.instance() as TestNewRun)._handleParamChange(0, 'test param value');
 
       tree.find('#startNewRunBtn').simulate('click');
       // The start APIs are called in a callback triggered by clicking 'Start', so we wait again
@@ -991,13 +952,16 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
 
       expect(startRunSpy).toHaveBeenCalledTimes(1);
-      expect(startRunSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      expect(startRunSpy).toHaveBeenLastCalledWith({
+        description: '',
+        name: 'Clone of ' + MOCK_RUN_WITH_EMBEDDED_PIPELINE.run!.name,
         pipeline_spec: {
           parameters: [],
           pipeline_id: undefined,
-          workflow_manifest: '{"parameters":[]}',
+          workflow_manifest: '{"metadata":{"name":"embedded"},"parameters":[]}',
         },
-      }));
+        resource_references: [],
+      });
       expect(tree).toMatchSnapshot();
     });
 
