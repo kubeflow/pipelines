@@ -637,14 +637,14 @@ func TestRetryRun_FailedDeletePods(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to delete pod")
 }
 
-func TestRetryRun_UpdateFailed(t *testing.T) {
+func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
 
 	manager.workflowClient = &FakeBadWorkflowClient{}
 	err := manager.RetryRun(runDetail.UUID)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "failed to update")
+	assert.Contains(t, err.Error(), "Failed to create or update the run")
 }
 
 func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
