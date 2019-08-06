@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func CreatePodClient(namespace string) (v1.PodInterface, error) {
+func createPodClient(namespace string) (v1.PodInterface, error) {
 	restConfig, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to initialize kubernetes client.")
@@ -23,12 +23,12 @@ func CreatePodClient(namespace string) (v1.PodInterface, error) {
 	return clientSet.CoreV1().Pods(namespace), nil
 }
 
-// creates a new client for the Kubernetes pod.
+// CreatePodClientOrFatal creates a new client for the Kubernetes pod.
 func CreatePodClientOrFatal(namespace string, initConnectionTimeout time.Duration) v1.PodInterface{
 	var client v1.PodInterface
 	var err error
 	var operation = func() error {
-		client, err = CreatePodClient(namespace)
+		client, err = createPodClient(namespace)
 		if err != nil {
 			return err
 		}
