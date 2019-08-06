@@ -23,15 +23,15 @@ import DialogContent from '@material-ui/core/DialogContent';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
+import NewRunParameters from '../components/NewRunParameters';
 import Radio from '@material-ui/core/Radio';
-import RunUtils from '../lib/RunUtils';
 import ResourceSelector from './ResourceSelector';
-import TextField, { TextFieldProps } from '@material-ui/core/TextField';
+import RunUtils from '../lib/RunUtils';
+import { TextFieldProps } from '@material-ui/core/TextField';
 import Trigger from '../components/Trigger';
-import WorkflowParser from '../lib/WorkflowParser';
 import { ApiExperiment } from '../apis/experiment';
-import { ApiPipeline } from '../apis/pipeline';
-import { ApiRun, ApiResourceReference, ApiRelationship, ApiResourceType, ApiRunDetail } from '../apis/run';
+import { ApiPipeline, ApiParameter } from '../apis/pipeline';
+import { ApiRun, ApiResourceReference, ApiRelationship, ApiResourceType, ApiRunDetail, ApiPipelineRuntime } from '../apis/run';
 import { ApiTrigger, ApiJob } from '../apis/job';
 import { Apis, PipelineSortKeys, ExperimentSortKeys } from '../lib/Apis';
 import { Link } from 'react-router-dom';
@@ -51,15 +51,15 @@ interface NewRunState {
   experimentName: string;
   experimentSelectorOpen: boolean;
   isBeingStarted: boolean;
+  isClone: boolean;
   isFirstRunInExperiment: boolean;
   isRecurringRun: boolean;
   maxConcurrentRuns?: string;
+  parameters: ApiParameter[];
   pipeline?: ApiPipeline;
   // This represents a pipeline from a run that is being cloned, or if a user is creating a run from
   // a pipeline that was not uploaded to the system (as in the case of runs created from notebooks).
-  // By storing this here instead of in the 'pipeline' field, we won't lose it if the user selects a
-  // different pipeline.
-  pipelineFromRun?: ApiPipeline;
+  workflowFromRun?: Workflow;
   // TODO: this is only here to properly display the name in the text field.
   // There is definitely a way to do this that doesn't necessitate this being in state.
   // Note: this cannot be undefined/optional or the label animation for the input field will not
@@ -70,7 +70,7 @@ interface NewRunState {
   trigger?: ApiTrigger;
   unconfirmedSelectedExperiment?: ApiExperiment;
   unconfirmedSelectedPipeline?: ApiPipeline;
-  usePipelineFromRun: boolean;
+  useWorkflowFromRun: boolean;
   usePipelineFromRunLabel: string;
 }
 
@@ -106,13 +106,15 @@ class NewRun extends Page<{}, NewRunState> {
       experimentName: '',
       experimentSelectorOpen: false,
       isBeingStarted: false,
+      isClone: false,
       isFirstRunInExperiment: false,
       isRecurringRun: false,
+      parameters: [],
       pipelineName: '',
       pipelineSelectorOpen: false,
       runName: '',
-      usePipelineFromRun: false,
-      usePipelineFromRunLabel: 'Use pipeline from cloned run',
+      usePipelineFromRunLabel: 'Using pipeline from cloned run',
+      useWorkflowFromRun: false,
     };
   }
 
@@ -126,27 +128,29 @@ class NewRun extends Page<{}, NewRunState> {
 
   public render(): JSX.Element {
     const {
-      pipelineFromRun,
+      workflowFromRun,
       description,
       errorMessage,
       experimentName,
       experimentSelectorOpen,
-      isRecurringRun,
+      isClone,
       isFirstRunInExperiment,
-      pipeline,
+      isRecurringRun,
+      parameters,
       pipelineName,
       pipelineSelectorOpen,
       runName,
       unconfirmedSelectedExperiment,
       unconfirmedSelectedPipeline,
-      usePipelineFromRun,
       usePipelineFromRunLabel,
+      useWorkflowFromRun,
     } = this.state;
 
-    const originalRunId = new URLParser(this.props).get(QUERY_PARAMS.cloneFromRun);
+    const urlParser = new URLParser(this.props);
+    const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun) || urlParser.get(QUERY_PARAMS.fromRunId);
     const pipelineDetailsUrl = originalRunId
       ? RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') +
-        new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: originalRunId })
+        urlParser.build({ [QUERY_PARAMS.fromRunId]: originalRunId })
       : '';
 
     return (
@@ -156,16 +160,13 @@ class NewRun extends Page<{}, NewRunState> {
           <div className={commonCss.header}>Run details</div>
 
           {/* Pipeline selection */}
-          {!!pipelineFromRun && (<React.Fragment>
-            <FormControlLabel label={usePipelineFromRunLabel} control={<Radio color='primary' />}
-              onChange={() => this.setStateSafe({ pipeline: pipelineFromRun, usePipelineFromRun: true })}
-              checked={usePipelineFromRun} />
-            {!!originalRunId && <Link to={pipelineDetailsUrl}>[View pipeline]</Link>}
-            <FormControlLabel label='Select a pipeline from list' control={<Radio color='primary' />}
-              onChange={() => this.setStateSafe({ pipeline: undefined, usePipelineFromRun: false })}
-              checked={!usePipelineFromRun} />
-          </React.Fragment>)}
-          {!usePipelineFromRun && (
+          {!!workflowFromRun && (
+            <div>
+              <span>{usePipelineFromRunLabel} </span>
+              {!!originalRunId && <Link to={pipelineDetailsUrl}>[View pipeline]</Link>}
+            </div>
+          )}
+          {!useWorkflowFromRun && (
             <Input value={pipelineName} required={true} label='Pipeline' disabled={true}
               variant='outlined'
               InputProps={{
@@ -272,14 +273,21 @@ class NewRun extends Page<{}, NewRunState> {
             }}
           />
 
-          {/* One-off/Recurring Toggle */}
+          {/* One-off/Recurring Run Type */}
           <div className={commonCss.header}>Run Type</div>
-          <FormControlLabel id='oneOffToggle' label='One-off' control={<Radio color='primary' />}
-            onChange={() => this._updateRecurringRunState(false)}
-            checked={!isRecurringRun} />
-          <FormControlLabel label='Recurring' control={<Radio color='primary' id='recurringToggle' />}
-            onChange={() => this._updateRecurringRunState(true)}
-            checked={isRecurringRun} />
+          {isClone && (
+            <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>
+          )}
+          {!isClone && (
+            <React.Fragment>
+              <FormControlLabel id='oneOffToggle' label='One-off' control={<Radio color='primary' />}
+                onChange={() => this._updateRecurringRunState(false)}
+                checked={!isRecurringRun} />
+              <FormControlLabel id='recurringToggle' label='Recurring' control={<Radio color='primary' />}
+                onChange={() => this._updateRecurringRunState(true)}
+                checked={isRecurringRun} />
+            </React.Fragment>
+          )}
 
           {/* Recurring run controls */}
           {isRecurringRun && (
@@ -295,17 +303,11 @@ class NewRun extends Page<{}, NewRunState> {
           )}
 
           {/* Run parameters form */}
-          <div className={commonCss.header}>Run parameters</div>
-          <div>{this._runParametersMessage(pipeline)}</div>
-          {pipeline && Array.isArray(pipeline.parameters) && !!pipeline.parameters.length && (
-            <div>
-              {pipeline.parameters.map((param, i) =>
-                <TextField id={`newRunPipelineParam${i}`} key={i} variant='outlined'
-                  label={param.name} value={param.value || ''}
-                  onChange={(ev) => this._handleParamChange(i, ev.target.value || '')}
-                  style={{ maxWidth: 600 }} className={commonCss.textField}/>)}
-            </div>
-          )}
+          <NewRunParameters
+            initialParams={parameters}
+            titleMessage={this._runParametersMessage()}
+            handleParamChange={this._handleParamChange.bind(this)}
+          />
 
           {/* Create/Cancel buttons */}
           <div className={classes(commonCss.flex, padding(20, 'tb'))}>
@@ -344,21 +346,42 @@ class NewRun extends Page<{}, NewRunState> {
 
     // Get clone run id from querystring if any
     const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
-    // If we are not cloning, we may have an embedded pipeline from a run from a Notebook
+    const originalRecurringRunId = urlParser.get(QUERY_PARAMS.cloneFromRecurringRun);
+    // If we are not cloning from an existing run, we may have an embedded pipeline from a run from
+    // a notebook. This is a somewhat hidden path that can be reached via the following steps:
+    // 1. Create a pipeline and run it from a notebook
+    // 2. Click [View Pipeline] for this run from one of the list pages
+    //    (Now you will be viewing a pipeline details page for a pipeline that hasn't been uploaded)
+    // 3. Click Create run
     const embeddedPipelineRunId = urlParser.get(QUERY_PARAMS.fromRunId);
     if (originalRunId) {
+      // If we are cloning a run, fetch the original
+        try {
+          const originalRun = await Apis.runServiceApi.getRun(originalRunId);
+          await this._prepareFormFromClone(originalRun.run, originalRun.pipeline_runtime);
+          // If the querystring did not contain an experiment ID, try to get one from the run.
+          if (!experimentId) {
+            experimentId = RunUtils.getFirstExperimentReferenceId(originalRun.run);
+          }
+        } catch (err) {
+          await this.showPageError(`Error: failed to retrieve original run: ${originalRunId}.`, err);
+          logger.error(`Failed to retrieve original run: ${originalRunId}`, err);
+        }
+
+
+    } else if (originalRecurringRunId) {
+      // If we are cloning a recurring run, fetch the original
       try {
-        const originalRun = await Apis.runServiceApi.getRun(originalRunId);
+        const originalRun = await Apis.jobServiceApi.getJob(originalRecurringRunId);
         await this._prepareFormFromClone(originalRun);
-        // If the querystring did not contain an experiment ID, try to get one from the run.
         if (!experimentId) {
-          experimentId = RunUtils.getFirstExperimentReferenceId(originalRun.run);
+          experimentId = RunUtils.getFirstExperimentReferenceId(originalRun);
         }
       } catch (err) {
-        await this.showPageError(`Error: failed to retrieve original run: ${originalRunId}.`, err);
-        logger.error(`Failed to retrieve original run: ${originalRunId}`, err);
+        await this.showPageError(`Error: failed to retrieve original recurring run: ${originalRunId}.`, err);
+        logger.error(`Failed to retrieve original recurring run: ${originalRunId}`, err);
       }
-    } else if(embeddedPipelineRunId) {
+    } else if (embeddedPipelineRunId) {
       this._prepareFormFromEmbeddedPipeline(embeddedPipelineRunId);
     } else {
       // Get pipeline id from querystring if any
@@ -366,7 +389,11 @@ class NewRun extends Page<{}, NewRunState> {
       if (possiblePipelineId) {
         try {
           const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
-          this.setStateSafe({ pipeline, pipelineName: (pipeline && pipeline.name) || '' });
+          this.setStateSafe({
+            parameters: pipeline.parameters || [],
+            pipeline,
+            pipelineName: (pipeline && pipeline.name) || ''
+          });
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
@@ -395,11 +422,10 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
-    this.props.updateToolbar({
-      actions: this.props.toolbarProps.actions,
-      breadcrumbs,
-      pageTitle: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
-    });
+    const titleVerb = originalRunId ? 'Clone' : 'Start';
+    const pageTitle = isRecurringRun ? `${titleVerb} a recurring run` : `${titleVerb} a run`;
+
+    this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs, pageTitle });
 
     this.setStateSafe({
       experiment,
@@ -430,12 +456,14 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   protected async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
-    let { pipeline } = this.state;
+    let { parameters, pipeline } = this.state;
     if (confirmed && this.state.unconfirmedSelectedPipeline) {
       pipeline = this.state.unconfirmedSelectedPipeline;
+      parameters = pipeline.parameters || [];
     }
 
     this.setStateSafe({
+      parameters,
       pipeline,
       pipelineName: (pipeline && pipeline.name) || '',
       pipelineSelectorOpen: false
@@ -449,11 +477,18 @@ class NewRun extends Page<{}, NewRunState> {
     this.setStateSafe({ isRecurringRun });
   }
 
+  protected _handleParamChange(index: number, value: string): void {
+    const { parameters } = this.state;
+    parameters[index].value = value;
+    this.setStateSafe({ parameters });
+  }
+
   private async _prepareFormFromEmbeddedPipeline(embeddedPipelineRunId: string): Promise<void> {
     let embeddedPipelineSpec: string | null;
+    let runWithEmbeddedPipeline: ApiRunDetail;
 
     try {
-      const runWithEmbeddedPipeline = await Apis.runServiceApi.getRun(embeddedPipelineRunId);
+      runWithEmbeddedPipeline = await Apis.runServiceApi.getRun(embeddedPipelineRunId);
       embeddedPipelineSpec = RunUtils.getPipelineSpec(runWithEmbeddedPipeline.run);
     } catch (err) {
       await this.showPageError(
@@ -469,13 +504,13 @@ class NewRun extends Page<{}, NewRunState> {
     }
 
     try {
-      const pipeline = JSON.parse(embeddedPipelineSpec);
+      const workflow: Workflow = JSON.parse(embeddedPipelineSpec);
+      const parameters = RunUtils.getParametersFromRun(runWithEmbeddedPipeline);
       this.setStateSafe({
-        pipeline,
-        pipelineFromRun: pipeline,
-        pipelineName: (pipeline && pipeline.name) || '',
-        usePipelineFromRun: true,
-        usePipelineFromRunLabel: 'Use pipeline from previous step',
+        parameters,
+        usePipelineFromRunLabel: 'Using pipeline from previous page',
+        useWorkflowFromRun: true,
+        workflowFromRun: workflow,
       });
     } catch (err) {
       await this.showPageError(
@@ -487,78 +522,75 @@ class NewRun extends Page<{}, NewRunState> {
     this._validate();
   }
 
-  private async _prepareFormFromClone(originalRun: ApiRunDetail): Promise<void> {
-    if (!originalRun.run) {
+  private async _prepareFormFromClone(originalRun?: ApiRun | ApiJob, runtime?: ApiPipelineRuntime): Promise<void> {
+    if (!originalRun) {
       logger.error('Could not get cloned run details');
       return;
     }
 
-    let pipeline: ApiPipeline;
-    let workflow: Workflow;
-    let pipelineFromRun: ApiPipeline;
-    let usePipelineFromRun = false;
+    let pipeline: ApiPipeline | undefined;
+    let workflowFromRun: Workflow | undefined;
+    let useWorkflowFromRun = false;
     let usePipelineFromRunLabel = '';
+    let name = '';
 
     // This corresponds to a run using a pipeline that has been uploaded
-    const referencePipelineId = RunUtils.getPipelineId(originalRun.run);
+    const referencePipelineId = RunUtils.getPipelineId(originalRun);
     // This corresponds to a run where the pipeline has not been uploaded, such as runs started from
     // the CLI or notebooks
-    const embeddedPipelineSpec = RunUtils.getPipelineSpec(originalRun.run);
+    const embeddedPipelineSpec = RunUtils.getPipelineSpec(originalRun);
     if (referencePipelineId) {
       try {
         pipeline = await Apis.pipelineServiceApi.getPipeline(referencePipelineId);
+        name = pipeline.name || '';
       } catch (err) {
         await this.showPageError(
           'Error: failed to find a pipeline corresponding to that of the original run:'
-          + ` ${originalRun.run.id}.`, err);
+          + ` ${originalRun.id}.`, err);
         return;
       }
     } else if (embeddedPipelineSpec) {
       try {
-        pipeline = JSON.parse(embeddedPipelineSpec);
-        pipelineFromRun = pipeline;
+        workflowFromRun = JSON.parse(embeddedPipelineSpec);
+        name = workflowFromRun!.metadata.name || '';
       } catch (err) {
         await this.showPageError('Error: failed to read the clone run\'s pipeline definition.', err);
         return;
       }
-      usePipelineFromRun = true;
-      usePipelineFromRunLabel = 'Use pipeline from cloned run';
+      useWorkflowFromRun = true;
+      usePipelineFromRunLabel = 'Using pipeline from cloned run';
     } else {
       await this.showPageError('Could not find the cloned run\'s pipeline definition.');
       return;
     }
 
-    if (originalRun.pipeline_runtime!.workflow_manifest === undefined) {
-      await this.showPageError(`Error: run ${originalRun.run.id} had no workflow manifest`);
-      logger.error(originalRun.pipeline_runtime!.workflow_manifest);
-      return;
-    }
-    try {
-      workflow = JSON.parse(originalRun.pipeline_runtime!.workflow_manifest!) as Workflow;
-    } catch (err) {
-      await this.showPageError('Error: failed to parse the original run\'s runtime.', err);
-      logger.error(originalRun.pipeline_runtime!.workflow_manifest);
+    if (!originalRun.pipeline_spec || !originalRun.pipeline_spec.workflow_manifest) {
+      await this.showPageError(`Error: run ${originalRun.id} had no workflow manifest`);
       return;
     }
 
-    // Set pipeline parameter values from run's workflow
-    pipeline.parameters = WorkflowParser.getParameters(workflow);
+    const parameters = runtime
+      ? await RunUtils.getParametersFromRuntime(runtime) // cloned from run
+      : originalRun.pipeline_spec.parameters || []; // cloned from recurring run
 
     this.setStateSafe({
+      isClone: true,
+      parameters,
       pipeline,
-      pipelineFromRun: pipelineFromRun!,
-      pipelineName: (pipeline && pipeline.name) || '',
-      runName: this._getCloneName(originalRun.run.name!),
-      usePipelineFromRun,
+      pipelineName: name,
+      runName: this._getCloneName(originalRun.name!),
       usePipelineFromRunLabel,
+      useWorkflowFromRun,
+      workflowFromRun,
     });
 
     this._validate();
   }
 
-  private _runParametersMessage(selectedPipeline: ApiPipeline | undefined): string {
-    if (selectedPipeline) {
-      if (selectedPipeline.parameters && selectedPipeline.parameters.length) {
+
+  private _runParametersMessage(): string {
+    if (this.state.pipeline || this.state.workflowFromRun) {
+      if (this.state.parameters.length) {
         return 'Specify parameters required by the pipeline';
       } else {
         return 'This pipeline has no parameters';
@@ -568,9 +600,7 @@ class NewRun extends Page<{}, NewRunState> {
   }
 
   private _start(): void {
-    // TODO: This cannot currently be reached because _validate() is called everywhere and blocks
-    // the button from being clicked without first having a pipeline.
-    if (!this.state.pipeline) {
+    if (!this.state.pipeline && !this.state.workflowFromRun) {
       this.showErrorDialog('Run creation failed', 'Cannot start run without pipeline');
       logger.error('Cannot start run without pipeline');
       return;
@@ -590,12 +620,12 @@ class NewRun extends Page<{}, NewRunState> {
       description: this.state.description,
       name: this.state.runName,
       pipeline_spec: {
-        parameters: (this.state.pipeline.parameters || []).map(p => {
+        parameters: (this.state.parameters || []).map(p => {
           p.value = (p.value || '').trim(); return p;
         }),
-        pipeline_id: this.state.usePipelineFromRun ? undefined : this.state.pipeline.id,
-        workflow_manifest: this.state.usePipelineFromRun
-          ? JSON.stringify(this.state.pipelineFromRun)
+        pipeline_id: this.state.pipeline ? this.state.pipeline.id : undefined,
+        workflow_manifest: this.state.useWorkflowFromRun
+          ? JSON.stringify(this.state.workflowFromRun)
           : undefined,
       },
       resource_references: references,
@@ -639,15 +669,6 @@ class NewRun extends Page<{}, NewRunState> {
     });
   }
 
-  private _handleParamChange(index: number, value: string): void {
-    const { pipeline } = this.state;
-    if (!pipeline || !pipeline.parameters) {
-      return;
-    }
-    pipeline.parameters[index].value = value;
-    this.setStateSafe({ pipeline });
-  }
-
   private _getCloneName(oldName: string): string {
     const numberRegex = /Clone(?: \(([0-9]*)\))? of (.*)/;
     const match = oldName.match(numberRegex);
@@ -661,9 +682,9 @@ class NewRun extends Page<{}, NewRunState> {
 
   private _validate(): void {
     // Validate state
-    const { pipeline, maxConcurrentRuns, runName, trigger } = this.state;
+    const { pipeline, workflowFromRun, maxConcurrentRuns, runName, trigger } = this.state;
     try {
-      if (!pipeline) {
+      if (!pipeline && !workflowFromRun) {
         throw new Error('A pipeline must be selected');
       }
       if (!runName) {

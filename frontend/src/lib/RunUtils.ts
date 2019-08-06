@@ -15,14 +15,36 @@
  */
 
 import { ApiJob } from '../apis/job';
-import { ApiRun, ApiResourceType, ApiResourceReference } from '../apis/run';
+import { ApiRun, ApiResourceType, ApiResourceReference, ApiRunDetail, ApiPipelineRuntime } from '../apis/run';
 import { orderBy } from 'lodash';
+import { ApiParameter } from 'src/apis/pipeline';
+import { Workflow } from 'third_party/argo-ui/argo_template';
+import WorkflowParser from './WorkflowParser';
+import { logger } from './Utils';
 
 export interface MetricMetadata {
   count: number;
   maxValue: number;
   minValue: number;
   name: string;
+}
+
+function getParametersFromRun(run: ApiRunDetail): ApiParameter[] {
+  return getParametersFromRuntime(run.pipeline_runtime);
+}
+
+function getParametersFromRuntime(runtime?: ApiPipelineRuntime): ApiParameter[] {
+  if (!runtime) {
+    return [];
+  }
+
+  try {
+    const workflow = JSON.parse(runtime.workflow_manifest!) as Workflow;
+    return WorkflowParser.getParameters(workflow);
+  } catch (err) {
+    logger.error('Failed to parse runtime workflow manifest', err);
+    return [];
+  }
 }
 
 function getPipelineId(run?: ApiRun | ApiJob): string | null {
@@ -106,6 +128,8 @@ export default {
   getAllExperimentReferences,
   getFirstExperimentReference,
   getFirstExperimentReferenceId,
+  getParametersFromRun,
+  getParametersFromRuntime,
   getPipelineId,
   getPipelineSpec,
   getRecurringRunId,
