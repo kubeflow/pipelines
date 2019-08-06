@@ -64,9 +64,9 @@ training_image | The registry path of the Docker image that contains the trainin
 
 # Samples
 ## On its own
-K-Means algorithm tuning on MNIST dataset: [pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/kmeans-hpo-pipeline.py)
+K-Means algorithm tuning on MNIST dataset: [pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/kmeans-hpo-pipeline.py)
 
-Follow the steps as in the [README](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/README.md) with some modification:
+Follow the steps as in the [README](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/README.md) with some modification:
 1. Get and store data in S3 buckets
 2. Prepare an IAM roles with permissions to run SageMaker jobs
 3. Add 'aws-secret' to your kubeflow namespace
@@ -78,7 +78,7 @@ dsl-compile --py kmeans-hpo-pipeline.py --output kmeans-hpo-pipeline.tar.gz
 6. Once the pipeline completes, you can see the outputs under 'Output parameters' in the HPO component's Input/Output section.
 
 ## Integrated into a pipeline
-MNIST Classification using K-Means pipeline: [Pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py) | [Steps](https://github.com/kubeflow/pipelines/blob/master/samples/aws-samples/mnist-kmeans-sagemaker/README.md)
+MNIST Classification using K-Means pipeline: [Pipeline](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/mnist-classification-pipeline.py) | [Steps](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/mnist-kmeans-sagemaker/README.md)
 
 # Resources
 * [Using Amazon built-in algorithms](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html)
