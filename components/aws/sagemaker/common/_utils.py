@@ -80,7 +80,7 @@ def create_training_job_request(args):
         request['AlgorithmSpecification']['TrainingImage'] = args['image']
         request['AlgorithmSpecification'].pop('AlgorithmName')
     else:
-        # TODO: determine if users can make custom algorithm resources that have the same name as built-in algorithm names
+        # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
             request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
@@ -114,7 +114,7 @@ def create_training_job_request(args):
         request['InputDataConfig'] = args['channels']
         # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
         #   Source: Input data configuration description in the SageMaker create training job form
-        for i in range(1, len(args['channels'] + 1)):
+        for i in range(1, len(args['channels']) + 1):
             if args['data_location_' + str(i)]:
                 request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
@@ -514,7 +514,7 @@ def create_hyperparameter_tuning_job_request(args):
         request['TrainingJobDefinition']['InputDataConfig'] = args['channels']
         # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
         #   Source: Input data configuration description in the SageMaker create hyperparameter tuning job form
-        for i in range(1, len(args['channels'] + 1):
+        for i in range(1, len(args['channels']) + 1):
             if args['data_location_' + str(i)]:
                 request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
