@@ -59,10 +59,10 @@ Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compi
   2. The `project` can be set to `taxi-cab-classification-pipeline-onprem`.
   3. If the PVC mounted to `/mnt`, the value of below parameters need to be set as following:
   - `column-names`: `
-/mnt/pipelines/samples/tfx/taxi-cab-classification/column-names.json`
-  - `train`: `/mnt/pipelines/samples/tfx/taxi-cab-classification/train.csv`
-  -  `evaluation`: `/mnt/pipelines/samples/tfx/taxi-cab-classification/eval.csv`
-  -  `preprocess-module`: `/mnt/pipelines/samples/tfx/taxi-cab-classification/preprocessing.py` 
+/mnt/pipelines/samples/core/tfx/taxi-cab-classification/column-names.json`
+  - `train`: `/mnt/pipelines/samples/core/tfx/taxi-cab-classification/train.csv`
+  -  `evaluation`: `/mnt/pipelines/samples/core/tfx/taxi-cab-classification/eval.csv`
+  -  `preprocess-module`: `/mnt/pipelines/samples/core/tfx/taxi-cab-classification/preprocessing.py` 
 
 
 
