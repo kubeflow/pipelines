@@ -53,5 +53,6 @@ ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledwork
 ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend:${GCR_IMAGE_TAG}
 # Delete pipeline component first before applying so we guarantee the pipeline component is new.
 ks delete default -c pipeline
+sleep 60s
 ks apply default -c pipeline
 popd
