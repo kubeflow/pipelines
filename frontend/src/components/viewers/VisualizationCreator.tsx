@@ -29,7 +29,7 @@ export interface VisualizationCreatorConfig extends ViewerConfig {
   // Whether there is currently a visualization being generated or not.
   isBusy?: boolean;
   // Function called to generate a visualization.
-  onGenerate?: (visualizationArguments: string, inputPath: string, type: ApiVisualizationType) => void;
+  onGenerate?: (visualizationArguments: string, source: string, type: ApiVisualizationType) => void;
 }
 
 interface VisualizationCreatorProps {
@@ -40,7 +40,7 @@ interface VisualizationCreatorProps {
 interface VisualizationCreatorState {
   // arguments is expected to be a JSON object in string form.
   arguments: string;
-  inputPath: string;
+  source: string;
   selectedType?: ApiVisualizationType;
 }
 
@@ -49,7 +49,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
     super(props);
     this.state = {
       arguments: '',
-      inputPath: '',
+      source: '',
     };
   }
 
@@ -60,7 +60,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
   public render(): JSX.Element | null {
     const { configs } = this.props;
     const config = configs[0];
-    const { arguments: _arguments, inputPath, selectedType } = this.state;
+    const { arguments: _arguments, source, selectedType } = this.state;
 
     if (!config) {
       return null;
@@ -69,11 +69,11 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
     const { isBusy = false, onGenerate } = config;
 
     // Only allow a visualization to be generated if one is not already being
-    // generated (as indicated by the isBusy tag), and if there is an inputPath
+    // generated (as indicated by the isBusy tag), and if there is an source
     // provided, and a visualization type is selected, and a onGenerate function
     // is provided.
     const canGenerate = !isBusy &&
-      !!inputPath.length &&
+      !!source.length &&
       !!selectedType &&
       !!onGenerate;
 
@@ -121,15 +121,16 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
         </Select>
       </FormControl>
 
-      <Input label='Input Path' variant={'outlined'} value={inputPath} disabled={isBusy}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.setState({ inputPath: e.target.value })} />
+      <Input label='Source' variant={'outlined'} value={source} disabled={isBusy}
+        placeholder='File path or path pattern of data within GCS.'
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.setState({ source: e.target.value })} />
       <Input label='Arguments (optional)' multiline={true} variant='outlined'
         value={_arguments} disabled={isBusy}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.setState({ arguments: e.target.value })} />
       <BusyButton title='Generate Visualization' busy={isBusy} disabled={!canGenerate}
         onClick={() => {
           if (onGenerate && selectedType) {
-            onGenerate(_arguments, inputPath, selectedType);
+            onGenerate(_arguments, source, selectedType);
           }
         }} />
     </div>;

@@ -1,0 +1,13 @@
+bokeh==1.2.0
+gcsfs==0.2.3
+google-api-python-client==1.7.9
+ipykernel==5.1.1
+jupyter_client==5.2.4
+nbconvert==5.5.0
+nbformat==4.4.0
+pandas==0.24.2
+scikit_learn==0.21.2
+tensorflow==1.13.1
+tensorflow-data-validation==0.13.1
+tensorflow-model-analysis==0.13.1
+tornado==6.0.2

@@ -32,7 +32,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -605,9 +605,10 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 }
 
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
-	store, _, pipeline := initWithPipeline(t)
+	store, manager, pipeline := initWithPipeline(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
+	experiment := &model.Experiment{Name: "e1"}
+	experiment, err := manager.CreateExperiment(experiment)
 	job := &api.Job{
 		Name:    "j1",
 		Enabled: true,
@@ -615,6 +616,12 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 			PipelineId: pipeline.UUID,
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
 			},
 		},
 	}
@@ -625,13 +632,22 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		Name:           "j1",
 		Namespace:      "default",
 		Enabled:        true,
-		CreatedAtInSec: 2,
-		UpdatedAtInSec: 2,
+		CreatedAtInSec: 3,
+		UpdatedAtInSec: 3,
 		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipeline.UUID,
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "123",
+				ResourceType:  common.Job,
+				ReferenceUUID: experiment.UUID,
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
 		},
 	}
 	assert.Nil(t, err)
@@ -904,7 +920,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
-func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t *testing.T) {
+func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
@@ -912,6 +928,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t
 		Name:         "j1",
 		Enabled:      true,
 		PipelineSpec: &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()},
+		// no experiment reference
 	}
 	newJob, err := manager.CreateJob(job)
 
@@ -930,11 +947,47 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 		},
 	})
+
 	err = manager.ReportWorkflowResource(workflow)
-	println(err.Error())
-	assert.NotNil(t, err)
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Experiment not found")
+	assert.Nil(t, err)
+
+	runDetail, err := manager.GetRun("WORKFLOW_1")
+	assert.Nil(t, err)
+
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "WORKFLOW_1",
+			DisplayName:      "MY_NAME",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			Name:             "MY_NAME",
+			Namespace:        "MY_NAMESPACE",
+			CreatedAtInSec:   11,
+			ScheduledAtInSec: 0,
+			FinishedAtInSec:  0,
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: newJob.UUID,
+					ReferenceType: common.Job,
+					Relationship:  common.Creator,
+				},
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: DefaultFakeUUID,
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
+	}
+
+	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
 func TestReportScheduledWorkflowResource_Success(t *testing.T) {

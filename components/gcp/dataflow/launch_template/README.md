@@ -167,7 +167,7 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 
 ## References
 
-* [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/dataflow/_launch_template.py)
+* [Component python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataflow/_launch_template.py)
 * [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
 * [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataflow/launch_template/sample.ipynb)
 * [Cloud Dataflow Templates overview](https://cloud.google.com/dataflow/docs/guides/templates/overview)

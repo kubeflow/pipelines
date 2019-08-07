@@ -38,7 +38,7 @@ class OutputFile(Generic[T], str):
     pass
 
 #TODO: Replace this image name with another name once people decide what to replace it with.
-_default_base_image='tensorflow/tensorflow:1.11.0-py3'
+_default_base_image='tensorflow/tensorflow:1.13.2-py3'
 
 
 def _python_function_name_to_component_name(name):
@@ -287,10 +287,9 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
         '_parsed_args = vars(_parser.parse_args())',
     ])
 
-    if component_spec.outputs:
-        arg_parse_code_lines.extend([
-            '_output_files = _parsed_args.pop("_output_paths")',
-        ])
+    arg_parse_code_lines.extend([
+        '_output_files = _parsed_args.pop("_output_paths", [])',
+    ])
 
     full_source = \
 '''\
