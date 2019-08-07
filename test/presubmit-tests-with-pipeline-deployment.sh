@@ -31,7 +31,7 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
-TIMEOUT_SECONDS=1800
+TIMEOUT_SECONDS=6000
 NAMESPACE=kubeflow
 
 while [ "$1" != "" ]; do
@@ -64,6 +64,10 @@ while [ "$1" != "" ]; do
 done
 
 # Variables
+PROJECT_NUMBER=$(gcloud projects describe ${PROJECT} --format='value(projectNumber)')
+# Default service account
+# ref: https://cloud.google.com/compute/docs/access/service-accounts#compute_engine_default_service_account
+VM_SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${PULL_PULL_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
@@ -71,38 +75,47 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 echo "presubmit test starts"
 source "${DIR}/test-prep.sh"
 
-# Deploy Kubeflow
-source "${DIR}/deploy-kubeflow.sh"
+# Deploy Kubeflow Pipelines lightweight deployment
+source "${DIR}/deploy-cluster.sh"
 
 # Install Argo CLI and test-runner service account
 source "${DIR}/install-argo.sh"
 
 # When project is not ml-pipeline-test, VMs need permission to fetch some images in gcr.io/ml-pipeline-test.
 if [ ! "$PROJECT" == "ml-pipeline-test" ]; then
-  echo "Granting VM service account roles to access gcr.io/ml-pipeline-test"
-  CLUSTER_SERVICE_ACCOUNT=`gcloud container clusters describe "${TEST_CLUSTER}" --format 'value(nodeConfig.serviceAccount)'`
-  echo "CLUSTER_SERVICE_ACCOUNT=${CLUSTER_SERVICE_ACCOUNT}"
-  gcloud projects add-iam-policy-binding ml-pipeline-test --member serviceAccount:${CLUSTER_SERVICE_ACCOUNT} --role roles/storage.objectViewer
+  # If default service account doesn't have storage viewer role to
+  # ml-pipeline-test gcp project
+  if ! gcloud projects get-iam-policy ml-pipeline-test \
+    --flatten="bindings[].members" \
+    --format="value(bindings.role)" \
+    --filter="bindings.members:${VM_SERVICE_ACCOUNT}" \
+    | grep "roles/storage.objectViewer"; \
+  then
+    echo "Granting VM service account roles to access gcr.io/ml-pipeline-test"
+    gcloud projects add-iam-policy-binding ml-pipeline-test --member serviceAccount:${VM_SERVICE_ACCOUNT} --role roles/storage.objectViewer
+  fi
 fi
 
 # Build Images
-echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
--p image-build-context-gcs-uri="$remote_code_archive_uri" \
--p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
--p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
--p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
--p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
--n ${NAMESPACE} \
---serviceaccount test-runner \
--o name
-`
-echo "build docker images workflow submitted successfully"
-source "${DIR}/check-argo-status.sh"
-echo "build docker images workflow completed"
+if [ -z ${SKIP_BUILD_IMAGES} ]; then
+  echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
+  ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
+  -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+  -p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
+  -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
+  -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
+  -p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
+  -n ${NAMESPACE} \
+  --serviceaccount test-runner \
+  -o name
+  `
+  echo "build docker images workflow submitted successfully"
+  source "${DIR}/check-argo-status.sh"
+  echo "build docker images workflow completed"
+fi
 
 # Deploy the pipeline
-source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+source ${DIR}/deploy-pipeline-light.sh
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
@@ -114,7 +127,6 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 --serviceaccount test-runner \
 -o name
 `
-
 echo "test workflow submitted successfully"
 source "${DIR}/check-argo-status.sh"
 echo "test workflow completed"

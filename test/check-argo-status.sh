@@ -25,7 +25,8 @@ echo "check status of argo workflow $ARGO_WORKFLOW...."
 # probing the argo workflow status until it completed. Timeout after 30 minutes
 for i in $(seq 1 ${PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT})
 do
-  WORKFLOW_STATUS=`kubectl get workflow $ARGO_WORKFLOW -n ${NAMESPACE} --show-labels`
+  WORKFLOW_STATUS=`kubectl get workflow $ARGO_WORKFLOW -n ${NAMESPACE} --show-labels 2>&1` \
+    || echo kubectl get workflow failed with "$WORKFLOW_STATUS" # Tolerate temporary network failure during kubectl get workflow
   echo $WORKFLOW_STATUS | grep ${WORKFLOW_COMPLETE_KEYWORD} && s=0 && break || s=$? && printf "Workflow ${ARGO_WORKFLOW} is not finished.\n${WORKFLOW_STATUS}\nSleep for 20 seconds...\n" && sleep 20
 done
 
