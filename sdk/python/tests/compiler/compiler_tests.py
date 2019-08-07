@@ -32,6 +32,9 @@ from kubernetes.client import V1Toleration
 
 
 class TestCompiler(unittest.TestCase):
+  # Define the places of samples covered by unit tests.
+  core_sample_path = os.path.join(os.path.dirname(__file__), '..', '..', '..',
+                                  '..', 'samples', 'core',)
 
   def test_operator_to_template(self):
     """Test converting operator to template"""
@@ -283,9 +286,8 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
 
   def _test_sample_py_compile_yaml(self, file_base_name):
-    test_data_dir = os.path.join(
-        os.path.dirname(__file__), '..', '..', '..', '..', 'samples', 'core',
-        file_base_name)
+    # Jump back to sample dir.
+    test_data_dir = os.path.join(self.core_sample_path, file_base_name)
     py_file = os.path.join(test_data_dir, file_base_name + '.py')
     tmpdir = tempfile.mkdtemp()
     try:
