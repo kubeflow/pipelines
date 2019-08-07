@@ -29,7 +29,7 @@ COPY ./samples .
 #I think it's better to just use a shell loop though.
 #RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 #The "for" loop breaks on all whitespace, so we either need to override IFS or use the "read" command instead.
-RUN  find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
+RUN  set -e; find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 
 FROM debian:stretch
 
