@@ -45,7 +45,7 @@ type FakeUUIDGenerator struct {
 
 // NewFakeUUIDGeneratorOrFatal creates a UUIDGenerator that always returns the UUID and error
 // provided as parameters.
-func NewFakeUUIDGeneratorOrFatal(uuidStringToReturn string, errToReturn error) *FakeUUIDGenerator {
+func NewFakeUUIDGeneratorOrFatal(uuidStringToReturn string, errToReturn error) UUIDGeneratorInterface {
 	uuidToReturn, err := uuid.Parse(uuidStringToReturn)
 	if err != nil {
 		glog.Fatalf("Could not parse the UUID %v: %+v", uuidStringToReturn, err)

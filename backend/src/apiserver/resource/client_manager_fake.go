@@ -24,6 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
@@ -42,12 +43,13 @@ type FakeClientManager struct {
 	objectStore                 storage.ObjectStoreInterface
 	workflowClientFake          *FakeWorkflowClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
+	podClientFake               v1.PodInterface
 	time                        util.TimeInterface
 	uuid                        util.UUIDGeneratorInterface
 }
 
 func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
-	*FakeClientManager, error) {
+		*FakeClientManager, error) {
 
 	if time == nil {
 		glog.Fatalf("The time parameter must not be null.") // Must never happen
@@ -76,6 +78,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		defaultExperimentStore:      storage.NewDefaultExperimentStore(db),
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
+		podClientFake:               FakePodClient{},
 		time:                        time,
 		uuid:                        uuid,
 	}, nil
@@ -152,6 +155,10 @@ func (f *FakeClientManager) DefaultExperimentStore() storage.DefaultExperimentSt
 
 func (f *FakeClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
 	return f.scheduledWorkflowClientFake
+}
+
+func (f *FakeClientManager) PodClient() v1.PodInterface {
+	return f.podClientFake
 }
 
 func (f *FakeClientManager) Close() error {

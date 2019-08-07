@@ -84,6 +84,7 @@ func TestReportMetrics_Succeed(t *testing.T) {
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
 			UID:       types.UID("run-1"),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
@@ -115,12 +116,12 @@ func TestReportMetrics_Succeed(t *testing.T) {
 	expectedMetricsRequest := &api.ReportRunMetricsRequest{
 		RunId: "run-1",
 		Metrics: []*api.RunMetric{
-			&api.RunMetric{
+			{
 				Name:   "accuracy",
 				NodeId: "node-1",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 0.77},
 			},
-			&api.RunMetric{
+			{
 				Name:   "logloss",
 				NodeId: "node-1",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 1.2},
@@ -138,6 +139,7 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
 			UID:       types.UID("run-1"),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
@@ -175,6 +177,7 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
 			UID:       types.UID("run-1"),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
@@ -214,6 +217,7 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
 			UID:       types.UID("run-1"),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
@@ -252,6 +256,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
 			UID:       types.UID("run-1"),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
@@ -321,6 +326,7 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
 			UID:       types.UID("run-1"),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
@@ -357,6 +363,7 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
 			UID:       types.UID("run-1"),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
 		},
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
@@ -368,7 +375,7 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 		},
 	})
 	metricsJSON :=
-		`{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "log loss", "numberValue": 1.2}, {"name": "accuracy", "numberValue": 1.2}]}`
+			`{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "log loss", "numberValue": 1.2}, {"name": "accuracy", "numberValue": 1.2}]}`
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
