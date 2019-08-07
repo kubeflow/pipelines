@@ -1,7 +1,7 @@
 FROM l.gcr.io/google/bazel:0.24.0 as builder
 
 RUN apt-get update && \
-  apt-get install -y cmake clang musl-dev openssl ca-certificates
+  apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY WORKSPACE WORKSPACE
@@ -31,7 +31,7 @@ COPY ./samples .
 #The "for" loop breaks on all whitespace, so we either need to override IFS or use the "read" command instead.
 RUN  find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 
-FROM scratch
+FROM debian:stretch
 
 ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=${COMMIT_SHA}
@@ -45,7 +45,7 @@ COPY backend/src/apiserver/config/ /config
 COPY --from=compiler /samples/ /samples/
 
 # Adding CA certificate so API server can download pipeline through URL
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+RUN apt-get update && apt-get install -y ca-certificates
 
 # Expose apiserver port
 EXPOSE 8888
