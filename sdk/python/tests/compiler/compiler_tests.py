@@ -53,98 +53,100 @@ class TestCompiler(unittest.TestCase):
           name='GOOGLE_APPLICATION_CREDENTIALS',
           value='/secret/gcp-credentials/user-gcp-sa.json'))
       res = dsl.ResourceOp(
-        name="test-resource",
-        k8s_resource=k8s_client.V1PersistentVolumeClaim(
-          api_version="v1",
-          kind=kind,
-          metadata=k8s_client.V1ObjectMeta(
-            name="resource"
-          )
-        ),
-        attribute_outputs={"out": json}
-      )
+          name='test-resource',
+          k8s_resource=k8s_client.V1PersistentVolumeClaim(
+              api_version='v1',
+              kind=kind,
+              metadata=k8s_client.V1ObjectMeta(name='resource')),
+          attribute_outputs={'out': json})
     golden_output = {
-      'container': {
-        'image': 'image',
-        'args': [
-          'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
-        ],
-        'command': ['sh', '-c'],
-        'env': [
-          {
-            'name': 'GOOGLE_APPLICATION_CREDENTIALS',
-            'value': '/secret/gcp-credentials/user-gcp-sa.json'
-          }
-        ],
-        'volumeMounts':[
-          {
-            'mountPath': '/secret/gcp-credentials',
-            'name': 'gcp-credentials',
-          }
-        ]
-      },
-      'inputs': {'parameters':
-        [
-          {'name': 'msg1'},
-          {'name': 'msg2', 'value': 'value2'},
-        ]},
-      'name': 'echo',
-      'outputs': {
-        'parameters': [
-          {'name': 'echo-merged',
-           'valueFrom': {'path': '/tmp/message.txt'}
-          }],
-        'artifacts': [{
-          'name': 'mlpipeline-ui-metadata',
-          'path': '/mlpipeline-ui-metadata.json',
-          'optional': True,
-        },{
-          'name': 'mlpipeline-metrics',
-          'path': '/mlpipeline-metrics.json',
-          'optional': True,
-        }]
-      }
+        'container': {
+            'image':
+              'image',
+            'args': [
+                'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | '
+                'tee /tmp/message.txt'
+            ],
+            'command': ['sh', '-c'],
+            'env': [{
+                'name': 'GOOGLE_APPLICATION_CREDENTIALS',
+                'value': '/secret/gcp-credentials/user-gcp-sa.json'
+            }],
+            'volumeMounts': [{
+                'mountPath': '/secret/gcp-credentials',
+                'name': 'gcp-credentials',
+            }]
+        },
+        'inputs': {
+            'parameters': [
+                {
+                    'name': 'msg1'
+                },
+                {
+                    'name': 'msg2',
+                    'value': 'value2'
+                },
+            ]
+        },
+        'name': 'echo',
+        'outputs': {
+            'parameters': [{
+                'name': 'echo-merged',
+                'valueFrom': {
+                    'path': '/tmp/message.txt'
+                }
+            }],
+            'artifacts': [{
+                'name': 'mlpipeline-ui-metadata',
+                'path': '/mlpipeline-ui-metadata.json',
+                'optional': True,
+            }, {
+                'name': 'mlpipeline-metrics',
+                'path': '/mlpipeline-metrics.json',
+                'optional': True,
+            }]
+        }
     }
     res_output = {
-      'inputs': {
-        'parameters': [{
-          'name': 'json'
-        }, {
-          'name': 'kind'
-        }]
-      },
-      'name': 'test-resource',
-      'outputs': {
-        'parameters': [{
-          'name': 'test-resource-manifest',
-          'valueFrom': {
-            'jsonPath': '{}'
-          }
-        }, {
-          'name': 'test-resource-name',
-          'valueFrom': {
-            'jsonPath': '{.metadata.name}'
-          }
-        }, {
-          'name': 'test-resource-out',
-          'valueFrom': {
-            'jsonPath': '{{inputs.parameters.json}}'
-          }
-        }]
-      },
-      'resource': {
-        'action': 'create',
-        'manifest': (
-          "apiVersion: v1\n"
-          "kind: '{{inputs.parameters.kind}}'\n"
-          "metadata:\n"
-          "  name: resource\n"
-        )
-      }
+        'inputs': {
+            'parameters': [{
+                'name': 'json'
+            }, {
+                'name': 'kind'
+            }]
+        },
+        'name': 'test-resource',
+        'outputs': {
+            'parameters': [{
+                'name': 'test-resource-manifest',
+                'valueFrom': {
+                    'jsonPath': '{}'
+                }
+            }, {
+                'name': 'test-resource-name',
+                'valueFrom': {
+                    'jsonPath': '{.metadata.name}'
+                }
+            }, {
+                'name': 'test-resource-out',
+                'valueFrom': {
+                    'jsonPath': '{{inputs.parameters.json}}'
+                }
+            }]
+        },
+        'resource': {
+            'action':
+              'create',
+            'manifest': ('apiVersion: v1\n'
+                         "kind: '{{inputs.parameters.kind}}'\n"
+                         'metadata:\n'
+                         '  name: resource\n')
+        }
     }
 
     self.maxDiff = None
-    self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
+    self.assertEqual(golden_output,
+                     compiler._op_to_template._op_to_template(op))
     self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
 
   def _get_yaml_from_zip(self, zip_file):
@@ -188,11 +190,13 @@ class TestCompiler(unittest.TestCase):
     try:
       # First make sure the simple pipeline can be compiled.
       simple_package_path = os.path.join(tmpdir, 'simple.zip')
-      compiler.Compiler().compile(compose.save_most_frequent_word, simple_package_path)
+      compiler.Compiler().compile(compose.save_most_frequent_word,
+                                  simple_package_path)
 
       # Then make sure the composed pipeline can be compiled and also compare with golden.
       compose_package_path = os.path.join(tmpdir, 'compose.zip')
-      compiler.Compiler().compile(compose.download_save_most_frequent_word, compose_package_path)
+      compiler.Compiler().compile(compose.download_save_most_frequent_word,
+                                  compose_package_path)
       with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(compose_package_path)
@@ -214,12 +218,15 @@ class TestCompiler(unittest.TestCase):
     cwd = os.getcwd()
     try:
       os.chdir(test_package_dir)
-      subprocess.check_call(['python3', 'setup.py', 'sdist', '--format=gztar', '-d', tmpdir])
+      subprocess.check_call(
+          ['python3', 'setup.py', 'sdist', '--format=gztar', '-d', tmpdir])
       package_path = os.path.join(tmpdir, 'testsample-0.1.tar.gz')
       target_zip = os.path.join(tmpdir, 'compose.zip')
       subprocess.check_call([
           'dsl-compile', '--package', package_path, '--namespace', 'mypipeline',
-          '--output', target_zip, '--function', 'download_save_most_frequent_word'])
+          '--output', target_zip, '--function',
+          'download_save_most_frequent_word'
+      ])
       with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(target_zip)
@@ -236,9 +243,10 @@ class TestCompiler(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     try:
       target_zip = os.path.join(tmpdir, file_base_name + '.zip')
-      subprocess.check_call([
-          'dsl-compile', '--py', py_file, '--output', target_zip])
-      with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
+      subprocess.check_call(
+          ['dsl-compile', '--py', py_file, '--output', target_zip])
+      with open(os.path.join(test_data_dir, file_base_name + '.yaml'),
+                'r') as f:
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(target_zip)
 
@@ -253,9 +261,10 @@ class TestCompiler(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     try:
       target_tar = os.path.join(tmpdir, file_base_name + '.tar.gz')
-      subprocess.check_call([
-          'dsl-compile', '--py', py_file, '--output', target_tar])
-      with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
+      subprocess.check_call(
+          ['dsl-compile', '--py', py_file, '--output', target_tar])
+      with open(os.path.join(test_data_dir, file_base_name + '.yaml'),
+                'r') as f:
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_tar(target_tar)
       self.maxDiff = None
@@ -269,9 +278,10 @@ class TestCompiler(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     try:
       target_yaml = os.path.join(tmpdir, file_base_name + '-pipeline.yaml')
-      subprocess.check_call([
-          'dsl-compile', '--py', py_file, '--output', target_yaml])
-      with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
+      subprocess.check_call(
+          ['dsl-compile', '--py', py_file, '--output', target_yaml])
+      with open(os.path.join(test_data_dir, file_base_name + '.yaml'),
+                'r') as f:
         golden = yaml.safe_load(f)
 
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
@@ -283,16 +293,17 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
 
   def _test_sample_py_compile_yaml(self, file_base_name):
-    test_data_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..',
-                                                             '..', 'samples',
-                                                             'core', file_base_name)
+    test_data_dir = os.path.join(
+        os.path.dirname(__file__), '..', '..', '..', '..', 'samples', 'core',
+        file_base_name)
     py_file = os.path.join(test_data_dir, file_base_name + '.py')
     tmpdir = tempfile.mkdtemp()
     try:
       target_yaml = os.path.join(tmpdir, file_base_name + '-pipeline.yaml')
-      subprocess.check_call([
-          'dsl-compile', '--py', py_file, '--output', target_yaml])
-      with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
+      subprocess.check_call(
+          ['dsl-compile', '--py', py_file, '--output', target_yaml])
+      with open(os.path.join(test_data_dir, file_base_name + '.yaml'),
+                'r') as f:
         golden = yaml.safe_load(f)
 
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
@@ -393,22 +404,29 @@ class TestCompiler(unittest.TestCase):
 
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
+
     @component
-    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: Integer()):
+    def a_op(field_m: {'GCSPath': {
+        'path_type': 'file',
+        'file_type': 'tsv'
+    }}, field_o: Integer()):
       return ContainerOp(
-          name = 'operator a',
-          image = 'gcr.io/ml-pipeline/component-b',
-          arguments = [
-              '--field-l', field_m,
-              '--field-o', field_o,
+          name='operator a',
+          image='gcr.io/ml-pipeline/component-b',
+          arguments=[
+              '--field-l',
+              field_m,
+              '--field-o',
+              field_o,
           ],
       )
 
-    @pipeline(
-        name='p1',
-        description='description1'
-    )
-    def my_pipeline(a: {'GCSPath': {'path_type':'file', 'file_type': 'tsv'}}='good', b: Integer()=12):
+    @pipeline(name='p1', description='description1')
+    def my_pipeline(a: {'GCSPath': {
+        'path_type': 'file',
+        'file_type': 'tsv'
+    }} = 'good',
+        b: Integer() = 12):
       a_op(field_m=a, field_o=b)
 
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -416,29 +434,37 @@ class TestCompiler(unittest.TestCase):
     tmpdir = tempfile.mkdtemp()
     try:
       simple_package_path = os.path.join(tmpdir, 'simple.tar.gz')
-      compiler.Compiler().compile(my_pipeline, simple_package_path, type_check=True)
+      compiler.Compiler().compile(
+          my_pipeline, simple_package_path, type_check=True)
 
     finally:
       shutil.rmtree(tmpdir)
 
   def test_type_checking_with_inconsistent_types(self):
     """Test type check pipeline parameters against component metadata."""
+
     @component
-    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: Integer()):
+    def a_op(field_m: {'GCSPath': {
+        'path_type': 'file',
+        'file_type': 'tsv'
+    }}, field_o: Integer()):
       return ContainerOp(
-          name = 'operator a',
-          image = 'gcr.io/ml-pipeline/component-b',
-          arguments = [
-              '--field-l', field_m,
-              '--field-o', field_o,
+          name='operator a',
+          image='gcr.io/ml-pipeline/component-b',
+          arguments=[
+              '--field-l',
+              field_m,
+              '--field-o',
+              field_o,
           ],
       )
 
-    @pipeline(
-        name='p1',
-        description='description1'
-    )
-    def my_pipeline(a: {'GCSPath': {'path_type':'file', 'file_type': 'csv'}}='good', b: Integer()=12):
+    @pipeline(name='p1', description='description1')
+    def my_pipeline(a: {'GCSPath': {
+        'path_type': 'file',
+        'file_type': 'csv'
+    }} = 'good',
+        b: Integer() = 12):
       a_op(field_m=a, field_o=b)
 
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -447,30 +473,49 @@ class TestCompiler(unittest.TestCase):
     try:
       simple_package_path = os.path.join(tmpdir, 'simple.tar.gz')
       with self.assertRaises(InconsistentTypeException):
-        compiler.Compiler().compile(my_pipeline, simple_package_path, type_check=True)
-      compiler.Compiler().compile(my_pipeline, simple_package_path, type_check=False)
+        compiler.Compiler().compile(
+            my_pipeline, simple_package_path, type_check=True)
+      compiler.Compiler().compile(
+          my_pipeline, simple_package_path, type_check=False)
 
     finally:
       shutil.rmtree(tmpdir)
 
   def test_type_checking_with_json_schema(self):
     """Test type check pipeline parameters against the json schema."""
+
     @component
-    def a_op(field_m: {'GCRPath': {'openapi_schema_validator': {"type": "string", "pattern": "^.*gcr\\.io/.*$"}}}, field_o: 'Integer'):
+    def a_op(
+        field_m: {
+            'GCRPath': {
+                'openapi_schema_validator': {
+                    'type': 'string',
+                    'pattern': '^.*gcr\\.io/.*$'
+                }
+            }
+        }, field_o: 'Integer'):
       return ContainerOp(
-          name = 'operator a',
-          image = 'gcr.io/ml-pipeline/component-b',
-          arguments = [
-              '--field-l', field_m,
-              '--field-o', field_o,
+          name='operator a',
+          image='gcr.io/ml-pipeline/component-b',
+          arguments=[
+              '--field-l',
+              field_m,
+              '--field-o',
+              field_o,
           ],
       )
 
-    @pipeline(
-        name='p1',
-        description='description1'
-    )
-    def my_pipeline(a: {'GCRPath': {'openapi_schema_validator': {"type": "string", "pattern": "^.*gcr\\.io/.*$"}}}='good', b: 'Integer'=12):
+    @pipeline(name='p1', description='description1')
+    def my_pipeline(
+        a: {
+            'GCRPath': {
+                'openapi_schema_validator': {
+                    'type': 'string',
+                    'pattern': '^.*gcr\\.io/.*$'
+                }
+            }
+        } = 'good',
+        b: 'Integer' = 12):
       a_op(field_m=a, field_o=b)
 
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -480,17 +525,16 @@ class TestCompiler(unittest.TestCase):
       simple_package_path = os.path.join(tmpdir, 'simple.tar.gz')
       import jsonschema
       with self.assertRaises(jsonschema.exceptions.ValidationError):
-        compiler.Compiler().compile(my_pipeline, simple_package_path, type_check=True)
+        compiler.Compiler().compile(
+            my_pipeline, simple_package_path, type_check=True)
 
     finally:
       shutil.rmtree(tmpdir)
 
   def test_compile_pipeline_with_after(self):
+
     def op():
-      return dsl.ContainerOp(
-        name='Some component name',
-        image='image'
-      )
+      return dsl.ContainerOp(name='Some component name', image='image')
 
     @dsl.pipeline(name='Pipeline', description='')
     def pipeline():
@@ -508,22 +552,23 @@ class TestCompiler(unittest.TestCase):
     compiled_template = compiler._op_to_template._op_to_template(ops)
 
     del compiled_template['name'], expected['name']
-    del compiled_template['outputs']['parameters'][0]['name'], expected['outputs']['parameters'][0]['name']
+    del compiled_template['outputs']['parameters'][0]['name'], expected[
+      'outputs']['parameters'][0]['name']
     assert compiled_template == expected
 
   def test_tolerations(self):
     """Test a pipeline with a tolerations."""
     op1 = dsl.ContainerOp(
-      name='download',
-      image='busybox',
-      command=['sh', '-c'],
-      arguments=['sleep 10; wget localhost:5678 -O /tmp/results.txt'],
-      file_outputs={'downloaded': '/tmp/results.txt'}) \
+        name='download',
+        image='busybox',
+        command=['sh', '-c'],
+        arguments=['sleep 10; wget localhost:5678 -O /tmp/results.txt'],
+        file_outputs={'downloaded': '/tmp/results.txt'}) \
       .add_toleration(V1Toleration(
-      effect='NoSchedule',
-      key='gpu',
-      operator='Equal',
-      value='run'))
+        effect='NoSchedule',
+        key='gpu',
+        operator='Equal',
+        value='run'))
 
     self._test_op_to_template_yaml(op1, file_base_name='tolerations')
 
@@ -531,14 +576,12 @@ class TestCompiler(unittest.TestCase):
     """Test a pipeline with a customized task names."""
 
     import kfp
-    op1 = kfp.components.load_component_from_text(
-      '''
+    op1 = kfp.components.load_component_from_text("""
 name: Component name
 implementation:
   container:
     image: busybox
-'''
-    )
+""")
 
     @dsl.pipeline()
     def some_pipeline():
@@ -546,16 +589,19 @@ implementation:
 
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     template = workflow_dict['spec']['templates'][0]
-    self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'], 'Custom name')
+    self.assertEqual(
+        template['metadata']['annotations']
+        ['pipelines.kubeflow.org/task_display_name'], 'Custom name')
 
   def test_set_ttl_seconds_after_finished(self):
     """Test a pipeline with ttl after finished."""
+
     def some_op():
-        return dsl.ContainerOp(
-            name='sleep',
-            image='busybox',
-            command=['sleep 1'],
-        )
+      return dsl.ContainerOp(
+          name='sleep',
+          image='busybox',
+          command=['sleep 1'],
+      )
 
     @dsl.pipeline()
     def some_pipeline():
@@ -566,6 +612,7 @@ implementation:
     self.assertEqual(workflow_dict['spec']['ttlSecondsAfterFinished'], 86400)
 
   def test_op_transformers(self):
+
     def some_op():
       return dsl.ContainerOp(
           name='sleep',
@@ -592,23 +639,25 @@ implementation:
 
   def test_init_container(self):
     echo = dsl.UserContainer(
-      name='echo',
-      image='alpine:latest',
-      command=['echo', 'bye'])
+        name='echo', image='alpine:latest', command=['echo', 'bye'])
 
-    @dsl.pipeline(name='InitContainer', description='A pipeline with init container.')
+    @dsl.pipeline(
+        name='InitContainer', description='A pipeline with init container.')
     def init_container_pipeline():
       dsl.ContainerOp(
-        name='hello',
-        image='alpine:latest',
-        command=['echo', 'hello'],
-        init_containers=[echo])
+          name='hello',
+          image='alpine:latest',
+          command=['echo', 'hello'],
+          init_containers=[echo])
 
     workflow_dict = compiler.Compiler()._compile(init_container_pipeline)
     for template in workflow_dict['spec']['templates']:
       init_containers = template.get('initContainers', None)
       if init_containers:
-        self.assertEqual(len(init_containers),1)
+        self.assertEqual(len(init_containers), 1)
         init_container = init_containers[0]
-        self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})
-
+        self.assertEqual(init_container, {
+            'image': 'alpine:latest',
+            'command': ['echo', 'bye'],
+            'name': 'echo'
+        })
