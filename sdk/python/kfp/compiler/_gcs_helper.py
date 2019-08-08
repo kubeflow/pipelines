@@ -42,3 +42,13 @@ class GCSHelper(object):
   def download_gcs_blob(local_path, gcs_path):
     blob = GCSHelper.get_blob_from_gcs_uri(gcs_path)
     blob.download_to_filename(local_path)
+
+  @staticmethod
+  def create_gcs_bucket_if_not_exist(gcs_bucket):
+    from google.cloud import storage
+    from google.cloud.exceptions import Conflict
+    client = storage.Client()
+    try:
+      client.create_bucket(gcs_bucket)
+    except Conflict:
+      pass
