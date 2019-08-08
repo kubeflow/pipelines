@@ -48,7 +48,9 @@ class ContainerBuilder(object):
                 'args': ['--cache=true',
                          '--dockerfile=' + docker_filename,
                          '--context=' + context,
-                         '--destination=' + target_image],
+                         '--destination=' + target_image,
+                         '--digest-file=/dev/termination-log',
+                ],
                 'image': 'gcr.io/kaniko-project/executor@sha256:78d44ec4e9cb5545d7f85c1924695c89503ded86a59f92c7ae658afa3cff5400',
                 'env': [{
                     'name': 'GOOGLE_APPLICATION_CREDENTIALS',
@@ -101,8 +103,17 @@ class ContainerBuilder(object):
       logging.info('Start a kaniko job for build.')
       from ._k8s_helper import K8sHelper
       k8s_helper = K8sHelper()
-      k8s_helper.run_job(kaniko_spec, timeout)
+      result_pod_obj = k8s_helper.run_job(kaniko_spec, timeout)
       logging.info('Kaniko job complete.')
 
       # Clean up
       GCSHelper.remove_gcs_blob(context)
+
+      # Returning image name with digest
+      (image_repo, _, image_tag) = target_image.partition(':')
+      termination_message = [status.state.terminated.message for status in result_pod_obj.status.container_statuses if status.name == 'kaniko'][0] # Note: Using status.state instead of status.last_state since last_state entries can still be None
+      image_digest = termination_message
+      if not image_digest.startswith('sha256:'):
+        raise RuntimeError("Kaniko returned invalid image digest: {}".format(image_digest))
+      strict_image_name = image_repo + '@' + image_digest
+      return strict_image_name
