@@ -98,5 +98,6 @@ implementation:
       --instance_count, {inputValue: instance_count},
       --resource_encryption_key, {inputValue: resource_encryption_key},
       --tags, {inputValue: tags},
-      --output_location_file, {outputPath: output_location},
     ]
+    fileOutputs:
+      output_location: /tmp/output_location.txt
