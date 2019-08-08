@@ -112,16 +112,6 @@ steps:
   id:   'copyPythonComponentSDKToLatest'
   waitFor: ['copyPythonComponentSDKLocal']
 
-# Build the tagged samples
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/\([^\/:]\+\):\([a-zA-Z0-9_.-]\)\+/gcr.io\/ml-pipeline\/\\1:$TAG_NAME/g" samples/*/*.py']
-  id:   'prepareVersionedSamples'
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '-r', '/workspace/samples/', 'gs://ml-pipeline/release/$TAG_NAME/samples']
-  id:   'copyVersionedSamples'
-  waitFor: ['prepareVersionedSamples']
-
 # Copy the TFX sample data to the ml-pipeline-playground bucket
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', '-r', '/workspace/samples/tfx/taxi-cab-classification/*', 'gs://ml-pipeline-playground/tfx/taxi-cab-classification/']

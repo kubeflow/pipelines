@@ -150,16 +150,6 @@ steps:
   args: ['-c', 'cd /workspace/components/local/roc && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildROC'
 
-# Build the tagged samples
-- name: 'debian'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'sed -i -e "s/gcr.io\/ml-pipeline\/\([^\/:]\+\):\([a-zA-Z0-9_.-]\)\+/gcr.io\/$PROJECT_ID\/\\1:$COMMIT_SHA/g" samples/*/*.py']
-  id:   'prepareVersionedSamples'
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '-r', '/workspace/samples/', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/samples']
-  id:   'copyVersionedSamples'
-  waitFor: ['prepareVersionedSamples']
-
 images:
 # Images for the pipeline system itself
 - 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
