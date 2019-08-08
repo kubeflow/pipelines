@@ -22,7 +22,7 @@ from string import Template
     description="Example of training and serving seldon MNIST TF model. Like kubeflow/example-seldon but using existing images."
 )
 
-def mnist_tf(docker_repo_training='seldonio/deepmnistclassifier_trainer',
+def mnist_tf_volume(docker_repo_training='seldonio/deepmnistclassifier_trainer',
              docker_tag_training='0.3',
              docker_repo_serving='seldonio/deepmnistclassifier_runtime',
              docker_tag_serving='0.3'):
@@ -177,4 +177,4 @@ def mnist_tf(docker_repo_training='seldonio/deepmnistclassifier_trainer',
 
 if __name__ == "__main__":
     import kfp.compiler as compiler
-    compiler.Compiler().compile(mnist_tf, __file__ + ".tar.gz")
+    compiler.Compiler().compile(mnist_tf_volume, __file__ + ".tar.gz")
