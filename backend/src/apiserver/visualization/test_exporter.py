@@ -58,7 +58,7 @@ class TestExporterMethods(snapshottest.TestCase):
         nb = new_notebook()
         args = {"source": "gs://ml-pipeline/data.csv"}
         nb.cells.append(self.exporter.create_cell_from_args(args))
-        nb.cells.append(new_code_cell("print(variables)"))
+        nb.cells.append(new_code_cell("print([variables[key] for key in sorted(variables.keys())])"))
         html = self.exporter.generate_html_from_notebook(nb)
         self.assertMatchSnapshot(html)
 
@@ -70,7 +70,7 @@ class TestExporterMethods(snapshottest.TestCase):
             "target_lambda": "lambda x: (x['target'] > x['fare'] * 0.2)"
         }
         nb.cells.append(self.exporter.create_cell_from_args(args))
-        nb.cells.append(new_code_cell("print(variables)"))
+        nb.cells.append(new_code_cell("print([variables[key] for key in sorted(variables.keys())])"))
         html = self.exporter.generate_html_from_notebook(nb)
         self.assertMatchSnapshot(html)
 
