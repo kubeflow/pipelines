@@ -22,6 +22,7 @@ spec:
       value: gs://ml-pipeline/shakespeare1.txt
   entrypoint: default-value
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800
   templates:
   - dag:
       tasks:

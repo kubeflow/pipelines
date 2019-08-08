@@ -20,6 +20,7 @@ spec:
     parameters: []
   entrypoint: volume
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800
   templates:
   - container:
       args:

@@ -9,6 +9,7 @@ spec:
       value: '12'
   entrypoint: pipeline-flip-coin
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800
   templates:
   - dag:
       tasks:

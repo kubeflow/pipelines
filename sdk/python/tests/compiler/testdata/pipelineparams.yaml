@@ -99,4 +99,5 @@ spec:
         name: echo
         template: echo
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800
 kind: Workflow

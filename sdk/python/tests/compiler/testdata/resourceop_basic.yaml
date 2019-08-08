@@ -9,6 +9,7 @@ spec:
     - name: password
   entrypoint: resourceop-basic
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800
   templates:
   - container:
       args:

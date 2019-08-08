@@ -77,4 +77,5 @@ spec:
         - download
         template: echo
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800
   entrypoint: sidecar

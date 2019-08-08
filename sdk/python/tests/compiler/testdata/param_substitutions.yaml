@@ -7,6 +7,7 @@ spec:
     parameters: []
   entrypoint: param-substitutions
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800
   templates:
   - container:
       args:

@@ -8,6 +8,7 @@ spec:
     - name: rok-url
   entrypoint: volumesnapshotop-rokurl
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800
   templates:
   - inputs:
       parameters:

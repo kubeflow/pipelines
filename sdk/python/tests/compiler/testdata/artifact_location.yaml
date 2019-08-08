@@ -25,6 +25,7 @@ spec:
       value: foobar
   entrypoint: foo
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800
   templates:
   - dag:
       tasks:

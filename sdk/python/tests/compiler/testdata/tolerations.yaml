@@ -45,3 +45,4 @@ spec:
         operator: Equal
         value: run
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800

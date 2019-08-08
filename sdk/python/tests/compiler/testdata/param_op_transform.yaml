@@ -8,6 +8,7 @@ spec:
     - name: param
   entrypoint: parameters-in-op-transformation-functions
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800
   templates:
   - container:
       image: image

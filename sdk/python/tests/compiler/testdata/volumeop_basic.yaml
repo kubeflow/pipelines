@@ -8,6 +8,7 @@ spec:
     - name: size
   entrypoint: volumeop-basic
   serviceAccountName: pipeline-runner
+  ttlSecondsAfterFinished: 604800
   templates:
   - container:
       args:
