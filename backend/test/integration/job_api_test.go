@@ -141,8 +141,9 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, 2, len(jobs))
 
-	/* ---------- List the jobs, paginated, default sort ---------- */
-	jobs, totalSize, nextPageToken, err := s.jobClient.List(&jobparams.ListJobsParams{PageSize: util.Int32Pointer(1)})
+	/* ---------- List the jobs, paginated, sort by creation time ---------- */
+	jobs, totalSize, nextPageToken, err := s.jobClient.List(
+		&jobparams.ListJobsParams{PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("created_at")})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, 2, totalSize)
