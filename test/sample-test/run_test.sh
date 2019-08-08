@@ -205,6 +205,17 @@ xgboost_training_cm_injection() {
   sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" ${TEST_NAME}.yaml
 }
 
+################################################################################
+# Utility function to inject correct images to python files for
+# kubeflow_training_classification test.
+################################################################################
+kubeflow_training_classification_injection() {
+  sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" ${TEST_NAME}.py
+  sed -i "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" ${TEST_NAME}.py
+  sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" ${TEST_NAME}.py
+  sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" ${TEST_NAME}.py
+}
+
 if [[ -z "$RESULTS_GCS_DIR" ]]; then
   usage
   exit 1
@@ -236,6 +247,9 @@ if [[ "${TEST_NAME}" == "kubeflow_training_classification" ]]; then
   #TODO(numerology): convert the sed commands to sed -e
   # 's|gcr.io/ml-pipeline/|gcr.io/ml-pipeline-test/' and tag replacement. Also
   # let the postsubmit tests refer to yaml files.
+  if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
+    kubeflow_training_classification_injection
+  fi
 
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   check_result ${TEST_NAME}
