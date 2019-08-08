@@ -65,9 +65,9 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - kubeflow-training-classification
-              - tfx-cab-classification
-              - xgboost-training-cm
+              - kubeflow_training_classification
+              - tfx_cab_classification
+              - xgboost_training_cm
               - kubeflow_pipeline_using_TFX_OSS_components
               - lightweight_component
               - dsl_static_type_checking

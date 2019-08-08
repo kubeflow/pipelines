@@ -227,20 +227,20 @@ echo "Run the sample tests..."
 # Run the tests
 preparation ${TEST_NAME}
 
-if [[ "${TEST_NAME}" == "kubeflow-training-classification" ]]; then
+if [[ "${TEST_NAME}" == "kubeflow_training_classification" ]]; then
   #TODO(numerology): convert the sed commands to sed -e
   # 's|gcr.io/ml-pipeline/|gcr.io/ml-pipeline-test/' and tag replacement. Also
   # let the postsubmit tests refer to yaml files.
 
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   check_result ${TEST_NAME}
-elif [[ "${TEST_NAME}" == "tfx-cab-classification" ]]; then
+elif [[ "${TEST_NAME}" == "tfx_cab_classification" ]]; then
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
     tfx_cab_classification_injection
   fi
   check_result ${TEST_NAME}
-elif [[ "${TEST_NAME}" == "xgboost-training-cm" ]]; then
+elif [[ "${TEST_NAME}" == "xgboost_training_cm" ]]; then
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   if [[ -n "${DATAPROC_CREATE_CLUSTER_IMAGE}" ]]; then
     xgboost_training_cm_injection

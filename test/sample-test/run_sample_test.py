@@ -79,7 +79,7 @@ def main():
   ###### Create Job ######
   job_name = args.testname + '_sample'
   ###### Test-specific parameters #######
-  if args.testname == 'tfx-cab-classification':
+  if args.testname == 'tfx_cab_classification':
     params = {
         'output':
           args.output,
@@ -96,7 +96,7 @@ def main():
         'steps':
           '5'
     }
-  elif args.testname == 'kubeflow-training-classification':
+  elif args.testname == 'kubeflow_training_classification':
     params = {
         'output': args.output,
         'project': 'ml-pipeline-test',
@@ -105,7 +105,7 @@ def main():
         'hidden-layer-size': '10,5',
         'steps': '5'
     }
-  elif args.testname == 'xgboost-training-cm':
+  elif args.testname == 'xgboost_training_cm':
     params = {
         'output': args.output,
         'project': 'ml-pipeline-test',
@@ -126,7 +126,7 @@ def main():
   ###### Monitor Job ######
   try:
     start_time = datetime.now()
-    if args.testname == 'xgboost-training-cm':
+    if args.testname == 'xgboost_training_cm':
       response = client.wait_for_run_completion(run_id, 1800)
     else:
       response = client.wait_for_run_completion(run_id, 1200)
@@ -150,7 +150,7 @@ def main():
 
   ###### Validate the results for specific test cases ######
   #TODO: Add result check for tfx-cab-classification after launch.
-  if args.testname == 'kubeflow-training-classification':
+  if args.testname == 'kubeflow_training_classification':
     cm_tar_path = './confusion_matrix.tar.gz'
     utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
                                 'mlpipeline-ui-metadata')
@@ -165,7 +165,7 @@ def main():
             (len(cm_data['outputs'][0]['schema']) == 3),
             'the column number of the confusion matrix output is not equal to three'
         )
-  elif args.testname == 'xgboost-training-cm':
+  elif args.testname == 'xgboost_training_cm':
     cm_tar_path = './confusion_matrix.tar.gz'
     utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
                                 'mlpipeline-ui-metadata')
