@@ -80,7 +80,7 @@ source "${DIR}/install-argo.sh"
 # When project is not ml-pipeline-test, VMs need permission to fetch some images in gcr.io/ml-pipeline-test.
 if [ ! "$PROJECT" == "ml-pipeline-test" ]; then
   echo "Granting VM service account roles to access gcr.io/ml-pipeline-test"
-  CLUSTER_SERVICE_ACCOUNT=`gcloud container clusters describe "${TEST_CLUSTER}" --format json | grep -oP '"serviceAccount".*' | head -n 1 | sed -E 's/.*: "(.*)"$/\1/g'`
+  CLUSTER_SERVICE_ACCOUNT=`gcloud container clusters describe "${TEST_CLUSTER}" --format 'value(nodeConfig.serviceAccount)'`
   echo "CLUSTER_SERVICE_ACCOUNT=${CLUSTER_SERVICE_ACCOUNT}"
   gcloud projects add-iam-policy-binding ml-pipeline-test --member serviceAccount:${CLUSTER_SERVICE_ACCOUNT} --role roles/storage.objectViewer
 fi
