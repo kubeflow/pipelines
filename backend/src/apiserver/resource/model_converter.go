@@ -36,19 +36,19 @@ func ToModelRunMetric(metric *api.RunMetric, runUUID string) *model.RunMetric {
 
 // The input run might not contain workflowSpecManifest, but instead a pipeline ID.
 // The caller would retrieve workflowSpecManifest and pass in.
-func ToModelRunDetail(run *api.Run, workflow *util.Workflow, workflowSpecManifest string) (*model.RunDetail, error) {
+func ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, workflowSpecManifest string) (*model.RunDetail, error) {
 	params, err := toModelParameters(run.PipelineSpec.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to parse the parameter.")
 	}
-	resourceReferences, err := toModelResourceReferences(string(workflow.UID), common.Run, run.ResourceReferences)
+	resourceReferences, err := toModelResourceReferences(runId, common.Run, run.ResourceReferences)
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
 
 	return &model.RunDetail{
 		Run: model.Run{
-			UUID:               string(workflow.UID),
+			UUID:               runId,
 			DisplayName:        run.Name,
 			Name:               workflow.Name,
 			Namespace:          workflow.Namespace,

@@ -79,7 +79,6 @@ func (c *FakeWorkflowClient) Watch(opts v1.ListOptions) (watch.Interface, error)
 }
 
 func (c *FakeWorkflowClient) Update(workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
-	glog.Error("This fake method is not yet implemented.")
 	return nil, nil
 }
 
@@ -142,4 +141,7 @@ func (FakeBadWorkflowClient) Create(*v1alpha1.Workflow) (*v1alpha1.Workflow, err
 
 func (FakeBadWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
 	return nil, errors.New("some error")
+}
+func (c *FakeBadWorkflowClient) Update(workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
+	return nil, errors.New("failed to update workflow")
 }
