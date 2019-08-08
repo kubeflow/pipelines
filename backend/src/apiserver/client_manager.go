@@ -41,15 +41,15 @@ import (
 )
 
 const (
-	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
-	mysqlServiceHost = "MYSQL_SERVICE_HOST"
-	mysqlUser        = "DBConfig.User"
-	mysqlPassword    = "DBConfig.Password"
-	mysqlServicePort = "MYSQL_SERVICE_PORT"
+	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
+	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
+	mysqlServicePort      = "MYSQL_SERVICE_PORT"
+	mysqlUser             = "DBConfig.User"
+	mysqlPassword         = "DBConfig.Password"
+	mysqlDBName           = "DBConfig.DBName"
 
 	podNamespace          = "POD_NAMESPACE"
-	dbName                = "DBConfig.dbName"
 	initConnectionTimeout = "InitConnectionTimeout"
 )
 
@@ -256,8 +256,8 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 	// Create database if not exist
 	operation = func() error {
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s",
-			getStringConfigWithDefault(dbName, "mlpipeline")))
+		dbName := getStringConfig(mysqlDBName)
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
 		if err != nil {
 			return err
 		}
@@ -268,7 +268,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	err = backoff.Retry(operation, b)
 
 	util.TerminateIfError(err)
-	mysqlConfig.DBName = getStringConfigWithDefault(dbName, "mlpipeline")
+	mysqlConfig.DBName = dbName
 	return mysqlConfig.FormatDSN()
 }
 
