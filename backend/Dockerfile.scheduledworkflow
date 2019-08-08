@@ -9,12 +9,11 @@ RUN apk update && apk upgrade && \
 
 RUN GO111MODULE=on go build -o /bin/controller backend/src/crd/controller/scheduledworkflow/*.go
 
-FROM alpine:3.8
+FROM scratch
 WORKDIR /bin
 
 COPY --from=builder /bin/controller /bin/controller
 COPY --from=builder /go/src/github.com/kubeflow/pipelines/third_party/license.txt /bin/license.txt
-RUN chmod +x /bin/controller
 
 ENV NAMESPACE ""
 
