@@ -18,8 +18,6 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-import os
-import time
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.contrib.training.python.training import hparam
