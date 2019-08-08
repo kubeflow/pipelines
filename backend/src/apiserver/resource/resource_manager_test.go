@@ -32,7 +32,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -121,6 +121,33 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 	}
 	runDetail, err := manager.CreateRun(apiRun)
 	assert.Nil(t, err)
+	return store, manager, runDetail
+}
+
+func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.RunDetail) {
+	store, manager, exp := initWithExperiment(t)
+	apiRun := &api.Run{
+		Name: "run1",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	runDetail, err := manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
+	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	updatedWorkflow.Status.Phase = v1alpha1.NodeFailed
+	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
+	manager.ReportWorkflowResource(updatedWorkflow)
 	return store, manager, runDetail
 }
 
@@ -243,9 +270,11 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "workflow1",
+			UUID:           "123e4567-e89b-12d3-a456-426655440000",
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -258,7 +287,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID:  "workflow1",
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 					ResourceType:  common.Run,
 					ReferenceUUID: experiment.UUID,
 					ReferenceType: common.Experiment,
@@ -282,9 +311,10 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "workflow1",
+			UUID:           "123e4567-e89b-12d3-a456-426655440000",
 			DisplayName:    "run1",
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -296,7 +326,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID:  "workflow1",
+					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
 					ReferenceType: common.Experiment,
@@ -332,7 +362,7 @@ func TestCreateRun_NoExperiment(t *testing.T) {
 	runDetail, err := manager.CreateRun(apiRun)
 	assert.Nil(t, err)
 	expectedRunDetail := []*model.ResourceReference{{
-		ResourceUUID: "workflow1",
+		ResourceUUID: "123e4567-e89b-12d3-a456-426655440000",
 		ResourceType: common.Run,
 		// Experiment is now set
 		ReferenceUUID: DefaultFakeUUID,
@@ -576,6 +606,47 @@ func TestTerminateRun_DbFailure(t *testing.T) {
 	assert.Contains(t, err.Error(), "database is closed")
 }
 
+func TestRetryRun(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	actualRunDetail, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Contains(t, actualRunDetail.WorkflowRuntimeManifest, "Failed")
+
+	err = manager.RetryRun(runDetail.UUID)
+	assert.Nil(t, err)
+}
+
+func TestRetryRun_RunNotExist(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	err := manager.RetryRun("1")
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestRetryRun_FailedDeletePods(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	manager.podClient = FakeBadPodClient{}
+	err := manager.RetryRun(runDetail.UUID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "failed to delete pod")
+}
+
+func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	manager.workflowClient = &FakeBadWorkflowClient{}
+	err := manager.RetryRun(runDetail.UUID)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Failed to create or update the run")
+}
+
 func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 	store, _, job := initWithJob(t)
 	defer store.Close()
@@ -605,9 +676,10 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 }
 
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
-	store, _, pipeline := initWithPipeline(t)
+	store, manager, pipeline := initWithPipeline(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
+	experiment := &model.Experiment{Name: "e1"}
+	experiment, err := manager.CreateExperiment(experiment)
 	job := &api.Job{
 		Name:    "j1",
 		Enabled: true,
@@ -615,6 +687,12 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 			PipelineId: pipeline.UUID,
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
 			},
 		},
 	}
@@ -625,13 +703,22 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		Name:           "j1",
 		Namespace:      "default",
 		Enabled:        true,
-		CreatedAtInSec: 2,
-		UpdatedAtInSec: 2,
+		CreatedAtInSec: 3,
+		UpdatedAtInSec: 3,
 		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipeline.UUID,
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "123",
+				ResourceType:  common.Job,
+				ReferenceUUID: experiment.UUID,
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
 		},
 	}
 	assert.Nil(t, err)
@@ -820,7 +907,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	runDetail, err := manager.GetRun(run.UUID)
 	assert.Nil(t, err)
 	expectedRun := model.Run{
-		UUID:           "workflow1",
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "run1",
 		Name:           "workflow-name",
 		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -832,7 +919,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID:  "workflow1",
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Run,
 				ReferenceUUID: DefaultFakeUUID,
 				ReferenceType: common.Experiment,
@@ -853,6 +940,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
 			UID:       "WORKFLOW_1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "WORKFLOW_1"},
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
@@ -879,7 +967,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			ScheduledAtInSec: 0,
 			FinishedAtInSec:  0,
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
+				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -904,7 +992,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
-func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t *testing.T) {
+func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
@@ -912,6 +1000,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t
 		Name:         "j1",
 		Enabled:      true,
 		PipelineSpec: &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()},
+		// no experiment reference
 	}
 	newJob, err := manager.CreateJob(job)
 
@@ -921,6 +1010,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
 			UID:       "WORKFLOW_1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "WORKFLOW_1"},
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
@@ -930,11 +1020,47 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 		},
 	})
+
 	err = manager.ReportWorkflowResource(workflow)
-	println(err.Error())
-	assert.NotNil(t, err)
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Experiment not found")
+	assert.Nil(t, err)
+
+	runDetail, err := manager.GetRun("WORKFLOW_1")
+	assert.Nil(t, err)
+
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "WORKFLOW_1",
+			DisplayName:      "MY_NAME",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			Name:             "MY_NAME",
+			Namespace:        "MY_NAMESPACE",
+			CreatedAtInSec:   11,
+			ScheduledAtInSec: 0,
+			FinishedAtInSec:  0,
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: newJob.UUID,
+					ReferenceType: common.Job,
+					Relationship:  common.Creator,
+				},
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: DefaultFakeUUID,
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
+	}
+
+	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
 func TestReportScheduledWorkflowResource_Success(t *testing.T) {
@@ -1107,6 +1233,7 @@ func TestReadArtifact_Succeed(t *testing.T) {
 			Name:              "MY_NAME",
 			Namespace:         "MY_NAMESPACE",
 			UID:               "run-1",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1beta1",

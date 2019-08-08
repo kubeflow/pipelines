@@ -53,7 +53,19 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select a run to clone',
       id: 'cloneBtn',
+      style: { minWidth: 100 },
       title: 'Clone run',
+      tooltip: 'Create a copy from this run\s initial state',
+    };
+  }
+
+  public cloneRecurringRun(getSelectedIds: () => string[], useCurrentResource: boolean): ToolbarActionConfig {
+    return {
+      action: () => this._cloneRun(getSelectedIds(), true),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select a recurring run to clone',
+      id: 'cloneBtn',
+      title: 'Clone recurring run',
       tooltip: 'Create a copy from this run\s initial state',
     };
   }
@@ -74,6 +86,7 @@ export default class Buttons {
       disabled: true,
       disabledTitle: 'Select multiple runs to compare',
       id: 'compareBtn',
+      style: { minWidth: 125 },
       title: 'Compare runs',
       tooltip: 'Compare up to 10 selected runs',
     };
@@ -114,7 +127,6 @@ export default class Buttons {
       tooltip: 'Enable the run\'s trigger',
     };
   }
-
   public expandSections(action: () => void): ToolbarActionConfig {
     return {
       action,
@@ -131,6 +143,7 @@ export default class Buttons {
       icon: AddIcon,
       id: 'newExperimentBtn',
       outlined: true,
+      style: { minWidth: 185 },
       title: 'Create experiment',
       tooltip: 'Create a new experiment',
     };
@@ -143,6 +156,7 @@ export default class Buttons {
       id: 'createNewRunBtn',
       outlined: true,
       primary: true,
+      style: { minWidth: 130 },
       title: 'Create run',
       tooltip: 'Create a new run',
     };
@@ -155,6 +169,7 @@ export default class Buttons {
       id: 'createNewRunBtn',
       outlined: true,
       primary: true,
+      style: { minWidth: 130 },
       title: 'Create run',
       tooltip: 'Create a new run',
     };
@@ -166,6 +181,7 @@ export default class Buttons {
       icon: AddIcon,
       id: 'createNewRecurringRunBtn',
       outlined: true,
+      style: { minWidth: 195 },
       title: 'Create recurring run',
       tooltip: 'Create a new recurring run',
     };
@@ -210,15 +226,25 @@ export default class Buttons {
       icon: AddIcon,
       id: 'uploadBtn',
       outlined: true,
+      style: { minWidth: 160 },
       title: 'Upload pipeline',
       tooltip: 'Upload pipeline',
     };
   }
 
-  private _cloneRun(selectedIds: string[]): void {
+  private _cloneRun(selectedIds: string[], isRecurring?: boolean): void {
     if (selectedIds.length === 1) {
       const runId = selectedIds[0];
-      const searchString = this._urlParser.build({ [QUERY_PARAMS.cloneFromRun]: runId || '' });
+      let searchTerms;
+      if (isRecurring) {
+        searchTerms = {
+          [QUERY_PARAMS.cloneFromRecurringRun]: runId || '',
+          [QUERY_PARAMS.isRecurring]: '1'
+        };
+      } else {
+        searchTerms = { [QUERY_PARAMS.cloneFromRun]: runId || '' };
+      }
+      const searchString = this._urlParser.build(searchTerms);
       this._props.history.push(RoutePage.NEW_RUN + searchString);
     }
   }

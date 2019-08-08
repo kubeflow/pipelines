@@ -4,7 +4,9 @@ metadata:
   generateName: pipeline-flip-coin-
 spec:
   arguments:
-    parameters: []
+    parameters:
+    - name: maxval
+      value: '12'
   entrypoint: pipeline-flip-coin
   serviceAccountName: pipeline-runner
   templates:
@@ -22,6 +24,8 @@ spec:
           parameters:
           - name: flip-output
             value: '{{tasks.flip-3.outputs.parameters.flip-3-output}}'
+          - name: maxval
+            value: '{{inputs.parameters.maxval}}'
         dependencies:
         - flip-3
         name: graph-flip-component-1
@@ -35,6 +39,7 @@ spec:
     inputs:
       parameters:
       - name: flip-output
+      - name: maxval
     name: condition-2
   - container:
       args:
@@ -48,33 +53,11 @@ spec:
     outputs:
       artifacts:
       - name: mlpipeline-ui-metadata
+        optional: true
         path: /mlpipeline-ui-metadata.json
-        optional: true
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
         optional: true
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
+        path: /mlpipeline-metrics.json
       parameters:
       - name: flip-output
         valueFrom:
@@ -91,33 +74,11 @@ spec:
     outputs:
       artifacts:
       - name: mlpipeline-ui-metadata
+        optional: true
         path: /mlpipeline-ui-metadata.json
-        optional: true
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
         optional: true
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
+        path: /mlpipeline-metrics.json
       parameters:
       - name: flip-2-output
         valueFrom:
@@ -134,33 +95,11 @@ spec:
     outputs:
       artifacts:
       - name: mlpipeline-ui-metadata
+        optional: true
         path: /mlpipeline-ui-metadata.json
-        optional: true
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
         optional: true
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
+        path: /mlpipeline-metrics.json
       parameters:
       - name: flip-3-output
         valueFrom:
@@ -171,12 +110,15 @@ spec:
           parameters:
           - name: flip-output
             value: '{{inputs.parameters.flip-output}}'
+          - name: maxval
+            value: '{{inputs.parameters.maxval}}'
         name: condition-2
         template: condition-2
         when: '{{inputs.parameters.flip-output}} == heads'
     inputs:
       parameters:
       - name: flip-output
+      - name: maxval
     name: graph-flip-component-1
   - dag:
       tasks:
@@ -188,6 +130,8 @@ spec:
           parameters:
           - name: flip-output
             value: '{{tasks.flip.outputs.parameters.flip-output}}'
+          - name: maxval
+            value: '{{inputs.parameters.maxval}}'
         dependencies:
         - flip
         - flip-2
@@ -202,6 +146,9 @@ spec:
         - graph-flip-component-1
         name: print-2
         template: print-2
+    inputs:
+      parameters:
+      - name: maxval
     name: pipeline-flip-coin
   - container:
       command:
@@ -215,33 +162,11 @@ spec:
     outputs:
       artifacts:
       - name: mlpipeline-ui-metadata
+        optional: true
         path: /mlpipeline-ui-metadata.json
-        optional: true
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
         optional: true
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
+        path: /mlpipeline-metrics.json
   - container:
       command:
       - echo
@@ -254,30 +179,8 @@ spec:
     outputs:
       artifacts:
       - name: mlpipeline-ui-metadata
+        optional: true
         path: /mlpipeline-ui-metadata.json
-        optional: true
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
       - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
         optional: true
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
+        path: /mlpipeline-metrics.json

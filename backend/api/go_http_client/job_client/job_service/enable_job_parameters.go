@@ -75,7 +75,10 @@ for the enable job operation typically these are written to a http.Request
 */
 type EnableJobParams struct {
 
-	/*ID*/
+	/*ID
+	  The ID of the job to be enabled
+
+	*/
 	ID string
 
 	timeout    time.Duration

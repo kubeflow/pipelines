@@ -15,6 +15,8 @@
 package main
 
 import (
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -23,7 +25,9 @@ import (
 )
 
 func initConfig() {
-	// Import environment variable
+	// Import environment variable, support nested vars e.g. OBJECTSTORECONFIG_ACCESSKEY
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 
 	// Set configuration file name. The format is auto detected in this case.
@@ -47,6 +51,24 @@ func getStringConfig(configName string) string {
 		glog.Fatalf("Please specify flag %s", configName)
 	}
 	return viper.GetString(configName)
+}
+
+func getStringConfigWithDefault(configName, value string) string {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	return viper.GetString(configName)
+}
+
+func getBoolConfigWithDefault(configName string, value bool) bool {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	value, err := strconv.ParseBool(viper.GetString(configName))
+	if err != nil {
+		glog.Fatalf("Failed converting string to bool %s", viper.GetString(configName))
+	}
+	return value
 }
 
 func getDurationConfig(configName string) time.Duration {

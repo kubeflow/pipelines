@@ -25,6 +25,8 @@ import { NodePhase, statusToBgColor, hasFinished } from './StatusUtils';
 
 export enum StorageService {
   GCS = 'gcs',
+  HTTP = 'http',
+  HTTPS = 'https',
   MINIO = 'minio',
   S3 = 's3'
 }
@@ -77,6 +79,17 @@ export default class WorkflowParser {
         if (node.name === `${workflowName}.onExit`) {
           nodeLabel = `onExit - ${node.templateName}`;
         }
+
+        if (workflow.spec && workflow.spec.templates) {
+          const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+          if (tmpl && tmpl.metadata && tmpl.metadata.annotations) {
+            const displayName = tmpl.metadata.annotations['pipelines.kubeflow.org/task_display_name'];
+            if (displayName) {
+              nodeLabel = displayName;
+            }
+          }
+        }
+
         g.setNode(node.id, {
           height: Constants.NODE_HEIGHT,
           icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message),
@@ -151,9 +164,9 @@ export default class WorkflowParser {
   // Makes sure the workflow object contains the node and returns its
   // inputs/outputs if any, while looking out for any missing link in the chain to
   // the node's inputs/outputs.
-  public static getNodeInputOutputParams(workflow: Workflow, nodeId: string): [string[][], string[][]] {
+  public static getNodeInputOutputParams(workflow?: Workflow, nodeId?: string): [string[][], string[][]] {
     type paramList = string[][];
-    if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
+    if (!nodeId || !workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
       return [[], []];
     }
 
@@ -261,6 +274,20 @@ export default class WorkflowParser {
         bucket: pathParts[0],
         key: pathParts.slice(1).join('/'),
         source: StorageService.S3,
+      };
+    } else if (strPath.startsWith('http://')) {
+      const pathParts = strPath.substr('http://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.HTTP,
+      };
+    } else if (strPath.startsWith('https://')) {
+      const pathParts = strPath.substr('https://'.length).split('/');
+      return {
+        bucket: pathParts[0],
+        key: pathParts.slice(1).join('/'),
+        source: StorageService.HTTPS,
       };
     } else {
       throw new Error('Unsupported storage path: ' + strPath);

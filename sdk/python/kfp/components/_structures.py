@@ -21,6 +21,7 @@ __all__ = [
     'OutputPathPlaceholder',
     'ConcatPlaceholder',
     'IsPresentPlaceholder',
+    'IfPlaceholderStructure',
     'IfPlaceholder',
 
     'ContainerSpec',

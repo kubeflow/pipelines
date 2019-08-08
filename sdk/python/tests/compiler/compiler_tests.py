@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 import kfp.compiler as compiler
 import kfp.dsl as dsl
 import os
@@ -97,38 +98,10 @@ class TestCompiler(unittest.TestCase):
           'name': 'mlpipeline-ui-metadata',
           'path': '/mlpipeline-ui-metadata.json',
           'optional': True,
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
-            }
-          }
         },{
           'name': 'mlpipeline-metrics',
           'path': '/mlpipeline-metrics.json',
           'optional': True,
-          's3': {
-            'accessKeySecret': {
-              'key': 'accesskey',
-              'name': 'mlpipeline-minio-artifact',
-            },
-            'bucket': 'mlpipeline',
-            'endpoint': 'minio-service.kubeflow:9000',
-            'insecure': True,
-            'key': 'runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-metrics.tgz',
-            'secretKeySecret': {
-              'key': 'secretkey',
-              'name': 'mlpipeline-minio-artifact',
-            }
-          }
         }]
       }
     }
@@ -171,8 +144,8 @@ class TestCompiler(unittest.TestCase):
     }
 
     self.maxDiff = None
-    self.assertEqual(golden_output, compiler.Compiler()._op_to_template(op))
-    self.assertEqual(res_output, compiler.Compiler()._op_to_template(res))
+    self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
+    self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
 
   def _get_yaml_from_zip(self, zip_file):
     with zipfile.ZipFile(zip_file, 'r') as zip:
@@ -309,6 +282,10 @@ class TestCompiler(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
+  def test_py_compile_artifact_location(self):
+    """Test configurable artifact location pipeline."""
+    self._test_py_compile_yaml('artifact_location')
+
   def test_py_compile_basic(self):
     """Test basic sequential pipeline."""
     self._test_py_compile_zip('basic')
@@ -325,10 +302,6 @@ class TestCompiler(unittest.TestCase):
     """Test a pipeline with conditions."""
     self._test_py_compile_zip('coin')
 
-  def test_py_compile_immediate_value(self):
-    """Test a pipeline with immediate value parameter."""
-    self._test_py_compile_targz('immediate_value')
-
   def test_py_compile_default_value(self):
     """Test a pipeline with a parameter with default value."""
     self._test_py_compile_targz('default_value')
@@ -344,6 +317,10 @@ class TestCompiler(unittest.TestCase):
   def test_py_image_pull_secret(self):
     """Test pipeline imagepullsecret."""
     self._test_py_compile_yaml('imagepullsecret')
+
+  def test_py_timeout(self):
+    """Test pipeline timeout."""
+    self._test_py_compile_yaml('timeout')
 
   def test_py_recursive_do_while(self):
     """Test pipeline recursive."""
@@ -385,10 +362,14 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline param_substitutions."""
     self._test_py_compile_yaml('param_substitutions')
 
+  def test_py_param_op_transform(self):
+    """Test pipeline param_op_transform."""
+    self._test_py_compile_yaml('param_op_transform')
+
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
     @component
-    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: 'Integer'):
+    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: Integer()):
       return ContainerOp(
           name = 'operator a',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -418,7 +399,7 @@ class TestCompiler(unittest.TestCase):
   def test_type_checking_with_inconsistent_types(self):
     """Test type check pipeline parameters against component metadata."""
     @component
-    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: 'Integer'):
+    def a_op(field_m: {'GCSPath': {'path_type': 'file', 'file_type':'tsv'}}, field_o: Integer()):
       return ContainerOp(
           name = 'operator a',
           image = 'gcr.io/ml-pipeline/component-b',
@@ -447,6 +428,38 @@ class TestCompiler(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
+  def test_type_checking_with_json_schema(self):
+    """Test type check pipeline parameters against the json schema."""
+    @component
+    def a_op(field_m: {'GCRPath': {'openapi_schema_validator': {"type": "string", "pattern": "^.*gcr\\.io/.*$"}}}, field_o: 'Integer'):
+      return ContainerOp(
+          name = 'operator a',
+          image = 'gcr.io/ml-pipeline/component-b',
+          arguments = [
+              '--field-l', field_m,
+              '--field-o', field_o,
+          ],
+      )
+
+    @pipeline(
+        name='p1',
+        description='description1'
+    )
+    def my_pipeline(a: {'GCRPath': {'openapi_schema_validator': {"type": "string", "pattern": "^.*gcr\\.io/.*$"}}}='good', b: 'Integer'=12):
+      a_op(field_m=a, field_o=b)
+
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+    tmpdir = tempfile.mkdtemp()
+    try:
+      simple_package_path = os.path.join(tmpdir, 'simple.tar.gz')
+      import jsonschema
+      with self.assertRaises(jsonschema.exceptions.ValidationError):
+        compiler.Compiler().compile(my_pipeline, simple_package_path, type_check=True)
+
+    finally:
+      shutil.rmtree(tmpdir)
+
   def test_compile_pipeline_with_after(self):
     def op():
       return dsl.ContainerOp(
@@ -458,7 +471,7 @@ class TestCompiler(unittest.TestCase):
     def pipeline():
       task1 = op()
       task2 = op().after(task1)
-    
+
     compiler.Compiler()._compile(pipeline)
 
   def _test_op_to_template_yaml(self, ops, file_base_name):
@@ -467,7 +480,7 @@ class TestCompiler(unittest.TestCase):
     with open(target_yaml, 'r') as f:
       expected = yaml.safe_load(f)['spec']['templates'][0]
 
-    compiled_template = compiler.Compiler()._op_to_template(ops)
+    compiled_template = compiler._op_to_template._op_to_template(ops)
 
     del compiled_template['name'], expected['name']
     del compiled_template['outputs']['parameters'][0]['name'], expected['outputs']['parameters'][0]['name']
@@ -488,3 +501,89 @@ class TestCompiler(unittest.TestCase):
       value='run'))
 
     self._test_op_to_template_yaml(op1, file_base_name='tolerations')
+
+  def test_set_display_name(self):
+    """Test a pipeline with a customized task names."""
+
+    import kfp
+    op1 = kfp.components.load_component_from_text(
+      '''
+name: Component name
+implementation:
+  container:
+    image: busybox
+'''
+    )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      op1().set_display_name('Custom name')
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    template = workflow_dict['spec']['templates'][0]
+    self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'], 'Custom name')
+
+  def test_set_ttl_seconds_after_finished(self):
+    """Test a pipeline with ttl after finished."""
+    def some_op():
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
+
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_ttl_seconds_after_finished(86400)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['ttlSecondsAfterFinished'], 86400)
+
+  def test_op_transformers(self):
+    def some_op():
+      return dsl.ContainerOp(
+          name='sleep',
+          image='busybox',
+          command=['sleep 1'],
+      )
+
+    @dsl.pipeline(name='some_pipeline', description='')
+    def some_pipeline():
+      task1 = some_op()
+      task2 = some_op()
+      task3 = some_op()
+
+      dsl.get_pipeline_conf().op_transformers.append(lambda op: op.set_retry(5))
+
+    workflow_dict = compiler.Compiler()._compile(some_pipeline)
+    for template in workflow_dict['spec']['templates']:
+      container = template.get('container', None)
+      if container:
+        self.assertEqual(template['retryStrategy']['limit'], 5)
+
+  def test_add_pod_env(self):
+    self._test_py_compile_yaml('add_pod_env')
+
+  def test_init_container(self):
+    echo = dsl.UserContainer(
+      name='echo',
+      image='alpine:latest',
+      command=['echo', 'bye'])
+
+    @dsl.pipeline(name='InitContainer', description='A pipeline with init container.')
+    def init_container_pipeline():
+      dsl.ContainerOp(
+        name='hello',
+        image='alpine:latest',
+        command=['echo', 'hello'],
+        init_containers=[echo])
+
+    workflow_dict = compiler.Compiler()._compile(init_container_pipeline)
+    for template in workflow_dict['spec']['templates']:
+      init_containers = template.get('initContainers', None)
+      if init_containers:
+        self.assertEqual(len(init_containers),1)
+        init_container = init_containers[0]
+        self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})
+

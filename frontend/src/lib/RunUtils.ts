@@ -15,14 +15,36 @@
  */
 
 import { ApiJob } from '../apis/job';
-import { ApiRun, ApiResourceType, ApiResourceReference } from '../apis/run';
+import { ApiRun, ApiResourceType, ApiResourceReference, ApiRunDetail, ApiPipelineRuntime } from '../apis/run';
 import { orderBy } from 'lodash';
+import { ApiParameter } from 'src/apis/pipeline';
+import { Workflow } from 'third_party/argo-ui/argo_template';
+import WorkflowParser from './WorkflowParser';
+import { logger } from './Utils';
 
 export interface MetricMetadata {
   count: number;
   maxValue: number;
   minValue: number;
   name: string;
+}
+
+function getParametersFromRun(run: ApiRunDetail): ApiParameter[] {
+  return getParametersFromRuntime(run.pipeline_runtime);
+}
+
+function getParametersFromRuntime(runtime?: ApiPipelineRuntime): ApiParameter[] {
+  if (!runtime) {
+    return [];
+  }
+
+  try {
+    const workflow = JSON.parse(runtime.workflow_manifest!) as Workflow;
+    return WorkflowParser.getParameters(workflow);
+  } catch (err) {
+    logger.error('Failed to parse runtime workflow manifest', err);
+    return [];
+  }
 }
 
 function getPipelineId(run?: ApiRun | ApiJob): string | null {
@@ -50,35 +72,55 @@ function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference
     .filter((ref) => ref.key && ref.key.type && ref.key.type === ApiResourceType.EXPERIMENT || false);
 }
 
-function extractMetricMetadata(runs: ApiRun[]): MetricMetadata[] {
-  const metrics = Array.from(
-    runs.reduce((metricMetadatas, run) => {
-      if (!run || !run.metrics) {
-        return metricMetadatas;
-      }
-      run.metrics.forEach((metric) => {
-        if (!metric.name || metric.number_value === undefined || isNaN(metric.number_value)) {
-          return;
-        }
-
-        let metricMetadata = metricMetadatas.get(metric.name);
-        if (!metricMetadata) {
-          metricMetadata = {
-            count: 0,
-            maxValue: Number.MIN_VALUE,
-            minValue: Number.MAX_VALUE,
-            name: metric.name,
-          };
-          metricMetadatas.set(metricMetadata.name, metricMetadata);
-        }
-        metricMetadata.count++;
-        metricMetadata.minValue = Math.min(metricMetadata.minValue, metric.number_value);
-        metricMetadata.maxValue = Math.max(metricMetadata.maxValue, metric.number_value);
-      });
+/**
+ * Takes an array of Runs and returns a map where each key represents a single metric, and its value
+ * contains the name again, how many of that metric were collected across all supplied Runs, and the
+ * max and min values encountered for that metric.
+ */
+function runsToMetricMetadataMap(runs: ApiRun[]): Map<string, MetricMetadata> {
+  return runs.reduce((metricMetadatas, run) => {
+    if (!run || !run.metrics) {
       return metricMetadatas;
-    }, new Map<string, MetricMetadata>()).values()
-  );
+    }
+    run.metrics.forEach((metric) => {
+      if (!metric.name || metric.number_value === undefined || isNaN(metric.number_value)) {
+        return;
+      }
+
+      let metricMetadata = metricMetadatas.get(metric.name);
+      if (!metricMetadata) {
+        metricMetadata = {
+          count: 0,
+          maxValue: Number.MIN_VALUE,
+          minValue: Number.MAX_VALUE,
+          name: metric.name,
+        };
+        metricMetadatas.set(metricMetadata.name, metricMetadata);
+      }
+      metricMetadata.count++;
+      metricMetadata.minValue = Math.min(metricMetadata.minValue, metric.number_value);
+      metricMetadata.maxValue = Math.max(metricMetadata.maxValue, metric.number_value);
+    });
+    return metricMetadatas;
+  }, new Map<string, MetricMetadata>());
+}
+
+function extractMetricMetadata(runs: ApiRun[]): MetricMetadata[] {
+  const metrics = Array.from(runsToMetricMetadataMap(runs).values());
   return orderBy(metrics, ['count', 'name'], ['desc', 'asc']);
+}
+
+function getRecurringRunId(run?: ApiRun): string {
+  if (!run) {
+    return '';
+  }
+
+  for (const ref of run.resource_references || []) {
+    if (ref.key && ref.key.type === ApiResourceType.JOB) {
+      return ref.key.id || '';
+    }
+  }
+  return '';
 }
 
 export default {
@@ -86,6 +128,10 @@ export default {
   getAllExperimentReferences,
   getFirstExperimentReference,
   getFirstExperimentReferenceId,
+  getParametersFromRun,
+  getParametersFromRuntime,
   getPipelineId,
   getPipelineSpec,
+  getRecurringRunId,
+  runsToMetricMetadataMap,
 };

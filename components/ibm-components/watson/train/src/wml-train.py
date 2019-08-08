@@ -21,6 +21,7 @@ def getSecret(secret):
 def train(args):
     from watson_machine_learning_client import WatsonMachineLearningAPIClient
     from minio import Minio
+    from urllib.parse import urlsplit
     import os,time
 
     wml_train_code = args.train_code
@@ -31,17 +32,22 @@ def train(args):
     wml_runtime_version = args.runtime_version if args.runtime_version else '3.5'
     wml_run_definition = args.run_definition if args.run_definition else 'python-tensorflow-definition'
     wml_run_name = args.run_name if args.run_name else 'python-tensorflow-run'
-    wml_author_email = args.author_email if args.author_email else 'author@ibm.com'
+    wml_author_name = args.author_name if args.author_name else 'default-author'
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
-    wml_username = getSecret("/app/secrets/wml_username")
-    wml_password = getSecret("/app/secrets/wml_password")
+    wml_apikey = getSecret("/app/secrets/wml_apikey")
     wml_instance_id = getSecret("/app/secrets/wml_instance_id")
 
     wml_data_source_type = getSecret("/app/secrets/wml_data_source_type")
 
     cos_endpoint = getSecret("/app/secrets/cos_endpoint")
+    cos_endpoint_parts = urlsplit(cos_endpoint)
+    if bool(cos_endpoint_parts.scheme):
+        cos_endpoint_hostname = cos_endpoint_parts.hostname
+    else:
+        cos_endpoint_hostname = cos_endpoint
+        cos_endpoint = 'https://' + cos_endpoint
     cos_access_key = getSecret("/app/secrets/cos_access_key")
     cos_secret_key = getSecret("/app/secrets/cos_secret_key")
     cos_input_bucket = getSecret("/app/secrets/cos_input_bucket")
@@ -50,24 +56,24 @@ def train(args):
     # download model code
     model_code = os.path.join('/app', wml_train_code)
 
-    cos = Minio(cos_endpoint,
+    cos = Minio(cos_endpoint_hostname,
                access_key = cos_access_key,
-               secret_key = cos_secret_key)
+               secret_key = cos_secret_key,
+               secure = True)
     cos.fget_object(cos_input_bucket, wml_train_code, model_code)
 
     # set up the WML client
     wml_credentials = {
                        "url": wml_url,
-                       "username": wml_username,
-                       "password": wml_password,
-                       "instance_id": wml_instance_id
+                       "instance_id": wml_instance_id,
+                       "apikey": wml_apikey
                       }
     client = WatsonMachineLearningAPIClient( wml_credentials )
 
     # define the model
     metadata = {
         client.repository.DefinitionMetaNames.NAME              : wml_run_definition,
-        client.repository.DefinitionMetaNames.AUTHOR_EMAIL      : wml_author_email,
+        client.repository.DefinitionMetaNames.AUTHOR_NAME       : wml_author_name,
         client.repository.DefinitionMetaNames.FRAMEWORK_NAME    : wml_framework_name,
         client.repository.DefinitionMetaNames.FRAMEWORK_VERSION : wml_framework_version,
         client.repository.DefinitionMetaNames.RUNTIME_NAME      : wml_runtime_name,
@@ -81,8 +87,8 @@ def train(args):
 
     # define the run
     metadata = {
-        client.training.ConfigurationMetaNames.NAME         : wml_run_name,
-        client.training.ConfigurationMetaNames.AUTHOR_EMAIL : wml_author_email,
+        client.training.ConfigurationMetaNames.NAME        : wml_run_name,
+        client.training.ConfigurationMetaNames.AUTHOR_NAME : wml_author_name,
         client.training.ConfigurationMetaNames.TRAINING_DATA_REFERENCE : {
             "connection" : {
                 "endpoint_url"      : cos_endpoint,
@@ -125,6 +131,13 @@ def train(args):
         status = client.training.get_status( run_uid )
     print(status)
 
+    # Get training details
+    training_details = client.training.get_details(run_uid)
+    with open("/tmp/training_uid", "w") as f:
+        training_uid = training_details['entity']['training_results_reference']['location']['model_location']
+        f.write(training_uid)
+    f.close()
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -136,7 +149,7 @@ if __name__ == "__main__":
     parser.add_argument('--runtime-version', type=str)
     parser.add_argument('--run-definition', type=str)
     parser.add_argument('--run-name', type=str)
-    parser.add_argument('--author-email', type=str)
+    parser.add_argument('--author-name', type=str)
     parser.add_argument('--config', type=str, default="secret_name")
     args = parser.parse_args()
     # Check secret name is not empty

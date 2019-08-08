@@ -281,6 +281,36 @@
         ]
       }
     },
+    "/apis/v1beta1/runs/{run_id}/retry": {
+      "post": {
+        "operationId": "RetryRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/apiStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
     "/apis/v1beta1/runs/{run_id}/terminate": {
       "post": {
         "operationId": "TerminateRun",
@@ -592,7 +622,7 @@
         "finished_at": {
           "type": "string",
           "format": "date-time",
-          "description": "Output. When this run is finished."
+          "description": "Output. The time this run is finished."
         },
         "status": {
           "type": "string",
