@@ -29,7 +29,7 @@ dfs = []
 files = file_io.get_matching_files(source)
 
 # Read data from file and write it to a DataFrame object.
-if variables['headers'] is not None:
+if "headers" is in variables:
     # If headers are provided, do not set headers for DataFrames
     for f in files:
         dfs.append(pd.read_csv(f, header=None))
@@ -40,6 +40,6 @@ else:
 
 # Display DataFrame as output.
 df = pd.concat(dfs)
-if variables['headers'] is not None:
-    df.columns = variables['headers']
+if "headers" is in variables:
+    df.columns = variables["headers"]
 show(df)
