@@ -39,6 +39,9 @@ class ContainerBuilder(object):
         'metadata': {
             'generateName': 'kaniko-',
             'namespace': self._namespace,
+            'annotations': {
+                'sidecar.istio.io/inject': 'false'
+            },
         },
         'kind': 'Pod',
         'spec': {
