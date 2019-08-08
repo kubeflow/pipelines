@@ -286,7 +286,6 @@ elif [[ "${TEST_NAME}" == "kubeflow_pipeline_using_TFX_OSS_components" ]]; then
   DEPLOYER_MODEL=`cat /proc/sys/kernel/random/uuid`
   DEPLOYER_MODEL=Notebook_tfx_taxi_`echo ${DEPLOYER_MODEL//-/_}`
 
-  cd ${BASE_DIR}/samples/core/kubeflow_pipeline_using_TFX_OSS_components
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8
   if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
