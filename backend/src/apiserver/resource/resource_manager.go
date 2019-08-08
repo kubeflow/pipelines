@@ -33,6 +33,8 @@ import (
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -47,6 +49,7 @@ type ClientManagerInterface interface {
 	ObjectStore() storage.ObjectStoreInterface
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
+	PodClient() corev1.PodInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
 }
@@ -62,6 +65,7 @@ type ResourceManager struct {
 	objectStore             storage.ObjectStoreInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
+	podClient               corev1.PodInterface
 	time                    util.TimeInterface
 	uuid                    util.UUIDGeneratorInterface
 }
@@ -78,6 +82,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		objectStore:             clientManager.ObjectStore(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
+		podClient:               clientManager.PodClient(),
 		time:                    clientManager.Time(),
 		uuid:                    clientManager.UUID(),
 	}
@@ -96,7 +101,7 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 }
 
 func (r *ResourceManager) ListExperiments(opts *list.Options) (
-	experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
+		experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
 	return r.experimentStore.ListExperiments(opts)
 }
 
@@ -109,7 +114,7 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 }
 
 func (r *ResourceManager) ListPipelines(opts *list.Options) (
-	pipelines []*model.Pipeline, total_size int, nextPageToken string, err error) {
+		pipelines []*model.Pipeline, total_size int, nextPageToken string, err error) {
 	return r.pipelineStore.ListPipelines(opts)
 }
 
@@ -197,6 +202,12 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 	}
+	uuid, err := r.uuid.NewRandom()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to generate run ID.")
+	}
+	runId := uuid.String()
+
 	var workflow util.Workflow
 	if err = json.Unmarshal(workflowSpecManifestBytes, &workflow); err != nil {
 		return nil, util.NewInternalServerError(err,
@@ -210,6 +221,13 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
+	// Add label to the workflow so it can be persisted by persistent agent later.
+	workflow.SetLabels(util.LabelKeyWorkflowRunId, runId)
+	// Replace {{workflow.uid}} with runId
+	err = workflow.ReplaceUID(runId)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
+	}
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
@@ -238,7 +256,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Store run metadata into database
-	runDetail, err := ToModelRunDetail(apiRun, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
+	runDetail, err := ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert run model")
 	}
@@ -253,7 +271,7 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 }
 
 func (r *ResourceManager) ListRuns(filterContext *common.FilterContext,
-	opts *list.Options) (runs []*model.Run, total_size int, nextPageToken string, err error) {
+		opts *list.Options) (runs []*model.Run, total_size int, nextPageToken string, err error) {
 	return r.runStore.ListRuns(filterContext, opts)
 }
 
@@ -284,7 +302,7 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 }
 
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
-	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
+		opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
 	return r.jobStore.ListJobs(filterContext, opts)
 }
 
@@ -313,7 +331,7 @@ func TerminateWorkflow(wfClient workflowclient.WorkflowInterface, name string) e
 func (r *ResourceManager) TerminateRun(runId string) error {
 	runDetail, err := r.checkRunExist(runId)
 	if err != nil {
-		return util.Wrap(err, "Delete run failed")
+		return util.Wrap(err, "Terminate run failed")
 	}
 
 	err = r.runStore.TerminateRun(runId)
@@ -322,7 +340,50 @@ func (r *ResourceManager) TerminateRun(runId string) error {
 	}
 
 	err = TerminateWorkflow(r.workflowClient, runDetail.Run.Name)
-	return util.Wrap(err, "Terminate run failed")
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to terminate the run")
+	}
+	return nil
+}
+
+func (r *ResourceManager) RetryRun(runId string) error {
+	runDetail, err := r.checkRunExist(runId)
+	if err != nil {
+		return util.Wrap(err, "Retry run failed")
+	}
+
+	if runDetail.WorkflowRuntimeManifest == "" {
+		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
+	}
+	var workflow util.Workflow
+	if err := json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &workflow); err != nil {
+		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
+	}
+
+	newWorkflow, podsToDelete, err := formulateRetryWorkflow(&workflow)
+	if err != nil {
+		return util.Wrap(err, "Retry run failed.")
+	}
+
+	if err = deletePods(r.podClient, podsToDelete, newWorkflow.ObjectMeta.Namespace); err != nil {
+		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
+	}
+
+	_, updateErr := r.workflowClient.Update(newWorkflow.Workflow)
+	if updateErr == nil {
+		return nil
+	}
+
+	// Remove resource version
+	newWorkflow.ResourceVersion = ""
+	_, createError := r.workflowClient.Create(newWorkflow.Workflow)
+	if createError != nil {
+		return util.NewInternalServerError(createError,
+			"Retry run failed. Failed to create or update the run. Update Error: %s, Create Error: %s",
+			updateErr.Error(), createError.Error())
+	}
+
+	return nil
 }
 
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
@@ -430,7 +491,11 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 }
 
 func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
-	runId := string(workflow.UID)
+	if _, ok := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
+		// Skip reporting if the workflow doesn't have the run id label
+		return nil
+	}
+	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
 
 	if jobId == "" {
@@ -460,14 +525,14 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID:  string(workflow.UID),
+					ResourceUUID:  runId,
 					ResourceType:  common.Run,
 					ReferenceUUID: jobId,
 					ReferenceType: common.Job,
 					Relationship:  common.Creator,
 				},
 				{
-					ResourceUUID:  string(workflow.UID),
+					ResourceUUID:  runId,
 					ResourceType:  common.Run,
 					ReferenceUUID: experimentRef.ReferenceUUID,
 					ReferenceType: common.Experiment,

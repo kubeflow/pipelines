@@ -56,94 +56,94 @@ class TestCompiler(unittest.TestCase):
           name='GOOGLE_APPLICATION_CREDENTIALS',
           value='/secret/gcp-credentials/user-gcp-sa.json'))
       res = dsl.ResourceOp(
-          name="test-resource",
-          k8s_resource=k8s_client.V1PersistentVolumeClaim(
-              api_version="v1",
-              kind=kind,
-              metadata=k8s_client.V1ObjectMeta(
-                  name="resource"
-              )
-          ),
-          attribute_outputs={"out": json}
+        name="test-resource",
+        k8s_resource=k8s_client.V1PersistentVolumeClaim(
+          api_version="v1",
+          kind=kind,
+          metadata=k8s_client.V1ObjectMeta(
+            name="resource"
+          )
+        ),
+        attribute_outputs={"out": json}
       )
     golden_output = {
-        'container': {
-            'image': 'image',
-            'args': [
-                'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
-            ],
-            'command': ['sh', '-c'],
-            'env': [
-                {
-                    'name': 'GOOGLE_APPLICATION_CREDENTIALS',
-                    'value': '/secret/gcp-credentials/user-gcp-sa.json'
-                }
-            ],
-            'volumeMounts':[
-                {
-                    'mountPath': '/secret/gcp-credentials',
-                    'name': 'gcp-credentials',
-                }
-            ]
-        },
-        'inputs': {'parameters':
-          [
-              {'name': 'msg1'},
-              {'name': 'msg2', 'value': 'value2'},
-          ]},
-        'name': 'echo',
-        'outputs': {
-            'parameters': [
-                {'name': 'echo-merged',
-                 'valueFrom': {'path': '/tmp/message.txt'}
-                 }],
-            'artifacts': [{
-                'name': 'mlpipeline-ui-metadata',
-                'path': '/mlpipeline-ui-metadata.json',
-                'optional': True,
-            },{
-                'name': 'mlpipeline-metrics',
-                'path': '/mlpipeline-metrics.json',
-                'optional': True,
-            }]
-        }
+      'container': {
+        'image': 'image',
+        'args': [
+          'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
+        ],
+        'command': ['sh', '-c'],
+        'env': [
+          {
+            'name': 'GOOGLE_APPLICATION_CREDENTIALS',
+            'value': '/secret/gcp-credentials/user-gcp-sa.json'
+          }
+        ],
+        'volumeMounts':[
+          {
+            'mountPath': '/secret/gcp-credentials',
+            'name': 'gcp-credentials',
+          }
+        ]
+      },
+      'inputs': {'parameters':
+        [
+          {'name': 'msg1'},
+          {'name': 'msg2', 'value': 'value2'},
+        ]},
+      'name': 'echo',
+      'outputs': {
+        'parameters': [
+          {'name': 'echo-merged',
+           'valueFrom': {'path': '/tmp/message.txt'}
+          }],
+        'artifacts': [{
+          'name': 'mlpipeline-ui-metadata',
+          'path': '/mlpipeline-ui-metadata.json',
+          'optional': True,
+        },{
+          'name': 'mlpipeline-metrics',
+          'path': '/mlpipeline-metrics.json',
+          'optional': True,
+        }]
+      }
     }
     res_output = {
-        'inputs': {
-            'parameters': [{
-                'name': 'json'
-            }, {
-                'name': 'kind'
-            }]
-        },
-        'name': 'test-resource',
-        'outputs': {
-            'parameters': [{
-                'name': 'test-resource-manifest',
-                'valueFrom': {
-                    'jsonPath': '{}'
-                }
-            }, {
-                'name': 'test-resource-name',
-                'valueFrom': {
-                    'jsonPath': '{.metadata.name}'
-                }
-            }, {
-                'name': 'test-resource-out',
-                'valueFrom': {
-                    'jsonPath': '{{inputs.parameters.json}}'
-                }
-            }]
-        },
-        'resource': {
-            'action': 'create',
-            'manifest': (
-                "apiVersion: v1\n"
-                "kind: '{{inputs.parameters.kind}}'\n"
-                "metadata:\n"
-                "  name: resource\n"
-            )
-        }
+      'inputs': {
+        'parameters': [{
+          'name': 'json'
+        }, {
+          'name': 'kind'
+        }]
+      },
+      'name': 'test-resource',
+      'outputs': {
+        'parameters': [{
+          'name': 'test-resource-manifest',
+          'valueFrom': {
+            'jsonPath': '{}'
+          }
+        }, {
+          'name': 'test-resource-name',
+          'valueFrom': {
+            'jsonPath': '{.metadata.name}'
+          }
+        }, {
+          'name': 'test-resource-out',
+          'valueFrom': {
+            'jsonPath': '{{inputs.parameters.json}}'
+          }
+        }]
+      },
+      'resource': {
+        'action': 'create',
+        'manifest': (
+          "apiVersion: v1\n"
+          "kind: '{{inputs.parameters.kind}}'\n"
+          "metadata:\n"
+          "  name: resource\n"
+        )
+      }
     }
 
     self.maxDiff = None
@@ -286,9 +286,10 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
 
   def _test_sample_py_compile_yaml(self, file_base_name):
-    # Jump back to sample dir.
-    test_data_dir = os.path.join(self.core_sample_path, file_base_name)
-    py_file = os.path.join(test_data_dir, file_base_name + '.py')
+    # Jump back to sample dir for sample python file.
+    sample_data_dir = os.path.join(self.core_sample_path, file_base_name)
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    py_file = os.path.join(sample_data_dir, file_base_name + '.py')
     tmpdir = tempfile.mkdtemp()
     try:
       target_yaml = os.path.join(tmpdir, file_base_name + '-pipeline.yaml')
@@ -390,6 +391,10 @@ class TestCompiler(unittest.TestCase):
     """Test pipeline param_op_transform."""
     self._test_py_compile_yaml('param_op_transform')
 
+  def test_py_preemptible_gpu(self):
+    """Test preemptible GPU/TPU sample."""
+    self._test_sample_py_compile_yaml('preemptible_tpu_gpu')
+
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
     @component
@@ -487,8 +492,8 @@ class TestCompiler(unittest.TestCase):
   def test_compile_pipeline_with_after(self):
     def op():
       return dsl.ContainerOp(
-          name='Some component name',
-          image='image'
+        name='Some component name',
+        image='image'
       )
 
     @dsl.pipeline(name='Pipeline', description='')
@@ -513,16 +518,16 @@ class TestCompiler(unittest.TestCase):
   def test_tolerations(self):
     """Test a pipeline with a tolerations."""
     op1 = dsl.ContainerOp(
-        name='download',
-        image='busybox',
-        command=['sh', '-c'],
-        arguments=['sleep 10; wget localhost:5678 -O /tmp/results.txt'],
-        file_outputs={'downloaded': '/tmp/results.txt'}) \
+      name='download',
+      image='busybox',
+      command=['sh', '-c'],
+      arguments=['sleep 10; wget localhost:5678 -O /tmp/results.txt'],
+      file_outputs={'downloaded': '/tmp/results.txt'}) \
       .add_toleration(V1Toleration(
-        effect='NoSchedule',
-        key='gpu',
-        operator='Equal',
-        value='run'))
+      effect='NoSchedule',
+      key='gpu',
+      operator='Equal',
+      value='run'))
 
     self._test_op_to_template_yaml(op1, file_base_name='tolerations')
 
@@ -531,12 +536,12 @@ class TestCompiler(unittest.TestCase):
 
     import kfp
     op1 = kfp.components.load_component_from_text(
-        '''
-  name: Component name
-  implementation:
-    container:
-      image: busybox
-  '''
+      '''
+name: Component name
+implementation:
+  container:
+    image: busybox
+'''
     )
 
     @dsl.pipeline()
@@ -550,11 +555,11 @@ class TestCompiler(unittest.TestCase):
   def test_set_ttl_seconds_after_finished(self):
     """Test a pipeline with ttl after finished."""
     def some_op():
-      return dsl.ContainerOp(
-          name='sleep',
-          image='busybox',
-          command=['sleep 1'],
-      )
+        return dsl.ContainerOp(
+            name='sleep',
+            image='busybox',
+            command=['sleep 1'],
+        )
 
     @dsl.pipeline()
     def some_pipeline():
@@ -591,17 +596,17 @@ class TestCompiler(unittest.TestCase):
 
   def test_init_container(self):
     echo = dsl.UserContainer(
-        name='echo',
-        image='alpine:latest',
-        command=['echo', 'bye'])
+      name='echo',
+      image='alpine:latest',
+      command=['echo', 'bye'])
 
     @dsl.pipeline(name='InitContainer', description='A pipeline with init container.')
     def init_container_pipeline():
       dsl.ContainerOp(
-          name='hello',
-          image='alpine:latest',
-          command=['echo', 'hello'],
-          init_containers=[echo])
+        name='hello',
+        image='alpine:latest',
+        command=['echo', 'hello'],
+        init_containers=[echo])
 
     workflow_dict = compiler.Compiler()._compile(init_container_pipeline)
     for template in workflow_dict['spec']['templates']:
@@ -610,3 +615,4 @@ class TestCompiler(unittest.TestCase):
         self.assertEqual(len(init_containers),1)
         init_container = init_containers[0]
         self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})
+

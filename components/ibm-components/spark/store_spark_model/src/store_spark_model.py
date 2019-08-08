@@ -37,9 +37,8 @@ if __name__ == "__main__":
     DEPLOYMENT_NAME = args.deployment_name
 
     wml_url = get_secret_creds("/app/secrets/wml_url")
-    wml_username = get_secret_creds("/app/secrets/wml_username")
-    wml_password = get_secret_creds("/app/secrets/wml_password")
     wml_instance_id = get_secret_creds("/app/secrets/wml_instance_id")
+    wml_apikey = get_secret_creds("/app/secrets/wml_apikey")
     cos_endpoint = get_secret_creds("/app/secrets/cos_endpoint")
     cos_access_key = get_secret_creds("/app/secrets/cos_access_key")
     cos_secret_key = get_secret_creds("/app/secrets/cos_secret_key")
@@ -50,9 +49,8 @@ if __name__ == "__main__":
 
     WML_CREDENTIALS = {
                        "url": wml_url,
-                       "username": wml_username,
-                       "password": wml_password,
-                       "instance_id": wml_instance_id
+                       "instance_id": wml_instance_id,
+                       "apikey": wml_apikey
                       }
     ''' Load Spark model '''
     cos = Minio(cos_endpoint,
