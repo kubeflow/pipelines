@@ -15,10 +15,9 @@
  */
 
 import * as React from 'react';
-import Buttons from '../lib/Buttons';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
-import produce from 'immer';
 import { ApiPipeline, ApiListPipelinesResponse } from '../apis/pipeline';
 import { Apis, PipelineSortKeys, ListRequest } from '../lib/Apis';
 import { Link } from 'react-router-dom';
@@ -51,16 +50,16 @@ class PipelineList extends Page<{}, PipelineListState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [
-        buttons.upload(() => this.setStateSafe({ uploadDialogOpen: true })),
-        buttons.refresh(this.refresh.bind(this)),
-        buttons.delete(
+      actions: buttons
+        .upload(() => this.setStateSafe({ uploadDialogOpen: true }))
+        .refresh(this.refresh.bind(this))
+        .delete(
           () => this.state.selectedIds,
           'pipeline',
           ids => this._selectionChanged(ids),
           false, /* useCurrentResource */
-        ),
-      ],
+        )
+        .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Pipelines',
     };
@@ -129,11 +128,9 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   private _selectionChanged(selectedIds: string[]): void {
-    const toolbarActions = produce(this.props.toolbarProps.actions, draft => {
-      // Delete pipeline
-      draft[2].disabled = selectedIds.length < 1;
-    });
-    this.props.updateToolbar({ actions: toolbarActions });
+    const actions = this.props.toolbarProps.actions;
+    actions[ButtonKeys.DELETE_RUN].disabled = selectedIds.length < 1;
+    this.props.updateToolbar({ actions });
     this.setStateSafe({ selectedIds });
   }
 

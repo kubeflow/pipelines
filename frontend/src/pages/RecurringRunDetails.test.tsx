@@ -21,8 +21,8 @@ import { ApiJob, ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
-import { ToolbarActionConfig } from '../components/Toolbar';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('RecurringRunDetails', () => {
   let tree: ReactWrapper<any> | ShallowWrapper<any>;
@@ -178,7 +178,7 @@ describe('RecurringRunDetails', () => {
   it('has a Refresh button, clicking it refreshes the run details', async () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     const instance = tree.instance() as RecurringRunDetails;
-    const refreshBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Refresh');
+    const refreshBtn = instance.getInitialToolbarState().actions[ButtonKeys.REFRESH];
     expect(refreshBtn).toBeDefined();
     expect(getJobSpy).toHaveBeenCalledTimes(1);
     await refreshBtn!.action();
@@ -190,8 +190,7 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const cloneBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Clone recurring run');
+    const cloneBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RECURRING_RUN];
     expect(cloneBtn).toBeDefined();
     await cloneBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
@@ -205,11 +204,10 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
-    const lastToolbarButtons = updateToolbarSpy.mock.calls[1][0].actions as ToolbarActionConfig[];
-    const enableBtn = lastToolbarButtons.find(b => b.title === 'Enable');
+    const enableBtn = TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ENABLE_RECURRING_RUN);
     expect(enableBtn).toBeDefined();
     expect(enableBtn!.disabled).toBe(true);
-    const disableBtn = lastToolbarButtons.find(b => b.title === 'Disable');
+    const disableBtn = TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.DISABLE_RECURRING_RUN);
     expect(disableBtn).toBeDefined();
     expect(disableBtn!.disabled).toBe(false);
   });
@@ -219,11 +217,10 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
-    const lastToolbarButtons = updateToolbarSpy.mock.calls[1][0].actions as ToolbarActionConfig[];
-    const enableBtn = lastToolbarButtons.find(b => b.title === 'Enable');
+    const enableBtn = TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ENABLE_RECURRING_RUN);
     expect(enableBtn).toBeDefined();
     expect(enableBtn!.disabled).toBe(false);
-    const disableBtn = lastToolbarButtons.find(b => b.title === 'Disable');
+    const disableBtn = TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.DISABLE_RECURRING_RUN);
     expect(disableBtn).toBeDefined();
     expect(disableBtn!.disabled).toBe(true);
   });
@@ -233,11 +230,10 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     expect(updateToolbarSpy).toHaveBeenCalledTimes(2);
-    const lastToolbarButtons = updateToolbarSpy.mock.calls[1][0].actions as ToolbarActionConfig[];
-    const enableBtn = lastToolbarButtons.find(b => b.title === 'Enable');
+    const enableBtn = TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ENABLE_RECURRING_RUN);
     expect(enableBtn).toBeDefined();
     expect(enableBtn!.disabled).toBe(false);
-    const disableBtn = lastToolbarButtons.find(b => b.title === 'Disable');
+    const disableBtn = TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.DISABLE_RECURRING_RUN);
     expect(disableBtn).toBeDefined();
     expect(disableBtn!.disabled).toBe(true);
   });
@@ -246,7 +242,7 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const disableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Disable');
+    const disableBtn = instance.getInitialToolbarState().actions[ButtonKeys.DISABLE_RECURRING_RUN];
     await disableBtn!.action();
     expect(disableJobSpy).toHaveBeenCalledTimes(1);
     expect(disableJobSpy).toHaveBeenLastCalledWith('test-job-id');
@@ -259,7 +255,7 @@ describe('RecurringRunDetails', () => {
     TestUtils.makeErrorResponseOnce(disableJobSpy, 'could not disable');
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const disableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Disable');
+    const disableBtn = instance.getInitialToolbarState().actions[ButtonKeys.DISABLE_RECURRING_RUN];
     await disableBtn!.action();
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -274,7 +270,7 @@ describe('RecurringRunDetails', () => {
     TestUtils.makeErrorResponseOnce(enableJobSpy, 'could not enable');
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const enableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Enable');
+    const enableBtn = instance.getInitialToolbarState().actions[ButtonKeys.ENABLE_RECURRING_RUN];
     await enableBtn!.action();
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -288,7 +284,7 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const enableBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Enable');
+    const enableBtn = instance.getInitialToolbarState().actions[ButtonKeys.ENABLE_RECURRING_RUN];
     await enableBtn!.action();
     expect(enableJobSpy).toHaveBeenCalledTimes(1);
     expect(enableJobSpy).toHaveBeenLastCalledWith('test-job-id');
@@ -300,7 +296,7 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const deleteBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Refresh');
+    const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     expect(deleteBtn).toBeDefined();
   });
 
@@ -308,7 +304,7 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const deleteBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Delete');
+    const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
       title: 'Delete this recurring run config?',
@@ -319,7 +315,7 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const deleteBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Delete');
+    const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -332,7 +328,7 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as RecurringRunDetails;
-    const deleteBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Delete');
+    const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Cancel');
@@ -349,7 +345,7 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const deleteBtn = (tree.instance() as RecurringRunDetails)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -363,7 +359,7 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const deleteBtn = (tree.instance() as RecurringRunDetails)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -380,7 +376,7 @@ describe('RecurringRunDetails', () => {
     tree = shallow(<RecurringRunDetails {...generateProps()} />);
     await TestUtils.flushPromises();
     const deleteBtn = (tree.instance() as RecurringRunDetails)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
