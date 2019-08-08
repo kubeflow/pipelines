@@ -18,7 +18,7 @@ snapshots['TestExporterMethods::test_create_cell_from_args_with_multiple_args 1'
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>{&#39;source&#39;: &#39;gs://ml-pipeline/data.csv&#39;, &#39;target_lambda&#39;: &#34;lambda x: (x[&#39;target&#39;] &gt; x[&#39;fare&#39;] * 0.2)&#34;}
+<pre>[&#39;gs://ml-pipeline/data.csv&#39;, &#34;lambda x: (x[&#39;target&#39;] &gt; x[&#39;fare&#39;] * 0.2)&#34;]
 </pre>
 </div>
 </div>
@@ -64,7 +64,7 @@ snapshots['TestExporterMethods::test_create_cell_from_args_with_one_arg 1'] = ''
 
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>{&#39;source&#39;: &#39;gs://ml-pipeline/data.csv&#39;}
+<pre>[&#39;gs://ml-pipeline/data.csv&#39;]
 </pre>
 </div>
 </div>
