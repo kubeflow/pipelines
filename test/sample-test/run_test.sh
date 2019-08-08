@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 # This script is picked by PROW for testing purpose.
+#TODO(numerology): Further unification of the naming convention across pipeline code repo, in order
+# to reduce risk of unintended error.
 
 set -xe
 
@@ -150,6 +152,7 @@ check_result() {
 ################################################################################
 check_notebook_result() {
   jupyter nbconvert --to python $1.ipynb
+  #TODO(numerology): move repeated package installation into .ipynb notebook.
   pip3 install tensorflow==1.8.0
   ipython $1.py
   EXIT_CODE=$?
@@ -213,6 +216,8 @@ if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
 fi
 
 cd ${BASE_DIR}
+
+#TODO(numerology): Move argo installation to Dockerfile to speedup test setup.
 
 # Install argo
 echo "install argo"
