@@ -877,6 +877,7 @@ class BaseOp(object):
 
     def set_display_name(self, name: str):
         self.display_name = name
+        return self
 
     def __repr__(self):
         return str({self.__class__.__name__: self.__dict__})

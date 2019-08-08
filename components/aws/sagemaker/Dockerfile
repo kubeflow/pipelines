@@ -24,6 +24,8 @@ COPY train/src/train.py .
 COPY deploy/src/deploy.py .
 COPY model/src/create_model.py .
 COPY batch_transform/src/batch_transform.py .
+COPY workteam/workteam.py .
+COPY ground_truth/ground_truth.py .
 
 COPY common /app/common/
 

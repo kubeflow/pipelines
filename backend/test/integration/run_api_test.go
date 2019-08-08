@@ -128,8 +128,9 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, 2, len(runs))
 	assert.Equal(t, 2, totalSize)
 
-	/* ---------- List the runs, paginated, default sort ---------- */
-	runs, totalSize, nextPageToken, err := s.runClient.List(&runparams.ListRunsParams{PageSize: util.Int32Pointer(1)})
+	/* ---------- List the runs, paginated, sorted by creation time ---------- */
+	runs, totalSize, nextPageToken, err := s.runClient.List(
+		&runparams.ListRunsParams{PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("created_at")})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 2, totalSize)
