@@ -103,24 +103,24 @@ func (s *RunStore) ListRuns(
 	if err != nil {
 		return errorF(err)
 	}
+	defer rows.Close()
 	runDetails, err := s.scanRowsToRunDetails(rows)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	defer sizeRow.Close()
+	totalSize, err := list.ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
-	sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
@@ -135,11 +135,11 @@ func (s *RunStore) ListRuns(
 	}
 
 	if len(runs) <= opts.PageSize {
-		return runs, total_size, "", nil
+		return runs, totalSize, "", nil
 	}
 
 	npt, err := opts.NextPageToken(runs[opts.PageSize])
-	return runs[:opts.PageSize], total_size, npt, err
+	return runs[:opts.PageSize], totalSize, npt, err
 }
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
