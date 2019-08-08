@@ -28,15 +28,21 @@ class ContainerBuilder(object):
     """
     Args:
       gcs_staging (str): GCS blob that can store temporary build files
+      namespace (str): kubernetes namespace where the pod is launched,
+          default is the same namespace as the notebook service account in cluster
+              or 'kubeflow' if not in cluster
     """
     if not gcs_staging.startswith('gs://'):
       raise ValueError('Error: {} should be a GCS path.'.format(gcs_staging))
     self._gcs_staging = gcs_staging
     self._namespace = namespace
     if namespace is None:
-      with open(SERVICEACCOUNT_NAMESPACE, 'r') as f:
-        self._namespace = f.read()
-
+      import os
+      if os.path.exists(SERVICEACCOUNT_NAMESPACE):
+        with open(SERVICEACCOUNT_NAMESPACE, 'r') as f:
+          self._namespace = f.read()
+      else:
+        self._namespace = 'kubeflow'
 
   def _generate_kaniko_spec(self, context, docker_filename, target_image):
     """_generate_kaniko_yaml generates kaniko job yaml based on a template yaml """
