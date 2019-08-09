@@ -397,7 +397,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       let runFinished = this.state.runFinished;
       // If the run has finished, stop auto refreshing
       if (hasFinished(runMetadata.status as NodePhase)) {
-        this._stopAutoRefresh();
         // This prevents other events, such as onFocus, from resuming the autorefresh
         runFinished = true;
       }
@@ -454,10 +453,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       const buttons = new Buttons(this.props, this.refresh.bind(this));
       const actions = this.getInitialToolbarState().actions;
       const idGetter = () => runMetadata ? [runMetadata!.id!] : [];
-      const newButton = runMetadata!.storage_state === RunStorageState.ARCHIVED ?
+      const archiveButton = runMetadata!.storage_state === RunStorageState.ARCHIVED ?
         buttons.restore(idGetter, true, () => this.refresh()) :
         buttons.archive(idGetter, true, () => this.refresh());
-      actions.splice(2, 1, newButton);
+      actions.splice(2, 1, archiveButton);
+      const retryButton = buttons.retryRun(() => this.state.runMetadata ?
+          [this.state.runMetadata!.id!] : [], true, () => this.refresh());
+      actions.splice(3, 1, retryButton);
+
       actions[1].disabled = runMetadata.status as NodePhase === NodePhase.TERMINATING || runFinished;
       this.props.updateToolbar({ actions, breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
@@ -491,9 +494,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       await this.refresh();
     }
 
-    // Only set interval if run has not finished, and verify that the interval is undefined to
-    // avoid setting multiple intervals
-    if (!this.state.runFinished && this._interval === undefined) {
+    // Only set interval if it's undefined to avoid setting multiple intervals
+    if (this._interval === undefined) {
       this._interval = setInterval(
         () => this.refresh(),
         this.AUTO_REFRESH_INTERVAL

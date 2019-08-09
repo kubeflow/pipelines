@@ -70,6 +70,18 @@ export default class Buttons {
     };
   }
 
+  public retryRun(getSelectedIds: () => string[], useCurrentResource: boolean,
+                  callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
+    return {
+      action: () => this._retryRun(getSelectedIds(), useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to retry',
+      id: 'retryBtn',
+      title: 'Retry',
+      tooltip: 'Retry',
+    };
+  }
+
   public collapseSections(action: () => void): ToolbarActionConfig {
     return {
       action,
@@ -247,6 +259,19 @@ export default class Buttons {
       const searchString = this._urlParser.build(searchTerms);
       this._props.history.push(RoutePage.NEW_RUN + searchString);
     }
+  }
+
+  private _retryRun(selectedIds: string[], useCurrent: boolean,
+                    callback: (selectedIds: string[], success: boolean) => void): void {
+    this._dialogActionHandler(
+        selectedIds,
+        `Retry this run?`,
+        useCurrent,
+        id => Apis.runServiceApi.retryRun(id),
+        callback,
+        'Retry',
+        'run'
+    );
   }
 
   private _archive(selectedIds: string[], useCurrent: boolean,
