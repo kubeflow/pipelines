@@ -12,6 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
+var resourceReferenceColumns = []string{"ResourceUUID", "ResourceType", "ReferenceUUID",
+	"ReferenceName", "ReferenceType", "Relationship", "Payload"}
+
 type ResourceReferenceStoreInterface interface {
 	// Retrieve the resource reference for a given resource id, type and a reference type.
 	GetResourceReference(resourceId string, resourceType common.ResourceType,
@@ -92,7 +95,7 @@ func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string,
 
 func (s *ResourceReferenceStore) GetResourceReference(resourceId string, resourceType common.ResourceType,
 		referenceType common.ResourceType) (*model.ResourceReference, error) {
-	sql, args, err := sq.Select("*").
+	sql, args, err := sq.Select(resourceReferenceColumns...).
 		From("resource_references").
 			Where(sq.Eq{
 				"ResourceUUID":  resourceId,
@@ -113,7 +116,7 @@ func (s *ResourceReferenceStore) GetResourceReference(resourceId string, resourc
 	defer row.Close()
 	reference, err := s.scanRows(row)
 	if err != nil || len(reference) > 1 {
-		return nil, util.NewInternalServerError(err, "Failed to get job: %v", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to get resource reference: %v", err.Error())
 	}
 	if len(reference) == 0 {
 		return nil, util.NewResourcesNotFoundError(
