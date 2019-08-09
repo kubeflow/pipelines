@@ -1063,7 +1063,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
-					ReferenceName: "",
+					ReferenceName: "Default",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
