@@ -12,10 +12,6 @@
 
 import argparse
 import logging
-import random
-import json
-from datetime import datetime
-from pathlib2 import Path
 
 from common import _utils
 
@@ -28,7 +24,7 @@ def main(argv=None):
   parser.add_argument('--user_groups', type=str.strip, required=False, help='A list of identifiers for user groups separated by commas.', default='')
   parser.add_argument('--client_id', type=str.strip, required=False, help='An identifier for an application client. You must create the app client ID using Amazon Cognito.', default='')
   parser.add_argument('--sns_topic', type=str.strip, required=False, help='The ARN for the SNS topic to which notifications should be published.', default='')
-  parser.add_argument('--tags', type=json.loads, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
+  parser.add_argument('--tags', type=_utils.str_to_json_dict, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
 
   args = parser.parse_args()
 
