@@ -228,8 +228,6 @@ fi
 
 cd ${BASE_DIR}
 
-#TODO(numerology): Move argo installation to Dockerfile to speedup test setup.
-
 echo "Run the sample tests..."
 
 # Run the tests
