@@ -25,7 +25,7 @@ def iris_storagebucket(bucket='gs://seldon-models/sklearn/iris'):
 
 #simple serving of an iris sklearn model based on https://docs.seldon.io/projects/seldon-core/en/latest/servers/overview.html
 #requires seldon 0.3.2 or higher
-    sklearnjsonTemplate = Template("""
+    sklearnjson_template = Template("""
 {
 	"apiVersion": "machinelearning.seldon.io/v1alpha2",
 	"kind": "SeldonDeployment",
@@ -50,7 +50,7 @@ def iris_storagebucket(bucket='gs://seldon-models/sklearn/iris'):
 }
 """)
 
-    sklearnjson = sklearnjsonTemplate.substitute({ 'bucket': str(bucket)})
+    sklearnjson = sklearnjson_template.substitute({ 'bucket': str(bucket)})
 
     sklearndeployment = json.loads(sklearnjson)
 

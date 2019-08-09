@@ -77,7 +77,7 @@ def mnist_tf(docker_secret='docker-config',
         pvolumes={"/workspace": clone.pvolume,"/root/.docker/": secret}
     )
 
-    tfjobjsonTemplate = Template("""
+    tfjobjson_template = Template("""
 {
 	"apiVersion": "kubeflow.org/v1beta1",
 	"kind": "TFJob",
@@ -129,7 +129,7 @@ def mnist_tf(docker_secret='docker-config',
 }
 """)
 
-    tfjobjson = tfjobjsonTemplate.substitute({ 'dockerrepotraining': str(docker_repo_training),'dockertagtraining': str(docker_tag_training),'modelpvc': modelvolop.outputs["name"]})
+    tfjobjson = tfjobjson_template.substitute({ 'dockerrepotraining': str(docker_repo_training),'dockertagtraining': str(docker_tag_training),'modelpvc': modelvolop.outputs["name"]})
 
     tfjob = json.loads(tfjobjson)
 
@@ -140,22 +140,22 @@ def mnist_tf(docker_secret='docker-config',
     ).after(build)
 
 #prepare the serving code
-    cloneServing = dsl.ContainerOp(
-        name="cloneServing",
+    clone_serving = dsl.ContainerOp(
+        name="clone_serving",
         image="alpine/git:latest",
         command=["sh", "-c"],
         arguments=["rm -rf /workspace/*; git clone --depth 1 --branch "+str(serving_branch)+" "+str(serving_repo)+"; cp "+str(serving_files)+" /workspace; ls /workspace/;"],
         pvolumes={"/workspace": wkdirop.volume}
     ).after(train)
 
-    buildServing = dsl.ContainerOp(
-        name="buildServing",
+    build_serving = dsl.ContainerOp(
+        name="build_serving",
         image="gcr.io/kaniko-project/executor:latest",
         arguments=["--dockerfile","Dockerfile","--destination",str(docker_repo_serving)+":"+str(docker_tag_serving)],
-        pvolumes={"/workspace": cloneServing.pvolume,"/root/.docker/": secret}
-    ).after(cloneServing)
+        pvolumes={"/workspace": clone_serving.pvolume,"/root/.docker/": secret}
+    ).after(clone_serving)
 
-    seldonServingJsonTemplate = Template("""
+    seldon_serving_json_template = Template("""
 {
 	"apiVersion": "machinelearning.seldon.io/v1alpha2",
 	"kind": "SeldonDeployment",
@@ -219,15 +219,15 @@ def mnist_tf(docker_secret='docker-config',
 	}
 }    
 """)
-    seldonServingJson = seldonServingJsonTemplate.substitute({ 'dockerreposerving': str(docker_repo_serving),'dockertagserving': str(docker_tag_serving),'modelpvc': modelvolop.outputs["name"]})
+    seldon_serving_json = seldon_serving_json_template.substitute({ 'dockerreposerving': str(docker_repo_serving),'dockertagserving': str(docker_tag_serving),'modelpvc': modelvolop.outputs["name"]})
 
-    seldonDeployment = json.loads(seldonServingJson)
+    seldon_deployment = json.loads(seldon_serving_json)
 
     serve = dsl.ResourceOp(
         name='serve',
-        k8s_resource=seldonDeployment,
+        k8s_resource=seldon_deployment,
         success_condition='status.state == Available'
-    ).after(buildServing)
+    ).after(build_serving)
 
 
 if __name__ == "__main__":

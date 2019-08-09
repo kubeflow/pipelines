@@ -28,7 +28,7 @@ def mabdeploy_seldon(docker_image1='seldonio/mock_classifier:1.0',
 #serve two models load balanced as bandit as per https://github.com/SeldonIO/seldon-core/blob/master/notebooks/helm_examples.ipynb
 #in this example no volumes or buckets required as the models are baked into images
 #seldon can also be used with volumes - see seldon tf mnist example
-    mabjsonTemplate = Template("""
+    mabjson_template = Template("""
 {
     "apiVersion": "machinelearning.seldon.io/v1alpha2",
     "kind": "SeldonDeployment",
@@ -135,7 +135,7 @@ def mabdeploy_seldon(docker_image1='seldonio/mock_classifier:1.0',
 }
 """)
 
-    mabjson = mabjsonTemplate.substitute({ 'image1': str(docker_image1),'image2': str(docker_image2),'router': str(mab_router_image)})
+    mabjson = mabjson_template.substitute({ 'image1': str(docker_image1),'image2': str(docker_image2),'router': str(mab_router_image)})
 
     mabdeployment = json.loads(mabjson)
 

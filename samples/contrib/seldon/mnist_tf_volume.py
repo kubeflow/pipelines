@@ -38,7 +38,7 @@ def mnist_tf_volume(docker_repo_training='seldonio/deepmnistclassifier_trainer',
         modes=dsl.VOLUME_MODE_RWO
     )
 
-    tfjobjsonTemplate = Template("""
+    tfjobjson_template = Template("""
 {
 	"apiVersion": "kubeflow.org/v1beta1",
 	"kind": "TFJob",
@@ -90,7 +90,7 @@ def mnist_tf_volume(docker_repo_training='seldonio/deepmnistclassifier_trainer',
 }
 """)
 
-    tfjobjson = tfjobjsonTemplate.substitute({ 'dockerrepotraining': str(docker_repo_training),'dockertagtraining': str(docker_tag_training),'modelpvc': modelvolop.outputs["name"]})
+    tfjobjson = tfjobjson_template.substitute({ 'dockerrepotraining': str(docker_repo_training),'dockertagtraining': str(docker_tag_training),'modelpvc': modelvolop.outputs["name"]})
 
     tfjob = json.loads(tfjobjson)
 
@@ -100,7 +100,7 @@ def mnist_tf_volume(docker_repo_training='seldonio/deepmnistclassifier_trainer',
         success_condition='status.replicaStatuses.Worker.succeeded == 1'
     )
 
-    seldonServingJsonTemplate = Template("""
+    seldon_serving_json_template = Template("""
 {
 	"apiVersion": "machinelearning.seldon.io/v1alpha2",
 	"kind": "SeldonDeployment",
@@ -164,13 +164,13 @@ def mnist_tf_volume(docker_repo_training='seldonio/deepmnistclassifier_trainer',
 	}
 }    
 """)
-    seldonServingJson = seldonServingJsonTemplate.substitute({ 'dockerreposerving': str(docker_repo_serving),'dockertagserving': str(docker_tag_serving),'modelpvc': modelvolop.outputs["name"]})
+    seldon_serving_json = seldon_serving_json_template.substitute({ 'dockerreposerving': str(docker_repo_serving),'dockertagserving': str(docker_tag_serving),'modelpvc': modelvolop.outputs["name"]})
 
-    seldonDeployment = json.loads(seldonServingJson)
+    seldon_deployment = json.loads(seldon_serving_json)
 
     serve = dsl.ResourceOp(
         name='serve',
-        k8s_resource=seldonDeployment,
+        k8s_resource=seldon_deployment,
         success_condition='status.state == Available'
     ).after(train)
 
