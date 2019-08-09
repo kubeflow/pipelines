@@ -19,28 +19,34 @@ import os
 import uuid
 
 SERVICEACCOUNT_NAMESPACE = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
-GCS_STAGING_BUCKET_DEFAULT = 'gs://kfp_container_build_staging'
+GCS_STAGING_BLOB_DEFAULT_PREFIX = 'kfp_container_build_staging'
 
 class ContainerBuilder(object):
   """
   ContainerBuilder helps build a container image
   """
-  def __init__(self, gcs_staging=GCS_STAGING_BUCKET_DEFAULT, namespace=None):
+  def __init__(self, gcs_staging=None, namespace=None):
     """
     Args:
       gcs_staging (str): GCS bucket/blob that can store temporary build files,
-          default is GCS_STAGING_BUCKET_DEFAULT defined above.
+          default is gs://PROJECT_ID/kfp_container_build_staging.
       namespace (str): kubernetes namespace where the pod is launched,
           default is the same namespace as the notebook service account in cluster
               or 'kubeflow' if not in cluster
     """
-    if not gcs_staging.startswith('gs://'):
-      raise ValueError('Error: {} should be a GCS path.'.format(gcs_staging))
-    self._gcs_staging = gcs_staging
-    from ._gcs_helper import GCSHelper
     from pathlib import PurePath
-    gcs_bucket = PurePath(self._gcs_staging).parts[1]
-    GCSHelper.create_gcs_bucket_if_not_exist(gcs_bucket)
+    self._gcs_staging = gcs_staging
+    if gcs_staging is None:
+      gcs_bucket = self._get_project_id()
+      from ._gcs_helper import GCSHelper
+      GCSHelper.create_gcs_bucket_if_not_exist(gcs_bucket)
+      self._gcs_staging = 'gs://' + gcs_bucket + '/' + GCS_STAGING_BLOB_DEFAULT_PREFIX
+    else:
+      path = PurePath(self._gcs_staging).parts
+      if len(path) < 2 or not path[0].startswith('gs'):
+        raise ValueError('Error: {} should be a GCS path.'.format(gcs_staging))
+      from ._gcs_helper import GCSHelper
+      GCSHelper.create_gcs_bucket_if_not_exist(path[1])
 
     self._namespace = namespace
     if namespace is None:
@@ -49,6 +55,17 @@ class ContainerBuilder(object):
           self._namespace = f.read()
       else:
         self._namespace = 'kubeflow'
+
+  def _get_project_id(self):
+    import requests
+    URL = "http://metadata.google.internal/computeMetadata/v1/project/project-id"
+    headers = {
+      'Metadata-Flavor': 'Google'
+    }
+    r = requests.get(url = URL, headers = headers)
+    if not r.ok:
+      raise RuntimeError('ContainerBuilder failed to retrieve the project id.')
+    return r.text
 
   def _generate_kaniko_spec(self, context, docker_filename, target_image):
     """_generate_kaniko_yaml generates kaniko job yaml based on a template yaml """
