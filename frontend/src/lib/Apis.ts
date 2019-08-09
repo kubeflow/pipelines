@@ -18,6 +18,7 @@ import { JobServiceApi } from '../apis/job';
 import { RunServiceApi } from '../apis/run';
 import { PipelineServiceApi, ApiPipeline } from '../apis/pipeline';
 import { StoragePath } from './WorkflowParser';
+import { VisualizationServiceApi } from '../apis/visualization';
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -77,6 +78,13 @@ export class Apis {
       this._runServiceApi = new RunServiceApi({ basePath: this.basePath });
     }
     return this._runServiceApi;
+  }
+
+  public static get visualizationServiceApi(): VisualizationServiceApi {
+    if (!this._visualizationServiceApi) {
+      this._visualizationServiceApi = new VisualizationServiceApi({ basePath: this.basePath });
+    }
+    return this._visualizationServiceApi;
   }
 
   /**
@@ -140,10 +148,25 @@ export class Apis {
       });
   }
 
+  /*
+   * Retrieves the name of the Kubernetes cluster if it is running in GKE, otherwise returns an error.
+   */
+  public static async getClusterName(): Promise<string> {
+    return this._fetch('system/cluster-name');
+  }
+
+  /*
+   * Retrieves the project ID in which this cluster is running if using GKE, otherwise returns an error.
+   */
+  public static async getProjectId(): Promise<string> {
+    return this._fetch('system/project-id');
+  }
+
   private static _experimentServiceApi?: ExperimentServiceApi;
   private static _jobServiceApi?: JobServiceApi;
   private static _pipelineServiceApi?: PipelineServiceApi;
   private static _runServiceApi?: RunServiceApi;
+  private static _visualizationServiceApi?: VisualizationServiceApi;
 
   /**
    * This function will call this._fetch() and parse the resulting JSON into an object of type T.

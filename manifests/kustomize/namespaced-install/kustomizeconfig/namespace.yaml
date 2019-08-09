@@ -1,0 +1,6 @@
+# Allow Kustomize var to replace following fields.
+varReference:
+- path: data/config
+  kind: ConfigMap
+- path: metadata/name
+  kind: Namespace

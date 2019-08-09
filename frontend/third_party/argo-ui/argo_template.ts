@@ -176,6 +176,13 @@ export interface Inputs {
   parameters?: Parameter[];
 }
 /**
+ * Pod metdata
+ */
+export interface Metadata {
+  annotations?: { [key: string]: string; };
+  labels?: { [key: string]: string; };
+}
+/**
  * Outputs hold parameters, artifacts, and results from a step
  */
 export interface Outputs {
@@ -543,6 +550,11 @@ export interface Template {
    * Inputs describe what inputs parameters and artifacts are supplied to this template
    */
   inputs?: Inputs;
+
+  /**
+   * Metdata sets the pods's metadata, i.e. annotations and labels
+   */
+  metadata?: Metadata;
   /**
    * Name is the name of the template
    */

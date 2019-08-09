@@ -19,6 +19,9 @@ import time
 import logging
 import re
 
+from .. import dsl
+
+
 class K8sHelper(object):
   """ Kubernetes Helper """
 
@@ -92,7 +95,7 @@ class K8sHelper(object):
   def _delete_k8s_job(self, pod_name, yaml_spec):
     """ _delete_k8s_job deletes a pod """
     try:
-      api_response = self._corev1.delete_namespaced_pod(pod_name, yaml_spec['metadata']['namespace'], k8s_client.V1DeleteOptions())
+      api_response = self._corev1.delete_namespaced_pod(pod_name, yaml_spec['metadata']['namespace'], body=k8s_client.V1DeleteOptions())
     except k8s_client.rest.ApiException as e:
       logging.exception('Exception when calling CoreV1Api->delete_namespaced_pod: {}\n'.format(str(e)))
 
@@ -113,9 +116,8 @@ class K8sHelper(object):
     succ = self._wait_for_k8s_job(pod_name, yaml_spec, timeout)
     if not succ:
       logging.info('Kubernetes job failed.')
+      print(self._read_pod_log(pod_name, yaml_spec))
       return False
-    #TODO: investigate the read log error
-    # print(self._read_pod_log(pod_name, yaml_spec))
     self._delete_k8s_job(pod_name, yaml_spec)
     return succ
 
@@ -156,10 +158,14 @@ class K8sHelper(object):
               for sub_obj in k8s_obj]
     elif isinstance(k8s_obj, tuple):
       return tuple(K8sHelper.convert_k8s_obj_to_json(sub_obj)
-                   for sub_obj in obj)
+                   for sub_obj in k8s_obj)
     elif isinstance(k8s_obj, (datetime, date)):
       return k8s_obj.isoformat()
-
+    elif isinstance(k8s_obj, dsl.PipelineParam): 
+      if isinstance(k8s_obj.value, str):
+        return k8s_obj.value
+      return '{{inputs.parameters.%s}}' % k8s_obj.full_name
+    
     if isinstance(k8s_obj, dict):
       obj_dict = k8s_obj
     else:
@@ -168,8 +174,10 @@ class K8sHelper(object):
       # and attributes which value is not None.
       # Convert attribute name to json key in
       # model definition for request.
+      attr_types = (k8s_obj.swagger_types if hasattr(k8s_obj, "swagger_types") 
+                    else k8s_obj.openapi_types)
       obj_dict = {k8s_obj.attribute_map[attr]: getattr(k8s_obj, attr)
-                  for attr, _ in iteritems(k8s_obj.swagger_types)
+                  for attr, _ in iteritems(attr_types)
                   if getattr(k8s_obj, attr) is not None}
 
     return {key: K8sHelper.convert_k8s_obj_to_json(val)

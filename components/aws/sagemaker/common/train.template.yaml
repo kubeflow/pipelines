@@ -1,0 +1,25 @@
+TrainingJobName: ''
+HyperParameters: {}
+AlgorithmSpecification:
+  TrainingImage: ''
+  AlgorithmName: ''
+  TrainingInputMode: ''
+  MetricDefinitions: []
+RoleArn: ''
+InputDataConfig: []
+OutputDataConfig:
+  KmsKeyId: ''
+  S3OutputPath: ''
+ResourceConfig:
+  InstanceType: ''
+  InstanceCount: 1
+  VolumeSizeInGB: 1
+  VolumeKmsKeyId: ''
+VpcConfig:
+  SecurityGroupIds: []
+  Subnets: []
+StoppingCondition:
+  MaxRuntimeInSeconds: 86400
+Tags: []
+EnableNetworkIsolation: True
+EnableInterContainerTrafficEncryption: False

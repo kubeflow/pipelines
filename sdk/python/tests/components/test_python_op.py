@@ -34,6 +34,23 @@ def components_local_output_dir_context(output_dir: str):
     finally:
         comp._components._outputs_dir = old_dir
 
+
+module_level_variable = 10
+
+
+class ModuleLevelClass:
+    def class_method(self, x):
+        return x * module_level_variable
+
+
+def module_func(a: float) -> float:
+    return a * 5
+
+
+def module_func_with_deps(a: float, b: float) -> float:
+    return ModuleLevelClass().class_method(a) + module_func(b)
+
+
 class PythonOpTestCase(unittest.TestCase):
     def helper_test_2_in_1_out_component_using_local_call(self, func, op):
         arg1 = float(3)
@@ -49,8 +66,7 @@ class PythonOpTestCase(unittest.TestCase):
                 task = op(arg1, arg2)
 
             full_command = task.command + task.arguments
-
-            process = subprocess.run(full_command)
+            subprocess.run(full_command, check=True)
 
             output_path = list(task.file_outputs.values())[0]
             actual_str = Path(output_path).read_text()
@@ -71,7 +87,7 @@ class PythonOpTestCase(unittest.TestCase):
 
             full_command = task.command + task.arguments
 
-            process = subprocess.run(full_command)
+            subprocess.run(full_command, check=True)
 
             (output_path1, output_path2) = (task.file_outputs[output_names[0]], task.file_outputs[output_names[1]])
             actual1_str = Path(output_path1).read_text()
@@ -93,6 +109,67 @@ class PythonOpTestCase(unittest.TestCase):
 
         func = add_two_numbers_indented
         op = comp.func_to_container_op(func)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_call_other_func(self):
+        extra_variable = 10
+
+        class ExtraClass:
+            def class_method(self, x):
+                return x * extra_variable
+
+        def extra_func(a: float) -> float:
+            return a * 5
+
+        def main_func(a: float, b: float) -> float:
+            return ExtraClass().class_method(a) + extra_func(b)
+
+        func = main_func
+        op = comp.func_to_container_op(func, use_code_pickling=True)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_check_nothing_extra_captured(self):
+        def f1():
+            pass
+
+        def f2():
+            pass
+
+        def main_func(a: float, b: float) -> float:
+            f1()
+            try:
+                eval('f2()')
+            except:
+                return a + b
+            raise AssertionError("f2 should not be captured, because it's not a dependency.")
+
+        expected_func = lambda a, b: a + b
+        op = comp.func_to_container_op(main_func, use_code_pickling=True)
+
+        self.helper_test_2_in_1_out_component_using_local_call(expected_func, op)
+
+    def test_func_to_container_op_call_other_func_global(self):
+        func = module_func_with_deps
+        op = comp.func_to_container_op(func, use_code_pickling=True)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_with_imported_func(self):
+        from .test_data.module1 import module_func_with_deps as module1_func_with_deps
+        func = module1_func_with_deps
+        op = comp.func_to_container_op(func, use_code_pickling=True)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_container_op_with_imported_func2(self):
+        from .test_data.module2_which_depends_on_module1 import module2_func_with_deps as module2_func_with_deps
+        func = module2_func_with_deps
+        op = comp.func_to_container_op(func, use_code_pickling=True, modules_to_capture=[
+            'tests.components.test_data.module1',
+            'tests.components.test_data.module2_which_depends_on_module1'
+        ])
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
@@ -181,6 +258,27 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(component_spec.description.strip(), expected_description.strip())
         self.assertEqual(component_spec.implementation.container.image, expected_image)
 
+    def test_saving_default_values(self):
+        from typing import NamedTuple
+        def add_multiply_two_numbers(a: float = 3, b: float = 5) -> NamedTuple('DummyName', [('sum', float), ('product', float)]):
+            '''Returns sum and product of two arguments'''
+            return (a + b, a * b)
+
+        func = add_multiply_two_numbers
+        component_spec = comp._python_op._func_to_component_spec(func)
+
+        self.assertEqual(component_spec.inputs[0].default, '3')
+        self.assertEqual(component_spec.inputs[1].default, '5')
+
+    def test_handling_default_value_of_none(self):
+        def assert_is_none(a, b, arg=None) -> int:
+            assert arg is None
+            return 1
+
+        func = assert_is_none
+        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
     def test_end_to_end_python_component_pipeline_compilation(self):
         import kfp.components as comp
 
@@ -205,9 +303,9 @@ class PythonOpTestCase(unittest.TestCase):
                 description='A pipeline that performs arithmetic calculations.'
             )
             def calc_pipeline(
-                a1=dsl.PipelineParam('a1'),
-                a2=dsl.PipelineParam('a2', value='7'),
-                a3=dsl.PipelineParam('a3', value='17'),
+                a1,
+                a2='7',
+                a3='17',
             ):
                 task_1 = add_op(a1, a2)
                 task_2 = add_op2(a1, a2)

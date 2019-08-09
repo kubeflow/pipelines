@@ -66,7 +66,7 @@ func TestToModelRunDetail(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
 		Status:     v1alpha1.WorkflowStatus{Phase: "running"},
 	})
-	modelRunDetail, err := ToModelRunDetail(apiRun, workflow, "workflow spec")
+	modelRunDetail, err := ToModelRunDetail(apiRun, "123", workflow, "workflow spec")
 	assert.Nil(t, err)
 
 	expectedModelRunDetail := &model.RunDetail{

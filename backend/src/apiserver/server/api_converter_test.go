@@ -64,6 +64,7 @@ func TestToApiRunDetail(t *testing.T) {
 			Namespace:        "ns123",
 			CreatedAtInSec:   1,
 			ScheduledAtInSec: 1,
+			FinishedAtInSec:  1,
 			Conditions:       "running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: "manifest",
@@ -83,6 +84,7 @@ func TestToApiRunDetail(t *testing.T) {
 			StorageState: api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
+			FinishedAt:   &timestamp.Timestamp{Seconds: 1},
 			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
@@ -168,6 +170,7 @@ func TestToApiRuns(t *testing.T) {
 			StorageState: api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
+			FinishedAt:   &timestamp.Timestamp{},
 			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
@@ -184,6 +187,7 @@ func TestToApiRuns(t *testing.T) {
 			StorageState: api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:  &timestamp.Timestamp{Seconds: 2},
+			FinishedAt:   &timestamp.Timestamp{},
 			Status:       "done",
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job2"},

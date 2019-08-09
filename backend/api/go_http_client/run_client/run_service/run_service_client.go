@@ -242,6 +242,64 @@ func (a *Client) ReportRunMetrics(params *ReportRunMetricsParams, authInfo runti
 }
 
 /*
+RetryRun retry run API
+*/
+func (a *Client) RetryRun(params *RetryRunParams, authInfo runtime.ClientAuthInfoWriter) (*RetryRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewRetryRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "RetryRun",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/runs/{run_id}/retry",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &RetryRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*RetryRunOK), nil
+
+}
+
+/*
+TerminateRun terminate run API
+*/
+func (a *Client) TerminateRun(params *TerminateRunParams, authInfo runtime.ClientAuthInfoWriter) (*TerminateRunOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewTerminateRunParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "TerminateRun",
+		Method:             "POST",
+		PathPattern:        "/apis/v1beta1/runs/{run_id}/terminate",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &TerminateRunReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*TerminateRunOK), nil
+
+}
+
+/*
 UnarchiveRun unarchive run API
 */
 func (a *Client) UnarchiveRun(params *UnarchiveRunParams, authInfo runtime.ClientAuthInfoWriter) (*UnarchiveRunOK, error) {

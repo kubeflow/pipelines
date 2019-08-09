@@ -14,6 +14,7 @@
 
 syntax = "proto3";
 
+option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
 package api;
 
 import "google/api/annotations.proto";
@@ -100,16 +101,19 @@ service JobService {
 }
 
 message CreateJobRequest {
+  // The job to be created
   Job job = 1;
 }
 
 message GetJobRequest {
+  // The ID of the job to be retrieved
   string id = 1;
 }
 
 message ListJobsRequest {
   string page_token = 1;
   int32 page_size = 2;
+
   // Can be format of "field_name", "field_name asc" or "field_name des"
   // Ascending by default.
   string sort_by = 3;
@@ -125,35 +129,52 @@ message ListJobsRequest {
 }
 
 message ListJobsResponse {
+  // A list of jobs returned.
   repeated Job jobs = 1;
   int32 total_size = 3;
   string next_page_token = 2;
 }
 
 message DeleteJobRequest {
+  // The ID of the job to be deleted
   string id = 1;
 }
 
 message EnableJobRequest {
+  // The ID of the job to be enabled
   string id = 1;
 }
 
 message DisableJobRequest {
+  // The ID of the job to be disabled
   string id = 1;
 }
 
+// CronSchedule allow scheduling the job with unix-like cron
 message CronSchedule {
+  // The start time of the cron job
   google.protobuf.Timestamp start_time = 1;
+
+  // The end time of the cron job
   google.protobuf.Timestamp end_time = 2;
+
+  // The cron string. For details how to compose a cron, visit ttps://en.wikipedia.org/wiki/Cron
   string cron = 3;
 }
 
+// PeriodicSchedule allow scheduling the job periodically with certain interval
 message PeriodicSchedule {
+  // The start time of the periodic job
   google.protobuf.Timestamp start_time = 1;
+
+  // The end time of the periodic job
   google.protobuf.Timestamp end_time = 2;
+
+  // The time interval between the starting time of consecutive jobs
   int64 interval_second = 3;
 }
 
+// Trigger defines what starts a pipeline run.
 message Trigger {
   oneof trigger {
     CronSchedule cron_schedule = 1;
@@ -211,5 +232,6 @@ message Job {
   // how to handle error. This is especially useful during listing call.
   string error = 12;
 
+  // Input. Whether the job is enabled or not.
   bool enabled = 16;
 }

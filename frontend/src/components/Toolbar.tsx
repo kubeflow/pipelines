@@ -24,6 +24,7 @@ import { History } from 'history';
 import { Link } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { spacing, fonts, fontsize, color, dimension, commonCss } from '../Css';
+import { CSSProperties } from 'react';
 
 export interface ToolbarActionConfig {
   action: () => void;
@@ -34,6 +35,7 @@ export interface ToolbarActionConfig {
   id?: string;
   outlined?: boolean;
   primary?: boolean;
+  style?: CSSProperties;
   title: string;
   tooltip: string;
 }
@@ -161,7 +163,7 @@ class Toolbar extends React.Component<ToolbarProps> {
           {this.props.actions.map((b, i) => (
             <Tooltip title={(b.disabled && b.disabledTitle) ? b.disabledTitle : b.tooltip}
               enterDelay={300} key={i}>
-              <div>{/* Extra level needed by tooltip when child is disabled */}
+              <div style={b.style}>{/* Extra level needed by tooltip when child is disabled */}
                 <BusyButton id={b.id} color='secondary' onClick={b.action} disabled={b.disabled}
                   title={b.title} icon={b.icon} busy={b.busy || false}
                   outlined={(b.outlined && !b.primary) || false}

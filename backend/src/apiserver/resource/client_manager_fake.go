@@ -15,11 +15,16 @@
 package resource
 
 import (
+	"ml_metadata/metadata_store/mlmetadata"
+	mlpb "ml_metadata/proto/metadata_store_go_proto"
+
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/metadata"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
@@ -34,15 +39,17 @@ type FakeClientManager struct {
 	runStore                    storage.RunStoreInterface
 	resourceReferenceStore      storage.ResourceReferenceStoreInterface
 	dBStatusStore               storage.DBStatusStoreInterface
+	defaultExperimentStore      storage.DefaultExperimentStoreInterface
 	objectStore                 storage.ObjectStoreInterface
 	workflowClientFake          *FakeWorkflowClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
+	podClientFake               v1.PodInterface
 	time                        util.TimeInterface
 	uuid                        util.UUIDGeneratorInterface
 }
 
 func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
-	*FakeClientManager, error) {
+		*FakeClientManager, error) {
 
 	if time == nil {
 		glog.Fatalf("The time parameter must not be null.") // Must never happen
@@ -58,20 +65,35 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		return nil, err
 	}
 
+	// TODO(neuromage): Pass in metadata.Store instance for tests as well.
 	return &FakeClientManager{
 		db:                          db,
 		experimentStore:             storage.NewExperimentStore(db, time, uuid),
 		pipelineStore:               storage.NewPipelineStore(db, time, uuid),
 		jobStore:                    storage.NewJobStore(db, time),
-		runStore:                    storage.NewRunStore(db, time),
+		runStore:                    storage.NewRunStore(db, time, initFakeMetadataStore()),
 		workflowClientFake:          NewWorkflowClientFake(),
 		resourceReferenceStore:      storage.NewResourceReferenceStore(db),
 		dBStatusStore:               storage.NewDBStatusStore(db),
+		defaultExperimentStore:      storage.NewDefaultExperimentStore(db),
 		objectStore:                 storage.NewFakeObjectStore(),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
+		podClientFake:               FakePodClient{},
 		time:                        time,
 		uuid:                        uuid,
 	}, nil
+}
+
+func initFakeMetadataStore() *metadata.Store {
+	cfg := &mlpb.ConnectionConfig{
+		Config: &mlpb.ConnectionConfig_FakeDatabase{&mlpb.FakeDatabaseConfig{}},
+	}
+
+	mlmdStore, err := mlmetadata.NewStore(cfg)
+	if err != nil {
+		glog.Fatalf("Failed to create ML Metadata store: %v", err)
+	}
+	return metadata.NewStore(mlmdStore)
 }
 
 func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
@@ -127,8 +149,16 @@ func (f *FakeClientManager) DBStatusStore() storage.DBStatusStoreInterface {
 	return f.dBStatusStore
 }
 
+func (f *FakeClientManager) DefaultExperimentStore() storage.DefaultExperimentStoreInterface {
+	return f.defaultExperimentStore
+}
+
 func (f *FakeClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
 	return f.scheduledWorkflowClientFake
+}
+
+func (f *FakeClientManager) PodClient() v1.PodInterface {
+	return f.podClientFake
 }
 
 func (f *FakeClientManager) Close() error {

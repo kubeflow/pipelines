@@ -20,10 +20,11 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-func CreateMySQLConfig(user string, mysqlServiceHost string,
-	mysqlServicePort string, dbName string) *mysql.Config {
+func CreateMySQLConfig(user, password string, mysqlServiceHost string,
+		mysqlServicePort string, dbName string) *mysql.Config {
 	return &mysql.Config{
 		User:                 user,
+		Passwd:               password,
 		Net:                  "tcp",
 		Addr:                 fmt.Sprintf("%s:%s", mysqlServiceHost, mysqlServicePort),
 		Params:               map[string]string{"charset": "utf8", "parseTime": "True", "loc": "Local"},

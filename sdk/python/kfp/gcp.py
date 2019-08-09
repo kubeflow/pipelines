@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-gcp-sa.json', volume_name='gcp-credentials', secret_volume_mount_path='/secret/gcp-credentials'):
+from kubernetes.client import V1Toleration
+
+
+def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-gcp-sa.json', volume_name=None, secret_volume_mount_path='/secret/gcp-credentials'):
     """An operator that configures the container to use GCP service account.
 
         The user-gcp-sa secret is created as part of the kubeflow deployment that
@@ -29,6 +32,12 @@ def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume='/user-
         service account access permission.
     """
 
+    if volume_name is None:
+        volume_name = 'gcp-credentials-' + secret_name
+    else:
+        import warnings
+        warnings.warn('The volume_name parameter is deprecated and will be removed in next release. The volume names are now generated automatically.', DeprecationWarning)
+    
     def _use_gcp_secret(task):
         from kubernetes import client as k8s_client
         return (
@@ -85,3 +94,17 @@ def use_tpu(tpu_cores: int, tpu_resource: str, tf_version: str):
         return task
 
     return _set_tpu_spec
+
+def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoSchedule',
+                                                             key='preemptible',
+                                                             operator='Equal',
+                                                             value='true')):
+  """An operator that configures the GKE preemptible in a container op.
+  """
+
+  def _set_preemptible(task):
+    task.add_toleration(toleration)
+    task.add_node_selector_constraint("cloud.google.com/gke-preemptible", "true")
+    return task
+
+  return _set_preemptible

@@ -17,26 +17,37 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"os"
+	"strconv"
 	"time"
 
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/proto"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/metadata"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
+
+	"ml_metadata/metadata_store/mlmetadata"
+	mlpb "ml_metadata/proto/metadata_store_go_proto"
 )
 
 const (
-	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
-	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
-	mysqlServicePort      = "MYSQL_SERVICE_PORT"
+	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
+	mysqlServiceHost = "MYSQL_SERVICE_HOST"
+	mysqlUser        = "DBConfig.User"
+	mysqlPassword    = "DBConfig.Password"
+	mysqlServicePort = "MYSQL_SERVICE_PORT"
+
 	podNamespace          = "POD_NAMESPACE"
 	dbName                = "mlpipeline"
 	initConnectionTimeout = "InitConnectionTimeout"
@@ -51,11 +62,15 @@ type ClientManager struct {
 	runStore               storage.RunStoreInterface
 	resourceReferenceStore storage.ResourceReferenceStoreInterface
 	dBStatusStore          storage.DBStatusStoreInterface
+	defaultExperimentStore storage.DefaultExperimentStoreInterface
 	objectStore            storage.ObjectStoreInterface
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
+	podClient 						 v1.PodInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
+
+	MetadataStore *mlmetadata.Store
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -82,6 +97,10 @@ func (c *ClientManager) DBStatusStore() storage.DBStatusStoreInterface {
 	return c.dBStatusStore
 }
 
+func (c *ClientManager) DefaultExperimentStore() storage.DefaultExperimentStoreInterface {
+	return c.defaultExperimentStore
+}
+
 func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
 	return c.objectStore
 }
@@ -92,6 +111,10 @@ func (c *ClientManager) Workflow() workflowclient.WorkflowInterface {
 
 func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface {
 	return c.swfClient
+}
+
+func (c *ClientManager) PodClient() v1.PodInterface {
+	return c.podClient
 }
 
 func (c *ClientManager) Time() util.TimeInterface {
@@ -117,9 +140,9 @@ func (c *ClientManager) init() {
 	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid)
 	c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
 	c.jobStore = storage.NewJobStore(db, c.time)
-	c.runStore = storage.NewRunStore(db, c.time)
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
+	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
 
 	c.wfClient = client.CreateWorkflowClientOrFatal(
@@ -127,11 +150,44 @@ func (c *ClientManager) init() {
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+
+	c.podClient = client.CreatePodClientOrFatal(
+		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+
+	metadataStore := initMetadataStore()
+	runStore := storage.NewRunStore(db, c.time, metadataStore)
+	c.runStore = runStore
+
 	glog.Infof("Client manager initialized successfully")
 }
 
 func (c *ClientManager) Close() {
 	c.db.Close()
+}
+
+func initMetadataStore() *metadata.Store {
+	port, err := strconv.Atoi(getStringConfig(mysqlServicePort))
+	if err != nil {
+		glog.Fatalf("Failed to parse valid MySQL service port from %q: %v", getStringConfig(mysqlServicePort), err)
+	}
+
+	cfg := &mlpb.ConnectionConfig{
+		Config: &mlpb.ConnectionConfig_Mysql{
+			&mlpb.MySQLDatabaseConfig{
+				Host:     proto.String(getStringConfig(mysqlServiceHost)),
+				Port:     proto.Uint32(uint32(port)),
+				Database: proto.String("mlmetadata"),
+				User:     proto.String(getStringConfigWithDefault(mysqlUser, "root")),
+				Password: proto.String(getStringConfigWithDefault(mysqlPassword, "")),
+			},
+		},
+	}
+
+	mlmdStore, err := mlmetadata.NewStore(cfg)
+	if err != nil {
+		glog.Fatalf("Failed to create ML Metadata store: %v", err)
+	}
+	return metadata.NewStore(mlmdStore)
 }
 
 func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
@@ -158,7 +214,8 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.ResourceReference{},
 		&model.RunDetail{},
 		&model.RunMetric{},
-		&model.DBStatus{})
+		&model.DBStatus{},
+		&model.DefaultExperiment{})
 
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
@@ -175,7 +232,8 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 // Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True
 func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	mysqlConfig := client.CreateMySQLConfig(
-		"root",
+		getStringConfigWithDefault(mysqlUser, "root"),
+		getStringConfigWithDefault(mysqlPassword, ""),
 		getStringConfig(mysqlServiceHost),
 		getStringConfig(mysqlServicePort),
 		"")
@@ -215,17 +273,20 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
 	// Create minio client.
-	minioServiceHost := getStringConfig(minioServiceHost)
-	minioServicePort := getStringConfig(minioServicePort)
+	minioServiceHost := getStringConfigWithDefault(
+		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
+	minioServicePort := getStringConfigWithDefault(
+		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
 	accessKey := getStringConfig("ObjectStoreConfig.AccessKey")
 	secretKey := getStringConfig("ObjectStoreConfig.SecretAccessKey")
 	bucketName := getStringConfig("ObjectStoreConfig.BucketName")
+	disableMultipart := getBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", false)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
 		secretKey, initConnectionTimeout)
 	createMinioBucket(minioClient, bucketName)
 
-	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName)
+	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, disableMultipart)
 }
 
 func createMinioBucket(minioClient *minio.Client, bucketName string) {
