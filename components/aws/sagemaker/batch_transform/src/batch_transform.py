@@ -12,6 +12,7 @@
 
 import argparse
 import logging
+from pathlib2 import Path
 
 from common import _utils
 
@@ -42,6 +43,7 @@ def main(argv=None):
   parser.add_argument('--instance_count', type=_utils.str_to_int, required=False, help='The number of ML compute instances to use in the transform job.')
   parser.add_argument('--resource_encryption_key', type=str.strip, required=False, help='The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance(s).', default='')
   parser.add_argument('--tags', type=_utils.str_to_json_dict, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
+  parser.add_argument('--output_location_file', type=str.strip, required=False, help='File path where the program will write the Amazon S3 URI of the transform job results.', default='')
 
   args = parser.parse_args()
 
@@ -52,8 +54,8 @@ def main(argv=None):
   logging.info('Batch Job request submitted. Waiting for completion...')
   _utils.wait_for_transform_job(client, batch_job_name)
 
-  with open('/tmp/output_location.txt', 'w') as f:
-    f.write(args.output_location)
+  Path(args.output_location_file).parent.mkdir(parents=True, exist_ok=True)
+  Path(args.output_location_file).write_text(unicode(args.output_location))
 
   logging.info('Batch Transformation creation completed.')
 
