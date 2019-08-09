@@ -65,12 +65,12 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - tf-training
-              - tfx
-              - xgboost
-              - notebook-tfx
-              - notebook-lightweight
-              - notebook-typecheck
+              - kubeflow_training_classification
+              - tfx_cab_classification
+              - xgboost_training_cm
+              - kubeflow_pipeline_using_TFX_OSS_components
+              - lightweight_component
+              - dsl_static_type_checking
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:
