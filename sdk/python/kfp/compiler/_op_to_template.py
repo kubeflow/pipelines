@@ -65,8 +65,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     # pipelineparam
     if isinstance(obj, dsl.PipelineParam):
         # if not found in unsanitized map, then likely to be sanitized
-        return map_to_tmpl_var.get(
-            str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
+        return map_to_tmpl_var.get(str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
 
     # k8s objects (generated from swaggercodegen)
     if hasattr(obj, 'swagger_types') and isinstance(obj.swagger_types, dict):
@@ -106,6 +105,17 @@ def _process_base_ops(op: BaseOp):
     """
 
     # map param's (unsanitized pattern or serialized str pattern) -> input param var str
+    map_to_tmpl_var = {}
+    for param in op.inputs:
+        if isinstance(param, dsl.LoopArgumentVariable):
+            name = f'{{item.%s}}' % param.variable_name()
+        elif isinstance(param, dsl.LoopArguments):
+            name = '{{items}}'
+        elif isinstance(param, dsl.PipelineParam):
+            name = '{{inputs.parameters.%s}}' % param.full_name
+        else:
+            raise ValueError("Found param of unknown type.")
+        map_to_tmpl_var[param.pattern or str(param)] = name
     map_to_tmpl_var = {
         (param.pattern or str(param)): '{{inputs.parameters.%s}}' % param.full_name
         for param in op.inputs

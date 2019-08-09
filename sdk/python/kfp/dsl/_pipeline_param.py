@@ -15,7 +15,10 @@
 
 import re
 from collections import namedtuple
-from typing import List
+from typing import List, Text
+
+from kfp import dsl
+
 from ._metadata import TypeMeta
 
 
@@ -30,6 +33,10 @@ def sanitize_k8s_name(name):
       sanitize_k8s_name cleans and converts the names in the workflow.
     """
     return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
+
+
+def pipeline_param_is_loop_args(pipeline_param: 'PipelineParam'):
+  return pipeline_param.param_type.name in (dsl.LoopArguments.PARAM_TYPE_NAME, dsl.LoopArgumentVariable.PARAM_TYPE_NAME)
 
 
 def match_serialized_pipelineparam(payload: str):
@@ -48,20 +55,23 @@ def match_serialized_pipelineparam(payload: str):
     if len(match) == 3:
       pattern = '{{pipelineparam:op=%s;name=%s;value=%s}}' % (match[0], match[1], match[2])
       param_tuples.append(PipelineParamTuple(
-                            name=sanitize_k8s_name(match[1]), 
-                            op=sanitize_k8s_name(match[0]), 
-                            value=match[2],
-                            type='', 
-                            pattern=pattern))
+          name=sanitize_k8s_name(match[1]),
+          op=sanitize_k8s_name(match[0]),
+          value=match[2],
+          type='',
+          pattern=pattern,
+      ))
     elif len(match) == 4:
-      pattern = '{{pipelineparam:op=%s;name=%s;value=%s;type=%s;}}' %  (match[0], match[1], match[2], match[3])
+      pattern = '{{pipelineparam:op=%s;name=%s;value=%s;type=%s;}}' % (match[0], match[1], match[2], match[3])
       param_tuples.append(PipelineParamTuple(
-                            name=sanitize_k8s_name(match[1]), 
-                            op=sanitize_k8s_name(match[0]), 
-                            value=match[2], 
-                            type=match[3], 
-                            pattern=pattern))
+          name=sanitize_k8s_name(match[1]),
+          op=sanitize_k8s_name(match[0]),
+          value=match[2],
+          type=match[3],
+          pattern=pattern,
+      ))
   return param_tuples
+
 
 def _extract_pipelineparams(payloads: str or List[str]):
   """_extract_pipelineparam extract a list of PipelineParam instances from the payload string.
@@ -138,7 +148,6 @@ def extract_pipelineparams_from_any(payload) -> List['PipelineParam']:
 
     return list(set(pipeline_params))
 
-
   # return empty list  
   return []
 
@@ -169,7 +178,8 @@ class PipelineParam(object):
 
     valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
     if not re.match(valid_name_regex, name):
-      raise ValueError('Only letters, numbers, spaces, "_", and "-" are allowed in name. Must begin with letter: %s' % (name))
+      raise ValueError(f'Only letters, numbers, spaces, "_", and "-" are allowed in name. Must begin with a letter.  '
+                       f'Got name: {name}')
 
     if op_name and value:
       raise ValueError('op_name and value cannot be both set.')

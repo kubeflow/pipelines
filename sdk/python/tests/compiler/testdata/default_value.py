@@ -15,6 +15,7 @@
 
 import kfp.dsl as dsl
 
+from kfp.compiler import compiler
 
 @dsl.pipeline(
   name='Default Value',
@@ -35,3 +36,5 @@ def default_value_pipeline(url='gs://ml-pipeline/shakespeare1.txt'):
      image='library/bash',
      command=['sh', '-c'],
      arguments=['echo %s' % op1.output])
+
+  compiler.Compiler()

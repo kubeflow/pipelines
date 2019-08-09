@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import collections
 import re
 import warnings
 from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
@@ -691,6 +691,9 @@ class BaseOp(object):
         self.timeout = 0
         self.sidecars = sidecars or []
 
+        # used to mark this op with loop arguments
+        self.loop_args = None
+
         # attributes specific to `BaseOp`
         self._inputs = []
         self.dependent_names = []
@@ -835,7 +838,7 @@ class BaseOp(object):
         return str({self.__class__.__name__: self.__dict__})
 
 
-from ._pipeline_volume import PipelineVolume #The import is here to prevent circular reference problems.
+from ._pipeline_volume import PipelineVolume  # The import is here to prevent circular reference problems.
 
 
 class ContainerOp(BaseOp):
@@ -897,7 +900,7 @@ class ContainerOp(BaseOp):
                  artifact_location: V1alpha1ArtifactLocation=None,
                  is_exit_handler=False,
                  pvolumes: Dict[str, V1Volume] = None,
-        ):
+                 ):
         """Create a new instance of ContainerOp.
 
         Args:
@@ -909,7 +912,7 @@ class ContainerOp(BaseOp):
           arguments: the arguments of the command. The command can include "%s" and supply
               a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
               At container run time the argument will be 'echo param_value'.
-          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy 
+          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy
                     together with the `main` container.
           container_kwargs: the dict of additional keyword arguments to pass to the
                             op's `Container` definition.
@@ -989,6 +992,7 @@ class ContainerOp(BaseOp):
 
         self.pvolumes = {}
         self.add_pvolumes(pvolumes)
+
 
     @property
     def command(self):
