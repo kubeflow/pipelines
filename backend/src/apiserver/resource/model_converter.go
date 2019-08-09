@@ -193,13 +193,13 @@ func (r *ResourceManager) getResourceName(resourceType common.ResourceType, reso
 		if err != nil {
 			return "", util.Wrap(err, "Referred job not found.")
 		}
-		return job.Name, nil
+		return job.DisplayName, nil
 	case common.Run:
 		run, err := r.GetRun(resourceId)
 		if err != nil {
 			return "", util.Wrap(err, "Referred run not found.")
 		}
-		return run.Name, nil
+		return run.DisplayName, nil
 	default:
 		return "", util.NewInvalidInputError("Unsupported resource type: %s", string(resourceType))
 	}
