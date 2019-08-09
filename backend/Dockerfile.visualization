@@ -27,7 +27,7 @@ ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
 WORKDIR /src
 
-COPY src/apiserver/visualization /src
+COPY backend/src/apiserver/visualization /src
 
 RUN pip3 install -r requirements.txt
 
