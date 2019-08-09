@@ -18,19 +18,31 @@ import tempfile
 import os
 import uuid
 
+SERVICEACCOUNT_NAMESPACE = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+
 class ContainerBuilder(object):
   """
   ContainerBuilder helps build a container image
   """
-  def __init__(self, gcs_staging, namespace):
+  def __init__(self, gcs_staging, namespace=None):
     """
     Args:
       gcs_staging (str): GCS blob that can store temporary build files
+      namespace (str): kubernetes namespace where the pod is launched,
+          default is the same namespace as the notebook service account in cluster
+              or 'kubeflow' if not in cluster
     """
     if not gcs_staging.startswith('gs://'):
       raise ValueError('Error: {} should be a GCS path.'.format(gcs_staging))
     self._gcs_staging = gcs_staging
     self._namespace = namespace
+    if namespace is None:
+      import os
+      if os.path.exists(SERVICEACCOUNT_NAMESPACE):
+        with open(SERVICEACCOUNT_NAMESPACE, 'r') as f:
+          self._namespace = f.read()
+      else:
+        self._namespace = 'kubeflow'
 
   def _generate_kaniko_spec(self, context, docker_filename, target_image):
     """_generate_kaniko_yaml generates kaniko job yaml based on a template yaml """
@@ -39,6 +51,9 @@ class ContainerBuilder(object):
         'metadata': {
             'generateName': 'kaniko-',
             'namespace': self._namespace,
+            'annotations': {
+                'sidecar.istio.io/inject': 'false'
+            },
         },
         'kind': 'Pod',
         'spec': {

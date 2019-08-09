@@ -18,6 +18,8 @@ kind: Pod
 metadata:
   generateName: kaniko-
   namespace: default
+  annotations:
+    sidecar.istio.io/inject: 'false'
 spec:
   restartPolicy: Never
   serviceAccountName: default
