@@ -12,20 +12,20 @@ import (
 
 var testRefOne = &model.ResourceReference{
 	ResourceUUID: "r1", ResourceType: common.Run,
-	ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-	Relationship: common.Creator,
+	ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+	ReferenceType: common.Experiment, Relationship: common.Creator,
 }
 
 var testRefTwo = &model.ResourceReference{
 	ResourceUUID: "j2", ResourceType: common.Job,
-	ReferenceUUID: defaultFakeExpIdTwo, ReferenceType: common.Experiment,
-	Relationship: common.Owner,
+	ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
+	ReferenceType: common.Experiment, Relationship: common.Owner,
 }
 
 var testRefThree = &model.ResourceReference{
 	ResourceUUID: defaultFakeExpId, ResourceType: common.Experiment,
-	ReferenceUUID: defaultFakeExpIdTwo, ReferenceType: common.Experiment,
-	Relationship: common.Owner,
+	ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
+	ReferenceType: common.Experiment, Relationship: common.Owner,
 }
 
 func TestResourceReferenceStore(t *testing.T) {

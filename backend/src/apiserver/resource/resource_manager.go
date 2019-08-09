@@ -256,7 +256,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Store run metadata into database
-	runDetail, err := ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
+	runDetail, err := r.ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert run model")
 	}
@@ -439,7 +439,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		apiJob.ResourceReferences = append(apiJob.ResourceReferences, ref)
 	}
 
-	job, err := ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(workflowSpecManifestBytes))
+	job, err := r.ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(workflowSpecManifestBytes))
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
@@ -509,6 +509,10 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	if err != nil {
 		return util.Wrap(err, "Failed to retrieve the experiment ID for the job that created the run.")
 	}
+	jobName, err := r.getResourceName(common.Job, jobId)
+	if err != nil {
+		return util.Wrap(err, "Failed to retrieve the job name for the job that created the run.")
+	}
 	runDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:             runId,
@@ -528,6 +532,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 					ResourceUUID:  runId,
 					ResourceType:  common.Run,
 					ReferenceUUID: jobId,
+					ReferenceName: jobName,
 					ReferenceType: common.Job,
 					Relationship:  common.Creator,
 				},
@@ -535,6 +540,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 					ResourceUUID:  runId,
 					ResourceType:  common.Run,
 					ReferenceUUID: experimentRef.ReferenceUUID,
+					ReferenceName: experimentRef.ReferenceName,
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -662,7 +668,7 @@ func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*api.R
 }
 
 func (r *ResourceManager) ReportMetric(metric *api.RunMetric, runUUID string) error {
-	return r.runStore.ReportMetric(ToModelRunMetric(metric, runUUID))
+	return r.runStore.ReportMetric(r.ToModelRunMetric(metric, runUUID))
 }
 
 // ReadArtifact parses run's workflow to find artifact file path and reads the content of the file

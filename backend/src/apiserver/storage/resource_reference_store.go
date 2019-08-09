@@ -28,7 +28,7 @@ func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*mo
 	if len(refs) > 0 {
 		resourceRefSqlBuilder := sq.
 			Insert("resource_references").
-			Columns("ResourceUUID", "ResourceType", "ReferenceUUID", "ReferenceType", "Relationship", "Payload")
+			Columns("ResourceUUID", "ResourceType", "ReferenceUUID", "ReferenceName", "ReferenceType", "Relationship", "Payload")
 		for _, ref := range refs {
 			if !s.checkReferenceExist(tx, ref.ReferenceUUID, ref.ReferenceType) {
 				return util.NewResourceNotFoundError(string(ref.ReferenceType), ref.ReferenceUUID)
@@ -38,7 +38,7 @@ func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*mo
 				return util.NewInternalServerError(err, "Failed to stream resource reference model to a json payload")
 			}
 			resourceRefSqlBuilder = resourceRefSqlBuilder.Values(
-				ref.ResourceUUID, ref.ResourceType, ref.ReferenceUUID, ref.ReferenceType, ref.Relationship, string(payload))
+				ref.ResourceUUID, ref.ResourceType, ref.ReferenceUUID, ref.ReferenceType, ref.ReferenceName, ref.Relationship, string(payload))
 		}
 		refSql, refArgs, err := resourceRefSqlBuilder.ToSql()
 		if err != nil {
@@ -125,9 +125,9 @@ func (s *ResourceReferenceStore) GetResourceReference(resourceId string, resourc
 func (s *ResourceReferenceStore) scanRows(r *sql.Rows) ([]model.ResourceReference, error) {
 	var references []model.ResourceReference
 	for r.Next() {
-		var resourceUUID, resourceType, referenceUUID, referenceType, relationship, payload string
+		var resourceUUID, resourceType, referenceUUID, referenceName, referenceType, relationship, payload string
 		err := r.Scan(
-			&resourceUUID, &resourceType, &referenceUUID, &referenceType, &relationship, &payload)
+			&resourceUUID, &resourceType, &referenceUUID, &referenceName, &referenceType, &relationship, &payload)
 		if err != nil {
 			return nil, err
 		}
@@ -135,6 +135,7 @@ func (s *ResourceReferenceStore) scanRows(r *sql.Rows) ([]model.ResourceReferenc
 			ResourceUUID:  resourceUUID,
 			ResourceType:  common.ResourceType(resourceType),
 			ReferenceUUID: referenceUUID,
+			ReferenceName: referenceName,
 			ReferenceType: common.ResourceType(referenceType),
 			Relationship:  common.Relationship(relationship),
 			Payload:       payload,

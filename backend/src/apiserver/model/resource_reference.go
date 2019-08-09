@@ -27,6 +27,9 @@ type ResourceReference struct {
 	// The ID of the resource that been referenced to.
 	ReferenceUUID string `gorm:"column:ReferenceUUID; not null; "`
 
+	// The name of the resource that been referenced to.
+	ReferenceName string `gorm:"column:ReferenceName; not null; "`
+
 	// The type of the resource that been referenced to.
 	ReferenceType common.ResourceType `gorm:"column:ReferenceType; not null; primary_key"`
 
