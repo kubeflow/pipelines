@@ -73,7 +73,9 @@ do
   ${FROM_GCR_PREFIX}${image}:${COMMIT_SHA} ${TARGET_IMAGE}
 
   # Update the code
-  find components samples -type f | while read file; do sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" "$file"; done
+  find components samples -type f | while read file; do
+    sed --in-place='' -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" "$file"
+  done
 done
 
 # Checking-in the container image changes
@@ -85,7 +87,7 @@ image_update_commit_sha=$(git rev-parse HEAD)
 git diff HEAD~1 HEAD --name-only | while read component_file; do
     echo $component_file
     find components samples -type f | while read file; do
-      sed -i -E "s|(https://raw.githubusercontent.com/kubeflow/pipelines/)[^/]+(/$component_file)|\1${image_update_commit_sha}\2|g" "$file";
+      sed --in-place='' -E "s|(https://raw.githubusercontent.com/kubeflow/pipelines/)[^/]+(/$component_file)|\1${image_update_commit_sha}\2|g" "$file"
     done
 done
 
