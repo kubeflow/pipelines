@@ -12,8 +12,6 @@
 
 import argparse
 import logging
-import random
-from datetime import datetime
 
 from common import _utils
 
