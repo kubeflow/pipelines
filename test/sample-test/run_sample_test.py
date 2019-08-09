@@ -78,7 +78,7 @@ def main():
 
   ###### Create Job ######
   job_name = args.testname + '_sample'
-  ###### Test-specific parameters #######
+  ###### Test-specific arguments #######
   if args.testname == 'tfx_cab_classification':
     params = {
         'output':
