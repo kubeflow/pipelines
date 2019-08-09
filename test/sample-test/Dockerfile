@@ -16,7 +16,6 @@ RUN pip3 install ipykernel==5.1.0
 RUN pip3 install google-api-python-client==1.7.0
 
 # Install argo
-RUN cd /python/src/github.com/kubeflow/pipelines
 RUN echo "install argo"
 RUN ARGO_VERSION=v2.3.0
 RUN mkdir -p ~/bin/
@@ -30,5 +29,6 @@ RUN cd /sdk/python && python3 setup.py install
 
 COPY ./test/sample-test /python/src/github.com/kubeflow/pipelines/test/sample-test
 COPY ./samples /python/src/github.com/kubeflow/pipelines/samples
+RUN cd /python/src/github.com/kubeflow/pipelines
 
 ENTRYPOINT ["/python/src/github.com/kubeflow/pipelines/test/sample-test/run_test.sh"]
