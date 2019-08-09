@@ -169,18 +169,18 @@ func TestToModelJob(t *testing.T) {
 }
 
 func TestToModelResourceReferences(t *testing.T) {
-	store, manager, _ := initWithJob(t)
+	store, manager, job := initWithJob(t)
 	defer store.Close()
 	refs, err := manager.toModelResourceReferences("r1", common.Run, []*api.ResourceReference{
-		{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "e1"}, Relationship: api.Relationship_OWNER},
-		{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "j1"}, Relationship: api.Relationship_CREATOR},
+		{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: DefaultFakeUUID}, Relationship: api.Relationship_OWNER},
+		{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: job.UUID}, Relationship: api.Relationship_CREATOR},
 	})
 	assert.Nil(t, err)
 	expectedRefs := []*model.ResourceReference{
 		{ResourceUUID: "r1", ResourceType: common.Run,
-			ReferenceUUID: "e1", ReferenceName: "e1", ReferenceType: common.Experiment, Relationship: common.Owner},
+			ReferenceUUID: DefaultFakeUUID, ReferenceName: "e1", ReferenceType: common.Experiment, Relationship: common.Owner},
 		{ResourceUUID: "r1", ResourceType: common.Run,
-			ReferenceUUID: "j1", ReferenceName: "j1", ReferenceType: common.Job, Relationship: common.Creator},
+			ReferenceUUID: job.UUID, ReferenceName: "j1", ReferenceType: common.Job, Relationship: common.Creator},
 	}
 	assert.Equal(t, expectedRefs, refs)
 }

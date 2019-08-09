@@ -99,6 +99,10 @@ func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job
 	}
 	j, err := manager.CreateJob(job)
 	assert.Nil(t, err)
+
+	_, err = manager.resourceReferenceStore.GetResourceReference(job.Id, common.Job, common.Experiment)
+	assert.Nil(t, err)
+
 	return store, manager, j
 }
 
@@ -368,7 +372,7 @@ func TestCreateRun_NoExperiment(t *testing.T) {
 		ResourceType: common.Run,
 		// Experiment is now set
 		ReferenceUUID: DefaultFakeUUID,
-		ReferenceName: "",
+		ReferenceName: "Default",
 		ReferenceType: common.Experiment,
 		Relationship:  common.Owner,
 	}}
