@@ -495,7 +495,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       await this.refresh();
     }
 
-    // Only set interval if it's undefined to avoid setting multiple intervals
+    // Only set interval if run has not finished, and verify that the interval is undefined to
+    // avoid setting multiple intervals
     if (!this.state.runFinished && this._interval === undefined) {
       this._interval = setInterval(
         () => this.refresh(),
