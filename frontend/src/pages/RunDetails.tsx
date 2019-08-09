@@ -397,6 +397,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       let runFinished = this.state.runFinished;
       // If the run has finished, stop auto refreshing
       if (hasFinished(runMetadata.status as NodePhase)) {
+        this._stopAutoRefresh();
         // This prevents other events, such as onFocus, from resuming the autorefresh
         runFinished = true;
       }
@@ -495,7 +496,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     }
 
     // Only set interval if it's undefined to avoid setting multiple intervals
-    if (this._interval === undefined) {
+    if (!this.state.runFinished && this._interval === undefined) {
       this._interval = setInterval(
         () => this.refresh(),
         this.AUTO_REFRESH_INTERVAL
