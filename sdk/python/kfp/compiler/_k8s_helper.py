@@ -39,7 +39,8 @@ class K8sHelper(object):
         config.load_kube_config()
         logging.info('Found local kubernetes config. Initialized with kube_config.')
       except:
-        raise RuntimeError('Forgot to run the gcloud command?')
+        raise RuntimeError('Forgot to run the gcloud command? Check out the link: \
+        https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl for more information')
     self._api_client = k8s_client.ApiClient()
     self._corev1 = k8s_client.CoreV1Api(self._api_client)
     return True

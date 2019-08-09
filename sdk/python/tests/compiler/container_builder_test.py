@@ -17,13 +17,15 @@ import tarfile
 import unittest
 import yaml
 import tempfile
+import mock
 from kfp.compiler._component_builder import ContainerBuilder
 
 GCS_BASE = 'gs://kfp-testing/'
 
+@mock.patch('kfp.compiler._gcs_helper.GCSHelper')
 class TestContainerBuild(unittest.TestCase):
 
-  def test_wrap_dir_in_tarball(self):
+  def test_wrap_dir_in_tarball(self, mock_gcshelper):
     """ Test wrap files in a tarball """
 
     # prepare
@@ -37,7 +39,7 @@ class TestContainerBuild(unittest.TestCase):
         f.write('temporary file two content')
 
       # check
-      builder = ContainerBuilder(gcs_staging=GCS_BASE, create_bucket_if_not_exist=False, namespace='')
+      builder = ContainerBuilder(gcs_staging=GCS_BASE, namespace='')
       builder._wrap_dir_in_tarball(temp_tarball, test_data_dir)
     self.assertTrue(os.path.exists(temp_tarball))
     with tarfile.open(temp_tarball) as temp_tarball_handle:
@@ -48,14 +50,14 @@ class TestContainerBuild(unittest.TestCase):
     # clean up
     os.remove(temp_tarball)
 
-  def test_generate_kaniko_yaml(self):
+  def test_generate_kaniko_yaml(self, mock_gcshelper):
     """ Test generating the kaniko job yaml """
 
     # prepare
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
 
     # check
-    builder = ContainerBuilder(gcs_staging=GCS_BASE, create_bucket_if_not_exist=False, namespace='default')
+    builder = ContainerBuilder(gcs_staging=GCS_BASE, namespace='default')
     generated_yaml = builder._generate_kaniko_spec(docker_filename='dockerfile',
                                                    context='gs://mlpipeline/kaniko_build.tar.gz', target_image='gcr.io/mlpipeline/kaniko_image:latest')
     with open(os.path.join(test_data_dir, 'kaniko.basic.yaml'), 'r') as f:

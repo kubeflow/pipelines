@@ -25,13 +25,11 @@ class ContainerBuilder(object):
   """
   ContainerBuilder helps build a container image
   """
-  def __init__(self, gcs_staging=None, create_bucket_if_not_exist=True, namespace=None):
+  def __init__(self, gcs_staging=None, namespace=None):
     """
     Args:
       gcs_staging (str): GCS bucket/blob that can store temporary build files,
           default is gs://PROJECT_ID/kfp_container_build_staging.
-      create_bucket_if_not_exist (Bool): this instructs the
-          builder to create the specified bucket if not exist. Default: True.
       namespace (str): kubernetes namespace where the pod is launched,
           default is the same namespace as the notebook service account in cluster
               or 'kubeflow' if not in cluster
@@ -46,9 +44,8 @@ class ContainerBuilder(object):
         raise ValueError('Error: {} should be a GCS path.'.format(gcs_staging))
       gcs_bucket = path[1]
       self._gcs_staging = gcs_staging
-    if create_bucket_if_not_exist:
-      from ._gcs_helper import GCSHelper
-      GCSHelper.create_gcs_bucket_if_not_exist(gcs_bucket)
+    from ._gcs_helper import GCSHelper
+    GCSHelper.create_gcs_bucket_if_not_exist(gcs_bucket)
 
     self._namespace = namespace
     if namespace is None:
