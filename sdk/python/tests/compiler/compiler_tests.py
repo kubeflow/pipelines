@@ -339,9 +339,9 @@ class TestCompiler(unittest.TestCase):
     """Test retry functionality."""
     self._test_py_compile_yaml('retry')
 
-  def test_py_image_pull_secret(self):
+  def test_py_image_pull_secrets(self):
     """Test pipeline imagepullsecret."""
-    self._test_py_compile_yaml('imagepullsecret')
+    self._test_sample_py_compile_yaml('imagepullsecrets')
 
   def test_py_timeout(self):
     """Test pipeline timeout."""

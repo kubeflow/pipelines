@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+"""Toy example demonstrating how to specify imagepullsecrets to access protected
+container registry.
+"""
 
 import kfp.dsl as dsl
 from kubernetes import client as k8s_client
@@ -47,4 +49,6 @@ def save_most_frequent_word(message: str):
   counter = GetFrequentWordOp(
           name='get-Frequent',
           message=message)
-  dsl.get_pipeline_conf().set_image_pull_secrets([k8s_client.V1ObjectReference(name="secretA")])
+  # Call set_image_pull_secrets after get_pipeline_conf().
+  dsl.get_pipeline_conf()\
+    .set_image_pull_secrets([k8s_client.V1ObjectReference(name="secretA")])
