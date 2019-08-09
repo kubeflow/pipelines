@@ -15,6 +15,15 @@ RUN pip3 install papermill==0.16.1
 RUN pip3 install ipykernel==5.1.0
 RUN pip3 install google-api-python-client==1.7.0
 
+# Install argo
+RUN cd /python/src/github.com/kubeflow/pipelines
+RUN echo "install argo"
+RUN ARGO_VERSION=v2.3.0
+RUN mkdir -p ~/bin/
+RUN export PATH=~/bin/:$PATH
+RUN curl -sSL -o ~/bin/argo "https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64"
+RUN chmod +x ~/bin/argo
+
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python
 RUN cd /sdk/python && python3 setup.py install
