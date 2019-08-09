@@ -100,9 +100,6 @@ func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job
 	j, err := manager.CreateJob(job)
 	assert.Nil(t, err)
 
-	_, err = manager.resourceReferenceStore.GetResourceReference(job.Id, common.Job, common.Experiment)
-	assert.Nil(t, err)
-
 	return store, manager, j
 }
 

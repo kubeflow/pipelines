@@ -15,7 +15,7 @@ import (
 type ResourceReferenceStoreInterface interface {
 	// Retrieve the resource reference for a given resource id, type and a reference type.
 	GetResourceReference(resourceId string, resourceType common.ResourceType,
-		referenceType common.ResourceType) (*model.ResourceReference, error)
+			referenceType common.ResourceType) (*model.ResourceReference, error)
 }
 
 type ResourceReferenceStore struct {
@@ -38,7 +38,7 @@ func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*mo
 				return util.NewInternalServerError(err, "Failed to stream resource reference model to a json payload")
 			}
 			resourceRefSqlBuilder = resourceRefSqlBuilder.Values(
-				ref.ResourceUUID, ref.ResourceType, ref.ReferenceUUID, ref.ReferenceType, ref.ReferenceName, ref.Relationship, string(payload))
+				ref.ResourceUUID, ref.ResourceType, ref.ReferenceUUID, ref.ReferenceName, ref.ReferenceType, ref.Relationship, string(payload))
 		}
 		refSql, refArgs, err := resourceRefSqlBuilder.ToSql()
 		if err != nil {
@@ -79,9 +79,9 @@ func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId str
 func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string, resourceType common.ResourceType) error {
 	refSql, refArgs, err := sq.
 		Delete("resource_references").
-		Where(sq.Or{
-			sq.Eq{"ResourceUUID": id, "ResourceType": resourceType},
-			sq.Eq{"ReferenceUUID": id, "ReferenceType": resourceType}}).
+			Where(sq.Or{
+				sq.Eq{"ResourceUUID": id, "ResourceType": resourceType},
+				sq.Eq{"ReferenceUUID": id, "ReferenceType": resourceType}}).
 		ToSql()
 	_, err = tx.Exec(refSql, refArgs...)
 	if err != nil {
@@ -91,24 +91,24 @@ func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string,
 }
 
 func (s *ResourceReferenceStore) GetResourceReference(resourceId string, resourceType common.ResourceType,
-	referenceType common.ResourceType) (*model.ResourceReference, error) {
+		referenceType common.ResourceType) (*model.ResourceReference, error) {
 	sql, args, err := sq.Select("*").
 		From("resource_references").
-		Where(sq.Eq{
-			"ResourceUUID":  resourceId,
-			"ResourceType":  resourceType,
-			"ReferenceType": referenceType}).
+			Where(sq.Eq{
+				"ResourceUUID":  resourceId,
+				"ResourceType":  resourceType,
+				"ReferenceType": referenceType}).
 		Limit(1).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err,
 			"Failed to create query to get resource reference. "+
-				"Resource ID: %s. Resource Type: %s. Reference Type: %s", resourceId, resourceType, referenceType)
+					"Resource ID: %s. Resource Type: %s. Reference Type: %s", resourceId, resourceType, referenceType)
 	}
 	row, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err,
 			"Failed to get resource reference. "+
-				"Resource ID: %s. Resource Type: %s. Reference Type: %s", resourceId, resourceType, referenceType)
+					"Resource ID: %s. Resource Type: %s. Reference Type: %s", resourceId, resourceType, referenceType)
 	}
 	defer row.Close()
 	reference, err := s.scanRows(row)

@@ -62,7 +62,7 @@ func TestResourceReferenceStore(t *testing.T) {
 	payload, err := json.Marshal(testRefOne)
 	assert.Equal(t, &model.ResourceReference{
 		ResourceUUID: "r1", ResourceType: common.Run,
-		ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
+		ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: common.Experiment,
 		Relationship: common.Creator, Payload: string(payload)}, experimentRef)
 
 	// Delete resource references

@@ -165,7 +165,7 @@ func TestListJobs_Pagination(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Job,
-					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName:"e1",
+					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName:"e2",
 					ReferenceType: common.Experiment,					Relationship: common.Owner,
 				},
 			},
