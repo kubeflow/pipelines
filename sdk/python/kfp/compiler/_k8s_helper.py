@@ -44,7 +44,8 @@ class K8sHelper(object):
 
   def _create_k8s_job(self, yaml_spec):
     """ _create_k8s_job creates a kubernetes job based on the yaml spec """
-    pod = k8s_client.V1Pod(metadata=k8s_client.V1ObjectMeta(generate_name=yaml_spec['metadata']['generateName']))
+    pod = k8s_client.V1Pod(metadata=k8s_client.V1ObjectMeta(generate_name=yaml_spec['metadata']['generateName'],
+                                                            annotations=yaml_spec['metadata']['annotations']))
     container = k8s_client.V1Container(name = yaml_spec['spec']['containers'][0]['name'],
                                        image = yaml_spec['spec']['containers'][0]['image'],
                                        args = yaml_spec['spec']['containers'][0]['args'],
