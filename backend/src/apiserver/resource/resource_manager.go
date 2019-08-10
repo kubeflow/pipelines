@@ -493,7 +493,7 @@ func (r *ResourceManager) DeleteJob(jobID string) error {
 func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error {
 	if _, ok := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
 		// Skip reporting if the workflow doesn't have the run id label
-		return nil
+		return util.NewInvalidInputError("Workflow missing the Run ID label")
 	}
 	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()

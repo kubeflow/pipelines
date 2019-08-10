@@ -899,6 +899,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			UID: types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 	})
@@ -1070,6 +1071,7 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			UID: types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
 	})
@@ -1109,6 +1111,7 @@ func TestReportWorkflowResource_WorkflowCompleted_DeleteWorkflowFailed(t *testin
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			UID: types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
 	})
