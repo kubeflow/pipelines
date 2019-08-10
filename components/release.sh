@@ -53,6 +53,12 @@ if [ -z "$COMMIT_SHA" ]; then
   exit 1
 fi
 
+function sed_in_place() {
+  # works for both OSX and linux
+  sed -i '.bak' -E "$1" "$2"
+  rm "$2.bak"
+}
+
 # Checking out the repo
 clone_dir=$(mktemp -d)
 git clone "git@github.com:${REPO}.git" "$clone_dir"
@@ -73,7 +79,9 @@ do
   ${FROM_GCR_PREFIX}${image}:${COMMIT_SHA} ${TARGET_IMAGE}
 
   # Update the code
-  find components samples -type f | while read file; do sed -i -e "s|${TARGET_IMAGE_BASE}:\([a-zA-Z0-9_.-]\)\+|${TARGET_IMAGE}|g" "$file"; done
+  find components samples -type f ! -iname "*.png" ! -iname "*.jpg" | while read file; do
+    sed_in_place "s|${TARGET_IMAGE_BASE}:[a-zA-Z0-9_.-]+|${TARGET_IMAGE}|g" "$file";
+  done
 done
 
 # Checking-in the container image changes
@@ -82,23 +90,22 @@ git commit --message "Updated component images to version $COMMIT_SHA"
 image_update_commit_sha=$(git rev-parse HEAD)
 
 # Updating the samples to use the updated components
-git diff HEAD~1 HEAD --name-only | while read component_file; do
-    echo $component_file
-    find components samples -type f | while read file; do
-      sed -i -E "s|(https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/]+(/$component_file)|\1${image_update_commit_sha}\2|g" "$file";
-    done
+#git diff HEAD~1 HEAD --name-only | while read component_file; do
+find components samples -type f ! -iname "*.png" ! -iname "*.jpg" | while read file; do
+    sed_in_place "s|(https://raw.githubusercontent.com/kubeflow/pipelines/)[^/]+/|\1${image_update_commit_sha}/|g" "$file"
 done
+echo "clone dir: $clone_dir"
 
 # Checking-in the component changes
 git add --all
-git commit --message "Updated components to version $image_update_commit_sha"
+git commit --message "Updated components to version git l$image_update_commit_sha"
 component_update_commit_sha=$(git rev-parse HEAD)
-
 # Pushing the changes upstream
 read -p "Do you want to push the new branch to upstream to create a PR? [y|n]"
 if [ "$REPLY" != "y" ]; then
    exit
 fi
 git push --set-upstream origin "$branch"
+echo "clone dir: $clone_dir"
 
 sensible-browser "https://github.com/${REPO}/compare/master...$branch"
