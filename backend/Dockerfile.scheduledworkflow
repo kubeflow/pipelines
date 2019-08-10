@@ -18,4 +18,4 @@ RUN chmod +x /bin/controller
 
 ENV NAMESPACE ""
 
-CMD /bin/controller --alsologtostderr=true --namespace=${NAMESPACE}
+CMD /bin/controller --logtostderr=true --namespace=${NAMESPACE}
