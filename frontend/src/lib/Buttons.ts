@@ -265,9 +265,9 @@ export default class Buttons {
                     callback: (selectedIds: string[], success: boolean) => void): void {
     this._dialogActionHandler(
         selectedIds,
-        `Retry this run?`,
+        'Retry this run?',
         useCurrent,
-        id => Apis.runServiceApi.retryRun(id),
+        Apis.runServiceApi.retryRun,
         callback,
         'Retry',
         'run'
@@ -283,7 +283,7 @@ export default class Buttons {
       `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
       `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
-      id => Apis.runServiceApi.archiveRun(id),
+      Apis.runServiceApi.archiveRun,
       callback,
       'Archive',
       'run',
