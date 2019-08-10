@@ -29,7 +29,9 @@ spec:
     args: ["--cache=true",
                 "--dockerfile=dockerfile",
                 "--context=gs://mlpipeline/kaniko_build.tar.gz",
-                "--destination=gcr.io/mlpipeline/kaniko_image:latest"]
+                "--destination=gcr.io/mlpipeline/kaniko_image:latest",
+                "--digest-file=/dev/termination-log",
+    ]
     env:
     - name: GOOGLE_APPLICATION_CREDENTIALS
       value: /secret/gcp-credentials/user-gcp-sa.json
