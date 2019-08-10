@@ -1063,6 +1063,61 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
+func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			UID: types.UID(run.UUID),
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.Nil(t, err)
+	runDetail, err := manager.GetRun(run.UUID)
+	assert.Nil(t, err)
+	expectedRun := model.Run{
+		UUID:           "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName:    "run1",
+		Name:           "workflow-name",
+		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
+		CreatedAtInSec: 2,
+		Conditions:     "Failed",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
+				ResourceType:  common.Run,
+				ReferenceUUID: DefaultFakeUUID,
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
+		},
+	}
+	assert.Equal(t, expectedRun, runDetail.Run)
+}
+
+func TestReportWorkflowResource_WorkflowCompleted_DeleteWorkflowFailed(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	manager.workflowClient = &FakeBadWorkflowClient{}
+	defer store.Close()
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			UID: types.UID(run.UUID),
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "failed to delete workflow")
+}
+
+
 func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()

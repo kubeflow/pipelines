@@ -499,7 +499,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
 
 	if jobId == "" {
-		// If a run doesn't have owner UID, it's a one-time run created by Pipeline API server.
+		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CRD is created.
 		err := r.runStore.UpdateRun(runId, workflow.Condition(), workflow.FinishedAt(), workflow.ToStringForStore())
 		if err != nil {
@@ -548,7 +548,7 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 		}
 		err = r.runStore.CreateOrUpdateRun(runDetail)
 		if err != nil {
-			return util.Wrap(err, "Failed to create or update runs.")
+			return util.Wrap(err, "Failed to create or update the run.")
 		}
 	}
 

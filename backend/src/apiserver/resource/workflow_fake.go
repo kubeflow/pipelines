@@ -83,7 +83,6 @@ func (c *FakeWorkflowClient) Update(workflow *v1alpha1.Workflow) (*v1alpha1.Work
 }
 
 func (c *FakeWorkflowClient) Delete(name string, options *v1.DeleteOptions) error {
-	glog.Error("This fake method is not yet implemented.")
 	return nil
 }
 
@@ -142,6 +141,11 @@ func (FakeBadWorkflowClient) Create(*v1alpha1.Workflow) (*v1alpha1.Workflow, err
 func (FakeBadWorkflowClient) Get(name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
 	return nil, errors.New("some error")
 }
+
 func (c *FakeBadWorkflowClient) Update(workflow *v1alpha1.Workflow) (*v1alpha1.Workflow, error) {
 	return nil, errors.New("failed to update workflow")
+}
+
+func (c *FakeBadWorkflowClient) Delete(name string, options *v1.DeleteOptions) error {
+	return errors.New("failed to delete workflow")
 }
