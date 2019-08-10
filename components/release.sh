@@ -98,7 +98,7 @@ echo "clone dir: $clone_dir"
 
 # Checking-in the component changes
 git add --all
-git commit --message "Updated components to version git l$image_update_commit_sha"
+git commit --message "Updated components to version $image_update_commit_sha"
 component_update_commit_sha=$(git rev-parse HEAD)
 # Pushing the changes upstream
 read -p "Do you want to push the new branch to upstream to create a PR? [y|n]"
