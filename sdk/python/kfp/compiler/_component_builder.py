@@ -324,13 +324,13 @@ class ComponentBuilder(object):
 
       # Prepare build files
       logging.info('Generate build files.')
-      self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
 
   def build_image_from_dockerfile(self, docker_filename, timeout):
     """ build_image_from_dockerfile builds an image based on the dockerfile """
     with tempfile.TemporaryDirectory() as local_build_dir:
       self._prepare_files(local_build_dir, docker_filename)
-      self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
 
 def _configure_logger(logger):
   """ _configure_logger configures the logger such that the info level logs
@@ -440,11 +440,11 @@ def build_python_component(component_func, target_image, base_image=None, depend
                                    ' and push the image to ' +
                                    target_image)
     builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
-    builder.build_image_from_func(component_func,
+    image_name_with_digest = builder.build_image_from_func(component_func,
                                   base_image=base_image, timeout=timeout,
                                   python_version=python_version, dependency=dependency)
     logging.info('Build component complete.')
-  return _generate_pythonop(component_func, target_image, target_component_file)
+  return _generate_pythonop(component_func, image_name_with_digest, target_component_file)
 
 def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace='kubeflow'):
   """ build_docker_image automatically builds a container image based on the specification in the dockerfile and
@@ -459,5 +459,6 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
   """
   _configure_logger(logging.getLogger())
   builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
-  builder.build_image_from_dockerfile(docker_filename=dockerfile_path, timeout=timeout)
+  image_name_with_digest = builder.build_image_from_dockerfile(docker_filename=dockerfile_path, timeout=timeout)
   logging.info('Build image complete.')
+  return image_name_with_digest
