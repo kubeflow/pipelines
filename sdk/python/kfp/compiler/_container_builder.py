@@ -20,6 +20,7 @@ import uuid
 
 SERVICEACCOUNT_NAMESPACE = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
 GCS_STAGING_BLOB_DEFAULT_PREFIX = 'kfp_container_build_staging'
+GCR_DEFAULT_IMAGE_SUFFIX = 'kfp_container'
 
 class ContainerBuilder(object):
   """
@@ -34,8 +35,10 @@ class ContainerBuilder(object):
           default is the same namespace as the notebook service account in cluster
               or 'kubeflow' if not in cluster
     """
+    project_id = self._get_project_id()
+    # Configure the GCS staging bucket
     if gcs_staging is None:
-      gcs_bucket = self._get_project_id()
+      gcs_bucket = project_id
       self._gcs_staging = 'gs://' + gcs_bucket + '/' + GCS_STAGING_BLOB_DEFAULT_PREFIX
     else:
       from pathlib import PurePath
@@ -47,6 +50,12 @@ class ContainerBuilder(object):
     from ._gcs_helper import GCSHelper
     GCSHelper.create_gcs_bucket_if_not_exist(gcs_bucket)
 
+    # Configure the GCR image tag
+    # TODO notebook id: 
+    #   kfp: NB_PREFIX(/notebook/${namespace}/${notebook_name})
+    #   ai platform: http://metadata.google.internal/computeMetadata/v1/instance/name
+    self._gcr_image_tag = 'gcr.io/' + project_id + '/' + GCR_DEFAULT_IMAGE_SUFFIX 
+    # Configure the namespace
     self._namespace = namespace
     if namespace is None:
       if os.path.exists(SERVICEACCOUNT_NAMESPACE):
@@ -115,14 +124,15 @@ class ContainerBuilder(object):
     with tarfile.open(tarball_path, 'w:gz') as tarball:
       tarball.add(dir_name, arcname='')
 
-  def build(self, local_dir, docker_filename, target_image, timeout):
+  def build(self, local_dir, docker_filename, target_image=None, timeout=1000):
     """
     Args:
       local_dir (str): local directory that stores all the necessary build files
       docker_filename (str): the dockerfile name that is in the local_dir
       target_image (str): the target image tag to push the final image.
-      timeout (int): time out in seconds
+      timeout (int): time out in seconds. Default: 1000
     """
+    target_image = self._gcr_image_tag if target_image is None else target_image
     # Prepare build context
     with tempfile.TemporaryDirectory() as local_build_dir:
       from ._gcs_helper import GCSHelper
