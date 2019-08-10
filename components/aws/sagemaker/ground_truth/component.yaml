@@ -85,7 +85,7 @@ outputs:
   - {name: active_learning_model_arn, description: 'The ARN for the most recent Amazon SageMaker model trained as part of automated data labeling.'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190801-01
+    image: carowang/kubeflow-pipeline-aws-sm:20190809-02
     command: ['python']
     args: [
       ground_truth.py,

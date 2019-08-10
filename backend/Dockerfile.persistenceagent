@@ -17,4 +17,4 @@ COPY --from=builder /go/src/github.com/kubeflow/pipelines/third_party/license.tx
 
 ENV NAMESPACE ""
 
-CMD persistence_agent --alsologtostderr=true --namespace=${NAMESPACE}
+CMD persistence_agent --logtostderr=true --namespace=${NAMESPACE}
