@@ -2,7 +2,7 @@
   {
     "name":"[Sample] ML - XGBoost - Training with Confusion Matrix",
     "description":"A trainer that does end-to-end distributed training for XGBoost models. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost-spark",
-    "file":"/samples/core/xgboost_training_cm/xgboost-training-cm.py.tar.gz"
+    "file":"/samples/core/xgboost_training_cm/xgboost_training_cm.py.tar.gz"
   },
   {
     "name":"[Sample] ML - TFX - Taxi Tip Prediction Model Trainer",
