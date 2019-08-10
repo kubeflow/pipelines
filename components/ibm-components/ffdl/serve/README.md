@@ -34,7 +34,7 @@ serving_image =  'aipipeline/seldon-pytorch:0.1'
 ```python
 # Additional Parameters
 EXPERIMENT_NAME = 'Seldon Core - Serve PyTorch Model'
-COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/components/ibm-components/ffdl/serve/component.yaml'
+COMPONENT_SPEC_URI = 'https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/ffdl/serve/component.yaml'
 
 ```
 

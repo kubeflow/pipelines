@@ -4,13 +4,13 @@ import ai_pipeline_params as params
 
 secret_name = 'aios-creds'
 
-preprocess_spark_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/spark/data_preprocess_spark/component.yaml')
-train_spark_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/spark/train_spark/component.yaml')
-store_spark_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/spark/store_spark_model/component.yaml')
-deploy_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/deploy/component.yaml')
-subscribe_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/manage/subscribe/component.yaml')
-fairness_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/manage/monitor_fairness/component.yaml')
-quality_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/manage/monitor_quality/component.yaml')
+preprocess_spark_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/spark/data_preprocess_spark/component.yaml')
+train_spark_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/spark/train_spark/component.yaml')
+store_spark_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/spark/store_spark_model/component.yaml')
+deploy_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/watson/deploy/component.yaml')
+subscribe_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/watson/manage/subscribe/component.yaml')
+fairness_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/watson/manage/monitor_fairness/component.yaml')
+quality_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/watson/manage/monitor_quality/component.yaml')
 
 
 @dsl.pipeline(

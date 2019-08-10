@@ -50,7 +50,7 @@ import kfp.components as components
 from kfp import compiler
 import kfp
 secret_name = 'aios-creds'
-configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/commons/config/component.yaml')
+configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/commons/config/component.yaml')
 client = kfp.Client()
 EXPERIMENT_NAME = 'create secret'
 exp = client.create_experiment(name=EXPERIMENT_NAME)

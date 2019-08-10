@@ -19,10 +19,10 @@ from kfp import dsl
 import ai_pipeline_params as params
 
 secret_name = 'kfp-creds'
-configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/commons/config/component.yaml')
-train_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/train/component.yaml')
-store_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/store/component.yaml')
-deploy_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/watson/deploy/component.yaml')
+configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/commons/config/component.yaml')
+train_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/watson/train/component.yaml')
+store_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/watson/store/component.yaml')
+deploy_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/ibm-components/watson/deploy/component.yaml')
 
 # create pipelines
 

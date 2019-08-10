@@ -29,7 +29,7 @@ import requests
 
 import kfp
 
-component_url_prefix = 'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/sample/keras/train_classifier/'
+component_url_prefix = 'https://raw.githubusercontent.com/kubeflow/pipelines/dbf05e347a70b734175933b88986f5003369ef99/components/sample/keras/train_classifier/'
 test_data_url_prefix = component_url_prefix + 'tests/testdata/'
 
 #Prepare input/output paths and data
