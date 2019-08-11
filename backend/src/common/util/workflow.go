@@ -22,6 +22,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
+	"strings"
+)
+
+const (
+	LabelKeyWorkflowRunId = "pipeline/runid"
 )
 
 // Workflow is a type to help manipulate Workflow objects.
@@ -109,8 +114,8 @@ func isScheduledWorkflow(reference metav1.OwnerReference) bool {
 	}
 
 	if reference.APIVersion == gvk.GroupVersion().String() &&
-		reference.Kind == gvk.Kind &&
-		reference.UID != "" {
+			reference.Kind == gvk.Kind &&
+			reference.UID != "" {
 		return true
 	}
 	return false
@@ -148,7 +153,6 @@ func (w *Workflow) Condition() string {
 }
 
 func (w *Workflow) ToStringForStore() string {
-
 	workflow, err := json.Marshal(w.Workflow)
 	if err != nil {
 		glog.Errorf("Could not marshal the workflow: %v", w.Workflow)
@@ -199,17 +203,28 @@ func (w *Workflow) SetLabels(key string, value string) {
 	w.Labels[key] = value
 }
 
-func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, index int64) {
-	w.SetLabels(LabelKeyWorkflowScheduledWorkflowName, name)
-	w.SetLabels(LabelKeyWorkflowEpoch, FormatInt64ForLabel(nextScheduledEpoch))
-	w.SetLabels(LabelKeyWorkflowIndex, FormatInt64ForLabel(index))
-	w.SetLabels(LabelKeyWorkflowIsOwnedByScheduledWorkflow, "true")
-}
+func (w *Workflow) ReplaceUID(id string) error {
+	newWorkflowString := strings.Replace(w.ToStringForStore(), "{{workflow.uid}}", id, -1)
+	var workflow *workflowapi.Workflow
+	if err := json.Unmarshal([]byte(newWorkflowString), &workflow); err != nil {
+		return NewInternalServerError(err,
+			"Failed to unmarshal workflow spec manifest. Workflow: %s", w.ToStringForStore())
+	}
+		w.Workflow = workflow
+		return nil
+	}
 
-// FindObjectStoreArtifactKeyOrEmpty loops through all node running statuses and look up the first
-// S3 artifact with the specified nodeID and artifactName. Returns empty if nothing is found.
-func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName string) string {
-	if w.Status.Nodes == nil {
+	func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, index int64) {
+		w.SetLabels(LabelKeyWorkflowScheduledWorkflowName, name)
+		w.SetLabels(LabelKeyWorkflowEpoch, FormatInt64ForLabel(nextScheduledEpoch))
+		w.SetLabels(LabelKeyWorkflowIndex, FormatInt64ForLabel(index))
+		w.SetLabels(LabelKeyWorkflowIsOwnedByScheduledWorkflow, "true")
+	}
+
+	// FindObjectStoreArtifactKeyOrEmpty loops through all node running statuses and look up the first
+	// S3 artifact with the specified nodeID and artifactName. Returns empty if nothing is found.
+	func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName string) string {
+		if w.Status.Nodes == nil {
 		return ""
 	}
 	node, found := w.Status.Nodes[nodeID]

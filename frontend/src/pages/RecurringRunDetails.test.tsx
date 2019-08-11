@@ -20,7 +20,7 @@ import TestUtils from '../TestUtils';
 import { ApiJob, ApiResourceType } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { PageProps } from './Page';
-import { RouteParams, RoutePage } from '../components/Router';
+import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { ToolbarActionConfig } from '../components/Toolbar';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 
@@ -183,6 +183,22 @@ describe('RecurringRunDetails', () => {
     expect(getJobSpy).toHaveBeenCalledTimes(1);
     await refreshBtn!.action();
     expect(getJobSpy).toHaveBeenCalledTimes(2);
+  });
+
+
+  it('has a clone button, clicking it navigates to new run page', async () => {
+    tree = shallow(<RecurringRunDetails {...generateProps()} />);
+    await TestUtils.flushPromises();
+    const instance = tree.instance() as RecurringRunDetails;
+    const cloneBtn = instance.getInitialToolbarState().actions.find(
+      b => b.title === 'Clone recurring run');
+    expect(cloneBtn).toBeDefined();
+    await cloneBtn!.action();
+    expect(historyPushSpy).toHaveBeenCalledTimes(1);
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.NEW_RUN
+      + `?${QUERY_PARAMS.cloneFromRecurringRun}=${fullTestJob!.id}`
+      + `&${QUERY_PARAMS.isRecurring}=1`);
   });
 
   it('shows enabled Disable, and disabled Enable buttons if the run is enabled', async () => {

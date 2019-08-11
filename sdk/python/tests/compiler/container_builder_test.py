@@ -17,13 +17,15 @@ import tarfile
 import unittest
 import yaml
 import tempfile
+import mock
 from kfp.compiler._component_builder import ContainerBuilder
 
 GCS_BASE = 'gs://kfp-testing/'
 
+@mock.patch('kfp.compiler._gcs_helper.GCSHelper')
 class TestContainerBuild(unittest.TestCase):
 
-  def test_wrap_dir_in_tarball(self):
+  def test_wrap_dir_in_tarball(self, mock_gcshelper):
     """ Test wrap files in a tarball """
 
     # prepare
@@ -48,7 +50,7 @@ class TestContainerBuild(unittest.TestCase):
     # clean up
     os.remove(temp_tarball)
 
-  def test_generate_kaniko_yaml(self):
+  def test_generate_kaniko_yaml(self, mock_gcshelper):
     """ Test generating the kaniko job yaml """
 
     # prepare

@@ -119,6 +119,12 @@ service RunService {
       post: "/apis/v1beta1/runs/{run_id}/terminate"
     };
   }
+
+  rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/runs/{run_id}/retry"
+    };
+  }
 }
 
 message CreateRunRequest {
@@ -147,6 +153,10 @@ message ListRunsRequest {
 }
 
 message TerminateRunRequest {
+  string run_id = 1;
+}
+
+message RetryRunRequest {
   string run_id = 1;
 }
 

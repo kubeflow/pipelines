@@ -121,7 +121,7 @@ export interface ApiVisualization {
      * @type {string}
      * @memberof ApiVisualization
      */
-    inputPath?: string;
+    source?: string;
     /**
      * Variables to be used during generation of a visualization. This should be provided as a JSON string. This is required when creating the pipeline through CreateVisualization API.
      * @type {string}

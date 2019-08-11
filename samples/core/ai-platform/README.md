@@ -27,10 +27,10 @@ The [Chicago Crime Data](https://console.cloud.google.com/marketplace/details/ci
 ## Assets
 
 * Notebooks
-  * [Chicago Crime Research.ipynb](Chicago%20Crime%20Research.ipynb) Illustrates the process of building a **model** outside of production.
-  * [Chicago Crime Pipeline.ipynb](Chicago%20Crime%20Pipeline.ipynb) Illustrates how to build a **pipeline** and deploy it to a Kubeflow instance
+  * **Chicago Crime Pipeline.ipynb** Illustrates how to build a **pipeline** and deploy it to a Kubeflow instance.
+  * **./local/Chicago Crime Research.ipynb** Illustrates the process of building a **model** outside of production.
 * Model training code
-  * [/ai_platform_training](/ai_platform_training): includes the **training code** to build the model for use on AI Platform Training service.
+  * **./training**: includes the **training code** to build the model for use on AI Platform Training service.
 
 ## Getting Started
 

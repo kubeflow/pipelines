@@ -16,7 +16,6 @@ package server
 
 import (
 	"context"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -140,6 +139,15 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunR
 		return nil, err
 	}
 	return &empty.Empty{}, nil
+}
+
+func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) (*empty.Empty, error) {
+	err := s.resourceManager.RetryRun(request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+
 }
 
 func NewRunServer(resourceManager *resource.ResourceManager) *RunServer {
