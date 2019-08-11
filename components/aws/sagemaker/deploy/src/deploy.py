@@ -12,11 +12,8 @@
 
 import argparse
 import logging
-import random
-from datetime import datetime
 
 from common import _utils
-
 
 def main(argv=None):
   parser = argparse.ArgumentParser(description='SageMaker Training Job')
