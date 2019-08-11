@@ -178,15 +178,6 @@ describe('deploy helloworld sample run', () => {
     $('button=Logs').waitForVisible();
   });
 
-  it('shows logs from node', () => {
-    $('button=Logs').click();
-    $('#logViewer').waitForVisible();
-    browser.waitUntil(() => {
-      const logs = $('#logViewer').getText();
-      return logs.indexOf(outputParameterValue + ' from node: ') > -1;
-    }, waitTimeout);
-  });
-
   it('navigates back to the experiment list', () => {
     $('button=Experiments').click();
     browser.waitUntil(() => {
