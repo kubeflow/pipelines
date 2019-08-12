@@ -19,9 +19,9 @@ RUN pip3 install google-api-python-client==1.7.0
 RUN echo "install argo"
 RUN ARGO_VERSION=v2.3.0
 RUN mkdir -p ~/bin/
-RUN export PATH=~/bin/:$PATH
 RUN curl -sSL -o ~/bin/argo "https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64"
 RUN chmod +x ~/bin/argo
+ENV PATH=~/bin/:$PATH
 
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python
