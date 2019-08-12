@@ -134,13 +134,15 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 2, totalSize)
-	assert.Equal(t, "hello world", runs[0].Name)
+	/* TODO(issues/1762): fix the following flaky assertion. */
+	/* assert.Equal(t, "hello world", runs[0].Name) */
 	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsParams{
 		PageSize: util.Int32Pointer(1), PageToken: util.StringPointer(nextPageToken)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 2, totalSize)
-	assert.Equal(t, "argument parameter", runs[0].Name)
+	/* TODO(issues/1762): fix the following flaky assertion. */
+	/* assert.Equal(t, "argument parameter", runs[0].Name) */
 
 	/* ---------- List the runs, paginated, sort by name ---------- */
 	runs, totalSize, nextPageToken, err = s.runClient.List(&runparams.ListRunsParams{
