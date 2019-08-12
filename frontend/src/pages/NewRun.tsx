@@ -120,7 +120,7 @@ class NewRun extends Page<{}, NewRunState> {
 
   public getInitialToolbarState(): ToolbarProps {
     return {
-      actions: [],
+      actions: {},
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'Start a new run',
     };

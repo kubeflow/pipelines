@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import Button from '@material-ui/core/Button';
-import Buttons from '../lib/Buttons';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -120,17 +120,17 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       experiment: null,
       recurringRunsManagerOpen: false,
       runListToolbarProps: {
-        actions: [
-          buttons.newRun(() => this.props.match.params[RouteParams.experimentId]),
-          buttons.newRecurringRun(this.props.match.params[RouteParams.experimentId]),
-          buttons.compareRuns(() => this.state.selectedIds),
-          buttons.cloneRun(() => this.state.selectedIds, false),
-          buttons.archive(
+        actions: buttons
+          .newRun(() => this.props.match.params[RouteParams.experimentId])
+          .newRecurringRun(this.props.match.params[RouteParams.experimentId])
+          .compareRuns(() => this.state.selectedIds)
+          .cloneRun(() => this.state.selectedIds, false)
+          .archive(
             () => this.state.selectedIds,
             false,
             ids => this._selectionChanged(ids),
-          ),
-        ],
+          )
+          .getToolbarActionMap(),
         breadcrumbs: [],
         pageTitle: 'Runs',
         topLevelToolbar: false,
@@ -144,7 +144,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [buttons.refresh(this.refresh.bind(this))],
+      actions: buttons.refresh(this.refresh.bind(this)).getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       // TODO: determine what to show if no props.
       pageTitle: this.props ? this.props.match.params[RouteParams.experimentId] : '',
@@ -279,13 +279,10 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 
   private _selectionChanged(selectedIds: string[]): void {
-    const toolbarActions = [...this.state.runListToolbarProps.actions];
-    // Compare runs button
-    toolbarActions[2].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
-    // Clone run button
-    toolbarActions[3].disabled = selectedIds.length !== 1;
-    // Archive run button
-    toolbarActions[4].disabled = !selectedIds.length;
+    const toolbarActions = this.state.runListToolbarProps.actions;
+    toolbarActions[ButtonKeys.COMPARE].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
+    toolbarActions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
+    toolbarActions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
     this.setState({
       runListToolbarProps: {
         actions: toolbarActions,
