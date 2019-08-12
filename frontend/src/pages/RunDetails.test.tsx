@@ -599,7 +599,7 @@ describe('RunDetails', () => {
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
   });
 
-  [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach(unfinishedStatus => {
+  [NodePhase.ERROR, NodePhase.FAILED, NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN, NodePhase.SKIPPED].forEach(unfinishedStatus => {
     it(`displays a spinner if graph is not defined and run has status: ${unfinishedStatus}`, async () => {
       const unfinishedRun = {
         pipeline_runtime: {
@@ -622,7 +622,7 @@ describe('RunDetails', () => {
     });
   });
 
-  [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(finishedStatus => {
+  [NodePhase.SUCCEEDED].forEach(finishedStatus => {
     it(`displays a message indicating there is no graph if graph is not defined and run has status: ${finishedStatus}`, async () => {
       const unfinishedRun = {
         pipeline_runtime: {
