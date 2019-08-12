@@ -90,7 +90,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Name: helloWorldExperiment.Name, Relationship: job_model.APIRelationshipOWNER},
+				Relationship: job_model.APIRelationshipOWNER},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
@@ -126,7 +126,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: argParamsExperiment.ID},
-				Name: argParamsExperiment.Name, Relationship: job_model.APIRelationshipOWNER},
+				Relationship: job_model.APIRelationshipOWNER},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
