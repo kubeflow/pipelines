@@ -91,7 +91,7 @@ outputs:
   - {name: training_image,         description: 'The registry path of the Docker image that contains the training algorithm'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190801-01
+    image: carowang/kubeflow-pipeline-aws-sm:20190809-02
     command: ['python']
     args: [
       train.py,

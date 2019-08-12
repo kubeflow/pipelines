@@ -12,10 +12,6 @@
 
 import argparse
 import logging
-import random
-import json
-from datetime import datetime
-from pathlib2 import Path
 
 from common import _utils
 
