@@ -152,8 +152,6 @@ check_result() {
 ################################################################################
 check_notebook_result() {
   jupyter nbconvert --to python $1.ipynb
-  #TODO(numerology): move repeated package installation into .ipynb notebook.
-  pip3 install tensorflow==1.8.0
   ipython $1.py
   EXIT_CODE=$?
   cd ${TEST_DIR}
