@@ -61,6 +61,7 @@ gcloud container clusters get-credentials ${TEST_CLUSTER}
 # when we reuse a cluster when debugging, clean up its kfp installation first
 # this does nothing with a new cluster
 kubectl delete namespace ${NAMESPACE} --wait || echo "No need to delete ${NAMESPACE} namespace. It doesn't exist."
+kubectl delete namespace argo --wait || echo "No need to delete argo namespace. It doesn't exist."
 
 kubectl create namespace ${NAMESPACE} --dry-run -o yaml | kubectl apply -f -
 KEY_ID=$(gcloud iam service-accounts keys create $SA_KEY_FILE --iam-account ${VM_SERVICE_ACCOUNT} 2>&1 >/dev/null | grep -oP "(?<=created key \[)\w+");

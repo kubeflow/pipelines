@@ -37,14 +37,17 @@ kustomize edit set image gcr.io/ml-pipeline/scheduledworkflow=${GCR_IMAGE_BASE_D
 kustomize edit set image gcr.io/ml-pipeline/frontend=${GCR_IMAGE_BASE_DIR}/frontend:latest
 cat kustomization.yaml
 
-kustomize build . | kubectl apply --wait -f -
+# delete argo first because KFP comes with argo too
+kubectl delete namespace argo --wait || echo "No argo installed"
+kustomize build . | kubectl apply -f -
 # show current info
-echo "Status of pods after kubectl apply --wait:"
+echo "Status of pods after kubectl apply"
 kubectl get pods -n ${NAMESPACE}
-
-popd
 
 echo "Waiting for kfp services to come up..."
 sleep 120
 echo "Status of pods after waiting for 120s:"
 kubectl get pods -n ${NAMESPACE}
+
+popd
+
