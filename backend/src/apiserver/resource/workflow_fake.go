@@ -16,6 +16,7 @@ package resource
 
 import (
 	"encoding/json"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"strconv"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -87,32 +88,44 @@ func (c *FakeWorkflowClient) Delete(name string, options *v1.DeleteOptions) erro
 }
 
 func (c *FakeWorkflowClient) DeleteCollection(options *v1.DeleteOptions,
-	listOptions v1.ListOptions) error {
+		listOptions v1.ListOptions) error {
 	glog.Error("This fake method is not yet implemented.")
 	return nil
 }
 
 func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
-	subresources ...string) (*v1alpha1.Workflow, error) {
+		subresources ...string) (*v1alpha1.Workflow, error) {
 
 	var dat map[string]interface{}
 	json.Unmarshal(data, &dat)
 
 	// TODO: Should we actually assert the type here, or just panic if it's wrong?
 
-	spec := dat["spec"].(map[string]interface{})
-	activeDeadlineSeconds := spec["activeDeadlineSeconds"].(float64)
+	if _, ok := dat["spec"]; ok {
+		spec := dat["spec"].(map[string]interface{})
+		activeDeadlineSeconds := spec["activeDeadlineSeconds"].(float64)
 
-	// Simulate terminating a workflow
-	if pt == types.MergePatchType && activeDeadlineSeconds == 0 {
-		workflow, ok := c.workflows[name]
-		if ok {
-			newActiveDeadlineSeconds := int64(0)
-			workflow.Spec.ActiveDeadlineSeconds = &newActiveDeadlineSeconds
-			return workflow, nil
+		// Simulate terminating a workflow
+		if pt == types.MergePatchType && activeDeadlineSeconds == 0 {
+			workflow, ok := c.workflows[name]
+			if ok {
+				newActiveDeadlineSeconds := int64(0)
+				workflow.Spec.ActiveDeadlineSeconds = &newActiveDeadlineSeconds
+				return workflow, nil
+			}
 		}
 	}
 
+	if _, ok := dat["metadata"]; ok {
+		workflow, ok := c.workflows[name]
+		if ok {
+			if workflow.Labels == nil {
+				workflow.Labels = map[string]string{}
+			}
+			workflow.Labels[util.LabelKeyWorkflowPersistedFinalState] = "true"
+			return workflow, nil
+		}
+	}
 	return nil, errors.New("Failed to patch worfklow")
 }
 
