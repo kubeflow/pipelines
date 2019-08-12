@@ -96,9 +96,19 @@ if [ ! "$PROJECT" == "ml-pipeline-test" ]; then
   fi
 fi
 
-# Build Images
-if [ -z ${SKIP_BUILD_IMAGES} ]; then
+BUILT_IMAGES=$(gcloud container images list --repository=${GCR_IMAGE_BASE_DIR})
+if
+  test -n "$CACHE_IMAGES" && \
+  echo "$BUILT_IMAGES" | grep  api-server && \
+  echo "$BUILT_IMAGES" | grep frontend && \
+  echo "$BUILT_IMAGES" | grep scheduledworkflow && \
+  echo "$BUILT_IMAGES" | grep persistenceagent;
+then
+  echo "docker images for api-server, frontend, scheduledworkflow and \
+    persistenceagent are already built in ${GCR_IMAGE_BASE_DIR}."
+else
   echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
+  # Build Images
   ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
   -p image-build-context-gcs-uri="$remote_code_archive_uri" \
   -p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
