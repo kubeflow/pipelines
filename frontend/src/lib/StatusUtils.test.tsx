@@ -19,7 +19,7 @@ import { NodePhase, hasFinished, statusBgColors, statusToBgColor, checkIfTermina
 describe('StatusUtils', () => {
 
   describe('hasFinished', () => {
-    [ NodePhase.SUCCEEDED].forEach(status => {
+    [NodePhase.SUCCEEDED].forEach(status => {
       it(`returns \'true\' if status is: ${status}`, () => {
         expect(hasFinished(status)).toBe(true);
       });
