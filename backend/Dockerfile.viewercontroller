@@ -22,4 +22,4 @@ RUN chmod +x /bin/controller
 ENV MAX_NUM_VIEWERS "50"
 ENV NAMESPACE "kubeflow"
 
-CMD /bin/controller -alsologtostderr=true -max_num_viewers=${MAX_NUM_VIEWERS} --namespace=${NAMESPACE}
+CMD /bin/controller -logtostderr=true -max_num_viewers=${MAX_NUM_VIEWERS} --namespace=${NAMESPACE}
