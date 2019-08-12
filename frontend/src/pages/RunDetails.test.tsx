@@ -599,7 +599,7 @@ describe('RunDetails', () => {
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
   });
 
-  [NodePhase.ERROR, NodePhase.FAILED, NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN, NodePhase.SKIPPED].forEach(unfinishedStatus => {
+  [NodePhase.ERROR, NodePhase.FAILED, NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN, NodePhase.SKIPPED, NodePhase.TERMINATING].forEach(unfinishedStatus => {
     it(`displays a spinner if graph is not defined and run has status: ${unfinishedStatus}`, async () => {
       const unfinishedRun = {
         pipeline_runtime: {
@@ -839,7 +839,7 @@ describe('RunDetails', () => {
     }, 10000);
 
 
-    [ NodePhase.SUCCEEDED].forEach(status => {
+    [NodePhase.SUCCEEDED].forEach(status => {
       it(`sets \'runFinished\' to true if run has status: ${status}`, async () => {
         testRun.run!.status = status;
         tree = shallow(<RunDetails {...generateProps()} />);
