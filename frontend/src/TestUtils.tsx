@@ -73,7 +73,7 @@ export default class TestUtils {
       history: { push: historyPushSpy } as any,
       location: location as any,
       match: matchValue,
-      toolbarProps: { actions: [], breadcrumbs: [], pageTitle: '' },
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy as any,
       updateDialog: updateDialogSpy as any,
       updateSnackbar: updateSnackbarSpy as any,
@@ -88,9 +88,9 @@ export default class TestUtils {
     return pageProps;
   }
 
-  public static getToolbarButton(updateToolbarSpy: jest.SpyInstance, title: string): ToolbarActionConfig {
+  public static getToolbarButton(updateToolbarSpy: jest.SpyInstance, buttonKey: string): ToolbarActionConfig {
     const lastCallIdx = updateToolbarSpy.mock.calls.length - 1;
     const lastCall = updateToolbarSpy.mock.calls[lastCallIdx][0];
-    return lastCall.actions.find((b: any) => b.title === title);
+    return lastCall.actions[buttonKey];
   }
 }

@@ -64,7 +64,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
 
   public getInitialToolbarState(): ToolbarProps {
     return {
-      actions: [],
+      actions: {},
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'New experiment',
     };
