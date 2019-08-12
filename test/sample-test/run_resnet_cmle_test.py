@@ -106,7 +106,7 @@ def main():
     ###### Output Argo Log for Debugging ######
     workflow_json = client._get_workflow_json(run_id)
     workflow_id = workflow_json['metadata']['name']
-    argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(args.namespace, workflow_id))
+    argo_log, _ = utils.run_bash_command('sh argo logs -n {} -w {}'.format(args.namespace, workflow_id))
     print("=========Argo Workflow Log=========")
     print(argo_log)
 
