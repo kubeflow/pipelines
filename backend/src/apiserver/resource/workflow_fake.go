@@ -126,7 +126,7 @@ func (c *FakeWorkflowClient) Patch(name string, pt types.PatchType, data []byte,
 			return workflow, nil
 		}
 	}
-	return nil, errors.New("Failed to patch worfklow")
+	return nil, errors.New("Failed to patch workflow")
 }
 
 func (c *FakeWorkflowClient) isTerminated(name string) (bool, error) {

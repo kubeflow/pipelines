@@ -16,8 +16,8 @@ package worker
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/bazel-pipelines/external/go_sdk/src/time"
 	"testing"
+	"time"
 
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
@@ -139,6 +139,9 @@ func TestWorkflow_Save_SkippedDueToFinalStatue(t *testing.T) {
 			Namespace: "MY_NAMESPACE",
 			Name:      "MY_NAME",
 			Labels:    map[string]string{util.LabelKeyWorkflowPersistedFinalState: "true"},
+		},
+		Status: workflowapi.WorkflowStatus{
+			FinishedAt: metav1.Now(),
 		},
 	})
 

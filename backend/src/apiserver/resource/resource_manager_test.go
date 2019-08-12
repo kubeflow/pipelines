@@ -1070,6 +1070,7 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
+			Name:   run.Name,
 			UID:    types.UID(run.UUID),
 			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
@@ -1078,10 +1079,7 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	err := manager.ReportWorkflowResource(workflow)
 	assert.Nil(t, err)
 
-	actualRunDetail, err := manager.GetRun(run.UUID)
-	assert.Nil(t, err)
-
-	wf, err := store.workflowClientFake.Get(actualRunDetail.Run.Name, v1.GetOptions{})
+	wf, err := store.workflowClientFake.Get(run.Run.Name, v1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, wf.Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
@@ -1092,6 +1090,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
+			Name:   run.Name,
 			UID:    types.UID(run.UUID),
 			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
@@ -1108,6 +1107,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFail
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
+			Name:   run.Name,
 			UID:    types.UID(run.UUID),
 			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
