@@ -498,67 +498,59 @@ func (r *ResourceManager) ReportWorkflowResource(workflow *util.Workflow) error 
 	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
 
-	if jobId == "" {
-		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
-		// In this case the DB entry should already been created when argo workflow CRD is created.
-		err := r.runStore.UpdateRun(runId, workflow.Condition(), workflow.FinishedAt(), workflow.ToStringForStore())
-		if err != nil {
-			return util.Wrap(err, "Failed to update the run.")
-		}
-	} else {
-		// Get the experiment resource reference for job.
-		experimentRef, err := r.resourceReferenceStore.GetResourceReference(jobId, common.Job, common.Experiment)
-		if err != nil {
-			return util.Wrap(err, "Failed to retrieve the experiment ID for the job that created the run.")
-		}
-		runDetail := &model.RunDetail{
-			Run: model.Run{
-				UUID:             runId,
-				DisplayName:      workflow.Name,
-				Name:             workflow.Name,
-				StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-				Namespace:        workflow.Namespace,
-				CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
-				ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
-				FinishedAtInSec:  workflow.FinishedAt(),
-				Conditions:       workflow.Condition(),
-				PipelineSpec: model.PipelineSpec{
-					WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
-				},
-				ResourceReferences: []*model.ResourceReference{
-					{
-						ResourceUUID:  runId,
-						ResourceType:  common.Run,
-						ReferenceUUID: jobId,
-						ReferenceType: common.Job,
-						Relationship:  common.Creator,
-					},
-					{
-						ResourceUUID:  runId,
-						ResourceType:  common.Run,
-						ReferenceUUID: experimentRef.ReferenceUUID,
-						ReferenceType: common.Experiment,
-						Relationship:  common.Owner,
-					},
-				},
-			},
-			PipelineRuntime: model.PipelineRuntime{
-				WorkflowRuntimeManifest: workflow.ToStringForStore(),
-			},
-		}
-		err = r.runStore.CreateOrUpdateRun(runDetail)
-		if err != nil {
-			return util.Wrap(err, "Failed to create or update the run.")
-		}
-	}
-
-	if workflow.IsInFinalState() {
+	if workflow.PersistedFinalState() {
 		err := r.workflowClient.Delete(workflow.Name, &v1.DeleteOptions{})
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
 		}
 	}
-	return nil
+
+	if jobId == "" {
+		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
+		// In this case the DB entry should already been created when argo workflow CRD is created.
+		return r.runStore.UpdateRun(runId, workflow.Condition(), workflow.FinishedAt(), workflow.ToStringForStore())
+	}
+	// Get the experiment resource reference for job.
+	experimentRef, err := r.resourceReferenceStore.GetResourceReference(jobId, common.Job, common.Experiment)
+	if err != nil {
+		return util.Wrap(err, "Failed to retrieve the experiment ID for the job that created the run.")
+	}
+	runDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:             runId,
+			DisplayName:      workflow.Name,
+			Name:             workflow.Name,
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			Namespace:        workflow.Namespace,
+			CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
+			ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
+			FinishedAtInSec:  workflow.FinishedAt(),
+			Conditions:       workflow.Condition(),
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  runId,
+					ResourceType:  common.Run,
+					ReferenceUUID: jobId,
+					ReferenceType: common.Job,
+					Relationship:  common.Creator,
+				},
+				{
+					ResourceUUID:  runId,
+					ResourceType:  common.Run,
+					ReferenceUUID: experimentRef.ReferenceUUID,
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{
+			WorkflowRuntimeManifest: workflow.ToStringForStore(),
+		},
+	}
+	return r.runStore.CreateOrUpdateRun(runDetail)
 }
 
 func (r *ResourceManager) ReportScheduledWorkflowResource(swf *util.ScheduledWorkflow) error {

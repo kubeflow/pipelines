@@ -25,10 +25,6 @@ import (
 	"strings"
 )
 
-const (
-	LabelKeyWorkflowRunId = "pipeline/runid"
-)
-
 // Workflow is a type to help manipulate Workflow objects.
 type Workflow struct {
 	*workflowapi.Workflow
@@ -247,6 +243,15 @@ func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName
 // IsInFinalState whether the workflow is in a final state.
 func (w *Workflow) IsInFinalState() bool {
 	if w.Status.Phase == workflowapi.NodeSucceeded || w.Status.Phase == workflowapi.NodeFailed {
+		return true
+	}
+	return false
+}
+
+// PersistedFinalState whether the workflow final state has being persisted.
+func (w *Workflow) PersistedFinalState() bool {
+	if _, ok :=w.GetLabels()[LabelKeyWorkflowPersistedFinalState]; ok {
+		// If the label exist, workflow final state has being persisted.
 		return true
 	}
 	return false

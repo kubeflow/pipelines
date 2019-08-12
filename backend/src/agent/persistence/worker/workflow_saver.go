@@ -53,7 +53,10 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 			"Workflow (%s): transient failure: %v", key, err)
 
 	}
-
+	if wf.PersistedFinalState() && time.Now().Unix()-wf.FinishedAt() < 0 {
+		log.Infof("Skip syncing Workflow (%v): workflow marked as persisted.", name)
+		return nil
+	}
 	// Save this Workflow to the database.
 	err = s.pipelineClient.ReportWorkflow(wf)
 	retry := util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT)
