@@ -26,6 +26,7 @@ import { PageProps } from './Page';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { graphlib } from 'dagre';
 import { shallow, mount, ShallowWrapper, ReactWrapper } from 'enzyme';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('PipelineDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -324,8 +325,7 @@ describe('PipelineDetails', () => {
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    const newExperimentBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Create experiment');
+    const newExperimentBtn = instance.getInitialToolbarState().actions[ButtonKeys.NEW_EXPERIMENT];
     expect(newExperimentBtn).toBeDefined();
   });
 
@@ -334,17 +334,16 @@ describe('PipelineDetails', () => {
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    expect(instance.getInitialToolbarState().actions).toHaveLength(1);
-    const createRunBtn =
-      instance.getInitialToolbarState().actions.find(b => b.title === 'Create run');
-    expect(createRunBtn).toBeDefined();
+    expect(Object.keys(instance.getInitialToolbarState().actions)).toHaveLength(1);
+    const newRunBtn = instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE];
+    expect(newRunBtn).toBeDefined();
   });
 
   it('clicking new run button when viewing embedded pipeline navigates to the new run page with run ID', async () => {
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    const newRunBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Create run');
+    const newRunBtn = instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE];
     newRunBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
@@ -356,18 +355,18 @@ describe('PipelineDetails', () => {
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    expect(instance.getInitialToolbarState().actions).toHaveLength(3);
-    const createRunBtn =
-      instance.getInitialToolbarState().actions.find(b => b.title === 'Create run');
-    expect(createRunBtn).toBeDefined();
+    expect(Object.keys(instance.getInitialToolbarState().actions)).toHaveLength(3);
+    const newRunBtn = instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE];
+    expect(newRunBtn).toBeDefined();
   });
 
   it('clicking new run button navigates to the new run page', async () => {
     tree = shallow(<PipelineDetails {...generateProps(false)} />);
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    const newRunBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Create run');
-    newRunBtn!.action();
+    const newRunFromPipelineBtn =
+      instance.getInitialToolbarState().actions[ButtonKeys.NEW_RUN_FROM_PIPELINE];
+    newRunFromPipelineBtn.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_RUN + `?${QUERY_PARAMS.pipelineId}=${testPipeline.id}`);
@@ -378,9 +377,8 @@ describe('PipelineDetails', () => {
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    const newExperimentBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Create experiment');
-    await newExperimentBtn!.action();
+    const newExperimentBtn = instance.getInitialToolbarState().actions[ButtonKeys.NEW_EXPERIMENT];
+    await newExperimentBtn.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
     expect(historyPushSpy).toHaveBeenLastCalledWith(
       RoutePage.NEW_EXPERIMENT + `?${QUERY_PARAMS.pipelineId}=${testPipeline.id}`);
@@ -391,15 +389,14 @@ describe('PipelineDetails', () => {
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as PipelineDetails;
-    const deleteBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Delete');
+    const deleteBtn = instance.getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     expect(deleteBtn).toBeDefined();
   });
 
   it('shows delete confirmation dialog when delete buttin is clicked', async () => {
     tree = shallow(<PipelineDetails {...generateProps()} />);
     const deleteBtn = (tree.instance() as PipelineDetails)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
     expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -410,7 +407,7 @@ describe('PipelineDetails', () => {
   it('does not call delete API for selected pipeline when delete dialog is canceled', async () => {
     tree = shallow(<PipelineDetails {...generateProps()} />);
     const deleteBtn = (tree.instance() as PipelineDetails)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const cancelBtn = call.buttons.find((b: any) => b.text === 'Cancel');
@@ -423,7 +420,7 @@ describe('PipelineDetails', () => {
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const deleteBtn = (tree.instance() as PipelineDetails)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -438,7 +435,7 @@ describe('PipelineDetails', () => {
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const deleteBtn = (tree.instance() as PipelineDetails)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -455,7 +452,7 @@ describe('PipelineDetails', () => {
     await getTemplateSpy;
     await TestUtils.flushPromises();
     const deleteBtn = (tree.instance() as PipelineDetails)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');

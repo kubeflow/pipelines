@@ -65,7 +65,7 @@ describe('NewExperiment', () => {
     tree = shallow(<NewExperiment {...generateProps() as any} />);
 
     expect(updateToolbarSpy).toHaveBeenCalledWith({
-      actions: [],
+      actions: {},
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'New experiment',
     });

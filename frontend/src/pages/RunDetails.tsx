@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import Banner, { Mode } from '../components/Banner';
-import Buttons from '../lib/Buttons';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import CompareTable from '../components/CompareTable';
 import CompareUtils from '../lib/CompareUtils';
@@ -151,14 +151,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [
-        buttons.cloneRun(() => this.state.runMetadata ? [this.state.runMetadata!.id!] : [], true),
-        buttons.terminateRun(
+      actions: buttons
+        .cloneRun(() => this.state.runMetadata ? [this.state.runMetadata!.id!] : [], true)
+        .terminateRun(
           () => this.state.runMetadata ? [this.state.runMetadata!.id!] : [],
           true,
           () => this.refresh()
-        ),
-      ],
+        )
+        .getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: this.props.runId!,
     };
@@ -451,14 +451,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       </div>;
 
       // Update the Archive/Restore button based on the storage state of this run
-      const buttons = new Buttons(this.props, this.refresh.bind(this));
-      const actions = this.getInitialToolbarState().actions;
+      const buttons = new Buttons(this.props, this.refresh.bind(this), this.getInitialToolbarState().actions);
       const idGetter = () => runMetadata ? [runMetadata!.id!] : [];
-      const newButton = runMetadata!.storage_state === RunStorageState.ARCHIVED ?
+      runMetadata!.storage_state === RunStorageState.ARCHIVED ?
         buttons.restore(idGetter, true, () => this.refresh()) :
         buttons.archive(idGetter, true, () => this.refresh());
-      actions.splice(2, 1, newButton);
-      actions[1].disabled = runMetadata.status as NodePhase === NodePhase.TERMINATING || runFinished;
+      const actions = buttons.getToolbarActionMap();
+      actions[ButtonKeys.TERMINATE_RUN].disabled =
+        (runMetadata.status as NodePhase) === NodePhase.TERMINATING || runFinished;
       this.props.updateToolbar({ actions, breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
       this.setStateSafe({
