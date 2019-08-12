@@ -11,7 +11,7 @@ To provision your own OpenScale, Spark, Watson Machine Learning services and clo
 
 To create a Watson Machine Learning service, go to [IBM Cloud](https://cloud.ibm.com/), login with IBM account id first. From the `Catalog` page, click on `AI` tab on the left side to go to this [page](https://cloud.ibm.com/catalog?category=ai). Then click on the [`Machine Learning`](https://cloud.ibm.com/catalog/services/machine-learning) link and follow the instructions to create the service.
 
-Once the service is created, from the service's `Dashboard`, follow the instructions to generate `service credentials`. Refer to IBM Cloud [documents](https://cloud.ibm.com/docs) for help if needed. Collect the `url`, `username`, `password`, `apikey`, and `instance_id` info from the service credentials as these will be required to access the service.
+Once the service is created, from the service's `Dashboard`, follow the instructions to generate `service credentials`. Refer to IBM Cloud [documents](https://cloud.ibm.com/docs) for help if needed. Collect the `url`, `apikey`, and `instance_id` info from the service credentials as these will be required to access the service.
 
 2. IBM Watson OpenScale service instance
 
