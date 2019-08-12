@@ -115,7 +115,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: argParamsExperiment.ID},
-				Name: argParamsExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
+				Relationship: run_model.APIRelationshipOWNER},
 		},
 	}}
 	argParamsRunDetail, _, err := s.runClient.Create(createRunRequest)
@@ -200,7 +200,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
+				Relationship: run_model.APIRelationshipOWNER},
 		},
 	}}
 	longRunningRunDetail, _, err := s.runClient.Create(createLongRunningRunRequest)
