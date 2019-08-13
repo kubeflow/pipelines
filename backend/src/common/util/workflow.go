@@ -25,10 +25,6 @@ import (
 	"strings"
 )
 
-const (
-	LabelKeyWorkflowRunId = "pipeline/runid"
-)
-
 // Workflow is a type to help manipulate Workflow objects.
 type Workflow struct {
 	*workflowapi.Workflow
@@ -210,21 +206,21 @@ func (w *Workflow) ReplaceUID(id string) error {
 		return NewInternalServerError(err,
 			"Failed to unmarshal workflow spec manifest. Workflow: %s", w.ToStringForStore())
 	}
-		w.Workflow = workflow
-		return nil
-	}
+	w.Workflow = workflow
+	return nil
+}
 
-	func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, index int64) {
-		w.SetLabels(LabelKeyWorkflowScheduledWorkflowName, name)
-		w.SetLabels(LabelKeyWorkflowEpoch, FormatInt64ForLabel(nextScheduledEpoch))
-		w.SetLabels(LabelKeyWorkflowIndex, FormatInt64ForLabel(index))
-		w.SetLabels(LabelKeyWorkflowIsOwnedByScheduledWorkflow, "true")
-	}
+func (w *Workflow) SetCannonicalLabels(name string, nextScheduledEpoch int64, index int64) {
+	w.SetLabels(LabelKeyWorkflowScheduledWorkflowName, name)
+	w.SetLabels(LabelKeyWorkflowEpoch, FormatInt64ForLabel(nextScheduledEpoch))
+	w.SetLabels(LabelKeyWorkflowIndex, FormatInt64ForLabel(index))
+	w.SetLabels(LabelKeyWorkflowIsOwnedByScheduledWorkflow, "true")
+}
 
-	// FindObjectStoreArtifactKeyOrEmpty loops through all node running statuses and look up the first
-	// S3 artifact with the specified nodeID and artifactName. Returns empty if nothing is found.
-	func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName string) string {
-		if w.Status.Nodes == nil {
+// FindObjectStoreArtifactKeyOrEmpty loops through all node running statuses and look up the first
+// S3 artifact with the specified nodeID and artifactName. Returns empty if nothing is found.
+func (w *Workflow) FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName string) string {
+	if w.Status.Nodes == nil {
 		return ""
 	}
 	node, found := w.Status.Nodes[nodeID]
@@ -242,4 +238,21 @@ func (w *Workflow) ReplaceUID(id string) error {
 		s3Key = artifact.S3.Key
 	}
 	return s3Key
+}
+
+// IsInFinalState whether the workflow is in a final state.
+func (w *Workflow) IsInFinalState() bool {
+	if w.Status.Phase == workflowapi.NodeSucceeded || w.Status.Phase == workflowapi.NodeFailed {
+		return true
+	}
+	return false
+}
+
+// PersistedFinalState whether the workflow final state has being persisted.
+func (w *Workflow) PersistedFinalState() bool {
+	if _, ok :=w.GetLabels()[LabelKeyWorkflowPersistedFinalState]; ok {
+		// If the label exist, workflow final state has being persisted.
+		return true
+	}
+	return false
 }
