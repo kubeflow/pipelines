@@ -99,6 +99,7 @@ func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job
 	}
 	j, err := manager.CreateJob(job)
 	assert.Nil(t, err)
+
 	return store, manager, j
 }
 
@@ -290,6 +291,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 					ResourceType:  common.Run,
 					ReferenceUUID: experiment.UUID,
+					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -329,6 +331,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
+					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -366,6 +369,7 @@ func TestCreateRun_NoExperiment(t *testing.T) {
 		ResourceType: common.Run,
 		// Experiment is now set
 		ReferenceUUID: DefaultFakeUUID,
+		ReferenceName: "Default",
 		ReferenceType: common.Experiment,
 		Relationship:  common.Owner,
 	}}
@@ -671,6 +675,7 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 				ResourceUUID:  "123",
 				ResourceType:  common.Job,
 				ReferenceUUID: DefaultFakeUUID,
+				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
 			},
@@ -720,6 +725,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 				ResourceUUID:  "123",
 				ResourceType:  common.Job,
 				ReferenceUUID: experiment.UUID,
+				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
 			},
@@ -820,6 +826,7 @@ func TestEnableJob(t *testing.T) {
 				ResourceUUID:  "123",
 				ResourceType:  common.Job,
 				ReferenceUUID: DefaultFakeUUID,
+				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
 			},
@@ -927,6 +934,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Run,
 				ReferenceUUID: DefaultFakeUUID,
+				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
 			},
@@ -979,6 +987,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
 					ReferenceUUID: job.UUID,
+					ReferenceName: job.Name,
 					ReferenceType: common.Job,
 					Relationship:  common.Creator,
 				},
@@ -986,6 +995,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
+					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -1050,6 +1060,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
 					ReferenceUUID: newJob.UUID,
+					ReferenceName: newJob.Name,
 					ReferenceType: common.Job,
 					Relationship:  common.Creator,
 				},
@@ -1057,6 +1068,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
+					ReferenceName: "Default",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -1163,6 +1175,7 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 				ResourceUUID:  job.UUID,
 				ResourceType:  common.Job,
 				ReferenceUUID: DefaultFakeUUID,
+				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
 			},
