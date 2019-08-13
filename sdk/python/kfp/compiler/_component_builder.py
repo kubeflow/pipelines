@@ -397,7 +397,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
 
   return _create_task_factory_from_component_spec(component_spec)
 
-def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, build_image=True, timeout=600, namespace='kubeflow', target_component_file=None, python_version='python3'):
+def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, timeout=600, namespace='kubeflow', target_component_file=None, python_version='python3'):
   """ build_component automatically builds a container image for the component_func
   based on the base_image and pushes to the target_image.
 
@@ -407,7 +407,6 @@ def build_python_component(component_func, target_image, base_image=None, depend
     target_image (str): Full URI to push the target image
     staging_gcs_path (str): GCS blob that can store temporary build files
     target_image (str): target image path
-    build_image (bool): whether to build the image or not. Default is True.
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
     dependency (list): a list of VersionedDependency, which includes the package name and versions, default is empty
@@ -426,24 +425,23 @@ def build_python_component(component_func, target_image, base_image=None, depend
   if python_version not in ['python2', 'python3']:
     raise ValueError('python_version has to be either python2 or python3')
 
-  if build_image:
-    if staging_gcs_path is None:
-      raise ValueError('staging_gcs_path must not be None')
+  if staging_gcs_path is None:
+    raise ValueError('staging_gcs_path must not be None')
 
-    if base_image is None:
-      base_image = getattr(component_func, '_component_base_image', None)
-    if base_image is None:
-      raise ValueError('base_image must not be None')
+  if base_image is None:
+    base_image = getattr(component_func, '_component_base_image', None)
+  if base_image is None:
+    raise ValueError('base_image must not be None')
 
-    logging.info('Build an image that is based on ' +
-                                   base_image +
-                                   ' and push the image to ' +
-                                   target_image)
-    builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
-    image_name_with_digest = builder.build_image_from_func(component_func,
-                                  base_image=base_image, timeout=timeout,
-                                  python_version=python_version, dependency=dependency)
-    logging.info('Build component complete.')
+  logging.info('Build an image that is based on ' +
+                                 base_image +
+                                 ' and push the image to ' +
+                                 target_image)
+  builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
+  image_name_with_digest = builder.build_image_from_func(component_func,
+                                base_image=base_image, timeout=timeout,
+                                python_version=python_version, dependency=dependency)
+  logging.info('Build component complete.')
   return _generate_pythonop(component_func, image_name_with_digest, target_component_file)
 
 def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace='kubeflow'):

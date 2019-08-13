@@ -48,8 +48,8 @@ func initializeRunStore() (*DB, *RunStore) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -70,8 +70,8 @@ func initializeRunStore() (*DB, *RunStore) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -92,8 +92,8 @@ func initializeRunStore() (*DB, *RunStore) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "3", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpIdTwo, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -124,8 +124,8 @@ func TestListRuns_Pagination(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}
@@ -142,8 +142,8 @@ func TestListRuns_Pagination(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}
@@ -222,8 +222,8 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}
@@ -240,8 +240,8 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}
@@ -283,8 +283,8 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -300,8 +300,8 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}
@@ -344,8 +344,8 @@ func TestGetRun(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -392,8 +392,8 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -429,8 +429,8 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -466,6 +466,7 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 					ResourceUUID:  "2000",
 					ResourceType:  common.Run,
 					ReferenceUUID: defaultFakeExpId,
+					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -492,6 +493,7 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 					ResourceUUID:  "2000",
 					ResourceType:  common.Run,
 					ReferenceUUID: defaultFakeExpId,
+					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -560,8 +562,8 @@ func TestCreateOrUpdateRun_BadStorageStateValue(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -604,8 +606,8 @@ func TestTerminateRun(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		},
@@ -683,13 +685,13 @@ func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
 	defer db.Close()
 	sql, args, _ := sq.
 		Insert("run_metrics").
-		SetMap(sq.Eq{
-			"RunUUID":     "1",
-			"NodeID":      "node1",
-			"Name":        "accuracy",
-			"NumberValue": 0.88,
-			"Format":      "RAW",
-			"Payload":     "{ invalid; json,"}).ToSql()
+			SetMap(sq.Eq{
+				"RunUUID":     "1",
+				"NodeID":      "node1",
+				"Name":        "accuracy",
+				"NumberValue": 0.88,
+				"Format":      "RAW",
+				"Payload":     "{ invalid; json,"}).ToSql()
 	db.Exec(sql, args...)
 
 	runDetail, err := runStore.GetRun("1")
@@ -738,8 +740,8 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 			Metrics: []*model.RunMetric{metric1, metric2},
@@ -756,8 +758,8 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 			Metrics: []*model.RunMetric{metric3},
@@ -867,8 +869,8 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Run,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Creator,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
 		}}

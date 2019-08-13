@@ -11,7 +11,9 @@ Cloud Dataproc, cluster, GCP, Cloud Storage, Kubeflow, Pipeline
 A Kubeflow Pipeline component to delete a cluster in Cloud Dataproc.
 
 ## Intended use
-Use this component at the start of a Kubeflow Pipeline to delete a temporary Cloud Dataproc cluster to run Cloud Dataproc jobs as steps in the pipeline. This component is usually used with an [exit handler](https://github.com/kubeflow/pipelines/blob/master/samples/basic/exit_handler.py) to run at the end of a pipeline.
+Use this component at the start of a Kubeflow Pipeline to delete a temporary Cloud Dataproc cluster 
+to run Cloud Dataproc jobs as steps in the pipeline. This component is usually used with an 
+[exit handler](https://github.com/kubeflow/pipelines/blob/master/samples/core/exit_handler/exit_handler.py) to run at the end of a pipeline.
 
 
 ## Runtime arguments

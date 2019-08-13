@@ -33,7 +33,7 @@ import { ApiPipeline, ApiGetTemplateResponse } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { ToolbarProps, ToolbarActionConfig } from '../components/Toolbar';
+import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
@@ -115,13 +115,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     const fromRunId = new URLParser(this.props).get(QUERY_PARAMS.fromRunId);
-    let actions: ToolbarActionConfig[] = [
-      buttons.newRunFromPipeline(() => this.state.pipeline ? this.state.pipeline.id! : ''),
-    ];
+    buttons.newRunFromPipeline(() => this.state.pipeline ? this.state.pipeline.id! : '');
 
     if (fromRunId) {
       return {
-        actions,
+        actions: buttons.getToolbarActionMap(),
         breadcrumbs: [
           { displayName: fromRunId, href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId) }
         ],
@@ -129,17 +127,16 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       };
     } else {
       // Add buttons for creating experiment and deleting pipeline
-      actions = actions.concat([
-        buttons.newExperiment(() => this.state.pipeline ? this.state.pipeline.id! : ''),
-        buttons.delete(
+      buttons
+        .newExperiment(() => this.state.pipeline ? this.state.pipeline.id! : '')
+        .delete(
           () => this.state.pipeline ? [this.state.pipeline.id!] : [],
           'pipeline',
           this._deleteCallback.bind(this),
           true, /* useCurrentResource */
-        ),
-      ]);
+        );
       return {
-        actions,
+        actions: buttons.getToolbarActionMap(),
         breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
         pageTitle: this.props.match.params[RouteParams.pipelineId],
       };
@@ -251,7 +248,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let templateString = '';
     let template: Workflow | undefined;
     let breadcrumbs: Array<{ displayName: string, href: string }> = [];
-    const toolbarActions = [...this.props.toolbarProps.actions];
+    const toolbarActions = this.props.toolbarProps.actions;
     let pageTitle = '';
 
     // If fromRunId is specified, load the run and get the pipeline template from it
@@ -329,7 +326,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       }
 
       breadcrumbs = [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }];
-      toolbarActions[0].disabled = false;
     }
 
     this.props.updateToolbar({ breadcrumbs, actions: toolbarActions, pageTitle });

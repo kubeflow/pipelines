@@ -3,7 +3,7 @@
 exports[`ResourceSelector displays resource selector 1`] = `
 <Fragment>
   <Toolbar
-    actions={Array []}
+    actions={Object {}}
     breadcrumbs={Array []}
     pageTitle="A test selector"
   />
