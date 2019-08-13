@@ -1,6 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Test that parameters used
+      in Op transformation functions as pod labels would be correcly identified and
+      set as arguments in he generated yaml", "inputs": [{"default": null, "description":
+      "", "name": "param", "type": ""}], "name": "Parameters in Op transformation
+      functions"}'
   generateName: parameters-in-op-transformation-functions-
 spec:
   arguments:

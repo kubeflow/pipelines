@@ -2,9 +2,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
-    kubeflow.org/pipelines/pipeline_spec: '{"name": "VolumeSnapshotOp RokURL", "description":
-      "The fifth example of the design doc.", "inputs": [{"name": "rok_url", "description":
-      "", "type": "", "default": null}]}'
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "The fifth example of the
+      design doc.", "inputs": [{"default": null, "description": "", "name": "rok_url",
+      "type": ""}], "name": "VolumeSnapshotOp RokURL"}'
   generateName: volumesnapshotop-rokurl-
 spec:
   arguments:

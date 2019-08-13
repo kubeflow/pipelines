@@ -15,8 +15,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
-    kubeflow.org/pipelines/pipeline_spec: '{"name": "pipeline flip coin", "description":
-      "shows how to use dsl.Condition.", "inputs": []}'
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use dsl.Condition.", "inputs": [], "name": "pipeline flip coin"}'
   generateName: pipeline-flip-coin-
 spec:
   arguments:

@@ -15,10 +15,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
-    kubeflow.org/pipelines/pipeline_spec: '{"name": "Download and Save Most Frequent",
-      "description": "Download and Get Most Frequent Word and Save to GCS", "inputs":
-      [{"name": "url", "description": "", "type": "", "default": null}, {"name": "outputpath",
-      "description": "", "type": "", "default": null}]}'
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Download and Get Most Frequent Word and Save to GCS", "inputs": [{"default": null, "description": "", "name": "url", "type": ""}, {"default": null, "description": "", "name": "outputpath", "type": ""}], "name": "Download and Save Most Frequent"}'
   generateName: download-and-save-most-frequent-
 spec:
   arguments:

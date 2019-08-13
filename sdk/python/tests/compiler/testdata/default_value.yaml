@@ -15,9 +15,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
-    kubeflow.org/pipelines/pipeline_spec: '{"name": "Default Value", "description":
-      "A pipeline with parameter and default value.", "inputs": [{"name": "url", "description":
-      "", "type": "", "default": "gs://ml-pipeline/shakespeare1.txt"}]}'
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with parameter and default value.", "inputs": [{"default": "gs://ml-pipeline/shakespeare1.txt", "description": "", "name": "url", "type": ""}], "name": "Default Value"}'
   generateName: default-value-
 spec:
   arguments:

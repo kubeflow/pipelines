@@ -2,8 +2,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
-    kubeflow.org/pipelines/pipeline_spec: '{"name": "VolumeOp Parallel", "description":
-      "The first example of the design doc.", "inputs": []}'
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "The first example of the
+      design doc.", "inputs": [], "name": "VolumeOp Parallel"}'
   generateName: volumeop-parallel-
 spec:
   arguments:
