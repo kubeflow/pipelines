@@ -316,7 +316,22 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         await this._getAndSetPipelineNames(displayRun);
 
         if (!this.props.hideExperimentColumn) {
-          await this._getAndSetExperimentNames(displayRun);
+          // Check to see if run has a provided resource reference that is an
+          // experiment that includes its name. If any condition fails, fetch
+          // the experiment manually.
+          if (displayRun.run.resource_references != null
+            && !!displayRun.run.resource_references.length
+            && displayRun.run.resource_references[0].key != null
+            && displayRun.run.resource_references[0].key.id != null
+            && displayRun.run.resource_references[0].key.type === ApiResourceType.EXPERIMENT
+            && displayRun.run.resource_references[0].name != null) {
+              displayRun.experiment = {
+                displayName: displayRun.run.resource_references[0].name,
+                id: displayRun.run.resource_references[0].key.id
+              };
+          } else {
+            await this._getAndSetExperimentNames(displayRun);
+          }
         }
         return displayRun;
       })
