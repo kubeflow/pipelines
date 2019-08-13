@@ -226,16 +226,6 @@ fi
 
 cd ${BASE_DIR}
 
-#TODO(numerology): Move argo installation to Dockerfile to speedup test setup.
-
-# Install argo
-echo "install argo"
-ARGO_VERSION=v2.3.0
-mkdir -p ~/bin/
-export PATH=~/bin/:$PATH
-curl -sSL -o ~/bin/argo "https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64"
-chmod +x ~/bin/argo
-
 echo "Run the sample tests..."
 
 # Run the tests
