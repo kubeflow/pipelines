@@ -37,5 +37,5 @@ type ResourceReference struct {
 	Relationship common.Relationship `gorm:"column:Relationship; not null; "`
 
 	// The json formatted blob of the resource reference.
-	Payload string `gorm:"column:Payload; not null; "`
+	Payload string `gorm:"column:Payload; not null; size:65535 "`
 }
