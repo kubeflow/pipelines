@@ -18,7 +18,7 @@ import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Metric from '../components/Metric';
 import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
-import { ApiRun, ApiResourceType, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
+import { ApiRun, ApiResourceType, ApiRunMetric, RunStorageState, ApiRunDetail, ApiResourceReference } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -316,22 +316,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         await this._getAndSetPipelineNames(displayRun);
 
         if (!this.props.hideExperimentColumn) {
-          // Check to see if run has a provided resource reference that is an
-          // experiment that includes its name. If any condition fails, fetch
-          // the experiment manually.
-          if (displayRun.run.resource_references != null
-            && !!displayRun.run.resource_references.length
-            && displayRun.run.resource_references[0].key != null
-            && displayRun.run.resource_references[0].key.id != null
-            && displayRun.run.resource_references[0].key.type === ApiResourceType.EXPERIMENT
-            && displayRun.run.resource_references[0].name != null) {
-              displayRun.experiment = {
-                displayName: displayRun.run.resource_references[0].name,
-                id: displayRun.run.resource_references[0].key.id
-              };
-          } else {
-            await this._getAndSetExperimentNames(displayRun);
-          }
+          await this._getAndSetExperimentNames(displayRun);
         }
         return displayRun;
       })
@@ -391,16 +376,45 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * DisplayRun will show '-'.
    */
   private async _getAndSetExperimentNames(displayRun: DisplayRun): Promise<void> {
-    const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.run);
-    if (experimentId) {
-      try {
-        const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-        displayRun.experiment = { displayName: experiment.name || '', id: experimentId };
-      } catch (err) {
-        // This could be an API exception, or a JSON parse exception.
-        displayRun.error = 'Failed to get associated experiment: ' + await errorToMessage(err);
+    const experimentInfo = this._getFirstExperimentInfoInReferences(displayRun.run.resource_references);
+    if (experimentInfo) {
+      displayRun.experiment = experimentInfo;
+    } else {
+      const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.run);
+      if (experimentId) {
+        try {
+          const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
+          displayRun.experiment = { displayName: experiment.name || '', id: experimentId };
+        } catch (err) {
+          // This could be an API exception, or a JSON parse exception.
+          displayRun.error = 'Failed to get associated experiment: ' + await errorToMessage(err);
+        }
       }
     }
+  }
+
+  /**
+   * Checks all provided ApiResourceReference objects to see if they provide
+   * valid data to populate an ExperimentInfo object (name, id, and the type is
+   * ApiResourceType.EXPERIMENT). If conditions are met, the
+   * ApiResourceReference is returned as an ExperimentInfo object, otherwise,
+   * undefined is returned if no valid data is found. 
+   */
+  private _getFirstExperimentInfoInReferences(resourceReferences: ApiResourceReference[] | undefined): ExperimentInfo | undefined {
+    if (resourceReferences) {
+      for (const resourceReference of resourceReferences) {
+        if (resourceReference.key
+          && resourceReference.key.id
+          && resourceReference.key.type === ApiResourceType.EXPERIMENT
+          && resourceReference.name) {
+          return {
+            displayName: resourceReference.name,
+            id: resourceReference.key.id
+          } as ExperimentInfo;
+        }
+      }
+    }
+    return undefined;
   }
 }
 
