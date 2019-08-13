@@ -152,8 +152,6 @@ check_result() {
 ################################################################################
 check_notebook_result() {
   jupyter nbconvert --to python $1.ipynb
-  #TODO(numerology): move repeated package installation into .ipynb notebook.
-  pip3 install tensorflow==1.8.0
   ipython $1.py
   EXIT_CODE=$?
   cd ${TEST_DIR}
@@ -227,16 +225,6 @@ if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
 fi
 
 cd ${BASE_DIR}
-
-#TODO(numerology): Move argo installation to Dockerfile to speedup test setup.
-
-# Install argo
-echo "install argo"
-ARGO_VERSION=v2.3.0
-mkdir -p ~/bin/
-export PATH=~/bin/:$PATH
-curl -sSL -o ~/bin/argo "https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64"
-chmod +x ~/bin/argo
 
 echo "Run the sample tests..."
 

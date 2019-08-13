@@ -54,7 +54,7 @@ func TestPersistenceWorker_Success(t *testing.T) {
 	pipelineClient := client.NewPipelineClientFake()
 
 	// Set up peristence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -84,7 +84,7 @@ func TestPersistenceWorker_NotFoundError(t *testing.T) {
 	pipelineClient := client.NewPipelineClientFake()
 
 	// Set up peristence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -115,7 +115,7 @@ func TestPersistenceWorker_GetWorklowError(t *testing.T) {
 	pipelineClient := client.NewPipelineClientFake()
 
 	// Set up peristence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -148,7 +148,7 @@ func TestPersistenceWorker_ReportWorkflowRetryableError(t *testing.T) {
 		"My Retriable Error"))
 
 	// Set up peristence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -181,7 +181,7 @@ func TestPersistenceWorker_ReportWorkflowNonRetryableError(t *testing.T) {
 		"My Permanent Error"))
 
 	// Set up peristence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
