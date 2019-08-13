@@ -25,6 +25,7 @@ import { ApiRunDetail } from '../apis/run';
 import { PlotType } from '../components/viewers/Viewer';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
+import { ButtonKeys } from '../lib/Buttons';
 
 class TestCompare extends Compare {
   public _selectionChanged(selectedIds: string[]): void {
@@ -396,8 +397,7 @@ describe('Compare', () => {
   it('collapses all sections', async () => {
     await setUpViewersAndShallowMount();
     const instance = tree.instance() as Compare;
-    const collapseBtn =
-      instance.getInitialToolbarState().actions.find(b => b.title === 'Collapse all');
+    const collapseBtn = instance.getInitialToolbarState().actions[ButtonKeys.COLLAPSE];
 
     expect(tree.state('collapseSections')).toEqual({});
 
@@ -417,10 +417,8 @@ describe('Compare', () => {
   it('expands all sections if they were collapsed', async () => {
     await setUpViewersAndShallowMount();
     const instance = tree.instance() as Compare;
-    const collapseBtn =
-      instance.getInitialToolbarState().actions.find(b => b.title === 'Collapse all');
-    const expandBtn =
-      instance.getInitialToolbarState().actions.find(b => b.title === 'Expand all');
+    const collapseBtn = instance.getInitialToolbarState().actions[ButtonKeys.COLLAPSE];
+    const expandBtn = instance.getInitialToolbarState().actions[ButtonKeys.EXPAND];
 
     expect(tree.state('collapseSections')).toEqual({});
 
