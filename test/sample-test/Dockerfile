@@ -25,13 +25,8 @@ RUN cd /python/src/github.com/kubeflow/pipelines
 
 # Install argo
 RUN echo "install argo"
-RUN ARGO_VERSION=v2.3.0
 RUN mkdir -p /usr/local/bin/
-RUN echo ${ARGO_VERSION}
-RUN ARGO_VERSION=v2.3.0 && curl -sSL -o /usr/local/bin/argo "https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64"
-#TODO(numerology): debug info, remove before submit.
-RUN cat /usr/local/bin/argo
-RUN chmod +x /usr/local/bin/argo
+RUN ARGO_VERSION=v2.3.0 && curl -sSL -o /usr/local/bin/argo "https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64" && chmod +x /usr/local/bin/argo
 ENV PATH $PATH:/usr/local/bin/argo
 
 ENTRYPOINT ["/python/src/github.com/kubeflow/pipelines/test/sample-test/run_test.sh"]
