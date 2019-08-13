@@ -898,7 +898,8 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			UID: types.UID(run.UUID),
+			UID:    types.UID(run.UUID),
+			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 	})
@@ -1061,6 +1062,60 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 	}
 
 	assert.Equal(t, expectedRunDetail, runDetail)
+}
+
+func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:   run.Name,
+			UID:    types.UID(run.UUID),
+			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.Nil(t, err)
+
+	wf, err := store.workflowClientFake.Get(run.Run.Name, v1.GetOptions{})
+	assert.Nil(t, err)
+	assert.Equal(t, wf.Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
+}
+
+func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:   run.Name,
+			UID:    types.UID(run.UUID),
+			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.Nil(t, err)
+}
+
+func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	manager.workflowClient = &FakeBadWorkflowClient{}
+	defer store.Close()
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:   run.Name,
+			UID:    types.UID(run.UUID),
+			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "failed to delete workflow")
 }
 
 func TestReportScheduledWorkflowResource_Success(t *testing.T) {
@@ -1278,6 +1333,7 @@ func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
 			Name:              "MY_NAME",
 			Namespace:         "MY_NAMESPACE",
 			UID:               "run-1",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1beta1",
