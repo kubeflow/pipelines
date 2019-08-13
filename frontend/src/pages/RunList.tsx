@@ -386,7 +386,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
           displayRun.experiment = { displayName: experiment.name || '', id: experimentId };
         } catch (err) {
-          // This could be an API exception, or a JSON parse exception.
           displayRun.error = 'Failed to get associated experiment: ' + await errorToMessage(err);
         }
       }
