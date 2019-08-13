@@ -40,11 +40,11 @@ export enum NodePhase {
 export function hasFinished(status?: NodePhase): boolean {
   switch (status) {
     case NodePhase.SUCCEEDED: // Fall through
-      return true;
     case NodePhase.FAILED: // Fall through
     case NodePhase.ERROR: // Fall through
     case NodePhase.SKIPPED: // Fall through
     case NodePhase.TERMINATED: // Fall through
+      return true;
     case NodePhase.PENDING: // Fall through
     case NodePhase.RUNNING: // Fall through
     case NodePhase.TERMINATING: // Fall through

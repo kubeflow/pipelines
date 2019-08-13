@@ -279,6 +279,27 @@ class PythonOpTestCase(unittest.TestCase):
         op = comp.func_to_container_op(func, output_component_file='comp.yaml')
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
+
+    def test_handling_complex_default_values_of_none(self):
+        def assert_values_are_default(
+            a, b,
+            singleton_param=None,
+            function_param=ascii,
+            dict_param={'b': [2, 3, 4]},
+            func_call_param='_'.join(['a', 'b', 'c']),
+        ) -> int:
+            assert singleton_param is None
+            assert function_param is ascii
+            assert dict_param == {'b': [2, 3, 4]}
+            assert func_call_param == '_'.join(['a', 'b', 'c'])
+
+            return 1
+
+        func = assert_values_are_default
+        op = comp.func_to_container_op(func)
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+
     def test_end_to_end_python_component_pipeline_compilation(self):
         import kfp.components as comp
 

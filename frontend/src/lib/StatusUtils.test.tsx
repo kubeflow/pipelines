@@ -19,13 +19,13 @@ import { NodePhase, hasFinished, statusBgColors, statusToBgColor, checkIfTermina
 describe('StatusUtils', () => {
 
   describe('hasFinished', () => {
-    [ NodePhase.SUCCEEDED].forEach(status => {
+    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED, NodePhase.TERMINATED].forEach(status => {
       it(`returns \'true\' if status is: ${status}`, () => {
         expect(hasFinished(status)).toBe(true);
       });
     });
 
-    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN, NodePhase.TERMINATING, NodePhase.SKIPPED, NodePhase.TERMINATED].forEach(status => {
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN, NodePhase.TERMINATING].forEach(status => {
       it(`returns \'false\' if status is: ${status}`, () => {
         expect(hasFinished(status)).toBe(false);
       });

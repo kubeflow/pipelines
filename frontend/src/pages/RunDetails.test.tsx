@@ -28,6 +28,7 @@ import { PlotType } from '../components/viewers/Viewer';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { shallow, ShallowWrapper } from 'enzyme';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('RunDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -55,7 +56,7 @@ describe('RunDetails', () => {
       history: { push: historyPushSpy } as any,
       location: '' as any,
       match: { params: { [RouteParams.runId]: testRun.run!.id }, isExact: true, path: '', url: '' },
-      toolbarProps: { actions: [], breadcrumbs: [], pageTitle: '' },
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
       updateSnackbar: updateSnackbarSpy,
@@ -129,8 +130,7 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as RunDetails;
-    const cloneBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Clone run');
+    const cloneBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RUN];
     expect(cloneBtn).toBeDefined();
     await cloneBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
@@ -142,8 +142,8 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive')).toBeDefined();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore')).toBeUndefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ARCHIVE)).toBeDefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE)).toBeUndefined();
   });
 
   it('shows "All runs" in breadcrumbs if the run is not archived', async () => {
@@ -176,8 +176,8 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore')).toBeDefined();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive')).toBeUndefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE)).toBeDefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ARCHIVE)).toBeUndefined();
   });
 
   it('shows Archive in breadcrumbs if the run is archived', async () => {
@@ -599,7 +599,7 @@ describe('RunDetails', () => {
     expect(tree.state('selectedNodeDetails')).toHaveProperty('phaseMessage', undefined);
   });
 
-  [NodePhase.ERROR, NodePhase.FAILED, NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN, NodePhase.SKIPPED].forEach(unfinishedStatus => {
+  [NodePhase.RUNNING, NodePhase.PENDING, NodePhase.UNKNOWN].forEach(unfinishedStatus => {
     it(`displays a spinner if graph is not defined and run has status: ${unfinishedStatus}`, async () => {
       const unfinishedRun = {
         pipeline_runtime: {
@@ -622,7 +622,7 @@ describe('RunDetails', () => {
     });
   });
 
-  [NodePhase.SUCCEEDED].forEach(finishedStatus => {
+  [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(finishedStatus => {
     it(`displays a message indicating there is no graph if graph is not defined and run has status: ${finishedStatus}`, async () => {
       const unfinishedRun = {
         pipeline_runtime: {
@@ -839,7 +839,7 @@ describe('RunDetails', () => {
     }, 10000);
 
 
-    [ NodePhase.SUCCEEDED].forEach(status => {
+    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED].forEach(status => {
       it(`sets \'runFinished\' to true if run has status: ${status}`, async () => {
         testRun.run!.status = status;
         tree = shallow(<RunDetails {...generateProps()} />);
@@ -849,7 +849,7 @@ describe('RunDetails', () => {
       });
     });
 
-    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN, NodePhase.SKIPPED].forEach(status => {
+    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach(status => {
       it(`leaves \'runFinished\' false if run has status: ${status}`, async () => {
         testRun.run!.status = status;
         tree = shallow(<RunDetails {...generateProps()} />);
