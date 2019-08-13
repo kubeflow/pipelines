@@ -7,8 +7,8 @@ type Experiment struct {
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
 }
 
-func (r Experiment) GetValueOfPrimaryKey() string {
-	return r.UUID
+func (e Experiment) GetValueOfPrimaryKey() string {
+	return e.UUID
 }
 
 func GetExperimentTablePrimaryKeyColumn() string {

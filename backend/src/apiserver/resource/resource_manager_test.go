@@ -99,6 +99,7 @@ func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job
 	}
 	j, err := manager.CreateJob(job)
 	assert.Nil(t, err)
+
 	return store, manager, j
 }
 
@@ -290,6 +291,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 					ResourceType:  common.Run,
 					ReferenceUUID: experiment.UUID,
+					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -329,6 +331,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
+					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -366,6 +369,7 @@ func TestCreateRun_NoExperiment(t *testing.T) {
 		ResourceType: common.Run,
 		// Experiment is now set
 		ReferenceUUID: DefaultFakeUUID,
+		ReferenceName: "Default",
 		ReferenceType: common.Experiment,
 		Relationship:  common.Owner,
 	}}
@@ -667,6 +671,7 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 				ResourceUUID:  "123",
 				ResourceType:  common.Job,
 				ReferenceUUID: DefaultFakeUUID,
+				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
 			},
@@ -716,6 +721,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 				ResourceUUID:  "123",
 				ResourceType:  common.Job,
 				ReferenceUUID: experiment.UUID,
+				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
 			},
@@ -816,6 +822,7 @@ func TestEnableJob(t *testing.T) {
 				ResourceUUID:  "123",
 				ResourceType:  common.Job,
 				ReferenceUUID: DefaultFakeUUID,
+				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
 			},
@@ -898,7 +905,8 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			UID: types.UID(run.UUID),
+			UID:    types.UID(run.UUID),
+			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 	})
@@ -922,6 +930,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Run,
 				ReferenceUUID: DefaultFakeUUID,
+				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
 			},
@@ -974,6 +983,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
 					ReferenceUUID: job.UUID,
+					ReferenceName: job.Name,
 					ReferenceType: common.Job,
 					Relationship:  common.Creator,
 				},
@@ -981,6 +991,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
+					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -1045,6 +1056,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
 					ReferenceUUID: newJob.UUID,
+					ReferenceName: newJob.Name,
 					ReferenceType: common.Job,
 					Relationship:  common.Creator,
 				},
@@ -1052,6 +1064,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
 					ReferenceUUID: DefaultFakeUUID,
+					ReferenceName: "Default",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
 				},
@@ -1061,6 +1074,60 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 	}
 
 	assert.Equal(t, expectedRunDetail, runDetail)
+}
+
+func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:   run.Name,
+			UID:    types.UID(run.UUID),
+			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.Nil(t, err)
+
+	wf, err := store.workflowClientFake.Get(run.Run.Name, v1.GetOptions{})
+	assert.Nil(t, err)
+	assert.Equal(t, wf.Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
+}
+
+func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:   run.Name,
+			UID:    types.UID(run.UUID),
+			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.Nil(t, err)
+}
+
+func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	manager.workflowClient = &FakeBadWorkflowClient{}
+	defer store.Close()
+	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:   run.Name,
+			UID:    types.UID(run.UUID),
+			Labels: map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeFailed},
+	})
+	err := manager.ReportWorkflowResource(workflow)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "failed to delete workflow")
 }
 
 func TestReportScheduledWorkflowResource_Success(t *testing.T) {
@@ -1104,6 +1171,7 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 				ResourceUUID:  job.UUID,
 				ResourceType:  common.Job,
 				ReferenceUUID: DefaultFakeUUID,
+				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
 			},
@@ -1278,6 +1346,7 @@ func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
 			Name:              "MY_NAME",
 			Namespace:         "MY_NAMESPACE",
 			UID:               "run-1",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1beta1",
