@@ -151,7 +151,7 @@ class ResourceOp(BaseOp):
         self.output = self.outputs["name"]
         if len(extra_attribute_outputs) == 1:
             self.output = self.outputs[list(extra_attribute_outputs)[0]]
-        
+
     @property
     def resource(self):
         """`Resource` object that represents the `resource` property in
