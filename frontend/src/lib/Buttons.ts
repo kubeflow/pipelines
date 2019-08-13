@@ -312,7 +312,7 @@ export default class Buttons {
         selectedIds,
         'Retry this run?',
         useCurrent,
-        Apis.runServiceApi.retryRun,
+        id => Apis.runServiceApi.retryRun(id),
         callback,
         'Retry',
         'run'
@@ -328,7 +328,7 @@ export default class Buttons {
       `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
       `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
-      Apis.runServiceApi.archiveRun,
+      id => Apis.runServiceApi.archiveRun(id),
       callback,
       'Archive',
       'run',
