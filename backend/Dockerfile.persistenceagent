@@ -17,4 +17,7 @@ COPY --from=builder /go/src/github.com/kubeflow/pipelines/third_party/license.tx
 
 ENV NAMESPACE ""
 
-CMD persistence_agent --logtostderr=true --namespace=${NAMESPACE}
+# Set Workflow TTL to 7 days
+ENV TTL_SECONDS_AFTER_WORKFLOW_FINISH 604800
+
+CMD persistence_agent --logtostderr=true --namespace=${NAMESPACE} --ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH}
