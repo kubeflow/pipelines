@@ -17,27 +17,53 @@
 import AddIcon from '@material-ui/icons/Add';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
 import ExpandIcon from '@material-ui/icons/UnfoldMore';
-import { ToolbarActionConfig } from '../components/Toolbar';
 import { PageProps } from '../pages/Page';
 import { URLParser } from './URLParser';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
 import { Apis } from './Apis';
 import { errorToMessage, s } from './Utils';
+import { ToolbarActionMap } from '../components/Toolbar';
+
+export enum ButtonKeys {
+  ARCHIVE = 'archive',
+  CLONE_RUN = 'cloneRun',
+  CLONE_RECURRING_RUN = 'cloneRecurringRun',
+  COLLAPSE = 'collapse',
+  COMPARE = 'compare',
+  DELETE_RUN = 'deleteRun',
+  DISABLE_RECURRING_RUN = 'disableRecurringRun',
+  ENABLE_RECURRING_RUN = 'enableRecurringRun',
+  EXPAND = 'expand',
+  NEW_EXPERIMENT = 'newExperiment',
+  NEW_RUN = 'newRun',
+  NEW_RECURRING_RUN = 'newRecurringRun',
+  NEW_RUN_FROM_PIPELINE = 'newRunFromPipeline',
+  REFRESH = 'refresh',
+  RESTORE = 'restore',
+  TERMINATE_RUN = 'terminateRun',
+  UPLOAD_PIPELINE = 'uploadPipeline',
+}
 
 export default class Buttons {
+  private _map: ToolbarActionMap;
   private _props: PageProps;
   private _refresh: () => void;
   private _urlParser: URLParser;
 
-  constructor(pageProps: PageProps, refresh: () => void) {
+  constructor(pageProps: PageProps, refresh: () => void, map?: ToolbarActionMap) {
     this._props = pageProps;
     this._refresh = refresh;
     this._urlParser = new URLParser(pageProps);
+    this._map = map || {};
+  }
+
+  public getToolbarActionMap(): ToolbarActionMap {
+    return this._map;
   }
 
   public archive(getSelectedIds: () => string[], useCurrentResource: boolean,
-    callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
-    return {
+    callback: (selectedIds: string[], success: boolean) => void): Buttons {
+    this._map[ButtonKeys.ARCHIVE] = {
       action: () => this._archive(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
@@ -45,10 +71,11 @@ export default class Buttons {
       title: 'Archive',
       tooltip: 'Archive',
     };
+    return this;
   }
 
-  public cloneRun(getSelectedIds: () => string[], useCurrentResource: boolean): ToolbarActionConfig {
-    return {
+  public cloneRun(getSelectedIds: () => string[], useCurrentResource: boolean): Buttons {
+    this._map[ButtonKeys.CLONE_RUN] = {
       action: () => this._cloneRun(getSelectedIds()),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select a run to clone',
@@ -57,10 +84,11 @@ export default class Buttons {
       title: 'Clone run',
       tooltip: 'Create a copy from this run\s initial state',
     };
+    return this;
   }
 
-  public cloneRecurringRun(getSelectedIds: () => string[], useCurrentResource: boolean): ToolbarActionConfig {
-    return {
+  public cloneRecurringRun(getSelectedIds: () => string[], useCurrentResource: boolean): Buttons {
+    this._map[ButtonKeys.CLONE_RECURRING_RUN] = {
       action: () => this._cloneRun(getSelectedIds(), true),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select a recurring run to clone',
@@ -68,20 +96,22 @@ export default class Buttons {
       title: 'Clone recurring run',
       tooltip: 'Create a copy from this run\s initial state',
     };
+    return this;
   }
 
-  public collapseSections(action: () => void): ToolbarActionConfig {
-    return {
+  public collapseSections(action: () => void): Buttons {
+    this._map[ButtonKeys.COLLAPSE] = {
       action,
       icon: CollapseIcon,
       id: 'collapseBtn',
       title: 'Collapse all',
       tooltip: 'Collapse all sections',
     };
+    return this;
   }
 
-  public compareRuns(getSelectedIds: () => string[]): ToolbarActionConfig {
-    return {
+  public compareRuns(getSelectedIds: () => string[]): Buttons {
+    this._map[ButtonKeys.COMPARE] = {
       action: () => this._compareRuns(getSelectedIds()),
       disabled: true,
       disabledTitle: 'Select multiple runs to compare',
@@ -90,11 +120,12 @@ export default class Buttons {
       title: 'Compare runs',
       tooltip: 'Compare up to 10 selected runs',
     };
+    return this;
   }
 
   public delete(getSelectedIds: () => string[], resourceName: 'pipeline' | 'recurring run config',
-    callback: (selectedIds: string[], success: boolean) => void, useCurrentResource: boolean): ToolbarActionConfig {
-    return {
+    callback: (selectedIds: string[], success: boolean) => void, useCurrentResource: boolean): Buttons {
+    this._map[ButtonKeys.DELETE_RUN] = {
       action: () => resourceName === 'pipeline' ?
         this._deletePipeline(getSelectedIds(), useCurrentResource, callback) :
         this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, callback),
@@ -104,10 +135,11 @@ export default class Buttons {
       title: 'Delete',
       tooltip: 'Delete',
     };
+    return this;
   }
 
-  public disableRecurringRun(getId: () => string): ToolbarActionConfig {
-    return {
+  public disableRecurringRun(getId: () => string): Buttons {
+    this._map[ButtonKeys.DISABLE_RECURRING_RUN] = {
       action: () => this._setRecurringRunEnabledState(getId(), false),
       disabled: true,
       disabledTitle: 'Run schedule already disabled',
@@ -115,10 +147,11 @@ export default class Buttons {
       title: 'Disable',
       tooltip: 'Disable the run\'s trigger',
     };
+    return this;
   }
 
-  public enableRecurringRun(getId: () => string): ToolbarActionConfig {
-    return {
+  public enableRecurringRun(getId: () => string): Buttons {
+    this._map[ButtonKeys.ENABLE_RECURRING_RUN] = {
       action: () => this._setRecurringRunEnabledState(getId(), true),
       disabled: true,
       disabledTitle: 'Run schedule already enabled',
@@ -126,19 +159,21 @@ export default class Buttons {
       title: 'Enable',
       tooltip: 'Enable the run\'s trigger',
     };
+    return this;
   }
-  public expandSections(action: () => void): ToolbarActionConfig {
-    return {
+  public expandSections(action: () => void): Buttons {
+    this._map[ButtonKeys.EXPAND] = {
       action,
       icon: ExpandIcon,
       id: 'expandBtn',
       title: 'Expand all',
       tooltip: 'Expand all sections',
     };
+    return this;
   }
 
-  public newExperiment(getPipelineId?: () => string): ToolbarActionConfig {
-    return {
+  public newExperiment(getPipelineId?: () => string): Buttons {
+    this._map[ButtonKeys.NEW_EXPERIMENT] = {
       action: () => this._createNewExperiment(getPipelineId ? getPipelineId() : ''),
       icon: AddIcon,
       id: 'newExperimentBtn',
@@ -147,10 +182,11 @@ export default class Buttons {
       title: 'Create experiment',
       tooltip: 'Create a new experiment',
     };
+    return this;
   }
 
-  public newRun(getExperimentId?: () => string): ToolbarActionConfig {
-    return {
+  public newRun(getExperimentId?: () => string): Buttons {
+    this._map[ButtonKeys.NEW_RUN] = {
       action: () => this._createNewRun(false, getExperimentId ? getExperimentId() : undefined),
       icon: AddIcon,
       id: 'createNewRunBtn',
@@ -160,10 +196,11 @@ export default class Buttons {
       title: 'Create run',
       tooltip: 'Create a new run',
     };
+    return this;
   }
 
-  public newRunFromPipeline(getPipelineId: () => string): ToolbarActionConfig {
-    return {
+  public newRunFromPipeline(getPipelineId: () => string): Buttons {
+    this._map[ButtonKeys.NEW_RUN_FROM_PIPELINE] = {
       action: () => this._createNewRunFromPipeline(getPipelineId()),
       icon: AddIcon,
       id: 'createNewRunBtn',
@@ -173,10 +210,11 @@ export default class Buttons {
       title: 'Create run',
       tooltip: 'Create a new run',
     };
+    return this;
   }
 
-  public newRecurringRun(experimentId: string): ToolbarActionConfig {
-    return {
+  public newRecurringRun(experimentId: string): Buttons {
+    this._map[ButtonKeys.NEW_RECURRING_RUN] = {
       action: () => this._createNewRun(true, experimentId),
       icon: AddIcon,
       id: 'createNewRecurringRunBtn',
@@ -185,20 +223,22 @@ export default class Buttons {
       title: 'Create recurring run',
       tooltip: 'Create a new recurring run',
     };
+    return this;
   }
 
-  public refresh(action: () => void): ToolbarActionConfig {
-    return {
+  public refresh(action: () => void): Buttons {
+    this._map[ButtonKeys.REFRESH] = {
       action,
       id: 'refreshBtn',
       title: 'Refresh',
       tooltip: 'Refresh the list',
     };
+    return this;
   }
 
   public restore(getSelectedIds: () => string[], useCurrentResource: boolean,
-    callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
-    return {
+    callback: (selectedIds: string[], success: boolean) => void): Buttons {
+    this._map[ButtonKeys.RESTORE] = {
       action: () => this._restore(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
@@ -206,11 +246,12 @@ export default class Buttons {
       title: 'Restore',
       tooltip: 'Restore',
     };
+    return this;
   }
 
   public terminateRun(getSelectedIds: () => string[], useCurrentResource: boolean,
-      callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
-    return {
+    callback: (selectedIds: string[], success: boolean) => void): Buttons {
+    this._map[ButtonKeys.TERMINATE_RUN] = {
       action: () => this._terminateRun(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one run to terminate',
@@ -218,10 +259,11 @@ export default class Buttons {
       title: 'Terminate',
       tooltip: 'Terminate execution of a run',
     };
+    return this;
   }
 
-  public upload(action: () => void): ToolbarActionConfig {
-    return {
+  public upload(action: () => void): Buttons {
+    this._map[ButtonKeys.UPLOAD_PIPELINE] = {
       action,
       icon: AddIcon,
       id: 'uploadBtn',
@@ -230,6 +272,7 @@ export default class Buttons {
       title: 'Upload pipeline',
       tooltip: 'Upload pipeline',
     };
+    return this;
   }
 
   private _cloneRun(selectedIds: string[], isRecurring?: boolean): void {
@@ -419,11 +462,12 @@ export default class Buttons {
 
   private async _setRecurringRunEnabledState(id: string, enabled: boolean): Promise<void> {
     if (id) {
-      const toolbarActions = [...this._props.toolbarProps.actions];
+      const toolbarActions = this._props.toolbarProps.actions;
 
-      const buttonIndex = enabled ? 1 : 2;
+      // TODO(rileyjbauer): make sure this is working as expected
+      const buttonKey = enabled ? ButtonKeys.ENABLE_RECURRING_RUN : ButtonKeys.DISABLE_RECURRING_RUN;
 
-      toolbarActions[buttonIndex].busy = true;
+      toolbarActions[buttonKey].busy = true;
       this._props.updateToolbar({ actions: toolbarActions });
       try {
         await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
@@ -436,7 +480,7 @@ export default class Buttons {
           title: `Failed to ${enabled ? 'enable' : 'disable'} recurring run`,
         });
       } finally {
-        toolbarActions[buttonIndex].busy = false;
+        toolbarActions[buttonKey].busy = false;
         this._props.updateToolbar({ actions: toolbarActions });
       }
     }

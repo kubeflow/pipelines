@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
-import Toolbar, { ToolbarActionConfig } from '../components/Toolbar';
+import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
 import { ListRequest } from '../lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
 import { logger, errorToMessage, formatDateString } from '../lib/Utils';
@@ -50,7 +50,7 @@ interface ResourceSelectorState {
   resources: BaseResource[];
   rows: Row[];
   selectedIds: string[];
-  toolbarActions: ToolbarActionConfig[];
+  toolbarActionMap: ToolbarActionMap;
 }
 
 class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSelectorState> {
@@ -63,12 +63,12 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
       resources: [],
       rows: [],
       selectedIds: [],
-      toolbarActions: [],
+      toolbarActionMap: {},
     };
   }
 
   public render(): JSX.Element {
-    const { rows, selectedIds, toolbarActions } = this.state;
+    const { rows, selectedIds, toolbarActionMap: toolbarActions } = this.state;
     const { columns, title, filterLabel, emptyMessage, initialSortColumn } = this.props;
 
     return (

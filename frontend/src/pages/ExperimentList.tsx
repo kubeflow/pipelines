@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import Buttons from '../lib/Buttons';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
 import CustomTable, { Column, Row, ExpandState, CustomRendererProps } from '../components/CustomTable';
 import RunList from './RunList';
 import produce from 'immer';
@@ -61,18 +61,18 @@ class ExperimentList extends Page<{}, ExperimentListState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [
-        buttons.newRun(),
-        buttons.newExperiment(),
-        buttons.compareRuns(() => this.state.selectedIds),
-        buttons.cloneRun(() => this.state.selectedIds, false),
-        buttons.archive(
+      actions: buttons
+        .newRun()
+        .newExperiment()
+        .compareRuns(() => this.state.selectedIds)
+        .cloneRun(() => this.state.selectedIds, false)
+        .archive(
           () => this.state.selectedIds,
           false,
           ids => this._selectionChanged(ids),
-        ),
-        buttons.refresh(this.refresh.bind(this)),
-      ],
+        )
+        .refresh(this.refresh.bind(this))
+        .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Experiments',
     };
@@ -187,14 +187,10 @@ class ExperimentList extends Page<{}, ExperimentListState> {
   }
 
   private _selectionChanged(selectedIds: string[]): void {
-    const actions = produce(this.props.toolbarProps.actions, draft => {
-      // Enable/Disable Run compare button
-      draft[2].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
-      // Enable/Disable Clone button
-      draft[3].disabled = selectedIds.length !== 1;
-      // Archive run button
-      draft[4].disabled = !selectedIds.length;
-    });
+    const actions = this.props.toolbarProps.actions;
+    actions[ButtonKeys.COMPARE].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
+    actions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
+    actions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
     this.props.updateToolbar({ actions });
     this.setState({ selectedIds });
   }
