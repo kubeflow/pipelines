@@ -641,7 +641,7 @@ implementation:
         )
 
       workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
-      delete_op_template = [template for template in workflow_dict['templates'] if template['name'] == 'delete-config-map'][0]
+      delete_op_template = [template for template in workflow_dict['spec']['templates'] if template['name'] == 'delete-config-map'][0]
 
       # delete resource operation should not have success condition, failure condition or output parameters.
       # See https://github.com/argoproj/argo/blob/5331fc02e257266a4a5887dfe6277e5a0b42e7fc/cmd/argoexec/commands/resource.go#L30
