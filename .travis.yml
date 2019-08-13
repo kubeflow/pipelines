@@ -24,7 +24,7 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/frontend
         - node -v
         - npm i
-        - npm run test:coveralls
+        - npm run test -- --coverage
     - language: generic
       env:
         - BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/0.23.0/bazel-0.23.0-installer-linux-x86_64.sh"

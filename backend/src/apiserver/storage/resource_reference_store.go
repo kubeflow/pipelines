@@ -12,10 +12,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
+var resourceReferenceColumns = []string{"ResourceUUID", "ResourceType", "ReferenceUUID",
+	"ReferenceName", "ReferenceType", "Relationship", "Payload"}
+
 type ResourceReferenceStoreInterface interface {
 	// Retrieve the resource reference for a given resource id, type and a reference type.
 	GetResourceReference(resourceId string, resourceType common.ResourceType,
-		referenceType common.ResourceType) (*model.ResourceReference, error)
+			referenceType common.ResourceType) (*model.ResourceReference, error)
 }
 
 type ResourceReferenceStore struct {
@@ -28,7 +31,7 @@ func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*mo
 	if len(refs) > 0 {
 		resourceRefSqlBuilder := sq.
 			Insert("resource_references").
-			Columns("ResourceUUID", "ResourceType", "ReferenceUUID", "ReferenceType", "Relationship", "Payload")
+			Columns("ResourceUUID", "ResourceType", "ReferenceUUID", "ReferenceName", "ReferenceType", "Relationship", "Payload")
 		for _, ref := range refs {
 			if !s.checkReferenceExist(tx, ref.ReferenceUUID, ref.ReferenceType) {
 				return util.NewResourceNotFoundError(string(ref.ReferenceType), ref.ReferenceUUID)
@@ -38,7 +41,7 @@ func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*mo
 				return util.NewInternalServerError(err, "Failed to stream resource reference model to a json payload")
 			}
 			resourceRefSqlBuilder = resourceRefSqlBuilder.Values(
-				ref.ResourceUUID, ref.ResourceType, ref.ReferenceUUID, ref.ReferenceType, ref.Relationship, string(payload))
+				ref.ResourceUUID, ref.ResourceType, ref.ReferenceUUID, ref.ReferenceName, ref.ReferenceType, ref.Relationship, string(payload))
 		}
 		refSql, refArgs, err := resourceRefSqlBuilder.ToSql()
 		if err != nil {
@@ -79,9 +82,9 @@ func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId str
 func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string, resourceType common.ResourceType) error {
 	refSql, refArgs, err := sq.
 		Delete("resource_references").
-		Where(sq.Or{
-			sq.Eq{"ResourceUUID": id, "ResourceType": resourceType},
-			sq.Eq{"ReferenceUUID": id, "ReferenceType": resourceType}}).
+			Where(sq.Or{
+				sq.Eq{"ResourceUUID": id, "ResourceType": resourceType},
+				sq.Eq{"ReferenceUUID": id, "ReferenceType": resourceType}}).
 		ToSql()
 	_, err = tx.Exec(refSql, refArgs...)
 	if err != nil {
@@ -91,29 +94,29 @@ func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string,
 }
 
 func (s *ResourceReferenceStore) GetResourceReference(resourceId string, resourceType common.ResourceType,
-	referenceType common.ResourceType) (*model.ResourceReference, error) {
-	sql, args, err := sq.Select("*").
+		referenceType common.ResourceType) (*model.ResourceReference, error) {
+	sql, args, err := sq.Select(resourceReferenceColumns...).
 		From("resource_references").
-		Where(sq.Eq{
-			"ResourceUUID":  resourceId,
-			"ResourceType":  resourceType,
-			"ReferenceType": referenceType}).
+			Where(sq.Eq{
+				"ResourceUUID":  resourceId,
+				"ResourceType":  resourceType,
+				"ReferenceType": referenceType}).
 		Limit(1).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err,
 			"Failed to create query to get resource reference. "+
-				"Resource ID: %s. Resource Type: %s. Reference Type: %s", resourceId, resourceType, referenceType)
+					"Resource ID: %s. Resource Type: %s. Reference Type: %s", resourceId, resourceType, referenceType)
 	}
 	row, err := s.db.Query(sql, args...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err,
 			"Failed to get resource reference. "+
-				"Resource ID: %s. Resource Type: %s. Reference Type: %s", resourceId, resourceType, referenceType)
+					"Resource ID: %s. Resource Type: %s. Reference Type: %s", resourceId, resourceType, referenceType)
 	}
 	defer row.Close()
 	reference, err := s.scanRows(row)
 	if err != nil || len(reference) > 1 {
-		return nil, util.NewInternalServerError(err, "Failed to get job: %v", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to get resource reference: %v", err.Error())
 	}
 	if len(reference) == 0 {
 		return nil, util.NewResourcesNotFoundError(
@@ -125,9 +128,9 @@ func (s *ResourceReferenceStore) GetResourceReference(resourceId string, resourc
 func (s *ResourceReferenceStore) scanRows(r *sql.Rows) ([]model.ResourceReference, error) {
 	var references []model.ResourceReference
 	for r.Next() {
-		var resourceUUID, resourceType, referenceUUID, referenceType, relationship, payload string
+		var resourceUUID, resourceType, referenceUUID, referenceName, referenceType, relationship, payload string
 		err := r.Scan(
-			&resourceUUID, &resourceType, &referenceUUID, &referenceType, &relationship, &payload)
+			&resourceUUID, &resourceType, &referenceUUID, &referenceName, &referenceType, &relationship, &payload)
 		if err != nil {
 			return nil, err
 		}
@@ -135,6 +138,7 @@ func (s *ResourceReferenceStore) scanRows(r *sql.Rows) ([]model.ResourceReferenc
 			ResourceUUID:  resourceUUID,
 			ResourceType:  common.ResourceType(resourceType),
 			ReferenceUUID: referenceUUID,
+			ReferenceName: referenceName,
 			ReferenceType: common.ResourceType(referenceType),
 			Relationship:  common.Relationship(relationship),
 			Payload:       payload,

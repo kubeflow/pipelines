@@ -97,12 +97,12 @@ func (s *JobApiTestSuite) TestJobApis() {
 	}}
 	helloWorldJob, err := s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
-	s.checkHelloWorldJob(t, helloWorldJob, helloWorldExperiment.ID, helloWorldPipeline.ID)
+	s.checkHelloWorldJob(t, helloWorldJob, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipeline.ID)
 
 	/* ---------- Get hello world job ---------- */
 	helloWorldJob, err = s.jobClient.Get(&jobparams.GetJobParams{ID: helloWorldJob.ID})
 	assert.Nil(t, err)
-	s.checkHelloWorldJob(t, helloWorldJob, helloWorldExperiment.ID, helloWorldPipeline.ID)
+	s.checkHelloWorldJob(t, helloWorldJob, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipeline.ID)
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	experiment = &experiment_model.APIExperiment{Name: "argument parameter experiment"}
@@ -133,7 +133,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	}}
 	argParamsJob, err := s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
-	s.checkArgParamsJob(t, argParamsJob, argParamsExperiment.ID)
+	s.checkArgParamsJob(t, argParamsJob, argParamsExperiment.ID, argParamsExperiment.Name)
 
 	/* ---------- List all the jobs. Both jobs should be returned ---------- */
 	jobs, totalSize, _, err := s.jobClient.List(&jobparams.ListJobsParams{})
@@ -196,7 +196,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
 	helloWorldRun := runs[0]
-	s.checkHelloWorldRun(t, helloWorldRun, helloWorldExperiment.ID, helloWorldJob.ID)
+	s.checkHelloWorldRun(t, helloWorldRun, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldJob.ID, helloWorldJob.Name)
 
 	/* ---------- Check run for argument parameter job ---------- */
 	runs, totalSize, _, err = s.runClient.List(&runParams.ListRunsParams{
@@ -206,7 +206,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
 	argParamsRun := runs[0]
-	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsJob.ID)
+	s.checkArgParamsRun(t, argParamsRun, argParamsExperiment.ID, argParamsExperiment.Name, argParamsJob.ID, argParamsJob.Name)
 
 	/* ---------- Clean up ---------- */
 	test.DeleteAllExperiments(s.experimentClient, t)
@@ -215,7 +215,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	test.DeleteAllRuns(s.runClient, t)
 }
 
-func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, pipelineID string) {
+func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineID string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
 	expectedJob := &job_model.APIJob{
@@ -228,7 +228,7 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-				Relationship: job_model.APIRelationshipOWNER,
+				Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
 			},
 		},
 		MaxConcurrency: 10,
@@ -242,7 +242,7 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 	assert.Equal(t, expectedJob, job)
 }
 
-func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob, experimentID string) {
+func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string) {
 	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
@@ -262,7 +262,7 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-				Relationship: job_model.APIRelationshipOWNER,
+				Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
 			},
 		},
 		MaxConcurrency: 10,
@@ -276,31 +276,31 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 	assert.Equal(t, expectedJob, job)
 }
 
-func (s *JobApiTestSuite) checkHelloWorldRun(t *testing.T, run *run_model.APIRun, experimentID string, jobID string) {
+func (s *JobApiTestSuite) checkHelloWorldRun(t *testing.T, run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, run.PipelineSpec.WorkflowManifest, "whalesay")
 	assert.Contains(t, run.Name, "helloworld")
 	// Check runtime workflow manifest is not empty
 	resourceReferences := []*run_model.APIResourceReference{
 		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-			Relationship: run_model.APIRelationshipOWNER,
+			Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 		},
 		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeJOB, ID: jobID},
-			Relationship: run_model.APIRelationshipCREATOR,
+			Name: jobName, Relationship: run_model.APIRelationshipCREATOR,
 		},
 	}
 	assert.Equal(t, resourceReferences, run.ResourceReferences)
 }
 
-func (s *JobApiTestSuite) checkArgParamsRun(t *testing.T, run *run_model.APIRun, experimentID string, jobID string) {
+func (s *JobApiTestSuite) checkArgParamsRun(t *testing.T, run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) {
 	assert.Contains(t, run.Name, "argumentparameter")
 	// Check runtime workflow manifest is not empty
 	resourceReferences := []*run_model.APIResourceReference{
 		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-			Relationship: run_model.APIRelationshipOWNER,
+			Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 		},
 		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeJOB, ID: jobID},
-			Relationship: run_model.APIRelationshipCREATOR,
+			Name: jobName, Relationship: run_model.APIRelationshipCREATOR,
 		},
 	}
 	assert.Equal(t, resourceReferences, run.ResourceReferences)

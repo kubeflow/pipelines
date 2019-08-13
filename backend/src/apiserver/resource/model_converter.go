@@ -24,7 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
-func ToModelRunMetric(metric *api.RunMetric, runUUID string) *model.RunMetric {
+func (r *ResourceManager) ToModelRunMetric(metric *api.RunMetric, runUUID string) *model.RunMetric {
 	return &model.RunMetric{
 		RunUUID:     runUUID,
 		Name:        metric.GetName(),
@@ -36,12 +36,12 @@ func ToModelRunMetric(metric *api.RunMetric, runUUID string) *model.RunMetric {
 
 // The input run might not contain workflowSpecManifest, but instead a pipeline ID.
 // The caller would retrieve workflowSpecManifest and pass in.
-func ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, workflowSpecManifest string) (*model.RunDetail, error) {
+func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, workflowSpecManifest string) (*model.RunDetail, error) {
 	params, err := toModelParameters(run.PipelineSpec.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to parse the parameter.")
 	}
-	resourceReferences, err := toModelResourceReferences(runId, common.Run, run.ResourceReferences)
+	resourceReferences, err := r.toModelResourceReferences(runId, common.Run, run.ResourceReferences)
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
@@ -67,12 +67,12 @@ func ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, workf
 	}, nil
 }
 
-func ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, workflowSpecManifest string) (*model.Job, error) {
+func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, workflowSpecManifest string) (*model.Job, error) {
 	params, err := toModelParameters(job.PipelineSpec.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Error parsing the input job.")
 	}
-	resourceReferences, err := toModelResourceReferences(string(swf.UID), common.Job, job.ResourceReferences)
+	resourceReferences, err := r.toModelResourceReferences(string(swf.UID), common.Job, job.ResourceReferences)
 	if err != nil {
 		return nil, util.Wrap(err, "Error to convert resource references.")
 	}
@@ -145,8 +145,8 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 	return string(paramsBytes), nil
 }
 
-func toModelResourceReferences(
-	resourceId string, resourceType common.ResourceType, apiRefs []*api.ResourceReference) ([]*model.ResourceReference, error) {
+func (r *ResourceManager) toModelResourceReferences(
+		resourceId string, resourceType common.ResourceType, apiRefs []*api.ResourceReference) ([]*model.ResourceReference, error) {
 	var modelRefs []*model.ResourceReference
 	for _, apiRef := range apiRefs {
 		modelReferenceType, err := common.ToModelResourceType(apiRef.Key.Type)
@@ -157,14 +157,50 @@ func toModelResourceReferences(
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to convert relationship")
 		}
+		referenceName, err := r.getResourceName(modelReferenceType, apiRef.Key.Id)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to find the referred resource")
+		}
 		modelRef := &model.ResourceReference{
 			ResourceUUID:  resourceId,
 			ResourceType:  resourceType,
 			ReferenceUUID: apiRef.Key.Id,
+			ReferenceName: referenceName,
 			ReferenceType: modelReferenceType,
 			Relationship:  modelRelationship,
 		}
 		modelRefs = append(modelRefs, modelRef)
 	}
 	return modelRefs, nil
+}
+
+func (r *ResourceManager) getResourceName(resourceType common.ResourceType, resourceId string) (string, error) {
+	switch resourceType {
+	case common.Experiment:
+		experiment, err := r.GetExperiment(resourceId)
+		if err != nil {
+			return "", util.Wrap(err, "Referred experiment not found.")
+		}
+		return experiment.Name, nil
+	case common.Pipeline:
+		pipeline, err := r.GetPipeline(resourceId)
+		if err != nil {
+			return "", util.Wrap(err, "Referred pipeline not found.")
+		}
+		return pipeline.Name, nil
+	case common.Job:
+		job, err := r.GetJob(resourceId)
+		if err != nil {
+			return "", util.Wrap(err, "Referred job not found.")
+		}
+		return job.DisplayName, nil
+	case common.Run:
+		run, err := r.GetRun(resourceId)
+		if err != nil {
+			return "", util.Wrap(err, "Referred run not found.")
+		}
+		return run.DisplayName, nil
+	default:
+		return "", util.NewInvalidInputError("Unsupported resource type: %s", string(resourceType))
+	}
 }
