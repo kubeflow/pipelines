@@ -17,6 +17,8 @@ from collections import defaultdict
 import inspect
 import tarfile
 import zipfile
+from typing import Set, List
+
 import yaml
 
 from .. import dsl
@@ -26,6 +28,7 @@ from ._default_transformers import add_pod_env
 
 from ..dsl._metadata import TypeMeta, _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
+from ..dsl import _pipeline_param
 
 
 class Compiler(object):
@@ -185,15 +188,47 @@ class Compiler(object):
     return conditions
 
   def _fill_loop_args(self, new_root):
-    """Traverses through graph and adds loop arguments where they belong."""
-    to_visit = self._get_subgroups(new_root)
-    while len(to_visit):
+    """Traverses through graph, plucking up loop_args vars from ops groups and depositing pointers to them on the
+    ops which contain them as arguments. and adds loop arguments where they belong."""
+
+    def get_loop_args_names_for_op(op: dsl.BaseOp):
+      if not isinstance(op, dsl.BaseOp):
+        return []
+
+      loop_arg_names = []
+      for pipeline_param in op.inputs:
+        if pipeline_param.param_type.name in \
+                (dsl.LoopArguments.PARAM_TYPE_NAME, dsl.LoopArgumentVariable.PARAM_TYPE_NAME):
+          # TODO: pp.full_name?
+          loop_arg_names.append(pipeline_param.name)
+      return loop_arg_names
+
+    def get_next(to_visit: List, already_visited: Set):
+      """Get next group or op to visit."""
+      if len(to_visit) == 0:
+        return None
       next = to_visit.pop(0)
-      to_visit |= self._get_subgroups(next)
+      while next in already_visited:
+        next = to_visit.pop(0)
+      already_visited.add(next)
+      return next
 
-    for op in new_root.ops:
-      pass
+    to_visit = self._get_subgroups(new_root)
+    loop_args_name_to_obj = {}
+    already_visited = set()
 
+    while len(to_visit):
+      next = get_next(to_visit, already_visited)
+      if next is None:
+        break
+      to_visit.extend(self._get_subgroups(next))
+
+      # store loop_args from ops groups
+      if hasattr(next, 'loop_args') and next.loop_args is not None:
+        loop_args_name_to_obj[next.loop_args.name] = next.loop_args
+
+      loop_args_names = get_loop_args_names_for_op(next)
+      next.loop_args_names_to_loop_args = {name: loop_args_name_to_obj[name] for name in loop_args_names}
 
   def _get_subgroups(self, op):
     """Get all ops and groups below this op."""
@@ -205,7 +240,7 @@ class Compiler(object):
     return subgroups
 
   def _get_withitem_params_for_ops(self, new_root, op_name_to_parent_groups):
-    """Get parameters referenced in loop argumentsof ops."""
+    """Get parameters referenced in loop arguments of ops."""
     # base ops containing loop args
     withitems_base_ops = defaultdict(set)
 
@@ -251,7 +286,7 @@ class Compiler(object):
         # it as input for its parent groups.
         if param.value:
           continue
-        full_name = param.full_name()
+        full_name = param.full_name
         if param.op_name:
           upstream_op = pipeline.ops[param.op_name]
           upstream_groups, downstream_groups = self._get_uncommon_ancestors(
@@ -551,9 +586,9 @@ class Compiler(object):
     opgroup_name_to_parent_groups = self._get_groups_for_opsgroups(root_group)
     condition_params = self._get_condition_params_for_ops(root_group)
 
-    loop_args_items = self._fill_loop_args(root_group)
+    self._fill_loop_args(root_group)
 
-    loop_args_items = self._get_withitem_params_for_ops(root_group, op_name_to_parent_groups)
+    # loop_args_items = self._get_withitem_params_for_ops(root_group, op_name_to_parent_groups)
 
     inputs, outputs = self._get_inputs_outputs(
       pipeline,
@@ -694,7 +729,6 @@ class Compiler(object):
     self._validate_exit_handler(p)
 
     # Fill in the default values.
-
     """args_list_with_defaults
 Out[2]: 
 [{'PipelineParam': {'name': 'tag', 'op_name': None, 'value': None, 'param_type': <kfp.dsl._metadata.TypeMeta object at 0x7f87c864eb38>, ' pattern': '{{pipelineparam:op=;name=tag;value=;type=;}}'}},

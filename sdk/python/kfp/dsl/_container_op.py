@@ -710,10 +710,10 @@ class BaseOp(object):
             self._inputs = []
             # TODO replace with proper k8s obj?
             for key in self.attrs_with_pipelineparams:
-                self._inputs += [
-                    param for param in _pipeline_param.
-                    extract_pipelineparams_from_any(getattr(self, key))
-                ]
+                # self._inputs += [
+                #     param for param in _pipeline_param.extract_pipelineparams_from_any(getattr(self, key))
+                # ]
+                self._inputs += _pipeline_param.extract_pipelineparams_from_any(getattr(self, key))
             # keep only unique
             self._inputs = list(set(self._inputs))
         return self._inputs

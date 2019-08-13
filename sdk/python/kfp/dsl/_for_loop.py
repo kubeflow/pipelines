@@ -52,8 +52,6 @@ class LoopArgumentVariable(dsl.PipelineParam):
             name=self.get_name(parent_full_name=parent_full_name, this_variable_name=this_variable_name),
             param_type=_metadata.TypeMeta(name=self.PARAM_TYPE_NAME),
         )
-        self._parent_name = None
-        self._this_variable_name = None
 
     @staticmethod
     def get_name(parent_full_name: Text, this_variable_name: Text):
@@ -64,3 +62,4 @@ class LoopArgumentVariable(dsl.PipelineParam):
 
     def variable_name(self):
         return self._this_variable_name
+

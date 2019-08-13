@@ -35,10 +35,6 @@ def sanitize_k8s_name(name):
     return re.sub('-+', '-', re.sub('[^-0-9a-z]+', '-', name.lower())).lstrip('-').rstrip('-')
 
 
-def pipeline_param_is_loop_args(pipeline_param: 'PipelineParam'):
-  return pipeline_param.param_type.name in (dsl.LoopArguments.PARAM_TYPE_NAME, dsl.LoopArgumentVariable.PARAM_TYPE_NAME)
-
-
 def match_serialized_pipelineparam(payload: str):
   """match_serialized_pipelineparam matches the serialized pipelineparam.
   Args:
@@ -89,10 +85,10 @@ def _extract_pipelineparams(payloads: str or List[str]):
     param_tuples += match_serialized_pipelineparam(payload)
   pipeline_params = []
   for param_tuple in list(set(param_tuples)):
-    pipeline_params.append(PipelineParam(param_tuple.name, 
+    pipeline_params.append(PipelineParam(param_tuple.name,
                                          param_tuple.op, 
                                          param_tuple.value, 
-                                         TypeMeta.deserialize(param_tuple.type), 
+                                         TypeMeta.deserialize(param_tuple.type),
                                          pattern=param_tuple.pattern))
   return pipeline_params
 

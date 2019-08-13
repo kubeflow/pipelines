@@ -107,7 +107,7 @@ def _process_base_ops(op: BaseOp):
     # map param's (unsanitized pattern or serialized str pattern) -> input param var str
     map_to_tmpl_var = {}
     for param in op.inputs:
-        if isinstance(param, dsl.LoopArgumentVariable):
+        if param.type.name == dsl.LoopArgumentVariable.PARAM_TYPE_NAME:
             name = f'{{item.%s}}' % param.variable_name()
         elif isinstance(param, dsl.LoopArguments):
             name = '{{items}}'

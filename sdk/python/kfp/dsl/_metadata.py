@@ -16,6 +16,7 @@ from typing import Dict, List
 from abc import ABCMeta, abstractmethod
 from .types import BaseType, _check_valid_type_dict, _instance_to_dict
 
+
 class BaseMeta(object):
   __metaclass__ = ABCMeta
   def __init__(self):
@@ -31,6 +32,7 @@ class BaseMeta(object):
 
   def __eq__(self, other):
     return self.__dict__ == other.__dict__
+
 
 class TypeMeta(BaseMeta):
   def __init__(self,
@@ -75,6 +77,7 @@ class TypeMeta(BaseMeta):
     2) If the payload is a dict, the type name and properties are extracted. '''
     return TypeMeta.from_dict_or_str(payload)
 
+
 class ParameterMeta(BaseMeta):
   def __init__(self,
       name: str,
@@ -91,6 +94,7 @@ class ParameterMeta(BaseMeta):
             'description': self.description,
             'type': self.param_type.to_dict_or_str(),
             'default': self.default}
+
 
 class ComponentMeta(BaseMeta):
   def __init__(
@@ -111,6 +115,7 @@ class ComponentMeta(BaseMeta):
             'inputs': [ input.to_dict() for input in self.inputs ],
             'outputs': [ output.to_dict() for output in self.outputs ]
             }
+
 
 # Add a pipeline level metadata calss here.
 # If one day we combine the component and pipeline yaml, ComponentMeta and PipelineMeta will become one, too.
