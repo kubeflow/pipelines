@@ -400,18 +400,16 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * ApiResourceReference is returned as an ExperimentInfo object, otherwise,
    * undefined is returned if no valid data is found. 
    */
-  private _getFirstExperimentInfoInReferences(resourceReferences: ApiResourceReference[] | undefined): ExperimentInfo | undefined {
-    if (resourceReferences) {
-      for (const resourceReference of resourceReferences) {
-        if (resourceReference.key
-          && resourceReference.key.id
-          && resourceReference.key.type === ApiResourceType.EXPERIMENT
-          && resourceReference.name) {
-          return {
-            displayName: resourceReference.name,
-            id: resourceReference.key.id
-          } as ExperimentInfo;
-        }
+  private _getFirstExperimentInfoInReferences(resourceReferences: ApiResourceReference[] = []): ExperimentInfo | undefined {
+    for (const resourceReference of resourceReferences) {
+      if (resourceReference.key
+        && resourceReference.key.id
+        && resourceReference.key.type === ApiResourceType.EXPERIMENT
+        && resourceReference.name) {
+        return {
+          displayName: resourceReference.name,
+          id: resourceReference.key.id
+        } as ExperimentInfo;
       }
     }
     return undefined;
