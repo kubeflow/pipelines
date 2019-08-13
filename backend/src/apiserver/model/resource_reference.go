@@ -27,6 +27,9 @@ type ResourceReference struct {
 	// The ID of the resource that been referenced to.
 	ReferenceUUID string `gorm:"column:ReferenceUUID; not null; "`
 
+	// The name of the resource that been referenced to.
+	ReferenceName string `gorm:"column:ReferenceName; not null; "`
+
 	// The type of the resource that been referenced to.
 	ReferenceType common.ResourceType `gorm:"column:ReferenceType; not null; primary_key"`
 
@@ -34,5 +37,5 @@ type ResourceReference struct {
 	Relationship common.Relationship `gorm:"column:Relationship; not null; "`
 
 	// The json formatted blob of the resource reference.
-	Payload string `gorm:"column:Payload; not null; "`
+	Payload string `gorm:"column:Payload; not null; size:65535 "`
 }
