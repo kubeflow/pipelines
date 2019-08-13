@@ -23,8 +23,7 @@ COPY ./test/sample-test /python/src/github.com/kubeflow/pipelines/test/sample-te
 COPY ./samples /python/src/github.com/kubeflow/pipelines/samples
 
 # Install argo.
-RUN mkdir -p /usr/local/bin/
-RUN ARGO_VERSION=v2.3.0 && curl -sSL -o /usr/local/bin/argo \
+RUN ARGO_VERSION=v2.3.0 && mkdir -p /usr/local/bin/ && curl -sSL -o /usr/local/bin/argo \
     "https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64" && \
     chmod +x /usr/local/bin/argo
 ENV PATH $PATH:/usr/local/bin/argo
