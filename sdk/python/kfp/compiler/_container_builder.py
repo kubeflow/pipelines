@@ -38,7 +38,10 @@ class ContainerBuilder(object):
     """
     # Configure the GCS staging bucket
     if gcs_staging is None:
-      gcs_bucket = self._get_project_id()
+      try:
+        gcs_bucket = self._get_project_id()
+      except:
+        raise ValueError('Please provide the gcr_staging.')
       self._gcs_staging = 'gs://' + gcs_bucket + '/' + GCS_STAGING_BLOB_DEFAULT_PREFIX
     else:
       from pathlib import PurePath
@@ -54,14 +57,14 @@ class ContainerBuilder(object):
     # Kubeflow jupyter notebook is injected with a variable as an ID
     if gcr_image_tag is None:
       KF_NOTEBOOK_ENV = 'NB_PREFIX'
-      nb_id = str(uuid.uuid4())
+      nb_id = ''
       try:
         if KF_NOTEBOOK_ENV in os.environ.keys():
           nb_id = os.environ[KF_NOTEBOOK_ENV]
         else:
           nb_id = self._get_instance_id()
       except:
-        pass
+        raise ValueError('Please provide the gcr_image_tag.')
       nb_id = nb_id.replace('/', '-').strip('-')
       self._gcr_image_tag = os.path.join('gcr.io', self._get_project_id(), nb_id, GCR_DEFAULT_IMAGE_SUFFIX)
     else:
