@@ -47,16 +47,16 @@ class Compiler(object):
   ```
   """
 
-  # def _pipelineparam_full_name(self, param):
-  #   """_pipelineparam_full_name converts the names of pipeline parameters
-  #     to unique names in the argo yaml
-  #
-  #   Args:
-  #     param(PipelineParam): pipeline parameter
-  #     """
-  #   if param.op_name:
-  #     return param.op_name + '-' + param.name
-  #   return param.name
+  def _pipelineparam_full_name(self, param):
+    """_pipelineparam_full_name converts the names of pipeline parameters
+      to unique names in the argo yaml
+
+    Args:
+      param(PipelineParam): pipeline parameter
+      """
+    if param.op_name:
+      return param.op_name + '-' + param.name
+    return param.name
 
   def __init__(self):
     self._get_withitems_params_fo = None
@@ -197,10 +197,12 @@ class Compiler(object):
 
       loop_arg_names = []
       for pipeline_param in op.inputs:
-        if pipeline_param.param_type.name in \
-                (dsl.LoopArguments.PARAM_TYPE_NAME, dsl.LoopArgumentVariable.PARAM_TYPE_NAME):
-          # TODO: pp.full_name?
+        if dsl.LoopArguments.param_is_this_type(pipeline_param):
           loop_arg_names.append(pipeline_param.name)
+        elif dsl.LoopArgumentVariable.param_is_this_type(pipeline_param):
+          loop_args_name, _ = dsl.LoopArgumentVariable.parse_loop_args_name_and_this_var_name(pipeline_param.name)
+          loop_args_names.append(loop_args_name)
+
       return loop_arg_names
 
     def get_next(to_visit: List, already_visited: Set):
@@ -238,33 +240,6 @@ class Compiler(object):
     if hasattr(op, 'groups'):
       subgroups.extend(op.groups)
     return subgroups
-
-  def _get_withitem_params_for_ops(self, new_root, op_name_to_parent_groups):
-    """Get parameters referenced in loop arguments of ops."""
-    # base ops containing loop args
-    withitems_base_ops = defaultdict(set)
-
-    def _find_withitem_base_ops(root, withitems_base_ops):
-      print(root.name)
-      if isinstance(root, dsl.BaseOp) and root.loop_args is not None:
-        withitems_base_ops[root.name].add(root)
-
-      for op_or_group in self._get_subgroups(root):
-          _find_withitem_base_ops(op_or_group, withitems_base_ops)
-
-    _find_withitem_base_ops(new_root, withitems_base_ops)
-
-    # add loop args to parent groups
-    ops_and_groups_with_loop_args = set()
-    for withitems_base_op in withitems_base_ops:
-      loop_args = withitems_base_op.loop_args
-      for parent_group in op_name_to_parent_groups[withitems_base_op.name]:
-        if parent_group.full_name() == loop_args.full_name():
-          break
-        parent_group.loop_args = loop_args
-        ops_and_groups_with_loop_args.add(parent_group)
-
-    return ops_and_groups_with_loop_args
 
   def _get_inputs_outputs(self, pipeline, root_group, op_groups, opsgroup_groups, condition_params):
     """Get inputs and outputs of each group and op.
@@ -524,30 +499,25 @@ class Compiler(object):
                   'value': '{{inputs.parameters.%s}}' % param_name
               })
             else:
-              arguments.append({
-                'name': param_name,
-                'value': '{{inputs.parameters.%s}}' % param_name
-              })
+              if isinstance(sub_group, dsl.ParallelFor):
 
-        # handle additional non-input loop args
-        if isinstance(sub_group, dsl.ContainerOp) and sub_group.loop_args is not None:
-          if sub_group.loop_args.is_dict_based:
-            for param_name in sub_group.loop_args.args.keys():
+                if dsl.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
+                  subvar_name = dsl.LoopArgumentVariable.get_subvar_name(param_name)
+                  value = '{{items.%s}}' % subvar_name
+                elif dsl.LoopArguments.name_is_loop_arguments(param_name):
+                  value = '{{items}}'
+                else:
+                  value = '{{inputs.parameters.%s}}' % param_name
+
+                task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
+              else:
+                value = '{{inputs.parameters.%s}}' % param_name
               arguments.append({
                 'name': param_name,
-                'value': '{{items.%s}}' % param_name,
+                'value': value,
               })
-          else:
-            param_name = sub_group.loop_args.LOOP_ARGS_PARAM_NAME
-            arguments.append({
-                'name': param_name,
-                'value': '{{items}}',
-            })
         arguments.sort(key=lambda x: x['name'])
         task['arguments'] = {'parameters': arguments}
-
-      if isinstance(sub_group, dsl.ContainerOp) and sub_group.loop_args is not None:
-        task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
     template['dag'] = {'tasks': tasks}
@@ -587,8 +557,6 @@ class Compiler(object):
     condition_params = self._get_condition_params_for_ops(root_group)
 
     self._fill_loop_args(root_group)
-
-    # loop_args_items = self._get_withitem_params_for_ops(root_group, op_name_to_parent_groups)
 
     inputs, outputs = self._get_inputs_outputs(
       pipeline,

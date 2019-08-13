@@ -30,7 +30,7 @@ class OpsGroup(object):
   def __init__(self, group_type: str, name: str=None):
     """Create a new instance of OpsGroup.
     Args:
-      group_type (str): one of 'pipeline', 'exit_handler', 'condition', 'loop', and 'graph'.
+      group_type (str): one of 'pipeline', 'exit_handler', 'condition', 'for_loop', and 'graph'.
       name (str): name of the opsgroup
     """
     #TODO: declare the group_type to be strongly typed
@@ -161,7 +161,7 @@ class ParallelFor(OpsGroup):
   ```
   and op1 would be executed twice, once with args=['echo 1'] and once with args=['echo 2']
   """
-  TYPE_NAME = 'loop'
+  TYPE_NAME = 'for_loop'
 
   def __init__(self, loop_args: ItemList):
     super().__init__(self.TYPE_NAME)
