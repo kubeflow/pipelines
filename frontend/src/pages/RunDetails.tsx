@@ -152,6 +152,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
+        .retryRun(
+            () => this.state.runMetadata? [this.state.runMetadata!.id!] : [],
+            true, () => this.retry())
         .cloneRun(() => this.state.runMetadata ? [this.state.runMetadata!.id!] : [], true)
         .terminateRun(
           () => this.state.runMetadata ? [this.state.runMetadata!.id!] : [],
@@ -375,6 +378,11 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     this.clearBanner();
   }
 
+  public async retry(): Promise<void>{
+    await this.load();
+    await this._startAutoRefresh();
+  }
+
   public async refresh(): Promise<void> {
     await this.load();
   }
@@ -400,7 +408,10 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         this._stopAutoRefresh();
         // This prevents other events, such as onFocus, from resuming the autorefresh
         runFinished = true;
+      } else {
+        runFinished = false;
       }
+
 
       const workflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}') as Workflow;
 
@@ -458,7 +469,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         buttons.archive(idGetter, true, () => this.refresh());
       const actions = buttons.getToolbarActionMap();
       actions[ButtonKeys.TERMINATE_RUN].disabled =
-        (runMetadata.status as NodePhase) === NodePhase.TERMINATING || runFinished;
+          (runMetadata.status as NodePhase) === NodePhase.TERMINATING || runFinished;
+      actions[ButtonKeys.RETRY].disabled =
+          (runMetadata.status as NodePhase) !== NodePhase.FAILED && (runMetadata.status as NodePhase) !== NodePhase.ERROR ;
       this.props.updateToolbar({ actions, breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
       this.setStateSafe({

@@ -46,7 +46,7 @@ export default class WorkflowParser {
     const PLACEHOLDER_NODE_DIMENSION = 28;
 
     if (!workflow || !workflow.status || !workflow.status.nodes ||
-      !workflow.metadata || !workflow.metadata.name) {
+        !workflow.metadata || !workflow.metadata.name) {
       return g;
     }
 
@@ -57,10 +57,10 @@ export default class WorkflowParser {
     // Uses the root node, so this needs to happen before we remove the root
     // node below.
     const onExitHandlerNodeId =
-      Object.keys(workflowNodes).find((id) => workflowNodes[id].name === `${workflowName}.onExit`);
+        Object.keys(workflowNodes).find((id) => workflowNodes[id].name === `${workflowName}.onExit`);
     if (onExitHandlerNodeId) {
       this.getOutboundNodes(workflow, workflowName).forEach((nodeId) =>
-        g.setEdge(nodeId, onExitHandlerNodeId));
+          g.setEdge(nodeId, onExitHandlerNodeId));
     }
 
     // If there are multiple steps, then remove the root node that Argo creates to manage the
@@ -74,68 +74,72 @@ export default class WorkflowParser {
 
     // Create dagre graph nodes from workflow nodes.
     (Object as any).values(workflowNodes)
-      .forEach((node: NodeStatus) => {
-        let nodeLabel = node.displayName || node.id;
-        if (node.name === `${workflowName}.onExit`) {
-          nodeLabel = `onExit - ${node.templateName}`;
-        }
+        .forEach((node: NodeStatus) => {
+          let nodeLabel = node.displayName || node.id;
+          if (node.name === `${workflowName}.onExit`) {
+            nodeLabel = `onExit - ${node.templateName}`;
+          }
 
-        if (workflow.spec && workflow.spec.templates) {
-          const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
-          if (tmpl && tmpl.metadata && tmpl.metadata.annotations) {
-            const displayName = tmpl.metadata.annotations['pipelines.kubeflow.org/task_display_name'];
-            if (displayName) {
-              nodeLabel = displayName;
+          if (workflow.spec && workflow.spec.templates) {
+            const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
+            if (tmpl && tmpl.metadata && tmpl.metadata.annotations) {
+              const displayName = tmpl.metadata.annotations['pipelines.kubeflow.org/task_display_name'];
+              if (displayName) {
+                nodeLabel = displayName;
+              }
             }
           }
-        }
 
-        g.setNode(node.id, {
-          height: Constants.NODE_HEIGHT,
-          icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message),
-          label: nodeLabel,
-          statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
-          width: Constants.NODE_WIDTH,
-          ...node,
-        });
-
-        if (!hasFinished(node.phase as NodePhase) && !this.isVirtual(node)) {
-          g.setNode(node.id + runningNodeSuffix, {
-            height: PLACEHOLDER_NODE_DIMENSION,
-            icon: IconWithTooltip({
-              Icon: MoreIcon,
-              height: 24,
-              iconColor: color.weak,
-              tooltip: 'More nodes may appear here',
-              width: 24,
-            }),
-            isPlaceholder: true,
-            width: PLACEHOLDER_NODE_DIMENSION,
+          g.setNode(node.id, {
+            height: Constants.NODE_HEIGHT,
+            icon: statusToIcon(node.phase as NodePhase, node.startedAt, node.finishedAt, node.message),
+            label: nodeLabel,
+            statusColoring: statusToBgColor(node.phase as NodePhase, node.message),
+            width: Constants.NODE_WIDTH,
+            ...node,
           });
-          g.setEdge(node.id, node.id + runningNodeSuffix, { color: color.weak, isPlaceholder: true });
-        }
-      });
+
+          if (!hasFinished(node.phase as NodePhase) && !this.isVirtual(node)) {
+            g.setNode(node.id + runningNodeSuffix, {
+              height: PLACEHOLDER_NODE_DIMENSION,
+              icon: IconWithTooltip({
+                Icon: MoreIcon,
+                height: 24,
+                iconColor: color.weak,
+                tooltip: 'More nodes may appear here',
+                width: 24,
+              }),
+              isPlaceholder: true,
+              width: PLACEHOLDER_NODE_DIMENSION,
+            });
+            g.setEdge(node.id, node.id + runningNodeSuffix, { color: color.weak, isPlaceholder: true });
+          }
+        });
 
     // Connect dagre graph nodes with edges.
     Object.keys(workflowNodes)
-      .forEach((nodeId) => {
-        if (workflowNodes[nodeId].children) {
-          workflowNodes[nodeId].children.forEach((childNodeId) =>
-            g.setEdge(nodeId, childNodeId));
-        }
-      });
+        .forEach((nodeId) => {
+          if (workflowNodes[nodeId].children) {
+            workflowNodes[nodeId].children.forEach((childNodeId) => {
+              if (workflowNodes[childNodeId]) {
+                g.setEdge(nodeId, childNodeId);
+              }
+            });
+          }
+        });
 
     // Add BoundaryID edges. Only add these edges to nodes that don't already have inbound edges.
     Object.keys(workflowNodes)
-      .forEach((nodeId) => {
-        // Many nodes have the Argo root node as a boundaryID, and we can discard these.
-        if (workflowNodes[nodeId].boundaryID &&
-          (!g.inEdges(nodeId) || !g.inEdges(nodeId)!.length) &&
-          workflowNodes[nodeId].boundaryID !== workflowName) {
-          // BoundaryIDs point from children to parents.
-          g.setEdge(workflowNodes[nodeId].boundaryID, nodeId);
-        }
-      });
+        .forEach((nodeId) => {
+          // Many nodes have the Argo root node as a boundaryID, and we can discard these.
+          if (workflowNodes[nodeId].boundaryID &&
+              workflowNodes[workflowNodes[nodeId].boundaryID] &&
+              (!g.inEdges(nodeId) || !g.inEdges(nodeId)!.length) &&
+              workflowNodes[nodeId].boundaryID !== workflowName) {
+            // BoundaryIDs point from children to parents.
+            g.setEdge(workflowNodes[nodeId].boundaryID, nodeId);
+          }
+        });
 
     // Remove all virtual nodes
     g.nodes().forEach((nodeId) => {
@@ -219,14 +223,14 @@ export default class WorkflowParser {
     const outputPaths: StoragePath[] = [];
     if (selectedWorkflowNode && selectedWorkflowNode.outputs) {
       (selectedWorkflowNode.outputs.artifacts || [])
-        .filter((a) => a.name === 'mlpipeline-ui-metadata' && !!a.s3)
-        .forEach((a) =>
-          outputPaths.push({
-            bucket: a.s3!.bucket,
-            key: a.s3!.key,
-            source: StorageService.MINIO,
-          })
-        );
+          .filter((a) => a.name === 'mlpipeline-ui-metadata' && !!a.s3)
+          .forEach((a) =>
+              outputPaths.push({
+                bucket: a.s3!.bucket,
+                key: a.s3!.key,
+                source: StorageService.MINIO,
+              })
+          );
     }
 
     return outputPaths;
@@ -244,8 +248,8 @@ export default class WorkflowParser {
     const outputPaths: Array<{ stepName: string, path: StoragePath }> = [];
     if (workflow && workflow.status && workflow.status.nodes) {
       Object.keys(workflow.status.nodes).forEach(n =>
-        this.loadNodeOutputPaths(workflow.status.nodes[n]).map(path =>
-          outputPaths.push({ stepName: workflow.status.nodes[n].displayName, path })));
+          this.loadNodeOutputPaths(workflow.status.nodes[n]).map(path =>
+              outputPaths.push({ stepName: workflow.status.nodes[n].displayName, path })));
     }
 
     return outputPaths;
@@ -333,7 +337,7 @@ export default class WorkflowParser {
   // Returns a workflow-level error string if found, empty string if none
   public static getWorkflowError(workflow: Workflow): string {
     if (workflow && workflow.status && workflow.status.message && (
-      workflow.status.phase === NodePhase.ERROR || workflow.status.phase === NodePhase.FAILED)) {
+        workflow.status.phase === NodePhase.ERROR || workflow.status.phase === NodePhase.FAILED)) {
       return workflow.status.message;
     } else {
       return '';
