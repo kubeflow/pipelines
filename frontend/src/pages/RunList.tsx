@@ -18,7 +18,7 @@ import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Metric from '../components/Metric';
 import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
-import { ApiRun, ApiResourceType, ApiRunMetric, RunStorageState, ApiRunDetail, ApiResourceReference } from '../../src/apis/run';
+import { ApiRun, ApiResourceType, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { NodePhase } from '../lib/StatusUtils';
@@ -376,9 +376,15 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * DisplayRun will show '-'.
    */
   private async _getAndSetExperimentNames(displayRun: DisplayRun): Promise<void> {
-    const experimentInfo = this._getFirstExperimentInfoInReferences(displayRun.run.resource_references);
-    if (experimentInfo) {
-      displayRun.experiment = experimentInfo;
+    const experimentReference = RunUtils.getFirstExperimentReferenceWithName(displayRun.run);
+    if (experimentReference) {
+      displayRun.experiment = {
+        displayName: experimentReference.name,
+        // experimentReference.key.id is know to exist because
+        // RunUtils.getFirstExperimentReferenceWithName checks for its
+        // existence.
+        id: experimentReference.key!.id!,
+      };
     } else {
       const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.run);
       if (experimentId) {
@@ -390,28 +396,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         }
       }
     }
-  }
-
-  /**
-   * Checks all provided ApiResourceReference objects to see if they provide
-   * valid data to populate an ExperimentInfo object (name, id, and the type is
-   * ApiResourceType.EXPERIMENT). If conditions are met, the
-   * ApiResourceReference is returned as an ExperimentInfo object, otherwise,
-   * undefined is returned if no valid data is found. 
-   */
-  private _getFirstExperimentInfoInReferences(resourceReferences: ApiResourceReference[] = []): ExperimentInfo | undefined {
-    for (const resourceReference of resourceReferences) {
-      if (resourceReference.key
-        && resourceReference.key.id
-        && resourceReference.key.type === ApiResourceType.EXPERIMENT
-        && resourceReference.name) {
-        return {
-          displayName: resourceReference.name,
-          id: resourceReference.key.id
-        } as ExperimentInfo;
-      }
-    }
-    return undefined;
   }
 }
 

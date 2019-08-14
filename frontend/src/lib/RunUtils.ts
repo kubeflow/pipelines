@@ -67,6 +67,11 @@ function getFirstExperimentReference(run?: ApiRun | ApiJob): ApiResourceReferenc
   return run && getAllExperimentReferences(run)[0] || null;
 }
 
+function getFirstExperimentReferenceWithName(run?: ApiRun | ApiJob): ApiResourceReference | null {
+  return (run && getAllExperimentReferences(run) || [])
+    .find((ref) => !!ref.key && !!ref.key.id && !!ref.name) || null;
+}
+
 function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference[] {
   return (run && run.resource_references || [])
     .filter((ref) => ref.key && ref.key.type && ref.key.type === ApiResourceType.EXPERIMENT || false);
@@ -128,6 +133,7 @@ export default {
   getAllExperimentReferences,
   getFirstExperimentReference,
   getFirstExperimentReferenceId,
+  getFirstExperimentReferenceWithName,
   getParametersFromRun,
   getParametersFromRuntime,
   getPipelineId,
