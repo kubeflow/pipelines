@@ -323,13 +323,13 @@ class ComponentBuilder(object):
 
       # Prepare build files
       logging.info('Generate build files.')
-      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
   def build_image_from_dockerfile(self, docker_filename, timeout):
     """ build_image_from_dockerfile builds an image based on the dockerfile """
     with tempfile.TemporaryDirectory() as local_build_dir:
       self._prepare_files(local_build_dir, docker_filename)
-      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
 def _configure_logger(logger):
   """ _configure_logger configures the logger such that the info level logs
