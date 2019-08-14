@@ -31,7 +31,6 @@ import RunUtils from '../lib/RunUtils';
 import Separator from '../atoms/Separator';
 import SidePanel from '../components/SidePanel';
 import WorkflowParser from '../lib/WorkflowParser';
-import { ApiExperiment } from '../apis/experiment';
 import { ApiRun, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { NodePhase, hasFinished } from '../lib/StatusUtils';
@@ -74,7 +73,6 @@ interface AnnotatedConfig {
 
 interface RunDetailsState {
   allArtifactConfigs: AnnotatedConfig[];
-  experiment?: ApiExperiment;
   legacyStackdriverUrl: string;
   logsBannerAdditionalInfo: string;
   logsBannerMessage: string;
@@ -385,13 +383,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     try {
       const runDetail = await Apis.runServiceApi.getRun(runId);
-
-      const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
-      let experiment: ApiExperiment | undefined;
-      if (relatedExperimentId) {
-        experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
-      }
-
+      const experiment = RunUtils.getFirstExperimentReferenceInfo(runDetail.run);
       const runMetadata = runDetail.run!;
 
       let runFinished = this.state.runFinished;
@@ -436,8 +428,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
           breadcrumbs.push(
             { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
             {
-              displayName: experiment.name!,
-              href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
+              displayName: experiment.name,
+              href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id)
             });
         } else {
           breadcrumbs.push(
@@ -462,7 +454,6 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       this.props.updateToolbar({ actions, breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
       this.setStateSafe({
-        experiment,
         graph,
         legacyStackdriverUrl: '', // Reset legacy Stackdriver logs URL
         runFinished,
