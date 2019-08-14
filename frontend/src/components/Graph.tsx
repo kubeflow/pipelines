@@ -154,9 +154,6 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           // deviating from the explicit layout provided by dagre.
           if (i === 1) {
             const sourceNode = graph.node(edgeInfo.v);
-            if (sourceNode === undefined) {
-              continue;
-            }
 
             // Set the edge's first segment to start at the bottom or top of the source node.
             yStart = downwardPointingSegment
@@ -179,13 +176,10 @@ export default class Graph extends React.Component<GraphProps, GraphState> {
           // deviating from the explicit layout provided by dagre.
           if (finalSegment) {
             const destinationNode = graph.node(edgeInfo.w);
-            if (destinationNode === undefined) {
-              continue;
-            }
 
             // Placeholder nodes never need adjustment because they always have only a single
             // incoming edge.
-            if (destinationNode && !destinationNode.isPlaceholder) {
+            if (!destinationNode.isPlaceholder) {
               // Set the edge's final segment to terminate at the top or bottom of the destination
               // node.
               yEnd = downwardPointingSegment
