@@ -1,0 +1,27 @@
+name: Kubeflow - Serve Model using KFServing
+description: Serve Models using Kubeflow KFServing
+inputs:
+  - {name: Model Name,                      type: String, default: '',         description: 'Name to give to the deployed model'}
+  - {name: Default Model URI,               type: String,                      description: 'Path of the S3 or GCS compatible directory containing default model.'}
+  - {name: Canary Model URI,                type: String, default: '',         description: 'Optional Path of the S3 or GCS compatible directory containing canary model.'}
+  - {name: Canary Model Traffic Percentage, type: String, default: '0',        description: 'Optional Traffic to be sent to default model'}
+  - {name: PVC name,                        type: String, default: '',         description: 'Optional PersistentVolumeClaim to use.'}
+  - {name: Namespace,                       type: String, default: 'kubeflow', description: 'Kubernetes namespace where the KFServing service is deployed.'}
+  - {name: Framework,                       type: String, default: 'tensorflow', description: 'Machine Learning Framework for Model Serving.'}
+outputs:
+  - {name: Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
+implementation:
+  container:
+    image: tomcli/ml-pipeline-kubeflow-kfservingdeployer
+    command: ['python']
+    args: [
+      -u, kfservingdeployer.py,
+      --model-name,            {inputValue: Model Name},
+      --default-model-uri,     {inputValue: Default Model URI},
+      --canary-model-uri,      {inputValue: Canary Model URI},
+      --canary-model-traffic,  {inputValue: Canary Model Traffic Percentage},
+      --pvc-name,              {inputValue: PVC name},
+      --namespace,             {inputValue: Namespace},
+      --framework,             {inputValue: Framework},
+      --output_path,           {outputPath: Endpoint URI}
+    ]
