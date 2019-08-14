@@ -268,6 +268,12 @@ export interface ApiResourceReference {
      */
     key?: ApiResourceKey;
     /**
+     * The name of the resource that referred to.
+     * @type {string}
+     * @memberof ApiResourceReference
+     */
+    name?: string;
+    /**
      * Required field. The relationship from referred resource to the object.
      * @type {ApiRelationship}
      * @memberof ApiResourceReference

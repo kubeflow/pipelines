@@ -63,6 +63,25 @@ function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {
   return null;
 }
 
+export interface ExperimentReferenceInfo {
+  name: string;
+  id: string;
+}
+
+function getFirstExperimentReferenceInfo(run?: ApiRun | ApiJob): ExperimentReferenceInfo | null {
+  if (run) {
+    const reference = getAllExperimentReferences(run)[0];
+    if (reference && reference.name && reference.key && reference.key.id) {
+      return {
+        id: reference.key.id,
+        name: reference.name,
+      };
+    }
+  }
+
+  return null;
+}
+
 function getFirstExperimentReference(run?: ApiRun | ApiJob): ApiResourceReference | null {
   return run && getAllExperimentReferences(run)[0] || null;
 }
@@ -128,6 +147,7 @@ export default {
   getAllExperimentReferences,
   getFirstExperimentReference,
   getFirstExperimentReferenceId,
+  getFirstExperimentReferenceInfo,
   getParametersFromRun,
   getParametersFromRuntime,
   getPipelineId,
