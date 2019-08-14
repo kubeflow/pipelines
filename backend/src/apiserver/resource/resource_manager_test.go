@@ -283,6 +283,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           p.UUID,
+				PipelineName:         "p1",
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 			},
@@ -713,6 +714,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipeline.UUID,
+			PipelineName:         "p1",
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
 		},

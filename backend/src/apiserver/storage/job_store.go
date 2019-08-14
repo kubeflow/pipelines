@@ -276,6 +276,7 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 				"CreatedAtInSec":                 j.CreatedAtInSec,
 				"UpdatedAtInSec":                 j.UpdatedAtInSec,
 				"PipelineId":                     j.PipelineId,
+				"PipelineName":                   j.PipelineName,
 				"PipelineSpecManifest":           j.PipelineSpecManifest,
 				"WorkflowSpecManifest":           j.WorkflowSpecManifest,
 				"Parameters":                     j.Parameters,
