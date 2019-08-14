@@ -18,7 +18,6 @@ import * as React from 'react';
 import Buttons, { ButtonKeys } from '../lib/Buttons';
 import DetailsTable from '../components/DetailsTable';
 import RunUtils from '../lib/RunUtils';
-import { ApiExperiment } from '../apis/experiment';
 import { ApiJob } from '../apis/job';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
@@ -141,27 +140,14 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       return;
     }
 
-    const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(run);
-    let experiment: ApiExperiment | undefined;
-    if (relatedExperimentId) {
-      try {
-        experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
-      } catch (err) {
-        const errorMessage = await errorToMessage(err);
-        await this.showPageError(
-          `Error: failed to retrieve this recurring run\'s experiment.`,
-          new Error(errorMessage),
-          'warning'
-        );
-      }
-    }
+    const experiment = RunUtils.getFirstExperimentReferenceInfo(run);
     const breadcrumbs: Breadcrumb[] = [];
     if (experiment) {
       breadcrumbs.push(
         { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
         {
-          displayName: experiment.name!,
-          href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
+          displayName: experiment.name,
+          href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id)
         });
     } else {
       breadcrumbs.push(
