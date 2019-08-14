@@ -28,7 +28,6 @@ import Paper from '@material-ui/core/Paper';
 import RunUtils from '../lib/RunUtils';
 import SidePanel from '../components/SidePanel';
 import StaticNodeDetails from '../components/StaticNodeDetails';
-import { ApiExperiment } from '../apis/experiment';
 import { ApiPipeline, ApiGetTemplateResponse } from '../apis/pipeline';
 import { Apis } from '../lib/Apis';
 import { Page } from './Page';
@@ -274,19 +273,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`, err);
         }
 
-        const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);
-        let experiment: ApiExperiment | undefined;
-        if (relatedExperimentId) {
-          experiment = await Apis.experimentServiceApi.getExperiment(relatedExperimentId);
-        }
-
+        const experiment = RunUtils.getFirstExperimentReferenceInfo(runDetails.run);
         // Build the breadcrumbs, by adding experiment and run names
         if (experiment) {
           breadcrumbs.push(
             { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
             {
-              displayName: experiment.name!,
-              href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id!)
+              displayName: experiment.name,
+              href: RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, experiment.id)
             });
         } else {
           breadcrumbs.push(
