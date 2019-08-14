@@ -8,6 +8,7 @@ bases:
 - mysql
 - pipeline
 - proxy
+- metadata
 
 images:
 - name: argoproj/workflow-controller
