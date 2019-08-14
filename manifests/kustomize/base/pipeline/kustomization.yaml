@@ -27,3 +27,5 @@ resources:
 - pipeline-runner-role.yaml
 - pipeline-runner-rolebinding.yaml
 - pipeline-runner-sa.yaml
+- metadata-deployment.yaml
+- metadata-service.yaml
