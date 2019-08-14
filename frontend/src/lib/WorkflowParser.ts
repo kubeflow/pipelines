@@ -46,7 +46,7 @@ export default class WorkflowParser {
     const PLACEHOLDER_NODE_DIMENSION = 28;
 
     if (!workflow || !workflow.status || !workflow.status.nodes ||
-        !workflow.metadata || !workflow.metadata.name) {
+      !workflow.metadata || !workflow.metadata.name) {
       return g;
     }
 
@@ -57,10 +57,10 @@ export default class WorkflowParser {
     // Uses the root node, so this needs to happen before we remove the root
     // node below.
     const onExitHandlerNodeId =
-        Object.keys(workflowNodes).find((id) => workflowNodes[id].name === `${workflowName}.onExit`);
+      Object.keys(workflowNodes).find((id) => workflowNodes[id].name === `${workflowName}.onExit`);
     if (onExitHandlerNodeId) {
       this.getOutboundNodes(workflow, workflowName).forEach((nodeId) =>
-          g.setEdge(nodeId, onExitHandlerNodeId));
+        g.setEdge(nodeId, onExitHandlerNodeId));
     }
 
     // If there are multiple steps, then remove the root node that Argo creates to manage the
@@ -133,9 +133,9 @@ export default class WorkflowParser {
       .forEach((nodeId) => {
         // Many nodes have the Argo root node as a boundaryID, and we can discard these.
         if (workflowNodes[nodeId].boundaryID &&
-            workflowNodes[workflowNodes[nodeId].boundaryID] &&
-            (!g.inEdges(nodeId) || !g.inEdges(nodeId)!.length) &&
-            workflowNodes[nodeId].boundaryID !== workflowName) {
+          workflowNodes[workflowNodes[nodeId].boundaryID] &&
+          (!g.inEdges(nodeId) || !g.inEdges(nodeId)!.length) &&
+          workflowNodes[nodeId].boundaryID !== workflowName) {
           // BoundaryIDs point from children to parents.
           g.setEdge(workflowNodes[nodeId].boundaryID, nodeId);
         }
@@ -249,7 +249,7 @@ export default class WorkflowParser {
     if (workflow && workflow.status && workflow.status.nodes) {
       Object.keys(workflow.status.nodes).forEach(n =>
         this.loadNodeOutputPaths(workflow.status.nodes[n]).map(path =>
-            outputPaths.push({ stepName: workflow.status.nodes[n].displayName, path })));
+          outputPaths.push({ stepName: workflow.status.nodes[n].displayName, path })));
     }
 
     return outputPaths;

@@ -379,7 +379,11 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   public async retry(): Promise<void>{
-    await this.load();
+    const runFinished = false;
+    this.setStateSafe({
+      runFinished,
+    });
+
     await this._startAutoRefresh();
   }
 
@@ -408,10 +412,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         this._stopAutoRefresh();
         // This prevents other events, such as onFocus, from resuming the autorefresh
         runFinished = true;
-      } else {
-        runFinished = false;
       }
-
 
       const workflow = JSON.parse(runDetail.pipeline_runtime!.workflow_manifest || '{}') as Workflow;
 
