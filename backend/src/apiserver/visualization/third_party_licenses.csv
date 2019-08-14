@@ -86,6 +86,7 @@ pydot,https://github.com/pydot/pydot/blob/master/LICENSE,MIT
 pyparsing,https://github.com/pyparsing/pyparsing/blob/master/LICENSE,MIT
 pyrsistent,https://github.com/tobgu/pyrsistent/blob/master/LICENCE.mit,MIT
 python-dateutil,https://github.com/dateutil/dateutil/blob/master/LICENSE,Apache 2.0
+pymongo,https://github.com/mongodb/mongo-python-driver/blob/master/LICENSE,Apache 2.0
 pytz,http://pytz.sourceforge.net/index.html#license,MIT
 pyzmq,https://github.com/zeromq/pyzmq/blob/master/COPYING.BSD,BSD-3
 qtconsole,https://github.com/jupyter/qtconsole/blob/master/LICENSE,BSD-3

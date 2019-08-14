@@ -95,7 +95,7 @@ spec:
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
-            value: "tfx"
+            value: "tfx_cab_classification"
       - name: run-xgboost-tests
         template: run-sample-tests
         arguments:
@@ -137,7 +137,7 @@ spec:
           - name: namespace
             value: "{{inputs.parameters.namespace}}"
           - name: test-name
-            value: "xgboost"
+            value: "xgboost_training_cm"
 
   # Build and push image
   - name: build-image-by-dockerfile

@@ -28,14 +28,10 @@ Here are the one-time steps to prepare for your GKE testing cluster:
 - Follow the [main page](https://github.com/kubeflow/pipelines#setup-gke) to
 create a GKE cluster.
 - Install [Argo](https://github.com/argoproj/argo/blob/master/demo.md#argo-v20-getting-started)
-in the cluster. If you have Argo CLI installed locally, just run
-  ```
-  argo install
-  ```
+in the cluster.
 - Create cluster role binding.
   ```
-  kubectl create clusterrolebinding default-as-admin
-  --clusterrole=cluster-admin --serviceaccount default:default
+  kubectl create clusterrolebinding default-as-admin --clusterrole=cluster-admin --serviceaccount=default:default
   ```
 - Follow the
 [guideline](https://developer.github.com/v3/guides/managing-deploy-keys/) to
