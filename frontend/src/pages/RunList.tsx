@@ -378,12 +378,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   private async _getAndSetExperimentNames(displayRun: DisplayRun): Promise<void> {
     const experiment = RunUtils.getFirstExperimentReferenceInfo(displayRun.run);
     if (experiment) {
-      try {
-        displayRun.experiment = { displayName: experiment.name, id: experiment.id };
-      } catch (err) {
-        // This could be an API exception, or a JSON parse exception.
-        displayRun.error = 'Failed to get associated experiment: ' + await errorToMessage(err);
-      }
+      displayRun.experiment = { displayName: experiment.name, id: experiment.id };
     }
   }
 }
