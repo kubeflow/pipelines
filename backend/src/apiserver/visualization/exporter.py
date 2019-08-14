@@ -17,10 +17,8 @@ converting those objects to HTML.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import uuid
 from enum import Enum
 import json
-import os
 from pathlib import Path
 from typing import Text
 from jupyter_client import KernelManager
@@ -92,10 +90,7 @@ class Exporter:
 
     @staticmethod
     def create_cell_from_args(variables: dict) -> NotebookNode:
-        """Creates NotebookNode object that loads provided variables from JSON.
-
-        Provided dict is saved to file. It is then loaded by the returned
-        NotebookNode to be used for visualization generation.
+        """Creates NotebookNode object containing dict of provided variables.
 
         Args:
             variables: Arguments that need to be injected into a NotebookNode.
@@ -104,25 +99,7 @@ class Exporter:
             NotebookNode with provided arguments as variables.
 
         """
-        # Generates random file name to ensure variables for visualization are
-        # not overwritten by future visualizations.
-        file_name = "variables-{}.json".format(uuid.uuid4())
-        if os.path.exists(file_name):
-            os.remove(file_name)
-        with open(file_name, "w") as f:
-            json.dump(variables, f)
-
-        return new_code_cell("""
-        import json
-        import os
-        
-        variables = dict()
-        
-        with open("{}", "r") as f:
-            variables = json.load(f)
-        
-        os.remove("{}")
-        """.format(file_name, file_name))
+        return new_code_cell("variables = {}".format(repr(variables)))
 
     @staticmethod
     def create_cell_from_file(filepath: Text) -> NotebookNode:

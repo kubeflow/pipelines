@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import importlib
-import os
 import unittest
 from nbformat.v4 import new_code_cell
 from nbformat.v4 import new_notebook
@@ -26,23 +25,6 @@ class TestExporterMethods(snapshottest.TestCase):
 
     def setUp(self):
         self.exporter = exporter.Exporter(100, exporter.TemplateType.BASIC)
-        # Remove any leftover json files from testing/development. This is done
-        # to ensure that test_create_cell_from_args_deletes_file_on_execution
-        # is tested in a valid environment where no json files are present.
-        files = [x for x in os.listdir("./") if len(x) >= 5 and x[-5:] == ".json"]
-        for f in files:
-            os.remove(f)
-
-    def test_create_cell_from_args_deletes_file_on_execution(self):
-        self.maxDiff = None
-        nb = new_notebook()
-        args = {}
-        nb.cells.append(self.exporter.create_cell_from_args(args))
-        self.exporter.generate_html_from_notebook(nb)
-        self.assertEqual(
-            [x for x in os.listdir("./") if len(x) >= 5 and x[-5:] == ".json"],
-            []
-        )
 
     def test_create_cell_from_args_with_no_args(self):
         self.maxDiff = None
