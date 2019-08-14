@@ -27,4 +27,5 @@ images:
 - name: gcr.io/ml-pipeline/viewer-crd-controller
   newTag: 0.1.26
 - name: gcr.io/ml-pipeline/inverse-proxy-agent
+- name: gcr.io/ml-pipeline/visualization-server
   newTag: 0.1.26

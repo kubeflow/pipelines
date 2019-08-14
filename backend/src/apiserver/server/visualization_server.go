@@ -74,5 +74,5 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 }
 
 func NewVisualizationServer(resourceManager *resource.ResourceManager) *VisualizationServer {
-	return &VisualizationServer{resourceManager: resourceManager, serviceURL: "http://visualization-service.kubeflow"}
+	return &VisualizationServer{resourceManager: resourceManager, serviceURL: "http://ml-pipeline-visualization.kubeflow"}
 }
