@@ -33,7 +33,7 @@ import (
 )
 
 var runColumns = []string{"UUID", "DisplayName", "Name", "StorageState", "Namespace", "Description",
-	"CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineSpecManifest",
+	"CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineName", "PipelineSpecManifest",
 	"WorkflowSpecManifest", "Parameters", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
 }
 
@@ -217,7 +217,7 @@ func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.Sele
 func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, error) {
 	var runs []*model.RunDetail
 	for rows.Next() {
-		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineSpecManifest,
+		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineName, pipelineSpecManifest,
 		workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec int64
 		var metricsInString, resourceReferencesInString sql.NullString
@@ -233,6 +233,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			&finishedAtInSec,
 			&conditions,
 			&pipelineId,
+			&pipelineName,
 			&pipelineSpecManifest,
 			&workflowSpecManifest,
 			&parameters,
@@ -272,6 +273,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
+				PipelineName:         pipelineName,
 				PipelineSpecManifest: pipelineRuntimeManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           parameters,
@@ -330,6 +332,7 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 				"WorkflowRuntimeManifest": r.WorkflowRuntimeManifest,
 				"PipelineRuntimeManifest": r.PipelineRuntimeManifest,
 				"PipelineId":              r.PipelineId,
+				"PipelineName":            r.PipelineName,
 				"PipelineSpecManifest":    r.PipelineSpecManifest,
 				"WorkflowSpecManifest":    r.WorkflowSpecManifest,
 				"Parameters":              r.Parameters,
