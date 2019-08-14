@@ -96,6 +96,7 @@
       "enum": [
         "ROC_CURVE",
         "TFDV",
+        "TFMA",
         "TABLE"
       ],
       "default": "ROC_CURVE",
