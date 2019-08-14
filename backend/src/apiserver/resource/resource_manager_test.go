@@ -83,6 +83,17 @@ func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 	return store, manager, experiment
 }
 
+func initWithExperimentAndPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment, *model.Pipeline) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store)
+	experiment := &model.Experiment{Name: "e1"}
+	experiment, err := manager.CreateExperiment(experiment)
+	assert.Nil(t, err)
+	pipeline, err := manager.CreatePipeline("p1", "", []byte(testWorkflow.ToStringForStore()))
+	assert.Nil(t, err)
+	return store, manager, experiment, pipeline
+}
+
 // Util function to create an initial state with pipeline uploaded
 func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job) {
 	store, manager, exp := initWithExperiment(t)

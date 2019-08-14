@@ -29,7 +29,7 @@ import (
 var jobColumns = []string{"UUID", "DisplayName", "Name", "Namespace", "Description", "MaxConcurrency",
 	"CreatedAtInSec", "UpdatedAtInSec", "Enabled", "CronScheduleStartTimeInSec", "CronScheduleEndTimeInSec",
 	"Schedule", "PeriodicScheduleStartTimeInSec", "PeriodicScheduleEndTimeInSec", "IntervalSecond",
-	"PipelineId", "pipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "Conditions",
+	"PipelineId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "Conditions",
 }
 
 type JobStoreInterface interface {
@@ -185,7 +185,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			&maxConcurrency, &createdAtInSec, &updatedAtInSec, &enabled,
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
-			&pipelineId, &pipelineSpecManifest, &workflowSpecManifest, &parameters, &conditions, &resourceReferencesInString)
+			&pipelineId, &pipelineName, &pipelineSpecManifest, &workflowSpecManifest, &parameters, &conditions, &resourceReferencesInString)
 		if err != nil {
 			return nil, err
 		}
