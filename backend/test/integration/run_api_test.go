@@ -81,17 +81,17 @@ func (s *RunApiTestSuite) TestRunApis() {
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Relationship: run_model.APIRelationshipOWNER},
+				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
 		},
 	}}
 	helloWorldRunDetail, _, err := s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
-	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ID, helloWorldPipeline.ID)
+	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipeline.ID)
 
 	/* ---------- Get hello world run ---------- */
 	helloWorldRunDetail, _, err = s.runClient.Get(&runparams.GetRunParams{RunID: helloWorldRunDetail.Run.ID})
 	assert.Nil(t, err)
-	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ID, helloWorldPipeline.ID)
+	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipeline.ID)
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	createExperimentRequest := &experimentparams.CreateExperimentParams{Body: &experiment_model.APIExperiment{Name: "argument parameter experiment"}}
@@ -120,7 +120,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	}}
 	argParamsRunDetail, _, err := s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
-	s.checkArgParamsRunDetail(t, argParamsRunDetail, argParamsExperiment.ID)
+	s.checkArgParamsRunDetail(t, argParamsRunDetail, argParamsExperiment.ID, argParamsExperiment.Name)
 
 	/* ---------- List all the runs. Both runs should be returned ---------- */
 	runs, totalSize, _, err := s.runClient.List(&runparams.ListRunsParams{})
@@ -214,7 +214,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* ---------- Get long-running run ---------- */
 	longRunningRunDetail, _, err = s.runClient.Get(&runparams.GetRunParams{RunID: longRunningRunDetail.Run.ID})
 	assert.Nil(t, err)
-	s.checkTerminatedRunDetail(t, longRunningRunDetail, helloWorldExperiment.ID, longRunningPipeline.ID)
+	s.checkTerminatedRunDetail(t, longRunningRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, longRunningPipeline.ID)
 
 	/* ---------- Clean up ---------- */
 	test.DeleteAllExperiments(s.experimentClient, t)
@@ -222,7 +222,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	test.DeleteAllRuns(s.runClient, t)
 }
 
-func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, pipelineId string) {
+func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineId string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "wait-awhile")
 	// Check runtime workflow manifest is not empty
@@ -239,7 +239,7 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
-				Relationship: run_model.APIRelationshipOWNER,
+				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 			},
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,
@@ -249,7 +249,7 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
-func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, pipelineId string) {
+func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineId string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay")
 	// Check runtime workflow manifest is not empty
@@ -266,7 +266,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
-				Relationship: run_model.APIRelationshipOWNER,
+				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 			},
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,
@@ -276,7 +276,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
-func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string) {
+func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string) {
 	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
@@ -297,7 +297,7 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
-				Relationship: run_model.APIRelationshipOWNER,
+				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 			},
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,

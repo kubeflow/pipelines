@@ -126,6 +126,8 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 	newWF := wf.DeepCopy()
 	// Delete/reset fields which indicate workflow completed
 	delete(newWF.Labels, common.LabelKeyCompleted)
+	// Delete/reset fields which indicate workflow is finished being persisted to the database
+	delete(newWF.Labels, util.LabelKeyWorkflowPersistedFinalState)
 	newWF.ObjectMeta.Labels[common.LabelKeyPhase] = string(wfv1.NodeRunning)
 	newWF.Status.Phase = wfv1.NodeRunning
 	newWF.Status.Message = ""

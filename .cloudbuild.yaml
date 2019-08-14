@@ -163,7 +163,7 @@ images:
 - 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA'
-- 'gcr.op/$PROJECT_ID/visualization-server:$COMMIT_SHA'
+- 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA'
 
 # Images for the Dataflow-based pipeline components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA'
