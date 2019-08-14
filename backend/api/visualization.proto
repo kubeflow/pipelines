@@ -78,7 +78,8 @@ message Visualization {
   enum Type {
     ROC_CURVE = 0;
     TFDV = 1;
-    TABLE = 2;
+    TFMA = 2;
+    TABLE = 3;
   };
   Type type = 1;
 
