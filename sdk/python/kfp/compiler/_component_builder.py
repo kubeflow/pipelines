@@ -280,8 +280,7 @@ class ComponentBuilder(object):
     self._arc_docker_filename = 'dockerfile'
     self._arc_python_filename = 'main.py'
     self._arc_requirement_filename = 'requirements.txt'
-    self._container_builder = ContainerBuilder(gcs_staging, namespace)
-    self._target_image = target_image
+    self._container_builder = ContainerBuilder(gcs_staging, gcr_image_tag=target_image, namespace=namespace)
 
   def _prepare_files(self, local_dir, docker_filename, python_filename=None, requirement_filename=None):
     """ _prepare_buildfiles generates the tarball with all the build files
@@ -324,13 +323,13 @@ class ComponentBuilder(object):
 
       # Prepare build files
       logging.info('Generate build files.')
-      return self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
   def build_image_from_dockerfile(self, docker_filename, timeout):
     """ build_image_from_dockerfile builds an image based on the dockerfile """
     with tempfile.TemporaryDirectory() as local_build_dir:
       self._prepare_files(local_build_dir, docker_filename)
-      return self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
 def _configure_logger(logger):
   """ _configure_logger configures the logger such that the info level logs
