@@ -139,8 +139,8 @@ func TestToApiRuns(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 		},
 		ResourceReferences: []*model.ResourceReference{
-			{ResourceUUID: "run1", ResourceType: common.Run,ReferenceUUID: "job1",
-				ReferenceName:"j1",ReferenceType: common.Job, Relationship: common.Creator},
+			{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "job1",
+				ReferenceName: "j1", ReferenceType: common.Job, Relationship: common.Creator},
 		},
 		Metrics: []*model.RunMetric{metric1, metric2},
 	}
@@ -157,8 +157,8 @@ func TestToApiRuns(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 		},
 		ResourceReferences: []*model.ResourceReference{
-			{ResourceUUID: "run2", ResourceType: common.Run,ReferenceUUID: "job2",
-				ReferenceName:"j2", ReferenceType: common.Job, Relationship: common.Creator},
+			{ResourceUUID: "run2", ResourceType: common.Run, ReferenceUUID: "job2",
+				ReferenceName: "j2", ReferenceType: common.Job, Relationship: common.Creator},
 		},
 		Metrics: []*model.RunMetric{metric2},
 	}
@@ -177,7 +177,7 @@ func TestToApiRuns(t *testing.T) {
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
-					Name:"j1", Relationship: api.Relationship_CREATOR},
+					Name: "j1", Relationship: api.Relationship_CREATOR},
 			},
 			Metrics: []*api.RunMetric{apiMetric1, apiMetric2},
 		},
@@ -191,7 +191,7 @@ func TestToApiRuns(t *testing.T) {
 			Status:       "done",
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job2"},
-					Name:"j2", Relationship: api.Relationship_CREATOR},
+					Name: "j2", Relationship: api.Relationship_CREATOR},
 			},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
@@ -216,8 +216,9 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 		},
 		MaxConcurrency: 1,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
-			Parameters: `[{"name":"param2","value":"world"}]`,
+			PipelineId:   "1",
+			PipelineName: "p1",
+			Parameters:   `[{"name":"param2","value":"world"}]`,
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -240,8 +241,9 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 				Cron:      "1 * *",
 			}}},
 		PipelineSpec: &api.PipelineSpec{
-			Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
-			PipelineId: "1",
+			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "experiment1"},
@@ -265,8 +267,9 @@ func TestPeriodicScheduledJobToApiJob(t *testing.T) {
 		},
 		MaxConcurrency: 1,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
-			Parameters: `[{"name":"param2","value":"world"}]`,
+			PipelineId:   "1",
+			PipelineName: "p1",
+			Parameters:   `[{"name":"param2","value":"world"}]`,
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -285,8 +288,9 @@ func TestPeriodicScheduledJobToApiJob(t *testing.T) {
 				IntervalSecond: 3,
 			}}},
 		PipelineSpec: &api.PipelineSpec{
-			Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
-			PipelineId: "1",
+			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 	}
 	assert.Equal(t, expectedJob, apiJob)
@@ -300,8 +304,9 @@ func TestNonScheduledJobToApiJob(t *testing.T) {
 		Trigger:        model.Trigger{},
 		MaxConcurrency: 1,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
-			Parameters: `[{"name":"param2","value":"world"}]`,
+			PipelineId:   "1",
+			PipelineName: "p1",
+			Parameters:   `[{"name":"param2","value":"world"}]`,
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -316,8 +321,9 @@ func TestNonScheduledJobToApiJob(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger:        &api.Trigger{},
 		PipelineSpec: &api.PipelineSpec{
-			Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
-			PipelineId: "1",
+			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 	}
 	assert.Equal(t, expectedJob, apiJob)
@@ -331,8 +337,9 @@ func TestToApiJob_ErrorParsingField(t *testing.T) {
 		Trigger:        model.Trigger{},
 		MaxConcurrency: 1,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
-			Parameters: `invalid parameter format`,
+			PipelineId:   "1",
+			PipelineName: "p1",
+			Parameters:   `invalid parameter format`,
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -360,8 +367,9 @@ func TestToApiJobs(t *testing.T) {
 		},
 		MaxConcurrency: 1,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
-			Parameters: `[{"name":"param2","value":"world"}]`,
+			PipelineId:   "1",
+			PipelineName: "p1",
+			Parameters:   `[{"name":"param2","value":"world"}]`,
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -379,8 +387,9 @@ func TestToApiJobs(t *testing.T) {
 		},
 		MaxConcurrency: 2,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "2",
-			Parameters: `[{"name":"param2","value":"world"}]`,
+			PipelineId:   "2",
+			PipelineName: "p2",
+			Parameters:   `[{"name":"param2","value":"world"}]`,
 		},
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
@@ -400,8 +409,9 @@ func TestToApiJobs(t *testing.T) {
 					Cron:      "1 * *",
 				}}},
 			PipelineSpec: &api.PipelineSpec{
-				Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
-				PipelineId: "1",
+				Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+				PipelineId:   "1",
+				PipelineName: "p1",
 			},
 		},
 		{
@@ -417,8 +427,9 @@ func TestToApiJobs(t *testing.T) {
 					Cron:      "2 * *",
 				}}},
 			PipelineSpec: &api.PipelineSpec{
-				Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
-				PipelineId: "2",
+				Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+				PipelineId:   "2",
+				PipelineName: "p2",
 			},
 		},
 	}
