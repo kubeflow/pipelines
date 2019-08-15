@@ -7,6 +7,6 @@ spec:
   - name: http
     port: 8888
     protocol: TCP
-    targetPort: 88888
+    targetPort: 8888
   selector:
     app: ml-pipeline-visualizationserver
