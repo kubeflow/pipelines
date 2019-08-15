@@ -51,7 +51,11 @@ function getPipelineId(run?: ApiRun | ApiJob): string | null {
   return (run && run.pipeline_spec && run.pipeline_spec.pipeline_id) || null;
 }
 
-function getPipelineSpec(run?: ApiRun | ApiJob): string | null {
+function getPipelineName(run?: ApiRun | ApiJob): string | null {
+  return (run && run.pipeline_spec && run.pipeline_spec.pipeline_name) || null;
+}
+
+function getWorkflowManifest(run?: ApiRun | ApiJob): string | null {
   return (run && run.pipeline_spec && run.pipeline_spec.workflow_manifest) || null;
 }
 
@@ -123,6 +127,7 @@ function getRecurringRunId(run?: ApiRun): string {
   return '';
 }
 
+// TODO: This file needs tests
 export default {
   extractMetricMetadata,
   getAllExperimentReferences,
@@ -131,7 +136,8 @@ export default {
   getParametersFromRun,
   getParametersFromRuntime,
   getPipelineId,
-  getPipelineSpec,
+  getPipelineName,
   getRecurringRunId,
+  getWorkflowManifest,
   runsToMetricMetadataMap,
 };

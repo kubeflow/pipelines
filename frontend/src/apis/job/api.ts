@@ -275,6 +275,12 @@ export interface ApiPipelineSpec {
      */
     pipeline_id?: string;
     /**
+     * Optional output field. The name of the pipeline. Not empty if the pipeline id is not empty.
+     * @type {string}
+     * @memberof ApiPipelineSpec
+     */
+    pipeline_name?: string;
+    /**
      * Optional input field. The marshalled raw argo JSON workflow. This will be deprecated when pipeline_manifest is in use.
      * @type {string}
      * @memberof ApiPipelineSpec
@@ -337,6 +343,12 @@ export interface ApiResourceReference {
      * @memberof ApiResourceReference
      */
     key?: ApiResourceKey;
+    /**
+     * The name of the resource that referred to.
+     * @type {string}
+     * @memberof ApiResourceReference
+     */
+    name?: string;
     /**
      * Required field. The relationship from referred resource to the object.
      * @type {ApiRelationship}
