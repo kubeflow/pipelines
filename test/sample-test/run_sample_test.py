@@ -54,9 +54,6 @@ def parse_arguments():
 
 
 def main():
-  #TODO(numerology): Remove this.
-  # By no means this should pass.
-  assert(1 == 0)
 
   args = parse_arguments()
   test_cases = []
@@ -170,6 +167,9 @@ def main():
             'the column number of the confusion matrix output is not equal to three'
         )
   elif args.testname == 'xgboost_training_cm':
+    #TODO(numerology): Remove this.
+    # By no means this should pass.
+    assert(1 == 0)
     cm_tar_path = './confusion_matrix.tar.gz'
     utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
                                 'mlpipeline-ui-metadata')
