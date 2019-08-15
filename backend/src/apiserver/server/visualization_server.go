@@ -57,36 +57,35 @@ func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_cli
 // service to generate HTML visualizations from a request.
 // It returns the generated HTML as a string and any error that is encountered.
 func (s *VisualizationServer) generateVisualizationFromRequest(request *go_client.CreateVisualizationRequest) ([]byte, error) {
-	if s.isServiceAvailable {
-		visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
-		arguments := fmt.Sprintf("--type %s --source %s --arguments '%s'", visualizationType, request.Visualization.Source, request.Visualization.Arguments)
-		resp, err := http.PostForm(s.serviceURL, url.Values{"arguments": {arguments}})
-		if err != nil {
-			return nil, util.Wrap(err, "Unable to initialize visualization request.")
-		}
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf(resp.Status)
-		}
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, util.Wrap(err, "Unable to parse visualization response.")
-		}
-		return body, nil
-	} else {
+	if !s.isServiceAvailable {
 		return nil, util.NewInternalServerError(
 			fmt.Errorf("service not available"),
 			"Service not available",
 		)
 	}
+	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
+	arguments := fmt.Sprintf("--type %s --source %s --arguments '%s'", visualizationType, request.Visualization.Source, request.Visualization.Arguments)
+	resp, err := http.PostForm(s.serviceURL, url.Values{"arguments": {arguments}})
+	if err != nil {
+		return nil, util.Wrap(err, "Unable to initialize visualization request.")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf(resp.Status)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, util.Wrap(err, "Unable to parse visualization response.")
+	}
+	return body, nil
 }
 
 func NewVisualizationServer(resourceManager *resource.ResourceManager, namespace string) *VisualizationServer {
 	serviceURL := fmt.Sprintf("http://ml-pipeline-visualization.%s", namespace)
 	_, err := http.Get(serviceURL)
 	return &VisualizationServer{
-		resourceManager: resourceManager,
-		serviceURL: serviceURL,
+		resourceManager:    resourceManager,
+		serviceURL:         serviceURL,
 		isServiceAvailable: err == nil,
 	}
 }
