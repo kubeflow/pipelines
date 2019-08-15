@@ -369,21 +369,36 @@ func (r *ResourceManager) RetryRun(runId string) error {
 		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
 	}
 
-	_, updateErr := r.workflowClient.Update(newWorkflow.Workflow)
-	if updateErr == nil {
-		return nil
+	// First try to update workflow
+	updateError := r.updateWorkflow(newWorkflow)
+	if updateError != nil {
+		// Remove resource version
+		newWorkflow.ResourceVersion = ""
+		newCreatedWorkflow, createError := r.workflowClient.Create(newWorkflow.Workflow)
+		if createError != nil {
+			return util.NewInternalServerError(createError,
+				"Retry run failed. Failed to create or update the run. Update Error: %s, Create Error: %s",
+				updateError.Error(), createError.Error())
+		}
+		newWorkflow = util.NewWorkflow(newCreatedWorkflow)
 	}
-
-	// Remove resource version
-	newWorkflow.ResourceVersion = ""
-	_, createError := r.workflowClient.Create(newWorkflow.Workflow)
-	if createError != nil {
-		return util.NewInternalServerError(createError,
-			"Retry run failed. Failed to create or update the run. Update Error: %s, Create Error: %s",
-			updateErr.Error(), createError.Error())
+	err = r.runStore.UpdateRun(runId, newWorkflow.Condition(), 0, newWorkflow.ToStringForStore())
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to update the database entry.")
 	}
-
 	return nil
+}
+
+func (r *ResourceManager) updateWorkflow(newWorkflow *util.Workflow) error {
+	// If fail to get the workflow, return error.
+	latestWorkflow, err := r.workflowClient.Get(newWorkflow.Name, v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	// Update the workflow's resource version to latest.
+	newWorkflow.ResourceVersion = latestWorkflow.ResourceVersion
+	_, err = r.workflowClient.Update(newWorkflow.Workflow)
+	return err
 }
 
 func (r *ResourceManager) GetJob(id string) (*model.Job, error) {

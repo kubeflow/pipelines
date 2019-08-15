@@ -222,7 +222,11 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   }
 
   public async refresh(): Promise<void> {
-    return this.load();
+    await this.load();
+    if (this._runlistRef.current) {
+      await this._runlistRef.current.refresh();
+    }
+    return;
   }
 
   public async componentDidMount(): Promise<void> {
@@ -271,10 +275,6 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
     } catch (err) {
       await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
       logger.error(`Error loading experiment: ${experimentId}`, err);
-    }
-
-    if (this._runlistRef.current) {
-      this._runlistRef.current.refresh();
     }
   }
 

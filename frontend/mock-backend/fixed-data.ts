@@ -136,6 +136,7 @@ const jobs: ApiJob[] = [
         }
       ],
       pipeline_id: pipelines[0].id,
+      pipeline_name: pipelines[0].name,
     },
     resource_references: [{
       key: {
@@ -177,6 +178,7 @@ const jobs: ApiJob[] = [
         }
       ],
       pipeline_id: pipelines[1].id,
+      pipeline_name: pipelines[1].name,
     },
     resource_references: [{
       key: {
@@ -221,6 +223,7 @@ const jobs: ApiJob[] = [
         }
       ],
       pipeline_id: pipelines[2].id,
+      pipeline_name: pipelines[2].name,
     },
     resource_references: [{
       key: {
@@ -290,7 +293,8 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName1', value: 'paramVal1' },
           { name: 'paramName2', value: 'paramVal2' },
         ],
-        pipeline_id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
+        pipeline_id: pipelines[0].id,
+        pipeline_name: pipelines[0].name,
       },
       resource_references: [{
         key: {
@@ -327,7 +331,8 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName1', value: 'paramVal1' },
           { name: 'paramName2', value: 'paramVal2' },
         ],
-        pipeline_id: '8fbe3bd6-a01f-11e8-98d0-529269fb1459',
+        pipeline_id: pipelines[0].id,
+        pipeline_name: pipelines[0].name,
       },
       resource_references: [{
         key: {
@@ -360,7 +365,8 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName1', value: 'paramVal1' },
           { name: 'paramName2', value: 'paramVal2' },
         ],
-        pipeline_id: '8fbe41b2-a01f-11e8-98d0-529269fb1459',
+        pipeline_id: pipelines[2].id,
+        pipeline_name: pipelines[2].name,
       },
       resource_references: [{
         key: {
@@ -393,7 +399,8 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName1', value: 'paramVal1' },
           { name: 'paramName2', value: 'paramVal2' },
         ],
-        pipeline_id: '8fbe42f2-a01f-11e8-98d0-529269fb1459',
+        pipeline_id: pipelines[3].id,
+        pipeline_name: pipelines[3].name,
       },
       scheduled_at: new Date('2018-06-17T22:58:23.000Z'),
       status: 'Failed',
@@ -439,7 +446,8 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName1', value: 'paramVal1' },
           { name: 'paramName2', value: 'paramVal2' },
         ],
-        pipeline_id: '8fbe3f78-a01f-11e8-98d0-529269fb1459',
+        pipeline_id: pipelines[1].id,
+        pipeline_name: pipelines[1].name,
       },
       resource_references: [{
         key: {
@@ -488,7 +496,8 @@ const runs: ApiRunDetail[] = [
           { name: 'paramName1', value: 'paramVal1' },
           { name: 'paramName2', value: 'paramVal2' },
         ],
-        pipeline_id: '8fbe3f78-a01f-11e8-98d0-529269fb1459',
+        pipeline_id: pipelines[1].id,
+        pipeline_name: pipelines[1].name,
       },
       resource_references: [{
         key: {
@@ -603,6 +612,7 @@ function generateNRuns(): ApiRunDetail[] {
             { name: 'paramName2', value: 'paramVal2' },
           ],
           pipeline_id: 'Some-pipeline-id-' + i,
+          pipeline_name: 'Kubeflow Pipeline number ' + i,
         },
         resource_references: [{
           key: {

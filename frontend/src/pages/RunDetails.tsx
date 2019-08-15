@@ -152,6 +152,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
+        .retryRun(
+            () => this.state.runMetadata? [this.state.runMetadata!.id!] : [],
+            true, () => this.retry())
         .cloneRun(() => this.state.runMetadata ? [this.state.runMetadata!.id!] : [], true)
         .terminateRun(
           () => this.state.runMetadata ? [this.state.runMetadata!.id!] : [],
@@ -375,6 +378,15 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     this.clearBanner();
   }
 
+  public async retry(): Promise<void>{
+    const runFinished = false;
+    this.setStateSafe({
+      runFinished,
+    });
+
+    await this._startAutoRefresh();
+  }
+
   public async refresh(): Promise<void> {
     await this.load();
   }
@@ -458,7 +470,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
         buttons.archive(idGetter, true, () => this.refresh());
       const actions = buttons.getToolbarActionMap();
       actions[ButtonKeys.TERMINATE_RUN].disabled =
-        (runMetadata.status as NodePhase) === NodePhase.TERMINATING || runFinished;
+          (runMetadata.status as NodePhase) === NodePhase.TERMINATING || runFinished;
+      actions[ButtonKeys.RETRY].disabled =
+          (runMetadata.status as NodePhase) !== NodePhase.FAILED && (runMetadata.status as NodePhase) !== NodePhase.ERROR ;
       this.props.updateToolbar({ actions, breadcrumbs, pageTitle, pageTitleTooltip: runMetadata.name });
 
       this.setStateSafe({
