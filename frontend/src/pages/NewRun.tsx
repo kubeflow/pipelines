@@ -489,7 +489,7 @@ class NewRun extends Page<{}, NewRunState> {
 
     try {
       runWithEmbeddedPipeline = await Apis.runServiceApi.getRun(embeddedPipelineRunId);
-      embeddedPipelineSpec = RunUtils.getPipelineSpec(runWithEmbeddedPipeline.run);
+      embeddedPipelineSpec = RunUtils.getWorkflowManifest(runWithEmbeddedPipeline.run);
     } catch (err) {
       await this.showPageError(
         `Error: failed to retrieve the specified run: ${embeddedPipelineRunId}.`, err);
@@ -538,7 +538,7 @@ class NewRun extends Page<{}, NewRunState> {
     const referencePipelineId = RunUtils.getPipelineId(originalRun);
     // This corresponds to a run where the pipeline has not been uploaded, such as runs started from
     // the CLI or notebooks
-    const embeddedPipelineSpec = RunUtils.getPipelineSpec(originalRun);
+    const embeddedPipelineSpec = RunUtils.getWorkflowManifest(originalRun);
     if (referencePipelineId) {
       try {
         pipeline = await Apis.pipelineServiceApi.getPipeline(referencePipelineId);
