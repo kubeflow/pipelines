@@ -91,7 +91,7 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
       after_success:
-        - coveralls
+        - coveralls --verbose
     - language: python
       python: "3.6"
       env: TOXENV=py36
