@@ -54,6 +54,10 @@ def parse_arguments():
 
 
 def main():
+  #TODO(numerology): Remove this.
+  # By no means this should pass.
+  assert(1 == 0)
+
   args = parse_arguments()
   test_cases = []
   test_name = args.testname + ' Sample Test'
