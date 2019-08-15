@@ -17,7 +17,7 @@
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Metric from '../components/Metric';
-import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
+import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
 import { ApiRun, ApiResourceType, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
@@ -28,11 +28,6 @@ import { URLParser } from '../lib/URLParser';
 import { commonCss, color } from '../Css';
 import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
 import { statusToIcon } from './Status';
-
-interface ExperimentInfo {
-  displayName?: string;
-  id: string;
-}
 
 interface PipelineInfo {
   displayName?: string;
@@ -378,13 +373,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   private async _getAndSetExperimentNames(displayRun: DisplayRun): Promise<void> {
     const experimentReference = RunUtils.getFirstExperimentReferenceWithName(displayRun.run);
     if (experimentReference) {
-      displayRun.experiment = {
-        displayName: experimentReference.name,
-        // experimentReference.key.id is know to exist because
-        // RunUtils.getFirstExperimentReferenceWithName checks for its
-        // existence.
-        id: experimentReference.key!.id!,
-      };
+      displayRun.experiment = experimentReference;
     } else {
       const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.run);
       if (experimentId) {

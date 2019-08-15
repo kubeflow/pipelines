@@ -29,6 +29,11 @@ export interface MetricMetadata {
   name: string;
 }
 
+export interface ExperimentInfo {
+  displayName?: string;
+  id: string;
+}
+
 function getParametersFromRun(run: ApiRunDetail): ApiParameter[] {
   return getParametersFromRuntime(run.pipeline_runtime);
 }
@@ -67,9 +72,16 @@ function getFirstExperimentReference(run?: ApiRun | ApiJob): ApiResourceReferenc
   return run && getAllExperimentReferences(run)[0] || null;
 }
 
-function getFirstExperimentReferenceWithName(run?: ApiRun | ApiJob): ApiResourceReference | null {
-  return (run && getAllExperimentReferences(run) || [])
-    .find((ref) => !!ref.key && !!ref.key.id && !!ref.name) || null;
+function getFirstExperimentReferenceWithName(run?: ApiRun | ApiJob): ExperimentInfo | null {
+  const reference = (run && getAllExperimentReferences(run) || [])
+    .find((ref) => !!ref.key && !!ref.key.id && !!ref.name);
+  if (reference) {
+    return {
+      displayName: reference.name,
+      id: reference.key!.id!,
+    };
+  }
+  return null;
 }
 
 function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference[] {
