@@ -365,7 +365,7 @@ func (r *ResourceManager) RetryRun(runId string) error {
 		return util.Wrap(err, "Retry run failed.")
 	}
 
-	if err = deletePods(r.podClient, podsToDelete, newWorkflow.ObjectMeta.Namespace); err != nil {
+	if err = deletePods(r.podClient, podsToDelete); err != nil {
 		return util.NewInternalServerError(err, "Retry run failed. Failed to clean up the failed pods from previous run.")
 	}
 

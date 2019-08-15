@@ -45,6 +45,13 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
+	var pipelineName string
+	if run.PipelineSpec.GetPipelineId() != "" {
+		pipelineName, err = r.getResourceName(common.Pipeline, run.PipelineSpec.GetPipelineId())
+		if err != nil {
+			return nil, util.Wrap(err, "Error getting the pipeline name")
+		}
+	}
 
 	return &model.RunDetail{
 		Run: model.Run{
@@ -57,6 +64,7 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           run.PipelineSpec.GetPipelineId(),
+				PipelineName:         pipelineName,
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           params,
 			},
@@ -76,7 +84,13 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	if err != nil {
 		return nil, util.Wrap(err, "Error to convert resource references.")
 	}
-
+	var pipelineName string
+	if job.PipelineSpec.GetPipelineId() != "" {
+		pipelineName, err = r.getResourceName(common.Pipeline, job.PipelineSpec.GetPipelineId())
+		if err != nil {
+			return nil, util.Wrap(err, "Error getting the pipeline name")
+		}
+	}
 	return &model.Job{
 		UUID:               string(swf.UID),
 		DisplayName:        job.Name,
@@ -90,6 +104,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		ResourceReferences: resourceReferences,
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           job.PipelineSpec.GetPipelineId(),
+			PipelineName:         pipelineName,
 			WorkflowSpecManifest: workflowSpecManifest,
 			Parameters:           params,
 		},

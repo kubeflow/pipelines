@@ -124,6 +124,7 @@ func toApiRun(run *model.Run) *api.Run {
 		Status:       run.Conditions,
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId:       run.PipelineId,
+			PipelineName:     run.PipelineName,
 			WorkflowManifest: run.WorkflowSpecManifest,
 			PipelineManifest: run.PipelineSpecManifest,
 			Parameters:       params,
@@ -170,6 +171,7 @@ func ToApiJob(job *model.Job) *api.Job {
 		Trigger:        toApiTrigger(job.Trigger),
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId:       job.PipelineId,
+			PipelineName:     job.PipelineName,
 			WorkflowManifest: job.WorkflowSpecManifest,
 			PipelineManifest: job.PipelineSpecManifest,
 			Parameters:       params,
@@ -205,7 +207,7 @@ func toApiResourceReferences(references []*model.ResourceReference) []*api.Resou
 				Type: toApiResourceType(ref.ReferenceType),
 				Id:   ref.ReferenceUUID,
 			},
-			Name: ref.ReferenceName,
+			Name:         ref.ReferenceName,
 			Relationship: toApiRelationship(ref.Relationship),
 		})
 	}
