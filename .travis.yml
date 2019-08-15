@@ -91,7 +91,7 @@ matrix:
         - ./run_test.sh
         # Report to coveralls.
         - cd $TRAVIS_BUILD_DIR/sdk/python
-        - coverage run -m $TRAVIS_BUILD_DIR/sdk/python/unittest
+        - coverage run -m unittest
     - after_success:
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - coveralls --verbose
