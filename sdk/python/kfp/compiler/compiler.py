@@ -17,7 +17,7 @@ from collections import defaultdict
 import inspect
 import tarfile
 import zipfile
-from typing import Set, List
+from typing import Set, List, Text, Dict
 
 import yaml
 
@@ -28,7 +28,6 @@ from ._default_transformers import add_pod_env
 
 from ..dsl._metadata import TypeMeta, _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
-from ..dsl import _pipeline_param
 
 
 class Compiler(object):
@@ -187,6 +186,31 @@ class Compiler(object):
     _get_condition_params_for_ops_helper(root_group, [])
     return conditions
 
+  def _get_next_group_or_op(cls, to_visit: List, already_visited: Set):
+    """Get next group or op to visit."""
+    if len(to_visit) == 0:
+      return None
+    next = to_visit.pop(0)
+    while next in already_visited:
+      next = to_visit.pop(0)
+    already_visited.add(next)
+    return next
+
+  def _get_for_loop_ops(self, new_root) -> Dict[Text, dsl.ParallelFor]:
+    to_visit = self._get_subgroups(new_root)
+    op_name_to_op = {}
+    already_visited = set()
+
+    while len(to_visit):
+      next_op = self._get_next_group_or_op(to_visit, already_visited)
+      if next_op is None:
+        break
+      to_visit.extend(self._get_subgroups(next_op))
+      if isinstance(next_op, dsl.ParallelFor):
+        op_name_to_op[next_op.name] = next_op
+
+    return op_name_to_op
+
   def _fill_loop_args(self, new_root):
     """Traverses through graph, plucking up loop_args vars from ops groups and depositing pointers to them on the
     ops which contain them as arguments. and adds loop arguments where they belong."""
@@ -205,22 +229,12 @@ class Compiler(object):
 
       return loop_arg_names
 
-    def get_next(to_visit: List, already_visited: Set):
-      """Get next group or op to visit."""
-      if len(to_visit) == 0:
-        return None
-      next = to_visit.pop(0)
-      while next in already_visited:
-        next = to_visit.pop(0)
-      already_visited.add(next)
-      return next
-
     to_visit = self._get_subgroups(new_root)
     loop_args_name_to_obj = {}
     already_visited = set()
 
     while len(to_visit):
-      next = get_next(to_visit, already_visited)
+      next = self._get_next_group_or_op(to_visit, already_visited)
       if next is None:
         break
       to_visit.extend(self._get_subgroups(next))
@@ -241,7 +255,15 @@ class Compiler(object):
       subgroups.extend(op.groups)
     return subgroups
 
-  def _get_inputs_outputs(self, pipeline, root_group, op_groups, opsgroup_groups, condition_params):
+  def _get_inputs_outputs(
+          self,
+          pipeline,
+          root_group,
+          op_groups,
+          opsgroup_groups,
+          condition_params,
+          op_name_to_for_loop_op: Dict[Text, dsl.ParallelFor],
+  ):
     """Get inputs and outputs of each group and op.
 
     Returns:
@@ -256,36 +278,49 @@ class Compiler(object):
 
     for op in pipeline.ops.values():
       # op's inputs and all params used in conditions for that op are both considered.
+      # print(f"op.name = {op.name}")
       for param in op.inputs + list(condition_params[op.name]):
         # if the value is already provided (immediate value), then no need to expose
         # it as input for its parent groups.
+        # print(f"param.name = {param.name}")
+        # print(f"param.op_name = {param.op_name}")
         if param.value:
           continue
-        full_name = param.full_name
         if param.op_name:
           upstream_op = pipeline.ops[param.op_name]
           upstream_groups, downstream_groups = self._get_uncommon_ancestors(
               op_groups, opsgroup_groups, upstream_op, op)
-          for i, g in enumerate(downstream_groups):
+          for i, group_name in enumerate(downstream_groups):
             if i == 0:
               # If it is the first uncommon downstream group, then the input comes from
               # the first uncommon upstream group.
-              inputs[g].add((full_name, upstream_groups[0]))
+              inputs[group_name].add((param.full_name, upstream_groups[0]))
             else:
               # If not the first downstream group, then the input is passed down from
               # its ancestor groups so the upstream group is None.
-              inputs[g].add((full_name, None))
-          for i, g in enumerate(upstream_groups):
+              inputs[group_name].add((param.full_name, None))
+          for i, group_name in enumerate(upstream_groups):
             if i == len(upstream_groups) - 1:
               # If last upstream group, it is an operator and output comes from container.
-              outputs[g].add((full_name, None))
+              outputs[group_name].add((param.full_name, None))
             else:
               # If not last upstream group, output value comes from one of its child.
-              outputs[g].add((full_name, upstream_groups[i+1]))
+              outputs[group_name].add((param.full_name, upstream_groups[i+1]))
         else:
           if not op.is_exit_handler:
-            for g in op_groups[op.name]:
-              inputs[g].add((full_name, None))
+
+            for group_name in op_groups[op.name][::-1]:
+              # if group is for loop group and param is that loop's param, then the param
+              # is created by that for loop ops_group and it shouldn't be an input to
+              # any of its parent groups.
+              inputs[group_name].add((param.full_name, None))
+              if group_name in op_name_to_for_loop_op:
+                # loop_group.loop_args.name = 'loop-item-placeholder-99ca152eb887400e992909bfa0ef1050'
+                # param.name =                'loop-item-placeholder-99ca152eb887400e992909bfa0ef1050-item-subvar-a'
+                loop_group = op_name_to_for_loop_op[group_name]
+                if loop_group.loop_args.name in param.name:
+                  break
+
 
     # Generate the input/output for recursive opsgroups
     # It propagates the recursive opsgroups IO to their ancester opsgroups
@@ -500,15 +535,13 @@ class Compiler(object):
               })
             else:
               if isinstance(sub_group, dsl.ParallelFor):
-
                 if dsl.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
                   subvar_name = dsl.LoopArgumentVariable.get_subvar_name(param_name)
-                  value = '{{items.%s}}' % subvar_name
+                  value = '{{item.%s}}' % subvar_name
                 elif dsl.LoopArguments.name_is_loop_arguments(param_name):
-                  value = '{{items}}'
+                  value = '{{item}}'
                 else:
                   value = '{{inputs.parameters.%s}}' % param_name
-
                 task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
               else:
                 value = '{{inputs.parameters.%s}}' % param_name
@@ -556,6 +589,7 @@ class Compiler(object):
     opgroup_name_to_parent_groups = self._get_groups_for_opsgroups(root_group)
     condition_params = self._get_condition_params_for_ops(root_group)
 
+    op_name_to_for_loop_op = self._get_for_loop_ops(root_group)
     self._fill_loop_args(root_group)
 
     inputs, outputs = self._get_inputs_outputs(
@@ -564,6 +598,7 @@ class Compiler(object):
       op_name_to_parent_groups,
       opgroup_name_to_parent_groups,
       condition_params,
+      op_name_to_for_loop_op,
     )
     dependencies = self._get_dependencies(
       pipeline,

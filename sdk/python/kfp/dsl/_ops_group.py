@@ -164,13 +164,18 @@ class ParallelFor(OpsGroup):
   TYPE_NAME = 'for_loop'
 
   def __init__(self, loop_args: ItemList):
-    super().__init__(self.TYPE_NAME)
+    # random code to id this loop
+    code = uuid.uuid4().hex
+    group_name = f'for-loop-{code}'
+    super().__init__(self.TYPE_NAME, name=group_name)
 
     if not isinstance(loop_args, LoopArguments):
-      loop_args = LoopArguments(loop_args)
+      loop_args = LoopArguments(loop_args, code, op_name=None)  # , op_name=self.name)
 
     self.loop_args = loop_args
 
   def __enter__(self) -> LoopArguments:
     _ = super().__enter__()
+    # set it here so that this ops group has already had its name uniquified
+    self.loop_args.op_name = self.name
     return self.loop_args

@@ -17,8 +17,8 @@ class LoopArguments(dsl.PipelineParam):
         return param.param_type.name == cls.PARAM_TYPE_NAME
 
     @classmethod
-    def make_name(cls):
-        return f'{cls._loop_item_placeholder_name}-{uuid.uuid4().hex}'
+    def make_name(cls, code: Text):
+        return f'{cls._loop_item_placeholder_name}-{code}'
 
     @classmethod
     def name_is_loop_arguments(cls, param_name: Text):
@@ -27,9 +27,9 @@ class LoopArguments(dsl.PipelineParam):
             param_name
         ) is not None
 
-    def __init__(self, items: ItemList, op_name: Optional[Text] = None):
+    def __init__(self, items: ItemList, code: Text, op_name: Text):
         super().__init__(
-            name=self.make_name(),
+            name=self.make_name(code),
             op_name=op_name,
             param_type=_metadata.TypeMeta(name=self.PARAM_TYPE_NAME),
         )
