@@ -60,28 +60,18 @@ function getPipelineSpec(run?: ApiRun | ApiJob): string | null {
   return (run && run.pipeline_spec && run.pipeline_spec.workflow_manifest) || null;
 }
 
-function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {
-  if (run) {
-    const reference = getAllExperimentReferences(run)[0];
-    return reference && reference.key && reference.key.id || null;
-  }
-  return null;
-}
-
 function getFirstExperimentReference(run?: ApiRun | ApiJob): ApiResourceReference | null {
-  return run && getAllExperimentReferences(run)[0] || null;
+  return getAllExperimentReferences(run)[0] || null;
 }
 
-function getFirstExperimentReferenceWithName(run?: ApiRun | ApiJob): ExperimentInfo | null {
-  const reference = (run && getAllExperimentReferences(run) || [])
-    .find((ref) => !!ref.key && !!ref.key.id && !!ref.name);
-  if (reference) {
-    return {
-      displayName: reference.name,
-      id: reference.key!.id!,
-    };
-  }
-  return null;
+function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {
+  const reference = getFirstExperimentReference(run);
+  return reference && reference.key && reference.key.id || null;
+}
+
+function getFirstExperimentReferenceName(run?: ApiRun | ApiJob): string | null {
+  const reference = getFirstExperimentReference(run);
+  return reference && reference.name || null;
 }
 
 function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference[] {
@@ -145,7 +135,7 @@ export default {
   getAllExperimentReferences,
   getFirstExperimentReference,
   getFirstExperimentReferenceId,
-  getFirstExperimentReferenceWithName,
+  getFirstExperimentReferenceName,
   getParametersFromRun,
   getParametersFromRuntime,
   getPipelineId,

@@ -371,19 +371,22 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * DisplayRun will show '-'.
    */
   private async _getAndSetExperimentNames(displayRun: DisplayRun): Promise<void> {
-    const experimentReference = RunUtils.getFirstExperimentReferenceWithName(displayRun.run);
-    if (experimentReference) {
-      displayRun.experiment = experimentReference;
-    } else {
-      const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.run);
-      if (experimentId) {
+    const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.run);
+    if (experimentId) {
+      let experimentName = RunUtils.getFirstExperimentReferenceName(displayRun.run);
+      if (!experimentName) {
         try {
           const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-          displayRun.experiment = { displayName: experiment.name || '', id: experimentId };
+          experimentName = experiment.name || '';
         } catch (err) {
           displayRun.error = 'Failed to get associated experiment: ' + await errorToMessage(err);
+          return;
         }
       }
+      displayRun.experiment = {
+        displayName: experimentName,
+        id: experimentId
+      };
     }
   }
 }
