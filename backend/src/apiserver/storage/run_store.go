@@ -169,9 +169,11 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 
 // GetRun Get the run manifest from Workflow CRD
 func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
-	sql, args, err := s.addMetricsAndResourceReferences(sq.Select(runColumns...).From("run_details")).
-		Where(sq.Eq{"UUID": runId}).
-		Limit(1).
+	sql, args, err := s.addMetricsAndResourceReferences(
+		sq.Select(runColumns...).
+			From("run_details").
+			Where(sq.Eq{"UUID": runId}).
+			Limit(1)).
 		ToSql()
 
 	if err != nil {
