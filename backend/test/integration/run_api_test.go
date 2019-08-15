@@ -235,7 +235,7 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		Status:      "Terminating",
 		PipelineSpec: &run_model.APIPipelineSpec{
 			PipelineID:       pipelineId,
-			PipelineName:     "long-running",
+			PipelineName:     "long-running.yaml",
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
@@ -263,7 +263,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		Status:      runDetail.Run.Status,
 		PipelineSpec: &run_model.APIPipelineSpec{
 			PipelineID:       pipelineId,
-			PipelineName:     "hello-world",
+			PipelineName:     "hello-world.yaml",
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
