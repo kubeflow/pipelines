@@ -17,6 +17,7 @@ import sys
 import unittest
 from pathlib import Path
 
+sys.path.insert(0, __file__ + '/../../../')
 
 import kfp
 import kfp.components as comp

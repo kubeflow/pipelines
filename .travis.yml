@@ -65,14 +65,13 @@ matrix:
       env: TOXENV=py35
       script: &1
         # Additional dependencies
-        - pip3 install coverage coveralls jsonschema==3.0.1 
+        - pip3 install jsonschema==3.0.1
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python3 setup.py install
-        - coverage run --include=*/kfp/* --omit */site-packages/* --append tests/dsl/main.py
-        - coverage run --include=*/kfp/* --omit */site-packages/* --append tests/compiler/main.py
-        - coverage run --include=*/kfp/* --omit */site-packages/* --append -m unittest discover --verbose --start-dir tests --top-level-directory=.
-        - coveralls
+        - python3 tests/dsl/main.py
+        - python3 tests/compiler/main.py
+        - $TRAVIS_BUILD_DIR/sdk/python/tests/run_tests.sh
 
         # Visualization test
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
