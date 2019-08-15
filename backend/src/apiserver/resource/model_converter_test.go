@@ -108,7 +108,7 @@ func TestToModelRunDetail(t *testing.T) {
 }
 
 func TestToModelJob(t *testing.T) {
-	store, manager, experiment := initWithExperiment(t)
+	store, manager, experiment, pipeline := initWithExperimentAndPipeline(t)
 	defer store.Close()
 	apiJob := &api.Job{
 		Name:           "name1",
@@ -122,7 +122,7 @@ func TestToModelJob(t *testing.T) {
 		ResourceReferences: []*api.ResourceReference{
 			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID}, Relationship: api.Relationship_OWNER},
 		},
-		PipelineSpec: &api.PipelineSpec{PipelineId: "1", Parameters: []*api.Parameter{{Name: "param2", Value: "world"}}},
+		PipelineSpec: &api.PipelineSpec{PipelineId: pipeline.UUID, Parameters: []*api.Parameter{{Name: "param2", Value: "world"}}},
 	}
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: v1.ObjectMeta{
@@ -151,7 +151,8 @@ func TestToModelJob(t *testing.T) {
 		},
 		MaxConcurrency: 1,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:           "1",
+			PipelineId:           pipeline.UUID,
+			PipelineName:         pipeline.Name,
 			WorkflowSpecManifest: "workflow spec",
 			Parameters:           `[{"name":"param2","value":"world"}]`,
 		},

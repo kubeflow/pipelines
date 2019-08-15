@@ -392,6 +392,10 @@
           "type": "string",
           "description": "Optional input field. The ID of the pipeline user uploaded before."
         },
+        "pipeline_name": {
+          "type": "string",
+          "description": "Optional output field. The name of the pipeline.\nNot empty if the pipeline id is not empty."
+        },
         "workflow_manifest": {
           "type": "string",
           "description": "Optional input field. The marshalled raw argo JSON workflow.\nThis will be deprecated when pipeline_manifest is in use."

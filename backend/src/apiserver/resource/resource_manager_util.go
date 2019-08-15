@@ -171,7 +171,7 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 	return util.NewWorkflow(newWF), podsToDelete, nil
 }
 
-func deletePods(podClient corev1.PodInterface, podsToDelete []string, namespace string) error {
+func deletePods(podClient corev1.PodInterface, podsToDelete []string) error {
 	for _, podId := range podsToDelete {
 		err := podClient.Delete(podId, &metav1.DeleteOptions{})
 		if err != nil && !apierr.IsNotFound(err) {
