@@ -14,12 +14,6 @@ spec:
         app: ml-pipeline-visualizationserver
       spec:
         containers:
-        - env:
-          - name: POD_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-          # TODO: Push image to GCR and obtain tag
           image: gcr.io/ml-pipeline/visualization-server:0.1.15
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-visualizationserver
