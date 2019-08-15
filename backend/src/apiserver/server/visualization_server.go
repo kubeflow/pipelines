@@ -75,7 +75,7 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 		return body, nil
 	} else {
 		return nil, util.NewInternalServerError(
-			fmt.Errorf("service not avalaible"),
+			fmt.Errorf("service not available"),
 			"Service not available",
 		)
 	}
