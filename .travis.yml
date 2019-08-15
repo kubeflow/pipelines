@@ -68,16 +68,13 @@ matrix:
         # Additional dependencies
         - pip3 install jsonschema==3.0.1
         # Dependency for coveralls.io report.
-        - pip install coveralls
+        - pip3 install --upgrade coveralls
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python3 setup.py install
         - python3 tests/dsl/main.py
         - python3 tests/compiler/main.py
         - $TRAVIS_BUILD_DIR/sdk/python/tests/run_tests.sh
-        # Report to coveralls.
-        - coverage run -m unittest
-        - coveralls --verbose
 
         # Visualization test
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
@@ -92,6 +89,12 @@ matrix:
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
+        # Report to coveralls.
+        - cd $TRAVIS_BUILD_DIR/sdk/python
+        - coverage run -m $TRAVIS_BUILD_DIR/sdk/python/unittest
+    - after_success:
+        - cd $TRAVIS_BUILD_DIR/sdk/python
+        - coveralls --verbose
     - language: python
       python: "3.6"
       env: TOXENV=py36
