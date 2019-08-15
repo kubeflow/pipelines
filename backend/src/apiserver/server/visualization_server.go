@@ -73,6 +73,7 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	return body, nil
 }
 
-func NewVisualizationServer(resourceManager *resource.ResourceManager) *VisualizationServer {
-	return &VisualizationServer{resourceManager: resourceManager, serviceURL: "http://ml-pipeline-visualization.kubeflow"}
+func NewVisualizationServer(resourceManager *resource.ResourceManager, namespace string) *VisualizationServer {
+	serviceURL := fmt.Sprintf("http://ml-pipeline-visualization.%s", namespace)
+	return &VisualizationServer{resourceManager: resourceManager, serviceURL: serviceURL}
 }
