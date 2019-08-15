@@ -34,13 +34,13 @@ from tensorflow.python.lib.io import file_io
 # trueclass
 # true_score_column
 
-if is_generated is False:
+if "is_generated" is not in variables or variables["is_generated"] is False:
     # Create data from specified csv file(s).
     # The schema file provides column names for the csv file that will be used
     # to generate the roc curve.
-    schema_file = Path(source) / 'schema.json'
+    schema_file = Path(source) / "schema.json"
     schema = json.loads(file_io.read_file_to_string(schema_file))
-    names = [x['name'] for x in schema]
+    names = [x["name"] for x in schema]
 
     dfs = []
     files = file_io.get_matching_files(source)
@@ -48,25 +48,25 @@ if is_generated is False:
         dfs.append(pd.read_csv(f, names=names))
 
     df = pd.concat(dfs)
-    if target_lambda:
-        df['target'] = df.apply(eval(target_lambda), axis=1)
+    if variables["target_lambda"]:
+        df["target"] = df.apply(eval(variables["target_lambda"]), axis=1)
     else:
-        df['target'] = df['target'].apply(lambda x: 1 if x == trueclass else 0)
-    fpr, tpr, thresholds = roc_curve(df['target'], df[true_score_column])
-    source = pd.DataFrame({'fpr': fpr, 'tpr': tpr, 'thresholds': thresholds})
+        df["target"] = df["target"].apply(lambda x: 1 if x == variables["trueclass"] else 0)
+    fpr, tpr, thresholds = roc_curve(df["target"], df[variables["true_score_column"]])
+    df = pd.DataFrame({"fpr": fpr, "tpr": tpr, "thresholds": thresholds})
 else:
     # Load data from generated csv file.
-    source = pd.read_csv(
+    df = pd.read_csv(
         source,
         header=None,
-        names=['fpr', 'tpr', 'thresholds']
+        names=["fpr", "tpr", "thresholds"]
     )
 
 # Create visualization.
 output_notebook()
 
 p = figure(tools="pan,wheel_zoom,box_zoom,reset,hover,previewsave")
-p.line('fpr', 'tpr', line_width=2, source=source)
+p.line("fpr", "tpr", line_width=2, source=df)
 
 hover = p.select(dict(type=HoverTool))
 hover.tooltips = [("Threshold", "@thresholds")]
