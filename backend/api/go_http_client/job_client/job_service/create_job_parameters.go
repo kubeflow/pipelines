@@ -77,7 +77,10 @@ for the create job operation typically these are written to a http.Request
 */
 type CreateJobParams struct {
 
-	/*Body*/
+	/*Body
+	  The job to be created
+
+	*/
 	Body *job_model.APIJob
 
 	timeout    time.Duration

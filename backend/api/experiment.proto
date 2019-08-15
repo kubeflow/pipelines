@@ -14,6 +14,7 @@
 
 syntax = "proto3";
 
+option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
 package api;
 
 import "google/api/annotations.proto";
@@ -84,16 +85,19 @@ service ExperimentService {
 }
 
 message CreateExperimentRequest {
+  // The experiment to be created
   Experiment experiment = 1;
 }
 
 message GetExperimentRequest {
+  // The ID of the experiment to be retrieved
   string id = 1;
 }
 
 message ListExperimentsRequest {
   string page_token = 1;
   int32 page_size = 2;
+
   // Can be format of "field_name", "field_name asc" or "field_name des"
   // Ascending by default.
   string sort_by = 3;
@@ -104,12 +108,18 @@ message ListExperimentsRequest {
 }
 
 message ListExperimentsResponse {
+  // A list of experiments returned.
   repeated Experiment experiments = 1;
+
+  // The total number of experiments for the given query.
   int32 total_size = 3;
+
+  // The token to list the next page of experiments.
   string next_page_token = 2;
 }
 
 message DeleteExperimentRequest{
+  // The ID of the experiment to be deleted.
   string id = 1;
 }
 

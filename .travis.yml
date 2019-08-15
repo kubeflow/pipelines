@@ -26,40 +26,73 @@ matrix:
         - npm i
         - npm run test:coveralls
     - language: generic
+      env:
+        - BAZEL_URL="https://github.com/bazelbuild/bazel/releases/download/0.23.0/bazel-0.23.0-installer-linux-x86_64.sh"
+      before_install:
+        # Install Bazel
+        - |
+          wget -O install.sh "${BAZEL_URL}"
+          chmod +x install.sh
+          ./install.sh --user
+          rm -f install.sh
+
       script:
         # Backend unit tests
         - cd $TRAVIS_BUILD_DIR/backend/src
         - gimme -f 1.11.4
+        - |
+          bazel --host_jvm_args=-Xmx500m --host_jvm_args=-Xms500m \
+           build --noshow_progress --noshow_loading_progress --define=grpc_no_ares=true //backend/...
+        - |
+          bazel --host_jvm_args=-Xmx500m --host_jvm_args=-Xms500m \
+           test --noshow_progress --noshow_loading_progress --define=grpc_no_ares=true //backend/...
         - source ~/.gimme/envs/go1.11.4.env
-        - go vet -all -shadow ./...
-        - go test ./...
+        - go vet -all -shadow ./agent/...
+        - go vet -all -shadow ./common/...
+        - go vet -all -shadow ./crd/...
+        - go test ./agent/...
+        - go test ./common/...
+        - go test ./crd/...
     - language: python
       python: "2.7"
       env: TOXENV=py27
       script:
         # Component SDK tests
-        - cd $TRAVIS_BUILD_DIR/component_sdk/python
+        - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
+        - ./run_test.sh
+    - language: python
+      python: "3.5"
+      env: TOXENV=py35
+      script: &1
+        # Additional dependencies
+        - pip3 install coverage coveralls jsonschema==3.0.1 
+        # DSL tests
+        - cd $TRAVIS_BUILD_DIR/sdk/python
+        - python3 setup.py install
+        - coverage run --include=*/kfp/* --append tests/dsl/main.py
+        - coverage run --include=*/kfp/* --append tests/compiler/main.py
+        - coverage run --include=*/kfp/* --append -m unittest discover --verbose --start-dir tests --top-level-directory=.
+        - coveralls
+
+        # Visualization test
+        - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
+        # Visualization test dependencies
+        - pip3 install -r requirements-test.txt
+        - python3 test_exporter.py
+        - python3 test_server.py
+
+        # Test loading all component.yaml definitions
+        - $TRAVIS_BUILD_DIR/components/test_load_all_components.sh
+
+        # Component SDK tests
+        - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
     - language: python
       python: "3.6"
       env: TOXENV=py36
-      addons:
-        apt:
-          packages:
-            - default-jdk
-            - wget
-      script:
-        # DSL tests
-        - wget http://central.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.1/swagger-codegen-cli-2.4.1.jar -O /tmp/swagger-codegen-cli.jar
-        - cd $TRAVIS_BUILD_DIR/sdk/python
-        - ./build.sh /tmp/kfp.tar.gz
-        - pip install /tmp/kfp.tar.gz
-        - pip install coverage coveralls
-        - coverage run --include=*/kfp/* --append tests/dsl/main.py
-        - coverage run --include=*/kfp/* --append tests/compiler/main.py
-        - coverage run --include=*/kfp/* --append -m unittest discover --verbose --start-dir tests --top-level-directory=..
-        - coveralls
-
-        # Component SDK tests
-        - cd $TRAVIS_BUILD_DIR/component_sdk/python
-        - ./run_test.sh
+      script: *1
+    - language: python
+      python: "3.7"
+      env: TOXENV=py37
+      dist: xenial # required for Python >= 3.7
+      script: *1

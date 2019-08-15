@@ -25,6 +25,7 @@
 import argparse
 import json
 import os
+import urlparse
 import pandas as pd
 from sklearn.metrics import confusion_matrix, accuracy_score
 from tensorflow.python.lib.io import file_io
@@ -40,7 +41,8 @@ def main(argv=None):
                            'If not set, the input must include a "target" column.')
   args = parser.parse_args()
 
-  on_cloud = args.output.startswith('gs://')
+  storage_service_scheme = urlparse.urlparse(args.output).scheme
+  on_cloud = True if storage_service_scheme else False
   if not on_cloud and not os.path.exists(args.output):
     os.makedirs(args.output)
 
@@ -52,7 +54,7 @@ def main(argv=None):
   for file in files:
     with file_io.FileIO(file, 'r') as f:
       dfs.append(pd.read_csv(f, names=names))
-    
+
   df = pd.concat(dfs)
   if args.target_lambda:
     df['target'] = df.apply(eval(args.target_lambda), axis=1)
@@ -72,7 +74,6 @@ def main(argv=None):
   metadata = {
     'outputs' : [{
       'type': 'confusion_matrix',
-      'storage': 'gcs',
       'format': 'csv',
       'schema': [
         {'name': 'target', 'type': 'CATEGORY'},

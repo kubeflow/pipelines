@@ -271,7 +271,7 @@ func TestSetLabels(t *testing.T) {
 	assert.Equal(t, expected, workflow.Get())
 }
 
-func TestGetSpec(t *testing.T) {
+func TestGetWorkflowSpec(t *testing.T) {
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "WORKFLOW_NAME",
@@ -291,8 +291,7 @@ func TestGetSpec(t *testing.T) {
 
 	expected := &workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "WORKFLOW_NAME",
-			Labels: map[string]string{"key": "value"},
+			GenerateName: "WORKFLOW_NAME",
 		},
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
@@ -303,7 +302,41 @@ func TestGetSpec(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, workflow.GetSpec().Get())
+	assert.Equal(t, expected, workflow.GetWorkflowSpec().Get())
+}
+
+func TestGetWorkflowSpecTruncatesNameIfLongerThan200Runes(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "THIS_NAME_IS_GREATER_THAN_200_CHARACTERS_AND_WILL_BE_TRUNCATED_AFTER_THE_X_OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOXZZZZZZZZ",
+			Labels: map[string]string{"key": "value"},
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM", Value: StringPointer("VALUE")},
+				},
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Message: "I AM A MESSAGE",
+		},
+	})
+
+	expected := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "THIS_NAME_IS_GREATER_THAN_200_CHARACTERS_AND_WILL_BE_TRUNCATED_AFTER_THE_X_OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOX",
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM", Value: StringPointer("VALUE")},
+				},
+			},
+		},
+	}
+
+	assert.Equal(t, expected, workflow.GetWorkflowSpec().Get())
 }
 
 func TestVerifyParameters(t *testing.T) {

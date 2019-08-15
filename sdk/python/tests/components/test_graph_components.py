@@ -81,7 +81,7 @@ implementation:
       graph out 2: {taskOutput: {taskId: task 1, outputName: out1 2}}
 '''
         struct = load_yaml(component_text)
-        ComponentSpec.from_struct(struct)
+        ComponentSpec.from_dict(struct)
 
     @unittest.expectedFailure
     def test_fail_on_cyclic_references(self):
@@ -99,7 +99,7 @@ implementation:
             in2 1: {taskOutput: {taskId: task 1, outputName: out1 1}}
 '''
         struct = load_yaml(component_text)
-        ComponentSpec.from_struct(struct)
+        ComponentSpec.from_dict(struct)
 
     def test_handle_parsing_predicates(self):
         component_text = '''\
@@ -126,7 +126,7 @@ implementation:
                             op2: 'head'
 '''
         struct = load_yaml(component_text)
-        ComponentSpec.from_struct(struct)
+        ComponentSpec.from_dict(struct)
 
     def test_handle_parsing_task_container_spec_options(self):
         component_text = '''\
@@ -143,7 +143,7 @@ implementation:
 
 '''
         struct = load_yaml(component_text)
-        component_spec = ComponentSpec.from_struct(struct)
+        component_spec = ComponentSpec.from_dict(struct)
         self.assertEqual(component_spec.implementation.graph.tasks['task 1'].k8s_container_options.resources.requests['memory'], '1024Mi')
 
 
@@ -165,7 +165,7 @@ implementation:
               emptyDir: {}
 '''
         struct = load_yaml(component_text)
-        component_spec = ComponentSpec.from_struct(struct)
+        component_spec = ComponentSpec.from_dict(struct)
         self.assertEqual(component_spec.implementation.graph.tasks['task 1'].k8s_pod_options.spec.volumes[0].name, 'workdir')
         self.assertTrue(component_spec.implementation.graph.tasks['task 1'].k8s_pod_options.spec.volumes[0].empty_dir is not None)
 

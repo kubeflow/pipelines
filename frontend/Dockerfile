@@ -37,7 +37,6 @@ COPY --from=build ./src/frontend/build /client
 WORKDIR /server
 
 EXPOSE 3000
-RUN npm install
 RUN npm run build
 ENV API_SERVER_ADDRESS http://localhost:3001
 CMD node dist/server.js ../client/ 3000

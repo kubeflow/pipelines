@@ -1,0 +1,548 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`VisualizationCreator disables all select and input fields when busy 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={true}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+    >
+      <WithStyles(MenuItem)
+        key="CURVE"
+        value="ROC_CURVE"
+      >
+        CURVE
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={true}
+    label="Input Path"
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <Component
+    disabled={true}
+    label="Arguments (optional)"
+    multiline={true}
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <BusyButton
+    busy={true}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
+exports[`VisualizationCreator does not render component when no config is provided 1`] = `""`;
+
+exports[`VisualizationCreator renders component when all parameters in config are provided 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+    >
+      <WithStyles(MenuItem)
+        key="CURVE"
+        value="ROC_CURVE"
+      >
+        CURVE
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Input Path"
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <Component
+    disabled={false}
+    label="Arguments (optional)"
+    multiline={true}
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
+exports[`VisualizationCreator renders component when empty config is provided 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+    >
+      <WithStyles(MenuItem)
+        key="CURVE"
+        value="ROC_CURVE"
+      >
+        CURVE
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Input Path"
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <Component
+    disabled={false}
+    label="Arguments (optional)"
+    multiline={true}
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
+exports[`VisualizationCreator renders component when isBusy is not provided 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+    >
+      <WithStyles(MenuItem)
+        key="CURVE"
+        value="ROC_CURVE"
+      >
+        CURVE
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Input Path"
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <Component
+    disabled={false}
+    label="Arguments (optional)"
+    multiline={true}
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
+exports[`VisualizationCreator renders component when onGenerate is not provided 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+    >
+      <WithStyles(MenuItem)
+        key="CURVE"
+        value="ROC_CURVE"
+      >
+        CURVE
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Input Path"
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <Component
+    disabled={false}
+    label="Arguments (optional)"
+    multiline={true}
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
+exports[`VisualizationCreator renders the provided arguments correctly 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+    >
+      <WithStyles(MenuItem)
+        key="CURVE"
+        value="ROC_CURVE"
+      >
+        CURVE
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Input Path"
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <Component
+    disabled={false}
+    label="Arguments (optional)"
+    multiline={true}
+    onChange={[Function]}
+    value="{\\"is_generated\\":\\"True\\"}"
+    variant="outlined"
+  />
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
+exports[`VisualizationCreator renders the provided input path correctly 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+    >
+      <WithStyles(MenuItem)
+        key="CURVE"
+        value="ROC_CURVE"
+      >
+        CURVE
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Input Path"
+    onChange={[Function]}
+    value="gs://ml-pipeline/data.csv"
+    variant="outlined"
+  />
+  <Component
+    disabled={false}
+    label="Arguments (optional)"
+    multiline={true}
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
+exports[`VisualizationCreator renders the selected visualization type correctly 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+      value="ROC_CURVE"
+    >
+      <WithStyles(MenuItem)
+        key="CURVE"
+        value="ROC_CURVE"
+      >
+        CURVE
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Input Path"
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <Component
+    disabled={false}
+    label="Arguments (optional)"
+    multiline={true}
+    onChange={[Function]}
+    value=""
+    variant="outlined"
+  />
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;

@@ -83,7 +83,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
 				CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-				Cron:                       util.StringPointer("1 * *"),
+				Cron: util.StringPointer("1 * *"),
 			},
 		},
 		Enabled:        true,
@@ -156,7 +156,7 @@ func TestListJobs_Pagination(t *testing.T) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron:                       util.StringPointer("1 * *"),
+					Cron: util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -184,12 +184,12 @@ func TestListJobs_TotalSizeWithNoFilter(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
 
-	opts, _ := list.NewOptions(&model.Job{}, 1, "name", nil)
+	opts, _ := list.NewOptions(&model.Job{}, 4, "name", nil)
 
 	// No filter
 	jobs, total_size, _, err := jobStore.ListJobs(&common.FilterContext{}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(jobs))
+	assert.Equal(t, 2, len(jobs))
 	assert.Equal(t, 2, total_size)
 }
 
@@ -198,7 +198,7 @@ func TestListJobs_TotalSizeWithFilter(t *testing.T) {
 	defer db.Close()
 
 	// Add a filter
-	opts, _ := list.NewOptions(&model.Job{}, 1, "name", &api.Filter{
+	opts, _ := list.NewOptions(&model.Job{}, 4, "name", &api.Filter{
 		Predicates: []*api.Predicate{
 			&api.Predicate{
 				Key: "name",
@@ -236,7 +236,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron:                       util.StringPointer("1 * *"),
+					Cron: util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -341,7 +341,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron:                       util.StringPointer("1 * *"),
+					Cron: util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -747,7 +747,7 @@ func TestUpdateJob_Success(t *testing.T) {
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(10),
 				CronScheduleEndTimeInSec:   util.Int64Pointer(20),
-				Cron:                       util.StringPointer("MY_CRON"),
+				Cron: util.StringPointer("MY_CRON"),
 			},
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(30),
@@ -833,7 +833,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: nil,
 				CronScheduleEndTimeInSec:   nil,
-				Cron:                       util.StringPointer(""),
+				Cron: util.StringPointer(""),
 			},
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: nil,

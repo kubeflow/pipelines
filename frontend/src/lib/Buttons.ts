@@ -53,6 +53,7 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select a run to clone',
       id: 'cloneBtn',
+      style: { minWidth: 100 },
       title: 'Clone run',
       tooltip: 'Create a copy from this run\s initial state',
     };
@@ -74,6 +75,7 @@ export default class Buttons {
       disabled: true,
       disabledTitle: 'Select multiple runs to compare',
       id: 'compareBtn',
+      style: { minWidth: 125 },
       title: 'Compare runs',
       tooltip: 'Compare up to 10 selected runs',
     };
@@ -83,7 +85,7 @@ export default class Buttons {
     callback: (selectedIds: string[], success: boolean) => void, useCurrentResource: boolean): ToolbarActionConfig {
     return {
       action: () => resourceName === 'pipeline' ?
-        this._deletePipeline(getSelectedIds(), callback, useCurrentResource) :
+        this._deletePipeline(getSelectedIds(), useCurrentResource, callback) :
         this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : `Select at least one ${resourceName} to delete`,
@@ -114,7 +116,6 @@ export default class Buttons {
       tooltip: 'Enable the run\'s trigger',
     };
   }
-
   public expandSections(action: () => void): ToolbarActionConfig {
     return {
       action,
@@ -131,7 +132,8 @@ export default class Buttons {
       icon: AddIcon,
       id: 'newExperimentBtn',
       outlined: true,
-      title: 'Create an experiment',
+      style: { minWidth: 185 },
+      title: 'Create experiment',
       tooltip: 'Create a new experiment',
     };
   }
@@ -143,6 +145,7 @@ export default class Buttons {
       id: 'createNewRunBtn',
       outlined: true,
       primary: true,
+      style: { minWidth: 130 },
       title: 'Create run',
       tooltip: 'Create a new run',
     };
@@ -155,6 +158,7 @@ export default class Buttons {
       id: 'createNewRunBtn',
       outlined: true,
       primary: true,
+      style: { minWidth: 130 },
       title: 'Create run',
       tooltip: 'Create a new run',
     };
@@ -166,6 +170,7 @@ export default class Buttons {
       icon: AddIcon,
       id: 'createNewRecurringRunBtn',
       outlined: true,
+      style: { minWidth: 195 },
       title: 'Create recurring run',
       tooltip: 'Create a new recurring run',
     };
@@ -192,12 +197,25 @@ export default class Buttons {
     };
   }
 
+  public terminateRun(getSelectedIds: () => string[], useCurrentResource: boolean,
+      callback: (selectedIds: string[], success: boolean) => void): ToolbarActionConfig {
+    return {
+      action: () => this._terminateRun(getSelectedIds(), useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select at least one run to terminate',
+      id: 'terminateRunBtn',
+      title: 'Terminate',
+      tooltip: 'Terminate execution of a run',
+    };
+  }
+
   public upload(action: () => void): ToolbarActionConfig {
     return {
       action,
       icon: AddIcon,
       id: 'uploadBtn',
       outlined: true,
+      style: { minWidth: 160 },
       title: 'Upload pipeline',
       tooltip: 'Upload pipeline',
     };
@@ -240,8 +258,8 @@ export default class Buttons {
     );
   }
 
-  private _deletePipeline(selectedIds: string[], callback: (selectedIds: string[], success: boolean) => void,
-    useCurrentResource: boolean): void {
+  private _deletePipeline(selectedIds: string[], useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void): void {
     this._dialogActionHandler(
       selectedIds,
       'Do you want to delete this Pipeline? This action cannot be undone.',
@@ -259,10 +277,24 @@ export default class Buttons {
       [id],
       'Do you want to delete this recurring run config? This action cannot be undone.',
       useCurrentResource,
-      Apis.jobServiceApi.deleteJob,
+      jobId => Apis.jobServiceApi.deleteJob(jobId),
       callback,
       'Delete',
       'recurring run config',
+    );
+  }
+
+  private _terminateRun(ids: string[], useCurrentResource: boolean,
+    callback: (_: string[], success: boolean) => void): void {
+    this._dialogActionHandler(
+      ids,
+      'Do you want to terminate this run? This action cannot be undone. This will terminate any'
+      + ' running pods, but they will not be deleted.',
+      useCurrentResource,
+      id => Apis.runServiceApi.terminateRun(id),
+      callback,
+      'Terminate',
+      'run',
     );
   }
 
@@ -309,7 +341,9 @@ export default class Buttons {
           message: `${actionName} succeeded for ${useCurrentResource ? 'this' : successfulOps} ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
           open: true,
         });
-        this._refresh();
+        if (!useCurrentResource) {
+          this._refresh();
+        }
       }
 
       if (unsuccessfulIds.length > 0) {

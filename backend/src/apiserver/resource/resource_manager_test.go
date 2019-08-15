@@ -62,6 +62,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
 	ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1"},
 	Spec:       v1alpha1.WorkflowSpec{Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}}},
+	Status:     v1alpha1.WorkflowStatus{Phase: v1alpha1.NodeRunning},
 })
 
 // Util function to create an initial state with pipeline uploaded
@@ -249,6 +250,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 3,
+			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           p.UUID,
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
@@ -287,7 +289,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			Name:           "workflow-name",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
 			CreatedAtInSec: 2,
-			Conditions:     "",
+			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
@@ -311,6 +313,36 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
+}
+
+func TestCreateRun_NoExperiment(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store)
+	apiRun := &api.Run{
+		Name: "No experiment",
+		PipelineSpec: &api.PipelineSpec{
+			WorkflowManifest: testWorkflow.ToStringForStore(),
+			Parameters: []*api.Parameter{
+				{Name: "param1", Value: "world"},
+			},
+		},
+		// No experiment
+		ResourceReferences: []*api.ResourceReference{},
+	}
+	runDetail, err := manager.CreateRun(apiRun)
+	assert.Nil(t, err)
+	expectedRunDetail := []*model.ResourceReference{{
+		ResourceUUID: "workflow1",
+		ResourceType: common.Run,
+		// Experiment is now set
+		ReferenceUUID: DefaultFakeUUID,
+		ReferenceType: common.Experiment,
+		Relationship:  common.Owner,
+	}}
+	assert.Equal(t, expectedRunDetail, runDetail.Run.ResourceReferences, "The CreateRun return has unexpected value.")
+	runDetail, err = manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRunDetail, runDetail.Run.ResourceReferences, "CreateRun stored invalid data in database")
 }
 
 func TestCreateRun_EmptyPipelineSpec(t *testing.T) {
@@ -446,6 +478,104 @@ func TestDeleteRun_DbFailure(t *testing.T) {
 	assert.Contains(t, err.Error(), "database is closed")
 }
 
+func TestDeleteExperiment(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	err := manager.DeleteExperiment(experiment.UUID)
+	assert.Nil(t, err)
+
+	_, err = manager.GetExperiment(experiment.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteExperiment_ClearsDefaultExperiment(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+	// Set default experiment ID. This is not normally done manually
+	err := manager.SetDefaultExperimentId(experiment.UUID)
+	assert.Nil(t, err)
+	// Verify that default experiment ID is set
+	defaultExperimentId, err := manager.GetDefaultExperimentId()
+	assert.Nil(t, err)
+	assert.Equal(t, experiment.UUID, defaultExperimentId)
+
+	err = manager.DeleteExperiment(experiment.UUID)
+	assert.Nil(t, err)
+
+	_, err = manager.GetExperiment(experiment.UUID)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+
+	// Verify that default experiment ID has been cleared
+	defaultExperimentId, err = manager.GetDefaultExperimentId()
+	assert.Nil(t, err)
+	assert.Equal(t, "", defaultExperimentId)
+}
+
+func TestDeleteExperiment_ExperimentNotExist(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	err := manager.DeleteExperiment("1")
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestDeleteExperiment_CrdFailure(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+
+	manager.workflowClient = &FakeBadWorkflowClient{}
+	err := manager.DeleteExperiment(experiment.UUID)
+	assert.Nil(t, err)
+}
+
+func TestDeleteExperiment_DbFailure(t *testing.T) {
+	store, manager, experiment := initWithExperiment(t)
+	defer store.Close()
+
+	store.DB().Close()
+	err := manager.DeleteExperiment(experiment.UUID)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "database is closed")
+}
+
+func TestTerminateRun(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+
+	err := manager.TerminateRun(runDetail.UUID)
+	assert.Nil(t, err)
+
+	actualRunDetail, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, "Terminating", actualRunDetail.Conditions)
+
+	isTerminated, err := store.workflowClientFake.isTerminated(runDetail.Run.Name)
+	assert.Nil(t, err)
+	assert.True(t, isTerminated)
+}
+
+func TestTerminateRun_RunNotExist(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+	err := manager.TerminateRun("1")
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestTerminateRun_DbFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeRun(t)
+	defer store.Close()
+
+	store.DB().Close()
+	err := manager.TerminateRun(runDetail.UUID)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "database is closed")
+}
+
 func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 	store, _, job := initWithJob(t)
 	defer store.Close()
@@ -475,9 +605,10 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 }
 
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
-	store, _, pipeline := initWithPipeline(t)
+	store, manager, pipeline := initWithPipeline(t)
 	defer store.Close()
-	manager := NewResourceManager(store)
+	experiment := &model.Experiment{Name: "e1"}
+	experiment, err := manager.CreateExperiment(experiment)
 	job := &api.Job{
 		Name:    "j1",
 		Enabled: true,
@@ -485,6 +616,12 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 			PipelineId: pipeline.UUID,
 			Parameters: []*api.Parameter{
 				{Name: "param1", Value: "world"},
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Relationship: api.Relationship_OWNER,
 			},
 		},
 	}
@@ -495,13 +632,22 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 		Name:           "j1",
 		Namespace:      "default",
 		Enabled:        true,
-		CreatedAtInSec: 2,
-		UpdatedAtInSec: 2,
+		CreatedAtInSec: 3,
+		UpdatedAtInSec: 3,
 		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           pipeline.UUID,
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID:  "123",
+				ResourceType:  common.Job,
+				ReferenceUUID: experiment.UUID,
+				ReferenceType: common.Experiment,
+				Relationship:  common.Owner,
+			},
 		},
 	}
 	assert.Nil(t, err)
@@ -747,8 +893,9 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			Namespace:        "MY_NAMESPACE",
 			CreatedAtInSec:   11,
 			ScheduledAtInSec: 0,
+			FinishedAtInSec:  0,
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: workflow.GetSpec().ToStringForStore(),
+				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -773,7 +920,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
-func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t *testing.T) {
+func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
@@ -781,6 +928,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t
 		Name:         "j1",
 		Enabled:      true,
 		PipelineSpec: &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()},
+		// no experiment reference
 	}
 	newJob, err := manager.CreateJob(job)
 
@@ -799,11 +947,47 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_ExperimentNotFound(t
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 		},
 	})
+
 	err = manager.ReportWorkflowResource(workflow)
-	println(err.Error())
-	assert.NotNil(t, err)
-	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Experiment not found")
+	assert.Nil(t, err)
+
+	runDetail, err := manager.GetRun("WORKFLOW_1")
+	assert.Nil(t, err)
+
+	expectedRunDetail := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "WORKFLOW_1",
+			DisplayName:      "MY_NAME",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			Name:             "MY_NAME",
+			Namespace:        "MY_NAMESPACE",
+			CreatedAtInSec:   11,
+			ScheduledAtInSec: 0,
+			FinishedAtInSec:  0,
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: newJob.UUID,
+					ReferenceType: common.Job,
+					Relationship:  common.Creator,
+				},
+				{
+					ResourceUUID:  "WORKFLOW_1",
+					ResourceType:  common.Run,
+					ReferenceUUID: DefaultFakeUUID,
+					ReferenceType: common.Experiment,
+					Relationship:  common.Owner,
+				},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: workflow.ToStringForStore()},
+	}
+
+	assert.Equal(t, expectedRunDetail, runDetail)
 }
 
 func TestReportScheduledWorkflowResource_Success(t *testing.T) {
