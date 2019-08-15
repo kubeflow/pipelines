@@ -77,6 +77,7 @@ matrix:
         - $TRAVIS_BUILD_DIR/sdk/python/tests/run_tests.sh
         # Report to coveralls.
         - coverage run -m unittest
+        - coveralls --verbose
 
         # Visualization test
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
@@ -91,8 +92,6 @@ matrix:
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
-      after_success:
-        - coveralls --verbose
     - language: python
       python: "3.6"
       env: TOXENV=py36
