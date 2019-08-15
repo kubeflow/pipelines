@@ -92,7 +92,7 @@ matrix:
         # Report to coveralls.
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - coverage run -m unittest
-    - after_success:
+      after_success:
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - coveralls --verbose
     - language: python
