@@ -17,7 +17,6 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, __file__ + '/../../../')
 
 import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml

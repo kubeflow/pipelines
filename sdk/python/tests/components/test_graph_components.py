@@ -17,7 +17,6 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, __file__ + '/../../../')
 
 import kfp.components as comp
 from kfp.components._structures import ComponentReference, ComponentSpec, ContainerSpec, GraphInputArgument, GraphSpec, InputSpec, InputValuePlaceholder, GraphImplementation, OutputPathPlaceholder, OutputSpec, TaskOutputArgument, TaskSpec
