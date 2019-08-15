@@ -224,6 +224,7 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		Description: "this is hello world",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			PipelineID:       pipelineID,
+			PipelineName:     "hello-world.yaml",
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
