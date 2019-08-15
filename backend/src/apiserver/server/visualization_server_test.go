@@ -11,7 +11,10 @@ import (
 func TestValidateCreateVisualizationRequest(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewVisualizationServer(manager, "kubeflow")
+	server := &VisualizationServer{
+		resourceManager: manager,
+		isServiceAvailable: false,
+	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
 		Source: "gs://ml-pipeline/roc/data.csv",
@@ -27,7 +30,10 @@ func TestValidateCreateVisualizationRequest(t *testing.T) {
 func TestValidateCreateVisualizationRequest_ArgumentsAreEmpty(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewVisualizationServer(manager, "kubeflow")
+	server := &VisualizationServer{
+		resourceManager: manager,
+		isServiceAvailable: false,
+	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
 		Source: "gs://ml-pipeline/roc/data.csv",
@@ -43,7 +49,10 @@ func TestValidateCreateVisualizationRequest_ArgumentsAreEmpty(t *testing.T) {
 func TestValidateCreateVisualizationRequest_SourceIsEmpty(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewVisualizationServer(manager, "kubeflow")
+	server := &VisualizationServer{
+		resourceManager: manager,
+		isServiceAvailable: false,
+	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
 		Source: "",
@@ -59,7 +68,10 @@ func TestValidateCreateVisualizationRequest_SourceIsEmpty(t *testing.T) {
 func TestValidateCreateVisualizationRequest_ArgumentsNotValidJSON(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewVisualizationServer(manager, "kubeflow")
+	server := &VisualizationServer{
+		resourceManager: manager,
+		isServiceAvailable: false,
+	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
 		Source: "gs://ml-pipeline/roc/data.csv",

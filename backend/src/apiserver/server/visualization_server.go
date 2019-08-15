@@ -80,8 +80,8 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	return body, nil
 }
 
-func NewVisualizationServer(resourceManager *resource.ResourceManager, namespace string) *VisualizationServer {
-	serviceURL := fmt.Sprintf("http://ml-pipeline-visualization.%s", namespace)
+func NewVisualizationServer(resourceManager *resource.ResourceManager, serviceName string, namespace string) *VisualizationServer {
+	serviceURL := fmt.Sprintf("http://%s.%s", serviceName, namespace)
 	_, err := http.Get(serviceURL)
 	return &VisualizationServer{
 		resourceManager:    resourceManager,

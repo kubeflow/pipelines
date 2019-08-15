@@ -51,6 +51,8 @@ const (
 
 	podNamespace          = "POD_NAMESPACE"
 	initConnectionTimeout = "InitConnectionTimeout"
+
+	visualizationServiceHost = "ML_VISUALIZATION_SERVICE_HOST"
 )
 
 // Container for all service clients
