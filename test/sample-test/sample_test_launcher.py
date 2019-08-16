@@ -44,11 +44,12 @@ class SampleTest(object):
   def __init__(self, test_name, input, result, output, namespace='kubeflow'):
     self._test_name = test_name
     self._input = input
-    self._result = result,
-    self._output = output,
+    self._result = result
+    self._output = output
     self._namespace = namespace
+    self._run_test()
 
-  def run_test(self):
+  def _run_test(self):
     test_cases = [] # Currently, only capture run-time error, no result check.
     sample_test_name = self._test_name + ' Sample Test'
 
@@ -179,8 +180,13 @@ class SampleTest(object):
     ###### Write out the test result in junit xml ######
     utils.write_junit_xml(sample_test_name, self._result, test_cases)
 
-class ComponentTest(object):
-  pass
+class ComponentTest(SampleTest):
+  """ Launch a KFP sample test as component test provided its name.
+
+  Currently follows the same logic as sample test for compatibility.
+  """
+  def __init__(self, test_name, input, result, output, namespace='kubeflow'):
+    super().__init__(test_name, input, result, output, namespace)
 
 def main():
   """Launches either KFP sample test or component test as a command entrypoint.
