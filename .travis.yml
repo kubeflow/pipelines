@@ -72,9 +72,9 @@ matrix:
         #TODO(numerology): repo root dir needs to be updated so that coveralls can correctly capture
         # the source code.
         - python3 setup.py develop
-        - coverage run --include=*/kfp/* --omit */site-packages/* --append tests/dsl/main.py
-        - coverage run --include=*/kfp/* --omit */site-packages/* --append tests/compiler/main.py
-        - coverage run --include=*/kfp/* --omit */site-packages/* --append -m unittest discover --verbose --start-dir tests --top-level-directory=.
+        - coverage run --include=*/kfp/* --append tests/dsl/main.py
+        - coverage run --include=*/kfp/* --append tests/compiler/main.py
+        - coverage run --include=*/kfp/* --append -m unittest discover --verbose --start-dir tests --top-level-directory=.
         - coveralls
 
         # Visualization test
