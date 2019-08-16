@@ -71,7 +71,7 @@ function getDuration(start: Date, end: Date): string {
   const seconds = ('0' + Math.floor((diff / SECOND) % 60).toString()).slice(-2);
   const minutes = ('0' + Math.floor((diff / MINUTE) % 60).toString()).slice(-2);
   // Hours are the largest denomination, so we don't pad them
-  const hours = Math.floor((diff / HOUR) % 24).toString();
+  const hours = Math.floor(diff / HOUR).toString();
   return `${sign}${hours}:${minutes}:${seconds}`;
 }
 

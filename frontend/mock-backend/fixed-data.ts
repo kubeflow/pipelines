@@ -272,6 +272,7 @@ const runs: ApiRunDetail[] = [
     run: {
       created_at: new Date('2018-03-17T20:58:23.000Z'),
       description: 'A recursive coinflip run',
+      finished_at: new Date('2018-03-18T21:01:23.000Z'),
       id: '3308d0ec-f1b3-4488-a2d3-8ad0f91e88e7',
       metrics: [
         {
@@ -323,6 +324,7 @@ const runs: ApiRunDetail[] = [
     run: {
       created_at: new Date('2018-04-17T21:00:00.000Z'),
       description: 'A coinflip run with an error. No metrics',
+      finished_at: new Date('2018-04-17T21:00:33.000Z'),
       id: '47a3d09c-7db4-4788-ac55-3f8d908574aa',
       metrics: [],
       name: 'coinflip-error-nklng2',
@@ -386,6 +388,7 @@ const runs: ApiRunDetail[] = [
     run: {
       created_at: new Date('2018-06-17T22:58:23.000Z'),
       description: 'A simple hello world run, but with steps. Not attached to any experiment',
+      finished_at: new Date('2018-06-18T21:00:33.000Z'),
       id: '21afb688-7597-47e9-b6c3-35d3145fe5e1',
       metrics: [{
         format: RunMetricFormat.PERCENTAGE,
@@ -474,6 +477,7 @@ const runs: ApiRunDetail[] = [
         + ' Ut nec dapibus eros, vitae iaculis nunc. In aliquet accumsan rhoncus. Donec vitae'
         + ' ipsum a tellus fermentum pharetra in in neque. Pellentesque consequat felis non est'
         + ' vulputate pellentesque. Aliquam eget cursus enim.',
+      finished_at: new Date('2018-08-20T21:01:23.000Z'),
       id: '7fc01714-4a13-4c05-8044-a8a72c14253b',
       metrics: [
         {
@@ -517,6 +521,7 @@ const runs: ApiRunDetail[] = [
     run: {
       created_at: new Date('2018-08-18T20:58:23.000Z'),
       description: 'simple run with pipeline spec embedded in it.',
+      finished_at: new Date('2018-08-18T21:01:23.000Z'),
       id: '7fc01715-4a93-4c00-8044-a8a72c14253b',
       metrics: [
         {
@@ -584,6 +589,7 @@ function generateNRuns(): ApiRunDetail[] {
       run: {
         created_at: new Date('2018-02-12T20:' + padStartTwoZeroes(i.toString()) + ':23.000Z'),
         description: 'The description of a dummy run',
+        finished_at: new Date('2018-02-12T20:' + padStartTwoZeroes(((2 * i) % 60).toString()) + ':25.000Z'),
         id: 'Some-run-id-' + i,
         metrics: [
           {
