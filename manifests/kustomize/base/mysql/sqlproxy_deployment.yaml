@@ -20,7 +20,7 @@ spec:
         command:
         - /cloud_sql_proxy
         - -dir=/cloudsql
-        - -instances=cloudsql-for-kfp:us-central1:cloud-sql-for-kfp-nopass=tcp:0.0.0.0:3306
+        - -instances=cloudsql-for-kfp:us-central1:cloudsql-for-fkp-private-nopass=tcp:0.0.0.0:3306
         - -credential_file=/credentials/credentials.json
         # set term_timeout if require graceful handling of shutdown
         # NOTE: proxy will stop accepting new connections; only wait on existing connections
