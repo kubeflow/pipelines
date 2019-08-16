@@ -177,5 +177,5 @@ class ParallelFor(OpsGroup):
   def __enter__(self) -> LoopArguments:
     _ = super().__enter__()
     # set it here so that this ops group has already had its name uniquified
-    self.loop_args.op_name = self.name
+    # self.loop_args.op_name = self.name
     return self.loop_args

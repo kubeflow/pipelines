@@ -535,11 +535,15 @@ class Compiler(object):
               })
             else:
               if isinstance(sub_group, dsl.ParallelFor):
-                if dsl.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
-                  subvar_name = dsl.LoopArgumentVariable.get_subvar_name(param_name)
-                  value = '{{item.%s}}' % subvar_name
-                elif dsl.LoopArguments.name_is_loop_arguments(param_name):
-                  value = '{{item}}'
+                if sub_group.loop_args.name in param_name:
+                  if dsl.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
+                    subvar_name = dsl.LoopArgumentVariable.get_subvar_name(param_name)
+                    value = '{{item.%s}}' % subvar_name
+                  elif dsl.LoopArguments.name_is_loop_arguments(param_name):
+                    value = '{{item}}'
+                  else:
+                    raise ValueError(f"Failed to match loop args with param. param_name: {param_name}, "
+                                     f"sub_group.loop_args.name: {sub_group.loop_args.name}.")
                 else:
                   value = '{{inputs.parameters.%s}}' % param_name
                 task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
