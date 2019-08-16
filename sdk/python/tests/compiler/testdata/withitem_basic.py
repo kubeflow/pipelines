@@ -52,3 +52,4 @@ def pipeline(my_pipe_param=10):
         command=["sh", "-c"],
         arguments=["echo %s" % my_pipe_param],
     )
+

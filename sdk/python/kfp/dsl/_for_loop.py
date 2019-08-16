@@ -11,13 +11,12 @@ class LoopArguments(dsl.PipelineParam):
     """Class representing the arguments that are looped over in a ParallelFor loop in the KFP DSL.
     This doesn't need to be instantiated by the end user, rather it will be automatically created by a
     ParallelFor ops group."""
-    PARAM_TYPE_NAME = 'loop_args'
     _loop_item_placeholder_name = 'loop-item-placeholder'
 
     @classmethod
     def param_is_this_type(cls, param: dsl.PipelineParam):
         """Return True if the given param is a LoopArgument param."""
-        return param.param_type.name == cls.PARAM_TYPE_NAME
+        return cls.name_is_loop_arguments(param.name)
 
     @classmethod
     def make_name(cls, code: Text):
@@ -32,20 +31,13 @@ class LoopArguments(dsl.PipelineParam):
             param_name
         ) is not None
 
-    def __init__(self, items: ItemList, code: Text, op_name: Text):
-        super().__init__(
-            name=self.make_name(code),
-            op_name=op_name,
-            param_type=_metadata.TypeMeta(name=self.PARAM_TYPE_NAME),
-        )
+    def __init__(self, items: ItemList, code: Text):
+        super().__init__(name=self.make_name(code))
 
         if not isinstance(items, (list, tuple)):
             raise ValueError(f"Expected list or tuple, got {type(items)}.")
 
-        if len(items) == 0:
-            self.is_dict_based = False
-            self.items = items
-        elif isinstance(items[0], dict):
+        if isinstance(items[0], dict):
             subvar_names = set(items[0].keys())
             for item in items:
                 if not set(item.keys()) == subvar_names:
@@ -54,12 +46,9 @@ class LoopArguments(dsl.PipelineParam):
 
             # then this block creates loop_args.variable_a and loop_args.variable_b
             for subvar_name in subvar_names:
-                setattr(self, subvar_name, dsl.LoopArgumentVariable(self.name, subvar_name, op_name=op_name))
-            self.is_dict_based = True
-            self.items = items
-        else:
-            self.is_dict_based = False
-            self.items = items
+                setattr(self, subvar_name, dsl.LoopArgumentVariable(self.name, subvar_name))
+
+        self.items = items
 
     def to_list_for_task_yaml(self):
         return self.items
@@ -68,15 +57,10 @@ class LoopArguments(dsl.PipelineParam):
 class LoopArgumentVariable(dsl.PipelineParam):
     """Represents a subvariable for loop arguments.  This is used for cases where we're looping over maps,
     each of which contains several variables."""
-    PARAM_TYPE_NAME = 'loop_args_variable'
     SUBVAR_NAME_DELIMITER = '-item-subvar-'
 
-    def __init__(self, loop_args_name: Text, this_variable_name: Text, op_name: Optional[Text]=None):
-        super().__init__(
-            name=self.get_name(loop_args_name=loop_args_name, this_variable_name=this_variable_name),
-            param_type=_metadata.TypeMeta(name=self.PARAM_TYPE_NAME),
-            op_name=op_name,
-        )
+    def __init__(self, loop_args_name: Text, this_variable_name: Text):
+        super().__init__(name=self.get_name(loop_args_name=loop_args_name, this_variable_name=this_variable_name))
 
     @classmethod
     def get_name(cls, loop_args_name: Text, this_variable_name: Text):
@@ -93,7 +77,7 @@ class LoopArgumentVariable(dsl.PipelineParam):
     @classmethod
     def param_is_this_type(cls, param: dsl.PipelineParam):
         """Return True if the given param is a LoopArgumentVariable param."""
-        return param.param_type.name == cls.PARAM_TYPE_NAME
+        return cls.name_is_loop_arguments_variable(param.name)
 
     @classmethod
     def name_is_loop_arguments_variable(cls, param_name: Text):

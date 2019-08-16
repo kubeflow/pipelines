@@ -218,11 +218,13 @@ class Compiler(object):
 
       loop_arg_names = []
       for pipeline_param in op.inputs:
-        if dsl.LoopArguments.param_is_this_type(pipeline_param):
-          loop_arg_names.append(pipeline_param.name)
-        elif dsl.LoopArgumentVariable.param_is_this_type(pipeline_param):
+        # make sure to keep this in this order since both LoopArgumentVariable.param_is_this_type and
+        # LoopArgument.param_is_this_type will return true for LoopArgumentVariable parameters
+        if dsl.LoopArgumentVariable.param_is_this_type(pipeline_param):
           loop_args_name, _ = dsl.LoopArgumentVariable.parse_loop_args_name_and_this_var_name(pipeline_param.name)
           loop_args_names.append(loop_args_name)
+        elif dsl.LoopArguments.param_is_this_type(pipeline_param):
+          loop_arg_names.append(pipeline_param.name)
 
       return loop_arg_names
 

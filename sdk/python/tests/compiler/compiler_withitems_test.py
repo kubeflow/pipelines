@@ -16,6 +16,31 @@ uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
 # -------------------------------------------
 
 
+# @dsl.pipeline(name='my-pipeline', description='A pipeline with multiple pipeline params.')
+# def pipeline(my_pipe_param=10):
+#     loop_args = [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]
+#     with dsl.ParallelFor(loop_args) as item:
+#         op1 = dsl.ContainerOp(
+#             name="my-in-coop1",
+#             image="library/bash:4.4.23",
+#             command=["sh", "-c"],
+#             arguments=["echo op1 %s %s" % (item.a, my_pipe_param)],
+#         )
+#
+#         op2 = dsl.ContainerOp(
+#             name="my-in-coop2",
+#             image="library/bash:4.4.23",
+#             command=["sh", "-c"],
+#             arguments=["echo op2 %s" % item.b],
+#         )
+#
+#     op_out = dsl.ContainerOp(
+#         name="my-out-cop",
+#         image="library/bash:4.4.23",
+#         command=["sh", "-c"],
+#         arguments=["echo %s" % my_pipe_param],
+#     )
+
 @dsl.pipeline(name='my-pipeline', description='A pipeline with multiple pipeline params.')
 def pipeline(my_pipe_param=10):
     loop_args = [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]
@@ -26,6 +51,14 @@ def pipeline(my_pipe_param=10):
             command=["sh", "-c"],
             arguments=["echo op1 %s %s" % (item.a, my_pipe_param)],
         )
+
+        with dsl.ParallelFor([100, 200, 300]) as inner_item:
+            op11 = dsl.ContainerOp(
+                name="my-inner-inner-coop",
+                image="library/bash:4.4.23",
+                command=["sh", "-c"],
+                arguments=["echo op1 %s %s %s" % (item.a, inner_item, my_pipe_param)],
+            )
 
         op2 = dsl.ContainerOp(
             name="my-in-coop2",
@@ -40,6 +73,7 @@ def pipeline(my_pipe_param=10):
         command=["sh", "-c"],
         arguments=["echo %s" % my_pipe_param],
     )
+
 
 yaml_text = compiler.Compiler().compile(pipeline, None)
 print(yaml_text)
