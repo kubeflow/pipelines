@@ -1,0 +1,47 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cloudsqlproxy
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cloudsqlproxy
+    spec:
+      containers:
+       # Make sure to specify image tag in production
+       # Check out the newest version in release page
+       # https://github.com/GoogleCloudPlatform/cloudsql-proxy/releases
+      - image: b.gcr.io/cloudsql-docker/gce-proxy:latest
+       # 'Always' if imageTag is 'latest', else set to 'IfNotPresent'
+        imagePullPolicy: Always
+        name: cloudsqlproxy
+        command:
+        - /cloud_sql_proxy
+        - -dir=/cloudsql
+        - -instances=cloudsql-for-kfp:us-central1:cloud-sql-for-kfp-nopass=tcp:0.0.0.0:3306
+        - -credential_file=/credentials/credentials.json
+        # set term_timeout if require graceful handling of shutdown
+        # NOTE: proxy will stop accepting new connections; only wait on existing connections
+        - term_timeout=10s
+        lifecycle:
+          preStop:
+            exec:
+              # (optional) add a preStop hook so that termination is delayed
+              # this is required if your server still require new connections (e.g., connection pools)
+              command: ['sleep', '10']
+        ports:
+        - name: port-database1
+          containerPort: 3306
+        volumeMounts:
+        - mountPath: /cloudsql
+          name: cloudsql
+        - mountPath: /credentials
+          name: service-account-token
+      volumes:
+      - name: cloudsql
+        emptyDir:
+      - name: service-account-token
+        secret:
+          secretName: cloudsql-instance-credentials
