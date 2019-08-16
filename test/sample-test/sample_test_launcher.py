@@ -41,15 +41,26 @@ class SampleTest(object):
     output: The path of the test output.
     namespace: Namespace of the deployed pipeline system. Default: kubeflow
   """
-  def __init__(self, test_name, input, result, output, namespace='kubeflow'):
+
+  GITHUB_REPO = 'kubeflow/pipelines'
+  BASE_DIR= '/python/src/github.com/' + GITHUB_REPO
+  TEST_DIR = BASE_DIR + '/test/sample-test'
+
+  def __init__(self, test_name, test_results_gcs_dir, target_image_prefix,
+                         namespace='kubeflow'):
     self._test_name = test_name
-    self._input = input
-    self._result = result
-    self._output = output
+    self._results_gcs_dir = test_results_gcs_dir
+    self._target_image_prefix = target_image_prefix
     self._namespace = namespace
+    self._sample_test_result = 'junit_Sample' + self._test_name + 'Output.xml'
+    self._sample_test_output = self._results_gcs_dir
+    self._work_dir = self.BASE_DIR + '/samples/core/' + self._test_name
+
     self._run_test()
 
   def _run_test(self):
+    # variables needed for sample test logic.
+    input = '%s/%s.yaml' % (self._work_dir, self._test_name)
     test_cases = [] # Currently, only capture run-time error, no result check.
     sample_test_name = self._test_name + ' Sample Test'
 
@@ -59,9 +70,9 @@ class SampleTest(object):
 
     ###### Check Input File ######
     utils.add_junit_test(test_cases, 'input generated yaml file',
-                         os.path.exists(self._input), 'yaml file is not generated')
-    if not os.path.exists(self._input):
-      utils.write_junit_xml(sample_test_name, self._result, test_cases)
+                         os.path.exists(input), 'yaml file is not generated')
+    if not os.path.exists(input):
+      utils.write_junit_xml(sample_test_name, self._sample_test_result, test_cases)
       print('Error: job not found.')
       exit(1)
 
@@ -77,7 +88,7 @@ class SampleTest(object):
     if self._test_name == 'tfx_cab_classification':
       params = {
           'output':
-            self._output,
+            self._sample_test_output,
           'project':
             'ml-pipeline-test',
           'column-names':
@@ -93,7 +104,7 @@ class SampleTest(object):
       }
     elif self._test_name == 'kubeflow_training_classification':
       params = {
-          'output': self._output,
+          'output': self._sample_test_output,
           'project': 'ml-pipeline-test',
           'evaluation': 'gs://ml-pipeline-dataset/sample-test/flower/eval15.csv',
           'train': 'gs://ml-pipeline-dataset/sample-test/flower/train30.csv',
@@ -102,7 +113,7 @@ class SampleTest(object):
       }
     elif self._test_name == 'xgboost_training_cm':
       params = {
-          'output': self._output,
+          'output': self._sample_test_output,
           'project': 'ml-pipeline-test',
           'train-data': 'gs://ml-pipeline-dataset/sample-test/sfpd/train_50.csv',
           'eval-data': 'gs://ml-pipeline-dataset/sample-test/sfpd/eval_20.csv',
@@ -114,7 +125,7 @@ class SampleTest(object):
       # Basic tests require no additional params.
       params = {}
 
-    response = client.run_pipeline(experiment_id, job_name, self._input, params)
+    response = client.run_pipeline(experiment_id, job_name, input, params)
     run_id = response.id
     utils.add_junit_test(test_cases, 'create pipeline run', True)
 
@@ -140,7 +151,7 @@ class SampleTest(object):
       print(argo_log)
 
     if not succ:
-      utils.write_junit_xml(sample_test_name, self._result, test_cases)
+      utils.write_junit_xml(sample_test_name, self._sample_test_result, test_cases)
       exit(1)
 
     ###### Validate the results for specific test cases ######
@@ -178,14 +189,16 @@ class SampleTest(object):
     #TODO: add deletion when the backend API offers the interface.
 
     ###### Write out the test result in junit xml ######
-    utils.write_junit_xml(sample_test_name, self._result, test_cases)
+    utils.write_junit_xml(sample_test_name, self._sample_test_result, test_cases)
 
 class ComponentTest(SampleTest):
   """ Launch a KFP sample test as component test provided its name.
 
   Currently follows the same logic as sample test for compatibility.
   """
-  def __init__(self, test_name, input, result, output, namespace='kubeflow'):
+  def __init__(self, test_name, input, result, output,
+      result_gcs_dir, target_image_prefix, dataflow_tft_image,
+      namespace='kubeflow'):
     super().__init__(test_name, input, result, output, namespace)
 
 def main():
