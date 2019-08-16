@@ -19,9 +19,8 @@ It is not a good practice to put password as a pipeline argument, since it will
 be visible on KFP UI.
 """
 import kfp
-from kubernetes import client as k8s_client
 import kfp.dsl as dsl
-
+from kubernetes import client as k8s_client
 
 @dsl.pipeline(
     name="ResourceOp Basic",
