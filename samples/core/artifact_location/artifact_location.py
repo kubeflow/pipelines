@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 from kfp import dsl
 from kubernetes.client import V1SecretKeySelector
 
@@ -40,3 +41,6 @@ def custom_artifact_location(
 
     # artifacts in this op are stored to endpoint `minio-service.<namespace>:9000`
     op = dsl.ContainerOp(name="foo", image="busybox:%s" % tag)
+
+if __name__ == '__main__':
+    kfp.compiler.Compiler().compile(custom_artifact_location, __file__ + '.zip')

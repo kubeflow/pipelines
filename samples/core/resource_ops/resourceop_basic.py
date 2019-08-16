@@ -18,10 +18,9 @@
 It is not a good practice to put password as a pipeline argument, since it will
 be visible on KFP UI.
 """
-
-from kubernetes import client as k8s_client
+import kfp
 import kfp.dsl as dsl
-
+from kubernetes import client as k8s_client
 
 @dsl.pipeline(
     name="ResourceOp Basic",
@@ -54,7 +53,5 @@ def resourceop_basic(username, password):
         pvolumes={"/etc/secret-volume": secret}
     )
 
-
-if __name__ == "__main__":
-    import kfp.compiler as compiler
-    compiler.Compiler().compile(resourceop_basic, __file__ + ".tar.gz")
+if __name__ == '__main__':
+    kfp.compiler.Compiler().compile(resourceop_basic, __file__ + '.zip')
