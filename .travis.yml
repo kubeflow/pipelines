@@ -69,6 +69,8 @@ matrix:
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         # install locally to guarantee right coverage result.
+        #TODO(numerology): repo root dir needs to be updated so that coveralls can correctly capture
+        # the source code.
         - python3 setup.py develop
         - coverage run --include=*/kfp/* --omit */site-packages/* --append tests/dsl/main.py
         - coverage run --include=*/kfp/* --omit */site-packages/* --append tests/compiler/main.py
