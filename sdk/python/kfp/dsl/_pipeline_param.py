@@ -22,7 +22,7 @@ from ._metadata import TypeMeta
 # TODO: Move this to a separate class
 # For now, this identifies a condition with only "==" operator supported.
 ConditionOperator = namedtuple('ConditionOperator', 'operator operand1 operand2')
-PipelineParamTuple = namedtuple('PipelineParamTuple', 'name op value type pattern')
+PipelineParamTuple = namedtuple('PipelineParamTuple', 'name op pattern')
 
 
 def sanitize_k8s_name(name):
@@ -40,26 +40,13 @@ def match_serialized_pipelineparam(payload: str):
   Returns:
     PipelineParamTuple
   """
-  matches = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?);type=(.*?);}}', payload)
-  if len(matches) == 0:
-    matches = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+);value=(.*?)}}', payload)
+  matches = re.findall(r'{{pipelineparam:op=([\w\s_-]*);name=([\w\s_-]+)}}', payload)
   param_tuples = []
   for match in matches:
-    if len(match) == 3:
-      pattern = '{{pipelineparam:op=%s;name=%s;value=%s}}' % (match[0], match[1], match[2])
+      pattern = '{{pipelineparam:op=%s;name=%s}}' % (match[0], match[1])
       param_tuples.append(PipelineParamTuple(
                             name=sanitize_k8s_name(match[1]), 
                             op=sanitize_k8s_name(match[0]), 
-                            value=match[2],
-                            type='', 
-                            pattern=pattern))
-    elif len(match) == 4:
-      pattern = '{{pipelineparam:op=%s;name=%s;value=%s;type=%s;}}' %  (match[0], match[1], match[2], match[3])
-      param_tuples.append(PipelineParamTuple(
-                            name=sanitize_k8s_name(match[1]), 
-                            op=sanitize_k8s_name(match[0]), 
-                            value=match[2], 
-                            type=match[3], 
                             pattern=pattern))
   return param_tuples
 
@@ -81,8 +68,6 @@ def _extract_pipelineparams(payloads: str or List[str]):
   for param_tuple in list(set(param_tuples)):
     pipeline_params.append(PipelineParam(param_tuple.name, 
                                          param_tuple.op, 
-                                         param_tuple.value, 
-                                         TypeMeta.deserialize(param_tuple.type), 
                                          pattern=param_tuple.pattern))
   return pipeline_params
 
@@ -205,11 +190,7 @@ class PipelineParam(object):
     #  return str(self.value)
 
     op_name = self.op_name if self.op_name else ''
-    value = self.value if self.value else ''
-    if self.param_type is None:
-      return '{{pipelineparam:op=%s;name=%s;value=%s}}' % (op_name, self.name, value)
-    else:
-      return '{{pipelineparam:op=%s;name=%s;value=%s;type=%s;}}' % (op_name, self.name, value, self.param_type.serialize())
+    return '{{pipelineparam:op=%s;name=%s}}' % (op_name, self.name)
   
   def __repr__(self):
       return str({self.__class__.__name__: self.__dict__})
