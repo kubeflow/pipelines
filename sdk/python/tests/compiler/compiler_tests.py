@@ -89,7 +89,7 @@ class TestCompiler(unittest.TestCase):
       'inputs': {'parameters':
         [
           {'name': 'msg1'},
-          {'name': 'msg2', 'value': 'value2'},
+          {'name': 'msg2'},
         ]},
       'name': 'echo',
       'outputs': {
