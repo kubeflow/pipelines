@@ -1,8 +1,9 @@
 # Python based visualizations guideline
 
 This document describes the development guideline to contribute new predefined
-visualizations to the Kubeflow Pipeline project. Please check the
-[developer guidelines](https://github.com/kubeflow/pipelines/blob/master/developer_guide.md)
+visualizations to the Kubeflow Pipeline project. For information about using
+Python based visualizations please visit the [documentation page](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations).
+Please check the [developer guidelines](https://github.com/kubeflow/pipelines/blob/master/developer_guide.md)
 for additional development guidelines.
 
 ## How to create predefined visualizations
