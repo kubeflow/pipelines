@@ -57,14 +57,15 @@ func initializeDbAndStore() (*DB, *JobStore) {
 			},
 		},
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
+				ResourceUUID: "1", ResourceType: common.Job, ReferenceUUID: defaultFakeExpId,
+				ReferenceName: "e1", ReferenceType: common.Experiment,
 				Relationship: common.Owner,
 			},
 		},
@@ -76,14 +77,15 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		Name:        "pp2",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		Conditions: "ready",
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
 				CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-				Cron: util.StringPointer("1 * *"),
+				Cron:                       util.StringPointer("1 * *"),
 			},
 		},
 		Enabled:        true,
@@ -92,7 +94,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "2", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpIdTwo, ReferenceType: common.Experiment,
+				ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2", ReferenceType: common.Experiment,
 				Relationship: common.Owner,
 			},
 		},
@@ -112,7 +114,8 @@ func TestListJobs_Pagination(t *testing.T) {
 			Name:        "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId: "1",
+				PipelineId:   "1",
+				PipelineName: "p1",
 			},
 			Conditions: "ready",
 			Enabled:    true,
@@ -128,8 +131,8 @@ func TestListJobs_Pagination(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Job,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Owner,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Owner,
 				},
 			},
 		}}
@@ -149,14 +152,15 @@ func TestListJobs_Pagination(t *testing.T) {
 			Name:        "pp2",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId: "1",
+				PipelineId:   "1",
+				PipelineName: "p1",
 			},
 			Enabled: true,
 			Trigger: model.Trigger{
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron: util.StringPointer("1 * *"),
+					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -165,8 +169,8 @@ func TestListJobs_Pagination(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Job,
-					ReferenceUUID: defaultFakeExpIdTwo, ReferenceType: common.Experiment,
-					Relationship: common.Owner,
+					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
+					ReferenceType: common.Experiment, Relationship: common.Owner,
 				},
 			},
 		}}
@@ -228,7 +232,8 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			Name:        "pp2",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId: "1",
+				PipelineId:   "1",
+				PipelineName: "p1",
 			},
 			Enabled:    true,
 			Conditions: "ready",
@@ -236,7 +241,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron: util.StringPointer("1 * *"),
+					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -244,8 +249,8 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Job,
-					ReferenceUUID: defaultFakeExpIdTwo, ReferenceType: common.Experiment,
-					Relationship: common.Owner,
+					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
+					ReferenceType: common.Experiment, Relationship: common.Owner,
 				},
 			},
 		}}
@@ -264,7 +269,8 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			Name:        "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId: "1",
+				PipelineId:   "1",
+				PipelineName: "p1",
 			},
 			Enabled:    true,
 			Conditions: "ready",
@@ -280,8 +286,8 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Job,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Owner,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Owner,
 				},
 			},
 		}}
@@ -306,7 +312,8 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			Name:        "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId: "1",
+				PipelineId:   "1",
+				PipelineName: "p1",
 			},
 			Enabled:    true,
 			Conditions: "ready",
@@ -322,8 +329,8 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Job,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Owner,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Owner,
 				},
 			},
 		},
@@ -333,7 +340,8 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			Name:        "pp2",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId: "1",
+				PipelineId:   "1",
+				PipelineName: "p1",
 			},
 			Enabled:    true,
 			Conditions: "ready",
@@ -341,7 +349,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: util.Int64Pointer(1),
 					CronScheduleEndTimeInSec:   util.Int64Pointer(2),
-					Cron: util.StringPointer("1 * *"),
+					Cron:                       util.StringPointer("1 * *"),
 				},
 			},
 			CreatedAtInSec: 2,
@@ -349,8 +357,8 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "2", ResourceType: common.Job,
-					ReferenceUUID: defaultFakeExpIdTwo, ReferenceType: common.Experiment,
-					Relationship: common.Owner,
+					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
+					ReferenceType: common.Experiment, Relationship: common.Owner,
 				},
 			},
 		}}
@@ -375,7 +383,8 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 			Name:        "pp1",
 			Namespace:   "n1",
 			PipelineSpec: model.PipelineSpec{
-				PipelineId: "1",
+				PipelineId:   "1",
+				PipelineName: "p1",
 			},
 			Enabled:    true,
 			Conditions: "ready",
@@ -391,8 +400,8 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID: "1", ResourceType: common.Job,
-					ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-					Relationship: common.Owner,
+					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+					ReferenceType: common.Experiment, Relationship: common.Owner,
 				},
 			},
 		}}
@@ -430,7 +439,8 @@ func TestGetJob(t *testing.T) {
 		Name:        "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		Conditions: "ready",
 		Trigger: model.Trigger{
@@ -446,8 +456,8 @@ func TestGetJob(t *testing.T) {
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+				ReferenceType: common.Experiment, Relationship: common.Owner,
 			},
 		},
 	}
@@ -488,7 +498,8 @@ func TestCreateJob(t *testing.T) {
 		Name:        "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -496,7 +507,7 @@ func TestCreateJob(t *testing.T) {
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: common.Experiment,
 				Relationship: common.Owner,
 			},
 		},
@@ -510,7 +521,8 @@ func TestCreateJob(t *testing.T) {
 		Name:        "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		Enabled:        true,
 		CreatedAtInSec: 1,
@@ -518,7 +530,7 @@ func TestCreateJob(t *testing.T) {
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: common.Experiment,
 				Relationship: common.Owner,
 			},
 		}}
@@ -542,14 +554,15 @@ func TestCreateJobError(t *testing.T) {
 		Name:        "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		Enabled: true,
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+				ReferenceType: common.Experiment, Relationship: common.Owner,
 			},
 		},
 	}
@@ -572,7 +585,8 @@ func TestEnableJob(t *testing.T) {
 		Name:        "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		Conditions: "ready",
 		Enabled:    false,
@@ -588,8 +602,8 @@ func TestEnableJob(t *testing.T) {
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+				ReferenceType: common.Experiment, Relationship: common.Owner,
 			},
 		},
 	}
@@ -612,7 +626,8 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 		Name:        "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		Conditions: "ready",
 		Enabled:    true,
@@ -628,8 +643,8 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+				ReferenceType: common.Experiment, Relationship: common.Owner,
 			},
 		},
 	}
@@ -660,7 +675,8 @@ func TestUpdateJob_Success(t *testing.T) {
 		Name:        "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		Conditions: "ready",
 		Enabled:    true,
@@ -676,8 +692,8 @@ func TestUpdateJob_Success(t *testing.T) {
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+				ReferenceType: common.Experiment, Relationship: common.Owner,
 			},
 		},
 	}
@@ -740,14 +756,15 @@ func TestUpdateJob_Success(t *testing.T) {
 		UpdatedAtInSec: 1,
 		MaxConcurrency: 200,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
-			Parameters: "[{\"name\":\"PARAM1\",\"value\":\"NEW_VALUE1\"}]",
+			PipelineId:   "1",
+			PipelineName: "p1",
+			Parameters:   "[{\"name\":\"PARAM1\",\"value\":\"NEW_VALUE1\"}]",
 		},
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(10),
 				CronScheduleEndTimeInSec:   util.Int64Pointer(20),
-				Cron: util.StringPointer("MY_CRON"),
+				Cron:                       util.StringPointer("MY_CRON"),
 			},
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: util.Int64Pointer(30),
@@ -758,8 +775,8 @@ func TestUpdateJob_Success(t *testing.T) {
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+				ReferenceType: common.Experiment, Relationship: common.Owner,
 			},
 		},
 	}
@@ -779,7 +796,8 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		Name:        "pp1",
 		Namespace:   "n1",
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		Conditions: "ready",
 		Enabled:    true,
@@ -795,8 +813,8 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+				ReferenceType: common.Experiment, Relationship: common.Owner,
 			},
 		},
 	}
@@ -826,14 +844,15 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId: "1",
-			Parameters: "[]",
+			PipelineId:   "1",
+			PipelineName: "p1",
+			Parameters:   "[]",
 		},
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: nil,
 				CronScheduleEndTimeInSec:   nil,
-				Cron: util.StringPointer(""),
+				Cron:                       util.StringPointer(""),
 			},
 			PeriodicSchedule: model.PeriodicSchedule{
 				PeriodicScheduleStartTimeInSec: nil,
@@ -844,8 +863,8 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+				ReferenceType: common.Experiment, Relationship: common.Owner,
 			},
 		},
 	}

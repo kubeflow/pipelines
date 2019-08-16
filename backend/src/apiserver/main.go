@@ -83,6 +83,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
 	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager))
 	api.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
+	api.RegisterVisualizationServiceServer(s, server.NewVisualizationServer(resourceManager))
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -106,6 +107,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	registerHttpHandlerFromEndpoint(api.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, mux)
 	registerHttpHandlerFromEndpoint(api.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, mux)
+	registerHttpHandlerFromEndpoint(api.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization", ctx, mux)
 
 	// Create a top level mux to include both pipeline upload server and gRPC servers.
 	topMux := http.NewServeMux()

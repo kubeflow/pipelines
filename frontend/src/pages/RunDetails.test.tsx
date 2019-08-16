@@ -28,6 +28,7 @@ import { PlotType } from '../components/viewers/Viewer';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { shallow, ShallowWrapper } from 'enzyme';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('RunDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -55,7 +56,7 @@ describe('RunDetails', () => {
       history: { push: historyPushSpy } as any,
       location: '' as any,
       match: { params: { [RouteParams.runId]: testRun.run!.id }, isExact: true, path: '', url: '' },
-      toolbarProps: { actions: [], breadcrumbs: [], pageTitle: '' },
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
       updateSnackbar: updateSnackbarSpy,
@@ -129,8 +130,7 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as RunDetails;
-    const cloneBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Clone run');
+    const cloneBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RUN];
     expect(cloneBtn).toBeDefined();
     await cloneBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
@@ -142,8 +142,8 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive')).toBeDefined();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore')).toBeUndefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ARCHIVE)).toBeDefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE)).toBeUndefined();
   });
 
   it('shows "All runs" in breadcrumbs if the run is not archived', async () => {
@@ -176,8 +176,8 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore')).toBeDefined();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive')).toBeUndefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE)).toBeDefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ARCHIVE)).toBeUndefined();
   });
 
   it('shows Archive in breadcrumbs if the run is archived', async () => {

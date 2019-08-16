@@ -32,6 +32,9 @@ from kubernetes.client import V1Toleration
 
 
 class TestCompiler(unittest.TestCase):
+  # Define the places of samples covered by unit tests.
+  core_sample_path = os.path.join(os.path.dirname(__file__), '..', '..', '..',
+                                  '..', 'samples', 'core',)
 
   def test_operator_to_template(self):
     """Test converting operator to template"""
@@ -86,7 +89,7 @@ class TestCompiler(unittest.TestCase):
       'inputs': {'parameters':
         [
           {'name': 'msg1'},
-          {'name': 'msg2', 'value': 'value2'},
+          {'name': 'msg2'},
         ]},
       'name': 'echo',
       'outputs': {
@@ -282,6 +285,28 @@ class TestCompiler(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
+  def _test_sample_py_compile_yaml(self, file_base_name):
+    # Jump back to sample dir for sample python file.
+    sample_data_dir = os.path.join(self.core_sample_path, file_base_name)
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    py_file = os.path.join(sample_data_dir, file_base_name + '.py')
+    tmpdir = tempfile.mkdtemp()
+    try:
+      target_yaml = os.path.join(tmpdir, file_base_name + '-pipeline.yaml')
+      subprocess.check_call(
+          ['dsl-compile', '--py', py_file, '--output', target_yaml])
+      with open(os.path.join(test_data_dir, file_base_name + '.yaml'),
+                'r') as f:
+        golden = yaml.safe_load(f)
+
+      with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
+        compiled = yaml.safe_load(f)
+
+      self.maxDiff = None
+      self.assertEqual(golden, compiled)
+    finally:
+      shutil.rmtree(tmpdir)
+
   def test_py_compile_artifact_location(self):
     """Test configurable artifact location pipeline."""
     self._test_py_compile_yaml('artifact_location')
@@ -302,10 +327,6 @@ class TestCompiler(unittest.TestCase):
     """Test a pipeline with conditions."""
     self._test_py_compile_zip('coin')
 
-  def test_py_compile_immediate_value(self):
-    """Test a pipeline with immediate value parameter."""
-    self._test_py_compile_targz('immediate_value')
-
   def test_py_compile_default_value(self):
     """Test a pipeline with a parameter with default value."""
     self._test_py_compile_targz('default_value')
@@ -318,9 +339,9 @@ class TestCompiler(unittest.TestCase):
     """Test retry functionality."""
     self._test_py_compile_yaml('retry')
 
-  def test_py_image_pull_secret(self):
+  def test_py_image_pull_secrets(self):
     """Test pipeline imagepullsecret."""
-    self._test_py_compile_yaml('imagepullsecret')
+    self._test_sample_py_compile_yaml('imagepullsecrets')
 
   def test_py_timeout(self):
     """Test pipeline timeout."""
@@ -369,6 +390,10 @@ class TestCompiler(unittest.TestCase):
   def test_py_param_op_transform(self):
     """Test pipeline param_op_transform."""
     self._test_py_compile_yaml('param_op_transform')
+
+  def test_py_preemptible_gpu(self):
+    """Test preemptible GPU/TPU sample."""
+    self._test_sample_py_compile_yaml('preemptible_tpu_gpu')
 
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""
@@ -527,7 +552,8 @@ implementation:
     template = workflow_dict['spec']['templates'][0]
     self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/task_display_name'], 'Custom name')
 
-  def test_op_transformers(self):
+  def test_set_ttl_seconds_after_finished(self):
+    """Test a pipeline with ttl after finished."""
     def some_op():
         return dsl.ContainerOp(
             name='sleep',
@@ -535,13 +561,29 @@ implementation:
             command=['sleep 1'],
         )
 
+    @dsl.pipeline()
+    def some_pipeline():
+      some_op()
+      dsl.get_pipeline_conf().set_ttl_seconds_after_finished(86400)
+
+    workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+    self.assertEqual(workflow_dict['spec']['ttlSecondsAfterFinished'], 86400)
+
+  def test_op_transformers(self):
+    def some_op():
+      return dsl.ContainerOp(
+          name='sleep',
+          image='busybox',
+          command=['sleep 1'],
+      )
+
     @dsl.pipeline(name='some_pipeline', description='')
     def some_pipeline():
-        task1 = some_op()
-        task2 = some_op()
-        task3 = some_op()
+      task1 = some_op()
+      task2 = some_op()
+      task3 = some_op()
 
-        dsl.get_pipeline_conf().op_transformers.append(lambda op: op.set_retry(5))
+      dsl.get_pipeline_conf().op_transformers.append(lambda op: op.set_retry(5))
 
     workflow_dict = compiler.Compiler()._compile(some_pipeline)
     for template in workflow_dict['spec']['templates']:
@@ -555,6 +597,27 @@ implementation:
   def test_withitem_nested(self):
     self._test_py_compile_yaml('withitem_nested')
 
+  def test_add_pod_env(self):
+    self._test_py_compile_yaml('add_pod_env')
 
-if __name__ == '__main__':
-  unittest.main()
+  def test_init_container(self):
+    echo = dsl.UserContainer(
+      name='echo',
+      image='alpine:latest',
+      command=['echo', 'bye'])
+
+    @dsl.pipeline(name='InitContainer', description='A pipeline with init container.')
+    def init_container_pipeline():
+      dsl.ContainerOp(
+        name='hello',
+        image='alpine:latest',
+        command=['echo', 'hello'],
+        init_containers=[echo])
+
+    workflow_dict = compiler.Compiler()._compile(init_container_pipeline)
+    for template in workflow_dict['spec']['templates']:
+      init_containers = template.get('initContainers', None)
+      if init_containers:
+        self.assertEqual(len(init_containers),1)
+        init_container = init_containers[0]
+        self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})

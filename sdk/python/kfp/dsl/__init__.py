@@ -15,7 +15,7 @@
 
 from ._pipeline_param import PipelineParam, match_serialized_pipelineparam
 from ._pipeline import Pipeline, pipeline, get_pipeline_conf
-from ._container_op import ContainerOp, Sidecar, BaseOp
+from ._container_op import ContainerOp, UserContainer, Sidecar, BaseOp
 from ._resource_op import ResourceOp
 from ._for_loop import LoopArguments, LoopArgumentVariable
 from ._volume_op import (

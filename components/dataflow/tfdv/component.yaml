@@ -18,7 +18,7 @@ outputs:
 - {name: Validation result, type: String,                       description: Indicates whether anomalies were detected or not.}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:ac833a084b32324b56ca56e9109e05cde02816a4
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:0517114dc2b365a4a6d95424af6157ead774eff3
     command: [python2, /ml/validate.py]
     args: [
       --csv-data-for-inference, {inputValue: Inference data},
