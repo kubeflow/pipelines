@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 import kfp.dsl as dsl
-
 
 @dsl.pipeline(
     name="pipeline_with_sidecar", 
@@ -47,3 +47,6 @@ def pipeline_with_sidecar(sleep_ms: int = 10):
         command=["sh", "-c"],
         arguments=["echo %s" % op1.output],  # print out content of op1 output
     )
+
+if __name__ == '__main__':
+    kfp.compiler.Compiler().compile(pipeline_with_sidecar, __file__ + '.zip')
