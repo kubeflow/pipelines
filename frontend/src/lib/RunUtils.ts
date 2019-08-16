@@ -29,6 +29,11 @@ export interface MetricMetadata {
   name: string;
 }
 
+export interface ExperimentInfo {
+  displayName?: string;
+  id: string;
+}
+
 function getParametersFromRun(run: ApiRunDetail): ApiParameter[] {
   return getParametersFromRuntime(run.pipeline_runtime);
 }
@@ -59,16 +64,18 @@ function getWorkflowManifest(run?: ApiRun | ApiJob): string | null {
   return (run && run.pipeline_spec && run.pipeline_spec.workflow_manifest) || null;
 }
 
-function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {
-  if (run) {
-    const reference = getAllExperimentReferences(run)[0];
-    return reference && reference.key && reference.key.id || null;
-  }
-  return null;
+function getFirstExperimentReference(run?: ApiRun | ApiJob): ApiResourceReference | null {
+  return getAllExperimentReferences(run)[0] || null;
 }
 
-function getFirstExperimentReference(run?: ApiRun | ApiJob): ApiResourceReference | null {
-  return run && getAllExperimentReferences(run)[0] || null;
+function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {
+  const reference = getFirstExperimentReference(run);
+  return reference && reference.key && reference.key.id || null;
+}
+
+function getFirstExperimentReferenceName(run?: ApiRun | ApiJob): string | null {
+  const reference = getFirstExperimentReference(run);
+  return reference && reference.name || null;
 }
 
 function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference[] {
@@ -133,6 +140,7 @@ export default {
   getAllExperimentReferences,
   getFirstExperimentReference,
   getFirstExperimentReferenceId,
+  getFirstExperimentReferenceName,
   getParametersFromRun,
   getParametersFromRuntime,
   getPipelineId,
