@@ -68,7 +68,8 @@ matrix:
         - pip3 install coverage coveralls jsonschema==3.0.1 
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
-        - python3 setup.py install
+        # install locally to guarantee right coverage result.
+        - python3 setup.py develop
         - coverage run --include=*/kfp/* --omit */site-packages/* --append tests/dsl/main.py
         - coverage run --include=*/kfp/* --omit */site-packages/* --append tests/compiler/main.py
         - coverage run --include=*/kfp/* --omit */site-packages/* --append -m unittest discover --verbose --start-dir tests --top-level-directory=.
