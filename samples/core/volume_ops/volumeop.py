@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import kfp
 import kfp.dsl as dsl
 
 
@@ -36,7 +36,5 @@ def volumeop_basic(size):
         pvolumes={"/mnt": vop.volume}
     )
 
-
-if __name__ == "__main__":
-    import kfp.compiler as compiler
-    compiler.Compiler().compile(volumeop_basic, __file__ + ".tar.gz")
+if __name__ == '__main__':
+    kfp.compiler.Compiler().compile(volumeop_basic, __file__ + '.zip')
