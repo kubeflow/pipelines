@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cenkalti/backoff"
 	"github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type VisualizationServer struct {
@@ -80,12 +82,26 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	return body, nil
 }
 
-func NewVisualizationServer(resourceManager *resource.ResourceManager, serviceName string, namespace string) *VisualizationServer {
+func isVisualizationServiceAlive(serviceURL string, initConnectionTimeout time.Duration) bool {
+	var operation = func() error {
+		_, err := http.Get(serviceURL)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	b := backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = initConnectionTimeout
+	err := backoff.Retry(operation, b)
+	return err == nil
+}
+
+func NewVisualizationServer(resourceManager *resource.ResourceManager, serviceName string, namespace string, initConnectionTimeout time.Duration) *VisualizationServer {
 	serviceURL := fmt.Sprintf("http://%s.%s", serviceName, namespace)
-	_, err := http.Get(serviceURL)
+	isServiceAvailable := isVisualizationServiceAlive(serviceURL, initConnectionTimeout)
 	return &VisualizationServer{
 		resourceManager:    resourceManager,
 		serviceURL:         serviceURL,
-		isServiceAvailable: err == nil,
+		isServiceAvailable: isServiceAvailable,
 	}
 }
