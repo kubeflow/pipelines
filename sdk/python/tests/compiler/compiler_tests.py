@@ -622,5 +622,3 @@ implementation:
         init_container = init_containers[0]
         self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})
 
-if __name__ == '__main__':
-    unittest.main()

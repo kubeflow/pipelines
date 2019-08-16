@@ -156,8 +156,8 @@ class ParallelFor(OpsGroup):
   Example usage:
   ```python
   with dsl.ParallelFor([{'a': 1, 'b': 10}, {'a': 2, 'b': 20}]) as item:
-    op1 = ContainerOp(..., args=[f'echo {item.a}'])
-    op2 = ContainerOp(..., args=[f'echo {item.b}'])
+    op1 = ContainerOp(..., args=['echo {}'.format(item.a)])
+    op2 = ContainerOp(..., args=['echo {}'.format(item.b])
   ```
   and op1 would be executed twice, once with args=['echo 1'] and once with args=['echo 2']
   """
@@ -166,7 +166,7 @@ class ParallelFor(OpsGroup):
   def __init__(self, loop_args: ItemList):
     # random code to id this loop
     code = uuid.uuid4().hex
-    group_name = f'for-loop-{code}'
+    group_name = 'for-loop-{}'.format(code)
     super().__init__(self.TYPE_NAME, name=group_name)
 
     if not isinstance(loop_args, LoopArguments):

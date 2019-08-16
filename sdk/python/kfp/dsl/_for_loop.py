@@ -21,7 +21,7 @@ class LoopArguments(dsl.PipelineParam):
     @classmethod
     def make_name(cls, code: Text):
         """Make a name for this parameter."""
-        return f'{cls._loop_item_placeholder_name}-{code}'
+        return '{}-{}'.format(cls._loop_item_placeholder_name, code)
 
     @classmethod
     def name_is_loop_arguments(cls, param_name: Text):
@@ -35,14 +35,14 @@ class LoopArguments(dsl.PipelineParam):
         super().__init__(name=self.make_name(code))
 
         if not isinstance(items, (list, tuple)):
-            raise ValueError(f"Expected list or tuple, got {type(items)}.")
+            raise ValueError("Expected list or tuple, got {}.".format(type(items)))
 
         if isinstance(items[0], dict):
             subvar_names = set(items[0].keys())
             for item in items:
                 if not set(item.keys()) == subvar_names:
-                    raise ValueError(f"If you input a list of dicts then all dicts should have the same keys. "
-                                     f"Got: {items}.")
+                    raise ValueError("If you input a list of dicts then all dicts should have the same keys. "
+                                     "Got: {}.".format(items))
 
             # then this block creates loop_args.variable_a and loop_args.variable_b
             for subvar_name in subvar_names:
@@ -72,7 +72,7 @@ class LoopArgumentVariable(dsl.PipelineParam):
 
         Returns: The name of this loop args variable.
         """
-        return f'{loop_args_name}{cls.SUBVAR_NAME_DELIMITER}{this_variable_name}'
+        return '{}{}{}'.format(loop_args_name, cls.SUBVAR_NAME_DELIMITER, this_variable_name)
 
     @classmethod
     def param_is_this_type(cls, param: dsl.PipelineParam):
@@ -90,7 +90,7 @@ class LoopArgumentVariable(dsl.PipelineParam):
     @classmethod
     def parse_loop_args_name_and_this_var_name(cls, t: Text):
         """Get the loop arguments param name and this subvariable name from the given parameter name."""
-        m = re.match(f'(?P<loop_args_name>.*){cls.SUBVAR_NAME_DELIMITER}(?P<this_var_name>.*)', t)
+        m = re.match('(?P<loop_args_name>.*){}(?P<this_var_name>.*)'.format(cls.SUBVAR_NAME_DELIMITER), t)
         if m is None:
             return None
         else:
@@ -101,5 +101,5 @@ class LoopArgumentVariable(dsl.PipelineParam):
         """Get the subvariable name from a given LoopArgumentsVariable parameter name."""
         out = cls.parse_loop_args_name_and_this_var_name(t)
         if out is None:
-            raise ValueError(f"Couldn't parse variable name: {t}")
+            raise ValueError("Couldn't parse variable name: {}".format(t))
         return out[1]
