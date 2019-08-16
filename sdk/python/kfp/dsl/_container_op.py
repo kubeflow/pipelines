@@ -710,9 +710,6 @@ class BaseOp(object):
             self._inputs = []
             # TODO replace with proper k8s obj?
             for key in self.attrs_with_pipelineparams:
-                # self._inputs += [
-                #     param for param in _pipeline_param.extract_pipelineparams_from_any(getattr(self, key))
-                # ]
                 self._inputs += _pipeline_param.extract_pipelineparams_from_any(getattr(self, key))
             # keep only unique
             self._inputs = list(set(self._inputs))
@@ -888,19 +885,20 @@ class ContainerOp(BaseOp):
     # Excludes `file_outputs` and `outputs` as they are handled separately
     # in the compilation process to generate the DAGs and task io parameters.
 
-    def __init__(self,
-                 name: str,
-                 image: str,
-                 command: StringOrStringList = None,
-                 arguments: StringOrStringList = None,
-                 sidecars: List[Sidecar] = None,
-                 container_kwargs: Dict = None,
-                 file_outputs: Dict[str, str] = None,
-                 output_artifact_paths : Dict[str, str]=None,
-                 artifact_location: V1alpha1ArtifactLocation=None,
-                 is_exit_handler=False,
-                 pvolumes: Dict[str, V1Volume] = None,
-                 ):
+    def __init__(
+            self,
+            name: str,
+            image: str,
+            command: StringOrStringList = None,
+            arguments: StringOrStringList = None,
+            sidecars: List[Sidecar] = None,
+            container_kwargs: Dict = None,
+            file_outputs: Dict[str, str] = None,
+            output_artifact_paths : Dict[str, str]=None,
+            artifact_location: V1alpha1ArtifactLocation=None,
+            is_exit_handler=False,
+            pvolumes: Dict[str, V1Volume] = None,
+        ):
         """Create a new instance of ContainerOp.
 
         Args:

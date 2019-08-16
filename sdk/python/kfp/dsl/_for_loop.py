@@ -1,6 +1,5 @@
 import re
 from typing import List, Union, Dict, Text, Any, Optional
-import uuid
 
 from kfp import dsl
 from kfp.dsl import _metadata
@@ -9,19 +8,25 @@ ItemList = List[Union[int, float, str, Dict[Text, Any]]]
 
 
 class LoopArguments(dsl.PipelineParam):
+    """Class representing the arguments that are looped over in a ParallelFor loop in the KFP DSL.
+    This doesn't need to be instantiated by the end user, rather it will be automatically created by a
+    ParallelFor ops group."""
     PARAM_TYPE_NAME = 'loop_args'
     _loop_item_placeholder_name = 'loop-item-placeholder'
 
     @classmethod
     def param_is_this_type(cls, param: dsl.PipelineParam):
+        """Return True if the given param is a LoopArgument param."""
         return param.param_type.name == cls.PARAM_TYPE_NAME
 
     @classmethod
     def make_name(cls, code: Text):
+        """Make a name for this parameter."""
         return f'{cls._loop_item_placeholder_name}-{code}'
 
     @classmethod
     def name_is_loop_arguments(cls, param_name: Text):
+        """Return True if the given parameter name looks like it came from a loop arguments parameter."""
         return re.match(
             '%s-[0-9a-f]{32}' % cls._loop_item_placeholder_name,
             param_name
@@ -61,6 +66,8 @@ class LoopArguments(dsl.PipelineParam):
 
 
 class LoopArgumentVariable(dsl.PipelineParam):
+    """Represents a subvariable for loop arguments.  This is used for cases where we're looping over maps,
+    each of which contains several variables."""
     PARAM_TYPE_NAME = 'loop_args_variable'
     SUBVAR_NAME_DELIMITER = '-item-subvar-'
 
@@ -73,14 +80,24 @@ class LoopArgumentVariable(dsl.PipelineParam):
 
     @classmethod
     def get_name(cls, loop_args_name: Text, this_variable_name: Text):
+        """Get the name
+
+        Args:
+            loop_args_name: the name of the loop args parameter that this LoopArgsVariable is attached to.
+            this_variable_name: the name of this LoopArgumentsVariable subvar.
+
+        Returns: The name of this loop args variable.
+        """
         return f'{loop_args_name}{cls.SUBVAR_NAME_DELIMITER}{this_variable_name}'
 
     @classmethod
     def param_is_this_type(cls, param: dsl.PipelineParam):
+        """Return True if the given param is a LoopArgumentVariable param."""
         return param.param_type.name == cls.PARAM_TYPE_NAME
 
     @classmethod
     def name_is_loop_arguments_variable(cls, param_name: Text):
+        """Return True if the given parameter name looks like it came from a LoopArgumentsVariable."""
         return re.match(
             '%s-[0-9a-f]{32}%s.*' % (LoopArguments._loop_item_placeholder_name, cls.SUBVAR_NAME_DELIMITER),
             param_name
@@ -88,6 +105,7 @@ class LoopArgumentVariable(dsl.PipelineParam):
 
     @classmethod
     def parse_loop_args_name_and_this_var_name(cls, t: Text):
+        """Get the loop arguments param name and this subvariable name from the given parameter name."""
         m = re.match(f'(?P<loop_args_name>.*){cls.SUBVAR_NAME_DELIMITER}(?P<this_var_name>.*)', t)
         if m is None:
             return None
@@ -96,6 +114,7 @@ class LoopArgumentVariable(dsl.PipelineParam):
 
     @classmethod
     def get_subvar_name(cls, t: Text):
+        """Get the subvariable name from a given LoopArgumentsVariable parameter name."""
         out = cls.parse_loop_args_name_and_this_var_name(t)
         if out is None:
             raise ValueError(f"Couldn't parse variable name: {t}")

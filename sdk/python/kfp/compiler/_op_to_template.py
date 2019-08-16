@@ -105,17 +105,6 @@ def _process_base_ops(op: BaseOp):
     """
 
     # map param's (unsanitized pattern or serialized str pattern) -> input param var str
-    # map_to_tmpl_var = {}
-    # for param in op.inputs:
-    #     if dsl.LoopArgumentVariable.param_is_this_type(param):
-    #         name = f'{{item.%s}}' % dsl.LoopArgumentVariable.get_subvar_name(param.name)
-    #     elif dsl.LoopArguments.param_is_this_type(param):
-    #         name = '{{items}}'
-    #     elif isinstance(param, dsl.PipelineParam):
-    #         name = '{{inputs.parameters.%s}}' % param.full_name
-    #     else:
-    #         raise ValueError("Found param of unknown type.")
-    #     map_to_tmpl_var[param.pattern or str(param)] = name
     map_to_tmpl_var = {
         (param.pattern or str(param)): '{{inputs.parameters.%s}}' % param.full_name
         for param in op.inputs

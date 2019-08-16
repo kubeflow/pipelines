@@ -57,9 +57,6 @@ class Compiler(object):
       return param.op_name + '-' + param.name
     return param.name
 
-  def __init__(self):
-    self._get_withitems_params_fo = None
-
   def _get_groups_for_ops(self, root_group):
     """Helper function to get belonging groups for each op.
 
@@ -213,7 +210,7 @@ class Compiler(object):
 
   def _fill_loop_args(self, new_root):
     """Traverses through graph, plucking up loop_args vars from ops groups and depositing pointers to them on the
-    ops which contain them as arguments. and adds loop arguments where they belong."""
+    ops which contain them as arguments."""
 
     def get_loop_args_names_for_op(op: dsl.BaseOp):
       if not isinstance(op, dsl.BaseOp):
@@ -247,7 +244,7 @@ class Compiler(object):
       next.loop_args_names_to_loop_args = {name: loop_args_name_to_obj[name] for name in loop_args_names}
 
   def _get_subgroups(self, op):
-    """Get all ops and groups below this op."""
+    """Get all ops and groups contained within this group."""
     subgroups = []
     if hasattr(op, 'ops'):
       subgroups.extend(op.ops)
@@ -278,18 +275,15 @@ class Compiler(object):
 
     for op in pipeline.ops.values():
       # op's inputs and all params used in conditions for that op are both considered.
-      # print(f"op.name = {op.name}")
       for param in op.inputs + list(condition_params[op.name]):
         # if the value is already provided (immediate value), then no need to expose
         # it as input for its parent groups.
-        # print(f"param.name = {param.name}")
-        # print(f"param.op_name = {param.op_name}")
         if param.value:
           continue
         if param.op_name:
           upstream_op = pipeline.ops[param.op_name]
-          upstream_groups, downstream_groups = self._get_uncommon_ancestors(
-              op_groups, opsgroup_groups, upstream_op, op)
+          upstream_groups, downstream_groups = \
+            self._get_uncommon_ancestors(op_groups, opsgroup_groups, upstream_op, op)
           for i, group_name in enumerate(downstream_groups):
             if i == 0:
               # If it is the first uncommon downstream group, then the input comes from
@@ -308,7 +302,6 @@ class Compiler(object):
               outputs[group_name].add((param.full_name, upstream_groups[i+1]))
         else:
           if not op.is_exit_handler:
-
             for group_name in op_groups[op.name][::-1]:
               # if group is for loop group and param is that loop's param, then the param
               # is created by that for loop ops_group and it shouldn't be an input to
@@ -335,8 +328,8 @@ class Compiler(object):
           full_name = self._pipelineparam_full_name(param)
           if param.op_name:
             upstream_op = pipeline.ops[param.op_name]
-            upstream_groups, downstream_groups = self._get_uncommon_ancestors(
-              op_groups, opsgroup_groups, upstream_op, group)
+            upstream_groups, downstream_groups = \
+              self._get_uncommon_ancestors(op_groups, opsgroup_groups, upstream_op, group)
             for i, g in enumerate(downstream_groups):
               if i == 0:
                 inputs[g].add((full_name, upstream_groups[0]))
@@ -388,8 +381,8 @@ class Compiler(object):
         else:
           raise ValueError('compiler cannot find the ' + op_name)
 
-        upstream_groups, downstream_groups = self._get_uncommon_ancestors(
-            op_groups, opsgroups_groups, upstream_op, op)
+        upstream_groups, downstream_groups = \
+          self._get_uncommon_ancestors(op_groups, opsgroups_groups, upstream_op, op)
         dependencies[downstream_groups[0]].add(upstream_groups[0])
 
     # Generate dependencies based on the recursive opsgroups
@@ -408,8 +401,8 @@ class Compiler(object):
           upstream_op = opsgroups_groups[op_name]
         else:
           raise ValueError('compiler cannot find the ' + op_name)
-        upstream_groups, downstream_groups = self._get_uncommon_ancestors(
-            op_groups, opsgroups_groups, upstream_op, group)
+        upstream_groups, downstream_groups = \
+          self._get_uncommon_ancestors(op_groups, opsgroups_groups, upstream_op, group)
         dependencies[downstream_groups[0]].add(upstream_groups[0])
 
       for subgroup in group.groups:
@@ -592,10 +585,8 @@ class Compiler(object):
     op_name_to_parent_groups = self._get_groups_for_ops(root_group)
     opgroup_name_to_parent_groups = self._get_groups_for_opsgroups(root_group)
     condition_params = self._get_condition_params_for_ops(root_group)
-
     op_name_to_for_loop_op = self._get_for_loop_ops(root_group)
     self._fill_loop_args(root_group)
-
     inputs, outputs = self._get_inputs_outputs(
       pipeline,
       root_group,
@@ -736,11 +727,6 @@ class Compiler(object):
     self._validate_exit_handler(p)
 
     # Fill in the default values.
-    """args_list_with_defaults
-Out[2]: 
-[{'PipelineParam': {'name': 'tag', 'op_name': None, 'value': None, 'param_type': <kfp.dsl._metadata.TypeMeta object at 0x7f87c864eb38>, ' pattern': '{{pipelineparam:op=;name=tag;value=;type=;}}'}},
- {'PipelineParam': {'name': 'sleep-ms', 'op_name': None, 'value': None, 'param_type': <kfp.dsl._metadata.TypeMeta object at 0x7f87c864eb38>, 'pattern': '{{pipelineparam:op=;name=sleep-ms;value=;type=;}}'}}]
-    """
     args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
                                for arg_name in argspec.args]
     if argspec.defaults:
