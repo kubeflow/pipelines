@@ -1,6 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use ContainerOp
+      set_retry().", "inputs": [], "name": "pipeline includes two steps which fail
+      randomly."}'
   generateName: pipeline-includes-two-steps-which-fail-randomly-
 spec:
   arguments:
