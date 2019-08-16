@@ -12,20 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# reproducible UUIDs: https://stackoverflow.com/a/56757552/9357327
-import uuid
-import random
-# -------------------------------------------
-# Remove this block to generate different
-# UUIDs everytime you run this code.
-# This block should be right below the uuid
-# import.
-rd = random.Random()
-rd.seed(0)
-uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
-# -------------------------------------------
-
 import kfp.dsl as dsl
+
+
+class Coder:
+    def __init__(self, ):
+        self._code_id = 0
+
+    def get_code(self, ):
+        self._code_id += 1
+        return '{0:032d}'.format(self._code_id)
+
+
+dsl.ParallelFor._get_code = Coder().get_code
 
 
 @dsl.pipeline(name='my-pipeline')
@@ -53,3 +52,7 @@ def pipeline(my_pipe_param=10):
         arguments=["echo %s" % my_pipe_param],
     )
 
+
+if __name__ == '__main__':
+    from kfp import compiler
+    print(compiler.Compiler().compile(pipeline, package_path=None))

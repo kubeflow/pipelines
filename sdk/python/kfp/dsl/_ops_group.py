@@ -163,9 +163,13 @@ class ParallelFor(OpsGroup):
   """
   TYPE_NAME = 'for_loop'
 
+  @staticmethod
+  def _get_code():
+    return uuid.uuid4().hex
+
   def __init__(self, loop_args: ItemList):
     # random code to id this loop
-    code = uuid.uuid4().hex
+    code = self._get_code()
     group_name = 'for-loop-{}'.format(code)
     super().__init__(self.TYPE_NAME, name=group_name)
 

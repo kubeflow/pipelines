@@ -20,6 +20,7 @@ import zipfile
 from typing import Set, List, Text, Dict
 
 import yaml
+from kfp.dsl import _container_op
 
 from .. import dsl
 from ._k8s_helper import K8sHelper
@@ -212,8 +213,8 @@ class Compiler(object):
     """Traverses through graph, plucking up loop_args vars from ops groups and depositing pointers to them on the
     ops which contain them as arguments."""
 
-    def get_loop_args_names_for_op(op: dsl.BaseOp):
-      if not isinstance(op, dsl.BaseOp):
+    def get_loop_args_names_for_op(op: _container_op.BaseOp):
+      if not isinstance(op, _container_op.BaseOp):
         return []
 
       loop_arg_names = []
