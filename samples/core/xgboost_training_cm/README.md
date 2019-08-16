@@ -14,11 +14,11 @@ Preprocessing uses Google Cloud DataProc. Therefore, you must enable the [DataPr
 
 ## Compile
 
-Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK and compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file. 
+Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK and compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.zip` file. 
 
 ## Deploy
 
-Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compiled specification (`.tar.gz` file) as a new pipeline template.
+Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compiled specification (`.zip` file) as a new pipeline template.
 
 ## Run
 
