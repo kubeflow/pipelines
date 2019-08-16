@@ -13,6 +13,9 @@
 # limitations under the License.
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with sidecars.",
+      "inputs": [], "name": "Sidecar"}'
   generateName: sidecar-
 apiVersion: argoproj.io/v1alpha1
 spec:

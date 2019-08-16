@@ -632,6 +632,10 @@ func TestRetryRun(t *testing.T) {
 
 	err = manager.RetryRun(runDetail.UUID)
 	assert.Nil(t, err)
+
+	actualRunDetail, err = manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Contains(t, actualRunDetail.WorkflowRuntimeManifest, "Running")
 }
 
 func TestRetryRun_RunNotExist(t *testing.T) {
