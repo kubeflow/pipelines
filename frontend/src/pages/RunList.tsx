@@ -17,7 +17,7 @@
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Metric from '../components/Metric';
-import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
+import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
 import { ApiRun, ApiResourceType, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
@@ -28,11 +28,6 @@ import { URLParser } from '../lib/URLParser';
 import { commonCss, color } from '../Css';
 import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
 import { statusToIcon } from './Status';
-
-interface ExperimentInfo {
-  displayName?: string;
-  id: string;
-}
 
 interface PipelineInfo {
   displayName?: string;
@@ -386,13 +381,20 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   private async _getAndSetExperimentNames(displayRun: DisplayRun): Promise<void> {
     const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.run);
     if (experimentId) {
-      try {
-        const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-        displayRun.experiment = { displayName: experiment.name || '', id: experimentId };
-      } catch (err) {
-        // This could be an API exception, or a JSON parse exception.
-        displayRun.error = 'Failed to get associated experiment: ' + await errorToMessage(err);
+      let experimentName = RunUtils.getFirstExperimentReferenceName(displayRun.run);
+      if (!experimentName) {
+        try {
+          const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
+          experimentName = experiment.name || '';
+        } catch (err) {
+          displayRun.error = 'Failed to get associated experiment: ' + await errorToMessage(err);
+          return;
+        }
       }
+      displayRun.experiment = {
+        displayName: experimentName,
+        id: experimentId
+      };
     }
   }
 }
