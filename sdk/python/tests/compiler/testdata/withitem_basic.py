@@ -28,7 +28,7 @@ uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
 import kfp.dsl as dsl
 
 
-@dsl.pipeline(name='my-pipeline', description='A pipeline with multiple a loop.')
+@dsl.pipeline(name='my-pipeline')
 def pipeline(my_pipe_param=10):
     loop_args = [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]
     with dsl.ParallelFor(loop_args) as item:

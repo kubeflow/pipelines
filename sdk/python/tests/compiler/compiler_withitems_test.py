@@ -16,7 +16,7 @@ uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
 # -------------------------------------------
 
 
-# @dsl.pipeline(name='my-pipeline', description='A pipeline with multiple pipeline params.')
+# @dsl.pipeline(name='my-pipeline')
 # def pipeline(my_pipe_param=10):
 #     loop_args = [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]
 #     with dsl.ParallelFor(loop_args) as item:
@@ -41,7 +41,7 @@ uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
 #         arguments=["echo %s" % my_pipe_param],
 #     )
 
-@dsl.pipeline(name='my-pipeline', description='A pipeline with multiple pipeline params.')
+@dsl.pipeline(name='my-pipeline')
 def pipeline(my_pipe_param=10):
     loop_args = [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]
     with dsl.ParallelFor(loop_args) as item:
@@ -78,17 +78,17 @@ def pipeline(my_pipe_param=10):
 yaml_text = compiler.Compiler().compile(pipeline, None)
 print(yaml_text)
 
-import kfp
-import time
-client = kfp.Client(host='127.0.0.1:8080/pipeline')
-print(client.list_experiments())
-
-pkg_path = '/tmp/witest_pkg.tar.gz'
-compiler.Compiler().compile(pipeline, package_path=pkg_path)
-exp = client.create_experiment('withitems_exp')
-client.run_pipeline(
-    experiment_id=exp.id,
-    job_name=f'withitems_job_{time.time()}',
-    pipeline_package_path=pkg_path,
-    params={'my-pipe-param': 11},
-)
+# import kfp
+# import time
+# client = kfp.Client(host='127.0.0.1:8080/pipeline')
+# print(client.list_experiments())
+#
+# pkg_path = '/tmp/witest_pkg.tar.gz'
+# compiler.Compiler().compile(pipeline, package_path=pkg_path)
+# exp = client.create_experiment('withitems_exp')
+# client.run_pipeline(
+#     experiment_id=exp.id,
+#     job_name=f'withitems_job_{time.time()}',
+#     pipeline_package_path=pkg_path,
+#     params={'my-pipe-param': 11},
+# )
