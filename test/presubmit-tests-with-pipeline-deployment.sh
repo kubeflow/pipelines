@@ -77,18 +77,21 @@ source "${DIR}/deploy-kubeflow.sh"
 # Install Argo CLI and test-runner service account
 source "${DIR}/install-argo.sh"
 
+IMAGE_BUILDER_ARG=""
 # When project is not ml-pipeline-test, VMs need permission to fetch some images in gcr.io/ml-pipeline-test.
-if [ ! "$PROJECT" == "ml-pipeline-test" ]; then
-  echo "Granting VM service account roles to access gcr.io/ml-pipeline-test"
-  CLUSTER_SERVICE_ACCOUNT=`gcloud container clusters describe "${TEST_CLUSTER}" --format 'value(nodeConfig.serviceAccount)'`
-  echo "CLUSTER_SERVICE_ACCOUNT=${CLUSTER_SERVICE_ACCOUNT}"
-  gcloud projects add-iam-policy-binding ml-pipeline-test --member serviceAccount:${CLUSTER_SERVICE_ACCOUNT} --role roles/storage.objectViewer
+if [ "$PROJECT" != "ml-pipeline-test" ]; then
+  echo "Copy image builder image to gcr.io/${PROJECT}"
+  gcloud container images add-tag \
+    gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4 \
+    ${GCR_IMAGE_BASE_DIR}/image-builder:latest
+  IMAGE_BUILDER_ARG="-p image-builder-image=${GCR_IMAGE_BASE_DIR}/image-builder"
 fi
 
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+${IMAGE_BUILDER_ARG} \
 -p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
 -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
 -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
