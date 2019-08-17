@@ -381,6 +381,15 @@ class Container(V1Container):
         self.image_pull_policy = image_pull_policy
         return self
 
+    def set_working_dir(self, working_dir):
+        """Set working dir for the container.
+
+        Args:
+          workdir: working directory path
+        """
+        self.working_dir = working_dir
+        return self
+
     def add_port(self, container_port):
         """Add a container port to the container.
 
