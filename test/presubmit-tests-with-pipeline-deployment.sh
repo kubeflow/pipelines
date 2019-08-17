@@ -81,7 +81,7 @@ IMAGE_BUILDER_ARG=""
 # When project is not ml-pipeline-test, VMs need permission to fetch some images in gcr.io/ml-pipeline-test.
 if [ "$PROJECT" != "ml-pipeline-test" ]; then
   echo "Copy image builder image to gcr.io/${PROJECT}"
-  gcloud container images add-tag \
+  yes | gcloud container images add-tag \
     gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4 \
     ${GCR_IMAGE_BASE_DIR}/image-builder:latest
   IMAGE_BUILDER_ARG="-p image-builder-image=${GCR_IMAGE_BASE_DIR}/image-builder"
