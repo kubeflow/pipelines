@@ -80,11 +80,12 @@ source "${DIR}/install-argo.sh"
 IMAGE_BUILDER_ARG=""
 # When project is not ml-pipeline-test, VMs need permission to fetch some images in gcr.io/ml-pipeline-test.
 if [ "$PROJECT" != "ml-pipeline-test" ]; then
-  echo "Copy image builder image to gcr.io/${PROJECT}"
+  COPIED_IMAGE_BUILDER_IMAGE=${GCR_IMAGE_BASE_DIR}/image-builder
+  echo "Copy image builder image to ${COPIED_IMAGE_BUILDER_IMAGE}"
   yes | gcloud container images add-tag \
     gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4 \
-    ${GCR_IMAGE_BASE_DIR}/image-builder:latest
-  IMAGE_BUILDER_ARG="-p image-builder-image=${GCR_IMAGE_BASE_DIR}/image-builder"
+    ${COPIED_IMAGE_BUILDER_IMAGE}:latest
+  IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
 fi
 
 # Build Images
