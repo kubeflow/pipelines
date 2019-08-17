@@ -24,6 +24,7 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
 import { range } from 'lodash';
 import { ImportMethod } from '../components/UploadPipelineDialog';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('PipelineList', () => {
 
@@ -123,7 +124,7 @@ describe('PipelineList', () => {
     tree = await mountWithNPipelines(1);
     const instance = tree.instance() as PipelineList;
     expect(listPipelinesSpy.mock.calls.length).toBe(1);
-    const refreshBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Refresh');
+    const refreshBtn = instance.getInitialToolbarState().actions[ButtonKeys.REFRESH];
     expect(refreshBtn).toBeDefined();
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
@@ -146,7 +147,7 @@ describe('PipelineList', () => {
   it('shows error banner when listing pipelines fails after refresh', async () => {
     tree = TestUtils.mountWithRouter(<PipelineList {...generateProps()} />);
     const instance = tree.instance() as PipelineList;
-    const refreshBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Refresh');
+    const refreshBtn = instance.getInitialToolbarState().actions[ButtonKeys.REFRESH];
     expect(refreshBtn).toBeDefined();
     TestUtils.makeErrorResponseOnce(listPipelinesSpy, 'bad stuff happened');
     await refreshBtn!.action();
@@ -172,7 +173,7 @@ describe('PipelineList', () => {
     }));
     updateBannerSpy.mockReset();
 
-    const refreshBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Refresh');
+    const refreshBtn = instance.getInitialToolbarState().actions[ButtonKeys.REFRESH];
     listPipelinesSpy.mockImplementationOnce(() => ({ pipelines: [{ name: 'pipeline1' }] }));
     await refreshBtn!.action();
     expect(listPipelinesSpy.mock.calls.length).toBe(2);
@@ -191,7 +192,7 @@ describe('PipelineList', () => {
   it('always has upload pipeline button enabled', async () => {
     tree = await mountWithNPipelines(1);
     const calls = updateToolbarSpy.mock.calls[0];
-    expect(calls[0].actions.find((b: any) => b.title === 'Upload pipeline')).not.toHaveProperty('disabled');
+    expect(calls[0].actions[ButtonKeys.UPLOAD_PIPELINE]).not.toHaveProperty('disabled');
   });
 
   it('enables delete button when one pipeline is selected', async () => {
@@ -199,7 +200,7 @@ describe('PipelineList', () => {
     tree.find('.tableRow').simulate('click');
     expect(updateToolbarSpy.mock.calls).toHaveLength(2); // Initial call, then selection update
     const calls = updateToolbarSpy.mock.calls[1];
-    expect(calls[0].actions.find((b: any) => b.title === 'Delete')).toHaveProperty('disabled', false);
+    expect(calls[0].actions[ButtonKeys.DELETE_RUN]).toHaveProperty('disabled', false);
   });
 
   it('enables delete button when two pipelines are selected', async () => {
@@ -208,7 +209,7 @@ describe('PipelineList', () => {
     tree.find('.tableRow').at(1).simulate('click');
     expect(updateToolbarSpy.mock.calls).toHaveLength(3); // Initial call, then selection updates
     const calls = updateToolbarSpy.mock.calls[2];
-    expect(calls[0].actions.find((b: any) => b.title === 'Delete')).toHaveProperty('disabled', false);
+    expect(calls[0].actions[ButtonKeys.DELETE_RUN]).toHaveProperty('disabled', false);
   });
 
   it('re-disables delete button pipelines are unselected', async () => {
@@ -217,14 +218,14 @@ describe('PipelineList', () => {
     tree.find('.tableRow').at(0).simulate('click');
     expect(updateToolbarSpy.mock.calls).toHaveLength(3); // Initial call, then selection updates
     const calls = updateToolbarSpy.mock.calls[2];
-    expect(calls[0].actions.find((b: any) => b.title === 'Delete')).toHaveProperty('disabled', true);
+    expect(calls[0].actions[ButtonKeys.DELETE_RUN]).toHaveProperty('disabled', true);
   });
-
+ 
   it('shows delete dialog when delete button is clicked', async () => {
     tree = await mountWithNPipelines(1);
     tree.find('.tableRow').at(0).simulate('click');
     const deleteBtn = (tree.instance() as PipelineList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     expect(call).toHaveProperty('title', 'Delete 1 pipeline?');
@@ -236,7 +237,7 @@ describe('PipelineList', () => {
     tree.find('.tableRow').at(2).simulate('click');
     tree.find('.tableRow').at(3).simulate('click');
     const deleteBtn = (tree.instance() as PipelineList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     expect(call).toHaveProperty('title', 'Delete 3 pipelines?');
@@ -246,7 +247,7 @@ describe('PipelineList', () => {
     tree = await mountWithNPipelines(1);
     tree.find('.tableRow').at(0).simulate('click');
     const deleteBtn = (tree.instance() as PipelineList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const cancelBtn = call.buttons.find((b: any) => b.text === 'Cancel');
@@ -258,7 +259,7 @@ describe('PipelineList', () => {
     tree = await mountWithNPipelines(1);
     tree.find('.tableRow').at(0).simulate('click');
     const deleteBtn = (tree.instance() as PipelineList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -271,7 +272,7 @@ describe('PipelineList', () => {
     tree.find('.tableRow').at(0).simulate('click');
     expect(tree.state()).toHaveProperty('selectedIds', ['test-pipeline-id0']);
     const deleteBtn = (tree.instance() as PipelineList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -285,7 +286,7 @@ describe('PipelineList', () => {
     tree.find('.tableRow').at(3).simulate('click');
     expect(tree.state()).toHaveProperty('selectedIds', ['test-pipeline-id0', 'test-pipeline-id3']);
     const deleteBtn = (tree.instance() as PipelineList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -299,7 +300,7 @@ describe('PipelineList', () => {
     tree.find('.tableRow').at(1).simulate('click');
     tree.find('.tableRow').at(4).simulate('click');
     const deleteBtn = (tree.instance() as PipelineList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -314,7 +315,7 @@ describe('PipelineList', () => {
     tree = await mountWithNPipelines(1);
     tree.find('.tableRow').at(0).simulate('click');
     const deleteBtn = (tree.instance() as PipelineList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -330,7 +331,7 @@ describe('PipelineList', () => {
     tree.find('.tableRow').at(0).simulate('click');
     TestUtils.makeErrorResponseOnce(deletePipelineSpy, 'woops, failed');
     const deleteBtn = (tree.instance() as PipelineList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -356,7 +357,7 @@ describe('PipelineList', () => {
       }
     });
     const deleteBtn = (tree.instance() as PipelineList)
-      .getInitialToolbarState().actions.find(b => b.title === 'Delete');
+      .getInitialToolbarState().actions[ButtonKeys.DELETE_RUN];
     await deleteBtn!.action();
     const call = updateDialogSpy.mock.calls[0][0];
     const confirmBtn = call.buttons.find((b: any) => b.text === 'Delete');
@@ -380,7 +381,7 @@ describe('PipelineList', () => {
   it('shows upload dialog when upload button is clicked', async () => {
     tree = await mountWithNPipelines(0);
     const instance = tree.instance() as PipelineList;
-    const uploadBtn = instance.getInitialToolbarState().actions.find(b => b.title === 'Upload pipeline');
+    const uploadBtn = instance.getInitialToolbarState().actions[ButtonKeys.UPLOAD_PIPELINE];
     expect(uploadBtn).toBeDefined();
     await uploadBtn!.action();
     expect(instance.state).toHaveProperty('uploadDialogOpen', true);

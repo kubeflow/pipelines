@@ -114,7 +114,7 @@ describe('Utils', () => {
 
     it('computes seconds', () => {
       const run = {
-        created_at: new Date(2018, 1, 2, 3, 55, 30).toISOString(),
+        created_at: new Date(2018, 1, 3, 3, 55, 30).toISOString(),
         finished_at: new Date(2018, 1, 3, 3, 56, 25).toISOString(),
         status: NodePhase.SUCCEEDED,
       } as any;
@@ -123,29 +123,29 @@ describe('Utils', () => {
 
     it('computes minutes/seconds', () => {
       const run = {
-        created_at: new Date(2018, 1, 2, 3, 55, 10).toISOString(),
+        created_at: new Date(2018, 1, 3, 3, 55, 10).toISOString(),
         finished_at: new Date(2018, 1, 3, 3, 59, 25).toISOString(),
         status: NodePhase.SUCCEEDED,
       } as any;
       expect(getRunDuration(run)).toBe('0:04:15');
     });
 
-    it('computes days/minutes/seconds', () => {
+    it('computes hours/minutes/seconds', () => {
       const run = {
         created_at: new Date(2018, 1, 2, 3, 55, 10).toISOString(),
         finished_at: new Date(2018, 1, 3, 4, 55, 10).toISOString(),
         status: NodePhase.SUCCEEDED,
       } as any;
-      expect(getRunDuration(run)).toBe('1:00:00');
+      expect(getRunDuration(run)).toBe('25:00:00');
     });
 
-    it('computes padded days/minutes/seconds', () => {
+    it('computes padded hours/minutes/seconds', () => {
       const run = {
         created_at: new Date(2018, 1, 2, 3, 55, 10).toISOString(),
         finished_at: new Date(2018, 1, 3, 4, 56, 11).toISOString(),
         status: NodePhase.SUCCEEDED,
       } as any;
-      expect(getRunDuration(run)).toBe('1:01:01');
+      expect(getRunDuration(run)).toBe('25:01:01');
     });
 
     it('shows negative sign if start date is after end date', () => {
@@ -190,7 +190,7 @@ describe('Utils', () => {
       const workflow = {
         status: {
           finishedAt: new Date(2018, 1, 3, 3, 56, 25).toISOString(),
-          startedAt: new Date(2018, 1, 2, 3, 55, 30).toISOString(),
+          startedAt: new Date(2018, 1, 3, 3, 55, 30).toISOString(),
         }
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('0:00:55');
@@ -200,27 +200,27 @@ describe('Utils', () => {
       const workflow = {
         status: {
           finishedAt: new Date(2018, 1, 3, 3, 59, 25).toISOString(),
-          startedAt: new Date(2018, 1, 2, 3, 55, 10).toISOString(),
+          startedAt: new Date(2018, 1, 3, 3, 55, 10).toISOString(),
         }
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('0:04:15');
     });
 
-    it('computes days/minutes/seconds run time if status is provided', () => {
+    it('computes hours/minutes/seconds run time if status is provided', () => {
       const workflow = {
         status: {
           finishedAt: new Date(2018, 1, 3, 4, 55, 10).toISOString(),
-          startedAt: new Date(2018, 1, 2, 3, 55, 10).toISOString(),
+          startedAt: new Date(2018, 1, 3, 3, 55, 10).toISOString(),
         }
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('1:00:00');
     });
 
-    it('computes padded days/minutes/seconds run time if status is provided', () => {
+    it('computes padded hours/minutes/seconds run time if status is provided', () => {
       const workflow = {
         status: {
           finishedAt: new Date(2018, 1, 3, 4, 56, 11).toISOString(),
-          startedAt: new Date(2018, 1, 2, 3, 55, 10).toISOString(),
+          startedAt: new Date(2018, 1, 3, 3, 55, 10).toISOString(),
         }
       } as any;
       expect(getRunDurationFromWorkflow(workflow)).toBe('1:01:01');

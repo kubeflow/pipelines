@@ -31,16 +31,14 @@ def deploy(args):
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
-    wml_username = getSecret("/app/secrets/wml_username")
-    wml_password = getSecret("/app/secrets/wml_password")
     wml_instance_id = getSecret("/app/secrets/wml_instance_id")
+    wml_apikey = getSecret("/app/secrets/wml_apikey")
 
     # set up the WML client
     wml_credentials = {
                        "url": wml_url,
-                       "username": wml_username,
-                       "password": wml_password,
-                       "instance_id": wml_instance_id
+                       "instance_id": wml_instance_id,
+                       "apikey": wml_apikey
                       }
     client = WatsonMachineLearningAPIClient(wml_credentials)
 

@@ -15,6 +15,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,6 +58,17 @@ func getStringConfigWithDefault(configName, value string) string {
 		return value
 	}
 	return viper.GetString(configName)
+}
+
+func getBoolConfigWithDefault(configName string, value bool) bool {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	value, err := strconv.ParseBool(viper.GetString(configName))
+	if err != nil {
+		glog.Fatalf("Failed converting string to bool %s", viper.GetString(configName))
+	}
+	return value
 }
 
 func getDurationConfig(configName string) time.Duration {

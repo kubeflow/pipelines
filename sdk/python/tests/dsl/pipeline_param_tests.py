@@ -30,13 +30,13 @@ class TestPipelineParam(unittest.TestCase):
     """Test string representation."""
 
     p = PipelineParam(name='param1', op_name='op1')
-    self.assertEqual('{{pipelineparam:op=op1;name=param1;value=;type=;}}', str(p))
+    self.assertEqual('{{pipelineparam:op=op1;name=param1}}', str(p))
 
     p = PipelineParam(name='param2')
-    self.assertEqual('{{pipelineparam:op=;name=param2;value=;type=;}}', str(p))
+    self.assertEqual('{{pipelineparam:op=;name=param2}}', str(p))
 
     p = PipelineParam(name='param3', value='value3')
-    self.assertEqual('{{pipelineparam:op=;name=param3;value=value3;type=;}}', str(p))
+    self.assertEqual('{{pipelineparam:op=;name=param3}}', str(p))
 
   def test_extract_pipelineparams(self):
     """Test _extract_pipeleineparams."""

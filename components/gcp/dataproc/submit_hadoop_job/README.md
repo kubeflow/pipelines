@@ -72,7 +72,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 dataproc_submit_hadoop_job_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/0b07e456b1f319d8b7a7301274f55c00fda9f537/components/gcp/dataproc/submit_hadoop_job/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/48dd338c8ab328084633c51704cda77db79ac8c2/components/gcp/dataproc/submit_hadoop_job/component.yaml')
 help(dataproc_submit_hadoop_job_op)
 ```
 
@@ -196,7 +196,7 @@ The sample in the notebook will count the words in the input text and save them 
 ```
 
 ## References
-*   [Component Python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/dataproc/_submit_hadoop_job.py)
+*   [Component Python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_submit_hadoop_job.py)
 *   [Component Docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
 *   [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataproc/submit_hadoop_job/sample.ipynb)
 *   [Dataproc HadoopJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/HadoopJob)

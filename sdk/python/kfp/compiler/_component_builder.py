@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import tarfile
-import uuid
 import os
 import inspect
 import re
 import sys
 import tempfile
 import logging
+import shutil
 from collections import OrderedDict
-from pathlib import PurePath, Path
+from pathlib import Path
 from ..components._components import _create_task_factory_from_component_spec
+from ._container_builder import ContainerBuilder
 
 class VersionedDependency(object):
   """ DependencyVersion specifies the versions """
@@ -94,6 +94,7 @@ class DependencyHelper(object):
     the generated file follows the order of which the packages are added """
     with open(target_file, 'w') as f:
       for name, version in self.python_packages.items():
+        version = self.python_packages[name]
         version_str = ''
         if version.has_min_version():
           version_str += ' >= ' + version.min_version + ','
@@ -101,82 +102,47 @@ class DependencyHelper(object):
           version_str += ' <= ' + version.max_version + ','
         f.write(name + version_str.rstrip(',') + '\n')
 
-class DockerfileHelper(object):
-  """ Dockerfile Helper generates a tarball with dockerfile, ready for docker build
-      arc_dockerfile_name: dockerfile filename that is stored in the tarball """
+def _dependency_to_requirements(dependency=[], filename='requirements.txt'):
+  """
+    Generates a requirement file based on the dependency
+    Args:
+      dependency (list): a list of VersionedDependency, which includes the package name and versions
+      filename (str): requirement file name, default as requirements.txt
+  """
+  dependency_helper = DependencyHelper()
+  for version in dependency:
+    dependency_helper.add_python_package(version)
+  dependency_helper.generate_pip_requirements(filename)
 
-  def __init__(self, arc_dockerfile_name):
-    self._arc_dockerfile_name = arc_dockerfile_name
-    self._ARC_REQUIREMENT_FILE = 'requirements.txt'
-
-  def _generate_pip_requirement(self, dependency, requirement_filepath):
-    dependency_helper = DependencyHelper()
-    for version in dependency:
-      dependency_helper.add_python_package(version)
-    dependency_helper.generate_pip_requirements(requirement_filepath)
-
-  def _generate_dockerfile_with_py(self, target_file, base_image, python_filepath, has_requirement_file, python_version):
-    """ _generate_docker_file generates a simple dockerfile with the python path
-    args:
-      target_file (str): target file name for the dockerfile.
+def _generate_dockerfile(filename, base_image, entrypoint_filename, python_version, requirement_filename=None):
+  """
+    generates dockerfiles
+    Args:
+      filename (str): target file name for the dockerfile.
       base_image (str): the base image name.
-      python_filepath (str): the path of the python file that is copied to the docker image.
-      has_requirement_file (bool): whether it has a requirement file or not.
+      entrypoint_filename (str): the path of the entrypoint source file that is copied to the docker image.
       python_version (str): choose python2 or python3
-    """
-    if python_version not in ['python2', 'python3']:
-      raise ValueError('python_version has to be either python2 or python3')
-    with open(target_file, 'w') as f:
-      f.write('FROM ' + base_image + '\n')
-      if python_version is 'python3':
-        f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
+      requirement_filename (str): requirement file name
+  """
+  if python_version not in ['python2', 'python3']:
+    raise ValueError('python_version has to be either python2 or python3')
+  with open(filename, 'w') as f:
+    f.write('FROM ' + base_image + '\n')
+    if python_version == 'python3':
+      f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
+    else:
+      f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
+    if requirement_filename is not None:
+      f.write('ADD ' + requirement_filename + ' /ml/requirements.txt\n')
+      if python_version == 'python3':
+        f.write('RUN pip3 install -r /ml/requirements.txt\n')
       else:
-        f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
-      if has_requirement_file:
-        f.write('ADD ' + self._ARC_REQUIREMENT_FILE + ' /ml/\n')
-        if python_version is 'python3':
-          f.write('RUN pip3 install -r /ml/' + self._ARC_REQUIREMENT_FILE + '\n')
-        else:
-          f.write('RUN pip install -r /ml/' + self._ARC_REQUIREMENT_FILE + '\n')
-      f.write('ADD ' + python_filepath + " /ml/" + '\n')
-      if python_version is 'python3':
-        f.write('ENTRYPOINT ["python3", "/ml/' + python_filepath + '"]')
-      else:
-        f.write('ENTRYPOINT ["python", "/ml/' + python_filepath + '"]')
-
-  def _wrap_files_in_tarball(self, tarball_path, files={}):
-    """ _wrap_files_in_tarball creates a tarball for all the input files
-    with the filename configured as the key of files """
-    if not tarball_path.endswith('.tar.gz'):
-      raise ValueError('the tarball path should end with .tar.gz')
-    with tarfile.open(tarball_path, 'w:gz') as tarball:
-      for key, value in files.items():
-        tarball.add(value, arcname=key)
-
-  def prepare_docker_tarball_with_py(self, arc_python_filename, python_filepath, base_image, local_tarball_path, python_version, dependency=None):
-    """ prepare_docker_tarball is the API to generate dockerfile and prepare the tarball with python scripts
-    args:
-      python_version (str): choose python2 or python3
-    """
-    if python_version not in ['python2', 'python3']:
-      raise ValueError('python_version has to be either python2 or python3')
-    with tempfile.TemporaryDirectory() as local_build_dir:
-      has_requirement_file = False
-      local_requirement_path = os.path.join(local_build_dir, self._ARC_REQUIREMENT_FILE)
-      if dependency is not None and len(dependency) != 0:
-        self._generate_pip_requirement(dependency, local_requirement_path)
-        has_requirement_file = True
-      local_dockerfile_path = os.path.join(local_build_dir, self._arc_dockerfile_name)
-      self._generate_dockerfile_with_py(local_dockerfile_path, base_image, arc_python_filename, has_requirement_file, python_version)
-      file_lists =  {self._arc_dockerfile_name:local_dockerfile_path,
-                     arc_python_filename:python_filepath}
-      if has_requirement_file:
-        file_lists[self._ARC_REQUIREMENT_FILE] = local_requirement_path
-      self._wrap_files_in_tarball(local_tarball_path, file_lists)
-
-  def prepare_docker_tarball(self, dockerfile_path, local_tarball_path):
-    """ prepare_docker_tarball is the API to prepare a tarball with the dockerfile """
-    self._wrap_files_in_tarball(local_tarball_path, {self._arc_dockerfile_name:dockerfile_path})
+        f.write('RUN pip install -r /ml/requirements.txt\n')
+    f.write('ADD ' + entrypoint_filename + ' /ml/main.py\n')
+    if python_version == 'python3':
+      f.write('ENTRYPOINT ["python3", "-u", "/ml/main.py"]')
+    else:
+      f.write('ENTRYPOINT ["python", "-u", "/ml/main.py"]')
 
 class CodeGenerator(object):
   """ CodeGenerator helps to generate python codes with identation """
@@ -204,164 +170,136 @@ class CodeGenerator(object):
     line_sep = '\n'
     return line_sep.join(self._code) + line_sep
 
-class ImageBuilder(object):
-  """ Component Builder. """
-  def __init__(self, gcs_base, target_image):
-    self._arc_dockerfile_name = 'dockerfile'
-    self._arc_python_filepath = 'main.py'
-    self._tarball_name = str(uuid.uuid4()) + '.tar.gz'
-    self._gcs_base = gcs_base
-    if not self._check_gcs_path(self._gcs_base):
-      raise Exception('ImageBuild __init__ failure.')
-    self._gcs_path = os.path.join(self._gcs_base, self._tarball_name)
-    self._target_image = target_image
+def _func_to_entrypoint(component_func, python_version='python3'):
+  '''
+  args:
+    python_version (str): choose python2 or python3, default is python3
+  '''
+  if python_version not in ['python2', 'python3']:
+    raise ValueError('python_version has to be either python2 or python3')
 
-  def _check_gcs_path(self, gcs_path):
-    """ _check_gcs_path check both the path validity and write permissions """
-    logging.info('Checking path: {}...'.format(gcs_path))
-    if not gcs_path.startswith('gs://'):
-      logging.error('Error: {} should be a GCS path.'.format(gcs_path))
-      return False
-    return True
+  fullargspec = inspect.getfullargspec(component_func)
+  annotations = fullargspec[6]
+  input_args = fullargspec[0]
+  inputs = {}
+  output = None
+  if 'return' in annotations.keys():
+    output = annotations['return']
+  output_is_named_tuple = hasattr(output, '_fields')
+  
+  for key, value in annotations.items():
+    if key != 'return':
+      inputs[key] = value
+  if len(input_args) != len(inputs):
+    raise Exception('Some input arguments do not contain annotations.')
+  if 'return' in  annotations and annotations['return'] not in [int, 
+        float, str, bool] and not output_is_named_tuple:
+    raise Exception('Output type not supported and supported types are [int, float, str, bool]')
+  if output_is_named_tuple:
+      types = output._field_types
+      for field in output._fields: #Make sure all elements are supported
+        if types[field] not in [int, float, str, bool]:
+          raise Exception('Output type not supported and supported types are [int, float, str, bool]')
+  
+  # inputs is a dictionary with key of argument name and value of type class
+  # output is a type class, e.g. int, str, bool, float, NamedTuple.
 
-  def _generate_kaniko_spec(self, namespace, arc_dockerfile_name, gcs_path, target_image):
-    """_generate_kaniko_yaml generates kaniko job yaml based on a template yaml """
-    content = {
-      'apiVersion': 'v1',
-      'metadata': {
-        'generateName': 'kaniko-',
-        'namespace': namespace,
-      },
-      'kind': 'Pod',
-      'spec': {
-        'restartPolicy': 'Never',
-        'containers': [{
-          'name': 'kaniko',
-          'args': ['--cache=true', 
-                   '--dockerfile=' + arc_dockerfile_name, 
-                   '--context=' + gcs_path, 
-                   '--destination=' + target_image],
-          'image': 'gcr.io/kaniko-project/executor@sha256:78d44ec4e9cb5545d7f85c1924695c89503ded86a59f92c7ae658afa3cff5400',
-          'env': [{
-            'name': 'GOOGLE_APPLICATION_CREDENTIALS',
-            'value': '/secret/gcp-credentials/user-gcp-sa.json'
-          }],
-          'volumeMounts': [{
-            'mountPath': '/secret/gcp-credentials',
-            'name': 'gcp-credentials',
-          }],
-        }],
-        'volumes': [{
-          'name': 'gcp-credentials',
-          'secret': {
-            'secretName': 'user-gcp-sa',
-          },
-        }],
-        'serviceAccountName': 'default'}
-    }
+  # Follow the same indentation with the component source codes.
+  component_src = inspect.getsource(component_func)
+  match = re.search(r'\n([ \t]+)[\w]+', component_src)
+  indentation = match.group(1) if match else '\t'
+  codegen = CodeGenerator(indentation=indentation)
 
-    return content
+  # Function signature
+  new_func_name = 'wrapper_' + component_func.__name__
+  codegen.begin()
+  func_signature = 'def ' + new_func_name + '('
+  for input_arg in input_args:
+    func_signature += input_arg + ','
+  func_signature = func_signature + '_output_files' if output_is_named_tuple else func_signature + '_output_file'
+  func_signature += '):'
+  codegen.writeline(func_signature)
 
-  #TODO: currently it supports single output, future support for multiple return values
-  def _generate_entrypoint(self, component_func, python_version='python3'):
-    '''
-    args:
-      python_version (str): choose python2 or python3, default is python3
-    '''
-    if python_version not in ['python2', 'python3']:
-      raise ValueError('python_version has to be either python2 or python3')
+  # Call user function
+  codegen.indent()
+  call_component_func = 'output = ' + component_func.__name__ + '('
+  if output_is_named_tuple:
+    call_component_func = call_component_func.replace('output', 'outputs')
+  for input_arg in input_args:
+    call_component_func += inputs[input_arg].__name__ + '(' + input_arg + '),'
+  call_component_func = call_component_func.rstrip(',')
+  call_component_func += ')'
+  codegen.writeline(call_component_func)
 
-    fullargspec = inspect.getfullargspec(component_func)
-    annotations = fullargspec[6]
-    input_args = fullargspec[0]
-    inputs = {}
-    for key, value in annotations.items():
-      if key != 'return':
-        inputs[key] = value
-    if len(input_args) != len(inputs):
-      raise Exception('Some input arguments do not contain annotations.')
-    if 'return' in  annotations and annotations['return'] not in [int, float, str, bool]:
-      raise Exception('Output type not supported and supported types are [int, float, str, bool]')
-    # inputs is a dictionary with key of argument name and value of type class
-    # output is a type class, e.g. str and int.
-
-    # Follow the same indentation with the component source codes.
-    component_src = inspect.getsource(component_func)
-    match = re.search(r'\n([ \t]+)[\w]+', component_src)
-    indentation = match.group(1) if match else '\t'
-    codegen = CodeGenerator(indentation=indentation)
-
-    # Function signature
-    new_func_name = 'wrapper_' + component_func.__name__
-    codegen.begin()
-    func_signature = 'def ' + new_func_name + '('
-    for input_arg in input_args:
-      func_signature += input_arg + ','
-    func_signature += '_output_file):'
-    codegen.writeline(func_signature)
-
-    # Call user function
+  # Serialize output
+  codegen.writeline('import os')
+  if output_is_named_tuple:
+    codegen.writeline('for _output_file, output in zip(_output_files, outputs):')
     codegen.indent()
-    call_component_func = 'output = ' + component_func.__name__ + '('
-    for input_arg in input_args:
-      call_component_func += inputs[input_arg].__name__ + '(' + input_arg + '),'
-    call_component_func = call_component_func.rstrip(',')
-    call_component_func += ')'
-    codegen.writeline(call_component_func)
+  codegen.writeline('os.makedirs(os.path.dirname(_output_file))')
+  codegen.writeline('with open(_output_file, "w") as data:')
+  codegen.indent()
+  codegen.writeline('data.write(str(output))')
+  wrapper_code = codegen.end()
 
-    # Serialize output
-    codegen.writeline('import os')
-    codegen.writeline('os.makedirs(os.path.dirname(_output_file))')
-    codegen.writeline('with open(_output_file, "w") as data:')
-    codegen.indent()
-    codegen.writeline('data.write(str(output))')
-    wrapper_code = codegen.end()
-
-    # CLI codes
-    codegen.begin()
-    codegen.writeline('import argparse')
-    codegen.writeline('parser = argparse.ArgumentParser(description="Parsing arguments")')
-    for input_arg in input_args:
-      codegen.writeline('parser.add_argument("' + input_arg + '", type=' + inputs[input_arg].__name__ + ')')
+  # CLI codes
+  codegen.begin()
+  codegen.writeline('import argparse')
+  codegen.writeline('parser = argparse.ArgumentParser(description="Parsing arguments")')
+  for input_arg in input_args:
+    codegen.writeline('parser.add_argument("' + input_arg + '", type=' + inputs[input_arg].__name__ + ')')
+  if output_is_named_tuple:
+    codegen.writeline('parser.add_argument("_output_files", type=str, nargs=' + str(len(annotations['return']._fields)) + ')')
+  else:
     codegen.writeline('parser.add_argument("_output_file", type=str)')
-    codegen.writeline('args = vars(parser.parse_args())')
-    codegen.writeline('')
-    codegen.writeline('if __name__ == "__main__":')
-    codegen.indent()
-    codegen.writeline(new_func_name + '(**args)')
+  codegen.writeline('args = vars(parser.parse_args())')
+  codegen.writeline('')
+  codegen.writeline('if __name__ == "__main__":')
+  codegen.indent()
+  codegen.writeline(new_func_name + '(**args)')
 
-    # Remove the decorator from the component source
-    src_lines = component_src.split('\n')
-    start_line_num = 0
-    for line in src_lines:
-      if line.startswith('def '):
-        break
-      start_line_num += 1
-    if python_version == 'python2':
-      src_lines[start_line_num] = 'def ' + component_func.__name__ + '(' + ', '.join((inspect.getfullargspec(component_func).args)) + '):'
-    dedecorated_component_src = '\n'.join(src_lines[start_line_num:])
+  # Remove the decorator from the component source
+  src_lines = component_src.split('\n')
+  start_line_num = 0
+  for line in src_lines:
+    if line.startswith('def '):
+      break
+    start_line_num += 1
+  if python_version == 'python2':
+    src_lines[start_line_num] = 'def ' + component_func.__name__ + '(' + ', '.join((inspect.getfullargspec(component_func).args)) + '):'
+  dedecorated_component_src = '\n'.join(src_lines[start_line_num:])
+  if output_is_named_tuple:
+    dedecorated_component_src = 'from typing import NamedTuple\n' + dedecorated_component_src
 
-    complete_component_code = dedecorated_component_src + '\n' + wrapper_code + '\n' + codegen.end()
-    return complete_component_code
+  complete_component_code = dedecorated_component_src + '\n' + wrapper_code + '\n' + codegen.end()
+  return complete_component_code
 
-  def _build_image_from_tarball(self, local_tarball_path, namespace, timeout):
-    from ._gcs_helper import GCSHelper
-    GCSHelper.upload_gcs_file(local_tarball_path, self._gcs_path)
-    kaniko_spec = self._generate_kaniko_spec(namespace=namespace,
-                                             arc_dockerfile_name=self._arc_dockerfile_name,
-                                             gcs_path=self._gcs_path,
-                                             target_image=self._target_image)
-    # Run kaniko job
-    logging.info('Start a kaniko job for build.')
-    from ._k8s_helper import K8sHelper
-    k8s_helper = K8sHelper()
-    k8s_helper.run_job(kaniko_spec, timeout)
-    logging.info('Kaniko job complete.')
+class ComponentBuilder(object):
+  """ Component Builder. """
+  def __init__(self, gcs_staging, target_image, namespace):
+    self._arc_docker_filename = 'dockerfile'
+    self._arc_python_filename = 'main.py'
+    self._arc_requirement_filename = 'requirements.txt'
+    self._container_builder = ContainerBuilder(gcs_staging, gcr_image_tag=target_image, namespace=namespace)
 
-    # Clean up
-    GCSHelper.remove_gcs_blob(self._gcs_path)
+  def _prepare_files(self, local_dir, docker_filename, python_filename=None, requirement_filename=None):
+    """ _prepare_buildfiles generates the tarball with all the build files
+    Args:
+      local_dir (dir): a directory that stores all the build files
+      docker_filename (str): docker filename
+      python_filename (str): python filename
+      requirement_filename (str): requirement filename
+    """
+    dst_docker_filepath = os.path.join(local_dir, self._arc_docker_filename)
+    shutil.copyfile(docker_filename, dst_docker_filepath)
+    if python_filename is not None:
+      dst_python_filepath = os.path.join(local_dir, self._arc_python_filename)
+      shutil.copyfile(python_filename, dst_python_filepath)
+    if requirement_filename is not None:
+      dst_requirement_filepath = os.path.join(local_dir, self._arc_requirement_filename)
+      shutil.copyfile(requirement_filename, dst_requirement_filepath)
 
-  def build_image_from_func(self, component_func, namespace, base_image, timeout, dependency, python_version='python3'):
+  def build_image_from_func(self, component_func, base_image, timeout, dependency, python_version='python3'):
     """ build_image builds an image for the given python function
     args:
       python_version (str): choose python2 or python3, default is python3
@@ -370,33 +308,28 @@ class ImageBuilder(object):
       raise ValueError('python_version has to be either python2 or python3')
     with tempfile.TemporaryDirectory() as local_build_dir:
       # Generate entrypoint and serialization python codes
-      local_python_filepath = os.path.join(local_build_dir, self._arc_python_filepath)
+      local_python_filepath = os.path.join(local_build_dir, self._arc_python_filename)
       logging.info('Generate entrypoint and serialization codes.')
-      complete_component_code = self._generate_entrypoint(component_func, python_version)
+      complete_component_code = _func_to_entrypoint(component_func, python_version)
       with open(local_python_filepath, 'w') as f:
         f.write(complete_component_code)
 
+      local_requirement_filepath = os.path.join(local_build_dir, self._arc_requirement_filename)
+      logging.info('Generate requirement file')
+      _dependency_to_requirements(dependency, local_requirement_filepath)
+
+      local_docker_filepath = os.path.join(local_build_dir, self._arc_docker_filename)
+      _generate_dockerfile(local_docker_filepath, base_image, self._arc_python_filename, python_version, self._arc_requirement_filename)
+
       # Prepare build files
       logging.info('Generate build files.')
-      local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
-      docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name)
-      docker_helper.prepare_docker_tarball_with_py(python_filepath=local_python_filepath,
-                                                   arc_python_filename=self._arc_python_filepath,
-                                                   base_image=base_image,
-                                                   local_tarball_path=local_tarball_path,
-                                                   python_version=python_version,
-                                                   dependency=dependency)
-      self._build_image_from_tarball(local_tarball_path, namespace, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
-  def build_image_from_dockerfile(self, dockerfile_path, timeout, namespace):
+  def build_image_from_dockerfile(self, docker_filename, timeout):
     """ build_image_from_dockerfile builds an image based on the dockerfile """
     with tempfile.TemporaryDirectory() as local_build_dir:
-      # Prepare build files
-      logging.info('Generate build files.')
-      local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
-      docker_helper = DockerfileHelper(arc_dockerfile_name=self._arc_dockerfile_name)
-      docker_helper.prepare_docker_tarball(dockerfile_path, local_tarball_path=local_tarball_path)
-      self._build_image_from_tarball(local_tarball_path, namespace, timeout)
+      self._prepare_files(local_build_dir, docker_filename)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
 def _configure_logger(logger):
   """ _configure_logger configures the logger such that the info level logs
@@ -433,17 +366,24 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
   #TODO: Humanize the input/output names
   input_names = inspect.getfullargspec(component_func)[0]
 
-  output_name = 'output'
+  return_ann = inspect.signature(component_func).return_annotation
+  output_is_named_tuple = hasattr(return_ann, '_fields')
+
+  output_names = ['output']
+  if output_is_named_tuple:
+    output_names = return_ann._fields
+
   component_spec = ComponentSpec(
       name=component_name,
       description=component_description,
-      inputs=[InputSpec(name=input_name, type='str') for input_name in input_names], #TODO: Chnage type to actual type
-      outputs=[OutputSpec(name=output_name)],
+      inputs=[InputSpec(name=input_name, type='str') for input_name in input_names], #TODO: Change type to actual type
+       outputs=[OutputSpec(name=output_name, type='str') for output_name in output_names],
       implementation=ContainerImplementation(
           container=ContainerSpec(
               image=target_image,
               #command=['python3', program_file], #TODO: Include the command line
-              args=[InputValuePlaceholder(input_name) for input_name in input_names] + [OutputPathPlaceholder(output_name)],
+              args=[InputValuePlaceholder(input_name) for input_name in input_names] + 
+                [OutputPathPlaceholder(output_name) for output_name in output_names],
           )
       )
   )
@@ -456,7 +396,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
 
   return _create_task_factory_from_component_spec(component_spec)
 
-def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, build_image=True, timeout=600, namespace='kubeflow', target_component_file=None, python_version='python3'):
+def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, timeout=600, namespace='kubeflow', target_component_file=None, python_version='python3'):
   """ build_component automatically builds a container image for the component_func
   based on the base_image and pushes to the target_image.
 
@@ -466,7 +406,6 @@ def build_python_component(component_func, target_image, base_image=None, depend
     target_image (str): Full URI to push the target image
     staging_gcs_path (str): GCS blob that can store temporary build files
     target_image (str): target image path
-    build_image (bool): whether to build the image or not. Default is True.
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
     dependency (list): a list of VersionedDependency, which includes the package name and versions, default is empty
@@ -485,25 +424,24 @@ def build_python_component(component_func, target_image, base_image=None, depend
   if python_version not in ['python2', 'python3']:
     raise ValueError('python_version has to be either python2 or python3')
 
-  if build_image:
-    if staging_gcs_path is None:
-      raise ValueError('staging_gcs_path must not be None')
+  if staging_gcs_path is None:
+    raise ValueError('staging_gcs_path must not be None')
 
-    if base_image is None:
-      base_image = getattr(component_func, '_component_base_image', None)
-    if base_image is None:
-      raise ValueError('base_image must not be None')
+  if base_image is None:
+    base_image = getattr(component_func, '_component_base_image', None)
+  if base_image is None:
+    raise ValueError('base_image must not be None')
 
-    logging.info('Build an image that is based on ' +
-                                   base_image +
-                                   ' and push the image to ' +
-                                   target_image)
-    builder = ImageBuilder(gcs_base=staging_gcs_path, target_image=target_image)
-    builder.build_image_from_func(component_func, namespace=namespace,
-                                  base_image=base_image, timeout=timeout,
-                                  python_version=python_version, dependency=dependency)
-    logging.info('Build component complete.')
-  return _generate_pythonop(component_func, target_image, target_component_file)
+  logging.info('Build an image that is based on ' +
+                                 base_image +
+                                 ' and push the image to ' +
+                                 target_image)
+  builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
+  image_name_with_digest = builder.build_image_from_func(component_func,
+                                base_image=base_image, timeout=timeout,
+                                python_version=python_version, dependency=dependency)
+  logging.info('Build component complete.')
+  return _generate_pythonop(component_func, image_name_with_digest, target_component_file)
 
 def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace='kubeflow'):
   """ build_docker_image automatically builds a container image based on the specification in the dockerfile and
@@ -517,6 +455,7 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
   """
   _configure_logger(logging.getLogger())
-  builder = ImageBuilder(gcs_base=staging_gcs_path, target_image=target_image)
-  builder.build_image_from_dockerfile(dockerfile_path=dockerfile_path, timeout=timeout, namespace=namespace)
+  builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
+  image_name_with_digest = builder.build_image_from_dockerfile(docker_filename=dockerfile_path, timeout=timeout)
   logging.info('Build image complete.')
+  return image_name_with_digest

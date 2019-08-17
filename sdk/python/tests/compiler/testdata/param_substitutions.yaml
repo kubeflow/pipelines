@@ -1,6 +1,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Test the same PipelineParam
+      getting substituted in multiple places", "inputs": [], "name": "Param Substitutions"}'
   generateName: param-substitutions-
 spec:
   arguments:
