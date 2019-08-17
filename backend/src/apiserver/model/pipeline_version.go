@@ -23,8 +23,8 @@ type PipelineVersion struct {
 }
 
 type CodeSource struct {
-	// PipelineVersion can be from a git commit or a pre-compiled package stored
-	// at some url.
+	// PipelineVersion can be based on a git commit or a package stored at some
+	// url.
 	// All fields below are optional.
 	RepoName  string `gorm:"column:RepoName"`
 	CommitSHA string `gorm:"column:CommitSHA"`
