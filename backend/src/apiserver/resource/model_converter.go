@@ -111,6 +111,24 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	}, nil
 }
 
+func ToModelPipelineVersion(version *api.PipelineVersion) *model.PipelineVersion {
+	var codeSource model.CodeSource
+	if version.CodeSource != nil {
+		switch x := version.CodeSource.(type) {
+		case *api.PipelineVersion_GithubRepo:
+			codeSource.RepoName = x.GithubRepo.RepoName
+			codeSource.CommitSHA = x.GithubRepo.CommitSha
+		case *api.PipelineVersion_Url:
+			codeSource.URL = x.Url.PipelineUrl
+		}
+	}
+	return &model.PipelineVersion{
+		UUID:       string(version.Id),
+		Name:       version.Name,
+		CodeSource: codeSource,
+	}
+}
+
 func toModelTrigger(trigger *api.Trigger) model.Trigger {
 	modelTrigger := model.Trigger{}
 	if trigger == nil {
@@ -161,7 +179,7 @@ func toModelParameters(apiParams []*api.Parameter) (string, error) {
 }
 
 func (r *ResourceManager) toModelResourceReferences(
-		resourceId string, resourceType common.ResourceType, apiRefs []*api.ResourceReference) ([]*model.ResourceReference, error) {
+	resourceId string, resourceType common.ResourceType, apiRefs []*api.ResourceReference) ([]*model.ResourceReference, error) {
 	var modelRefs []*model.ResourceReference
 	for _, apiRef := range apiRefs {
 		modelReferenceType, err := common.ToModelResourceType(apiRef.Key.Type)

@@ -10,6 +10,7 @@ go_library(
         "listable_model.go",
         "pipeline.go",
         "pipeline_spec.go",
+        "pipeline_version.go",
         "resource_reference.go",
         "run.go",
     ],
