@@ -34,7 +34,7 @@ from tensorflow.python.lib.io import file_io
 # trueclass
 # true_score_column
 
-if "is_generated" is not in variables or variables["is_generated"] is False:
+if variables.get("is_generated", False) is False:
     # Create data from specified csv file(s).
     # The schema file provides column names for the csv file that will be used
     # to generate the roc curve.
