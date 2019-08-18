@@ -51,9 +51,9 @@ def ModelSpec(framework, model_uri):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--model-name', type=str, help='Name to give to the deployed model', default="")
-    parser.add_argument('--default-model-uri', type=str, help='Path of the S3 or GCS compatible directory containing default model.')
-    parser.add_argument('--canary-model-uri', type=str, help='Optional Path of the S3 or GCS compatible directory containing canary model.', default="")
-    parser.add_argument('--canary-model-traffic', type=str, help='Optional Traffic to be sent to default model', default='0')
+    parser.add_argument('--default-model-uri', type=str, help='Path of the S3, GCS or PVC directory containing default model.')
+    parser.add_argument('--canary-model-uri', type=str, help='Optional path of the S3, GCS or PVC directory containing canary model.', default="")
+    parser.add_argument('--canary-model-traffic', type=str, help='Optional Traffic to be sent to the default model', default='0')
     parser.add_argument('--pvc-name', type=str, help='Optional PersistentVolumeClaim to use.', default="")
     parser.add_argument('--namespace', type=str, help='Kubernetes namespace where the KFServing service is deployed.', default='kubeflow')
     parser.add_argument('--framework', type=str, help='Model Serving Framework', default='tensorflow')

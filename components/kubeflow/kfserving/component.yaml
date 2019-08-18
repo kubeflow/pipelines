@@ -12,7 +12,7 @@ outputs:
   - {name: Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
 implementation:
   container:
-    image: tomcli/ml-pipeline-kubeflow-kfservingdeployer
+    image: animeshsingh/kfserving-component
     command: ['python']
     args: [
       -u, kfservingdeployer.py,
