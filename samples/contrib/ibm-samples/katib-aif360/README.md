@@ -34,3 +34,13 @@ This pipeline will train a PyTorch gender classification model using [Katib](htt
 - **unfavorable_label**: Unfavorable outcome for the this model. Default: 1.0
 - **privileged_groups**: Privileged feature group. Default: [{'race': 0.0}]
 - **unprivileged_groups**: Unprivileged feature group. Default: [{'race': 4.0}]
+
+## List of AIF360 Metrics
+- **Classification accuracy**: Amount of correct predictions using the test data. Ideal value: 1
+- **Balanced classification accuracy**: Balanced true positive and negative predictions (0.5*(TPR+TNR)) using the test data. Ideal value: 1
+- **Statistical parity difference**: Difference of the rate of favorable outcomes received by the unprivileged group to the privileged group. Ideal value: 0 (-0.1 to 0.1 will consider as fair)
+- **Disparate impact**: The ratio of rate of favorable outcome for the unprivileged group to that of the privileged group. Ideal value: 1 (0.8 to 1.2 will consider as fair)
+- **Equal opportunity difference**: Difference of true positive rates between the unprivileged and the privileged groups. Ideal value: 0 (-0.1 to 0.1 will consider as fair)
+- **Average odds difference**: Average difference of false positive rate (false positives / negatives) and true positive rate (true positives / positives) between unprivileged and privileged groups. Ideal value: 0 (-0.1 to 0.1 will consider as fair)
+- **Theil index**: Generalized entropy of benefit for all individuals in the dataset. It measures the inequality in benefit allocation for individuals. Ideal value: 0 (0 is the perfect fairness, there's no concrete interval to be considered as fair for this metric)
+- **False negative rate difference**: Difference of false negative rate between unprivileged and privileged instances. Ideal value: 0 (-0.1 to 0.1 will consider as fair)
