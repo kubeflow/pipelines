@@ -4,4 +4,4 @@ kind: Kustomization
 # Actual image overrides will be added in test scripts.
 images: []
 resources:
-- ../namespaced-install
+- ../../manifests/kustomize/namespaced-install

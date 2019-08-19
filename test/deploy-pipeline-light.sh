@@ -25,8 +25,10 @@ if ! which kustomize; then
   PATH=${PATH}:${TOOL_DIR}
 fi
 
+# delete argo first because KFP comes with argo too
+kubectl delete namespace argo --wait || echo "No argo installed"
 
-KFP_MANIFEST_DIR=${WORKSPACE}/manifests/kustomize/test
+KFP_MANIFEST_DIR=${DIR}/manifests
 pushd ${KFP_MANIFEST_DIR}
 
 # This is the recommended approach to do this.
@@ -37,8 +39,6 @@ kustomize edit set image gcr.io/ml-pipeline/scheduledworkflow=${GCR_IMAGE_BASE_D
 kustomize edit set image gcr.io/ml-pipeline/frontend=${GCR_IMAGE_BASE_DIR}/frontend:latest
 cat kustomization.yaml
 
-# delete argo first because KFP comes with argo too
-kubectl delete namespace argo --wait || echo "No argo installed"
 kustomize build . | kubectl apply -f -
 # show current info
 echo "Status of pods after kubectl apply"
