@@ -77,48 +77,11 @@ source "${DIR}/deploy-cluster.sh"
 # Install Argo CLI and test-runner service account
 source "${DIR}/install-argo.sh"
 
-IMAGE_BUILDER_ARG=""
-# When project is not ml-pipeline-test, VMs need permission to fetch some images in gcr.io/ml-pipeline-test.
-if [ "$PROJECT" != "ml-pipeline-test" ]; then
-  COPIED_IMAGE_BUILDER_IMAGE=${GCR_IMAGE_BASE_DIR}/image-builder
-  echo "Copy image builder image to ${COPIED_IMAGE_BUILDER_IMAGE}"
-  yes | gcloud container images add-tag \
-    gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4 \
-    ${COPIED_IMAGE_BUILDER_IMAGE}:latest
-  IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
-fi
-
-BUILT_IMAGES=$(gcloud container images list --repository=${GCR_IMAGE_BASE_DIR})
-if
-  test -n "$CACHE_IMAGES" && \
-  echo "$BUILT_IMAGES" | grep  api-server && \
-  echo "$BUILT_IMAGES" | grep frontend && \
-  echo "$BUILT_IMAGES" | grep scheduledworkflow && \
-  echo "$BUILT_IMAGES" | grep persistenceagent;
-then
-  echo "docker images for api-server, frontend, scheduledworkflow and \
-    persistenceagent are already built in ${GCR_IMAGE_BASE_DIR}."
-else
-  echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
-  # Build Images
-  ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
-  -p image-build-context-gcs-uri="$remote_code_archive_uri" \
-  ${IMAGE_BUILDER_ARG} \
-  -p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
-  -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
-  -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
-  -p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
-  -n ${NAMESPACE} \
-  --serviceaccount test-runner \
-  -o name
-  `
-  echo "build docker images workflow submitted successfully"
-  source "${DIR}/check-argo-status.sh"
-  echo "build docker images workflow completed"
-fi
+# Build KFP images
+source "${DIR}/build-images.sh"
 
 # Deploy the pipeline
-source ${DIR}/deploy-pipeline-light.sh
+source "${DIR}/deploy-pipeline-light.sh"
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
