@@ -63,7 +63,7 @@ export default (props: DetailsTableProps) => {
           return (
             <div key={i} className={css.row}>
               <span className={css.key}>{f[0]}</span>
-              <Editor width='300px' height='300px' mode='json' theme='github'
+              <Editor width='100%' height='300px' mode='json' theme='github'
                 highlightActiveLine={true} showGutter={true} readOnly={true}
                 value={JSON.stringify(parsedJson, null, 2) || ''} />
             </div>
