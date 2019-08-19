@@ -57,13 +57,76 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 			Error: err.Error(),
 		}
 	}
-	return &api.Pipeline{
-		Id:          pipeline.UUID,
-		CreatedAt:   &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
-		Name:        pipeline.Name,
-		Description: pipeline.Description,
-		Parameters:  params,
+
+	defaultVersion, err := ToApiVersion(pipeline.DefaultVersion)
+	if err != nil {
+		return &api.Pipeline{
+			Id:    pipeline.UUID,
+			Error: err.Error(),
+		}
 	}
+
+	return &api.Pipeline{
+		Id:             pipeline.UUID,
+		CreatedAt:      &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
+		Name:           pipeline.Name,
+		Description:    pipeline.Description,
+		Parameters:     params,
+		DefaultVersion: defaultVersion,
+	}
+}
+
+func ToApiVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) {
+	if version == nil {
+		return nil, nil
+	}
+	params, err := toApiParameters(version.Parameters)
+	if err != nil {
+		return nil, err
+	}
+
+	if version.CodeSource.RepoName != "" && version.CodeSource.CommitSHA != "" {
+		return &api.PipelineVersion{
+			Id:         version.UUID,
+			Name:       version.Name,
+			CreatedAt:  &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
+			Parameters: params,
+			CodeSource: &api.PipelineVersion_GithubRepo{
+				GithubRepo: &api.GithubRepo{
+					RepoName:  version.CodeSource.RepoName,
+					CommitSha: version.CodeSource.CommitSHA,
+				},
+			},
+		}, nil
+	} else if version.CodeSource.URL != "" {
+		return &api.PipelineVersion{
+			Id:         version.UUID,
+			Name:       version.Name,
+			CreatedAt:  &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
+			Parameters: params,
+			CodeSource: &api.PipelineVersion_Url{
+				Url: &api.Url{
+					PipelineUrl: version.CodeSource.URL,
+				},
+			},
+		}, nil
+	} else {
+		return &api.PipelineVersion{
+			Id:         version.UUID,
+			Name:       version.Name,
+			CreatedAt:  &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
+			Parameters: params,
+		}, nil
+	}
+}
+
+func ToApiVersions(versions []*model.PipelineVersion) ([]*api.PipelineVersion, error) {
+	apiVersions := make([]*api.PipelineVersion, 0)
+	for _, version := range versions {
+		v, _ := ToApiVersion(version)
+		apiVersions = append(apiVersions, v)
+	}
+	return apiVersions, nil
 }
 
 func ToApiPipelines(pipelines []*model.Pipeline) []*api.Pipeline {
