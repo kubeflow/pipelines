@@ -28,7 +28,8 @@ import yaml
 from kfp.dsl._component import component
 from kfp.dsl import ContainerOp, pipeline
 from kfp.dsl.types import Integer, InconsistentTypeException
-from kubernetes.client import V1Toleration
+from kubernetes.client import V1Toleration, V1Affinity, V1NodeSelector, V1NodeSelectorRequirement, V1NodeSelectorTerm, \
+  V1NodeAffinity
 
 
 def some_op():
@@ -547,6 +548,24 @@ class TestCompiler(unittest.TestCase):
       value='run'))
 
     self._test_op_to_template_yaml(op1, file_base_name='tolerations')
+
+  def test_affinity(self):
+    """Test a pipeline with a affinity."""
+    affinity = V1Affinity(
+      node_affinity=V1NodeAffinity(
+        required_during_scheduling_ignored_during_execution=V1NodeSelector(
+          node_selector_terms=[V1NodeSelectorTerm(match_expressions=[V1NodeSelectorRequirement(
+            key='beta.kubernetes.io/instance-type', operator='In', values=['p2.xlarge'])])])))
+
+    op1 = dsl.ContainerOp(
+      name='download',
+      image='busybox',
+      command=['sh', '-c'],
+      arguments=['sleep 10; wget localhost:5678 -O /tmp/results.txt'],
+      file_outputs={'downloaded': '/tmp/results.txt'}) \
+      .add_affinity(affinity)
+
+    self._test_op_to_template_yaml(op1, file_base_name='affinity')
 
   def test_set_display_name(self):
     """Test a pipeline with a customized task names."""
