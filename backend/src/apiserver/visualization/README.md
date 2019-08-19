@@ -75,31 +75,21 @@ the Swagger API definition for the frontend.
         the following syntax:
 
             ```python
-            ...
-            # Check if a variable is provided
-            # You should always check if the desired variable is provided before
-            # accessing it because accessing a key from a dict when it does not
-            # exist will result in an exception being raised.
-            if "key" in variables:
-              # Variable of name key is provided.
-              # Use the value of the specified variable to manipulate the way
-              # a visualization is generated here.
-              pass
-            else:
-              # Variable of name key is not provided.
-              # You can provide a default operation here if a variable is not
-              # provided or throw an error if the variable must be provided.
-              pass
-            ...
-            # Accessing a variable
-            key = variables["key"]
-            # or
+            # Get a value for a specified key
             key = variables.get("key")
-            ...
+            # Get a value for a specified key with a default
+            key = variables.get("key", "default_value")
+            # Check if a value for a specified key exists
+            if variables.get("key", "default_value") is "default_value":
+                # Value for a specified key does not exist
+                pass
+            else:
+                # Value for a specified key does exist
+                pass
             ```
             * Additional details about how this is implemented can be found in
             the [exporter.py](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/exporter.py#L93)
-            file.
+            file and the [Python documentation](https://docs.python.org/3/library/stdtypes.html?highlight=dict#dict.get).
 10. Add any new dependencies to the [requirements.txt](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/requirements.txt)
 file in the `backend/src/apiserver/visualization` directory.
 11. Add any new dependencies to the [third_party_licenses.csv](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/third_party_licenses.csv)
