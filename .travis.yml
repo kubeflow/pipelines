@@ -24,6 +24,7 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/frontend
         - node -v
         - npm i
+        # Comment out next line if coverall has an ongoing outage to unblock.
         - npm run test:coveralls
     - language: generic
       env:

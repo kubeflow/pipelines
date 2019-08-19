@@ -31,7 +31,18 @@ from kfp.dsl.types import Integer, InconsistentTypeException
 from kubernetes.client import V1Toleration
 
 
+def some_op():
+  return dsl.ContainerOp(
+      name='sleep',
+      image='busybox',
+      command=['sleep 1'],
+  )
+
+
 class TestCompiler(unittest.TestCase):
+  # Define the places of samples covered by unit tests.
+  core_sample_path = os.path.join(os.path.dirname(__file__), '..', '..', '..',
+                                  '..', 'samples', 'core',)
 
   def test_operator_to_template(self):
     """Test converting operator to template"""
@@ -86,7 +97,7 @@ class TestCompiler(unittest.TestCase):
       'inputs': {'parameters':
         [
           {'name': 'msg1'},
-          {'name': 'msg2', 'value': 'value2'},
+          {'name': 'msg2'},
         ]},
       'name': 'echo',
       'outputs': {
@@ -282,6 +293,28 @@ class TestCompiler(unittest.TestCase):
     finally:
       shutil.rmtree(tmpdir)
 
+  def _test_sample_py_compile_yaml(self, file_base_name):
+    # Jump back to sample dir for sample python file.
+    sample_data_dir = os.path.join(self.core_sample_path, file_base_name)
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    py_file = os.path.join(sample_data_dir, file_base_name + '.py')
+    tmpdir = tempfile.mkdtemp()
+    try:
+      target_yaml = os.path.join(tmpdir, file_base_name + '-pipeline.yaml')
+      subprocess.check_call(
+          ['dsl-compile', '--py', py_file, '--output', target_yaml])
+      with open(os.path.join(test_data_dir, file_base_name + '.yaml'),
+                'r') as f:
+        golden = yaml.safe_load(f)
+
+      with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
+        compiled = yaml.safe_load(f)
+
+      self.maxDiff = None
+      self.assertEqual(golden, compiled)
+    finally:
+      shutil.rmtree(tmpdir)
+
   def test_py_compile_artifact_location(self):
     """Test configurable artifact location pipeline."""
     self._test_py_compile_yaml('artifact_location')
@@ -312,11 +345,20 @@ class TestCompiler(unittest.TestCase):
 
   def test_py_retry(self):
     """Test retry functionality."""
-    self._test_py_compile_yaml('retry')
+    number_of_retries = 137
+    def my_pipeline():
+      some_op().set_retry(number_of_retries)
 
-  def test_py_image_pull_secret(self):
+    workflow = kfp.compiler.Compiler()._compile(my_pipeline)
+    name_to_template = {template['name']: template for template in workflow['spec']['templates']}
+    main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
+    template = name_to_template[main_dag_tasks[0]['template']]
+
+    self.assertEqual(template['retryStrategy']['limit'], number_of_retries)
+
+  def test_py_image_pull_secrets(self):
     """Test pipeline imagepullsecret."""
-    self._test_py_compile_yaml('imagepullsecret')
+    self._test_sample_py_compile_yaml('imagepullsecrets')
 
   def test_py_timeout(self):
     """Test pipeline timeout."""
@@ -365,6 +407,10 @@ class TestCompiler(unittest.TestCase):
   def test_py_param_op_transform(self):
     """Test pipeline param_op_transform."""
     self._test_py_compile_yaml('param_op_transform')
+
+  def test_py_preemptible_gpu(self):
+    """Test preemptible GPU/TPU sample."""
+    self._test_sample_py_compile_yaml('preemptible_tpu_gpu')
 
   def test_type_checking_with_consistent_types(self):
     """Test type check pipeline parameters against component metadata."""

@@ -26,6 +26,7 @@ import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { RunStorageState } from '../apis/run';
 import { ToolbarProps } from '../components/Toolbar';
 import { range } from 'lodash';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('ExperimentDetails', () => {
 
@@ -345,8 +346,7 @@ describe('ExperimentDetails', () => {
     tree.find('.tableRow').at(0).simulate('click');
     tree.find('.tableRow').at(1).simulate('click');
 
-    const compareBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Compare runs');
+    const compareBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.COMPARE];
     await compareBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
@@ -358,8 +358,7 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     tree.update();
 
-    const newRunBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Create run');
+    const newRunBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.NEW_RUN];
     await newRunBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
@@ -371,8 +370,7 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     tree.update();
 
-    const newRecurringRunBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Create recurring run');
+    const newRecurringRunBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.NEW_RECURRING_RUN];
     await newRecurringRunBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
@@ -393,8 +391,7 @@ describe('ExperimentDetails', () => {
     // Select the run to clone
     tree.find('.tableRow').simulate('click');
 
-    const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Clone run');
+    const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.CLONE_RUN];
     await cloneBtn!.action();
 
     expect(historyPushSpy).toHaveBeenCalledWith(
@@ -408,8 +405,7 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     tree.update();
 
-    const compareBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Compare runs');
+    const compareBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.COMPARE];
 
     for (let i = 0; i < 12; i++) {
       if (i < 2 || i > 10) {
@@ -428,8 +424,7 @@ describe('ExperimentDetails', () => {
     await TestUtils.flushPromises();
     tree.update();
 
-    const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps)
-      .actions.find(b => b.title === 'Clone run');
+    const cloneBtn = (tree.state('runListToolbarProps') as ToolbarProps).actions[ButtonKeys.CLONE_RUN];
 
     for (let i = 0; i < 4; i++) {
       if (i === 1) {

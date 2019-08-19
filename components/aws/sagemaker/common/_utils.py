@@ -10,8 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import datetime
 import argparse
 from time import gmtime, strftime
 import time
@@ -19,7 +17,6 @@ import string
 import random
 import json
 import yaml
-from urlparse import urlparse
 
 import boto3
 from botocore.exceptions import ClientError
@@ -80,7 +77,7 @@ def create_training_job_request(args):
         request['AlgorithmSpecification']['TrainingImage'] = args['image']
         request['AlgorithmSpecification'].pop('AlgorithmName')
     else:
-        # TODO: determine if users can make custom algorithm resources that have the same name as built-in algorithm names
+        # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
             request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
@@ -114,7 +111,7 @@ def create_training_job_request(args):
         request['InputDataConfig'] = args['channels']
         # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
         #   Source: Input data configuration description in the SageMaker create training job form
-        for i in range(1, len(args['channels'] + 1)):
+        for i in range(1, len(args['channels']) + 1):
             if args['data_location_' + str(i)]:
                 request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
@@ -412,7 +409,7 @@ def create_transform_job(client, args):
       client.create_transform_job(**request)
       batch_job_name = request['TransformJobName']
       logging.info("Created Transform Job with name: " + batch_job_name)
-      logging.info("Transform job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/jobs/{}"
+      logging.info("Transform job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/transform-jobs/{}"
         .format(args['region'], args['region'], batch_job_name))
       logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/TransformJobs;prefix={};streamFilter=typeLogStreamPrefix"
         .format(args['region'], args['region'], batch_job_name))
@@ -435,17 +432,6 @@ def wait_for_transform_job(client, batch_job_name):
       raise Exception('Transform job failed')
     logging.info("Transform job is still in status: " + status)
     time.sleep(30)
-
-
-def print_tranformation_job_result(output_location):
-  ### Fetch the transform output
-  bucket = urlparse(output_location).netloc
-  output_key = "{}/valid_data.csv.out".format(urlparse(output_location).path.lstrip('/'))
-  s3_client = boto3.client('s3')
-  s3_client.download_file(bucket, output_key, 'valid-result')
-  with open('valid-result') as f:
-    results = f.readlines()
-  logging.info("Sample transform result: {}".format(results[0]))
 
 
 def create_hyperparameter_tuning_job_request(args):
@@ -514,9 +500,9 @@ def create_hyperparameter_tuning_job_request(args):
         request['TrainingJobDefinition']['InputDataConfig'] = args['channels']
         # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
         #   Source: Input data configuration description in the SageMaker create hyperparameter tuning job form
-        for i in range(1, len(args['channels'] + 1):
+        for i in range(1, len(args['channels']) + 1):
             if args['data_location_' + str(i)]:
-                request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
+                request['TrainingJobDefinition']['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
         logging.error("Must specify at least one input channel.")
         raise Exception('Could not make job request')
