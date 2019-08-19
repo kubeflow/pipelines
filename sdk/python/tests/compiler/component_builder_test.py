@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.compiler._component_builder import _generate_dockerfile, _dependency_to_requirements, _func_to_entrypoint
-from kfp.compiler._component_builder import CodeGenerator
+from kfp.compiler._component_builder import _generate_dockerfile
+from kfp.compiler._component_builder import _dependency_to_requirements
 from kfp.compiler._component_builder import VersionedDependency
 from kfp.compiler._component_builder import DependencyHelper
 
@@ -135,9 +135,22 @@ def sample_component_func_four() -> NamedTuple(
   output = namedtuple('output', ['a', 'b'])
   return output(1.0, 'test')
 
+
+def _func_to_entrypoint(component_func):
+  from kfp.components._python_op import _func_to_component_spec
+  component_spec = _func_to_component_spec(component_func)
+  command_line_args = component_spec.implementation.container.command
+
+  dash_c_index = command_line_args.index('-c')
+  program_code_index = dash_c_index + 1
+  program_code = command_line_args[program_code_index]
+  return program_code
+
+
 class TestGenerator(unittest.TestCase):
   def test_generate_dockerfile(self):
     """ Test generate dockerfile """
+    from kfp.compiler._component_builder import _generate_dockerfile
 
     # prepare
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -146,14 +159,14 @@ class TestGenerator(unittest.TestCase):
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
 ADD main.py /ml/main.py
-ENTRYPOINT ["python3", "-u", "/ml/main.py"]'''
+'''
     golden_dockerfile_payload_two = '''\
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
 ADD requirements.txt /ml/requirements.txt
 RUN pip3 install -r /ml/requirements.txt
 ADD main.py /ml/main.py
-ENTRYPOINT ["python3", "-u", "/ml/main.py"]'''
+'''
 
     golden_dockerfile_payload_three = '''\
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
@@ -161,27 +174,27 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y -q python py
 ADD requirements.txt /ml/requirements.txt
 RUN pip install -r /ml/requirements.txt
 ADD main.py /ml/main.py
-ENTRYPOINT ["python", "-u", "/ml/main.py"]'''
+'''
     # check
     _generate_dockerfile(filename=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
-                         entrypoint_filename='main.py', python_version='python3')
+                         python_version='python3', add_files={'main.py': '/ml/main.py'})
     with open(target_dockerfile, 'r') as f:
       target_dockerfile_payload = f.read()
     self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_one)
     _generate_dockerfile(filename=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
-                         entrypoint_filename='main.py', python_version='python3', requirement_filename='requirements.txt')
+                         python_version='python3', requirement_filename='requirements.txt', add_files={'main.py': '/ml/main.py'})
     with open(target_dockerfile, 'r') as f:
       target_dockerfile_payload = f.read()
     self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_two)
     _generate_dockerfile(filename=target_dockerfile, base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
-                         entrypoint_filename='main.py', python_version='python2', requirement_filename='requirements.txt')
+                         python_version='python2', requirement_filename='requirements.txt', add_files={'main.py': '/ml/main.py'})
     with open(target_dockerfile, 'r') as f:
       target_dockerfile_payload = f.read()
     self.assertEqual(target_dockerfile_payload, golden_dockerfile_payload_three)
 
     self.assertRaises(ValueError, _generate_dockerfile, filename=target_dockerfile,
-                      base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0', entrypoint_filename='main.py',
-                      python_version='python4', requirement_filename='requirements.txt')
+                      base_image='gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0',
+                      python_version='python4', requirement_filename='requirements.txt', add_files={'main.py': '/ml/main.py'})
 
     # clean up
     os.remove(target_dockerfile)
@@ -220,22 +233,25 @@ def sample_component_func(a: str, b: int) -> float:
     result = float(b + 5)
   return result
 
-def wrapper_sample_component_func(a,b,_output_file):
-  output = sample_component_func(str(a),int(b))
-  import os
-  os.makedirs(os.path.dirname(_output_file))
-  with open(_output_file, "w") as data:
-    data.write(str(output))
-
 import argparse
-parser = argparse.ArgumentParser(description="Parsing arguments")
-parser.add_argument("a", type=str)
-parser.add_argument("b", type=int)
-parser.add_argument("_output_file", type=str)
-args = vars(parser.parse_args())
+_missing_arg = object()
+_parser = argparse.ArgumentParser(prog='Sample component func', description='')
+_parser.add_argument("--a", dest="a", type=str, required=True, default=_missing_arg)
+_parser.add_argument("--b", dest="b", type=int, required=True, default=_missing_arg)
+_parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+_parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}
+_output_files = _parsed_args.pop("_output_paths", [])
 
-if __name__ == "__main__":
-  wrapper_sample_component_func(**args)
+_outputs = sample_component_func(**_parsed_args)
+
+if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+    _outputs = [_outputs]
+
+from pathlib import Path
+for idx, filename in enumerate(_output_files):
+    _output_path = Path(filename)
+    _output_path.parent.mkdir(parents=True, exist_ok=True)
+    _output_path.write_text(str(_outputs[idx]))
 '''
     self.assertEqual(golden, generated_codes)
 
@@ -247,22 +263,25 @@ def sample_component_func_two(a: str, b: int) -> float:
     result = float(b + 5)
   return result
 
-def wrapper_sample_component_func_two(a,b,_output_file):
-  output = sample_component_func_two(str(a),int(b))
-  import os
-  os.makedirs(os.path.dirname(_output_file))
-  with open(_output_file, "w") as data:
-    data.write(str(output))
-
 import argparse
-parser = argparse.ArgumentParser(description="Parsing arguments")
-parser.add_argument("a", type=str)
-parser.add_argument("b", type=int)
-parser.add_argument("_output_file", type=str)
-args = vars(parser.parse_args())
+_missing_arg = object()
+_parser = argparse.ArgumentParser(prog='Sample component func two', description='')
+_parser.add_argument("--a", dest="a", type=str, required=True, default=_missing_arg)
+_parser.add_argument("--b", dest="b", type=int, required=True, default=_missing_arg)
+_parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+_parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}
+_output_files = _parsed_args.pop("_output_paths", [])
 
-if __name__ == "__main__":
-  wrapper_sample_component_func_two(**args)
+_outputs = sample_component_func_two(**_parsed_args)
+
+if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+    _outputs = [_outputs]
+
+from pathlib import Path
+for idx, filename in enumerate(_output_files):
+    _output_path = Path(filename)
+    _output_path.parent.mkdir(parents=True, exist_ok=True)
+    _output_path.write_text(str(_outputs[idx]))
 '''
     self.assertEqual(golden, generated_codes)
 
@@ -271,95 +290,52 @@ if __name__ == "__main__":
 def sample_component_func_three() -> float:
   return 1.0
 
-def wrapper_sample_component_func_three(_output_file):
-  output = sample_component_func_three()
-  import os
-  os.makedirs(os.path.dirname(_output_file))
-  with open(_output_file, "w") as data:
-    data.write(str(output))
-
 import argparse
-parser = argparse.ArgumentParser(description="Parsing arguments")
-parser.add_argument("_output_file", type=str)
-args = vars(parser.parse_args())
+_missing_arg = object()
+_parser = argparse.ArgumentParser(prog='Sample component func three', description='')
+_parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+_parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}
+_output_files = _parsed_args.pop("_output_paths", [])
 
-if __name__ == "__main__":
-  wrapper_sample_component_func_three(**args)
+_outputs = sample_component_func_three(**_parsed_args)
+
+if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+    _outputs = [_outputs]
+
+from pathlib import Path
+for idx, filename in enumerate(_output_files):
+    _output_path = Path(filename)
+    _output_path.parent.mkdir(parents=True, exist_ok=True)
+    _output_path.write_text(str(_outputs[idx]))
 '''
     self.assertEqual(golden, generated_codes)
 
     generated_codes = _func_to_entrypoint(component_func=sample_component_func_four)
     golden = '''\
 from typing import NamedTuple
+
 def sample_component_func_four() -> NamedTuple(
     'output', [('a', float), ('b', str)]):
   from collections import namedtuple
   output = namedtuple('output', ['a', 'b'])
   return output(1.0, 'test')
 
-def wrapper_sample_component_func_four(_output_files):
-  outputs = sample_component_func_four()
-  import os
-  for _output_file, output in zip(_output_files, outputs):
-    os.makedirs(os.path.dirname(_output_file))
-    with open(_output_file, "w") as data:
-      data.write(str(output))
-
 import argparse
-parser = argparse.ArgumentParser(description="Parsing arguments")
-parser.add_argument("_output_files", type=str, nargs=2)
-args = vars(parser.parse_args())
+_missing_arg = object()
+_parser = argparse.ArgumentParser(prog='Sample component func four', description='')
+_parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
+_parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}
+_output_files = _parsed_args.pop("_output_paths", [])
 
-if __name__ == "__main__":
-  wrapper_sample_component_func_four(**args)
+_outputs = sample_component_func_four(**_parsed_args)
+
+if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+    _outputs = [_outputs]
+
+from pathlib import Path
+for idx, filename in enumerate(_output_files):
+    _output_path = Path(filename)
+    _output_path.parent.mkdir(parents=True, exist_ok=True)
+    _output_path.write_text(str(_outputs[idx]))
 '''
     self.assertEqual(golden, generated_codes)
-
-  def test_func_to_entrypoint_python2(self):
-    """ Test entrypoint generation for python2"""
-
-    # prepare
-    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
-
-    # check
-    generated_codes = _func_to_entrypoint(component_func=sample_component_func_two, python_version='python2')
-    golden = '''\
-def sample_component_func_two(a, b):
-  result = 3.45
-  if a == 'succ':
-    result = float(b + 5)
-  return result
-
-def wrapper_sample_component_func_two(a,b,_output_file):
-  output = sample_component_func_two(str(a),int(b))
-  import os
-  os.makedirs(os.path.dirname(_output_file))
-  with open(_output_file, "w") as data:
-    data.write(str(output))
-
-import argparse
-parser = argparse.ArgumentParser(description="Parsing arguments")
-parser.add_argument("a", type=str)
-parser.add_argument("b", type=int)
-parser.add_argument("_output_file", type=str)
-args = vars(parser.parse_args())
-
-if __name__ == "__main__":
-  wrapper_sample_component_func_two(**args)
-'''
-    self.assertEqual(golden, generated_codes)
-
-# hello function is used by the TestCodeGenerator to verify the auto generated python function
-def hello():
-  print("hello")
-
-class TestCodeGenerator(unittest.TestCase):
-  def test_codegen(self):
-    """ Test code generator a function"""
-    codegen = CodeGenerator(indentation='  ')
-    codegen.begin()
-    codegen.writeline('def hello():')
-    codegen.indent()
-    codegen.writeline('print("hello")')
-    generated_codes = codegen.end()
-    self.assertEqual(generated_codes, inspect.getsource(hello))
