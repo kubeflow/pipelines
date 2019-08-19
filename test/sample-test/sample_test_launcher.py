@@ -59,6 +59,15 @@ class SampleTest(object):
     self._run_test()
 
   def _run_test(self):
+    if len(self._results_gcs_dir) == 0:
+      return 1
+
+    os.chdir(self._work_dir)
+
+
+
+
+
     # variables needed for sample test logic.
     input = '%s/%s.yaml' % (self._work_dir, self._test_name)
     test_cases = [] # Currently, only capture run-time error, no result check.

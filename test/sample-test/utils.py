@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the Licens
 
+import os
+import re
+import subprocess
+
 from minio import Minio
 from junit_xml import TestSuite, TestCase
-import subprocess
 
 # Parse the workflow json to obtain the artifacts for a particular step.
 #   Note: the step_name could be the key words.
@@ -60,3 +63,24 @@ def run_bash_command(cmd):
   if error_bytes != None:
     error_string = error_bytes.decode('utf-8')
   return output_string, error_string
+
+
+def file_injection(file_in, file_out, subs):
+  """Utility function that substitute several regex within a file by
+  corresponding string.
+
+  :param file_in: input file name.
+  :param file_out: output file name.
+  :param subs: dict, key is the regex expr, value is the substituting string.
+  """
+  with open(file_in, 'rt') as fin:
+    with open(file_out, 'wt') as fout:
+      for line in fin:
+        tmp_line = line
+        for old, new in subs.items():
+          regex = re.compile(old)
+          tmp_line = re.sub(regex, new)
+
+        fout.write(tmp_line)
+
+  os.rename(file_out, file_in)

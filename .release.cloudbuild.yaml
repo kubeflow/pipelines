@@ -124,11 +124,6 @@ steps:
   id:   'copyPythonComponentSDKToLatest'
   waitFor: ['copyPythonComponentSDKLocal']
 
-# Copy the TFX sample data to the ml-pipeline-playground bucket
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', '-r', '/workspace/samples/tfx/taxi-cab-classification/*', 'gs://ml-pipeline-playground/tfx/taxi-cab-classification/']
-  id:   'copyTFXData'
-
 images:
 - 'gcr.io/ml-pipeline/frontend:$TAG_NAME'
 - 'gcr.io/ml-pipeline/frontend:$COMMIT_SHA'

@@ -31,6 +31,14 @@ from kfp.dsl.types import Integer, InconsistentTypeException
 from kubernetes.client import V1Toleration
 
 
+def some_op():
+  return dsl.ContainerOp(
+      name='sleep',
+      image='busybox',
+      command=['sleep 1'],
+  )
+
+
 class TestCompiler(unittest.TestCase):
   # Define the places of samples covered by unit tests.
   core_sample_path = os.path.join(os.path.dirname(__file__), '..', '..', '..',
@@ -337,7 +345,16 @@ class TestCompiler(unittest.TestCase):
 
   def test_py_retry(self):
     """Test retry functionality."""
-    self._test_py_compile_yaml('retry')
+    number_of_retries = 137
+    def my_pipeline():
+      some_op().set_retry(number_of_retries)
+
+    workflow = kfp.compiler.Compiler()._compile(my_pipeline)
+    name_to_template = {template['name']: template for template in workflow['spec']['templates']}
+    main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
+    template = name_to_template[main_dag_tasks[0]['template']]
+
+    self.assertEqual(template['retryStrategy']['limit'], number_of_retries)
 
   def test_py_image_pull_secrets(self):
     """Test pipeline imagepullsecret."""
