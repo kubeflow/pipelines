@@ -151,7 +151,7 @@ exports[`DetailsTable does render arrays as JSON 1`] = `
         tabSize={4}
         theme="github"
         value="[]"
-        width="300px"
+        width="100%"
         wrapEnabled={false}
       />
     </div>
@@ -207,7 +207,7 @@ exports[`DetailsTable does render arrays as JSON 2`] = `
         tabSize={4}
         theme="github"
         value="{}"
-        width="300px"
+        width="100%"
         wrapEnabled={false}
       />
     </div>
@@ -294,7 +294,7 @@ exports[`DetailsTable shows key and JSON value in row 1`] = `
     \\"jsonKey\\": \\"jsonValue\\"
   }
 ]"
-        width="300px"
+        width="100%"
         wrapEnabled={false}
       />
     </div>
@@ -421,7 +421,7 @@ exports[`DetailsTable shows keys and values for multiple rows 1`] = `
     \\"jsonKey\\": \\"jsonValue2\\"
   }
 ]"
-        width="300px"
+        width="100%"
         wrapEnabled={false}
       />
     </div>
@@ -504,7 +504,7 @@ exports[`DetailsTable shows keys and values for multiple rows 1`] = `
     \\"nestedJsonKey\\": \\"jsonValue\\"
   }
 }"
-        width="300px"
+        width="100%"
         wrapEnabled={false}
       />
     </div>
