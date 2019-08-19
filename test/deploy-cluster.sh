@@ -46,7 +46,7 @@ function clean_up {
 trap clean_up EXIT SIGINT SIGTERM
 
 cd ${DIR}
-if gcloud container clusters describe ${TEST_CLUSTER}; then
+if gcloud container clusters describe ${TEST_CLUSTER} &>/dev/null; then
   echo "Use existing test cluster: ${TEST_CLUSTER}"
 else
   echo "Creating a new test cluster: ${TEST_CLUSTER}"
