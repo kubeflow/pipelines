@@ -63,6 +63,9 @@ while [ "$1" != "" ]; do
     shift
 done
 
+# Choose gcloud CLI project
+gcloud config set project ${PROJECT}
+
 # Variables
 PROJECT_NUMBER=$(gcloud projects describe ${PROJECT} --format='value(projectNumber)')
 # Default service account
@@ -81,19 +84,15 @@ source "${DIR}/deploy-cluster.sh"
 # Install Argo CLI and test-runner service account
 source "${DIR}/install-argo.sh"
 
+IMAGE_BUILDER_ARG=""
 # When project is not ml-pipeline-test, VMs need permission to fetch some images in gcr.io/ml-pipeline-test.
-if [ ! "$PROJECT" == "ml-pipeline-test" ]; then
-  # If default service account doesn't have storage viewer role to
-  # ml-pipeline-test gcp project
-  if ! gcloud projects get-iam-policy ml-pipeline-test \
-    --flatten="bindings[].members" \
-    --format="value(bindings.role)" \
-    --filter="bindings.members:${VM_SERVICE_ACCOUNT}" \
-    | grep "roles/storage.objectViewer"; \
-  then
-    echo "Granting VM service account roles to access gcr.io/ml-pipeline-test"
-    gcloud projects add-iam-policy-binding ml-pipeline-test --member serviceAccount:${VM_SERVICE_ACCOUNT} --role roles/storage.objectViewer
-  fi
+if [ "$PROJECT" != "ml-pipeline-test" ]; then
+  COPIED_IMAGE_BUILDER_IMAGE=${GCR_IMAGE_BASE_DIR}/image-builder
+  echo "Copy image builder image to ${COPIED_IMAGE_BUILDER_IMAGE}"
+  yes | gcloud container images add-tag \
+    gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4 \
+    ${COPIED_IMAGE_BUILDER_IMAGE}:latest
+  IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
 fi
 
 BUILT_IMAGES=$(gcloud container images list --repository=${GCR_IMAGE_BASE_DIR})
@@ -111,6 +110,7 @@ else
   # Build Images
   ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
   -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+  ${IMAGE_BUILDER_ARG} \
   -p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
   -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
   -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
@@ -130,6 +130,7 @@ source ${DIR}/deploy-pipeline-light.sh
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+${IMAGE_BUILDER_ARG} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \

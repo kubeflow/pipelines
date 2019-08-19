@@ -205,6 +205,7 @@ func toApiResourceReferences(references []*model.ResourceReference) []*api.Resou
 				Type: toApiResourceType(ref.ReferenceType),
 				Id:   ref.ReferenceUUID,
 			},
+			Name: ref.ReferenceName,
 			Relationship: toApiRelationship(ref.Relationship),
 		})
 	}

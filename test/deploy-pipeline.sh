@@ -47,12 +47,18 @@ cd ${DIR}/${KFAPP}
 
 ## Update pipeline component image
 pushd ks_app
+# Delete pipeline component first before applying so we guarantee the pipeline component is new.
+ks delete default -c pipeline
+sleep 60s
+
 ks param set pipeline apiImage ${GCR_IMAGE_BASE_DIR}/api-server:${GCR_IMAGE_TAG}
 ks param set pipeline persistenceAgentImage ${GCR_IMAGE_BASE_DIR}/persistenceagent:${GCR_IMAGE_TAG}
 ks param set pipeline scheduledWorkflowImage ${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${GCR_IMAGE_TAG}
 ks param set pipeline uiImage ${GCR_IMAGE_BASE_DIR}/frontend:${GCR_IMAGE_TAG}
-# Delete pipeline component first before applying so we guarantee the pipeline component is new.
-ks delete default -c pipeline
-sleep 60s
+# Swap the metadata/artifact storage PD to avoid reusing the old data.
+# We should remove this hack when we deprecate ksonnet.
+# See https://github.com/kubeflow/pipelines/pull/1805#issuecomment-520204987 for context 
+ks param set pipeline minioPd ${KFAPP}-storage-metadata-store
+ks param set pipeline mysqlPd ${KFAPP}-storage-artifact-store
 ks apply default -c pipeline
 popd

@@ -86,6 +86,18 @@ steps:
   id:   'tagInverseProxyAgentCommitSHA'
   waitFor: ['pullInverseProxyAgent']
 
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA']
+  id:   'pullVisualizationServer'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/visualization-server:$TAG_NAME']
+  id:   'tagVisualizationServerVersionNumber'
+  waitFor: ['pullVisualizationServer']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/visualization-server:$COMMIT_SHA']
+  id:   'tagVisualizationServerCommitSHA'
+  waitFor: ['pullVisualizationServer']
+
 # Copy the Python SDK
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz', '/workspace/']
@@ -130,5 +142,7 @@ images:
 - 'gcr.io/ml-pipeline/viewer-crd-controller:$COMMIT_SHA'
 - 'gcr.io/ml-pipeline/inverse-proxy-agent:$TAG_NAME'
 - 'gcr.io/ml-pipeline/inverse-proxy-agent:$COMMIT_SHA'
+- 'gcr.io/ml-pipeline/visualization-server:$TAG_NAME'
+- 'gcr.io/ml-pipeline/visualization-server:$COMMIT_SHA'
 
 timeout: '1200s'
