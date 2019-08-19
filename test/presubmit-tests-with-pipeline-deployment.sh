@@ -64,18 +64,21 @@ done
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
+# Configure `time` command output format.
+TIME="[timing] It took %e seconds to run \"%C\""
+
 echo "presubmit test starts"
-source "${DIR}/test-prep.sh"
+time source "${DIR}/test-prep.sh"
 
 # Deploy Kubeflow
-source "${DIR}/deploy-kubeflow.sh"
+time source "${DIR}/deploy-kubeflow.sh"
 
 # Install Argo CLI and test-runner service account
-source "${DIR}/install-argo.sh"
+time source "${DIR}/install-argo.sh"
 
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
+time ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 -p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
 -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
@@ -86,14 +89,14 @@ ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
 -o name
 `
 echo "build docker images workflow submitted successfully"
-source "${DIR}/check-argo-status.sh"
+time source "${DIR}/check-argo-status.sh"
 echo "build docker images workflow completed"
 
 # Deploy the pipeline
-source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+time source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+time ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
@@ -104,5 +107,5 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 `
 
 echo "test workflow submitted successfully"
-source "${DIR}/check-argo-status.sh"
+time source "${DIR}/check-argo-status.sh"
 echo "test workflow completed"
