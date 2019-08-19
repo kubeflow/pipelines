@@ -15,36 +15,44 @@
  */
 
 import * as React from 'react';
-import 'brace';
 import { mount } from 'enzyme';
 import Editor from './Editor';
-import 'brace/ext/language_tools';
-import 'brace/mode/json';
-import 'brace/mode/python';
-import 'brace/theme/github';
 
 /*
-  tree.html() is used alongside mount because it allows for the HTML of the
-  Editor component to be rendered and compared to a snapshot. This is required
-  because the react-ace library utilizes brace which is based on vanilla HTML
-  and JavaScript, without mount and tree.html() the component would not render
-  the brace editor.
+  These tests mimic https://github.com/securingsincity/react-ace/blob/master/tests/src/ace.spec.js
+  to ensure that editor properties (placeholder and value) can be properly
+  tested.
 */
 
 describe('Editor', () => {
-  it('renders without a placeholder', () => {
+  it('renders without a placeholder and value', () => {
     const tree = mount(<Editor />);
-    expect(tree.html()).toMatchSnapshot();
+    expect(tree).not.toBeNull();
   });
 
   it('renders with a placeholder', () => {
-    const tree = mount(<Editor placeholder='I am a placeholder.' />);
-    expect(tree.html()).toMatchSnapshot();
+    const placeholder = 'I am a placeholder.';
+    const tree = mount(<Editor placeholder={placeholder} />);
+    expect(tree).not.toBeNull();
+    const editor = (tree.instance() as any).editor;
+    expect(editor.renderer.placeholderNode).not.toBeNull();
+    expect(editor.renderer.placeholderNode.innerHTML).toBe(placeholder);
   });
 
   it ('renders a placeholder that contains HTML', () => {
     const placeholder = 'I am a placeholder with <strong>HTML</strong>.';
     const tree = mount(<Editor placeholder={placeholder} />);
-    expect(tree.html()).toMatchSnapshot();
+    expect(tree).not.toBeNull();
+    const editor = (tree.instance() as any).editor;
+    expect(editor.renderer.placeholderNode).not.toBeNull();
+    expect(editor.renderer.placeholderNode.innerHTML).toBe(placeholder);
+  });
+
+  it('has its value set to the provided value', () => {
+    const value = 'I am a value.';
+    const tree = mount(<Editor value={value} />);
+    expect(tree).not.toBeNull();
+    const editor = (tree.instance() as any).editor;
+    expect(editor.getValue()).toBe(value);
   });
 });
