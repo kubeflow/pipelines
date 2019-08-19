@@ -63,20 +63,18 @@ while [ "$1" != "" ]; do
     shift
 done
 
-# Choose gcloud CLI project
-gcloud config set project ${PROJECT}
-
 # Variables
-PROJECT_NUMBER=$(gcloud projects describe ${PROJECT} --format='value(projectNumber)')
-# Default service account
-# ref: https://cloud.google.com/compute/docs/access/service-accounts#compute_engine_default_service_account
-VM_SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${PULL_PULL_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 echo "presubmit test starts"
 source "${DIR}/test-prep.sh"
+
+PROJECT_NUMBER=$(gcloud projects describe ${PROJECT} --format='value(projectNumber)')
+# Default service account
+# ref: https://cloud.google.com/compute/docs/access/service-accounts#compute_engine_default_service_account
+VM_SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 
 # Deploy Kubeflow Pipelines lightweight deployment
 source "${DIR}/deploy-cluster.sh"
