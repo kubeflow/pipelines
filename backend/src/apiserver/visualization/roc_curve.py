@@ -27,12 +27,7 @@ from tensorflow.python.lib.io import file_io
 # The following variables are provided through dependency injection. These
 # variables come from the specified input path and arguments provided by the
 # API post request.
-#
-# is_generated
-# input_path
-# target_lambda
-# trueclass
-# true_score_column
+global input_path, is_generated, target_lambda, true_score_column, trueclass
 
 if is_generated is False:
     # Create data from specified csv file(s).
