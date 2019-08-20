@@ -21,6 +21,7 @@ import os
 import papermill as pm
 import subprocess
 import sys
+import utils
 import uuid
 
 from google.cloud import storage
@@ -85,15 +86,14 @@ class SampleTest(object):
         self._namespace
     ])
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
-    storage_client = storage.Client()
     working_bucket = PROJECT_NAME
 
-    src_bucket = storage_client.get_bucket(working_bucket)
-    dest_bucket = src_bucket # Currently copy to the same bucket.
-    src_bucket.copy_blob(
+    utils.copy_blob(
+        working_bucket,
         self._sample_test_result,
-        dest_bucket,
-        self._results_gcs_dir + '/' + self._sample_test_result)
+        working_bucket,
+        self._results_gcs_dir + '/' + self._sample_test_result
+    )
 
   def check_notebook_result(self):
     # Workaround because papermill does not directly return exit code.
@@ -125,15 +125,14 @@ class SampleTest(object):
       ])
 
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
-    storage_client = storage.Client()
     working_bucket = PROJECT_NAME
 
-    src_bucket = storage_client.get_bucket(working_bucket)
-    dest_bucket = src_bucket # Currently copy to the same bucket.
-    src_bucket.copy_blob(
+    utils.copy_blob(
+        working_bucket,
         self._sample_test_result,
-        dest_bucket,
-        self._results_gcs_dir + '/' + self._sample_test_result)
+        working_bucket,
+        self._results_gcs_dir + '/' + self._sample_test_result
+    )
 
   def _run_test(self):
     if len(self._results_gcs_dir) == 0:

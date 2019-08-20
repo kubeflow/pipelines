@@ -16,6 +16,7 @@ import os
 import re
 import subprocess
 
+from google.cloud import storage
 from minio import Minio
 from junit_xml import TestSuite, TestCase
 
@@ -84,3 +85,17 @@ def file_injection(file_in, file_out, subs):
         fout.write(tmp_line)
 
   os.rename(file_out, file_in)
+
+def copy_blob(bucket_name, blob_name, new_bucket_name, new_blob_name):
+  """Copies a blob from one bucket to another with a new name."""
+  storage_client = storage.Client()
+  source_bucket = storage_client.get_bucket(bucket_name)
+  source_blob = source_bucket.blob(blob_name)
+  destination_bucket = storage_client.get_bucket(new_bucket_name)
+
+  new_blob = source_bucket.copy_blob(
+      source_blob, destination_bucket, new_blob_name)
+
+  print('Blob {} in bucket {} copied to blob {} in bucket {}.'.format(
+      source_blob.name, source_bucket.name, new_blob.name,
+      destination_bucket.name))
