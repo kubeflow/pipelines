@@ -26,8 +26,6 @@ function clean_up {
   echo "Clean up..."
   set +e # the following clean up commands shouldn't exit on error
   if [ $SHOULD_CLEANUP_CLUSTER == true ]; then
-    # TODO: remove this
-    kubectl cluster-info dump
     # --async doesn't wait for this operation to complete, so we can get test
     # results faster
     yes | gcloud container clusters delete ${TEST_CLUSTER} --async
