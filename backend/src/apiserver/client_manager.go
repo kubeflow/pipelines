@@ -49,7 +49,7 @@ const (
 	mysqlServicePort = "MYSQL_SERVICE_PORT"
 
 	podNamespace          = "POD_NAMESPACE"
-	dbName                = "mlpipeline"
+	pipelineDBName        = "DBConfig.PipelineDBName"
 	initConnectionTimeout = "InitConnectionTimeout"
 )
 
@@ -66,7 +66,7 @@ type ClientManager struct {
 	objectStore            storage.ObjectStoreInterface
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
-	podClient 						 v1.PodInterface
+	podClient              v1.PodInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 
@@ -231,6 +231,7 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 // Initialize the connection string for connecting to Mysql database
 // Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True
 func initMysql(driverName string, initConnectionTimeout time.Duration) string {
+	databaseName := getStringConfig(pipelineDBName)
 	mysqlConfig := client.CreateMySQLConfig(
 		getStringConfigWithDefault(mysqlUser, "root"),
 		getStringConfigWithDefault(mysqlPassword, ""),
@@ -256,7 +257,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 	// Create database if not exist
 	operation = func() error {
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", databaseName))
 		if err != nil {
 			return err
 		}
@@ -267,7 +268,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	err = backoff.Retry(operation, b)
 
 	util.TerminateIfError(err)
-	mysqlConfig.DBName = dbName
+	mysqlConfig.DBName = databaseName
 	return mysqlConfig.FormatDSN()
 }
 
