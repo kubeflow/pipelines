@@ -70,6 +70,17 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
             response.body
         )
 
+    def test_create_visualization_fails_when_invalid_json_is_provided(self):
+        response = self.fetch(
+            "/",
+            method="POST",
+            body='arguments=--type test --source gs://ml-pipeline/data.csv --arguments "{"')
+        self.assertEqual(400, response.code)
+        self.assertEqual(
+            wrap_error_in_html("400: Invalid JSON provided as arguments."),
+            response.body
+        )
+
     def test_create_visualization(self):
         response = self.fetch(
             "/",

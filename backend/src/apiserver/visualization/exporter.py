@@ -17,7 +17,6 @@ converting those objects to HTML.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
 from enum import Enum
 import json
 from pathlib import Path
@@ -90,27 +89,17 @@ class Exporter:
         )
 
     @staticmethod
-    def create_cell_from_args(args: argparse.Namespace) -> NotebookNode:
-        """Creates a NotebookNode object with provided arguments as variables.
+    def create_cell_from_args(variables: dict) -> NotebookNode:
+        """Creates NotebookNode object containing dict of provided variables.
 
         Args:
-            args: Arguments that need to be injected into a NotebookNode.
+            variables: Arguments that need to be injected into a NotebookNode.
 
         Returns:
             NotebookNode with provided arguments as variables.
 
         """
-        variables = ""
-        args = json.loads(args)
-        for key in sorted(args.keys()):
-            # Check type of variable to maintain type when converting from JSON
-            # to notebook cell
-            if args[key] is None or isinstance(args[key], bool):
-                variables += "{} = {}\n".format(key, args[key])
-            else:
-                variables += '{} = "{}"\n'.format(key, args[key])
-
-        return new_code_cell(variables)
+        return new_code_cell("variables = {}".format(repr(variables)))
 
     @staticmethod
     def create_cell_from_file(filepath: Text) -> NotebookNode:
