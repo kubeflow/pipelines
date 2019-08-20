@@ -39,6 +39,7 @@ if gcloud container clusters describe ${TEST_CLUSTER} &>/dev/null; then
   echo "Use existing test cluster: ${TEST_CLUSTER}"
 else
   echo "Creating a new test cluster: ${TEST_CLUSTER}"
+  SHOULD_CLEANUP_CLUSTER=true
   # "storage-rw" is needed to allow VMs to push to gcr.io
   # reference: https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam
   SCOPE_ARG="--scopes=storage-rw"
@@ -47,7 +48,6 @@ else
   NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=n1-standard-8 \
     --enable-autoscaling --max-nodes=8 --min-nodes=2"
   gcloud container clusters create ${TEST_CLUSTER} ${SCOPE_ARG} ${NODE_POOL_CONFIG_ARG}
-  SHOULD_CLEANUP_CLUSTER=true
 fi
 
 gcloud container clusters get-credentials ${TEST_CLUSTER}
