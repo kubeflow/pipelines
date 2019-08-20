@@ -1,7 +1,7 @@
 module github.com/kubeflow/pipelines
 
 require (
-	github.com/BurntSushi/toml v0.3.1 // indirect
+	cloud.google.com/go v0.44.3 // indirect
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
 	github.com/argoproj/argo v2.3.0+incompatible
@@ -28,18 +28,18 @@ require (
 	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
-	github.com/golang/protobuf v1.2.0
-	github.com/google/btree v0.0.0-20180124185431-e89373fe6b4a // indirect
-	github.com/google/go-cmp v0.2.0
+	github.com/golang/lint v0.0.0-20180702182130-06c8688daad7 // indirect
+	github.com/golang/protobuf v1.3.2
+	github.com/google/go-cmp v0.3.1
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
 	github.com/google/ml-metadata v0.0.0-20190214221617-0fb82dc56ff7
-	github.com/google/pprof v0.0.0-20181206194817-3ea8567a2e57 // indirect
+	github.com/google/pprof v0.0.0-20190723021845-34ac40c74b70 // indirect
 	github.com/google/uuid v1.0.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.6.3
-	github.com/hashicorp/golang-lru v0.0.0-20180201235237-0fb14efe8c47 // indirect
+	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/imdario/mergo v0.3.5 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/iris-contrib/go.uuid v2.0.0+incompatible // indirect
@@ -49,6 +49,7 @@ require (
 	github.com/json-iterator/go v0.0.0-20180701071628-ab8a2e0c74be // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kataras/iris v10.6.7+incompatible
+	github.com/kr/pty v1.1.8 // indirect
 	github.com/lib/pq v1.0.0 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/mattn/go-sqlite3 v1.9.0
@@ -75,14 +76,20 @@ require (
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1 // indirect
 	golang.org/x/arch v0.0.0-20181203225421-5a4828bb7045 // indirect
-	golang.org/x/net v0.0.0-20181201002055-351d144fa1fc
-	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
-	google.golang.org/genproto v0.0.0-20190108161440-ae2f86662275
-	google.golang.org/grpc v1.16.0
+	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
+	golang.org/x/mobile v0.0.0-20190814143026-e8b3e6111d02 // indirect
+	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
+	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // indirect
+	golang.org/x/tools v0.0.0-20190815212832-922a4ee32d1a // indirect
+	google.golang.org/api v0.8.0
+	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64
+	google.golang.org/grpc v1.23.0
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.39.3 // indirect
+	gopkg.in/yaml.v2 v2.2.2
+	honnef.co/go/tools v0.0.1-2019.2.2 // indirect
 	k8s.io/api v0.0.0-20180712090710-2d6f90ab1293
 	k8s.io/apiextensions-apiserver v0.0.0-20190103235604-e7617803aceb // indirect
 	k8s.io/apimachinery v0.0.0-20180621070125-103fd098999d
