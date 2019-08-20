@@ -24,8 +24,6 @@ import sys
 import utils
 import uuid
 
-from google.cloud import storage
-
 
 # List of notebook samples' test names and corresponding file names.
 NOTEBOOK_SAMPLES = {
