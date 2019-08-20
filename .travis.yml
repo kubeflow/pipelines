@@ -69,9 +69,9 @@ matrix:
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python3 setup.py install
-        - coverage run --include=*/kfp/* --append tests/dsl/main.py
-        - coverage run --include=*/kfp/* --append tests/compiler/main.py
-        - coverage run --include=*/kfp/* --append -m unittest discover --verbose --start-dir tests --top-level-directory=.
+        - coverage run --source=kfp --append tests/dsl/main.py
+        - coverage run --source=kfp --append tests/compiler/main.py
+        - coverage run --source=kfp --append -m unittest discover --verbose --start-dir tests --top-level-directory=.
         - coveralls
 
         # Visualization test
