@@ -69,60 +69,67 @@ TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_F
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 # Configure `time` command output format.
-TIME="[timing] It took %e seconds to run \"%C\""
+TIMEFORMAT="[test-timing] It took %lR."
 
-echo "presubmit test starts"
-time source "${DIR}/test-prep.sh"
+time {
+  echo "presubmit test starts"
+  source "${DIR}/test-prep.sh"
 
-# Deploy Kubeflow
-time source "${DIR}/deploy-kubeflow.sh"
+  # Deploy Kubeflow
+  source "${DIR}/deploy-kubeflow.sh"
 
-# Install Argo CLI and test-runner service account
-time source "${DIR}/install-argo.sh"
+  # Install Argo CLI and test-runner service account
+  source "${DIR}/install-argo.sh"
+}
 
-IMAGE_BUILDER_ARG=""
-# When project is not ml-pipeline-test, VMs need permission to fetch some images in gcr.io/ml-pipeline-test.
-if [ "$PROJECT" != "ml-pipeline-test" ]; then
-  COPIED_IMAGE_BUILDER_IMAGE=${GCR_IMAGE_BASE_DIR}/image-builder
-  echo "Copy image builder image to ${COPIED_IMAGE_BUILDER_IMAGE}"
-  yes | gcloud container images add-tag \
-    gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4 \
-    ${COPIED_IMAGE_BUILDER_IMAGE}:latest
-  IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
-fi
+time {
+  IMAGE_BUILDER_ARG=""
+  # When project is not ml-pipeline-test, VMs need permission to fetch some images in gcr.io/ml-pipeline-test.
+  if [ "$PROJECT" != "ml-pipeline-test" ]; then
+    COPIED_IMAGE_BUILDER_IMAGE=${GCR_IMAGE_BASE_DIR}/image-builder
+    echo "Copy image builder image to ${COPIED_IMAGE_BUILDER_IMAGE}"
+    yes | gcloud container images add-tag \
+      gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4 \
+      ${COPIED_IMAGE_BUILDER_IMAGE}:latest
+    IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
+  fi
 
-# Build Images
-echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
-time ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
--p image-build-context-gcs-uri="$remote_code_archive_uri" \
-${IMAGE_BUILDER_ARG} \
--p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
--p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
--p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
--p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
--n ${NAMESPACE} \
---serviceaccount test-runner \
--o name
-`
-echo "build docker images workflow submitted successfully"
-time source "${DIR}/check-argo-status.sh"
-echo "build docker images workflow completed"
+  # Build Images
+  echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
+  ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
+  -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+  ${IMAGE_BUILDER_ARG} \
+  -p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
+  -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
+  -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
+  -p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
+  -n ${NAMESPACE} \
+  --serviceaccount test-runner \
+  -o name
+  `
+  echo "build docker images workflow submitted successfully"
+  source "${DIR}/check-argo-status.sh"
+  echo "build docker images workflow completed"
+}
 
-# Deploy the pipeline
-time source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+time {
+  source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+  echo "pipeline deployed"
+}
 
-echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
-time ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
--p image-build-context-gcs-uri="$remote_code_archive_uri" \
-${IMAGE_BUILDER_ARG} \
--p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
--p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
--n ${NAMESPACE} \
---serviceaccount test-runner \
--o name
-`
-
-echo "test workflow submitted successfully"
-time source "${DIR}/check-argo-status.sh"
-echo "test workflow completed"
+time {
+  echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
+  ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+  -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+  ${IMAGE_BUILDER_ARG} \
+  -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+  -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+  -p cluster-type="${CLUSTER_TYPE}" \
+  -n ${NAMESPACE} \
+  --serviceaccount test-runner \
+  -o name
+  `
+  echo "test workflow submitted successfully"
+  source "${DIR}/check-argo-status.sh"
+  echo "test workflow completed"
+}
