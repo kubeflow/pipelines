@@ -68,20 +68,25 @@ GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${PULL_PULL_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-echo "presubmit test starts"
-source "${DIR}/test-prep.sh"
+# Configure `time` command output format.
+TIMEFORMAT="[test-timing] It took %lR."
 
-# Deploy Kubeflow Pipelines lightweight deployment
-source "${DIR}/deploy-cluster.sh"
+echo "presubmit test starts"
+time source "${DIR}/test-prep.sh"
+echo "test env prepared"
+
+time source "${DIR}/deploy-cluster.sh"
+echo "cluster deployed"
 
 # Install Argo CLI and test-runner service account
-source "${DIR}/install-argo.sh"
+time source "${DIR}/install-argo.sh"
+echo "argo installed"
 
-# Build KFP images
-source "${DIR}/build-images.sh"
+time source "${DIR}/build-images.sh"
+echo "KFP images built"
 
-# Deploy the pipeline
-source "${DIR}/deploy-pipeline-light.sh"
+time source "${DIR}/deploy-pipeline-light.sh"
+echo "KFP lite deployed"
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
@@ -95,5 +100,5 @@ ${IMAGE_BUILDER_ARG} \
 -o name
 `
 echo "test workflow submitted successfully"
-source "${DIR}/check-argo-status.sh"
+time source "${DIR}/check-argo-status.sh"
 echo "test workflow completed"
