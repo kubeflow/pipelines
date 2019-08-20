@@ -15,8 +15,8 @@
 package util
 
 import (
+	"github.com/ghodss/yaml"
 	"testing"
-
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -442,4 +442,62 @@ func TestFindS3ArtifactKey_NodeNotFound(t *testing.T) {
 	actualPath := workflow.FindObjectStoreArtifactKeyOrEmpty("node-1", "artifact-1")
 
 	assert.Empty(t, actualPath)
+}
+
+func TestReplaceUID(t *testing.T) {
+	workflowString := `apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: k8s-owner-reference-
+spec:
+  entrypoint: k8s-owner-reference
+  templates:
+  - name: k8s-owner-reference
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          generateName: owned-eg-
+          ownerReferences:
+          - apiVersion: argoproj.io/v1alpha1
+            blockOwnerDeletion: true
+            kind: Workflow
+            name: "{{workflow.name}}"
+            uid: "{{workflow.uid}}"
+        data:
+          some: value`
+	var workflow Workflow
+	err := yaml.Unmarshal([]byte(workflowString), &workflow)
+	assert.Nil(t, err)
+	workflow.ReplaceUID("12345")
+	expectedWorkflowString := `apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: k8s-owner-reference-
+spec:
+  entrypoint: k8s-owner-reference
+  templates:
+  - name: k8s-owner-reference
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          generateName: owned-eg-
+          ownerReferences:
+          - apiVersion: argoproj.io/v1alpha1
+            blockOwnerDeletion: true
+            kind: Workflow
+            name: "{{workflow.name}}"
+            uid: "12345"
+        data:
+          some: value`
+
+	var expectedWorkflow Workflow
+	err = yaml.Unmarshal([]byte(expectedWorkflowString), &expectedWorkflow)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedWorkflow, workflow)
 }

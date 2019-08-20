@@ -128,18 +128,18 @@ def _generate_dockerfile(filename, base_image, entrypoint_filename, python_versi
     raise ValueError('python_version has to be either python2 or python3')
   with open(filename, 'w') as f:
     f.write('FROM ' + base_image + '\n')
-    if python_version is 'python3':
+    if python_version == 'python3':
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
     else:
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
     if requirement_filename is not None:
       f.write('ADD ' + requirement_filename + ' /ml/requirements.txt\n')
-      if python_version is 'python3':
+      if python_version == 'python3':
         f.write('RUN pip3 install -r /ml/requirements.txt\n')
       else:
         f.write('RUN pip install -r /ml/requirements.txt\n')
     f.write('ADD ' + entrypoint_filename + ' /ml/main.py\n')
-    if python_version is 'python3':
+    if python_version == 'python3':
       f.write('ENTRYPOINT ["python3", "-u", "/ml/main.py"]')
     else:
       f.write('ENTRYPOINT ["python", "-u", "/ml/main.py"]')
@@ -280,8 +280,7 @@ class ComponentBuilder(object):
     self._arc_docker_filename = 'dockerfile'
     self._arc_python_filename = 'main.py'
     self._arc_requirement_filename = 'requirements.txt'
-    self._container_builder = ContainerBuilder(gcs_staging, namespace)
-    self._target_image = target_image
+    self._container_builder = ContainerBuilder(gcs_staging, gcr_image_tag=target_image, namespace=namespace)
 
   def _prepare_files(self, local_dir, docker_filename, python_filename=None, requirement_filename=None):
     """ _prepare_buildfiles generates the tarball with all the build files
@@ -324,13 +323,13 @@ class ComponentBuilder(object):
 
       # Prepare build files
       logging.info('Generate build files.')
-      self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
   def build_image_from_dockerfile(self, docker_filename, timeout):
     """ build_image_from_dockerfile builds an image based on the dockerfile """
     with tempfile.TemporaryDirectory() as local_build_dir:
       self._prepare_files(local_build_dir, docker_filename)
-      self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
 def _configure_logger(logger):
   """ _configure_logger configures the logger such that the info level logs
@@ -397,7 +396,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
 
   return _create_task_factory_from_component_spec(component_spec)
 
-def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, build_image=True, timeout=600, namespace='kubeflow', target_component_file=None, python_version='python3'):
+def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, timeout=600, namespace='kubeflow', target_component_file=None, python_version='python3'):
   """ build_component automatically builds a container image for the component_func
   based on the base_image and pushes to the target_image.
 
@@ -407,7 +406,6 @@ def build_python_component(component_func, target_image, base_image=None, depend
     target_image (str): Full URI to push the target image
     staging_gcs_path (str): GCS blob that can store temporary build files
     target_image (str): target image path
-    build_image (bool): whether to build the image or not. Default is True.
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
     dependency (list): a list of VersionedDependency, which includes the package name and versions, default is empty
@@ -426,25 +424,24 @@ def build_python_component(component_func, target_image, base_image=None, depend
   if python_version not in ['python2', 'python3']:
     raise ValueError('python_version has to be either python2 or python3')
 
-  if build_image:
-    if staging_gcs_path is None:
-      raise ValueError('staging_gcs_path must not be None')
+  if staging_gcs_path is None:
+    raise ValueError('staging_gcs_path must not be None')
 
-    if base_image is None:
-      base_image = getattr(component_func, '_component_base_image', None)
-    if base_image is None:
-      raise ValueError('base_image must not be None')
+  if base_image is None:
+    base_image = getattr(component_func, '_component_base_image', None)
+  if base_image is None:
+    raise ValueError('base_image must not be None')
 
-    logging.info('Build an image that is based on ' +
-                                   base_image +
-                                   ' and push the image to ' +
-                                   target_image)
-    builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
-    builder.build_image_from_func(component_func,
-                                  base_image=base_image, timeout=timeout,
-                                  python_version=python_version, dependency=dependency)
-    logging.info('Build component complete.')
-  return _generate_pythonop(component_func, target_image, target_component_file)
+  logging.info('Build an image that is based on ' +
+                                 base_image +
+                                 ' and push the image to ' +
+                                 target_image)
+  builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
+  image_name_with_digest = builder.build_image_from_func(component_func,
+                                base_image=base_image, timeout=timeout,
+                                python_version=python_version, dependency=dependency)
+  logging.info('Build component complete.')
+  return _generate_pythonop(component_func, image_name_with_digest, target_component_file)
 
 def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace='kubeflow'):
   """ build_docker_image automatically builds a container image based on the specification in the dockerfile and
@@ -459,5 +456,6 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
   """
   _configure_logger(logging.getLogger())
   builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
-  builder.build_image_from_dockerfile(docker_filename=dockerfile_path, timeout=timeout)
+  image_name_with_digest = builder.build_image_from_dockerfile(docker_filename=dockerfile_path, timeout=timeout)
   logging.info('Build image complete.')
+  return image_name_with_digest

@@ -7,13 +7,73 @@ from snapshottest import Snapshot
 
 snapshots = Snapshot()
 
-snapshots['TestExporterMethods::test_create_cell_from_args_with_multiple_args 1'] = '''input_path = "gs://ml-pipeline/data.csv"
-target_lambda = "lambda x: (x[\'target\'] > x[\'fare\'] * 0.2)"
+snapshots['TestExporterMethods::test_create_cell_from_args_with_multiple_args 1'] = '''
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>[&#39;gs://ml-pipeline/data.csv&#39;, &#34;lambda x: (x[&#39;target&#39;] &gt; x[&#39;fare&#39;] * 0.2)&#34;]
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+
+
 '''
 
-snapshots['TestExporterMethods::test_create_cell_from_args_with_no_args 1'] = ''
+snapshots['TestExporterMethods::test_create_cell_from_args_with_no_args 1'] = '''
+<div class="output_wrapper">
+<div class="output">
 
-snapshots['TestExporterMethods::test_create_cell_from_args_with_one_arg 1'] = '''input_path = "gs://ml-pipeline/data.csv"
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>{}
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+
+
+'''
+
+snapshots['TestExporterMethods::test_create_cell_from_args_with_one_arg 1'] = '''
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area">
+
+    <div class="prompt"></div>
+
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>[&#39;gs://ml-pipeline/data.csv&#39;]
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+
+
 '''
 
 snapshots['TestExporterMethods::test_create_cell_from_file 1'] = '''# Copyright 2019 Google LLC
@@ -36,9 +96,9 @@ import tensorflow_data_validation as tfdv
 # variables come from the specified input path and arguments provided by the
 # API post request.
 #
-# input_path
+# source
 
-train_stats = tfdv.generate_statistics_from_csv(data_location=input_path)
+train_stats = tfdv.generate_statistics_from_csv(data_location=source)
 
 tfdv.visualize_statistics(train_stats)
 '''

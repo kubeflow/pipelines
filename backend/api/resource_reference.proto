@@ -41,6 +41,9 @@ message ResourceKey {
 message ResourceReference {
   ResourceKey key = 1;
 
+  // The name of the resource that referred to.
+  string name = 3;
+
   // Required field. The relationship from referred resource to the object.
   Relationship relationship = 2;
 }

@@ -17,6 +17,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"strconv"
 	"time"
@@ -33,7 +34,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 
 	"ml_metadata/metadata_store/mlmetadata"
 	mlpb "ml_metadata/proto/metadata_store_go_proto"
@@ -43,12 +44,12 @@ const (
 	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
 	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
+	mysqlServicePort      = "MYSQL_SERVICE_PORT"
 	mysqlUser             = "DBConfig.User"
 	mysqlPassword         = "DBConfig.Password"
-	mysqlServicePort      = "MYSQL_SERVICE_PORT"
+	mysqlDBName           = "DBConfig.DBName"
 
 	podNamespace          = "POD_NAMESPACE"
-	dbName                = "mlpipeline"
 	initConnectionTimeout = "InitConnectionTimeout"
 )
 
@@ -65,6 +66,7 @@ type ClientManager struct {
 	objectStore            storage.ObjectStoreInterface
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
+	podClient 						 v1.PodInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 
@@ -111,6 +113,10 @@ func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWor
 	return c.swfClient
 }
 
+func (c *ClientManager) PodClient() v1.PodInterface {
+	return c.podClient
+}
+
 func (c *ClientManager) Time() util.TimeInterface {
 	return c.time
 }
@@ -143,6 +149,9 @@ func (c *ClientManager) init() {
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
+		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+
+	c.podClient = client.CreatePodClientOrFatal(
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
 
 	metadataStore := initMetadataStore()
@@ -246,6 +255,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	util.TerminateIfError(err)
 
 	// Create database if not exist
+	dbName := getStringConfig(mysqlDBName)
 	operation = func() error {
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
 		if err != nil {
@@ -271,12 +281,13 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 	accessKey := getStringConfig("ObjectStoreConfig.AccessKey")
 	secretKey := getStringConfig("ObjectStoreConfig.SecretAccessKey")
 	bucketName := getStringConfig("ObjectStoreConfig.BucketName")
+	disableMultipart := getBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", false)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
 		secretKey, initConnectionTimeout)
 	createMinioBucket(minioClient, bucketName)
 
-	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName)
+	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, disableMultipart)
 }
 
 func createMinioBucket(minioClient *minio.Client, bucketName string) {

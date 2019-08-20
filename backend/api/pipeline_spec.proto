@@ -23,6 +23,10 @@ message PipelineSpec {
   // Optional input field. The ID of the pipeline user uploaded before.
   string pipeline_id = 1;
 
+  // Optional output field. The name of the pipeline.
+  // Not empty if the pipeline id is not empty.
+  string pipeline_name = 5;
+
   // Optional input field. The marshalled raw argo JSON workflow.
   // This will be deprecated when pipeline_manifest is in use.
   string workflow_manifest = 2;

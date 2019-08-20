@@ -14,8 +14,8 @@
 
 from setuptools import setup
 
-PACKAGE_NAME = "kfp-component"
-VERSION = '0.1.25'
+PACKAGE_NAME = 'kfp-component'
+VERSION = '0.1.26'
 
 setup(
     name=PACKAGE_NAME,
@@ -23,33 +23,30 @@ setup(
     description='KubeFlow Pipelines Component SDK',
     author='google',
     install_requires=[
-      'kubernetes >= 8.0.1',
-      'urllib3>=1.15,<1.25',
-      'fire == 0.1.3',
-      'google-api-python-client == 1.7.8',
-      'google-cloud-storage == 1.14.0',
-      'google-cloud-bigquery == 1.9.0'
+        'kubernetes >= 8.0.1', 'urllib3>=1.15,<1.25', 'fire == 0.1.3',
+        'google-api-python-client == 1.7.8', 'google-cloud-storage == 1.14.0',
+        'google-cloud-bigquery == 1.9.0'
     ],
     packages=[
-      'kfp_component',
+        'kfp_component',
     ],
     classifiers=[
-      'Intended Audience :: Developers',
-      'Intended Audience :: Education',
-      'Intended Audience :: Science/Research',
-      'License :: OSI Approved :: Apache Software License',
-      'Programming Language :: Python',
-      'Programming Language :: Python :: 2',
-      'Programming Language :: Python :: 2.7',
-      'Programming Language :: Python :: 3',
-      'Programming Language :: Python :: 3.5',
-      'Programming Language :: Python :: 3.6',
-      'Programming Language :: Python :: 3.7',
-      'Topic :: Scientific/Engineering',
-      'Topic :: Scientific/Engineering :: Artificial Intelligence',
-      'Topic :: Software Development',
-      'Topic :: Software Development :: Libraries',
-      'Topic :: Software Development :: Libraries :: Python Modules',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Education',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Topic :: Scientific/Engineering',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'Topic :: Software Development',
+        'Topic :: Software Development :: Libraries',
+        'Topic :: Software Development :: Libraries :: Python Modules',
     ],
     include_package_data=True,
 )

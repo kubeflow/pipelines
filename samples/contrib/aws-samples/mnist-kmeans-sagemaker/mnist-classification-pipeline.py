@@ -5,11 +5,11 @@ from kfp import components
 from kfp import dsl
 from kfp.aws import use_aws_secret
 
-sagemaker_hpo_op = components.load_component_from_file('../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml')
-sagemaker_train_op = components.load_component_from_file('../../../components/aws/sagemaker/train/component.yaml')
-sagemaker_model_op = components.load_component_from_file('../../../components/aws/sagemaker/model/component.yaml')
-sagemaker_deploy_op = components.load_component_from_file('../../../components/aws/sagemaker/deploy/component.yaml')
-sagemaker_batch_transform_op = components.load_component_from_file('../../../components/aws/sagemaker/batch_transform/component.yaml')
+sagemaker_hpo_op = components.load_component_from_file('../../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml')
+sagemaker_train_op = components.load_component_from_file('../../../../components/aws/sagemaker/train/component.yaml')
+sagemaker_model_op = components.load_component_from_file('../../../../components/aws/sagemaker/model/component.yaml')
+sagemaker_deploy_op = components.load_component_from_file('../../../../components/aws/sagemaker/deploy/component.yaml')
+sagemaker_batch_transform_op = components.load_component_from_file('../../../../components/aws/sagemaker/batch_transform/component.yaml')
 
 @dsl.pipeline(
     name='MNIST Classification pipeline',

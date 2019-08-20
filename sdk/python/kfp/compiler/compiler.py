@@ -655,6 +655,10 @@ class Compiler(object):
     op_transformers = [add_pod_env]
     op_transformers.extend(p.conf.op_transformers)
     workflow = self._create_pipeline_workflow(args_list_with_defaults, p, op_transformers)
+
+    import json
+    workflow.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
+
     return workflow
 
   def compile(self, pipeline_func, package_path, type_check=True):
