@@ -22,24 +22,25 @@ import itables.options as opts
 import pandas as pd
 from tensorflow.python.lib.io import file_io
 
-# Remove maxByte limit
+# Remove maxByte limit to prevent issues where entire table cannot be rendered
+# due to size of data.
 opts.maxBytes = 0
 
 dfs = []
 files = file_io.get_matching_files(source)
 
 # Read data from file and write it to a DataFrame object.
-if "headers" is in variables:
-    # If headers are provided, do not set headers for DataFrames
-    for f in files:
-        dfs.append(pd.read_csv(f, header=None))
-else:
+if variables.get("headers", False) is False:
     # If no headers are provided, use the first row as headers
     for f in files:
         dfs.append(pd.read_csv(f))
+else:
+    # If headers are provided, do not set headers for DataFrames
+    for f in files:
+        dfs.append(pd.read_csv(f, header=None))
 
 # Display DataFrame as output.
 df = pd.concat(dfs)
-if "headers" is in variables:
-    df.columns = variables["headers"]
+if variables.get("headers", False) != False:
+    df.columns = variables.get("headers")
 show(df)
