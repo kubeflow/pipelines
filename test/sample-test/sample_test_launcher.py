@@ -105,7 +105,8 @@ class SampleTest(object):
 
   def check_notebook_result(self):
     # Workaround because papermill does not directly return exit code.
-    exit_code = PAPERMILL_ERR_MSG in open('%s.ipynb' % self._test_name).read()
+    exit_code = 1 if PAPERMILL_ERR_MSG in \
+                     open('%s.ipynb' % self._test_name).read() else 0
     if self._test_name == 'dsl_static_type_checking':
       subprocess.call([
           'python3',
