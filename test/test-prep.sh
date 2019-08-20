@@ -16,8 +16,10 @@
 
 set -x
 
-# activating the service account
-gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+  # activating the service account
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
 gcloud config set compute/zone us-east1-b
 gcloud config set core/project ${PROJECT}
 
