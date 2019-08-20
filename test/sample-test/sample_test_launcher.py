@@ -20,6 +20,7 @@ import fire
 import os
 import papermill as pm
 import subprocess
+import sys
 import uuid
 
 from google.cloud import storage
@@ -70,7 +71,7 @@ class SampleTest(object):
   def check_result(self):
     os.chdir(self.TEST_DIR)
     subprocess.call([
-        'python3',
+        sys.executable,
         'run_sample_test.py',
         '--input',
         input,
@@ -100,7 +101,7 @@ class SampleTest(object):
                      open('%s.ipynb' % self._test_name).read() else 0
     if self._test_name == 'dsl_static_type_checking':
       subprocess.call([
-          'python3',
+          sys.executable,
           'check_notebook_results.py',
           '--testname',
           self._test_name,
@@ -111,7 +112,7 @@ class SampleTest(object):
       ])
     else:
       subprocess.call([
-          'python3',
+          sys.executable,
           'check_notebook_results.py',
           '--testname',
           self._test_name,
