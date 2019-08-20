@@ -55,7 +55,7 @@ class SampleTest(object):
   BASE_DIR= '/python/src/github.com/' + GITHUB_REPO
   TEST_DIR = BASE_DIR + '/test/sample-test'
 
-  def __init__(self, test_name, results_gcs_dir, target_image_prefix,
+  def __init__(self, test_name, results_gcs_dir, target_image_prefix='',
                          namespace='kubeflow'):
     self._test_name = test_name
     self._results_gcs_dir = results_gcs_dir
