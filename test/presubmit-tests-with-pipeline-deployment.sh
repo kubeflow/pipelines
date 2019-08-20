@@ -85,7 +85,7 @@ echo "argo installed"
 time source "${DIR}/build-images.sh"
 echo "KFP images built"
 
-time source "${DIR}/deploy-pipeline-light.sh"
+time source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP lite deployed"
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
