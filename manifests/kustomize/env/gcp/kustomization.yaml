@@ -7,10 +7,10 @@ bases:
   - mysql
 
 # Replace with your namespace
-namespace: kubeflow
+namespace: kubeflow2
 
 images:
-  - name: mysql
-    newTag: "5.6"
+  - name: gcr.io/cloudsql-docker/gce-proxy
+    newTag: "1.14"
   - name: minio/minio
-    newTag: RELEASE.2018-02-09T22-40-05Z
+    newTag: RELEASE.2019-08-14T20-37-41Z
