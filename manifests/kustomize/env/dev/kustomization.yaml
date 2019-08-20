@@ -3,8 +3,13 @@ kind: Kustomization
 
 bases:
   - ../../namespaced
+  - minio
   - mysql
+
+namespace: kubeflow
 
 images:
   - name: mysql
     newTag: "5.6"
+  - name: minio/minio
+    newTag: RELEASE.2018-02-09T22-40-05Z

@@ -7,8 +7,6 @@ bases:
 resources:
 - namespace.yaml
 
-namespace: kubeflow
-
 patchesStrategicMerge:
 - workflow-controller-configmap.yaml
 - ml-pipeline-persistenceagent-deployment-patch.yaml
