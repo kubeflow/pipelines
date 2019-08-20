@@ -74,7 +74,7 @@ class SampleTest(object):
         sys.executable,
         'run_sample_test.py',
         '--input',
-        input,
+        '%s/%s.yaml' % (self._work_dir, self._test_name),
         '--result',
         self._sample_test_result,
         '--output',
@@ -89,7 +89,7 @@ class SampleTest(object):
     working_bucket = PROJECT_NAME
 
     src_bucket = storage_client.get_bucket(working_bucket)
-    dest_bucket =src_bucket # Currently copy to the same bucket.
+    dest_bucket = src_bucket # Currently copy to the same bucket.
     src_bucket.copy_blob(
         self._sample_test_result,
         dest_bucket,
@@ -129,7 +129,7 @@ class SampleTest(object):
     working_bucket = PROJECT_NAME
 
     src_bucket = storage_client.get_bucket(working_bucket)
-    dest_bucket =src_bucket # Currently copy to the same bucket.
+    dest_bucket = src_bucket # Currently copy to the same bucket.
     src_bucket.copy_blob(
         self._sample_test_result,
         dest_bucket,
@@ -138,11 +138,6 @@ class SampleTest(object):
   def _run_test(self):
     if len(self._results_gcs_dir) == 0:
       return 1
-
-    # variables needed for sample test logic.
-    input = '%s/%s.yaml' % (self._work_dir, self._test_name)
-    test_cases = [] # Currently, only capture run-time error, no result check.
-    sample_test_name = self._test_name + ' Sample Test'
 
     os.chdir(self._work_dir)
     print('Run the sample tests...')
