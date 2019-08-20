@@ -97,6 +97,9 @@ func ToApiVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) 
 					CommitSha: version.CodeSource.CommitSHA,
 				},
 			},
+			PipelineSpec: &api.PipelineSpec{
+				PipelineId: version.PipelineId,
+			},
 		}, nil
 	}
 	if version.CodeSource.URL != "" {
@@ -110,6 +113,9 @@ func ToApiVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) 
 					PipelineUrl: version.CodeSource.URL,
 				},
 			},
+			PipelineSpec: &api.PipelineSpec{
+				PipelineId: version.PipelineId,
+			},
 		}, nil
 	}
 	return &api.PipelineVersion{
@@ -117,6 +123,9 @@ func ToApiVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) 
 		Name:       version.Name,
 		CreatedAt:  &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
 		Parameters: params,
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId: version.PipelineId,
+		},
 	}, nil
 }
 

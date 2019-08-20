@@ -34,6 +34,7 @@ func TestToApiPipeline(t *testing.T) {
 			UUID:	"pipelineversion1",
 			CreatedAtInSec: 1,
 			Parameters: "[]",
+			PipelineId: "pipeline1",
 		},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
@@ -45,6 +46,9 @@ func TestToApiPipeline(t *testing.T) {
 			Id:			"pipelineversion1",
 			CreatedAt: &timestamp.Timestamp{Seconds: 1},
 			Parameters: []*api.Parameter{},
+			PipelineSpec: &api.PipelineSpec{
+				PipelineId: "pipeline1",
+			},
 		},
 	}
 	assert.Equal(t, expectedApiPipeline, apiPipeline)

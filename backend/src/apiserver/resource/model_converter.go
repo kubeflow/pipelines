@@ -111,7 +111,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	}, nil
 }
 
-func ToModelPipelineVersion(version *api.PipelineVersion) *model.PipelineVersion {
+func ToModelPipelineVersion(version *api.PipelineVersion) (*model.PipelineVersion, error) {
 	var codeSource model.CodeSource
 	if version.CodeSource != nil {
 		switch x := version.CodeSource.(type) {
@@ -122,11 +122,19 @@ func ToModelPipelineVersion(version *api.PipelineVersion) *model.PipelineVersion
 			codeSource.URL = x.Url.PipelineUrl
 		}
 	}
-	return &model.PipelineVersion{
-		UUID:       string(version.Id),
-		Name:       version.Name,
-		CodeSource: codeSource,
+	paramStr, err := toModelParameters(version.Parameters)
+	if err != nil {
+		return nil, err
 	}
+
+	return &model.PipelineVersion{
+		UUID:           string(version.Id),
+		Name:           version.Name,
+		CreatedAtInSec: version.CreatedAt.Seconds,
+		Parameters:     paramStr,
+		PipelineId:     version.PipelineSpec.PipelineId,
+		CodeSource:     codeSource,
+	}, nil
 }
 
 func toModelTrigger(trigger *api.Trigger) model.Trigger {

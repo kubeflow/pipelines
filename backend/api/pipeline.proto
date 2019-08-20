@@ -20,8 +20,9 @@ package api;
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
-import "backend/api/parameter.proto";
 import "backend/api/error.proto";
+import "backend/api/parameter.proto";
+import "backend/api/pipeline_spec.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
@@ -192,7 +193,7 @@ message Pipeline {
   string error = 6;
 
   // Output only. The default version of the pipeline. As of now, the latest
-  // version is used as default. (In the future, if desired by customers, we 
+  // version is used as default. (In the future, if desired by customers, we
   // can allow them to set default version.)
   PipelineVersion default_version = 8;
 }
@@ -217,6 +218,10 @@ message PipelineVersion {
     // If pipeline is based on a compiled package stored at a url.
     Url url = 6;
   }
+
+  // Input.
+  // Describing what the pipeline manifest and parameters to use for the run.
+  PipelineSpec pipeline_spec = 7;
 }
 
 message GithubRepo {
