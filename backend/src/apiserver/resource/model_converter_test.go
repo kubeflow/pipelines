@@ -234,33 +234,23 @@ func TestToModelResourceReferences_ReferredExperimentNotFound(t *testing.T) {
 func TestToModelPipelineVersion(t *testing.T) {
 	store, manager := initResourceManager()
 	defer store.Close()
-	apiPipelineVersion := &api.Pipeline{
-		Id:             "pipeline1",
-		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
+	apiPipelineVersion := &api.PipelineVersion{
+		Id:			"pipelineversion1",
+		CreatedAt: &timestamp.Timestamp{Seconds: 1},
 		Parameters: []*api.Parameter{},
-		DefaultVersion: &api.PipelineVersion{
-			Id:			"pipelineversion1",
-			CreatedAt: &timestamp.Timestamp{Seconds: 1},
-			Parameters: []*api.Parameter{},
-			PipelineSpec: &api.PipelineSpec{
-				PipelineId: "pipeline1",
-			},
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId: "pipeline1",
 		},
 	}
 
 	convertedModelPipelineVersion, _ := manager.ToModelPipelineVersion(
 		apiPipelineVersion)
 
-	expectedModelPipelineVersion := &model.Pipeline{
-		UUID:           "pipeline1",
+	expectedModelPipelineVersion := &model.PipelineVersion{
+		UUID:	"pipelineversion1",
 		CreatedAtInSec: 1,
-		Parameters:     "[]",
-		DefaultVersion: &model.PipelineVersion{
-			UUID:	"pipelineversion1",
-			CreatedAtInSec: 1,
-			Parameters: "[]",
-			PipelineId: "pipeline1",
-		},
+		Parameters: "",
+		PipelineId: "pipeline1",
 	}
 
 	assert.Equal(t, convertedModelPipelineVersion, expectedModelPipelineVersion)

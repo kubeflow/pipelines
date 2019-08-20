@@ -111,7 +111,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	}, nil
 }
 
-func ToModelPipelineVersion(version *api.PipelineVersion) (*model.PipelineVersion, error) {
+func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (*model.PipelineVersion, error) {
 	var codeSource model.CodeSource
 	if version.CodeSource != nil {
 		switch x := version.CodeSource.(type) {
