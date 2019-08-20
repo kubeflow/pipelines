@@ -19,7 +19,7 @@ export default {
     generateName: 'json-',
     namespace: 'default',
     selfLink: '/apis/argoproj.io/v1alpha1/namespaces/default/workflows/json-7sm94',
-    uid: '3ac97065-691d-11e8-802f-42010af0033a',
+    uid: 'dfc82af5-c5cb-43b1-822b-52487cb872d2',
     resourceVersion: '1322',
     creationTimestamp: '2018-06-06T00:04:49Z',
     labels: {

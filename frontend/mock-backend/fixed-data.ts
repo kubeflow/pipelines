@@ -355,7 +355,7 @@ const runs: ApiRunDetail[] = [
     run: {
       created_at: new Date('2018-05-17T21:58:23.000Z'),
       description: 'A simple run with json input',
-      id: 'fa5d897e-88d3-4dfc-b189-9dea6947c9bc',
+      id: '183ac01f-dc26-4ebf-b817-7b3f96fdc3ac',
       metrics: [{
         format: RunMetricFormat.PERCENTAGE,
         name: 'accuracy',
