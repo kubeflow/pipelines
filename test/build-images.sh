@@ -26,9 +26,9 @@ if [ "$PROJECT" != "ml-pipeline-test" ]; then
   IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
 fi
 
-BUILT_IMAGES=$(gcloud container images list --repository=${GCR_IMAGE_BASE_DIR})
 # image caching can be turned on by setting $CACHE_IMAGES env flag to speed up
 # debugging
+BUILT_IMAGES=$(gcloud container images list --repository=${GCR_IMAGE_BASE_DIR})
 if
   test -n "$CACHE_IMAGES" && \
   echo "$BUILT_IMAGES" | grep api-server && \

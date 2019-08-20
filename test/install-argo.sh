@@ -34,8 +34,6 @@ if ! which argo; then
   chmod +x ~/bin/argo
 fi
 
-# TODO(Bobgy): figure out this
-# We just need the CLI, argo has already been deployed on cluster together with kubeflow
 kubectl create ns argo --dry-run -o yaml | kubectl apply -f -
 kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
 

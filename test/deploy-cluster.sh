@@ -34,6 +34,7 @@ function clean_up {
 trap clean_up EXIT SIGINT SIGTERM
 
 cd ${DIR}
+# test if ${TEST_CLUSTER} exists or not
 if gcloud container clusters describe ${TEST_CLUSTER} &>/dev/null; then
   echo "Use existing test cluster: ${TEST_CLUSTER}"
 else
@@ -54,8 +55,6 @@ gcloud container clusters get-credentials ${TEST_CLUSTER}
 # when we reuse a cluster when debugging, clean up its kfp installation first
 # this does nothing with a new cluster
 kubectl delete namespace ${NAMESPACE} --wait || echo "No need to delete ${NAMESPACE} namespace. It doesn't exist."
-kubectl delete namespace argo --wait || echo "No need to delete argo namespace. It doesn't exist."
-
 kubectl create namespace ${NAMESPACE} --dry-run -o yaml | kubectl apply -f -
 
 if [ -z $SA_KEY_FILE ]; then
