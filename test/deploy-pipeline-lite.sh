@@ -44,10 +44,4 @@ kustomize build . | kubectl apply -f -
 echo "Status of pods after kubectl apply"
 kubectl get pods -n ${NAMESPACE}
 
-# TODO: decide if we want to keep these or not
-# echo "Waiting for kfp services to come up..."
-# sleep 120
-# echo "Status of pods after waiting for 120s:"
-# kubectl get pods -n ${NAMESPACE}
-
 popd

@@ -23,8 +23,12 @@ TEST_CLUSTER=${TEST_CLUSTER:-${TEST_CLUSTER_DEFAULT}}
 SHOULD_CLEANUP_CLUSTER=false
 
 function clean_up {
-  echo "Clean up..."
   set +e # the following clean up commands shouldn't exit on error
+
+  echo "Status of pods before clean up:"
+  kubectl get pods --all-namespaces
+
+  echo "Clean up..."
   if [ $SHOULD_CLEANUP_CLUSTER == true ]; then
     # --async doesn't wait for this operation to complete, so we can get test
     # results faster
