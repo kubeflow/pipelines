@@ -3,3 +3,8 @@ kind: Kustomization
 
 bases:
   - ../../namespaced
+  - mysql
+
+images:
+  - name: mysql
+    newTag: "5.6"
