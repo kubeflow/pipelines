@@ -1,5 +1,7 @@
 package model
 
+import "fmt"
+
 // PipelineVersionStatus a label for the status of the Pipeline.
 // This is intend to make pipeline creation and deletion atomic.
 type PipelineVersionStatus string
@@ -30,4 +32,34 @@ type CodeSource struct {
 	CommitSHA string `gorm:"column:CommitSHA"`
 
 	URL string `gorm:"column:URL`
+}
+
+func (p PipelineVersion) GetValueOfPrimaryKey() string {
+	return fmt.Sprint(p.UUID)
+}
+
+func GetPipelineVersionTablePrimaryKeyColumn() string {
+	return "VersionUUID"
+}
+
+// PrimaryKeyColumnName returns the primary key for model PipelineVersion.
+func (p *PipelineVersion) PrimaryKeyColumnName() string {
+	return "VersionUUID"
+}
+
+// DefaultSortField returns the default sorting field for model Pipeline.
+func (p *PipelineVersion) DefaultSortField() string {
+	return "VersionCreatedAtInSec"
+}
+
+// APIToModelFieldMap returns a map from API names to field names for model
+// PipelineVersion.
+func (p *PipelineVersion) APIToModelFieldMap() map[string]string {
+	return map[string]string{
+		"id":          "VersionUUID",
+		"name":        "VersionName",
+		"created_at":  "VersionCreatedAtInSec",
+		"pipeline_id": "PipelineId",
+		"status":      "VersionStatus",
+	}
 }

@@ -101,7 +101,7 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 }
 
 func (r *ResourceManager) ListExperiments(opts *list.Options) (
-		experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
+	experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
 	return r.experimentStore.ListExperiments(opts)
 }
 
@@ -114,7 +114,7 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 }
 
 func (r *ResourceManager) ListPipelines(opts *list.Options) (
-		pipelines []*model.Pipeline, total_size int, nextPageToken string, err error) {
+	pipelines []*model.Pipeline, total_size int, nextPageToken string, err error) {
 	return r.pipelineStore.ListPipelines(opts)
 }
 
@@ -157,7 +157,9 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 	}
 
 	// Create an entry with status of creating the pipeline
-	pipeline := &model.Pipeline{Name: name, Description: description, Parameters: params, Status: model.PipelineCreating}
+	// TODO(jingzhang36): default version id should later be specified by
+	// create pipeline (version) request.
+	pipeline := &model.Pipeline{Name: name, Description: description, Parameters: params, Status: model.PipelineCreating, DefaultVersionId: ""}
 	newPipeline, err := r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
@@ -271,7 +273,7 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 }
 
 func (r *ResourceManager) ListRuns(filterContext *common.FilterContext,
-		opts *list.Options) (runs []*model.Run, total_size int, nextPageToken string, err error) {
+	opts *list.Options) (runs []*model.Run, total_size int, nextPageToken string, err error) {
 	return r.runStore.ListRuns(filterContext, opts)
 }
 
@@ -302,7 +304,7 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 }
 
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
-		opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
+	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
 	return r.jobStore.ListJobs(filterContext, opts)
 }
 

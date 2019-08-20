@@ -43,7 +43,7 @@ func TestToApiPipeline(t *testing.T) {
 		Parameters: []*api.Parameter{},
 		DefaultVersion: &api.PipelineVersion{
 			Id:			"pipelineversion1",
-			CreatedAt: &timestamp.Timestamp{Seconds: 1}, 
+			CreatedAt: &timestamp.Timestamp{Seconds: 1},
 			Parameters: []*api.Parameter{},
 		},
 	}

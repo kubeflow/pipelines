@@ -114,19 +114,20 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 	var pipelines []*model.Pipeline
 	for rows.Next() {
-		var uuid, name, parameters, description string
+		var uuid, name, parameters, description, defaultVersionId string
 		var createdAtInSec int64
 		var status model.PipelineStatus
-		if err := rows.Scan(&uuid, &createdAtInSec, &name, &description, &parameters, &status); err != nil {
+		if err := rows.Scan(&uuid, &createdAtInSec, &name, &description, &parameters, &status, &defaultVersionId); err != nil {
 			return nil, err
 		}
 		pipelines = append(pipelines, &model.Pipeline{
-			UUID:           uuid,
-			CreatedAtInSec: createdAtInSec,
-			Name:           name,
-			Description:    description,
-			Parameters:     parameters,
-			Status:         status})
+			UUID:             uuid,
+			CreatedAtInSec:   createdAtInSec,
+			Name:             name,
+			Description:      description,
+			Parameters:       parameters,
+			Status:           status,
+			DefaultVersionId: defaultVersionId})
 	}
 	return pipelines, nil
 }
@@ -187,12 +188,13 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 		Insert("pipelines").
 		SetMap(
 			sq.Eq{
-				"UUID":           newPipeline.UUID,
-				"CreatedAtInSec": newPipeline.CreatedAtInSec,
-				"Name":           newPipeline.Name,
-				"Description":    newPipeline.Description,
-				"Parameters":     newPipeline.Parameters,
-				"Status":         string(newPipeline.Status)}).
+				"UUID":             newPipeline.UUID,
+				"CreatedAtInSec":   newPipeline.CreatedAtInSec,
+				"Name":             newPipeline.Name,
+				"Description":      newPipeline.Description,
+				"Parameters":       newPipeline.Parameters,
+				"Status":           string(newPipeline.Status),
+				"DefaultVersionId": newPipeline.DefaultVersionId}).
 		ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to insert pipeline to pipeline table: %v",

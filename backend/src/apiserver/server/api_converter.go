@@ -98,7 +98,8 @@ func ToApiVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) 
 				},
 			},
 		}, nil
-	} else if version.CodeSource.URL != "" {
+	}
+	if version.CodeSource.URL != "" {
 		return &api.PipelineVersion{
 			Id:         version.UUID,
 			Name:       version.Name,
@@ -110,14 +111,13 @@ func ToApiVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) 
 				},
 			},
 		}, nil
-	} else {
-		return &api.PipelineVersion{
-			Id:         version.UUID,
-			Name:       version.Name,
-			CreatedAt:  &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
-			Parameters: params,
-		}, nil
 	}
+	return &api.PipelineVersion{
+		Id:         version.UUID,
+		Name:       version.Name,
+		CreatedAt:  &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
+		Parameters: params,
+	}, nil
 }
 
 func ToApiVersions(versions []*model.PipelineVersion) ([]*api.PipelineVersion, error) {

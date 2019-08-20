@@ -182,7 +182,7 @@ message Pipeline {
   // The URL to the source of the pipeline. This is required when creating the
   // pipeine through CreatePipeline API.
   // TODO(jingzhang36): replace this url field with the code_source field inside
-  // PipelineVersion when all usage of the former has been changed to use the 
+  // PipelineVersion when all usage of the former has been changed to use the
   // latter.
   Url url = 7;
 

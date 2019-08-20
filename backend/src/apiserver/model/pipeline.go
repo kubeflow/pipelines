@@ -34,9 +34,11 @@ type Pipeline struct {
 	// TODO(jingzhang36): remove Parameters when no code is accessing this
 	// field. Should use PipelineVersion.Parameters instead.
 	/* Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
-	Parameters       string           `gorm:"column:Parameters; not null; size:65535"`
-	Status           PipelineStatus   `gorm:"column:Status; not null"`
-	DefaultVersionId string           `gorm:"column:DefaultVersionId; not null"`
+	Parameters string         `gorm:"column:Parameters; not null; size:65535"`
+	Status     PipelineStatus `gorm:"column:Status; not null"`
+	// TODO(jingzhang36): after API methods are ready to create pipeline with
+	// version, we shall enforce DefaultVersionId not null.
+	DefaultVersionId string           `gorm:"column:DefaultVersionId;"`
 	DefaultVersion   *PipelineVersion `gorm:"-"`
 }
 
@@ -59,10 +61,11 @@ func (p *Pipeline) DefaultSortField() string {
 }
 
 var pipelineAPIToModelFieldMap = map[string]string{
-	"id":          "UUID",
-	"name":        "Name",
-	"created_at":  "CreatedAtInSec",
-	"description": "Description",
+	"id":                 "UUID",
+	"name":               "Name",
+	"created_at":         "CreatedAtInSec",
+	"description":        "Description",
+	"default_version_id": "DefaultVersionId",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model
