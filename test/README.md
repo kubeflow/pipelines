@@ -65,6 +65,21 @@ However you can keep them by providing additional parameter.
 argo submit integration_test_gke.yaml -p branch="my-branch" -p cleanup="false"
 ```
 
+### Run presubmit-tests-with-pipeline-deployment.sh locally
+
+Run the following commands from root of kubeflow/pipelines repo.
+```
+#$PULL_PULL_SHA and $WORKSPACE are env variables set by Prow
+export PULL_PULL_SHA=pull-sha-placeholder
+export WORKSPACE=$(pwd) # root of kubeflow/pipelines git repo
+
+./test/presubmit-tests-with-pipeline-deployment.sh \
+  --workflow_file e2e_test_gke_v2.yaml \ # You can specify other workflows you want to test too.
+  --test_result_folder ${FOLDER_NAME_TO_HOLD_TEST_RESULT} \
+  --test_result_bucket ${YOUR_GCS_TEST_RESULT_BUCKET} \
+  --project ${YOUR_GCS_PROJECT}
+```
+
 ## Troubleshooting
 
 **Q: Why is my test taking so long on GKE?**
