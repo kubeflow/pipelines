@@ -16,23 +16,14 @@ This launcher module serves as the entry-point of the sample test image. It
 decides which test to trigger based upon the arguments provided.
 """
 
-import argparse
 import fire
-import importlib
-import io
-import json
 import os
 import papermill as pm
-import sys
 import subprocess
-import tarfile
-import logging
-import utils
 import uuid
 
-from datetime import datetime
 from google.cloud import storage
-from kfp import Client
+
 
 # List of notebook samples' test names and corresponding file names.
 NOTEBOOK_SAMPLES = {
@@ -216,6 +207,7 @@ class ComponentTest(SampleTest):
       result_gcs_dir, target_image_prefix, dataflow_tft_image,
       namespace='kubeflow'):
     super().__init__(test_name, input, result, output, namespace)
+    #TODO(numerology): finish this.
     pass
 
 def main():
