@@ -144,7 +144,6 @@ class SampleTest(object):
       pm.execute_notebook(
           input_path='KubeFlow Pipeline Using TFX OSS Components.ipynb',
           output_path='%s.ipynb' % self._test_name,
-          prepare_only=False,
           parameters=dict(
               EXPERIMENT_NAME='%s-test' % self._test_name,
               OUTPUT_DIR=self._results_gcs_dir,
@@ -165,7 +164,6 @@ class SampleTest(object):
       pm.execute_notebook(
           input_path='Lightweight Python components - basics.ipynb',
           output_path='%s.ipynb' % self._test_name,
-          prepare_only=False,
           parameters=dict(
               EXPERIMENT_NAME='%s-test' % self._test_name,
               PROJECT_NAME=PROJECT_NAME,
@@ -177,7 +175,6 @@ class SampleTest(object):
       pm.execute_notebook(
           input_path='DSL Static Type Checking.ipynb',
           output_path='%s.ipynb' % self._test_name,
-          prepare_only=False,
           parameters=dict(
               KFP_PACKAGE='tmp/kfp.tar.gz',
           )
