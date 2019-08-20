@@ -434,11 +434,12 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
   _configure_logger(logging.getLogger())
 
   with tempfile.TemporaryDirectory() as local_build_dir:
-    dst_dockerfile_path = os.path.join(local_build_dir, 'Dockerfile')
+    dockerfile_rel_path = 'Dockerfile'
+    dst_dockerfile_path = os.path.join(local_build_dir, dockerfile_rel_path)
     shutil.copyfile(dockerfile_path, dst_dockerfile_path)
 
     container_builder = ContainerBuilder(staging_gcs_path, namespace)
-    image_name_with_digest = container_builder.build(local_build_dir, 'Dockerfile', target_image, timeout)
+    image_name_with_digest = container_builder.build(local_build_dir, dockerfile_rel_path, target_image, timeout)
 
   logging.info('Build image complete.')
   return image_name_with_digest
