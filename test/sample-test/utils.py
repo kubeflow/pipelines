@@ -86,16 +86,14 @@ def file_injection(file_in, file_out, subs):
 
   os.rename(file_out, file_in)
 
-def copy_blob(bucket_name, blob_name, new_bucket_name, new_blob_name):
-  """Copies a blob from one bucket to another with a new name."""
+def upload_blob(bucket_name, source_file_name, destination_blob_name):
+  """Uploads a file to the bucket."""
   storage_client = storage.Client()
-  source_bucket = storage_client.get_bucket(bucket_name)
-  source_blob = source_bucket.blob(blob_name)
-  destination_bucket = storage_client.get_bucket(new_bucket_name)
+  bucket = storage_client.get_bucket(bucket_name)
+  blob = bucket.blob(destination_blob_name)
 
-  new_blob = source_bucket.copy_blob(
-      source_blob, destination_bucket, new_blob_name)
+  blob.upload_from_filename(source_file_name)
 
-  print('Blob {} in bucket {} copied to blob {} in bucket {}.'.format(
-      source_blob.name, source_bucket.name, new_blob.name,
-      destination_bucket.name))
+  print('File {} uploaded to {}.'.format(
+      source_file_name,
+      destination_blob_name))

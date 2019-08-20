@@ -88,10 +88,9 @@ class SampleTest(object):
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
     working_bucket = PROJECT_NAME
 
-    utils.copy_blob(
+    utils.upload_blob(
         working_bucket,
         self._sample_test_result,
-        working_bucket,
         self._results_gcs_dir + '/' + self._sample_test_result
     )
 
@@ -127,10 +126,9 @@ class SampleTest(object):
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
     working_bucket = PROJECT_NAME
 
-    utils.copy_blob(
+    utils.upload_blob(
         working_bucket,
         self._sample_test_result,
-        working_bucket,
         self._results_gcs_dir + '/' + self._sample_test_result
     )
 
