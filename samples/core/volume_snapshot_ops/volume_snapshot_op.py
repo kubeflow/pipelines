@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import kfp
 import kfp.dsl as dsl
 
 
@@ -80,8 +80,5 @@ def volume_snapshotop_sequential(url):
         pvolumes={"/data": step3.pvolume}
     )
 
-
-if __name__ == "__main__":
-    import kfp.compiler as compiler
-    compiler.Compiler().compile(volume_snapshotop_sequential,
-                                __file__ + ".tar.gz")
+if __name__ == '__main__':
+    kfp.compiler.Compiler().compile(volume_snapshotop_sequential, __file__ + '.zip')

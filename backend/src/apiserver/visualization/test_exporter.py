@@ -28,24 +28,33 @@ class TestExporterMethods(snapshottest.TestCase):
 
     def test_create_cell_from_args_with_no_args(self):
         self.maxDiff = None
-        args = "{}"
-        cell = self.exporter.create_cell_from_args(args)
-        self.assertMatchSnapshot(cell.source)
+        nb = new_notebook()
+        args = {}
+        nb.cells.append(self.exporter.create_cell_from_args(args))
+        nb.cells.append(new_code_cell("print(variables)"))
+        html = self.exporter.generate_html_from_notebook(nb)
+        self.assertMatchSnapshot(html)
 
     def test_create_cell_from_args_with_one_arg(self):
         self.maxDiff = None
-        args = '{"source": "gs://ml-pipeline/data.csv"}'
-        cell = self.exporter.create_cell_from_args(args)
-        self.assertMatchSnapshot(cell.source)
+        nb = new_notebook()
+        args = {"source": "gs://ml-pipeline/data.csv"}
+        nb.cells.append(self.exporter.create_cell_from_args(args))
+        nb.cells.append(new_code_cell("print([variables[key] for key in sorted(variables.keys())])"))
+        html = self.exporter.generate_html_from_notebook(nb)
+        self.assertMatchSnapshot(html)
 
     def test_create_cell_from_args_with_multiple_args(self):
         self.maxDiff = None
-        args = (
-            '{"source": "gs://ml-pipeline/data.csv", '
-            "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * 0.2)\"}"
-        )
-        cell = self.exporter.create_cell_from_args(args)
-        self.assertMatchSnapshot(cell.source)
+        nb = new_notebook()
+        args = {
+            "source": "gs://ml-pipeline/data.csv",
+            "target_lambda": "lambda x: (x['target'] > x['fare'] * 0.2)"
+        }
+        nb.cells.append(self.exporter.create_cell_from_args(args))
+        nb.cells.append(new_code_cell("print([variables[key] for key in sorted(variables.keys())])"))
+        html = self.exporter.generate_html_from_notebook(nb)
+        self.assertMatchSnapshot(html)
 
     def test_create_cell_from_file(self):
         self.maxDiff = None
@@ -55,9 +64,9 @@ class TestExporterMethods(snapshottest.TestCase):
     def test_generate_html_from_notebook(self):
         self.maxDiff = None
         nb = new_notebook()
-        args = '{"x": 2}'
+        args = {"x": 2}
         nb.cells.append(self.exporter.create_cell_from_args(args))
-        nb.cells.append(new_code_cell("print(x)"))
+        nb.cells.append(new_code_cell("print(variables['x'])"))
         html = self.exporter.generate_html_from_notebook(nb)
         self.assertMatchSnapshot(html)
 

@@ -1,6 +1,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use graph_component.",
+      "inputs": [], "name": "pipeline flip coin"}'
   generateName: pipeline-flip-coin-
 spec:
   arguments:

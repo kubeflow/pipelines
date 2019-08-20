@@ -128,18 +128,18 @@ def _generate_dockerfile(filename, base_image, entrypoint_filename, python_versi
     raise ValueError('python_version has to be either python2 or python3')
   with open(filename, 'w') as f:
     f.write('FROM ' + base_image + '\n')
-    if python_version is 'python3':
+    if python_version == 'python3':
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
     else:
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
     if requirement_filename is not None:
       f.write('ADD ' + requirement_filename + ' /ml/requirements.txt\n')
-      if python_version is 'python3':
+      if python_version == 'python3':
         f.write('RUN pip3 install -r /ml/requirements.txt\n')
       else:
         f.write('RUN pip install -r /ml/requirements.txt\n')
     f.write('ADD ' + entrypoint_filename + ' /ml/main.py\n')
-    if python_version is 'python3':
+    if python_version == 'python3':
       f.write('ENTRYPOINT ["python3", "-u", "/ml/main.py"]')
     else:
       f.write('ENTRYPOINT ["python", "-u", "/ml/main.py"]')
@@ -280,8 +280,7 @@ class ComponentBuilder(object):
     self._arc_docker_filename = 'dockerfile'
     self._arc_python_filename = 'main.py'
     self._arc_requirement_filename = 'requirements.txt'
-    self._container_builder = ContainerBuilder(gcs_staging, namespace)
-    self._target_image = target_image
+    self._container_builder = ContainerBuilder(gcs_staging, gcr_image_tag=target_image, namespace=namespace)
 
   def _prepare_files(self, local_dir, docker_filename, python_filename=None, requirement_filename=None):
     """ _prepare_buildfiles generates the tarball with all the build files
@@ -324,13 +323,13 @@ class ComponentBuilder(object):
 
       # Prepare build files
       logging.info('Generate build files.')
-      return self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
   def build_image_from_dockerfile(self, docker_filename, timeout):
     """ build_image_from_dockerfile builds an image based on the dockerfile """
     with tempfile.TemporaryDirectory() as local_build_dir:
       self._prepare_files(local_build_dir, docker_filename)
-      return self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
 def _configure_logger(logger):
   """ _configure_logger configures the logger such that the info level logs

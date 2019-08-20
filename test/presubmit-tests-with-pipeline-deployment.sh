@@ -31,7 +31,7 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
-TIMEOUT_SECONDS=6000
+TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
 
 while [ "$1" != "" ]; do

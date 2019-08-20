@@ -7745,6 +7745,77 @@ exports[`RunList renders the empty experience 1`] = `
 </div>
 `;
 
+exports[`RunList retrieves pipeline from backend to display name if not in spec 1`] = `
+<div>
+  <CustomTable
+    columns={
+      Array [
+        Object {
+          "customRenderer": [Function],
+          "flex": 1.5,
+          "label": "Run name",
+          "sortKey": "name",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 0.5,
+          "label": "Status",
+        },
+        Object {
+          "flex": 0.5,
+          "label": "Duration",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Experiment",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 1,
+          "label": "Pipeline",
+        },
+        Object {
+          "customRenderer": [Function],
+          "flex": 0.5,
+          "label": "Recurring Run",
+        },
+        Object {
+          "flex": 1,
+          "label": "Start time",
+          "sortKey": "created_at",
+        },
+      ]
+    }
+    emptyMessage="No available runs found."
+    filterLabel="Filter runs"
+    initialSortColumn="created_at"
+    reload={[Function]}
+    rows={
+      Array [
+        Object {
+          "error": undefined,
+          "id": "testrun1",
+          "otherFields": Array [
+            "run with id: testrun1",
+            "-",
+            "-",
+            undefined,
+            Object {
+              "displayName": "test pipeline",
+              "id": "test-pipeline-id",
+              "usePlaceholder": false,
+            },
+            undefined,
+            "-",
+          ],
+        },
+      ]
+    }
+  />
+</div>
+`;
+
 exports[`RunList shows "View pipeline" button if pipeline is embedded in run 1`] = `
 <Link
   className="link"
@@ -7953,9 +8024,9 @@ exports[`RunList shows pipeline name 1`] = `
             "-",
             undefined,
             Object {
-              "displayName": "test pipeline",
+              "displayName": "pipeline name",
               "id": "test-pipeline-id",
-              "showLink": false,
+              "usePlaceholder": false,
             },
             undefined,
             "-",
