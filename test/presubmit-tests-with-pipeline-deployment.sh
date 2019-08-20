@@ -20,6 +20,7 @@ usage()
 {
     echo "usage: deploy.sh
     [--platform             the deployment platform. Valid values are: [gcp, minikube]. Default is gcp.]
+    [--project              the gcp project. Default is ml-pipeline-test. Only used when platform is gcp.]
     [--workflow_file        the file name of the argo workflow to run]
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
@@ -30,7 +31,6 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
-GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
 
@@ -38,6 +38,9 @@ while [ "$1" != "" ]; do
     case $1 in
              --platform )             shift
                                       PLATFORM=$1
+                                      ;;
+             --project )              shift
+                                      PROJECT=$1
                                       ;;
              --workflow_file )        shift
                                       WORKFLOW_FILE=$1
@@ -61,6 +64,7 @@ while [ "$1" != "" ]; do
 done
 
 # Variables
+GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${PULL_PULL_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
@@ -73,10 +77,22 @@ source "${DIR}/deploy-kubeflow.sh"
 # Install Argo CLI and test-runner service account
 source "${DIR}/install-argo.sh"
 
+IMAGE_BUILDER_ARG=""
+# When project is not ml-pipeline-test, VMs need permission to fetch some images in gcr.io/ml-pipeline-test.
+if [ "$PROJECT" != "ml-pipeline-test" ]; then
+  COPIED_IMAGE_BUILDER_IMAGE=${GCR_IMAGE_BASE_DIR}/image-builder
+  echo "Copy image builder image to ${COPIED_IMAGE_BUILDER_IMAGE}"
+  yes | gcloud container images add-tag \
+    gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4 \
+    ${COPIED_IMAGE_BUILDER_IMAGE}:latest
+  IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
+fi
+
 # Build Images
 echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+${IMAGE_BUILDER_ARG} \
 -p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
 -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
 -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
@@ -95,6 +111,7 @@ source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+${IMAGE_BUILDER_ARG} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \
