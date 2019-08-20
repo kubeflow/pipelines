@@ -220,7 +220,7 @@ message PipelineVersion {
   }
 
   // Input.
-  // Describing what the pipeline manifest and parameters to use for the run.
+  // Describing what the pipeline this version belongs to.
   PipelineSpec pipeline_spec = 7;
 }
 
