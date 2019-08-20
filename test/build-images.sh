@@ -26,11 +26,12 @@ if [ "$PROJECT" != "ml-pipeline-test" ]; then
   IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
 fi
 
-# image caching can be turned on by setting $CACHE_IMAGES env flag to speed up
-# debugging
+# Image caching can be turned off by setting $DISABLE_IMAGE_CACHING env flag.
+# Note that GCR_IMAGE_BASE_DIR contains commit hash, so whenever there's a code
+# change, we won't use caches for sure.
 BUILT_IMAGES=$(gcloud container images list --repository=${GCR_IMAGE_BASE_DIR})
 if
-  test -n "$CACHE_IMAGES" && \
+  test -z "$DISABLE_IMAGE_CACHING" && \
   echo "$BUILT_IMAGES" | grep api-server && \
   echo "$BUILT_IMAGES" | grep frontend && \
   echo "$BUILT_IMAGES" | grep scheduledworkflow && \

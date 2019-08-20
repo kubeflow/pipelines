@@ -75,8 +75,8 @@ export WORKSPACE=$(pwd) # root of kubeflow/pipelines git repo
 export SA_KEY_FILE=PATH/TO/YOUR/GCP/PROJECT/SERVICE/ACCOUNT/KEY
 # (optional) uncomment the following to keep reusing the same cluster
 # export TEST_CLUSTER=YOUR_PRECONFIGURED_CLUSTER_NAME
-# (optional) uncomment the following to cache images
-# export CACHE_IMAGES=true
+# (optional) uncomment the following to disable built image caching
+# export DISABLE_IMAGE_CACHING=true
 
 ./test/presubmit-tests-with-pipeline-deployment.sh \
   --workflow_file e2e_test_gke_v2.yaml \ # You can specify other workflows you want to test too.
