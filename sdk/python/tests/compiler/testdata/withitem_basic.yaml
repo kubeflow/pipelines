@@ -17,35 +17,34 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: loop-item-placeholder-00000000000000000000000000000001-item-subvar-a
-            value: '{{inputs.parameters.loop-item-placeholder-00000000000000000000000000000001-item-subvar-a}}'
+          - name: loop-item-param-00000001-subvar-a
+            value: '{{inputs.parameters.loop-item-param-00000001-subvar-a}}'
           - name: my-pipe-param
             value: '{{inputs.parameters.my-pipe-param}}'
         name: my-in-coop1
         template: my-in-coop1
       - arguments:
           parameters:
-          - name: loop-item-placeholder-00000000000000000000000000000001-item-subvar-b
-            value: '{{inputs.parameters.loop-item-placeholder-00000000000000000000000000000001-item-subvar-b}}'
+          - name: loop-item-param-00000001-subvar-b
+            value: '{{inputs.parameters.loop-item-param-00000001-subvar-b}}'
         name: my-in-coop2
         template: my-in-coop2
     inputs:
       parameters:
-      - name: loop-item-placeholder-00000000000000000000000000000001-item-subvar-a
-      - name: loop-item-placeholder-00000000000000000000000000000001-item-subvar-b
+      - name: loop-item-param-00000001-subvar-a
+      - name: loop-item-param-00000001-subvar-b
       - name: my-pipe-param
-    name: for-loop-for-loop-00000000000000000000000000000001-1
+    name: for-loop-for-loop-00000001-1
   - container:
       args:
-      - echo op1 {{inputs.parameters.loop-item-placeholder-00000000000000000000000000000001-item-subvar-a}}
-        {{inputs.parameters.my-pipe-param}}
+      - echo op1 {{inputs.parameters.loop-item-param-00000001-subvar-a}} {{inputs.parameters.my-pipe-param}}
       command:
       - sh
       - -c
       image: library/bash:4.4.23
     inputs:
       parameters:
-      - name: loop-item-placeholder-00000000000000000000000000000001-item-subvar-a
+      - name: loop-item-param-00000001-subvar-a
       - name: my-pipe-param
     name: my-in-coop1
     outputs:
@@ -58,14 +57,14 @@ spec:
         path: /mlpipeline-metrics.json
   - container:
       args:
-      - echo op2 {{inputs.parameters.loop-item-placeholder-00000000000000000000000000000001-item-subvar-b}}
+      - echo op2 {{inputs.parameters.loop-item-param-00000001-subvar-b}}
       command:
       - sh
       - -c
       image: library/bash:4.4.23
     inputs:
       parameters:
-      - name: loop-item-placeholder-00000000000000000000000000000001-item-subvar-b
+      - name: loop-item-param-00000001-subvar-b
     name: my-in-coop2
     outputs:
       artifacts:
@@ -98,14 +97,14 @@ spec:
       tasks:
       - arguments:
           parameters:
-          - name: loop-item-placeholder-00000000000000000000000000000001-item-subvar-a
+          - name: loop-item-param-00000001-subvar-a
             value: '{{item.a}}'
-          - name: loop-item-placeholder-00000000000000000000000000000001-item-subvar-b
+          - name: loop-item-param-00000001-subvar-b
             value: '{{item.b}}'
           - name: my-pipe-param
             value: '{{inputs.parameters.my-pipe-param}}'
-        name: for-loop-for-loop-00000000000000000000000000000001-1
-        template: for-loop-for-loop-00000000000000000000000000000001-1
+        name: for-loop-for-loop-00000001-1
+        template: for-loop-for-loop-00000001-1
         withItems:
         - a: 1
           b: 2

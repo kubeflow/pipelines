@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import kfp.dsl as dsl
+from kfp.dsl import _for_loop
 
 
 class Coder:
@@ -21,10 +22,10 @@ class Coder:
 
     def get_code(self, ):
         self._code_id += 1
-        return '{0:032d}'.format(self._code_id)
+        return '{code:0{num_chars:}d}'.format(code=self._code_id, num_chars=_for_loop.LoopArguments.NUM_CODE_CHARS)
 
 
-dsl.ParallelFor._get_code = Coder().get_code
+dsl.ParallelFor._get_unique_id_code = Coder().get_code
 
 
 @dsl.pipeline(name='my-pipeline')

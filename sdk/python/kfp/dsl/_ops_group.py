@@ -14,10 +14,11 @@
 from typing import Union
 import uuid
 
+from kfp.dsl import _for_loop
+
 from . import _container_op
 from . import _pipeline
 from ._pipeline_param import ConditionOperator
-from ._for_loop import LoopArguments, ItemList
 
 class OpsGroup(object):
   """Represents a logical group of ops and group of OpsGroups.
@@ -164,20 +165,20 @@ class ParallelFor(OpsGroup):
   TYPE_NAME = 'for_loop'
 
   @staticmethod
-  def _get_code():
-    return uuid.uuid4().hex
+  def _get_unique_id_code():
+    return uuid.uuid4().hex[:_for_loop.LoopArguments.NUM_CODE_CHARS]
 
-  def __init__(self, loop_args: ItemList):
+  def __init__(self, loop_args: _for_loop.ItemList):
     # random code to id this loop
-    code = self._get_code()
+    code = self._get_unique_id_code()
     group_name = 'for-loop-{}'.format(code)
     super().__init__(self.TYPE_NAME, name=group_name)
 
-    if not isinstance(loop_args, LoopArguments):
-      loop_args = LoopArguments(loop_args, code)
+    if not isinstance(loop_args, _for_loop.LoopArguments):
+      loop_args = _for_loop.LoopArguments(loop_args, code)
 
     self.loop_args = loop_args
 
-  def __enter__(self) -> LoopArguments:
+  def __enter__(self) -> _for_loop.LoopArguments:
     _ = super().__enter__()
     return self.loop_args

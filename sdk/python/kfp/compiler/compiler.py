@@ -20,7 +20,7 @@ import zipfile
 from typing import Set, List, Text, Dict
 
 import yaml
-from kfp.dsl import _container_op
+from kfp.dsl import _container_op, _for_loop
 
 from .. import dsl
 from ._k8s_helper import K8sHelper
@@ -195,7 +195,7 @@ class Compiler(object):
     return next
 
   def _get_for_loop_ops(self, new_root) -> Dict[Text, dsl.ParallelFor]:
-    to_visit = self._get_subgroups(new_root)
+    to_visit = self._get_all_subgroups_and_ops(new_root)
     op_name_to_op = {}
     already_visited = set()
 
@@ -203,50 +203,13 @@ class Compiler(object):
       next_op = self._get_next_group_or_op(to_visit, already_visited)
       if next_op is None:
         break
-      to_visit.extend(self._get_subgroups(next_op))
+      to_visit.extend(self._get_all_subgroups_and_ops(next_op))
       if isinstance(next_op, dsl.ParallelFor):
         op_name_to_op[next_op.name] = next_op
 
     return op_name_to_op
 
-  def _fill_loop_args(self, new_root):
-    """Traverses through graph, plucking up loop_args vars from ops groups and depositing pointers to them on the
-    ops which contain them as arguments."""
-
-    def get_loop_args_names_for_op(op: _container_op.BaseOp):
-      if not isinstance(op, _container_op.BaseOp):
-        return []
-
-      loop_arg_names = []
-      for pipeline_param in op.inputs:
-        # make sure to keep this in this order since both LoopArgumentVariable.param_is_this_type and
-        # LoopArgument.param_is_this_type will return true for LoopArgumentVariable parameters
-        if dsl.LoopArgumentVariable.param_is_this_type(pipeline_param):
-          loop_args_name, _ = dsl.LoopArgumentVariable.parse_loop_args_name_and_this_var_name(pipeline_param.name)
-          loop_args_names.append(loop_args_name)
-        elif dsl.LoopArguments.param_is_this_type(pipeline_param):
-          loop_arg_names.append(pipeline_param.name)
-
-      return loop_arg_names
-
-    to_visit = self._get_subgroups(new_root)
-    loop_args_name_to_obj = {}
-    already_visited = set()
-
-    while len(to_visit):
-      next = self._get_next_group_or_op(to_visit, already_visited)
-      if next is None:
-        break
-      to_visit.extend(self._get_subgroups(next))
-
-      # store loop_args from ops groups
-      if hasattr(next, 'loop_args') and next.loop_args is not None:
-        loop_args_name_to_obj[next.loop_args.name] = next.loop_args
-
-      loop_args_names = get_loop_args_names_for_op(next)
-      next.loop_args_names_to_loop_args = {name: loop_args_name_to_obj[name] for name in loop_args_names}
-
-  def _get_subgroups(self, op):
+  def _get_all_subgroups_and_ops(self, op):
     """Get all ops and groups contained within this group."""
     subgroups = []
     if hasattr(op, 'ops'):
@@ -311,8 +274,9 @@ class Compiler(object):
               # any of its parent groups.
               inputs[group_name].add((param.full_name, None))
               if group_name in op_name_to_for_loop_op:
-                # loop_group.loop_args.name = 'loop-item-placeholder-99ca152eb887400e992909bfa0ef1050'
-                # param.name =                'loop-item-placeholder-99ca152eb887400e992909bfa0ef1050-item-subvar-a'
+                # for example:
+                #   loop_group.loop_args.name = 'loop-item-param-99ca152e'
+                #   param.name =                'loop-item-param-99ca152e--a'
                 loop_group = op_name_to_for_loop_op[group_name]
                 if loop_group.loop_args.name in param.name:
                   break
@@ -532,10 +496,10 @@ class Compiler(object):
             else:
               if isinstance(sub_group, dsl.ParallelFor):
                 if sub_group.loop_args.name in param_name:
-                  if dsl.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
-                    subvar_name = dsl.LoopArgumentVariable.get_subvar_name(param_name)
+                  if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
+                    subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
                     value = '{{item.%s}}' % subvar_name
-                  elif dsl.LoopArguments.name_is_loop_arguments(param_name):
+                  elif _for_loop.LoopArguments.name_is_loop_arguments(param_name):
                     value = '{{item}}'
                   else:
                     raise ValueError("Failed to match loop args with param. param_name: {}, ".format(param_name) +
@@ -589,7 +553,6 @@ class Compiler(object):
     opgroup_name_to_parent_groups = self._get_groups_for_opsgroups(root_group)
     condition_params = self._get_condition_params_for_ops(root_group)
     op_name_to_for_loop_op = self._get_for_loop_ops(root_group)
-    self._fill_loop_args(root_group)
     inputs, outputs = self._get_inputs_outputs(
       pipeline,
       root_group,
