@@ -71,7 +71,7 @@ def file_injection(file_in, file_out, subs):
   corresponding string.
 
   :param file_in: input file name.
-  :param file_out: output file name.
+  :param file_out: tmp output file name.
   :param subs: dict, key is the regex expr, value is the substituting string.
   """
   with open(file_in, 'rt') as fin:

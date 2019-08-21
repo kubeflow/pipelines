@@ -190,13 +190,63 @@ class ComponentTest(SampleTest):
   """ Launch a KFP sample test as component test provided its name.
 
   Currently follows the same logic as sample test for compatibility.
+  include xgboost_training_cm tfx_cab_classification
   """
-  def __init__(self, test_name, input, result, output,
-      result_gcs_dir, target_image_prefix, dataflow_tft_image,
+  def __init__(self, test_name, results_gcs_dir,
+      dataflow_tft_image,
+      dataflow_predict_image,
+      dataflow_tfma_image,
+      dataflow_tfdv_image,
+      dataproc_create_cluster_image,
+      dataproc_delete_cluster_image,
+      dataproc_analyze_image,
+      dataproc_transform_image,
+      dataproc_train_image,
+      dataproc_predict_image,
+      kubeflow_dnntrainer_image,
+      kubeflow_deployer_image,
+      local_confusionmatrix_image,
+      local_roc_image,
+      target_image_prefix='',
       namespace='kubeflow'):
-    super().__init__(test_name, input, result, output, namespace)
-    #TODO(numerology): finish this.
-    pass
+    super().__init__(
+        test_name=test_name,
+        results_gcs_dir=results_gcs_dir,
+        target_image_prefix=target_image_prefix,
+        namespace=namespace
+    )
+    self._dataflow_tft_image = dataflow_tft_image
+    self._dataflow_predict_image = dataflow_predict_image
+    self._dataflow_tfma_image = dataflow_tfma_image
+    self._dataflow_tfdv_image = dataflow_tfdv_image
+    self._dataproc_create_cluster_image = dataproc_create_cluster_image
+    self._dataproc_delete_cluster_image = dataproc_delete_cluster_image
+    self._dataproc_analyze_image = dataproc_analyze_image
+    self._dataproc_transform_image = dataproc_transform_image
+    self._dataproc_train_image = dataproc_train_image
+    self._dataproc_predict_image = dataproc_predict_image
+    self._kubeflow_dnntrainer_image = kubeflow_dnntrainer_image
+    self._kubeflow_deployer_image = kubeflow_deployer_image
+    self._local_confusionmatrix_image = local_confusionmatrix_image
+    self._local_roc_image = local_roc_image
+
+    self._run_test()
+
+  def _run_test(self):
+    if len(self._results_gcs_dir) == 0:
+      return 1
+
+    os.chdir(self._work_dir)
+    print('Run the component tests...')
+
+    subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
+                     '--output', '%s.yaml' % self._test_name])
+
+    # Sample-specific image injection.
+
+
+
+
 
 def main():
   """Launches either KFP sample test or component test as a command entrypoint.
