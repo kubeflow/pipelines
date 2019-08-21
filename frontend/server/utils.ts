@@ -37,7 +37,7 @@ export function generateRandomString(length: number): string {
 export function loadJSON(filepath: string, defaultValue: Object = {}): Object {
   if (!filepath) return defaultValue;
   try {
-    return JSON.parse(readFileSync(filepath))
+    return JSON.parse(readFileSync(filepath, "utf-8"))
   } catch (error) {
     return defaultValue;
   }
