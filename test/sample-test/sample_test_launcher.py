@@ -22,7 +22,6 @@ import papermill as pm
 import subprocess
 import sys
 import utils
-import uuid
 
 
 PROJECT_NAME = 'ml-pipeline-test'
