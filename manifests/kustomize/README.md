@@ -29,14 +29,11 @@ To get latest kubectl, visit [here](https://kubernetes.io/docs/tasks/tools/insta
 
 ## Change deploy namespace
 To deploy Kubeflow Pipelines in namespace FOO,
-- Edit [kustomization.yaml](namespaced-install/kustomization.yaml) namespace section to FOO
+- Edit [kustomization.yaml](env/dev/kustomization.yaml) namespace section to FOO
 - Then run 
 ```
-kubectl kustomize . | kubectl apply -f -
+kubectl kustomize env/dev | kubectl apply -f -
 ```
-
-## Reinstall with existing data
-TODO
 
 ## Disable the public endpoint
 By default, the deployment install an [invert proxy agent](https://github.com/google/inverting-proxy) that exposes a public URL. If you want to skip installing it,
@@ -62,7 +59,7 @@ kubectl delete -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE
 
 Or if you deploy through kustomize
 ```
-kubectl kustomize . | kubectl delete -f -
+kubectl kustomize env/dev | kubectl delete -f -
 ```
 # FAQ
 If sample code requires a "user-gcp-sa" secret, you could create one by 
