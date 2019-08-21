@@ -203,6 +203,40 @@ class ComponentTest(SampleTest):
 
   def _injection(self):
     """Sample-specific image injection into yaml file."""
+    subs = {
+        'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:\w+':self._local_confusionmatrix_image,
+        'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:\w+':self._local_roc_image
+    }
+    if self._test_name == 'xgboost_training_cm':
+      subs.update({
+          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\w+':self._dataproc_create_cluster_image,
+          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\w+':self._dataproc_delete_cluster_image,
+          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-analyze:\w+':self._dataproc_analyze_image,
+          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-transform:\w+':self._dataproc_transform_image,
+          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-train:\w+':self._dataproc_train_image,
+          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-predict:\w+':self._dataproc_predict_image,
+      })
+
+      utils.file_injection('%s.yaml' % self._test_name,
+                           '%s.yaml.tmp' % self._test_name,
+                           subs)
+    elif self._test_name == 'tfx_cab_classification':
+      subs.update({
+          'gcr\.io/ml-pipeline/ml-pipeline-dataflow-tft:\w+':self._dataflow_tft_image,
+          'gcr\.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\w+':self._dataflow_predict_image,
+          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-dataflow-tfdv:\w+':self._dataflow_tfdv_image,
+          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-dataflow-tfma:\w+':self._dataflow_tfma_image,
+          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\w+':self._kubeflow_dnntrainer_image,
+          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-deployer:\w+':self._kubeflow_deployer_image,
+          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:\w+':self._local_confusionmatrix_image,
+          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:\w+':self._local_roc_image
+      })
+    else:
+      # Only the above two samples need injection for now.
+      pass
+    utils.file_injection('%s.yaml' % self._test_name,
+                         '%s.yaml.tmp' % self._test_name,
+                         subs)
 
 
   def run_test(self):

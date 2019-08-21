@@ -66,16 +66,16 @@ def run_bash_command(cmd):
   return output_string, error_string
 
 
-def file_injection(file_in, file_out, subs):
+def file_injection(file_in, tmp_file_out, subs):
   """Utility function that substitute several regex within a file by
   corresponding string.
 
   :param file_in: input file name.
-  :param file_out: tmp output file name.
+  :param tmp_file_out: tmp output file name.
   :param subs: dict, key is the regex expr, value is the substituting string.
   """
   with open(file_in, 'rt') as fin:
-    with open(file_out, 'wt') as fout:
+    with open(tmp_file_out, 'wt') as fout:
       for line in fin:
         tmp_line = line
         for old, new in subs.items():
@@ -84,7 +84,7 @@ def file_injection(file_in, file_out, subs):
 
         fout.write(tmp_line)
 
-  os.rename(file_out, file_in)
+  os.rename(tmp_file_out, file_in)
 
 def upload_blob(bucket_name, source_file_name, destination_blob_name):
   """Uploads a file to the bucket."""
