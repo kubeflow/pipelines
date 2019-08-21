@@ -96,8 +96,8 @@ func isVisualizationServiceAlive(serviceURL string, initConnectionTimeout time.D
 	return err == nil
 }
 
-func NewVisualizationServer(resourceManager *resource.ResourceManager, serviceName string, namespace string, initConnectionTimeout time.Duration) *VisualizationServer {
-	serviceURL := fmt.Sprintf("http://%s.%s", serviceName, namespace)
+func NewVisualizationServer(resourceManager *resource.ResourceManager, serviceHost string, servicePort string, initConnectionTimeout time.Duration) *VisualizationServer {
+	serviceURL := fmt.Sprintf("http://%s:%s", serviceHost, servicePort)
 	isServiceAvailable := isVisualizationServiceAlive(serviceURL, initConnectionTimeout)
 	return &VisualizationServer{
 		resourceManager:    resourceManager,
