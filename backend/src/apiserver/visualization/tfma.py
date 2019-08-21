@@ -14,11 +14,7 @@
 
 import tensorflow_model_analysis as tfma
 
-# The following variables are provided through dependency injection. These
-# variables come from the specified input path and arguments provided by the
-# API post request.
-#
-# source
+# flake8: noqa TODO
 
 if variables.get("slicing_column", False) == False {
     tfma.view.render_slicing_metrics(source)

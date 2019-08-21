@@ -22,6 +22,8 @@ import itables.options as opts
 import pandas as pd
 from tensorflow.python.lib.io import file_io
 
+# flake8: noqa TODO
+
 # Remove maxByte limit to prevent issues where entire table cannot be rendered
 # due to size of data.
 opts.maxBytes = 0
