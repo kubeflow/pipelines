@@ -139,27 +139,7 @@ class SampleTest(object):
 
     # For presubmit check, do not do any image injection as for now.
     # Notebook samples need to be papermilled first.
-    if self._test_name == 'kubeflow_pipeline_using_TFX_OSS_components':
-      bucket_prefix = 'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/'
-      pm.execute_notebook(
-          input_path='KubeFlow Pipeline Using TFX OSS Components.ipynb',
-          output_path='%s.ipynb' % self._test_name,
-          parameters=dict(
-              EXPERIMENT_NAME='%s-test' % self._test_name,
-              OUTPUT_DIR=self._results_gcs_dir,
-              PROJECT_NAME=PROJECT_NAME,
-              BASE_IMAGE='%spusherbase:dev' % self._target_image_prefix,
-              TARGET_IMAGE='%spusher:dev' % self._target_image_prefix,
-              TARGET_IMAGE_TWO='%spusher_two:dev' % self._target_image_prefix,
-              DEPLOYER_MODEL='Notebook_tfx_taxi_%s' % uuid.uuid1(),
-              TRAIN_DATA=bucket_prefix + 'train50.csv',
-              EVAL_DATA=bucket_prefix + 'eval20.csv',
-              HIDDEN_LAYER_SIZE=10,
-              STEPS=10
-          )
-      )
-      self.check_notebook_result()
-    elif self._test_name == 'lightweight_component':
+    if self._test_name == 'lightweight_component':
       pm.execute_notebook(
           input_path='Lightweight Python components - basics.ipynb',
           output_path='%s.ipynb' % self._test_name,
