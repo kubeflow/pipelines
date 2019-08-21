@@ -9,7 +9,8 @@ spec:
         - name: ml-pipeline-api-server
           env:
             - name: OBJECTSTORECONFIG_BUCKETNAME
-              # E.g. foobar. Don't add gs:// prefix.
+              # Don't add gs:// prefix.
+              # If bucket doesn't exist, the deployment will create one.
               value: ''
             - name: DBCONFIG_PASSWORD
               value: ''

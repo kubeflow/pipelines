@@ -19,4 +19,9 @@ spec:
         name: ml-pipeline-ui
         ports:
         - containerPort: 3000
+        env:
+          - name: MINIO_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
       serviceAccountName: ml-pipeline-ui
