@@ -220,6 +220,12 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
+
+	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext")
+	if response.Error != nil {
+		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
+	}
+
 	response = db.Model(&model.RunMetric{}).
 		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
