@@ -19,25 +19,20 @@ import (
 	"fmt"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
-	"strconv"
 	"time"
 
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/metadata"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/minio/minio-go"
-
-	"ml_metadata/metadata_store/mlmetadata"
-	mlpb "ml_metadata/proto/metadata_store_go_proto"
 )
 
 const (
@@ -69,8 +64,6 @@ type ClientManager struct {
 	podClient 						 v1.PodInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
-
-	MetadataStore *mlmetadata.Store
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -154,8 +147,7 @@ func (c *ClientManager) init() {
 	c.podClient = client.CreatePodClientOrFatal(
 		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
 
-	metadataStore := initMetadataStore()
-	runStore := storage.NewRunStore(db, c.time, metadataStore)
+	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
 	glog.Infof("Client manager initialized successfully")
@@ -163,31 +155,6 @@ func (c *ClientManager) init() {
 
 func (c *ClientManager) Close() {
 	c.db.Close()
-}
-
-func initMetadataStore() *metadata.Store {
-	port, err := strconv.Atoi(getStringConfig(mysqlServicePort))
-	if err != nil {
-		glog.Fatalf("Failed to parse valid MySQL service port from %q: %v", getStringConfig(mysqlServicePort), err)
-	}
-
-	cfg := &mlpb.ConnectionConfig{
-		Config: &mlpb.ConnectionConfig_Mysql{
-			&mlpb.MySQLDatabaseConfig{
-				Host:     proto.String(getStringConfig(mysqlServiceHost)),
-				Port:     proto.Uint32(uint32(port)),
-				Database: proto.String("mlmetadata"),
-				User:     proto.String(getStringConfigWithDefault(mysqlUser, "root")),
-				Password: proto.String(getStringConfigWithDefault(mysqlPassword, "")),
-			},
-		},
-	}
-
-	mlmdStore, err := mlmetadata.NewStore(cfg)
-	if err != nil {
-		glog.Fatalf("Failed to create ML Metadata store: %v", err)
-	}
-	return metadata.NewStore(mlmdStore)
 }
 
 func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
