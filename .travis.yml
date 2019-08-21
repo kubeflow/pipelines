@@ -68,11 +68,11 @@ matrix:
         - pip3 install coverage coveralls jsonschema==3.0.1 
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
-        - python3 setup.py install
-        - cd tests
-        - coverage run --source=kfp --append dsl/main.py
-        - coverage run --source=kfp --append compiler/main.py
-        - coverage run --source=kfp --append -m unittest discover --verbose
+        - python3 setup.py develop
+        - cd $TRAVIS_BUILD_DIR # Changing the current directory to the repo root for correct coverall paths
+        - coverage run --source=kfp --append sdk/python/dsl/main.py
+        - coverage run --source=kfp --append sdk/python/compiler/main.py
+        - coverage run --source=kfp --append -m unittest discover --verbose --start-dir sdk/python/tests --top-level-directory=sdk/python
         - coveralls
 
         # Visualization test
