@@ -1,10 +1,24 @@
 # Python based visualizations guideline
 
-This document describes the development guideline to contribute new predefined
-visualizations to the Kubeflow Pipeline project. For information about using
+This document describes the architecture of python based visualizations,
+development guideline to contribute new predefined visualizations to the
+Kubeflow Pipeline project, and current limitations. For information about using
 Python based visualizations please visit the [documentation page](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations).
 Please check the [developer guidelines](https://github.com/kubeflow/pipelines/blob/master/developer_guide.md)
 for additional development guidelines.
+
+## Architecture
+
+Python based visualizations rely on three parts. The frontend, the API server,
+and the Python visualization service. The architecture of all three is as
+follows. The frontend is responsible for creating the visualization request and
+displaying the results of the created requests. The API server is responsible
+for transposing the request provided by the frontend to a request that is
+understandable by the python visualization service, returning the result of the
+transposed request to the frontend, and gracefully handling incorrectly
+formatted requests from the frontend and any errors encountered with the Python
+visualization service. Finally, the Python visualization service is responsible
+for generating a visualization from a provided request.
 
 ## How to create predefined visualizations
 
@@ -107,3 +121,55 @@ file.
     file.
 12. Submit these changes as a Pull Request or build docker image for usage
 within your cluster.
+
+## Known limitations
+
+* Multiple visualizations cannot be generated simultaneously.
+    * This is because a single Python kernel is used to generate visualizations.
+    * If visualizations are a major part of your workflow, it is recommended to
+    increase the number of replicas within the [visualization deployment YAML](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/base/pipeline/ml-pipeline-visualization-deployment.yaml)
+    file or within the visualization service deployment itself.
+        * _Please note that this does not directly solve the issue, instead it
+        decreases the likelihood of experiencing delays when generating
+        visualizations._
+* Visualizations that take longer than 30 seconds will fail to generate.
+    * For visualizations where the 30 second timeout is reached, you can add the
+    **TimeoutValue** header to the request made by the frontend, specifying a
+    _positive integer as ASCII string of at most 8 digits_ for the length of
+    time required to generate a visualization as specified by the
+    [grpc documentation](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests).
+    * For visualizations that take longer than 100 seconds, you will have to
+    specify a **TimeoutValue** within the request headers **AND** change the
+    default kernel timeout of the visualization service. To change the default
+    kernel timeout of the visualization service, set the **KERNEL_TIMEOUT**
+    environment variable of the visualization service deployment to be the new
+    timeout length in seconds within the [visualization deployment YAML](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/base/pipeline/ml-pipeline-visualization-deployment.yaml)
+    file or within the visualization service deployment itself.
+
+    ```YAML
+    - env:
+      - name: KERNEL_TIMEOUT
+        value: 100
+    ```
+* Generated visualizations cannot be larger than 4MB.
+    * gRPC by default imposes a limit of 4MB as the maximum size that can be
+    sent and received by a server. To allow for visualizations that are larger
+    than 4MB in size to be generated, you must manually set
+    **MaxCallRecvMsgSize** for gRPC. This can be done by editing the provided
+    options given to the gRPC server within [main.go](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/main.go#L128)
+    to 
+    ```golang
+    var maxCallRecvMsgSize = 4 * 1024 * 1024
+	if serviceName == "Visualization" {
+		// Only change the maxCallRecvMesSize if it is for visualizations
+		maxCallRecvMsgSize = 50 * 1024 * 1024
+    }
+	opts := []grpc.DialOption{
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxCallRecvMsgSize)),
+		grpc.WithInsecure(),
+	}
+    ```
+* Visualizations cannot include multiline comments.
+    * Due to how Python visualization code is escaped within network requests,
+    multiline comments such as `""" comment """` and `''' comment '''` are not
+    supported within custom visualizations.
