@@ -30,7 +30,7 @@ dfs = []
 files = file_io.get_matching_files(source)
 
 # Read data from file and write it to a DataFrame object.
-if variables.get("headers", False) is False:
+if variables.get("headers", False) == False:
     # If no headers are provided, use the first row as headers
     for f in files:
         dfs.append(pd.read_csv(f))
