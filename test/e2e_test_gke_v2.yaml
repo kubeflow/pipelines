@@ -282,6 +282,7 @@ spec:
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
       args: [
+        "sample_test", "run_test",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--namespace", "{{inputs.parameters.namespace}}",
         "--test-name", "{{inputs.parameters.test-name}}",

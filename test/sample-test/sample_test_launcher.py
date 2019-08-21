@@ -63,8 +63,6 @@ class SampleTest(object):
     self._sample_test_output = self._results_gcs_dir
     self._work_dir = self.BASE_DIR + '/samples/core/' + self._test_name
 
-    self._run_test()
-
   def check_result(self):
     os.chdir(self.TEST_DIR)
     subprocess.call([
@@ -160,6 +158,12 @@ class SampleTest(object):
     else:
       subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
                        '--output', '%s.yaml' % self._test_name])
+
+  def run_test(self):
+    self._run_test()
+    if self._test_name in ['lightweight_component', 'dsl_static_type_checking']:
+      self.check_notebook_result()
+    else:
       self.check_result()
 
 
@@ -207,20 +211,15 @@ class ComponentTest(SampleTest):
     self._local_confusionmatrix_image = local_confusionmatrix_image
     self._local_roc_image = local_roc_image
 
+  def _injection(self):
+    """Sample-specific image injection into yaml file."""
+    pass
+
+  def run_test(self):
+    # compile, injection, check_result
     self._run_test()
-
-  def _run_test(self):
-    if len(self._results_gcs_dir) == 0:
-      return 1
-
-    os.chdir(self._work_dir)
-    print('Run the component tests...')
-
-    subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
-                     '--output', '%s.yaml' % self._test_name])
-
-    # Sample-specific image injection.
-
+    self._injection()
+    self.check_result()
 
 
 
@@ -229,8 +228,8 @@ def main():
   """Launches either KFP sample test or component test as a command entrypoint.
 
   Usage:
-  python sample_test_launcher.py sample_test arg1 arg2 to launch sample test, and
-  python sample_test_launcher.py component_test arg1 arg2 to launch component
+  python sample_test_launcher.py sample_test run_test arg1 arg2 to launch sample test, and
+  python sample_test_launcher.py component_test run_test arg1 arg2 to launch component
   test.
   """
   fire.Fire({

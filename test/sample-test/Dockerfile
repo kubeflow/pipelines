@@ -33,4 +33,4 @@ RUN ARGO_VERSION=v2.3.0 && curl -sSL -o /usr/local/bin/argo \
     chmod +x /usr/local/bin/argo
 ENV PATH $PATH:/usr/local/bin/argo
 
-ENTRYPOINT ["python3", "/python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py", "sample_test"]
+ENTRYPOINT ["python3", "/python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py"]
