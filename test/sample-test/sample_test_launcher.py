@@ -94,8 +94,8 @@ class SampleTest(object):
 
   def check_notebook_result(self):
     # Workaround because papermill does not directly return exit code.
-    exit_code = 1 if PAPERMILL_ERR_MSG in \
-                     open('%s.ipynb' % self._test_name).read() else 0
+    exit_code = '1' if PAPERMILL_ERR_MSG in \
+                     open('%s.ipynb' % self._test_name).read() else '0'
 
     os.chdir(self.TEST_DIR)
     if self._test_name == 'dsl_static_type_checking':
@@ -120,7 +120,7 @@ class SampleTest(object):
           '--namespace',
           self._namespace,
           '--exit-code',
-          str(exit_code)
+          exit_code
       ])
 
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
