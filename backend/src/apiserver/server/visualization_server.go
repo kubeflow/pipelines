@@ -104,6 +104,12 @@ func NewVisualizationServer(resourceManager *resource.ResourceManager, serviceHo
 	return &VisualizationServer{
 		resourceManager:    resourceManager,
 		serviceURL:         serviceURL,
+		// TODO: isServiceAvailable is used to determine if the new visualization
+		//  service is alive. If this is true, then the service is alive and
+		//  requests can be made to it. Otherwise, if it is false, the service is
+		//  not alive and requests should not be made. This prevents timeouts and
+		//  counteracts current instabilities with the service. This should be
+		//  removed after the visualization service is deemed stable.
 		isServiceAvailable: isServiceAvailable,
 	}
 }
