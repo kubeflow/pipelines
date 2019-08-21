@@ -108,7 +108,7 @@ class SampleTest(object):
           '--namespace',
           self._namespace,
           '--exit-code',
-          exit_code
+          str(exit_code)
       ])
 
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
