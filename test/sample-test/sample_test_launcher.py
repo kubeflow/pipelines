@@ -93,10 +93,11 @@ class SampleTest(object):
     )
 
   def check_notebook_result(self):
-    os.chdir(self.TEST_DIR)
     # Workaround because papermill does not directly return exit code.
     exit_code = 1 if PAPERMILL_ERR_MSG in \
                      open('%s.ipynb' % self._test_name).read() else 0
+
+    os.chdir(self.TEST_DIR)
     if self._test_name == 'dsl_static_type_checking':
       subprocess.call([
           sys.executable,
@@ -169,17 +170,15 @@ class SampleTest(object):
           )
       )
       self.check_notebook_result()
-    #TODO(numerology): investigate why it's not checking.
-
-    # elif self._test_name == 'dsl_static_type_checking':
-    #   pm.execute_notebook(
-    #       input_path='DSL Static Type Checking.ipynb',
-    #       output_path='%s.ipynb' % self._test_name,
-    #       parameters=dict(
-    #           KFP_PACKAGE='tmp/kfp.tar.gz',
-    #       )
-    #   )
-    #   self.check_notebook_result()
+    elif self._test_name == 'dsl_static_type_checking':
+      pm.execute_notebook(
+          input_path='DSL Static Type Checking.ipynb',
+          output_path='%s.ipynb' % self._test_name,
+          parameters=dict(
+              KFP_PACKAGE='tmp/kfp.tar.gz',
+          )
+      )
+      self.check_notebook_result()
     else:
       subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
                        '--output', '%s.yaml' % self._test_name])

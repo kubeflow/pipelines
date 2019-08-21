@@ -70,7 +70,7 @@ spec:
               - kubeflow_training_classification
               - tfx_cab_classification
               - xgboost_training_cm
-              - kubeflow_pipeline_using_TFX_OSS_components
+              #- kubeflow_pipeline_using_TFX_OSS_components
               - lightweight_component
               - dsl_static_type_checking
     # Build and push image
