@@ -96,15 +96,6 @@ def main():
         'steps':
           '5'
     }
-  elif args.testname == 'kubeflow_training_classification':
-    params = {
-        'output': args.output,
-        'project': 'ml-pipeline-test',
-        'evaluation': 'gs://ml-pipeline-dataset/sample-test/flower/eval15.csv',
-        'train': 'gs://ml-pipeline-dataset/sample-test/flower/train30.csv',
-        'hidden-layer-size': '10,5',
-        'steps': '5'
-    }
   elif args.testname == 'xgboost_training_cm':
     params = {
         'output': args.output,
@@ -150,22 +141,7 @@ def main():
 
   ###### Validate the results for specific test cases ######
   #TODO: Add result check for tfx-cab-classification after launch.
-  if args.testname == 'kubeflow_training_classification':
-    cm_tar_path = './confusion_matrix.tar.gz'
-    utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
-                                'mlpipeline-ui-metadata')
-    with tarfile.open(cm_tar_path) as tar_handle:
-      file_handles = tar_handle.getmembers()
-      assert len(file_handles) == 1
-
-      with tar_handle.extractfile(file_handles[0]) as f:
-        cm_data = json.load(io.TextIOWrapper(f))
-        utils.add_junit_test(
-            test_cases, 'confusion matrix format',
-            (len(cm_data['outputs'][0]['schema']) == 3),
-            'the column number of the confusion matrix output is not equal to three'
-        )
-  elif args.testname == 'xgboost_training_cm':
+  if args.testname == 'xgboost_training_cm':
     cm_tar_path = './confusion_matrix.tar.gz'
     utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
                                 'mlpipeline-ui-metadata')
