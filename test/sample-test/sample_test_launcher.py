@@ -93,6 +93,7 @@ class SampleTest(object):
     )
 
   def check_notebook_result(self):
+    os.chdir(self.TEST_DIR)
     # Workaround because papermill does not directly return exit code.
     exit_code = 1 if PAPERMILL_ERR_MSG in \
                      open('%s.ipynb' % self._test_name).read() else 0
