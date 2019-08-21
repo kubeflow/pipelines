@@ -1,0 +1,37 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: minio-deployment
+spec:
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:RELEASE.2019-08-14T20-37-41Z
+          args:
+            - gateway
+            - gcs
+            # Replace this with your own GCP project
+            - yang-experiment-6
+          env:
+            - name: MINIO_ACCESS_KEY
+              value: "minio"
+            - name: MINIO_SECRET_KEY
+              value: "minio123"
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/etc/credentials/application_default_credentials.json"
+          ports:
+            - containerPort: 9000
+          volumeMounts:
+            - name: gcp-sa-token
+              mountPath: "/etc/credentials"
+              readOnly: true
+      volumes:
+        - name: gcp-sa-token
+          secret:
+            secretName: user-gcp-sa
