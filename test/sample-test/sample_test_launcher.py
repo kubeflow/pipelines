@@ -25,14 +25,6 @@ import utils
 import uuid
 
 
-# List of notebook samples' test names and corresponding file names.
-NOTEBOOK_SAMPLES = {
-    'kubeflow_pipeline_using_TFX_OSS_components': 'KubeFlow Pipeline Using TFX OSS Components.ipynb',
-    'lightweight_component': 'Lightweight Python components - basics.ipynb',
-    'dsl_static_type_checking': 'DSL Static Type Checking.ipynb'
-}
-
-
 PROJECT_NAME = 'ml-pipeline-test'
 PAPERMILL_ERR_MSG = 'An Exception was encountered at'
 
