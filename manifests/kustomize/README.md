@@ -10,9 +10,9 @@ export PIPELINE_VERSION=0.1.26
 kubectl apply -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/kustomize/namespaced-install.yaml
 ```
 
-Then open the Pipeline main page
+Then get the Pipeline URL
 ```
-open http://$(kubectl describe configmap inverse-proxy-config -n kubeflow | grep googleusercontent.com) 
+kubectl describe configmap inverse-proxy-config -n kubeflow | grep googleusercontent.com 
 ```
 
 ## Customization
@@ -53,6 +53,7 @@ and open http://localhost:8080/
 ## Uninstall
 You can uninstall Kubeflow Pipelines by running
 ```
+export PIPELINE_VERSION=0.1.26
 kubectl delete -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/kustomize/namespaced-install.yaml
 ```
 
