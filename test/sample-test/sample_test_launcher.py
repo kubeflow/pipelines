@@ -137,7 +137,6 @@ class SampleTest(object):
               EXPERIMENT_NAME='%s-test' % self._test_name
           )
       )
-      self.check_notebook_result()
     elif self._test_name == 'dsl_static_type_checking':
       pm.execute_notebook(
           input_path='DSL Static Type Checking.ipynb',
@@ -146,7 +145,6 @@ class SampleTest(object):
               KFP_PACKAGE='tmp/kfp.tar.gz',
           )
       )
-      self.check_notebook_result()
     else:
       subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
                        '--output', '%s.yaml' % self._test_name])
@@ -205,15 +203,13 @@ class ComponentTest(SampleTest):
 
   def _injection(self):
     """Sample-specific image injection into yaml file."""
-    pass
+
 
   def run_test(self):
     # compile, injection, check_result
     self._run_test()
     self._injection()
     self.check_result()
-
-
 
 
 def main():
