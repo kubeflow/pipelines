@@ -57,8 +57,6 @@ class SampleTest(object):
                          namespace='kubeflow'):
     self._test_name = test_name
     self._results_gcs_dir = results_gcs_dir
-    #(TODO: numerology) target_image_prefix seems to be only used for post-submit
-    # check.
     self._target_image_prefix = target_image_prefix
     self._namespace = namespace
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
