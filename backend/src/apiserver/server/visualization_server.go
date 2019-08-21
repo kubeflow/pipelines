@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cenkalti/backoff"
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -86,6 +87,7 @@ func isVisualizationServiceAlive(serviceURL string, initConnectionTimeout time.D
 	var operation = func() error {
 		_, err := http.Get(serviceURL)
 		if err != nil {
+			glog.Error("Unable to verify visualization service is alive!", err)
 			return err
 		}
 		return nil
