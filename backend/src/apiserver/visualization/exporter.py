@@ -85,7 +85,8 @@ class Exporter:
         self.km.start_kernel()
         self.ep = ExecutePreprocessor(
             timeout=self.timeout,
-            kernel_name='python3'
+            kernel_name='python3',
+            allow_errors=True
         )
 
     @staticmethod
