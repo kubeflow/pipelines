@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# flake8: noqa TODO
+
 import json
 from pathlib import Path
 from bokeh.layouts import row
@@ -34,7 +36,7 @@ from tensorflow.python.lib.io import file_io
 # trueclass
 # true_score_column
 
-if "is_generated" is not in variables or variables["is_generated"] is False:
+if not variables.get("is_generated"):
     # Create data from specified csv file(s).
     # The schema file provides column names for the csv file that will be used
     # to generate the roc curve.
