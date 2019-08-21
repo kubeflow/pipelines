@@ -63,7 +63,7 @@ class TestPythonComponent(unittest.TestCase):
 
     @component
     def b_op(field_x: {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}},
-        field_y: 'GcsUri',
+        field_y: 'GcsUri',  # noqa: F821 TODO
         field_z: GCSPath()) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',
