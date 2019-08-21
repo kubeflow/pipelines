@@ -16,6 +16,12 @@ from pathlib2 import Path
 
 from common import _utils
 
+try:
+  unicode
+except NameError:
+  unicode = str
+
+
 def main(argv=None):
   parser = argparse.ArgumentParser(description='SageMaker Batch Transformation Job')
   parser.add_argument('--region', type=str.strip, required=True, help='The region where the cluster launches.')
