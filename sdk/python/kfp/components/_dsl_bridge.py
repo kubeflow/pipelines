@@ -16,7 +16,7 @@ from collections import OrderedDict
 from typing import Mapping
 from ._structures import ContainerImplementation, ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
 from ._components import _generate_output_file_name, _default_component_name
-from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta, _annotation_to_typemeta
+from kfp.dsl._metadata import ComponentMeta, ParameterMeta
 
 def create_container_op_from_task(task_spec: TaskSpec):
     argument_values = task_spec.arguments
@@ -143,10 +143,10 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
     # Inputs
     if component_spec.inputs is not None:
         for input in component_spec.inputs:
-            component_meta.inputs.append(ParameterMeta(name=input.name, description=input.description, param_type=_annotation_to_typemeta(input.type), default=input.default))
+            component_meta.inputs.append(ParameterMeta(name=input.name, description=input.description, param_type=input.type, default=input.default))
     if component_spec.outputs is not None:
         for output in component_spec.outputs:
-            component_meta.outputs.append(ParameterMeta(name=output.name, description=output.description, param_type=_annotation_to_typemeta(output.type)))
+            component_meta.outputs.append(ParameterMeta(name=output.name, description=output.description, param_type=output.type))
 
     task = dsl.ContainerOp(
         name=name,

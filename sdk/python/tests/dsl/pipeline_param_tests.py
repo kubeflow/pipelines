@@ -15,7 +15,6 @@
 from kubernetes.client.models import V1Container, V1EnvVar
 from kfp.dsl import PipelineParam
 from kfp.dsl._pipeline_param import _extract_pipelineparams, extract_pipelineparams_from_any
-from kfp.dsl._metadata import TypeMeta
 import unittest
 
 
@@ -69,9 +68,9 @@ class TestPipelineParam(unittest.TestCase):
     
   def test_extract_pipelineparam_with_types(self):
     """Test _extract_pipelineparams. """
-    p1 = PipelineParam(name='param1', op_name='op1', param_type=TypeMeta(name='customized_type_a', properties={'property_a': 'value_a'}))
-    p2 = PipelineParam(name='param2', param_type=TypeMeta(name='customized_type_b'))
-    p3 = PipelineParam(name='param3', value='value3', param_type=TypeMeta(name='customized_type_c', properties={'property_c': 'value_c'}))
+    p1 = PipelineParam(name='param1', op_name='op1', param_type={'customized_type_a': {'property_a': 'value_a'}})
+    p2 = PipelineParam(name='param2', param_type='customized_type_b')
+    p3 = PipelineParam(name='param3', value='value3', param_type={'customized_type_c': {'property_c': 'value_c'}})
     stuff_chars = ' between '
     payload = str(p1) + stuff_chars + str(p2) + stuff_chars + str(p3)
     params = _extract_pipelineparams(payload)
