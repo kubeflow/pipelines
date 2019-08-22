@@ -37,7 +37,6 @@ def kfservingPipeline(
                              default_model_uri=default_model_uri,
                              canary_model_uri=canary_model_uri,
                              canary_model_traffic_percentage=canary_model_traffic_percentage,
-                             pvc_name=pvc_name,
                              namespace=namespace,
                              framework=framework)
 

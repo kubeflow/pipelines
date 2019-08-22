@@ -65,7 +65,6 @@ if __name__ == "__main__":
     default_model_uri = args.default_model_uri
     canary_model_uri = args.canary_model_uri
     canary_model_traffic = args.canary_model_traffic
-    pvc_name = args.pvc_name
     namespace = args.namespace
     framework = args.framework.lower()
     output_path = args.output_path
@@ -94,7 +93,7 @@ if __name__ == "__main__":
     elif action  == 'update':
         KFServing.patch(model_name, kfsvc)
     elif action  == 'delete':
-        return V1alpha1ModelSpec(sklearn=V1alpha1SKLearnSpec(model_uri=model_uri))
+        KFServing.delete(model_name)
     else:
         raise("Error: No matching action: " + action)
 
