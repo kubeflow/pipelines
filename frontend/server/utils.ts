@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import {readFileSync} from 'fs';
 
 export function equalArrays(a1: any[], a2: any[]): boolean {
   if (!Array.isArray(a1) || !Array.isArray(a2) || a1.length !== a2.length) {
@@ -31,4 +32,13 @@ export function generateRandomString(length: number): string {
     str += randomChar();
   }
   return str;
+}
+
+export function loadJSON(filepath: string, defaultValue: Object = {}): Object {
+  if (!filepath) return defaultValue;
+  try {
+    return JSON.parse(readFileSync(filepath, "utf-8"))
+  } catch (error) {
+    return defaultValue;
+  }
 }

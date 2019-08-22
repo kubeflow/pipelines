@@ -10,12 +10,12 @@ bases:
 namespace: kubeflow
 
 patchesStrategicMerge:
-  - ml-pipeline-apiserver-deployment-patch.yaml
+  - gcp-configurations-patch.yaml
 
 images:
   - name: gcr.io/cloudsql-docker/gce-proxy
     newTag: "1.14"
-  - name: minio/minio
+  - name: gcr.io/ml-pipeline/minio
     newTag: RELEASE.2019-08-14T20-37-41Z
 
 secretGenerator:

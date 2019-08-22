@@ -16,6 +16,7 @@ import argparse
 from argparse import Namespace
 import importlib
 import json
+import os
 from pathlib import Path
 from typing import Text
 import shlex
@@ -31,7 +32,7 @@ parser = argparse.ArgumentParser(description="Server Arguments")
 parser.add_argument(
     "--timeout",
     type=int,
-    default=100,
+    default=os.getenv('KERNEL_TIMEOUT', 100),
     help="Amount of time in seconds that a visualization can run for before " +
          "being stopped."
 )

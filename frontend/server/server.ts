@@ -27,6 +27,8 @@ import proxyMiddleware from './proxy-middleware';
 import { Storage } from '@google-cloud/storage';
 import {Stream} from 'stream';
 
+import {loadJSON} from './utils';
+
 const BASEPATH = '/pipeline';
 
 /** All configurable environment variables can be found here. */
@@ -50,7 +52,9 @@ const {
   /** API service will listen to this host */
   ML_PIPELINE_SERVICE_HOST = 'localhost',
   /** API service will listen to this port */
-  ML_PIPELINE_SERVICE_PORT = '3001'
+  ML_PIPELINE_SERVICE_PORT = '3001',
+  /** path to viewer:tensorboard pod template spec */
+  VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH
 } = process.env;
 
 /** construct minio endpoint from host and namespace (optional) */
@@ -74,6 +78,9 @@ const s3Client = new MinioClient({
   accessKey: AWS_ACCESS_KEY_ID,
   secretKey: AWS_SECRET_ACCESS_KEY,
 } as any);
+
+/** pod template spec to use for viewer crd */
+const podTemplateSpec = loadJSON(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH, k8sHelper.defaultPodTemplateSpec)
 
 const app = express() as Application;
 
@@ -278,7 +285,7 @@ const createTensorboardHandler = async (req, res) => {
   }
 
   try {
-    await k8sHelper.newTensorboardInstance(logdir);
+    await k8sHelper.newTensorboardInstance(logdir, podTemplateSpec);
     const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(logdir, 60 * 1000);
     res.send(tensorboardAddress);
   } catch (err) {
