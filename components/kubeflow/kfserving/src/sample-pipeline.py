@@ -22,24 +22,24 @@ kfserving_op = components.load_component_from_file('component.yaml')
   description='A pipeline for kfserving.'
 )
 def kfservingPipeline(
+    action = 'create',
     model_name='tensorflow-sample',
     default_model_uri='gs://kfserving-samples/models/tensorflow/flowers',
     canary_model_uri='gs://kfserving-samples/models/tensorflow/flowers',
     canary_model_traffic_percentage='10',
-    pvc_name='',
     namespace='kubeflow',
     framework='tensorflow'
 ):
 
     # define workflow
-    kfserving = kfserving_op(model_name=model_name,
+    kfserving = kfserving_op(action = action,
+                             model_name=model_name,
                              default_model_uri=default_model_uri,
                              canary_model_uri=canary_model_uri,
                              canary_model_traffic_percentage=canary_model_traffic_percentage,
                              pvc_name=pvc_name,
                              namespace=namespace,
                              framework=framework)
-
 
 if __name__ == '__main__':
     import kfp.compiler as compiler

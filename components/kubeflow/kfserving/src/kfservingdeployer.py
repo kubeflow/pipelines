@@ -50,16 +50,17 @@ def ModelSpec(framework, model_uri):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('--action', type=str, help='Action to execute on KFServing', default='create')
     parser.add_argument('--model-name', type=str, help='Name to give to the deployed model', default="")
     parser.add_argument('--default-model-uri', type=str, help='Path of the S3, GCS or PVC directory containing default model.')
     parser.add_argument('--canary-model-uri', type=str, help='Optional path of the S3, GCS or PVC directory containing canary model.', default="")
     parser.add_argument('--canary-model-traffic', type=str, help='Optional Traffic to be sent to the default model', default='0')
-    parser.add_argument('--pvc-name', type=str, help='Optional PersistentVolumeClaim to use.', default="")
     parser.add_argument('--namespace', type=str, help='Kubernetes namespace where the KFServing service is deployed.', default='kubeflow')
     parser.add_argument('--framework', type=str, help='Model Serving Framework', default='tensorflow')
     parser.add_argument('--output_path', type=str, help='Path to store URI output')
     args = parser.parse_args()
 
+    action = args.action.lower()
     model_name = args.model_name
     default_model_uri = args.default_model_uri
     canary_model_uri = args.canary_model_uri
@@ -87,14 +88,15 @@ if __name__ == "__main__":
                                   metadata=metadata,
                                   spec=V1alpha1KFServiceSpec(default=default_model_spec))
     KFServing = KFServingClient()
-    #TODO: Implement patch update once #277 issue is resolved
-    try:
-        KFServing.get(model_name, namespace=namespace)
-        KFServing.delete(model_name, namespace=namespace)
+  
+    if action == 'create':
         KFServing.create(kfsvc)
-        # KFServing.patch(model_name, kfsvc)
-    except:
-        KFServing.create(kfsvc)
+    elif action  == 'update':
+        KFServing.patch(model_name, kfsvc)
+    elif action  == 'delete':
+        return V1alpha1ModelSpec(sklearn=V1alpha1SKLearnSpec(model_uri=model_uri))
+    else:
+        raise("Error: No matching action: " + action)
 
     model_status = KFServing.get(model_name, namespace=namespace)
     print(model_status)
