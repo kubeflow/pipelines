@@ -17,4 +17,9 @@ spec:
       - image: gcr.io/ml-pipeline/scheduledworkflow:0.1.15
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-scheduledworkflow
+        env:
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
       serviceAccountName: ml-pipeline-scheduledworkflow
