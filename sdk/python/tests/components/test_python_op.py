@@ -186,14 +186,14 @@ class PythonOpTestCase(unittest.TestCase):
 
     def test_extract_component_interface(self):
         from typing import NamedTuple
-        def my_func(
+        def my_func( # noqa: F722
             required_param,
             int_param: int = 42,
             float_param : float = 3.14,
             str_param : str = 'string',
             bool_param : bool = True,
             none_param = None,
-            custom_type_param: 'Custom type' = None,# noqa: F722
+            custom_type_param: 'Custom type' = None,
             ) -> NamedTuple('DummyName', [
                 #('required_param',), # All typing.NamedTuple fields must have types
                 ('int_param', int),
