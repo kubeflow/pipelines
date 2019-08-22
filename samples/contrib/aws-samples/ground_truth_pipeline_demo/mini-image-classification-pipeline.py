@@ -136,4 +136,4 @@ def ground_truth_test(region='us-west-2',
     ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(hpo_test, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(hpo_test, __file__ + '.zip')  # noqa: F821 TODO
