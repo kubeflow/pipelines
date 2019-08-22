@@ -46,6 +46,7 @@ const (
 	Visualization_TFDV      Visualization_Type = 1
 	Visualization_TFMA      Visualization_Type = 2
 	Visualization_TABLE     Visualization_Type = 3
+	Visualization_CUSTOM    Visualization_Type = 4
 )
 
 var Visualization_Type_name = map[int32]string{
@@ -53,12 +54,14 @@ var Visualization_Type_name = map[int32]string{
 	1: "TFDV",
 	2: "TFMA",
 	3: "TABLE",
+	4: "CUSTOM",
 }
 var Visualization_Type_value = map[string]int32{
 	"ROC_CURVE": 0,
 	"TFDV":      1,
 	"TFMA":      2,
 	"TABLE":     3,
+	"CUSTOM":    4,
 }
 
 func (x Visualization_Type) String() string {
