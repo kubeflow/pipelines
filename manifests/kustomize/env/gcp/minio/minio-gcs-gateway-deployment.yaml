@@ -1,8 +1,11 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
-  name: minio-deployment
+  name: minio
 spec:
+  selector:
+    matchLabels:
+      app: minio
   strategy:
     type: Recreate
   template:
@@ -12,12 +15,10 @@ spec:
     spec:
       containers:
         - name: minio
-          image: minio/minio:RELEASE.2019-08-14T20-37-41Z
+          image: gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z
           args:
             - gateway
             - gcs
-            # Replace this with your own GCP project
-            - yang-experiment-6
           env:
             - name: MINIO_ACCESS_KEY
               value: "minio"

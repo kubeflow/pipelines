@@ -1,8 +1,11 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   name: cloudsqlproxy
 spec:
+  selector:
+    matchLabels:
+      app: cloudsqlproxy
   replicas: 1
   template:
     metadata:
@@ -12,10 +15,17 @@ spec:
       containers:
         - image: gcr.io/cloudsql-docker/gce-proxy:1.14
           name: cloudsqlproxy
+          env:
+            - name: GCP_PROJECT
+              value: ""
+            - name: CLOUDSQL_ZONE
+              value: ""
+            - name: CLOUDSQL_INSTANCE_NAME
+              value: ""
           command: ["/cloud_sql_proxy",
                     "-dir=/cloudsql",
                     # Replace with your own CloudSQL instance ID
-                    "-instances=yang-experiment-6:us-central1:kfp-test=tcp:0.0.0.0:3306",
+                    "-instances=$(GCP_PROJECT):$(CLOUDSQL_ZONE):$(CLOUDSQL_INSTANCE_NAME)=tcp:0.0.0.0:3306",
                     "-credential_file=/credentials/application_default_credentials.json",
                     "term_timeout=10s"]
           # set term_timeout if require graceful handling of shutdown
