@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import 'codemirror/lib/codemirror.css';
-import 'codemirror/mode/yaml/yaml.js';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
@@ -35,11 +33,15 @@ import { Page } from './Page';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { URLParser } from '../lib/URLParser';
-import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
+import Editor from '../components/Editor';
 import { color, commonCss, padding, fontsize, fonts, zIndex } from '../Css';
 import { logger, formatDateString } from '../lib/Utils';
+import 'brace';
+import 'brace/ext/language_tools';
+import 'brace/mode/yaml';
+import 'brace/theme/github';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -67,6 +69,7 @@ export const css = stylesheet({
       },
     },
     background: '#f7f7f7',
+    height: '100%',
   },
   footer: {
     background: color.graphBg,
@@ -213,16 +216,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             </div>}
             {selectedTab === 1 && !!templateString &&
               <div className={css.containerCss}>
-                <CodeMirror
+                <Editor
                   value={templateString || ''}
-                  editorDidMount={(editor) => editor.refresh()}
-                  options={{
-                    lineNumbers: true,
-                    lineWrapping: true,
-                    mode: 'text/yaml',
-                    readOnly: true,
-                    theme: 'default',
-                  }}
+                  height='100%' width='100%' mode='yaml' theme='github'
+                  editorProps={{ $blockScrolling: true }}
+                  readOnly={true} highlightActiveLine={true} showGutter={true}
                 />
               </div>
             }

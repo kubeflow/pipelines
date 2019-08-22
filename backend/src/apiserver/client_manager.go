@@ -46,6 +46,9 @@ const (
 
 	podNamespace          = "POD_NAMESPACE"
 	initConnectionTimeout = "InitConnectionTimeout"
+
+	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
+	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 )
 
 // Container for all service clients

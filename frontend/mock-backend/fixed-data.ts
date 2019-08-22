@@ -17,6 +17,7 @@ import helloWorldWithStepsRun from './hello-world-with-steps-runtime';
 import coinflipRun from './mock-coinflip-runtime';
 import errorRun from './mock-error-runtime';
 import xgboostRun from './mock-xgboost-runtime';
+import jsonRun from './json-runtime';
 import { ApiExperiment } from '../src/apis/experiment';
 import { ApiJob } from '../src/apis/job';
 import { ApiPipeline } from '../src/apis/pipeline';
@@ -346,6 +347,40 @@ const runs: ApiRunDetail[] = [
       scheduled_at: new Date('2018-04-17T21:00:00.000Z'),
       status: 'Error',
     },
+  },
+  {
+    pipeline_runtime: {
+      workflow_manifest: JSON.stringify(jsonRun),
+    },
+    run: {
+      created_at: new Date('2018-05-17T21:58:23.000Z'),
+      description: 'A simple run with json input',
+      id: '183ac01f-dc26-4ebf-b817-7b3f96fdc3ac',
+      metrics: [{
+        format: RunMetricFormat.PERCENTAGE,
+        name: 'accuracy',
+        node_id: 'json-12abc',
+        number_value: 0.5423,
+      }],
+      name: 'json-12abc',
+      pipeline_spec: {
+        parameters: [
+          { name: 'paramName1', value: 'paramVal1' },
+          { name: 'paramName2', value: 'paramVal2' },
+        ],
+        pipeline_id: pipelines[2].id,
+        pipeline_name: pipelines[2].name,
+      },
+      resource_references: [{
+        key: {
+          id: 'a4d4f8c6-ce9c-4200-a92e-c48ec759b733',
+          type: ApiResourceType.EXPERIMENT,
+        },
+        relationship: ApiRelationship.OWNER,
+      }],
+      scheduled_at: new Date('2018-05-17T21:58:23.000Z'),
+      status: 'Running',
+    }
   },
   {
     pipeline_runtime: {

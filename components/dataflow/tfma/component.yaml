@@ -17,7 +17,7 @@ outputs:
 - {name: Analysis results dir, type: GCSPath,   description: GCS or local directory where the analysis results should were written.} # type: {GCSPath: {path_type: Directory}}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:0517114dc2b365a4a6d95424af6157ead774eff3
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:151c5349f13bea9d626c988563c04c0a86210c21
     command: [python2, /ml/model_analysis.py]
     args: [
       --model,    {inputValue: Model},
