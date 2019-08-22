@@ -6,6 +6,7 @@ bases:
 - crds
 - pipeline
 - proxy
+- metadata
 
 images:
 - name: argoproj/workflow-controller

@@ -1,0 +1,27 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: metadata-deployment
+  labels:
+    component: metadata-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-server
+  template:
+    metadata:
+      labels:
+        component: metadata-server
+    spec:
+      containers:
+      - name: container
+        image: gcr.io/kubeflow-images-public/metadata:v0.1.8
+        command: ["./server/server",
+                  "--http_port=8080",
+                  "--mysql_service_host=mysql",
+                  "--mysql_service_port=3306",
+                  "--mlmd_db_name=metadb"]
+        ports:
+        - name: md-backendapi
+          containerPort: 8080
