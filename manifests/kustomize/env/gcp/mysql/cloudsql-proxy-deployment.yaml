@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cloudsqlproxy
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cloudsqlproxy
+    spec:
+      containers:
+        - image: gcr.io/cloudsql-docker/gce-proxy:1.14
+          name: cloudsqlproxy
+          command: ["/cloud_sql_proxy",
+                    "-dir=/cloudsql",
+                    # Replace with your own CloudSQL instance ID
+                    "-instances=yang-experiment-6:us-central1:kfp-test=tcp:0.0.0.0:3306",
+                    "-credential_file=/credentials/application_default_credentials.json",
+                    "term_timeout=10s"]
+          # set term_timeout if require graceful handling of shutdown
+          # NOTE: proxy will stop accepting new connections; only wait on existing connections
+          lifecycle:
+            preStop:
+              exec:
+                # (optional) add a preStop hook so that termination is delayed
+                # this is required if your server still require new connections (e.g., connection pools)
+                command: ['sleep', '10']
+          ports:
+            - name: port-database1
+              containerPort: 3306
+          volumeMounts:
+            - mountPath: /cloudsql
+              name: cloudsql
+            - mountPath: /credentials
+              name: gcp-sa-token
+      volumes:
+        - name: cloudsql
+          emptyDir:
+        - name: gcp-sa-token
+          secret:
+            secretName: user-gcp-sa
