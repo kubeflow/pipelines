@@ -93,7 +93,7 @@ if __name__ == "__main__":
     elif action  == 'update':
         KFServing.patch(model_name, kfsvc)
     elif action  == 'delete':
-        KFServing.delete(model_name)
+        KFServing.delete(model_name, namespace=namespace)
     else:
         raise("Error: No matching action: " + action)
 
