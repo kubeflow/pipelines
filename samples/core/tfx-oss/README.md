@@ -26,13 +26,13 @@ pip install kfp --upgrade
 
 Upload the utility code to your storage bucket. You can modify this code if needed for a different dataset.
 ```
-gsutil cp ./taxi_utils.py gs://my-bucket/<path>/
+gsutil cp utils/taxi_utils.py gs://my-bucket/<path>/
 ```
 
 If gsutil does not work, try `tensorflow.gfile`:
 ```
 from tensorflow import gfile
-gfile.Copy('./taxi_utils.py', 'gs://<my bucket>/<path>/taxi_utils.py')
+gfile.Copy('utils/taxi_utils.py', 'gs://<my bucket>/<path>/taxi_utils.py')
 ```
 
 ## Configure the TFX Pipeline
