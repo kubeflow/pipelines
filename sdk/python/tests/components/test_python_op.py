@@ -186,7 +186,7 @@ class PythonOpTestCase(unittest.TestCase):
 
     def test_extract_component_interface(self):
         from typing import NamedTuple
-        def my_func(
+        def my_func( # noqa: F722
             required_param,
             int_param: int = 42,
             float_param : float = 3.14,
