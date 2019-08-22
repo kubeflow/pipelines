@@ -686,7 +686,7 @@ class Compiler(object):
       arg_type = None
       for input in pipeline_meta.inputs:
         if arg_name == input.name:
-          arg_type = input.param_type
+          arg_type = input.type
           break
       args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
 

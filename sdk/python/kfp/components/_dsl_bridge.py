@@ -15,8 +15,8 @@
 from collections import OrderedDict
 from typing import Mapping
 from ._structures import ContainerImplementation, ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
+from ._structures import InputSpec, OutputSpec
 from ._components import _generate_output_file_name, _default_component_name
-from kfp.dsl._metadata import ComponentMeta, ParameterMeta
 
 def create_container_op_from_task(task_spec: TaskSpec):
     argument_values = task_spec.arguments
@@ -139,14 +139,15 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
     output_paths_for_container_op = {output_name_to_kubernetes[name]: path for name, path in output_paths.items()}
 
     # Construct the ComponentMeta
+    from kfp.dsl._metadata import ComponentMeta
     component_meta = ComponentMeta(name=component_spec.name, description=component_spec.description)
     # Inputs
     if component_spec.inputs is not None:
         for input in component_spec.inputs:
-            component_meta.inputs.append(ParameterMeta(name=input.name, description=input.description, param_type=input.type, default=input.default))
+            component_meta.inputs.append(InputSpec(name=input.name, description=input.description, type=input.type, default=input.default))
     if component_spec.outputs is not None:
         for output in component_spec.outputs:
-            component_meta.outputs.append(ParameterMeta(name=output.name, description=output.description, param_type=output.type))
+            component_meta.outputs.append(OutputSpec(name=output.name, description=output.description, type=output.type))
 
     task = dsl.ContainerOp(
         name=name,
