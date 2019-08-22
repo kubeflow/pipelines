@@ -12,27 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List
-from abc import ABCMeta, abstractmethod
 from .types import BaseType, _check_valid_type_dict, _instance_to_dict
 from ..components._structures import ComponentSpec, InputSpec, OutputSpec
-
-
-class BaseMeta(object):
-  __metaclass__ = ABCMeta
-  def __init__(self):
-    pass
-
-  @abstractmethod
-  def to_dict(self):
-    pass
-
-  def serialize(self):
-    import yaml
-    return yaml.dump(self.to_dict())
-
-  def __eq__(self, other):
-    return self.__dict__ == other.__dict__
 
 
 def _annotation_to_typemeta(annotation):
