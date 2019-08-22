@@ -586,6 +586,20 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: ml-pipeline-visualizationserver
+  namespace: kubeflow
+spec:
+  ports:
+  - name: http
+    port: 8888
+    protocol: TCP
+    targetPort: 8888
+  selector:
+    app: ml-pipeline-visualizationserver
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: ml-pipeline
   namespace: kubeflow
 spec:
@@ -761,6 +775,29 @@ spec:
         imagePullPolicy: Always
         name: ml-pipeline-viewer-crd
       serviceAccountName: ml-pipeline-viewer-crd-service-account
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    app: ml-pipeline-visualizationserver
+  name: ml-pipeline-visualizationserver
+  namespace: kubeflow
+spec:
+  selector:
+    matchLabels:
+      app: ml-pipeline-visualizationserver
+  template:
+    metadata:
+      labels:
+        app: ml-pipeline-visualizationserver
+    spec:
+      containers:
+      - image: gcr.io/ml-pipeline/visualization-server:0.1.26
+        imagePullPolicy: IfNotPresent
+        name: ml-pipeline-visualizationserver
+        ports:
+        - containerPort: 8888
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
