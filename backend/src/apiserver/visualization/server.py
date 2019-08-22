@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import argparse
+from argparse import Namespace
 import importlib
+import json
 from pathlib import Path
 from typing import Text
 import shlex
@@ -73,48 +75,47 @@ class VisualizationHandler(tornado.web.RequestHandler):
             help="JSON string of arguments to be provided to visualizations."
         )
 
-    def get_arguments_from_body(self) -> argparse.Namespace:
-        """Converts arguments from post request to argparser.Namespace format.
+    def get_arguments_from_body(self) -> Namespace:
+        """Converts arguments from post request to Namespace format.
 
         This is done because arguments, by default are provided in the
         x-www-form-urlencoded format. This format is difficult to parse compared
-        to argparser.Namespace, which is a dict.
+        to Namespace, which is a dict.
 
         Returns:
-            Arguments provided from post request as arparser.Namespace object.
+            Arguments provided from post request as a Namespace object.
         """
         split_arguments = shlex.split(self.get_body_argument("arguments"))
         return self.requestParser.parse_args(split_arguments)
 
-    def is_valid_request_arguments(self, arguments: argparse.Namespace) -> bool:
-        """Validates arguments from post request and sends error if invalid.
+    def is_valid_request_arguments(self, arguments: Namespace):
+        """Validates arguments from post request and raises error if invalid.
 
         Args:
-            arguments: x-www-form-urlencoded formatted arguments
-
-        Returns:
-            Boolean value representing if provided arguments are valid.
+            arguments: Namespace formatted arguments
         """
         if arguments.type is None:
-            self.send_error(400, reason="No type specified.")
-            return False
+            raise Exception("No type specified.")
         if arguments.source is None:
-            self.send_error(400, reason="No source specified.")
-            return False
+            raise Exception("No source specified.")
+        try:
+            json.loads(arguments.arguments)
+        except json.JSONDecodeError:
+            raise Exception("Invalid JSON provided as arguments.")
 
         return True
 
     def generate_notebook_from_arguments(
         self,
-        arguments: argparse.Namespace,
+        arguments: dict,
         source: Text,
         visualization_type: Text
     ) -> NotebookNode:
         """Generates a NotebookNode from provided arguments.
 
         Args:
-            arguments: x-www-form-urlencoded formatted arguments.
-            input_path: Path or path pattern to be used as data reference for
+            arguments: JSON object containing provided arguments.
+            source: Path or path pattern to be used as data reference for
             visualization.
             visualization_type: Name of visualization to be generated.
 
@@ -139,16 +140,20 @@ class VisualizationHandler(tornado.web.RequestHandler):
         # Parse arguments from request.
         request_arguments = self.get_arguments_from_body()
         # Validate arguments from request.
-        if self.is_valid_request_arguments(request_arguments):
-            # Create notebook with arguments from request.
-            nb = self.generate_notebook_from_arguments(
-                request_arguments.arguments,
-                request_arguments.source,
-                request_arguments.type
-            )
-            # Generate visualization (output for notebook).
-            html = _exporter.generate_html_from_notebook(nb)
-            self.write(html)
+        try:
+            self.is_valid_request_arguments(request_arguments)
+        except Exception as e:
+            return self.send_error(400, reason=str(e))
+
+        # Create notebook with arguments from request.
+        nb = self.generate_notebook_from_arguments(
+            json.loads(request_arguments.arguments),
+            request_arguments.source,
+            request_arguments.type
+        )
+        # Generate visualization (output for notebook).
+        html = _exporter.generate_html_from_notebook(nb)
+        self.write(html)
 
 
 if __name__ == "__main__":

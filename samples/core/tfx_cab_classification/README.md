@@ -56,20 +56,14 @@ Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compi
   1. The name of a GCP project.
   2. An output directory in a Google Cloud Storage bucket, of     the form `gs://<BUCKET>/<PATH>`.
 - On-Premise
-  For On-Premise cluster, the pipeline will create a Persistent Volume Claim (PVC), and download 
-  automatically the 
-  [source data](https://github.com/kubeflow/pipelines/tree/master/samples/core/tfx_cab_classification/taxi-cab-classification) 
-  to the PVC.
+  For On-Premise cluster, the pipeline will create a Persistent Volume Claim (PVC), and download automatically the [source date](https://github.com/kubeflow/pipelines/tree/master/samples/core/tfx_cab_classification/taxi-cab-classification) to the PVC.
   1. The `output` is PVC mount point for the containers, can be set to `/mnt`.
   2. The `project` can be set to `taxi-cab-classification-pipeline-onprem`.
   3. If the PVC mounted to `/mnt`, the value of below parameters need to be set as following:
-  - `column-names`: `
-/mnt/pipelines/samples/tfx/taxi-cab-classification/column-names.json`
-  - `train`: `/mnt/pipelines/samples/tfx/taxi-cab-classification/train.csv`
-  -  `evaluation`: `/mnt/pipelines/samples/tfx/taxi-cab-classification/eval.csv`
-  -  `preprocess-module`: `/mnt/pipelines/samples/tfx/taxi-cab-classification/preprocessing.py` 
-
-
+  - `column-names`: `/mnt/pipelines/samples/core/tfx_cab_classification/taxi-cab-classification/column-names.json`
+  - `train`: `/mnt/pipelines/samples/core/tfx_cab_classification/taxi-cab-classification/train.csv`
+  - `evaluation`: `/mnt/pipelines/samples/core/tfx_cab_classification/taxi-cab-classification/eval.csv`
+  - `preprocess-module`: `/mnt/pipelines/samples/core/tfx_cab_classification/taxi-cab-classification/preprocessing.py`
 
 ## Components source
 

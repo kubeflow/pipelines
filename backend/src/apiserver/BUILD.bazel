@@ -13,7 +13,6 @@ go_library(
     deps = [
         "//backend/api:go_default_library",
         "//backend/src/apiserver/client:go_default_library",
-        "//backend/src/apiserver/metadata:go_default_library",
         "//backend/src/apiserver/model:go_default_library",
         "//backend/src/apiserver/resource:go_default_library",
         "//backend/src/apiserver/server:go_default_library",
@@ -24,15 +23,11 @@ go_library(
         "@com_github_cenkalti_backoff//:go_default_library",
         "@com_github_fsnotify_fsnotify//:go_default_library",
         "@com_github_golang_glog//:go_default_library",
-        "@com_github_golang_protobuf//proto:go_default_library",
         "@com_github_grpc_ecosystem_grpc_gateway//runtime:go_default_library",
         "@com_github_jinzhu_gorm//:go_default_library",
         "@com_github_jinzhu_gorm//dialects/sqlite:go_default_library",
         "@com_github_minio_minio_go//:go_default_library",
         "@com_github_spf13_viper//:go_default_library",
-        "@google_ml_metadata//ml_metadata/metadata_store:metadata_store_go",  # keep
-        "@google_ml_metadata//ml_metadata/proto:metadata_store_go_proto",  # keep
-        "@google_ml_metadata//ml_metadata/proto:metadata_store_service_go_proto",  # keep
         "@io_k8s_client_go//kubernetes/typed/core/v1:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
         "@org_golang_google_grpc//reflection:go_default_library",

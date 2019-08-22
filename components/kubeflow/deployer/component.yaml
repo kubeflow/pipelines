@@ -11,7 +11,7 @@ inputs:
 #  - {name: Endppoint URI, type: Serving URI,                      description: 'URI of the deployed prediction service..'}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:fe639f41661d8e17fcda64ff8242127620b80ba0
+    image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-deployer:151c5349f13bea9d626c988563c04c0a86210c21
     command: [/bin/deploy.sh]
     args: [
       --model-export-path,  {inputValue: Model dir},

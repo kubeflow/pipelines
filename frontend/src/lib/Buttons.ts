@@ -28,6 +28,7 @@ export enum ButtonKeys {
   ARCHIVE = 'archive',
   CLONE_RUN = 'cloneRun',
   CLONE_RECURRING_RUN = 'cloneRecurringRun',
+  RETRY = 'retry',
   COLLAPSE = 'collapse',
   COMPARE = 'compare',
   DELETE_RUN = 'deleteRun',
@@ -95,6 +96,19 @@ export default class Buttons {
       id: 'cloneBtn',
       title: 'Clone recurring run',
       tooltip: 'Create a copy from this run\s initial state',
+    };
+    return this;
+  }
+
+  public retryRun(getSelectedIds: () => string[], useCurrentResource: boolean,
+                  callback: (selectedIds: string[], success: boolean) => void): Buttons {
+    this._map[ButtonKeys.RETRY] = {
+      action: () => this._retryRun(getSelectedIds(), useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to retry',
+      id: 'retryBtn',
+      title: 'Retry',
+      tooltip: 'Retry',
     };
     return this;
   }
@@ -290,6 +304,19 @@ export default class Buttons {
       const searchString = this._urlParser.build(searchTerms);
       this._props.history.push(RoutePage.NEW_RUN + searchString);
     }
+  }
+
+  private _retryRun(selectedIds: string[], useCurrent: boolean,
+                    callback: (selectedIds: string[], success: boolean) => void): void {
+    this._dialogActionHandler(
+        selectedIds,
+        'Retry this run?',
+        useCurrent,
+        id => Apis.runServiceApi.retryRun(id),
+        callback,
+        'Retry',
+        'run'
+    );
   }
 
   private _archive(selectedIds: string[], useCurrent: boolean,
