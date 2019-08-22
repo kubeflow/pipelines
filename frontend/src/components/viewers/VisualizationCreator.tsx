@@ -97,6 +97,10 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
 
     const { isBusy = false, onGenerate } = config;
 
+    // Only allow a visualization to be generated if one is not already being
+    // generated (as indicated by the isBusy tag), and if there is an source
+    // provided, and a visualization type is selected, and a onGenerate function
+    // is provided.
     const hasSourceAndSelectedType = source.length > 0 && !!selectedType;
     const isCustomTypeAndHasCode = selectedType === ApiVisualizationType.CUSTOM && code.length > 0;
     const canGenerate = !isBusy && !!onGenerate && (hasSourceAndSelectedType || isCustomTypeAndHasCode);
