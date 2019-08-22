@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-import 'codemirror/lib/codemirror.css';
-import 'codemirror/mode/javascript/javascript.js';
 import * as React from 'react';
 import { stylesheet } from 'typestyle';
 import { color, spacing, commonCss } from '../Css';
-import { UnControlled as CodeMirror } from 'react-codemirror2';
+import Editor from './Editor';
+import 'brace';
+import 'brace/ext/language_tools';
+import 'brace/mode/json';
+import 'brace/theme/github';
 
 export const css = stylesheet({
-  codeMirrorGutter: {
-    width: 6,
-  },
   key: {
     color: color.strong,
     flex: '0 0 50%',
@@ -57,25 +56,16 @@ export default (props: DetailsTableProps) => {
         try {
           const parsedJson = JSON.parse(f[1]);
           // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
-          // about rendering those using CodeMirror. Note that `typeOf null` returns 'object'
+          // about rendering. Note that `typeOf null` returns 'object'
           if (parsedJson === null || typeof parsedJson !== 'object') {
             throw new Error('Parsed JSON was neither an array nor an object. Using default renderer');
           }
           return (
             <div key={i} className={css.row}>
               <span className={css.key}>{f[0]}</span>
-              <CodeMirror
-                  className={css.valueJson}
-                  value={JSON.stringify(parsedJson, null, 2) || ''}
-                  editorDidMount={(editor) => editor.refresh()}
-                  options={{
-                    gutters: [css.codeMirrorGutter],
-                    lineWrapping: true,
-                    mode: 'application/json',
-                    readOnly: true,
-                    theme: 'default',
-                  }}
-                />
+              <Editor width='100%' height='300px' mode='json' theme='github'
+                highlightActiveLine={true} showGutter={true} readOnly={true}
+                value={JSON.stringify(parsedJson, null, 2) || ''} />
             </div>
           );
         } catch (err) {
