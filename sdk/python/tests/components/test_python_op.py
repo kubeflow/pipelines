@@ -193,7 +193,7 @@ class PythonOpTestCase(unittest.TestCase):
             str_param : str = 'string',
             bool_param : bool = True,
             none_param = None,
-            custom_type_param: 'Custom type' = None,
+            custom_type_param: 'Custom type' = None,# noqa: F722
             ) -> NamedTuple('DummyName', [
                 #('required_param',), # All typing.NamedTuple fields must have types
                 ('int_param', int),
