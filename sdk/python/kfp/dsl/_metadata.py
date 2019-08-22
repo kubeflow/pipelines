@@ -32,64 +32,22 @@ class BaseMeta(object):
   def __eq__(self, other):
     return self.__dict__ == other.__dict__
 
-class TypeMeta(BaseMeta):
-  def __init__(self,
-      name: str = '',
-      properties: Dict = None):
-    self.name = name
-    self.properties = {} if properties is None else properties
-
-  def to_dict_or_str(self):
-    if self.properties is None or len(self.properties) == 0:
-      return self.name
-    else:
-      return {self.name: self.properties}
-
-  @staticmethod
-  def from_dict_or_str(payload):
-    '''from_dict_or_str accepts a payload object and returns a TypeMeta instance
-     Args:
-       payload (str/dict): the payload could be a str or a dict
-    '''
-
-    type_meta = TypeMeta()
-    if isinstance(payload, dict):
-      if not _check_valid_type_dict(payload):
-        raise ValueError(payload + ' is not a valid type string')
-      type_meta.name, type_meta.properties = list(payload.items())[0]
-      # Convert possible OrderedDict to dict
-      type_meta.properties = dict(type_meta.properties)
-    elif isinstance(payload, str):
-      type_meta.name = payload
-    else:
-      raise ValueError('from_dict_or_str is expecting either dict or str.')
-    return type_meta
-
-  def serialize(self):
-    return str(self.to_dict_or_str())
-
-  @staticmethod
-  def deserialize(payload):
-    '''deserialize expects two types of input: dict and str
-    1) If the payload is a string, the type is named as such with no properties.
-    2) If the payload is a dict, the type name and properties are extracted. '''
-    return TypeMeta.from_dict_or_str(payload)
 
 class ParameterMeta(BaseMeta):
   def __init__(self,
       name: str,
       description: str = '',
-      param_type: TypeMeta = None,
+      param_type = None,
       default = None):
     self.name = name
     self.description = description
-    self.param_type = TypeMeta() if param_type is None else param_type
+    self.param_type = param_type
     self.default = default
 
   def to_dict(self):
     return {'name': self.name,
             'description': self.description,
-            'type': self.param_type.to_dict_or_str(),
+            'type': self.param_type or '',
             'default': self.default}
 
 class ComponentMeta(BaseMeta):
@@ -132,25 +90,25 @@ class PipelineMeta(BaseMeta):
             }
 
 def _annotation_to_typemeta(annotation):
-  '''_annotation_to_type_meta converts an annotation to an instance of TypeMeta
+  '''_annotation_to_type_meta converts an annotation to a type structure
   Args:
     annotation(BaseType/str/dict): input/output annotations
       BaseType: registered in kfp.dsl.types
       str: either a string of a dict serialization or a string of the type name
       dict: type name and properties. note that the properties values can be dict.
   Returns:
-    TypeMeta
+    dict or string representing the type
     '''
   if isinstance(annotation, BaseType):
-    arg_type = TypeMeta.deserialize(_instance_to_dict(annotation))
+    arg_type = _instance_to_dict(annotation)
   elif isinstance(annotation, str):
-    arg_type = TypeMeta.deserialize(annotation)
+    arg_type = annotation
   elif isinstance(annotation, dict):
     if not _check_valid_type_dict(annotation):
       raise ValueError('Annotation ' + str(annotation) + ' is not a valid type dictionary.')
-    arg_type = TypeMeta.deserialize(annotation)
+    arg_type = annotation
   else:
-    return TypeMeta()
+    return None
   return arg_type
 
 
@@ -174,7 +132,7 @@ def _extract_component_metadata(func):
   # Inputs
   inputs = []
   for arg in fullargspec.args:
-    arg_type = TypeMeta()
+    arg_type = None
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
     if isinstance(arg_default, PipelineParam):
       arg_default = arg_default.value
@@ -227,19 +185,20 @@ def _extract_pipeline_metadata(func):
   )
   # Inputs
   for arg in args:
-    arg_type = TypeMeta()
+    arg_type = None
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
     if isinstance(arg_default, PipelineParam):
       arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
-    if 'openapi_schema_validator' in arg_type.properties and arg_default is not None:
+    arg_type_properties = list(arg_type.values())[0] if isinstance(arg_type, dict) else {}
+    if 'openapi_schema_validator' in arg_type_properties and arg_default is not None:
       from jsonschema import validate
       import json
-      schema_object = arg_type.properties['openapi_schema_validator']
+      schema_object = arg_type_properties['openapi_schema_validator']
       if isinstance(schema_object, str):
         # In case the property value for the schema validator is a string instead of a dict.
-        schema_object = json.loads(arg_type.properties['openapi_schema_validator'])
+        schema_object = json.loads(schema_object)
       validate(instance=arg_default, schema=schema_object)
     pipeline_meta.inputs.append(ParameterMeta(name=arg, description='', param_type=arg_type, default=arg_default))
 
