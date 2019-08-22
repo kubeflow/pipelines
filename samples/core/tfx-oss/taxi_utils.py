@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Python source file include taxi pipeline functions and necessary utils.
+"""Python source file include taxi pipeline functions and necesasry utils.
 
 For a TFX pipeline to successfully run, a preprocessing_fn and a
 _build_estimator function needs to be provided.  This file contains both.
@@ -185,8 +185,8 @@ def _build_estimator(config, hidden_units=None, warm_start_from=None):
           key,
           num_buckets=num_buckets,
           default_value=0) for key, num_buckets in zip(
-          _transformed_names(_CATEGORICAL_FEATURE_KEYS),
-          _MAX_CATEGORICAL_FEATURE_VALUES)
+              _transformed_names(_CATEGORICAL_FEATURE_KEYS),
+              _MAX_CATEGORICAL_FEATURE_VALUES)
   ]
   return tf.estimator.DNNLinearCombinedClassifier(
       config=config,
