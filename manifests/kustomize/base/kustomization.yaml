@@ -12,16 +12,16 @@ images:
 - name: argoproj/workflow-controller
   newTag: v2.3.0
 - name: gcr.io/ml-pipeline/api-server
-  newTag: 0.1.26
+  newTag: 0.1.27
 - name: gcr.io/ml-pipeline/persistenceagent
-  newTag: 0.1.26
+  newTag: 0.1.27
 - name: gcr.io/ml-pipeline/scheduledworkflow
-  newTag: 0.1.26
+  newTag: 0.1.27
 - name: gcr.io/ml-pipeline/frontend
-  newTag: 0.1.26
+  newTag: 0.1.27
 - name: gcr.io/ml-pipeline/viewer-crd-controller
-  newTag: 0.1.26
+  newTag: 0.1.27
 - name: gcr.io/ml-pipeline/inverse-proxy-agent
-  newTag: 0.1.26
+  newTag: 0.1.27
 - name: gcr.io/ml-pipeline/visualization-server
-  newTag: 0.1.26
+  newTag: 0.1.27
