@@ -780,18 +780,48 @@ exports[`PipelineDetails shows pipeline source code when config tab is clicked 1
       <div
         className="containerCss"
       >
-        <UnControlled
-          editorDidMount={[Function]}
-          options={
+        <Editor
+          cursorStart={1}
+          editorProps={
             Object {
-              "lineNumbers": true,
-              "lineWrapping": true,
-              "mode": "text/yaml",
-              "readOnly": true,
-              "theme": "default",
+              "$blockScrolling": true,
             }
           }
+          enableBasicAutocompletion={false}
+          enableLiveAutocompletion={false}
+          enableSnippets={false}
+          focus={false}
+          fontSize={12}
+          height="100%"
+          highlightActiveLine={true}
+          maxLines={null}
+          minLines={null}
+          mode="yaml"
+          name="brace-editor"
+          navigateToFileEnd={true}
+          onChange={null}
+          onLoad={null}
+          onPaste={null}
+          onScroll={null}
+          placeholder={null}
+          readOnly={true}
+          scrollMargin={
+            Array [
+              0,
+              0,
+              0,
+              0,
+            ]
+          }
+          setOptions={Object {}}
+          showGutter={true}
+          showPrintMargin={true}
+          style={Object {}}
+          tabSize={4}
+          theme="github"
           value="test template"
+          width="100%"
+          wrapEnabled={false}
         />
       </div>
     </div>
