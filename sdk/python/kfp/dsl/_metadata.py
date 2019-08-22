@@ -35,34 +35,6 @@ class BaseMeta(object):
     return self.__dict__ == other.__dict__
 
 
-class ComponentMeta(BaseMeta):
-  def __init__(
-      self,
-      name: str,
-      description: str = '',
-      inputs: List[InputSpec] = None,
-      outputs: List[OutputSpec] = None
-  ):
-    self.name = name
-    self.description = description
-    self.inputs = [] if inputs is None else inputs
-    self.outputs = [] if outputs is None else outputs
-
-  def to_dict(self):
-    result = {}
-    if self.name:
-      result['name'] = self.name
-    if self.description:
-      result['description'] = self.description
-    if self.inputs:
-      result['inputs'] = [input.to_dict() for input in self.inputs]
-    if self.outputs:
-      result['outputs'] = [output.to_dict() for output in self.outputs]
-    return result
-
-
-# If one day we combine the component and pipeline yaml, ComponentMeta and ComponentSpec will become one, too.
-
 def _annotation_to_typemeta(annotation):
   '''_annotation_to_type_meta converts an annotation to a type structure
   Args:
@@ -125,8 +97,8 @@ def _extract_component_metadata(func):
   #  https://github.com/rr-/docstring_parser
   #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
 
-  # Construct the ComponentMeta
-  return ComponentMeta(
+  # Construct the ComponentSpec
+  return ComponentSpec(
     name=func.__name__,
     description='',
     inputs=inputs,

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 from collections import OrderedDict
 from typing import Mapping
 from ._structures import ContainerImplementation, ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
@@ -138,17 +139,6 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
     output_name_to_kubernetes = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
     output_paths_for_container_op = {output_name_to_kubernetes[name]: path for name, path in output_paths.items()}
 
-    # Construct the ComponentMeta
-    from kfp.dsl._metadata import ComponentMeta
-    component_meta = ComponentMeta(name=component_spec.name, description=component_spec.description)
-    # Inputs
-    if component_spec.inputs is not None:
-        for input in component_spec.inputs:
-            component_meta.inputs.append(InputSpec(name=input.name, description=input.description, type=input.type, default=input.default))
-    if component_spec.outputs is not None:
-        for output in component_spec.outputs:
-            component_meta.outputs.append(OutputSpec(name=output.name, description=output.description, type=output.type))
-
     task = dsl.ContainerOp(
         name=name,
         image=container_image,
@@ -157,6 +147,8 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         file_outputs=output_paths_for_container_op,
     )
 
+    component_meta = copy.copy(component_spec)
+    component_meta.implementation = None
     task._set_metadata(component_meta)
 
     if env:

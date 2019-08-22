@@ -15,10 +15,9 @@
 import kfp
 import kfp.dsl as dsl
 from kfp.dsl import component, graph_component
-from kfp.dsl._metadata import ComponentMeta
 from kfp.dsl.types import Integer, GCSPath, InconsistentTypeException
 from kfp.dsl import ContainerOp, Pipeline, PipelineParam
-from kfp.components._structures import InputSpec, OutputSpec
+from kfp.components._structures import ComponentSpec, InputSpec, OutputSpec
 import unittest
 
 class TestPythonComponent(unittest.TestCase):
@@ -36,7 +35,7 @@ class TestPythonComponent(unittest.TestCase):
 
     containerOp = componentA(1,2,c=3)
 
-    golden_meta = ComponentMeta(name='componentA', description='')
+    golden_meta = ComponentSpec(name='componentA', description='', inputs=[], outputs=[])
     golden_meta.inputs.append(InputSpec(name='a', description='', type={'ArtifactA': {'file_type': 'csv'}}))
     golden_meta.inputs.append(InputSpec(name='b', description='', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default=12))
     golden_meta.inputs.append(InputSpec(name='c', description='', type={'ArtifactB': {'path_type':'file', 'file_type': 'tsv'}}, default='gs://hello/world'))

@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl._metadata import ComponentMeta
-from kfp.components._structures import InputSpec, OutputSpec
+from kfp.components._structures import ComponentSpec, InputSpec, OutputSpec
 import unittest
 
 
 class TestComponentMeta(unittest.TestCase):
 
   def test_to_dict(self):
-    component_meta = ComponentMeta(name='foobar',
+    component_meta = ComponentSpec(name='foobar',
                                    description='foobar example',
                                    inputs=[InputSpec(name='input1',
                                                          description='input1 desc',

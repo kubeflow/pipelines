@@ -25,7 +25,7 @@ from kubernetes.client.models import (
 )
 
 from . import _pipeline_param
-from ._metadata import ComponentMeta
+from ..components._structures import ComponentSpec
 
 # generics
 T = TypeVar('T')
@@ -1103,10 +1103,10 @@ class ContainerOp(BaseOp):
         '''_set_metadata passes the containerop the metadata information
         and configures the right output
         Args:
-          metadata (ComponentMeta): component metadata
+          metadata (ComponentSpec): component metadata
         '''
-        if not isinstance(metadata, ComponentMeta):
-            raise ValueError('_set_medata is expecting ComponentMeta.')
+        if not isinstance(metadata, ComponentSpec):
+            raise ValueError('_set_metadata is expecting ComponentSpec.')
 
         self._metadata = metadata
 
