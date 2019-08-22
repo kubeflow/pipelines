@@ -148,7 +148,10 @@ export interface ApiVisualization {
  * @enum {string}
  */
 export enum ApiVisualizationType {
-    CURVE = <any> 'ROC_CURVE'
+    ROCCURVE = <any> 'ROC_CURVE',
+    TFDV = <any> 'TFDV',
+    TFMA = <any> 'TFMA',
+    TABLE = <any> 'TABLE'
 }
 
 /**
