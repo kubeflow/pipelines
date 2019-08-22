@@ -67,7 +67,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 dataflow_template_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/0b07e456b1f319d8b7a7301274f55c00fda9f537/components/gcp/dataflow/launch_template/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/gcp/dataflow/launch_template/component.yaml')
 help(dataflow_template_op)
 ```
 
@@ -167,7 +167,7 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 
 ## References
 
-* [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/dataflow/_launch_template.py)
+* [Component python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataflow/_launch_template.py)
 * [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
 * [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataflow/launch_template/sample.ipynb)
 * [Cloud Dataflow Templates overview](https://cloud.google.com/dataflow/docs/guides/templates/overview)

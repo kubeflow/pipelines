@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"github.com/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
@@ -25,14 +26,13 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/metadata"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
 var runColumns = []string{"UUID", "DisplayName", "Name", "StorageState", "Namespace", "Description",
-	"CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineSpecManifest",
+	"CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineName", "PipelineSpecManifest",
 	"WorkflowSpecManifest", "Parameters", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
 }
 
@@ -70,14 +70,13 @@ type RunStore struct {
 	db                     *DB
 	resourceReferenceStore *ResourceReferenceStore
 	time                   util.TimeInterface
-	metadataStore          *metadata.Store
 }
 
 // Runs two SQL queries in a transaction to return a list of matching runs, as well as their
 // total_size. The total_size does not reflect the page size, but it does reflect the number of runs
 // matching the supplied filters and resource references.
 func (s *RunStore) ListRuns(
-	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
+		filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
 	errorF := func(err error) ([]*model.Run, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
@@ -143,7 +142,7 @@ func (s *RunStore) ListRuns(
 }
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
-	filterContext *common.FilterContext) (string, []interface{}, error) {
+		filterContext *common.FilterContext) (string, []interface{}, error) {
 	filteredSelectBuilder, err := list.FilterOnResourceReference("run_details", runColumns,
 		common.Run, selectCount, filterContext)
 	if err != nil {
@@ -168,9 +167,11 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 
 // GetRun Get the run manifest from Workflow CRD
 func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
-	sql, args, err := s.addMetricsAndResourceReferences(sq.Select(runColumns...).From("run_details")).
-		Where(sq.Eq{"UUID": runId}).
-		Limit(1).
+	sql, args, err := s.addMetricsAndResourceReferences(
+		sq.Select(runColumns...).
+			From("run_details").
+			Where(sq.Eq{"UUID": runId}).
+			Limit(1)).
 		ToSql()
 
 	if err != nil {
@@ -216,8 +217,8 @@ func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.Sele
 func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, error) {
 	var runs []*model.RunDetail
 	for rows.Next() {
-		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineSpecManifest,
-			workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
+		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineName, pipelineSpecManifest,
+		workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec int64
 		var metricsInString, resourceReferencesInString sql.NullString
 		err := rows.Scan(
@@ -232,6 +233,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			&finishedAtInSec,
 			&conditions,
 			&pipelineId,
+			&pipelineName,
 			&pipelineSpecManifest,
 			&workflowSpecManifest,
 			&parameters,
@@ -271,6 +273,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
+				PipelineName:         pipelineName,
 				PipelineSpecManifest: pipelineRuntimeManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           parameters,
@@ -309,30 +312,31 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 	if r.StorageState == "" {
 		r.StorageState = api.Run_STORAGESTATE_AVAILABLE.String()
 	} else if r.StorageState != api.Run_STORAGESTATE_AVAILABLE.String() &&
-		r.StorageState != api.Run_STORAGESTATE_ARCHIVED.String() {
+			r.StorageState != api.Run_STORAGESTATE_ARCHIVED.String() {
 		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", r.StorageState)
 	}
 
 	runSql, runArgs, err := sq.
 		Insert("run_details").
-		SetMap(sq.Eq{
-			"UUID":                    r.UUID,
-			"DisplayName":             r.DisplayName,
-			"Name":                    r.Name,
-			"StorageState":            r.StorageState,
-			"Namespace":               r.Namespace,
-			"Description":             r.Description,
-			"CreatedAtInSec":          r.CreatedAtInSec,
-			"ScheduledAtInSec":        r.ScheduledAtInSec,
-			"FinishedAtInSec":         r.FinishedAtInSec,
-			"Conditions":              r.Conditions,
-			"WorkflowRuntimeManifest": r.WorkflowRuntimeManifest,
-			"PipelineRuntimeManifest": r.PipelineRuntimeManifest,
-			"PipelineId":              r.PipelineId,
-			"PipelineSpecManifest":    r.PipelineSpecManifest,
-			"WorkflowSpecManifest":    r.WorkflowSpecManifest,
-			"Parameters":              r.Parameters,
-		}).ToSql()
+			SetMap(sq.Eq{
+				"UUID":                    r.UUID,
+				"DisplayName":             r.DisplayName,
+				"Name":                    r.Name,
+				"StorageState":            r.StorageState,
+				"Namespace":               r.Namespace,
+				"Description":             r.Description,
+				"CreatedAtInSec":          r.CreatedAtInSec,
+				"ScheduledAtInSec":        r.ScheduledAtInSec,
+				"FinishedAtInSec":         r.FinishedAtInSec,
+				"Conditions":              r.Conditions,
+				"WorkflowRuntimeManifest": r.WorkflowRuntimeManifest,
+				"PipelineRuntimeManifest": r.PipelineRuntimeManifest,
+				"PipelineId":              r.PipelineId,
+				"PipelineName":            r.PipelineName,
+				"PipelineSpecManifest":    r.PipelineSpecManifest,
+				"WorkflowSpecManifest":    r.WorkflowSpecManifest,
+				"Parameters":              r.Parameters,
+			}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",
 			r.Namespace, r.Name)
@@ -368,35 +372,12 @@ func (s *RunStore) UpdateRun(runID string, condition string, finishedAtInSec int
 		return util.NewInternalServerError(err, "transaction creation failed")
 	}
 
-	// Lock the row for update, so we ensure no other update of the same run
-	// happens while we're parsing it for metadata. We rely on per-row updates
-	// being synchronous, so metadata can be recorded at most once. Right now,
-	// persistence agent will call UpdateRun all the time, even if there is nothing
-	// new in the status of an Argo manifest. This means we need to keep track
-	// manually here on what the previously updated state of the run is, to ensure
-	// we do not add duplicate metadata. Hence the locking below.
-	query := "SELECT WorkflowRuntimeManifest FROM run_details WHERE UUID = ?"
-	query = s.db.SelectForUpdate(query)
-
-	row := tx.QueryRow(query, runID)
-	var storedManifest string
-	if err := row.Scan(&storedManifest); err != nil {
-		tx.Rollback()
-		return util.NewInvalidInputError("Failed to update run %s. Row not found.", runID)
-	}
-
-	if err := s.metadataStore.RecordOutputArtifacts(runID, storedManifest, workflowRuntimeManifest); err != nil {
-		// Metadata storage failed. Log the error here, but continue to allow the run
-		// to be updated as per usual.
-		glog.Errorf("Failed to record output artifacts: %+v", err)
-	}
-
 	sql, args, err := sq.
 		Update("run_details").
-		SetMap(sq.Eq{
-			"Conditions":              condition,
-			"FinishedAtInSec":         finishedAtInSec,
-			"WorkflowRuntimeManifest": workflowRuntimeManifest}).
+			SetMap(sq.Eq{
+				"Conditions":              condition,
+				"FinishedAtInSec":         finishedAtInSec,
+				"WorkflowRuntimeManifest": workflowRuntimeManifest}).
 		Where(sq.Eq{"UUID": runID}).
 		ToSql()
 	if err != nil {
@@ -410,10 +391,20 @@ func (s *RunStore) UpdateRun(runID string, condition string, finishedAtInSec int
 		return util.NewInternalServerError(err,
 			"Failed to update run %s. error: '%v'", runID, err.Error())
 	}
-	if r, _ := result.RowsAffected(); r != 1 {
+	r, err := result.RowsAffected()
+	if err != nil {
 		tx.Rollback()
-		return util.NewInvalidInputError("Failed to update run %s. Row not found.", runID)
+		return util.NewInternalServerError(err,
+			"Failed to update run %s. error: '%v'", runID, err.Error())
 	}
+	if r > 1 {
+		tx.Rollback()
+		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", runID)
+	} else if r == 0 {
+		tx.Rollback()
+		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. Row not found", runID)
+	}
+
 	if err := tx.Commit(); err != nil {
 		return util.NewInternalServerError(err, "failed to commit transaction")
 	}
@@ -438,9 +429,9 @@ func (s *RunStore) CreateOrUpdateRun(runDetail *model.RunDetail) error {
 func (s *RunStore) ArchiveRun(runId string) error {
 	sql, args, err := sq.
 		Update("run_details").
-		SetMap(sq.Eq{
-			"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
-		}).
+			SetMap(sq.Eq{
+				"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
+			}).
 		Where(sq.Eq{"UUID": runId}).
 		ToSql()
 
@@ -461,9 +452,9 @@ func (s *RunStore) ArchiveRun(runId string) error {
 func (s *RunStore) UnarchiveRun(runId string) error {
 	sql, args, err := sq.
 		Update("run_details").
-		SetMap(sq.Eq{
-			"StorageState": api.Run_STORAGESTATE_AVAILABLE.String(),
-		}).
+			SetMap(sq.Eq{
+				"StorageState": api.Run_STORAGESTATE_AVAILABLE.String(),
+			}).
 		Where(sq.Eq{"UUID": runId}).
 		ToSql()
 
@@ -520,13 +511,13 @@ func (s *RunStore) ReportMetric(metric *model.RunMetric) (err error) {
 	}
 	sql, args, err := sq.
 		Insert("run_metrics").
-		SetMap(sq.Eq{
-			"RunUUID":     metric.RunUUID,
-			"NodeID":      metric.NodeID,
-			"Name":        metric.Name,
-			"NumberValue": metric.NumberValue,
-			"Format":      metric.Format,
-			"Payload":     string(payloadBytes)}).ToSql()
+			SetMap(sq.Eq{
+				"RunUUID":     metric.RunUUID,
+				"NodeID":      metric.NodeID,
+				"Name":        metric.Name,
+				"NumberValue": metric.NumberValue,
+				"Format":      metric.Format,
+				"Payload":     string(payloadBytes)}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"failed to create query for inserting metric: %+v", metric)
@@ -558,14 +549,12 @@ func (s *RunStore) toRunMetadatas(models []model.ListableDataModel) []model.Run 
 	return runMetadatas
 }
 
-// NewRunStore creates a new RunStore. If metadataStore is non-nil, it will be
-// used to record artifact metadata.
-func NewRunStore(db *DB, time util.TimeInterface, metadataStore *metadata.Store) *RunStore {
+// NewRunStore creates a new RunStore.
+func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 	return &RunStore{
-		db: db,
+		db:                     db,
 		resourceReferenceStore: NewResourceReferenceStore(db),
-		time:          time,
-		metadataStore: metadataStore,
+		time:                   time,
 	}
 }
 

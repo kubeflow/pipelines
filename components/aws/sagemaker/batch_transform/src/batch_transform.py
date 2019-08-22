@@ -12,12 +12,15 @@
 
 import argparse
 import logging
-import random
-import json
-from datetime import datetime
 from pathlib2 import Path
 
 from common import _utils
+
+try:
+  unicode
+except NameError:
+  unicode = str
+
 
 def main(argv=None):
   parser = argparse.ArgumentParser(description='SageMaker Batch Transformation Job')
@@ -56,7 +59,6 @@ def main(argv=None):
   batch_job_name = _utils.create_transform_job(client, vars(args))
   logging.info('Batch Job request submitted. Waiting for completion...')
   _utils.wait_for_transform_job(client, batch_job_name)
-  _utils.print_tranformation_job_result(args.output_location)
 
   Path(args.output_location_file).parent.mkdir(parents=True, exist_ok=True)
   Path(args.output_location_file).write_text(unicode(args.output_location))

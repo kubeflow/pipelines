@@ -184,6 +184,81 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_2_out_component_using_local_call(func, op, output_names=['sum', 'product'])
 
+    def test_extract_component_interface(self):
+        from typing import NamedTuple
+        def my_func( # noqa: F722
+            required_param,
+            int_param: int = 42,
+            float_param : float = 3.14,
+            str_param : str = 'string',
+            bool_param : bool = True,
+            none_param = None,
+            custom_type_param: 'Custom type' = None,
+            ) -> NamedTuple('DummyName', [
+                #('required_param',), # All typing.NamedTuple fields must have types
+                ('int_param', int),
+                ('float_param', float),
+                ('str_param', str),
+                ('bool_param', bool),
+                #('custom_type_param', 'Custom type'), #SyntaxError: Forward reference must be an expression -- got 'Custom type'
+                ('custom_type_param', 'CustomType'),
+            ]
+        ):
+            '''Function docstring'''
+            pass
+
+        component_spec = comp._python_op._extract_component_interface(my_func)
+
+        from kfp.components._structures import InputSpec, OutputSpec
+        self.assertEqual(
+            component_spec.inputs,
+            [
+                InputSpec(name='required_param'),
+                InputSpec(name='int_param', type='int', default='42', optional=True),
+                InputSpec(name='float_param', type='float', default='3.14', optional=True),
+                InputSpec(name='str_param', type='str', default='string', optional=True),
+                InputSpec(name='bool_param', type='bool', default='True', optional=True),
+                InputSpec(name='none_param', optional=True), # No default='None'
+                InputSpec(name='custom_type_param', type='Custom type', optional=True),
+            ]
+        )
+        self.assertEqual(
+            component_spec.outputs,
+            [
+                OutputSpec(name='int_param', type='int'),
+                OutputSpec(name='float_param', type='float'),
+                OutputSpec(name='str_param', type='str'),
+                OutputSpec(name='bool_param', type='bool'),
+                #OutputSpec(name='custom_type_param', type='Custom type', default='None'),
+                OutputSpec(name='custom_type_param', type='CustomType'),
+            ]
+        )
+
+        self.maxDiff = None
+        self.assertDictEqual(
+            component_spec.to_dict(),
+            {
+                'name': 'My func',
+                'description': 'Function docstring\n',
+                'inputs': [
+                    {'name': 'required_param'},
+                    {'name': 'int_param', 'type': 'int', 'default': '42', 'optional': True},
+                    {'name': 'float_param', 'type': 'float', 'default': '3.14', 'optional': True},
+                    {'name': 'str_param', 'type': 'str', 'default': 'string', 'optional': True},
+                    {'name': 'bool_param', 'type': 'bool', 'default': 'True', 'optional': True},
+                    {'name': 'none_param', 'optional': True}, # No default='None'
+                    {'name': 'custom_type_param', 'type': 'Custom type', 'optional': True},
+                ],
+                'outputs': [
+                    {'name': 'int_param', 'type': 'int'},
+                    {'name': 'float_param', 'type': 'float'},
+                    {'name': 'str_param', 'type': 'str'},
+                    {'name': 'bool_param', 'type': 'bool'},
+                    {'name': 'custom_type_param', 'type': 'CustomType'},
+                ]
+            }
+        )
+
     @unittest.skip #TODO: #Simplified multi-output syntax is not implemented yet
     def test_func_to_container_op_multiple_named_typed_outputs_using_list_syntax(self):
         def add_multiply_two_numbers(a: float, b: float) -> [('sum', float), ('product', float)]:
@@ -278,6 +353,27 @@ class PythonOpTestCase(unittest.TestCase):
         func = assert_is_none
         op = comp.func_to_container_op(func, output_component_file='comp.yaml')
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+
+    def test_handling_complex_default_values_of_none(self):
+        def assert_values_are_default(
+            a, b,
+            singleton_param=None,
+            function_param=ascii,
+            dict_param={'b': [2, 3, 4]},
+            func_call_param='_'.join(['a', 'b', 'c']),
+        ) -> int:
+            assert singleton_param is None
+            assert function_param is ascii
+            assert dict_param == {'b': [2, 3, 4]}
+            assert func_call_param == '_'.join(['a', 'b', 'c'])
+
+            return 1
+
+        func = assert_values_are_default
+        op = comp.func_to_container_op(func)
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
 
     def test_end_to_end_python_component_pipeline_compilation(self):
         import kfp.components as comp

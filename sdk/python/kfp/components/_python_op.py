@@ -23,6 +23,7 @@ from ._structures import *
 
 import inspect
 from pathlib import Path
+import typing
 from typing import TypeVar, Generic, List
 
 T = TypeVar('T')
@@ -38,7 +39,7 @@ class OutputFile(Generic[T], str):
     pass
 
 #TODO: Replace this image name with another name once people decide what to replace it with.
-_default_base_image='tensorflow/tensorflow:1.11.0-py3'
+_default_base_image='tensorflow/tensorflow:1.13.2-py3'
 
 
 def _python_function_name_to_component_name(name):
@@ -146,8 +147,9 @@ def _extract_component_interface(func) -> ComponentSpec:
             return None
         if isinstance(annotation, type):
             return str(annotation.__name__)
-        else:
-            return str(annotation)
+        if hasattr(annotation, '__forward_arg__'): # Handling typing.ForwardRef('Type_name') (the name was _ForwardRef in python 3.5-3.6)
+            return str(annotation.__forward_arg__) # It can only be string
+        return str(annotation)
 
     for parameter in parameters:
         type_struct = annotation_to_type_struct(parameter.annotation)
@@ -158,10 +160,14 @@ def _extract_component_interface(func) -> ComponentSpec:
             type=type_struct,
         )
         if parameter.default is not inspect.Parameter.empty:
-            if parameter.default is None:
-                input_spec.optional = True
-            else:
-                input_spec.default = str(parameter.default)
+            input_spec.optional = True
+            if parameter.default is not None:
+                serialized_default = str(parameter.default)
+                if not isinstance(parameter.default, (str, int, float)):
+                    import warnings
+                    warnings.warn('Default value of unsupported type {} will be converted to string "{}".'.format(str(type(parameter.default)), serialized_default))
+                input_spec.default = serialized_default
+
         inputs.append(input_spec)
 
     #Analyzing the return type annotations.
@@ -241,6 +247,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
 
     arg_parse_code_lines = [
         'import argparse',
+        '_missing_arg = object()',
         '_parser = argparse.ArgumentParser(prog={prog_repr}, description={description_repr})'.format(
             prog_repr=repr(component_spec.name or ''),
             description_repr=repr(component_spec.description or ''),
@@ -249,13 +256,12 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     arguments = []
     for input in component_spec.inputs:
         param_flag = "--" + input.name.replace("_", "-")
-        is_required = not input.optional #TODO: Make all parameters with default values optional in argparse so that the complex defaults can be preserved.
-        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default={default_repr})'.format(
+        is_required = not input.optional
+        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default=_missing_arg)'.format(
             param_flag=param_flag,
             param_var=input.name,
             param_type=(input.type if input.type in ['int', 'float', 'bool'] else 'str'),
             is_required=str(is_required),
-            default_repr=repr(str(input.default)) if input.default is not None else None,
         )
         arg_parse_code_lines.append(line)
         if is_required:
@@ -284,13 +290,12 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
         arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
 
     arg_parse_code_lines.extend([
-        '_parsed_args = vars(_parser.parse_args())',
+        '_parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}',
     ])
 
-    if component_spec.outputs:
-        arg_parse_code_lines.extend([
-            '_output_files = _parsed_args.pop("_output_paths")',
-        ])
+    arg_parse_code_lines.extend([
+        '_output_files = _parsed_args.pop("_output_paths", [])',
+    ])
 
     full_source = \
 '''\

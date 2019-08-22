@@ -128,18 +128,18 @@ def _generate_dockerfile(filename, base_image, entrypoint_filename, python_versi
     raise ValueError('python_version has to be either python2 or python3')
   with open(filename, 'w') as f:
     f.write('FROM ' + base_image + '\n')
-    if python_version is 'python3':
+    if python_version == 'python3':
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
     else:
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
     if requirement_filename is not None:
       f.write('ADD ' + requirement_filename + ' /ml/requirements.txt\n')
-      if python_version is 'python3':
+      if python_version == 'python3':
         f.write('RUN pip3 install -r /ml/requirements.txt\n')
       else:
         f.write('RUN pip install -r /ml/requirements.txt\n')
     f.write('ADD ' + entrypoint_filename + ' /ml/main.py\n')
-    if python_version is 'python3':
+    if python_version == 'python3':
       f.write('ENTRYPOINT ["python3", "-u", "/ml/main.py"]')
     else:
       f.write('ENTRYPOINT ["python", "-u", "/ml/main.py"]')
@@ -170,7 +170,6 @@ class CodeGenerator(object):
     line_sep = '\n'
     return line_sep.join(self._code) + line_sep
 
-#TODO: currently it supports single output, future support for multiple return values
 def _func_to_entrypoint(component_func, python_version='python3'):
   '''
   args:
@@ -183,15 +182,27 @@ def _func_to_entrypoint(component_func, python_version='python3'):
   annotations = fullargspec[6]
   input_args = fullargspec[0]
   inputs = {}
+  output = None
+  if 'return' in annotations.keys():
+    output = annotations['return']
+  output_is_named_tuple = hasattr(output, '_fields')
+  
   for key, value in annotations.items():
     if key != 'return':
       inputs[key] = value
   if len(input_args) != len(inputs):
     raise Exception('Some input arguments do not contain annotations.')
-  if 'return' in  annotations and annotations['return'] not in [int, float, str, bool]:
+  if 'return' in  annotations and annotations['return'] not in [int, 
+        float, str, bool] and not output_is_named_tuple:
     raise Exception('Output type not supported and supported types are [int, float, str, bool]')
+  if output_is_named_tuple:
+      types = output._field_types
+      for field in output._fields: #Make sure all elements are supported
+        if types[field] not in [int, float, str, bool]:
+          raise Exception('Output type not supported and supported types are [int, float, str, bool]')
+  
   # inputs is a dictionary with key of argument name and value of type class
-  # output is a type class, e.g. str and int.
+  # output is a type class, e.g. int, str, bool, float, NamedTuple.
 
   # Follow the same indentation with the component source codes.
   component_src = inspect.getsource(component_func)
@@ -205,12 +216,15 @@ def _func_to_entrypoint(component_func, python_version='python3'):
   func_signature = 'def ' + new_func_name + '('
   for input_arg in input_args:
     func_signature += input_arg + ','
-  func_signature += '_output_file):'
+  func_signature = func_signature + '_output_files' if output_is_named_tuple else func_signature + '_output_file'
+  func_signature += '):'
   codegen.writeline(func_signature)
 
   # Call user function
   codegen.indent()
   call_component_func = 'output = ' + component_func.__name__ + '('
+  if output_is_named_tuple:
+    call_component_func = call_component_func.replace('output', 'outputs')
   for input_arg in input_args:
     call_component_func += inputs[input_arg].__name__ + '(' + input_arg + '),'
   call_component_func = call_component_func.rstrip(',')
@@ -219,6 +233,9 @@ def _func_to_entrypoint(component_func, python_version='python3'):
 
   # Serialize output
   codegen.writeline('import os')
+  if output_is_named_tuple:
+    codegen.writeline('for _output_file, output in zip(_output_files, outputs):')
+    codegen.indent()
   codegen.writeline('os.makedirs(os.path.dirname(_output_file))')
   codegen.writeline('with open(_output_file, "w") as data:')
   codegen.indent()
@@ -231,7 +248,10 @@ def _func_to_entrypoint(component_func, python_version='python3'):
   codegen.writeline('parser = argparse.ArgumentParser(description="Parsing arguments")')
   for input_arg in input_args:
     codegen.writeline('parser.add_argument("' + input_arg + '", type=' + inputs[input_arg].__name__ + ')')
-  codegen.writeline('parser.add_argument("_output_file", type=str)')
+  if output_is_named_tuple:
+    codegen.writeline('parser.add_argument("_output_files", type=str, nargs=' + str(len(annotations['return']._fields)) + ')')
+  else:
+    codegen.writeline('parser.add_argument("_output_file", type=str)')
   codegen.writeline('args = vars(parser.parse_args())')
   codegen.writeline('')
   codegen.writeline('if __name__ == "__main__":')
@@ -248,6 +268,8 @@ def _func_to_entrypoint(component_func, python_version='python3'):
   if python_version == 'python2':
     src_lines[start_line_num] = 'def ' + component_func.__name__ + '(' + ', '.join((inspect.getfullargspec(component_func).args)) + '):'
   dedecorated_component_src = '\n'.join(src_lines[start_line_num:])
+  if output_is_named_tuple:
+    dedecorated_component_src = 'from typing import NamedTuple\n' + dedecorated_component_src
 
   complete_component_code = dedecorated_component_src + '\n' + wrapper_code + '\n' + codegen.end()
   return complete_component_code
@@ -258,25 +280,7 @@ class ComponentBuilder(object):
     self._arc_docker_filename = 'dockerfile'
     self._arc_python_filename = 'main.py'
     self._arc_requirement_filename = 'requirements.txt'
-    self._container_builder = ContainerBuilder(gcs_staging, namespace)
-    self._target_image = target_image
-
-  def _prepare_files(self, local_dir, docker_filename, python_filename=None, requirement_filename=None):
-    """ _prepare_buildfiles generates the tarball with all the build files
-    Args:
-      local_dir (dir): a directory that stores all the build files
-      docker_filename (str): docker filename
-      python_filename (str): python filename
-      requirement_filename (str): requirement filename
-    """
-    dst_docker_filepath = os.path.join(local_dir, self._arc_docker_filename)
-    shutil.copyfile(docker_filename, dst_docker_filepath)
-    if python_filename is not None:
-      dst_python_filepath = os.path.join(local_dir, self._arc_python_filename)
-      shutil.copyfile(python_filename, dst_python_filepath)
-    if requirement_filename is not None:
-      dst_requirement_filepath = os.path.join(local_dir, self._arc_requirement_filename)
-      shutil.copyfile(requirement_filename, dst_requirement_filepath)
+    self._container_builder = ContainerBuilder(gcs_staging, gcr_image_tag=target_image, namespace=namespace)
 
   def build_image_from_func(self, component_func, base_image, timeout, dependency, python_version='python3'):
     """ build_image builds an image for the given python function
@@ -302,13 +306,7 @@ class ComponentBuilder(object):
 
       # Prepare build files
       logging.info('Generate build files.')
-      self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
-
-  def build_image_from_dockerfile(self, docker_filename, timeout):
-    """ build_image_from_dockerfile builds an image based on the dockerfile """
-    with tempfile.TemporaryDirectory() as local_build_dir:
-      self._prepare_files(local_build_dir, docker_filename)
-      self._container_builder.build(local_build_dir, self._arc_docker_filename, self._target_image, timeout)
+      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
 def _configure_logger(logger):
   """ _configure_logger configures the logger such that the info level logs
@@ -345,17 +343,24 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
   #TODO: Humanize the input/output names
   input_names = inspect.getfullargspec(component_func)[0]
 
-  output_name = 'output'
+  return_ann = inspect.signature(component_func).return_annotation
+  output_is_named_tuple = hasattr(return_ann, '_fields')
+
+  output_names = ['output']
+  if output_is_named_tuple:
+    output_names = return_ann._fields
+
   component_spec = ComponentSpec(
       name=component_name,
       description=component_description,
-      inputs=[InputSpec(name=input_name, type='str') for input_name in input_names], #TODO: Chnage type to actual type
-      outputs=[OutputSpec(name=output_name)],
+      inputs=[InputSpec(name=input_name, type='str') for input_name in input_names], #TODO: Change type to actual type
+       outputs=[OutputSpec(name=output_name, type='str') for output_name in output_names],
       implementation=ContainerImplementation(
           container=ContainerSpec(
               image=target_image,
               #command=['python3', program_file], #TODO: Include the command line
-              args=[InputValuePlaceholder(input_name) for input_name in input_names] + [OutputPathPlaceholder(output_name)],
+              args=[InputValuePlaceholder(input_name) for input_name in input_names] + 
+                [OutputPathPlaceholder(output_name) for output_name in output_names],
           )
       )
   )
@@ -368,7 +373,7 @@ def _generate_pythonop(component_func, target_image, target_component_file=None)
 
   return _create_task_factory_from_component_spec(component_spec)
 
-def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, build_image=True, timeout=600, namespace='kubeflow', target_component_file=None, python_version='python3'):
+def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, timeout=600, namespace='kubeflow', target_component_file=None, python_version='python3'):
   """ build_component automatically builds a container image for the component_func
   based on the base_image and pushes to the target_image.
 
@@ -378,7 +383,6 @@ def build_python_component(component_func, target_image, base_image=None, depend
     target_image (str): Full URI to push the target image
     staging_gcs_path (str): GCS blob that can store temporary build files
     target_image (str): target image path
-    build_image (bool): whether to build the image or not. Default is True.
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
     dependency (list): a list of VersionedDependency, which includes the package name and versions, default is empty
@@ -397,25 +401,24 @@ def build_python_component(component_func, target_image, base_image=None, depend
   if python_version not in ['python2', 'python3']:
     raise ValueError('python_version has to be either python2 or python3')
 
-  if build_image:
-    if staging_gcs_path is None:
-      raise ValueError('staging_gcs_path must not be None')
+  if staging_gcs_path is None:
+    raise ValueError('staging_gcs_path must not be None')
 
-    if base_image is None:
-      base_image = getattr(component_func, '_component_base_image', None)
-    if base_image is None:
-      raise ValueError('base_image must not be None')
+  if base_image is None:
+    base_image = getattr(component_func, '_component_base_image', None)
+  if base_image is None:
+    raise ValueError('base_image must not be None')
 
-    logging.info('Build an image that is based on ' +
-                                   base_image +
-                                   ' and push the image to ' +
-                                   target_image)
-    builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
-    builder.build_image_from_func(component_func,
-                                  base_image=base_image, timeout=timeout,
-                                  python_version=python_version, dependency=dependency)
-    logging.info('Build component complete.')
-  return _generate_pythonop(component_func, target_image, target_component_file)
+  logging.info('Build an image that is based on ' +
+                                 base_image +
+                                 ' and push the image to ' +
+                                 target_image)
+  builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
+  image_name_with_digest = builder.build_image_from_func(component_func,
+                                base_image=base_image, timeout=timeout,
+                                python_version=python_version, dependency=dependency)
+  logging.info('Build component complete.')
+  return _generate_pythonop(component_func, image_name_with_digest, target_component_file)
 
 def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace='kubeflow'):
   """ build_docker_image automatically builds a container image based on the specification in the dockerfile and
@@ -429,6 +432,14 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
   """
   _configure_logger(logging.getLogger())
-  builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
-  builder.build_image_from_dockerfile(docker_filename=dockerfile_path, timeout=timeout)
+
+  with tempfile.TemporaryDirectory() as local_build_dir:
+    dockerfile_rel_path = 'Dockerfile'
+    dst_dockerfile_path = os.path.join(local_build_dir, dockerfile_rel_path)
+    shutil.copyfile(dockerfile_path, dst_dockerfile_path)
+
+    container_builder = ContainerBuilder(staging_gcs_path, target_image, namespace=namespace)
+    image_name_with_digest = container_builder.build(local_build_dir, dockerfile_rel_path, timeout)
+
   logging.info('Build image complete.')
+  return image_name_with_digest

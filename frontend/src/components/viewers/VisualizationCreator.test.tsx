@@ -62,7 +62,7 @@ describe('VisualizationCreator', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('has a disabled BusyButton if selectedType is undefined', () => {
+  it('has a disabled BusyButton if selectedType is an undefined', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
       onGenerate: jest.fn(),
@@ -70,12 +70,12 @@ describe('VisualizationCreator', () => {
     };
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
-      inputPath: 'gs://ml-pipeline/data.csv',
+      source: 'gs://ml-pipeline/data.csv',
     });
     expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
   });
 
-  it('has a disabled BusyButton if inputPath is an empty string', () => {
+  it('has a disabled BusyButton if source is an empty string', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
       onGenerate: jest.fn(),
@@ -83,7 +83,7 @@ describe('VisualizationCreator', () => {
     };
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
-      // inputPath by default is set to ''
+      // source by default is set to ''
       selectedType: ApiVisualizationType.CURVE,
     });
     expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
@@ -96,8 +96,8 @@ describe('VisualizationCreator', () => {
     };
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
-      inputPath: 'gs://ml-pipeline/data.csv',
       selectedType: ApiVisualizationType.CURVE,
+      source: 'gs://ml-pipeline/data.csv',
     });
     expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
   });
@@ -110,13 +110,13 @@ describe('VisualizationCreator', () => {
     };
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
-      inputPath: 'gs://ml-pipeline/data.csv',
       selectedType: ApiVisualizationType.CURVE,
+      source: 'gs://ml-pipeline/data.csv',
     });
     expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
   });
 
-  it('has an enabled BusyButton if onGenerate is provided and inputPath and selectedType are set', () => {
+  it('has an enabled BusyButton if onGenerate is provided and source and selectedType are set', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: false,
       onGenerate: jest.fn(),
@@ -124,8 +124,8 @@ describe('VisualizationCreator', () => {
     };
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
-      inputPath: 'gs://ml-pipeline/data.csv',
       selectedType: ApiVisualizationType.CURVE,
+      source: 'gs://ml-pipeline/data.csv',
     });
     expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(false);
   });
@@ -140,8 +140,8 @@ describe('VisualizationCreator', () => {
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
       arguments: '{}',
-      inputPath: 'gs://ml-pipeline/data.csv',
       selectedType: ApiVisualizationType.CURVE,
+      source: 'gs://ml-pipeline/data.csv',
     });
     tree.find('BusyButton').at(0).simulate('click');
     expect(onGenerate).toBeCalled();
@@ -157,8 +157,8 @@ describe('VisualizationCreator', () => {
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
       arguments: '{}',
-      inputPath: 'gs://ml-pipeline/data.csv',
       selectedType: ApiVisualizationType.CURVE,
+      source: 'gs://ml-pipeline/data.csv',
     });
     tree.find('BusyButton').at(0).simulate('click');
     expect(onGenerate).toBeCalledWith('{}', 'gs://ml-pipeline/data.csv', ApiVisualizationType.CURVE);
@@ -175,13 +175,13 @@ describe('VisualizationCreator', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders the provided input path correctly', () => {
+  it('renders the provided source correctly', () => {
     const config: VisualizationCreatorConfig = {
       type: PlotType.VISUALIZATION_CREATOR,
     };
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
-      inputPath: 'gs://ml-pipeline/data.csv',
+      source: 'gs://ml-pipeline/data.csv',
     });
     expect(tree).toMatchSnapshot();
   });
