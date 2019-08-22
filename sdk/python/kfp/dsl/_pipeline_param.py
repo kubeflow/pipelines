@@ -15,7 +15,7 @@
 
 import re
 from collections import namedtuple
-from typing import List
+from typing import Dict, List, Union
 
 
 # TODO: Move this to a separate class
@@ -135,7 +135,7 @@ class PipelineParam(object):
   value passed between components.
   """
   
-  def __init__(self, name: str, op_name: str=None, value: str=None, param_type = None, pattern: str=None):
+  def __init__(self, name: str, op_name: str=None, value: str=None, param_type : Union[str, Dict] = None, pattern: str=None):
     """Create a new instance of PipelineParam.
     Args:
       name: name of the pipeline parameter.
