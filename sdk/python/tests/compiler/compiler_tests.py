@@ -633,3 +633,35 @@ implementation:
         init_container = init_containers[0]
         self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})
 
+
+  def test_delete_resource_op(self):
+      """Test a pipeline with a delete resource operation."""
+      from kubernetes import client as k8s
+
+      @dsl.pipeline()
+      def some_pipeline():
+        # create config map object with k6 load test script
+        config_map = k8s.V1ConfigMap(
+          api_version="v1",
+          data={"foo": "bar"},
+          kind="ConfigMap",
+          metadata=k8s.V1ObjectMeta(
+              name="foo-bar-cm",
+              namespace="default"
+          )
+        )        
+        # delete the config map in k8s
+        dsl.ResourceOp(
+          name="delete-config-map", 
+          action="delete", 
+          k8s_resource=config_map
+        )
+
+      workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+      delete_op_template = [template for template in workflow_dict['spec']['templates'] if template['name'] == 'delete-config-map'][0]
+
+      # delete resource operation should not have success condition, failure condition or output parameters.
+      # See https://github.com/argoproj/argo/blob/5331fc02e257266a4a5887dfe6277e5a0b42e7fc/cmd/argoexec/commands/resource.go#L30
+      self.assertIsNone(delete_op_template.get("successCondition"))
+      self.assertIsNone(delete_op_template.get("failureCondition"))
+      self.assertDictEqual(delete_op_template.get("outputs"), {})
