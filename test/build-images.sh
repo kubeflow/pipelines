@@ -16,15 +16,7 @@
 
 set -ex
 
-IMAGE_BUILDER_ARG=""
-if [ "$PROJECT" != "ml-pipeline-test" ]; then
-  COPIED_IMAGE_BUILDER_IMAGE=${GCR_IMAGE_BASE_DIR}/image-builder
-  echo "Copy image builder image to ${COPIED_IMAGE_BUILDER_IMAGE}"
-  yes | gcloud container images add-tag \
-    gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4 \
-    ${COPIED_IMAGE_BUILDER_IMAGE}:latest
-  IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
-fi
+IMAGES_BUILDING=false
 
 # Image caching can be turned off by setting $DISABLE_IMAGE_CACHING env flag.
 # Note that GCR_IMAGE_BASE_DIR contains commit hash, so whenever there's a code
@@ -40,20 +32,19 @@ then
   echo "docker images for api-server, frontend, scheduledworkflow and \
     persistenceagent are already built in ${GCR_IMAGE_BASE_DIR}."
 else
-  echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
-  # Build Images
-  ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
-  -p image-build-context-gcs-uri="$remote_code_archive_uri" \
-  ${IMAGE_BUILDER_ARG} \
-  -p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
-  -p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
-  -p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
-  -p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
-  -n ${NAMESPACE} \
-  --serviceaccount test-runner \
-  -o name
-  `
-  echo "build docker images workflow submitted successfully"
-  source "${DIR}/check-argo-status.sh"
-  echo "build docker images workflow completed"
+  echo "submitting cloud build to build docker images for commit ${PULL_PULL_SHA}..."
+  IMAGES_BUILDING=true
+  CLOUD_BUILD_COMMON_ARGS=(. --async --format='value(id)' --substitutions=_GCR_BASE=${GCR_IMAGE_BASE_DIR})
+  # Split into two tasks because api_server builds slowly, use a separate task
+  # to make it faster.
+  BUILD_ID_API_SERVER=$(gcloud builds submit ${CLOUD_BUILD_COMMON_ARGS[@]} \
+    --config ${DIR}/cloudbuild/api_server.yaml)
+  BUILD_ID_BATCH=$(gcloud builds submit ${CLOUD_BUILD_COMMON_ARGS[@]} \
+    --config ${DIR}/cloudbuild/batch_build.yaml)
+
+  BUILD_IDS=(
+    "${BUILD_ID_API_SERVER}"
+    "${BUILD_ID_BATCH}"
+  )
+  echo "Submitted the following cloud build jobs: ${BUILD_IDS[@]}"
 fi
