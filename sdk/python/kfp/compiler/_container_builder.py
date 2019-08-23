@@ -22,6 +22,31 @@ SERVICEACCOUNT_NAMESPACE = '/var/run/secrets/kubernetes.io/serviceaccount/namesp
 GCS_STAGING_BLOB_DEFAULT_PREFIX = 'kfp_container_build_staging'
 GCR_DEFAULT_IMAGE_SUFFIX = 'kfp_container'
 
+
+def _get_project_id():
+  import requests
+  URL = "http://metadata.google.internal/computeMetadata/v1/project/project-id"
+  headers = {
+    'Metadata-Flavor': 'Google'
+  }
+  r = requests.get(url = URL, headers = headers)
+  if not r.ok:
+    raise RuntimeError('ContainerBuilder failed to retrieve the project id.')
+  return r.text
+
+
+def _get_instance_id():
+  import requests
+  URL = "http://metadata.google.internal/computeMetadata/v1/instance/id"
+  headers = {
+    'Metadata-Flavor': 'Google'
+  }
+  r = requests.get(url = URL, headers = headers)
+  if not r.ok:
+    raise RuntimeError('ContainerBuilder failed to retrieve the instance id.')
+  return r.text
+
+
 class ContainerBuilder(object):
   """
   ContainerBuilder helps build a container image
@@ -36,41 +61,9 @@ class ContainerBuilder(object):
           default is the same namespace as the notebook service account in cluster
               or 'kubeflow' if not in cluster
     """
-    # Configure the GCS staging bucket
-    if gcs_staging is None:
-      try:
-        gcs_bucket = self._get_project_id()
-      except:
-        raise ValueError('Cannot get the Google Cloud project ID, please specify the gcs_staging argument.')
-      self._gcs_staging = 'gs://' + gcs_bucket + '/' + GCS_STAGING_BLOB_DEFAULT_PREFIX
-    else:
-      from pathlib import PurePath
-      path = PurePath(gcs_staging).parts
-      if len(path) < 2 or not path[0].startswith('gs'):
-        raise ValueError('Error: {} should be a GCS path.'.format(gcs_staging))
-      gcs_bucket = path[1]
-      self._gcs_staging = gcs_staging
-    from ._gcs_helper import GCSHelper
-    GCSHelper.create_gcs_bucket_if_not_exist(gcs_bucket)
-
-    # Configure the GCR image tag
-    # Kubeflow jupyter notebook is injected with a variable as an ID
-    if gcr_image_tag is None:
-      KF_NOTEBOOK_ENV = 'NB_PREFIX'
-      nb_id = ''
-      try:
-        if KF_NOTEBOOK_ENV in os.environ.keys():
-          nb_id = os.environ[KF_NOTEBOOK_ENV]
-        else:
-          nb_id = self._get_instance_id()
-      except:
-        raise ValueError('Please provide the gcr_image_tag.')
-      nb_id = nb_id.replace('/', '-').strip('-')
-      self._gcr_image_tag = os.path.join('gcr.io', self._get_project_id(), nb_id, GCR_DEFAULT_IMAGE_SUFFIX)
-    else:
-      if not gcr_image_tag.startswith('gcr.io'):
-        raise ValueError('Error: {} should be a GCR path.'.format(gcr_image_tag))
-      self._gcr_image_tag = gcr_image_tag
+    self._gcs_staging = gcs_staging
+    self._gcs_staging_checked = False
+    self._default_image_name = gcr_image_tag
 
     # Configure the namespace
     self._namespace = namespace
@@ -81,27 +74,39 @@ class ContainerBuilder(object):
       else:
         self._namespace = 'kubeflow'
 
-  def _get_project_id(self):
-    import requests
-    URL = "http://metadata.google.internal/computeMetadata/v1/project/project-id"
-    headers = {
-      'Metadata-Flavor': 'Google'
-    }
-    r = requests.get(url = URL, headers = headers)
-    if not r.ok:
-      raise RuntimeError('ContainerBuilder failed to retrieve the project id.')
-    return r.text
+  def _get_staging_location(self):
+    if self._gcs_staging_checked:
+      return self._gcs_staging
 
-  def _get_instance_id(self):
-    import requests
-    URL = "http://metadata.google.internal/computeMetadata/v1/instance/id"
-    headers = {
-      'Metadata-Flavor': 'Google'
-    }
-    r = requests.get(url = URL, headers = headers)
-    if not r.ok:
-      raise RuntimeError('ContainerBuilder failed to retrieve the instance id.')
-    return r.text
+    # Configure the GCS staging bucket
+    if self._gcs_staging is None:
+      try:
+        gcs_bucket = _get_project_id()
+      except:
+        raise ValueError('Cannot get the Google Cloud project ID, please specify the gcs_staging argument.')
+      self._gcs_staging = 'gs://' + gcs_bucket + '/' + GCS_STAGING_BLOB_DEFAULT_PREFIX
+    else:
+      from pathlib import PurePath
+      path = PurePath(self._gcs_staging).parts
+      if len(path) < 2 or not path[0].startswith('gs'):
+        raise ValueError('Error: {} should be a GCS path.'.format(self._gcs_staging))
+      gcs_bucket = path[1]
+    from ._gcs_helper import GCSHelper
+    GCSHelper.create_gcs_bucket_if_not_exist(gcs_bucket)
+    self._gcs_staging_checked = True
+    return self._gcs_staging
+
+  def _get_default_image_name(self):
+    if self._default_image_name is None:
+      # KubeFlow Jupyter notebooks have environment variable with the notebook ID
+      try:
+        nb_id = os.environ.get('NB_PREFIX', _get_instance_id())
+      except:
+        raise ValueError('Please provide the default_image_name.')
+      nb_id = nb_id.replace('/', '-').strip('-')
+      self._default_image_name = os.path.join('gcr.io', _get_project_id(), nb_id, GCR_DEFAULT_IMAGE_SUFFIX)
+    return self._default_image_name
+
 
   def _generate_kaniko_spec(self, context, docker_filename, target_image):
     """_generate_kaniko_yaml generates kaniko job yaml based on a template yaml """
@@ -160,7 +165,7 @@ class ContainerBuilder(object):
       target_image (str): the target image tag to push the final image.
       timeout (int): time out in seconds. Default: 1000
     """
-    target_image = target_image or self._gcr_image_tag
+    target_image = target_image or self._get_default_image_name()
     # Prepare build context
     with tempfile.TemporaryDirectory() as local_build_dir:
       from ._gcs_helper import GCSHelper
@@ -168,7 +173,7 @@ class ContainerBuilder(object):
       local_tarball_path = os.path.join(local_build_dir, 'docker.tmp.tar.gz')
       self._wrap_dir_in_tarball(local_tarball_path, local_dir)
       # Upload to the context
-      context = os.path.join(self._gcs_staging, str(uuid.uuid4()) + '.tar.gz')
+      context = os.path.join(self._get_staging_location(), str(uuid.uuid4()) + '.tar.gz')
       GCSHelper.upload_gcs_file(local_tarball_path, context)
 
       # Run kaniko job
