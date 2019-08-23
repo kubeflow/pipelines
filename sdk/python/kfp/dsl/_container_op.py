@@ -17,7 +17,7 @@ import warnings
 from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
 
 from argo.models import V1alpha1ArtifactLocation
-from kubernetes.client import V1Toleration
+from kubernetes.client import V1Toleration, V1Affinity
 from kubernetes.client.models import (
     V1Container, V1EnvVar, V1EnvFromSource, V1SecurityContext, V1Probe,
     V1ResourceRequirements, V1VolumeDevice, V1VolumeMount, V1ContainerPort,
@@ -721,6 +721,7 @@ class BaseOp(object):
         self.node_selector = {}
         self.volumes = []
         self.tolerations = []
+        self.affinity = {}
         self.pod_annotations = {}
         self.pod_labels = {}
         self.num_retries = 0
@@ -793,11 +794,27 @@ class BaseOp(object):
         """Add K8s tolerations
 
         Args:
-          volume: Kubernetes toleration
+          tolerations: Kubernetes toleration
           For detailed spec, check toleration definition
           https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_toleration.py
         """
         self.tolerations.append(tolerations)
+        return self
+
+    def add_affinity(self, affinity: V1Affinity):
+        """Add K8s Affinity
+        Args:
+          affinity: Kubernetes affinity
+          For detailed spec, check affinity definition
+          https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_affinity.py
+          example: V1Affinity(
+                    node_affinity=V1NodeAffinity(
+                        required_during_scheduling_ignored_during_execution=V1NodeSelector(
+                            node_selector_terms=[V1NodeSelectorTerm(
+                                match_expressions=[V1NodeSelectorRequirement(
+                                    key='beta.kubernetes.io/instance-type', operator='In', values=['p2.xlarge'])])])))
+        """
+        self.affinity = affinity
         return self
 
     def add_node_selector_constraint(self, label_name, value):

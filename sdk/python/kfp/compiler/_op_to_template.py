@@ -234,6 +234,10 @@ def _op_to_template(op: BaseOp):
     if processed_op.tolerations:
         template['tolerations'] = processed_op.tolerations
 
+    # affinity
+    if processed_op.affinity:
+        template['affinity'] = K8sHelper.convert_k8s_obj_to_json(processed_op.affinity)
+
     # metadata
     if processed_op.pod_annotations or processed_op.pod_labels:
         template['metadata'] = {}
