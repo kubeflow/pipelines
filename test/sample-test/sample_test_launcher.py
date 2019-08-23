@@ -52,7 +52,7 @@ class SampleTest(object):
     self._namespace = namespace
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
     self._sample_test_output = self._results_gcs_dir
-    self._work_dir = os.path.join(self.BASE_DIR, '/samples/core/', self._test_name)
+    self._work_dir = os.path.join(self.BASE_DIR, 'samples/core/', self._test_name)
 
   def check_result(self):
     os.chdir(self.TEST_DIR)
