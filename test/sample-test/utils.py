@@ -92,15 +92,14 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
   storage_client = storage.Client()
   try:
     bucket = storage_client.get_bucket(bucket_name)
-  except google.cloud.exceptions.NotFound as e:
-    raise RuntimeError("Bucket not found: {}\n".format(str(e)))
-
-  blob = bucket.blob(destination_blob_name)
-  try:
+    blob = bucket.blob(destination_blob_name)
     blob.upload_from_filename(source_file_name)
-  except google.cloud.exceptions.GoogleCloudError as e:
-    raise RuntimeError('Failure when uploading {}\n'.format(str(e)))
-
-  print('File {} uploaded to {}.'.format(
-      source_file_name,
-      destination_blob_name))
+  except google.cloud.exceptions.GoogleCloudError as google_cloud_error:
+    raise RuntimeError(
+        'Failure when uploading {}\n'.format(str(google_cloud_error)))
+  except google.cloud.exceptions.NotFound as not_found:
+    raise RuntimeError("Bucket not found: {}\n".format(str(not_found)))
+  else:
+    print('File {} uploaded to {}.'.format(
+        source_file_name,
+        destination_blob_name))
