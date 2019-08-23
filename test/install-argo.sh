@@ -34,8 +34,9 @@ if ! which argo; then
   chmod +x ~/bin/argo
 fi
 
-kubectl create ns argo --dry-run -o yaml | kubectl apply -f -
-kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
+# No need to install here, it comes with kfp lite deployment
+# kubectl create ns argo --dry-run -o yaml | kubectl apply -f -
+# kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/$ARGO_VERSION/manifests/install.yaml
 
 # Some workflows are deployed to the non-default namespace where the GCP credential secret is stored
 # In this case, the default service account in that namespace doesn't have enough permission
