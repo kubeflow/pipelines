@@ -116,6 +116,12 @@ def main():
   if args.py:
     compile_pyfile(args.py, args.function, args.output, not args.disable_type_check)
   else:
+    import warnings
+    warnings.warn(DeprecationWarning(
+      '''The ability to compile pipeline from a python package is deprecated and will be removed in next release.
+      Please switch to compiling pipeline files or functions.
+      If you use this feature please create an issue in https://github.com/kubeflow/pipelines/issues .'''
+    ))
     if args.namespace is None:
       raise ValueError('--namespace is required for compiling packages.')
     compile_package(args.package, args.namespace, args.function, args.output, not args.disable_type_check)
