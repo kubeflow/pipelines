@@ -78,7 +78,7 @@ echo "test env prepared"
 time source "${DIR}/build-images.sh"
 echo "KFP images cloudbuild jobs submitted"
 
-time source "${DIR}/deploy-cluster.sh"
+time COMMIT_SHA=$PULL_PULL_SHA source "${DIR}/deploy-cluster.sh"
 echo "cluster deployed"
 
 time source "${DIR}/check-build-image-status.sh"
