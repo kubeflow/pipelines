@@ -126,7 +126,7 @@ class VisualizationHandler(tornado.web.RequestHandler):
         nb = new_notebook()
         nb.cells.append(_exporter.create_cell_from_args(arguments))
         nb.cells.append(new_code_cell('source = "{}"'.format(source)))
-        visualization_file = str(Path.cwd() / "{}.py".format(visualization_type))
+        visualization_file = str(Path.cwd() / "types/{}.py".format(visualization_type))
         nb.cells.append(_exporter.create_cell_from_file(visualization_file))
         return nb
 
