@@ -75,7 +75,7 @@ echo "presubmit test starts"
 time source "${DIR}/test-prep.sh"
 echo "test env prepared"
 
-time source "${DIR}/deploy-cluster.sh"
+time COMMIT_SHA=$PULL_PULL_SHA source "${DIR}/deploy-cluster.sh"
 echo "cluster deployed"
 
 # Install Argo CLI and test-runner service account
