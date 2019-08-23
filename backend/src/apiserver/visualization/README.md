@@ -1,15 +1,15 @@
 # Python based visualizations guideline
 
 This document describes the architecture of python based visualizations,
-development guideline to contribute new predefined visualizations to the
-Kubeflow Pipeline project, and current limitations. For information about using
+development guidelines to contribute new predefined visualizations to the
+Kubeflow Pipelines project, and current limitations. For information about using
 Python based visualizations please visit the [documentation page](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations).
 Please check the [developer guidelines](https://github.com/kubeflow/pipelines/blob/master/developer_guide.md)
 for additional development guidelines.
 
 ## Architecture
 
-Python based visualizations rely on three parts. The frontend, the API server,
+Python based visualizations rely on three parts: the frontend, the API server,
 and the Python visualization service. The architecture of all three is as
 follows. The frontend is responsible for creating the visualization request and
 displaying the results of the created requests. The API server is responsible
