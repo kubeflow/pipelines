@@ -52,7 +52,7 @@ class SampleTest(object):
     self._namespace = namespace
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
     self._sample_test_output = self._results_gcs_dir
-    self._work_dir = self.BASE_DIR + '/samples/core/' + self._test_name
+    self._work_dir = os.path.join(self.BASE_DIR, '/samples/core/', self._test_name)
 
   def check_result(self):
     os.chdir(self.TEST_DIR)
@@ -76,7 +76,7 @@ class SampleTest(object):
     utils.upload_blob(
         working_bucket,
         self._sample_test_result,
-        self._results_gcs_dir + '/' + self._sample_test_result
+        os.path.join(self._results_gcs_dir, self._sample_test_result)
     )
 
   def check_notebook_result(self):
@@ -118,7 +118,7 @@ class SampleTest(object):
     utils.upload_blob(
         working_bucket,
         self._sample_test_result,
-        self._results_gcs_dir + '/' + self._sample_test_result
+        os.path.join(self._results_gcs_dir, self._sample_test_result)
     )
 
   def _run_test(self):
@@ -142,9 +142,7 @@ class SampleTest(object):
       pm.execute_notebook(
           input_path='DSL Static Type Checking.ipynb',
           output_path='%s.ipynb' % self._test_name,
-          parameters=dict(
-              KFP_PACKAGE='tmp/kfp.tar.gz',
-          )
+          parameters={}
       )
     else:
       subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
@@ -229,8 +227,6 @@ class ComponentTest(SampleTest):
           'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-dataflow-tfma:\w+':self._dataflow_tfma_image,
           'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\w+':self._kubeflow_dnntrainer_image,
           'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-deployer:\w+':self._kubeflow_deployer_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:\w+':self._local_confusionmatrix_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:\w+':self._local_roc_image
       })
     else:
       # Only the above two samples need injection for now.
