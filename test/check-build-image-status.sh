@@ -18,21 +18,23 @@ set -ex
 
 if [ "$IMAGES_BUILDING" == true ]; then
   MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20)
+  PENDING_BUILD_IDS=("${BUILD_IDS[@]}") # copy pending build ids
   for i in $(seq 1 ${MAX_ATTEMPT})
   do
-    (( success_count=0 )) || true
-    for id in "${BUILD_IDS[@]}"
+    NEW_PENDING_BUILD_IDS=()
+    for id in "${PENDING_BUILD_IDS[@]}"
     do
       status=$(gcloud builds describe $id --format='value(status)') || status="FETCH_ERROR"
       case "$status" in
         "SUCCESS")
-          (( ++success_count ))
+          echo "Build with id ${id} has succeeded."
         ;;
         "WORKING")
-          # do nothing
+          NEW_PENDING_BUILD_IDS+=( "$id" )
         ;;
         "FETCH_ERROR")
           echo "Fetching cloud build status failed, retrying..."
+          NEW_PENDING_BUILD_IDS+=( "$id" )
         ;;
         *)
           echo "Cloud build with build id ${id} failed with status ${status}"
@@ -40,11 +42,11 @@ if [ "$IMAGES_BUILDING" == true ]; then
         ;;
       esac
     done
-    if [ $success_count == 4 ]; then
+    PENDING_BUILD_IDS=("${NEW_PENDING_BUILD_IDS[@]}")
+    if [ 0 == "${#PENDING_BUILD_IDS[@]}" ]; then
       echo "All cloud builds succeeded."
       break
     fi
-
     echo "Cloud build in progress, waiting for 20 seconds..."
     sleep 20
   done
