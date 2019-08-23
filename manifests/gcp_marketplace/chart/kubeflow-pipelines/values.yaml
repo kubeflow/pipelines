@@ -7,6 +7,7 @@ images:
   frontend: gcr.io/ml-pipeline/frontend:0.1.26
   viewerCrd: gcr.io/ml-pipeline/viewer-crd-controller:0.1.26
   visualizationServer: gcr.io/ml-pipeline/visualization-server:0.1.26
+  metadataServer: gcr.io/kubeflow-images-public/metadata:v0.1.8
   proxyAgent: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.26
   argoExecutor: gcr.io/ml-pipeline/argoexec:v2.3.0
   argoWorkflowController: gcr.io/ml-pipeline/workflow-controller:v2.3.0

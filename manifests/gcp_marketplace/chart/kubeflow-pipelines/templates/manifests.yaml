@@ -577,6 +577,22 @@ type: Opaque
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    app: metadata
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: metadata-service
+spec:
+  ports:
+    - name: md-backendapi
+      port: 8080
+      protocol: TCP
+  selector:
+    component: metadata-server
+    app.kubernetes.io/name: {{ .Release.Name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: minio-service
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}
@@ -975,6 +991,38 @@ spec:
       serviceAccount: argo
       serviceAccountName: argo
       terminationGracePeriodSeconds: 30
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    component: metadata-server
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: metadata-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-server
+      app.kubernetes.io/name: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        component: metadata-server
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+        - command:
+            - ./server/server
+            - --http_port=8080
+            - --mysql_service_host=mysql
+            - --mysql_service_port=3306
+            - --mlmd_db_name=metadb
+          image: {{ .Values.images.metadataServer }}
+          name: container
+          ports:
+            - containerPort: 8080
+              name: md-backendapi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

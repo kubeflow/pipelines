@@ -54,6 +54,16 @@ properties:
     default: $REGISTRY/viewer-crd-controller:$TAG
     x-google-marketplace:
       type: IMAGE
+  image.visualizationServer:
+    type: string
+    default: $REGISTRY/visualization-server:$TAG
+    x-google-marketplace:
+      type: IMAGE
+  image.metadataServer:
+    type: string
+    default: $REGISTRY/metadata:$TAG
+    x-google-marketplace:
+      type: IMAGE
   image.proxyAgent:
     type: string
     default: $REGISTRY/inverse-proxy-agent:$TAG
@@ -72,6 +82,8 @@ required:
   - image.scheduledworkflow
   - image.frontend
   - image.viewerCrd
+  - image.visualizationServer
+  - image.metadataServer
   - image.proxyAgent
 
 x-google-marketplace:
