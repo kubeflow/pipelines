@@ -25,6 +25,12 @@ import utils
 #   exit_code: the exit code of the bash command that runs the test.
 
 # Parsing the input arguments
+
+class CheckNotebookResults(object):
+  def __init__(self):
+    pass
+
+
 def parse_arguments():
   """Parse command line arguments."""
 
