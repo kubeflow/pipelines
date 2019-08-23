@@ -25,7 +25,7 @@ from ._k8s_helper import K8sHelper
 from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
-from ..dsl._metadata import TypeMeta, _extract_pipeline_metadata
+from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
 class Compiler(object):
@@ -596,7 +596,7 @@ class Compiler(object):
 
     args_list = []
     for arg_name in argspec.args:
-      arg_type = TypeMeta()
+      arg_type = None
       for input in pipeline_meta.inputs:
         if arg_name == input.name:
           arg_type = input.param_type

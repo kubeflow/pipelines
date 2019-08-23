@@ -28,7 +28,8 @@ import yaml
 from kfp.dsl._component import component
 from kfp.dsl import ContainerOp, pipeline
 from kfp.dsl.types import Integer, InconsistentTypeException
-from kubernetes.client import V1Toleration
+from kubernetes.client import V1Toleration, V1Affinity, V1NodeSelector, V1NodeSelectorRequirement, V1NodeSelectorTerm, \
+  V1NodeAffinity
 
 
 def some_op():
@@ -355,6 +356,36 @@ class TestCompiler(unittest.TestCase):
     template = name_to_template[main_dag_tasks[0]['template']]
 
     self.assertEqual(template['retryStrategy']['limit'], number_of_retries)
+
+  def test_affinity(self):
+    """Test affinity functionality."""
+    exp_affinity = {
+      'affinity': {
+        'nodeAffinity': {
+          'requiredDuringSchedulingIgnoredDuringExecution': {
+            'nodeSelectorTerms': [
+              {'matchExpressions': [
+                {
+                  'key': 'beta.kubernetes.io/instance-type',
+                  'operator': 'In',
+                  'values': ['p2.xlarge']}
+              ]
+              }]
+          }}
+      }
+    }
+    def my_pipeline():
+      affinity = V1Affinity(
+        node_affinity=V1NodeAffinity(
+          required_during_scheduling_ignored_during_execution=V1NodeSelector(
+            node_selector_terms=[V1NodeSelectorTerm(
+              match_expressions=[V1NodeSelectorRequirement(
+                key='beta.kubernetes.io/instance-type', operator='In', values=['p2.xlarge'])])])))
+      some_op().add_affinity(affinity)
+
+    workflow = kfp.compiler.Compiler()._compile(my_pipeline)
+
+    self.assertEqual(workflow['spec']['templates'][1]['affinity'], exp_affinity['affinity'])
 
   def test_py_image_pull_secrets(self):
     """Test pipeline imagepullsecret."""
