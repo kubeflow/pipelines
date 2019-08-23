@@ -51,3 +51,6 @@ bazel-*
 
 # VSCode
 .vscode
+
+# Test temporary files
+_artifacts

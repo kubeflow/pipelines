@@ -16,9 +16,11 @@
 
 set -ex
 
-# Specify TEST_CLUSTER env variable to use an existing cluster.
+# Env inputs:
+# * COMMIT_SHA - decides TEST_CLUSTER's name
+# * TEST_CLUSTER - [optional] specify to reuse existing TEST_CLUSTER
 TEST_CLUSTER_PREFIX=${WORKFLOW_FILE%.*}
-TEST_CLUSTER_DEFAULT=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${PULL_PULL_SHA:0:7}-${RANDOM}
+TEST_CLUSTER_DEFAULT=$(echo $TEST_CLUSTER_PREFIX | cut -d _ -f 1)-${COMMIT_SHA:0:7}-${RANDOM}
 TEST_CLUSTER=${TEST_CLUSTER:-${TEST_CLUSTER_DEFAULT}}
 SHOULD_CLEANUP_CLUSTER=false
 
