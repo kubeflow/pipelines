@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import tensorflow_model_analysis as tfma
+import tensorflow_data_validation as tfdv
 
-# flake8: noqa TODO
+# The following variables are provided through dependency injection. These
+# variables come from the specified input path and arguments provided by the
+# API post request.
+#
+# source
 
-if variables.get("slicing_column", False) == False {
-    tfma.view.render_slicing_metrics(source)
-} else {
-    tfma.view.render_slicing_metrics(source, slicing_column=variables.get("slicing_column"))
-}
+train_stats = tfdv.generate_statistics_from_csv(data_location=source)
 
+tfdv.visualize_statistics(train_stats)
