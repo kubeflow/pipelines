@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+from typing import Dict, Union
 import warnings
 
 
@@ -104,16 +104,17 @@ class InconsistentTypeWarning(Warning):
 	pass
 
 
-def verify_type_compatibility(given_type, expected_type, error_message_prefix : str = ''):
+TypeSpecType = Union[str, Dict]
+
+
+def verify_type_compatibility(given_type: TypeSpecType, expected_type: TypeSpecType, error_message_prefix : str = ''):
 	'''verify_type_compatibility verifies that the given argument type is compatible with the expected input type.
 	Args:
 		given_type (str/dict): The type of the argument passed to the input
 		expected_type (str/dict): The declared type of the input
 	'''
-	if given_type is None:
-		return
-	if expected_type is None:
-		return
+	if given_type is None or expected_type is None:
+		return True # Missing types are treated as being compatible with any types
 
 	types_are_compatible = check_types(given_type, expected_type)
 
