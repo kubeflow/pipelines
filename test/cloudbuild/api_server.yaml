@@ -1,0 +1,8 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', '$_GCR_BASE/api-server', '-f', 'backend/Dockerfile', '.' ]
+timeout: 1800s # 30min
+options:
+  machineType: N1_HIGHCPU_8 # This is cpu intensive, use a better machine.
+images:
+- '$_GCR_BASE/api-server'
