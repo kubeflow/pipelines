@@ -89,6 +89,8 @@ class SampleTest(object):
       subprocess.call([
           sys.executable,
           'check_notebook_results.py',
+          '--experiment',
+          '%s-test' % self._test_name,
           '--testname',
           self._test_name,
           '--result',
