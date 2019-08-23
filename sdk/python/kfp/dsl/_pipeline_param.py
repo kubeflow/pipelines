@@ -13,7 +13,7 @@
 # limitations under the License.
 import re
 from collections import namedtuple
-from typing import List
+from typing import List, Dict, Union
 
 from ._metadata import TypeMeta
 
@@ -135,7 +135,7 @@ class PipelineParam(object):
   value passed between components.
   """
   
-  def __init__(self, name: str, op_name: str=None, value: str=None, param_type: TypeMeta=TypeMeta(), pattern: str=None):
+  def __init__(self, name: str, op_name: str=None, value: str=None, param_type : Union[str, Dict] = None, pattern: str=None):
     """Create a new instance of PipelineParam.
     Args:
       name: name of the pipeline parameter.
@@ -218,6 +218,6 @@ class PipelineParam(object):
 
   def ignore_type(self):
     """ignore_type ignores the type information such that type checking would also pass"""
-    self.param_type = TypeMeta()
+    self.param_type = None
     return self
 

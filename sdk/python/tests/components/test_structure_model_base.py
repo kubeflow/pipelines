@@ -230,5 +230,20 @@ class StructureModelBaseTestCase(unittest.TestCase):
             TestModel1.from_dict({'prop_0': '', 'prop_5': [val5.to_dict(), None]})
 
 
+    def test_handle_comparisons(self):
+        class A(ModelBase):
+            def __init__(self, a, b):
+                super().__init__(locals())
+        
+        self.assertEqual(A(1, 2), A(1, 2))
+        self.assertNotEqual(A(1, 2), A(1, 3))
+        
+        class B(ModelBase):
+            def __init__(self, a, b):
+                super().__init__(locals())
+        
+        self.assertNotEqual(A(1, 2), B(1, 2))
+
+
 if __name__ == '__main__':
     unittest.main()

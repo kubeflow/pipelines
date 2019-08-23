@@ -128,18 +128,18 @@ def _generate_dockerfile(filename, base_image, entrypoint_filename, python_versi
     raise ValueError('python_version has to be either python2 or python3')
   with open(filename, 'w') as f:
     f.write('FROM ' + base_image + '\n')
-    if python_version is 'python3':
+    if python_version == 'python3':
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools\n')
     else:
       f.write('RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools\n')
     if requirement_filename is not None:
       f.write('ADD ' + requirement_filename + ' /ml/requirements.txt\n')
-      if python_version is 'python3':
+      if python_version == 'python3':
         f.write('RUN pip3 install -r /ml/requirements.txt\n')
       else:
         f.write('RUN pip install -r /ml/requirements.txt\n')
     f.write('ADD ' + entrypoint_filename + ' /ml/main.py\n')
-    if python_version is 'python3':
+    if python_version == 'python3':
       f.write('ENTRYPOINT ["python3", "-u", "/ml/main.py"]')
     else:
       f.write('ENTRYPOINT ["python", "-u", "/ml/main.py"]')
@@ -282,23 +282,6 @@ class ComponentBuilder(object):
     self._arc_requirement_filename = 'requirements.txt'
     self._container_builder = ContainerBuilder(gcs_staging, gcr_image_tag=target_image, namespace=namespace)
 
-  def _prepare_files(self, local_dir, docker_filename, python_filename=None, requirement_filename=None):
-    """ _prepare_buildfiles generates the tarball with all the build files
-    Args:
-      local_dir (dir): a directory that stores all the build files
-      docker_filename (str): docker filename
-      python_filename (str): python filename
-      requirement_filename (str): requirement filename
-    """
-    dst_docker_filepath = os.path.join(local_dir, self._arc_docker_filename)
-    shutil.copyfile(docker_filename, dst_docker_filepath)
-    if python_filename is not None:
-      dst_python_filepath = os.path.join(local_dir, self._arc_python_filename)
-      shutil.copyfile(python_filename, dst_python_filepath)
-    if requirement_filename is not None:
-      dst_requirement_filepath = os.path.join(local_dir, self._arc_requirement_filename)
-      shutil.copyfile(requirement_filename, dst_requirement_filepath)
-
   def build_image_from_func(self, component_func, base_image, timeout, dependency, python_version='python3'):
     """ build_image builds an image for the given python function
     args:
@@ -323,12 +306,6 @@ class ComponentBuilder(object):
 
       # Prepare build files
       logging.info('Generate build files.')
-      return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
-
-  def build_image_from_dockerfile(self, docker_filename, timeout):
-    """ build_image_from_dockerfile builds an image based on the dockerfile """
-    with tempfile.TemporaryDirectory() as local_build_dir:
-      self._prepare_files(local_build_dir, docker_filename)
       return self._container_builder.build(local_build_dir, self._arc_docker_filename, timeout=timeout)
 
 def _configure_logger(logger):
@@ -455,7 +432,14 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
   """
   _configure_logger(logging.getLogger())
-  builder = ComponentBuilder(gcs_staging=staging_gcs_path, target_image=target_image, namespace=namespace)
-  image_name_with_digest = builder.build_image_from_dockerfile(docker_filename=dockerfile_path, timeout=timeout)
+
+  with tempfile.TemporaryDirectory() as local_build_dir:
+    dockerfile_rel_path = 'Dockerfile'
+    dst_dockerfile_path = os.path.join(local_build_dir, dockerfile_rel_path)
+    shutil.copyfile(dockerfile_path, dst_dockerfile_path)
+
+    container_builder = ContainerBuilder(staging_gcs_path, target_image, namespace=namespace)
+    image_name_with_digest = container_builder.build(local_build_dir, dockerfile_rel_path, timeout)
+
   logging.info('Build image complete.')
   return image_name_with_digest

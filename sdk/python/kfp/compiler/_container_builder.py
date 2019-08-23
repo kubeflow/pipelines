@@ -41,7 +41,7 @@ class ContainerBuilder(object):
       try:
         gcs_bucket = self._get_project_id()
       except:
-        raise ValueError('Please provide the gcr_staging.')
+        raise ValueError('Cannot get the Google Cloud project ID, please specify the gcs_staging argument.')
       self._gcs_staging = 'gs://' + gcs_bucket + '/' + GCS_STAGING_BLOB_DEFAULT_PREFIX
     else:
       from pathlib import PurePath
@@ -160,7 +160,7 @@ class ContainerBuilder(object):
       target_image (str): the target image tag to push the final image.
       timeout (int): time out in seconds. Default: 1000
     """
-    target_image = self._gcr_image_tag if target_image is None else target_image
+    target_image = target_image or self._gcr_image_tag
     # Prepare build context
     with tempfile.TemporaryDirectory() as local_build_dir:
       from ._gcs_helper import GCSHelper
