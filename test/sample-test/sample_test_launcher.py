@@ -119,7 +119,7 @@ class SampleTest(object):
         os.path.join(self._results_gcs_dir, self._sample_test_result)
     )
 
-  def _run_test(self):
+  def _compile_sample(self):
 
     os.chdir(self._work_dir)
     print('Run the sample tests...')
@@ -145,7 +145,7 @@ class SampleTest(object):
                        '--output', '%s.yaml' % self._test_name])
 
   def run_test(self):
-    self._run_test()
+    self._compile_sample()
     if self._test_name in ['lightweight_component', 'dsl_static_type_checking']:
       self.check_notebook_result()
     else:
@@ -234,7 +234,7 @@ class ComponentTest(SampleTest):
 
   def run_test(self):
     # compile, injection, check_result
-    self._run_test()
+    self._compile_sample()
     self._injection()
     self.check_result()
 
