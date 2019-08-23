@@ -122,8 +122,6 @@ class SampleTest(object):
     )
 
   def _run_test(self):
-    if len(self._results_gcs_dir) == 0:
-      return 1
 
     os.chdir(self._work_dir)
     print('Run the sample tests...')
