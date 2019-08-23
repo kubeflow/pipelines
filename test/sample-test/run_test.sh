@@ -203,17 +203,6 @@ xgboost_training_cm_injection() {
   sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-roc:\([a-zA-Z0-9_.-]\)\+|${LOCAL_ROC_IMAGE}|g" ${TEST_NAME}.yaml
 }
 
-################################################################################
-# Utility function to inject correct images to python files for
-# kubeflow_training_classification test.
-################################################################################
-kubeflow_training_classification_injection() {
-  sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tft:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_TFT_IMAGE}|g" ${TEST_NAME}.py
-  sed -i "s|gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\([a-zA-Z0-9_.-]\)\+|${KUBEFLOW_DNNTRAINER_IMAGE}|g" ${TEST_NAME}.py
-  sed -i "s|gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\([a-zA-Z0-9_.-]\)\+|${DATAFLOW_PREDICT_IMAGE}|g" ${TEST_NAME}.py
-  sed -i "s|gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:\([a-zA-Z0-9_.-]\)\+|${LOCAL_CONFUSIONMATRIX_IMAGE}|g" ${TEST_NAME}.py
-}
-
 if [[ -z "$RESULTS_GCS_DIR" ]]; then
   usage
   exit 1
@@ -231,17 +220,7 @@ echo "Run the sample tests..."
 # Run the tests
 preparation ${TEST_NAME}
 
-if [[ "${TEST_NAME}" == "kubeflow_training_classification" ]]; then
-  #TODO(numerology): convert the sed commands to sed -e
-  # 's|gcr.io/ml-pipeline/|gcr.io/ml-pipeline-test/' and tag replacement. Also
-  # let the postsubmit tests refer to yaml files.
-  if [ -n "${DATAFLOW_TFT_IMAGE}" ];then
-    kubeflow_training_classification_injection
-  fi
-
-  dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
-  check_result ${TEST_NAME}
-elif [[ "${TEST_NAME}" == "tfx_cab_classification" ]]; then
+if [[ "${TEST_NAME}" == "tfx_cab_classification" ]]; then
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
     tfx_cab_classification_injection
@@ -268,43 +247,6 @@ elif [[ "${TEST_NAME}" == "parallel_join" ]]; then
 elif [[ "${TEST_NAME}" == "recursion" ]]; then
   dsl-compile --py "${TEST_NAME}.py" --output "${TEST_NAME}.yaml"
   check_result ${TEST_NAME}
-elif [[ "${TEST_NAME}" == "kubeflow_pipeline_using_TFX_OSS_components" ]]; then
-  # CMLE model name format: A name should start with a letter and contain only
-  # letters, numbers and underscores.
-  DEPLOYER_MODEL=`cat /proc/sys/kernel/random/uuid`
-  DEPLOYER_MODEL=Notebook_tfx_taxi_`echo ${DEPLOYER_MODEL//-/_}`
-
-  export LC_ALL=C.UTF-8
-  export LANG=C.UTF-8
-  if [[ -n "${DATAFLOW_TFT_IMAGE}" ]]; then
-    papermill --prepare-only -p EXPERIMENT_NAME "${TEST_NAME}-test" -p OUTPUT_DIR \
-    ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
-    -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE \
-    ${TARGET_IMAGE_PREFIX}pusher:dev -p TARGET_IMAGE_TWO \
-    ${TARGET_IMAGE_PREFIX}pusher_two:dev \
-    -p KFP_PACKAGE /tmp/kfp.tar.gz -p DEPLOYER_MODEL ${DEPLOYER_MODEL}  \
-    -p DATAFLOW_TFDV_IMAGE ${DATAFLOW_TFDV_IMAGE} -p DATAFLOW_TFT_IMAGE \
-    ${DATAFLOW_TFT_IMAGE} -p DATAFLOW_TFMA_IMAGE ${DATAFLOW_TFMA_IMAGE} -p \
-    DATAFLOW_TF_PREDICT_IMAGE ${DATAFLOW_PREDICT_IMAGE} \
-    -p KUBEFLOW_TF_TRAINER_IMAGE ${KUBEFLOW_DNNTRAINER_IMAGE} -p \
-    KUBEFLOW_DEPLOYER_IMAGE ${KUBEFLOW_DEPLOYER_IMAGE} \
-    -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv \
-    -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
-    -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 \
-    "KubeFlow Pipeline Using TFX OSS Components.ipynb" "${TEST_NAME}.ipynb"
-  else
-    papermill --prepare-only -p EXPERIMENT_NAME "${TEST_NAME}-test" -p \
-    OUTPUT_DIR ${RESULTS_GCS_DIR} -p PROJECT_NAME ml-pipeline-test \
-    -p BASE_IMAGE ${TARGET_IMAGE_PREFIX}pusherbase:dev -p TARGET_IMAGE \
-    ${TARGET_IMAGE_PREFIX}pusher:dev -p TARGET_IMAGE_TWO \
-    ${TARGET_IMAGE_PREFIX}pusher_two:dev \
-    -p KFP_PACKAGE /tmp/kfp.tar.gz -p DEPLOYER_MODEL ${DEPLOYER_MODEL} \
-    -p TRAIN_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv \
-    -p EVAL_DATA gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv \
-    -p HIDDEN_LAYER_SIZE 10 -p STEPS 50 \
-    "KubeFlow Pipeline Using TFX OSS Components.ipynb" "${TEST_NAME}.ipynb"
-  fi
-  check_notebook_result ${TEST_NAME}
 elif [[ "${TEST_NAME}" == "lightweight_component" ]]; then
   export LC_ALL=C.UTF-8
   export LANG=C.UTF-8

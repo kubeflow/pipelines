@@ -23,6 +23,7 @@ from ._structures import *
 
 import inspect
 from pathlib import Path
+import typing
 from typing import TypeVar, Generic, List
 
 T = TypeVar('T')
@@ -146,8 +147,9 @@ def _extract_component_interface(func) -> ComponentSpec:
             return None
         if isinstance(annotation, type):
             return str(annotation.__name__)
-        else:
-            return str(annotation)
+        if hasattr(annotation, '__forward_arg__'): # Handling typing.ForwardRef('Type_name') (the name was _ForwardRef in python 3.5-3.6)
+            return str(annotation.__forward_arg__) # It can only be string
+        return str(annotation)
 
     for parameter in parameters:
         type_struct = annotation_to_type_struct(parameter.annotation)

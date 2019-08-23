@@ -145,6 +145,9 @@ def _check_dict_types(checked_type, expected_type):
   	checked_type (dict): A dict that describes a type from the upstream component output
   	expected_type (dict): A dict that describes a type from the downstream component input
 	'''
+	if not checked_type or not expected_type:
+		# If the type is empty, it matches any types
+		return True
 	checked_type_name,_ = list(checked_type.items())[0]
 	expected_type_name,_ = list(expected_type.items())[0]
 	if checked_type_name == '' or expected_type_name == '':

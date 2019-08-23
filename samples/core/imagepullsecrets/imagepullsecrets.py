@@ -15,6 +15,7 @@
 container registry.
 """
 
+import kfp
 import kfp.dsl as dsl
 from kubernetes import client as k8s_client
 
@@ -52,3 +53,6 @@ def save_most_frequent_word(message: str):
   # Call set_image_pull_secrets after get_pipeline_conf().
   dsl.get_pipeline_conf()\
     .set_image_pull_secrets([k8s_client.V1ObjectReference(name="secretA")])
+
+if __name__ == '__main__':
+  kfp.compiler.Compiler().compile(save_most_frequent_word, __file__ + '.zip')

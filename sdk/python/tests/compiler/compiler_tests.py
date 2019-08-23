@@ -28,7 +28,16 @@ import yaml
 from kfp.dsl._component import component
 from kfp.dsl import ContainerOp, pipeline
 from kfp.dsl.types import Integer, InconsistentTypeException
-from kubernetes.client import V1Toleration
+from kubernetes.client import V1Toleration, V1Affinity, V1NodeSelector, V1NodeSelectorRequirement, V1NodeSelectorTerm, \
+  V1NodeAffinity
+
+
+def some_op():
+  return dsl.ContainerOp(
+      name='sleep',
+      image='busybox',
+      command=['sleep 1'],
+  )
 
 
 class TestCompiler(unittest.TestCase):
@@ -337,7 +346,46 @@ class TestCompiler(unittest.TestCase):
 
   def test_py_retry(self):
     """Test retry functionality."""
-    self._test_py_compile_yaml('retry')
+    number_of_retries = 137
+    def my_pipeline():
+      some_op().set_retry(number_of_retries)
+
+    workflow = kfp.compiler.Compiler()._compile(my_pipeline)
+    name_to_template = {template['name']: template for template in workflow['spec']['templates']}
+    main_dag_tasks = name_to_template[workflow['spec']['entrypoint']]['dag']['tasks']
+    template = name_to_template[main_dag_tasks[0]['template']]
+
+    self.assertEqual(template['retryStrategy']['limit'], number_of_retries)
+
+  def test_affinity(self):
+    """Test affinity functionality."""
+    exp_affinity = {
+      'affinity': {
+        'nodeAffinity': {
+          'requiredDuringSchedulingIgnoredDuringExecution': {
+            'nodeSelectorTerms': [
+              {'matchExpressions': [
+                {
+                  'key': 'beta.kubernetes.io/instance-type',
+                  'operator': 'In',
+                  'values': ['p2.xlarge']}
+              ]
+              }]
+          }}
+      }
+    }
+    def my_pipeline():
+      affinity = V1Affinity(
+        node_affinity=V1NodeAffinity(
+          required_during_scheduling_ignored_during_execution=V1NodeSelector(
+            node_selector_terms=[V1NodeSelectorTerm(
+              match_expressions=[V1NodeSelectorRequirement(
+                key='beta.kubernetes.io/instance-type', operator='In', values=['p2.xlarge'])])])))
+      some_op().add_affinity(affinity)
+
+    workflow = kfp.compiler.Compiler()._compile(my_pipeline)
+
+    self.assertEqual(workflow['spec']['templates'][1]['affinity'], exp_affinity['affinity'])
 
   def test_py_image_pull_secrets(self):
     """Test pipeline imagepullsecret."""
@@ -622,3 +670,35 @@ implementation:
         init_container = init_containers[0]
         self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})
 
+
+  def test_delete_resource_op(self):
+      """Test a pipeline with a delete resource operation."""
+      from kubernetes import client as k8s
+
+      @dsl.pipeline()
+      def some_pipeline():
+        # create config map object with k6 load test script
+        config_map = k8s.V1ConfigMap(
+          api_version="v1",
+          data={"foo": "bar"},
+          kind="ConfigMap",
+          metadata=k8s.V1ObjectMeta(
+              name="foo-bar-cm",
+              namespace="default"
+          )
+        )        
+        # delete the config map in k8s
+        dsl.ResourceOp(
+          name="delete-config-map", 
+          action="delete", 
+          k8s_resource=config_map
+        )
+
+      workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+      delete_op_template = [template for template in workflow_dict['spec']['templates'] if template['name'] == 'delete-config-map'][0]
+
+      # delete resource operation should not have success condition, failure condition or output parameters.
+      # See https://github.com/argoproj/argo/blob/5331fc02e257266a4a5887dfe6277e5a0b42e7fc/cmd/argoexec/commands/resource.go#L30
+      self.assertIsNone(delete_op_template.get("successCondition"))
+      self.assertIsNone(delete_op_template.get("failureCondition"))
+      self.assertDictEqual(delete_op_template.get("outputs"), {})
