@@ -75,15 +75,18 @@ echo "presubmit test starts"
 time source "${DIR}/test-prep.sh"
 echo "test env prepared"
 
+time source "${DIR}/build-images.sh"
+echo "KFP images cloudbuild jobs submitted"
+
 time COMMIT_SHA=$PULL_PULL_SHA source "${DIR}/deploy-cluster.sh"
 echo "cluster deployed"
+
+time source "${DIR}/check-build-image-status.sh"
+echo "KFP images built"
 
 # Install Argo CLI and test-runner service account
 time source "${DIR}/install-argo.sh"
 echo "argo installed"
-
-time source "${DIR}/build-images.sh"
-echo "KFP images built"
 
 time source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP lite deployed"
