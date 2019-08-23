@@ -208,6 +208,7 @@ spec:
     container:
       image: "{{inputs.parameters.sample-tests-image}}"
       args: [
+        "component_test", "run_test",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}",
         "--dataflow-tft-image","{{inputs.parameters.dataflow-tft-image}}",
