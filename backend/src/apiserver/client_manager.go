@@ -17,9 +17,10 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"time"
+
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
@@ -36,13 +37,13 @@ import (
 )
 
 const (
-	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
-	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
-	mysqlServicePort      = "MYSQL_SERVICE_PORT"
-	mysqlUser             = "DBConfig.User"
-	mysqlPassword         = "DBConfig.Password"
-	mysqlDBName           = "DBConfig.DBName"
+	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
+	mysqlServiceHost = "DBConfig.Host"
+	mysqlServicePort = "DBConfig.Port"
+	mysqlUser        = "DBConfig.User"
+	mysqlPassword    = "DBConfig.Password"
+	mysqlDBName      = "DBConfig.DBName"
 
 	podNamespace          = "POD_NAMESPACE"
 	initConnectionTimeout = "InitConnectionTimeout"
@@ -64,7 +65,7 @@ type ClientManager struct {
 	objectStore            storage.ObjectStoreInterface
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
-	podClient 						 v1.PodInterface
+	podClient              v1.PodInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 }
@@ -122,8 +123,7 @@ func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 }
 
 func (c *ClientManager) init() {
-	glog.Infof("Initializing client manager")
-
+	glog.Info("Initializing client manager")
 	db := initDBClient(getDurationConfig(initConnectionTimeout))
 
 	// time
@@ -210,8 +210,8 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	mysqlConfig := client.CreateMySQLConfig(
 		getStringConfigWithDefault(mysqlUser, "root"),
 		getStringConfigWithDefault(mysqlPassword, ""),
-		getStringConfig(mysqlServiceHost),
-		getStringConfig(mysqlServicePort),
+		getStringConfigWithDefault(mysqlServiceHost, "mysql"),
+		getStringConfigWithDefault(mysqlServicePort, "3306"),
 		"")
 
 	var db *sql.DB
