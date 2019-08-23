@@ -235,8 +235,8 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                 if kfp.TYPE_CHECK:
                     for input_spec in component_spec.inputs:
                         if input_spec.name == key:
-                            if arguments[key].param_type is not None and not check_types(arguments[key].param_type.to_dict_or_str(), '' if input_spec.type is None else input_spec.type):
-                                raise InconsistentTypeException('Component "' + name + '" is expecting ' + key + ' to be type(' + str(input_spec.type) + '), but the passed argument is type(' + arguments[key].param_type.serialize() + ')')
+                            if arguments[key].param_type is not None and not check_types(arguments[key].param_type, '' if input_spec.type is None else input_spec.type):
+                                raise InconsistentTypeException('Component "' + name + '" is expecting ' + key + ' to be type(' + str(input_spec.type) + '), but the passed argument is type(' + str(arguments[key].param_type) + ')')
                 arguments[key] = str(arguments[key])
 
         task = TaskSpec(

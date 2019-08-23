@@ -179,6 +179,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                         Hide
                         </Button>
                     </div>
+                    <div className={css.summaryKey}>ID</div>
+                    <div>{pipeline.id || 'Unable to obtain Pipeline ID'}</div>
                     <div className={css.summaryKey}>Uploaded on</div>
                     <div>{formatDateString(pipeline.created_at)}</div>
                     <div className={css.summaryKey}>Description</div>

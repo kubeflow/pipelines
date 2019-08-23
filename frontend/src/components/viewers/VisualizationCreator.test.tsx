@@ -84,7 +84,7 @@ describe('VisualizationCreator', () => {
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
       // source by default is set to ''
-      selectedType: ApiVisualizationType.CURVE,
+      selectedType: ApiVisualizationType.ROCCURVE,
     });
     expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
   });
@@ -96,7 +96,7 @@ describe('VisualizationCreator', () => {
     };
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
-      selectedType: ApiVisualizationType.CURVE,
+      selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
@@ -110,7 +110,7 @@ describe('VisualizationCreator', () => {
     };
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
-      selectedType: ApiVisualizationType.CURVE,
+      selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
@@ -124,7 +124,7 @@ describe('VisualizationCreator', () => {
     };
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
-      selectedType: ApiVisualizationType.CURVE,
+      selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(false);
@@ -140,7 +140,7 @@ describe('VisualizationCreator', () => {
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
       arguments: '{}',
-      selectedType: ApiVisualizationType.CURVE,
+      selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     tree.find('BusyButton').at(0).simulate('click');
@@ -157,11 +157,11 @@ describe('VisualizationCreator', () => {
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
       arguments: '{}',
-      selectedType: ApiVisualizationType.CURVE,
+      selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
     tree.find('BusyButton').at(0).simulate('click');
-    expect(onGenerate).toBeCalledWith('{}', 'gs://ml-pipeline/data.csv', ApiVisualizationType.CURVE);
+    expect(onGenerate).toBeCalledWith('{}', 'gs://ml-pipeline/data.csv', ApiVisualizationType.ROCCURVE);
   });
 
   it('renders the provided arguments correctly', () => {
@@ -192,7 +192,7 @@ describe('VisualizationCreator', () => {
     };
     const tree = shallow(<VisualizationCreator configs={[config]} />);
     tree.setState({
-      selectedType: ApiVisualizationType.CURVE,
+      selectedType: ApiVisualizationType.ROCCURVE,
     });
     expect(tree).toMatchSnapshot();
   });
