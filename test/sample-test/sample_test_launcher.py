@@ -24,8 +24,8 @@ import sys
 import utils
 
 
-PROJECT_NAME = 'ml-pipeline-test'
-PAPERMILL_ERR_MSG = 'An Exception was encountered at'
+_PROJECT_NAME = 'ml-pipeline-test'
+_PAPERMILL_ERR_MSG = 'An Exception was encountered at'
 
 
 #TODO(numerology): Add unit-test for classes.
@@ -71,7 +71,7 @@ class SampleTest(object):
         self._namespace
     ])
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
-    working_bucket = PROJECT_NAME
+    working_bucket = _PROJECT_NAME
 
     utils.upload_blob(
         working_bucket,
@@ -81,7 +81,7 @@ class SampleTest(object):
 
   def check_notebook_result(self):
     # Workaround because papermill does not directly return exit code.
-    exit_code = '1' if PAPERMILL_ERR_MSG in \
+    exit_code = '1' if _PAPERMILL_ERR_MSG in \
                      open('%s.ipynb' % self._test_name).read() else '0'
 
     os.chdir(self.TEST_DIR)
@@ -113,7 +113,7 @@ class SampleTest(object):
       ])
 
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
-    working_bucket = PROJECT_NAME
+    working_bucket = _PROJECT_NAME
 
     utils.upload_blob(
         working_bucket,
