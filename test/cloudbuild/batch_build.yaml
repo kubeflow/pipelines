@@ -1,0 +1,20 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      ["build", "-t", "$_GCR_BASE/persistenceagent", "-f", "backend/Dockerfile.persistenceagent", "."]
+    waitFor: ["-"]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      ["build", "-t", "$_GCR_BASE/scheduledworkflow", "-f", "backend/Dockerfile.scheduledworkflow", "."]
+    waitFor: ["-"]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      ["build", "-t", "$_GCR_BASE/frontend", "-f", "frontend/Dockerfile", "."]
+    waitFor: ["-"]
+options:
+  machineType: N1_HIGHCPU_8 # use a fast machine to build because there a lot of work
+images:
+  - "$_GCR_BASE/frontend"
+  - "$_GCR_BASE/scheduledworkflow"
+  - "$_GCR_BASE/persistenceagent"
+timeout: 1800s # 30min

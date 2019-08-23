@@ -35,21 +35,16 @@ else
   echo "submitting cloud build to build docker images for commit ${PULL_PULL_SHA}..."
   IMAGES_BUILDING=true
   CLOUD_BUILD_COMMON_ARGS=(. --async --format='value(id)' --substitutions=_GCR_BASE=${GCR_IMAGE_BASE_DIR})
-  # Use faster machine because this is CPU intensive
+  # Split into two tasks because api_server builds slowly, use a separate task
+  # to make it faster.
   BUILD_ID_API_SERVER=$(gcloud builds submit ${CLOUD_BUILD_COMMON_ARGS[@]} \
     --config ${DIR}/cloudbuild/api_server.yaml)
-  BUILD_ID_FRONTEND=$(gcloud builds submit ${CLOUD_BUILD_COMMON_ARGS[@]} \
-    --config ${DIR}/cloudbuild/frontend.yaml)
-  BUILD_ID_SCHEDULED_WORKFLOW=$(gcloud builds submit ${CLOUD_BUILD_COMMON_ARGS[@]} \
-    --config ${DIR}/cloudbuild/scheduled_workflow.yaml)
-  BUILD_ID_PERSISTENCE_AGENT=$(gcloud builds submit ${CLOUD_BUILD_COMMON_ARGS[@]} \
-    --config ${DIR}/cloudbuild/persistence_agent.yaml)
+  BUILD_ID_BATCH=$(gcloud builds submit ${CLOUD_BUILD_COMMON_ARGS[@]} \
+    --config ${DIR}/cloudbuild/batch_build.yaml)
 
   BUILD_IDS=(
     "${BUILD_ID_API_SERVER}"
-    "${BUILD_ID_FRONTEND}"
-    "${BUILD_ID_SCHEDULED_WORKFLOW}"
-    "${BUILD_ID_PERSISTENCE_AGENT}"
+    "${BUILD_ID_BATCH}"
   )
   echo "Submitted the following cloud build jobs: ${BUILD_IDS[@]}"
 fi
