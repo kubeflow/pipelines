@@ -61,7 +61,7 @@ properties:
       type: IMAGE
   image.metadataServer:
     type: string
-    default: $REGISTRY/metadata:$TAG
+    default: gcr.io/kubeflow-images-public/metadata:v0.1.8
     x-google-marketplace:
       type: IMAGE
   image.proxyAgent:

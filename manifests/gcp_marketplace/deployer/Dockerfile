@@ -3,7 +3,7 @@ FROM marketplace.gcr.io/google/debian9 AS build
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gettext
 
-ADD chart/kubeflow-pipelines /tmp/kubeflow-pipelines
+ADD chart/kubeflow-pipelines /tmp/chart
 RUN cd /tmp && tar -czvf /tmp/kubeflow-pipelines.tar.gz chart
 
 ADD schema.yaml /tmp/schema.yaml
