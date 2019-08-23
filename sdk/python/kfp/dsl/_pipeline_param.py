@@ -15,8 +15,6 @@ import re
 from collections import namedtuple
 from typing import List, Dict, Union
 
-from ._metadata import TypeMeta
-
 
 # TODO: Move this to a separate class
 # For now, this identifies a condition with only "==" operator supported.
