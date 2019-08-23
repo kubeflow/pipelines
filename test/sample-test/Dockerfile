@@ -11,9 +11,11 @@ RUN pip3 install junit-xml
 RUN pip3 install kubernetes==9.0.0
 RUN pip3 install minio
 RUN pip3 install setuptools==40.5.0
-RUN pip3 install papermill==0.16.1
+RUN pip3 install papermill==1.0.1
 RUN pip3 install ipykernel==5.1.0
 RUN pip3 install google-api-python-client==1.7.0
+RUN pip3 install google-cloud-storage==1.17.0
+RUN pip3 install fire==0.2.1
 
 # Install python client, including DSL compiler.
 COPY ./sdk/python /sdk/python
@@ -31,4 +33,4 @@ RUN ARGO_VERSION=v2.3.0 && curl -sSL -o /usr/local/bin/argo \
     chmod +x /usr/local/bin/argo
 ENV PATH $PATH:/usr/local/bin/argo
 
-ENTRYPOINT ["/python/src/github.com/kubeflow/pipelines/test/sample-test/run_test.sh"]
+ENTRYPOINT ["python3", "/python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py"]

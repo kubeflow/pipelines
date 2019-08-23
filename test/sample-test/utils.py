@@ -12,9 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the Licens
 
+import google
+import os
+import re
+import subprocess
+
+from google.cloud import storage
 from minio import Minio
 from junit_xml import TestSuite, TestCase
-import subprocess
 
 # Parse the workflow json to obtain the artifacts for a particular step.
 #   Note: the step_name could be the key words.
@@ -60,3 +65,41 @@ def run_bash_command(cmd):
   if error_bytes != None:
     error_string = error_bytes.decode('utf-8')
   return output_string, error_string
+
+
+def file_injection(file_in, tmp_file_out, subs):
+  """Utility function that substitute several regex within a file by
+  corresponding string.
+
+  :param file_in: input file name.
+  :param tmp_file_out: tmp output file name.
+  :param subs: dict, key is the regex expr, value is the substituting string.
+  """
+  with open(file_in, 'rt') as fin:
+    with open(tmp_file_out, 'wt') as fout:
+      for line in fin:
+        tmp_line = line
+        for old, new in subs.items():
+          regex = re.compile(old)
+          tmp_line = re.sub(regex, new)
+
+        fout.write(tmp_line)
+
+  os.rename(tmp_file_out, file_in)
+
+def upload_blob(bucket_name, source_file_name, destination_blob_name):
+  """Uploads a file to the bucket."""
+  storage_client = storage.Client()
+  try:
+    bucket = storage_client.get_bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+    blob.upload_from_filename(source_file_name)
+  except google.cloud.exceptions.GoogleCloudError as google_cloud_error:
+    raise RuntimeError(
+        'Failure when uploading {}\n'.format(str(google_cloud_error)))
+  except google.cloud.exceptions.NotFound as not_found:
+    raise RuntimeError("Bucket not found: {}\n".format(str(not_found)))
+  else:
+    print('File {} uploaded to {}.'.format(
+        source_file_name,
+        destination_blob_name))
