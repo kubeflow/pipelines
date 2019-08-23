@@ -47,7 +47,7 @@ class SampleTest(object):
     self._test_name = test_name
     self._results_gcs_dir = results_gcs_dir
     # Capture the first segment after gs:// as the project name.
-    self._project_name = results_gcs_dir.split('/')[2]
+    self._bucket_name = results_gcs_dir.split('/')[2]
     self._target_image_prefix = target_image_prefix
     self._namespace = namespace
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
@@ -73,7 +73,7 @@ class SampleTest(object):
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
 
     utils.upload_blob(
-        self._project_name,
+        self._bucket_name,
         self._sample_test_result,
         os.path.join(self._results_gcs_dir, self._sample_test_result)
     )
@@ -114,7 +114,7 @@ class SampleTest(object):
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
 
     utils.upload_blob(
-        self._project_name,
+        self._bucket_name,
         self._sample_test_result,
         os.path.join(self._results_gcs_dir, self._sample_test_result)
     )
