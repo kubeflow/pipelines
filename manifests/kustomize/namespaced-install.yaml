@@ -559,6 +559,22 @@ type: Opaque
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    app: metadata
+  name: metadata-service
+  namespace: kubeflow
+spec:
+  ports:
+  - name: md-backendapi
+    port: 8080
+    protocol: TCP
+  selector:
+    component: metadata-server
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: minio-service
   namespace: kubeflow
 spec:
@@ -939,6 +955,36 @@ spec:
       serviceAccount: argo
       serviceAccountName: argo
       terminationGracePeriodSeconds: 30
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    component: metadata-server
+  name: metadata-deployment
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-server
+  template:
+    metadata:
+      labels:
+        component: metadata-server
+    spec:
+      containers:
+      - command:
+        - ./server/server
+        - --http_port=8080
+        - --mysql_service_host=mysql
+        - --mysql_service_port=3306
+        - --mlmd_db_name=metadb
+        image: gcr.io/kubeflow-images-public/metadata:v0.1.8
+        name: container
+        ports:
+        - containerPort: 8080
+          name: md-backendapi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
