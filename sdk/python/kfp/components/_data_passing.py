@@ -35,10 +35,20 @@ Converter = NamedTuple('Converter', [
 ])
 
 
+def _deserialize_bool(s) -> bool:
+    from distutils.util import strtobool
+    return strtobool(s) == 1
+
+
+_bool_deserializer_definitions = inspect.getsource(_deserialize_bool)
+_bool_deserializer_code = _deserialize_bool.__name__
+
+
 _converters = [
     Converter([str], ['String', 'str'], str, 'str', None),
     Converter([int], ['Integer', 'int'], str, 'int', None),
     Converter([float], ['Float', 'float'], str, 'float', None),
+    Converter([bool], ['Boolean', 'bool'], str, _bool_deserializer_code, _bool_deserializer_definitions),
 ]
 
 
