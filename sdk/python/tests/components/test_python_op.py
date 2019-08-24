@@ -214,9 +214,9 @@ class PythonOpTestCase(unittest.TestCase):
             component_spec.inputs,
             [
                 InputSpec(name='required_param'),
-                InputSpec(name='int_param', type='int', default='42', optional=True),
-                InputSpec(name='float_param', type='float', default='3.14', optional=True),
-                InputSpec(name='str_param', type='str', default='string', optional=True),
+                InputSpec(name='int_param', type='Integer', default='42', optional=True),
+                InputSpec(name='float_param', type='Float', default='3.14', optional=True),
+                InputSpec(name='str_param', type='String', default='string', optional=True),
                 InputSpec(name='bool_param', type='bool', default='True', optional=True),
                 InputSpec(name='none_param', optional=True), # No default='None'
                 InputSpec(name='custom_type_param', type='Custom type', optional=True),
@@ -225,9 +225,9 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(
             component_spec.outputs,
             [
-                OutputSpec(name='int_param', type='int'),
-                OutputSpec(name='float_param', type='float'),
-                OutputSpec(name='str_param', type='str'),
+                OutputSpec(name='int_param', type='Integer'),
+                OutputSpec(name='float_param', type='Float'),
+                OutputSpec(name='str_param', type='String'),
                 OutputSpec(name='bool_param', type='bool'),
                 #OutputSpec(name='custom_type_param', type='Custom type', default='None'),
                 OutputSpec(name='custom_type_param', type='CustomType'),
@@ -242,17 +242,17 @@ class PythonOpTestCase(unittest.TestCase):
                 'description': 'Function docstring\n',
                 'inputs': [
                     {'name': 'required_param'},
-                    {'name': 'int_param', 'type': 'int', 'default': '42', 'optional': True},
-                    {'name': 'float_param', 'type': 'float', 'default': '3.14', 'optional': True},
-                    {'name': 'str_param', 'type': 'str', 'default': 'string', 'optional': True},
+                    {'name': 'int_param', 'type': 'Integer', 'default': '42', 'optional': True},
+                    {'name': 'float_param', 'type': 'Float', 'default': '3.14', 'optional': True},
+                    {'name': 'str_param', 'type': 'String', 'default': 'string', 'optional': True},
                     {'name': 'bool_param', 'type': 'bool', 'default': 'True', 'optional': True},
                     {'name': 'none_param', 'optional': True}, # No default='None'
                     {'name': 'custom_type_param', 'type': 'Custom type', 'optional': True},
                 ],
                 'outputs': [
-                    {'name': 'int_param', 'type': 'int'},
-                    {'name': 'float_param', 'type': 'float'},
-                    {'name': 'str_param', 'type': 'str'},
+                    {'name': 'int_param', 'type': 'Integer'},
+                    {'name': 'float_param', 'type': 'Float'},
+                    {'name': 'str_param', 'type': 'String'},
                     {'name': 'bool_param', 'type': 'bool'},
                     {'name': 'custom_type_param', 'type': 'CustomType'},
                 ]
