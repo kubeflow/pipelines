@@ -15,7 +15,6 @@
 
 import kfp.dsl as dsl
 
-
 @dsl.pipeline(
   name='Default Value',
   description='A pipeline with parameter and default value.'

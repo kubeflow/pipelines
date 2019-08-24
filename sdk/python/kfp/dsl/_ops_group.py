@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Union
+import uuid
 
+from kfp.dsl import _for_loop
 
 from . import _container_op
 from . import _pipeline
@@ -28,7 +31,7 @@ class OpsGroup(object):
   def __init__(self, group_type: str, name: str=None):
     """Create a new instance of OpsGroup.
     Args:
-      group_type (str): one of 'pipeline', 'exit_handler', 'condition', and 'graph'.
+      group_type (str): one of 'pipeline', 'exit_handler', 'condition', 'for_loop', and 'graph'.
       name (str): name of the opsgroup
     """
     #TODO: declare the group_type to be strongly typed
@@ -40,8 +43,11 @@ class OpsGroup(object):
     # recursive_ref points to the opsgroups with the same name if exists.
     self.recursive_ref = None
 
+    self.loop_args = None
+
+
   @staticmethod
-  def _get_opsgroup_pipeline(group_type, name):
+  def _get_matching_opsgroup_already_in_pipeline(group_type, name):
     """retrieves the opsgroup when the pipeline already contains it.
     the opsgroup might be already in the pipeline in case of recursive calls.
     Args:
@@ -52,10 +58,11 @@ class OpsGroup(object):
     if name is None:
       return None
     name_pattern = '^' + (group_type + '-' + name + '-').replace('_', '-') + '[\d]+$'
-    for ops_group in _pipeline.Pipeline.get_default_pipeline().groups:
+    for ops_group_already_in_pipeline in _pipeline.Pipeline.get_default_pipeline().groups:
       import re
-      if ops_group.type == group_type and re.match(name_pattern ,ops_group.name):
-        return ops_group
+      if ops_group_already_in_pipeline.type == group_type \
+              and re.match(name_pattern ,ops_group_already_in_pipeline.name):
+        return ops_group_already_in_pipeline
     return None
 
   def _make_name_unique(self):
@@ -71,7 +78,7 @@ class OpsGroup(object):
     if not _pipeline.Pipeline.get_default_pipeline():
       raise ValueError('Default pipeline not defined.')
 
-    self.recursive_ref = self._get_opsgroup_pipeline(self.type, self.name)
+    self.recursive_ref = self._get_matching_opsgroup_already_in_pipeline(self.type, self.name)
     if not self.recursive_ref:
       self._make_name_unique()
 
@@ -132,6 +139,7 @@ class Condition(OpsGroup):
     super(Condition, self).__init__('condition')
     self.condition = condition
 
+
 class Graph(OpsGroup):
   """Graph DAG with inputs, recursive_inputs, and outputs.
   This is not used directly by the users but auto generated when the graph_component decoration exists
@@ -141,3 +149,36 @@ class Graph(OpsGroup):
     self.inputs = []
     self.outputs = {}
     self.dependencies = []
+
+
+class ParallelFor(OpsGroup):
+  """Represents a parallel for loop over a static set of items.
+
+  Example usage:
+  ```python
+  with dsl.ParallelFor([{'a': 1, 'b': 10}, {'a': 2, 'b': 20}]) as item:
+    op1 = ContainerOp(..., args=['echo {}'.format(item.a)])
+    op2 = ContainerOp(..., args=['echo {}'.format(item.b])
+  ```
+  and op1 would be executed twice, once with args=['echo 1'] and once with args=['echo 2']
+  """
+  TYPE_NAME = 'for_loop'
+
+  @staticmethod
+  def _get_unique_id_code():
+    return uuid.uuid4().hex[:_for_loop.LoopArguments.NUM_CODE_CHARS]
+
+  def __init__(self, loop_args: _for_loop.ItemList):
+    # random code to id this loop
+    code = self._get_unique_id_code()
+    group_name = 'for-loop-{}'.format(code)
+    super().__init__(self.TYPE_NAME, name=group_name)
+
+    if not isinstance(loop_args, _for_loop.LoopArguments):
+      loop_args = _for_loop.LoopArguments(loop_args, code)
+
+    self.loop_args = loop_args
+
+  def __enter__(self) -> _for_loop.LoopArguments:
+    _ = super().__enter__()
+    return self.loop_args
