@@ -251,6 +251,29 @@ describe('VisualizationCreator', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('has an argument placeholder for every visualization type', () => {
+    // Taken from VisualizationCreator.tsx, update this if updated within
+    // VisualizationCreator.tsx.
+    let types = Object.keys(ApiVisualizationType)
+      .map((key: string) => key.replace('_', ''))
+      .filter((key: string, i: number, arr: string[]) => arr.indexOf(key) === i);
+      const config: VisualizationCreatorConfig = {
+        isBusy: false,
+        onGenerate: jest.fn(),
+        type: PlotType.VISUALIZATION_CREATOR,
+      };
+      const tree = shallow(<VisualizationCreator configs={[config]} />);
+      // Iterate through all selectable types to ensure a placeholder is set
+      // for the argument editor for each type.
+      for (const type of types) {
+        tree.setState({
+          // source by default is set to ''
+          selectedType: type,
+        });
+        expect(tree.find('Editor').at(0).prop('placeholder')).not.toBeNull();
+      }
+  });
+
   it('returns friendly display name', () => {
     expect(VisualizationCreator.prototype.getDisplayName()).toBe('Visualization Creator');
   });
