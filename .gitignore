@@ -52,5 +52,9 @@ bazel-*
 # VSCode
 .vscode
 
+# test yaml
+sdk/python/tests/compiler/pipeline.yaml
+sdk/python/tests/compiler/testdata/testpackage/pipeline.yaml
+
 # Test temporary files
 _artifacts
