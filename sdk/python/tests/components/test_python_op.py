@@ -386,6 +386,25 @@ class PythonOpTestCase(unittest.TestCase):
         self.helper_test_2_in_1_out_component_using_local_call(func, op, arguments=[True, False])
 
 
+    def test_handling_list_dict_arguments(self):
+        def assert_values_are_same(
+            list_param: list,
+            dict_param: dict,
+        ) -> int:
+            import unittest
+            unittest.TestCase().assertEqual(list_param, ["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}])
+            unittest.TestCase().assertEqual(dict_param, {'str': "string", 'int': 1, 'float':  2.2, 'false': False, 'true': True, 'none': None, 'list': [3, 4], 'dict': {'s': 4}})
+            return 1
+        
+        # ! JSON map keys are always strings. Python converts all keys to strings without warnings
+        func = assert_values_are_same
+        op = comp.func_to_container_op(func)
+        self.helper_test_2_in_1_out_component_using_local_call(func, op, arguments=[
+            ["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}],
+            {'str': "string", 'int': 1, 'float':  2.2, 'false': False, 'true': True, 'none': None, 'list': [3, 4], 'dict': {'s': 4}},
+        ])
+
+
     def test_end_to_end_python_component_pipeline_compilation(self):
         import kfp.components as comp
 
