@@ -2,8 +2,11 @@
 
 This document describes the architecture of python based visualizations,
 development guidelines to contribute new predefined visualizations to the
-Kubeflow Pipelines project, and current limitations. For information about using
-Python based visualizations please visit the [documentation page](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations).
+Kubeflow Pipelines project, and current limitations. Python based visualizations
+are a new method of generating visualizations within Kubeflow Pipelines that
+allow for rapid development, experimentation, and customizability when
+visualizing results. For information about Python based visualizations and how
+to use them, please visit the [documentation page](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations).
 Please check the [developer guidelines](https://github.com/kubeflow/pipelines/blob/master/developer_guide.md)
 for additional development guidelines.
 
@@ -22,21 +25,19 @@ for generating a visualization from a provided request.
 
 ## How to create predefined visualizations
 
-1. Determine what the new visualization will be.
-    * When determining if a visualization should become a predefined
-    visualization, consider the following:
-        * How often will it be used?
-            * The frequency of which a visualization is used is a major factor
-            for a predefined visualization. The more a visualization is used,
-            the more likely it should be a predefine visualization.
-        * How complex is it?
-            * The complexity of a visualization can reduce its usability.
-            Predefined visualizations are intended to be powerful and simple.
-            Visualizations that require extensive or complex variables are not
-            good candidates for predefined visualizations. 
+1. Determine if the visualization should become a predefined visualization,
+consider the following:
+    * How often will it be used?
+        * Frequently used visualizations are a good candidate for predefine
+        visualization.
+    * How complex is it?
+        * The complexity of a visualization can reduce its usability. Predefined
+        visualizations are intended to be powerful and simple. Visualizations
+        that require extensive or complex variables are not good candidates for
+        predefined visualizations. 
 2. Fork the Kubeflow Pipelines repository.
 3. Add a new type for the visualization within the [visualization.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/visualization.proto#L78)
-file that is within the `backend/api` directory.
+file in the `backend/api` directory.
     * The name of the visualization should be in screaming snake case (that is
     `VISUALIZATION_NAME`).
 4. Run [`./generate_api.sh`](https://github.com/kubeflow/pipelines/blob/master/backend/api/generate_api.sh)
