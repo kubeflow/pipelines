@@ -16,11 +16,17 @@
 
 set -ex
 
+# Env inputs:
+# * $GCR_IMAGE_BASE_DIR
+# * $GCR_IMAGE_TAG
+GCR_IMAGE_TAG=${GCR_IMAGE_TAG:-latest}
+
 if ! which kustomize; then
   # Download kustomize cli tool
   TOOL_DIR=${DIR}/bin
   mkdir -p ${TOOL_DIR}
-  wget https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64 -O ${TOOL_DIR}/kustomize
+  wget https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64 \
+    -O ${TOOL_DIR}/kustomize --no-verbose
   chmod +x ${TOOL_DIR}/kustomize
   PATH=${PATH}:${TOOL_DIR}
 fi
@@ -33,10 +39,10 @@ pushd ${KFP_MANIFEST_DIR}
 
 # This is the recommended approach to do this.
 # reference: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/eschewedFeatures.md#build-time-side-effects-from-cli-args-or-env-variables
-kustomize edit set image gcr.io/ml-pipeline/api-server=${GCR_IMAGE_BASE_DIR}/api-server:latest
-kustomize edit set image gcr.io/ml-pipeline/persistenceagent=${GCR_IMAGE_BASE_DIR}/persistenceagent:latest
-kustomize edit set image gcr.io/ml-pipeline/scheduledworkflow=${GCR_IMAGE_BASE_DIR}/scheduledworkflow:latest
-kustomize edit set image gcr.io/ml-pipeline/frontend=${GCR_IMAGE_BASE_DIR}/frontend:latest
+kustomize edit set image gcr.io/ml-pipeline/api-server=${GCR_IMAGE_BASE_DIR}/api-server:${GCR_IMAGE_TAG}
+kustomize edit set image gcr.io/ml-pipeline/persistenceagent=${GCR_IMAGE_BASE_DIR}/persistenceagent:${GCR_IMAGE_TAG}
+kustomize edit set image gcr.io/ml-pipeline/scheduledworkflow=${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${GCR_IMAGE_TAG}
+kustomize edit set image gcr.io/ml-pipeline/frontend=${GCR_IMAGE_BASE_DIR}/frontend:${GCR_IMAGE_TAG}
 cat kustomization.yaml
 
 kustomize build . | kubectl apply -f -
