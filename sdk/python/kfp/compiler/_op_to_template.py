@@ -65,8 +65,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     # pipelineparam
     if isinstance(obj, dsl.PipelineParam):
         # if not found in unsanitized map, then likely to be sanitized
-        return map_to_tmpl_var.get(
-            str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
+        return map_to_tmpl_var.get(str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
 
     # k8s objects (generated from swaggercodegen)
     if hasattr(obj, 'swagger_types') and isinstance(obj.swagger_types, dict):
