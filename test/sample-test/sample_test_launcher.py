@@ -23,8 +23,10 @@ import subprocess
 import sys
 import utils
 
-_PAPERMILL_ERR_MSG = 'An Exception was encountered at'
+from check_notebook_results import NoteBookChecker
 
+
+_PAPERMILL_ERR_MSG = 'An Exception was encountered at'
 
 #TODO(numerology): Add unit-test for classes.
 class SampleTest(object):
@@ -79,40 +81,24 @@ class SampleTest(object):
     )
 
   def check_notebook_result(self):
-    os.chdir(self.TEST_DIR)
     # Workaround because papermill does not directly return exit code.
     exit_code = '1' if _PAPERMILL_ERR_MSG in \
                      open('%s.ipynb' % self._test_name).read() else '0'
 
     os.chdir(self.TEST_DIR)
+
     if self._test_name == 'dsl_static_type_checking':
-      subprocess.call([
-          sys.executable,
-          'check_notebook_results.py',
-          '--experiment',
-          '%s-test' % self._test_name,
-          '--testname',
-          self._test_name,
-          '--result',
-          self._sample_test_result,
-          '--exit-code',
-          exit_code
-      ])
+      nbchecker = NoteBookChecker(testname=self._test_name,
+                                  result=self._sample_test_result,
+                                  exit_code=exit_code)
+      nbchecker.check()
     else:
-      subprocess.call([
-          sys.executable,
-          'check_notebook_results.py',
-          '--experiment',
-          '%s-test' % self._test_name,
-          '--testname',
-          self._test_name,
-          '--result',
-          self._sample_test_result,
-          '--namespace',
-          self._namespace,
-          '--exit-code',
-          str(exit_code)
-      ])
+      nbchecker = NoteBookChecker(testname=self._test_name,
+                                  result=self._sample_test_result,
+                                  exit_code=exit_code,
+                                  experiment=None,
+                                  namespace='kubeflow')
+      nbchecker.check()
 
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
 
