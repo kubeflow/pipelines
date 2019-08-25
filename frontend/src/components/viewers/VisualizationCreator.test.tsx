@@ -254,7 +254,7 @@ describe('VisualizationCreator', () => {
   it('has an argument placeholder for every visualization type', () => {
     // Taken from VisualizationCreator.tsx, update this if updated within
     // VisualizationCreator.tsx.
-    let types = Object.keys(ApiVisualizationType)
+    const types = Object.keys(ApiVisualizationType)
       .map((key: string) => key.replace('_', ''))
       .filter((key: string, i: number, arr: string[]) => arr.indexOf(key) === i);
       const config: VisualizationCreatorConfig = {
