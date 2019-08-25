@@ -29,9 +29,9 @@ import 'brace/ext/language_tools';
 import 'brace/mode/json';
 import 'brace/mode/python';
 import 'brace/theme/github';
-import { Apis } from 'src/lib/Apis';
 
 export interface VisualizationCreatorConfig extends ViewerConfig {
+  allowCustomVisualizations?: boolean;
   // Whether there is currently a visualization being generated or not.
   isBusy?: boolean;
   // Function called to generate a visualization.
@@ -44,7 +44,6 @@ interface VisualizationCreatorProps {
 }
 
 interface VisualizationCreatorState {
-  allowCustomVisualizations: boolean;
   // arguments is expected to be a JSON object in string form.
   arguments: string;
   code: string;
@@ -56,13 +55,10 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
   constructor(props: VisualizationCreatorProps) {
     super(props);
     this.state = {
-      allowCustomVisualizations: false,
       arguments: '',
       code: '',
       source: '',
     };
-    Apis.areCustomVisualizationsAllowed()
-      .then((allowed) => this.setState({ allowCustomVisualizations: allowed }));
   }
 
   public getDisplayName(): string {
@@ -78,7 +74,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
       return null;
     }
 
-    const { isBusy = false, onGenerate } = config;
+    const { allowCustomVisualizations = false, isBusy = false, onGenerate } = config;
 
     // Only allow a visualization to be generated if one is not already being
     // generated (as indicated by the isBusy tag), and if there is an source
@@ -112,7 +108,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
           }}
           disabled={isBusy}
         >
-          {this.getAvailableTypes().map((key: string) => (
+          {this.getAvailableTypes(allowCustomVisualizations).map((key: string) => (
             <MenuItem key={key} value={ApiVisualizationType[key]}>
               {ApiVisualizationType[key]}
             </MenuItem>
@@ -173,17 +169,18 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
       ROCCURVE = <any> 'ROC_CURVE'
     }
   
-    Object.keys(ApiVisualizationType) = ['CURVE', 'ROC_CURVE'];
+    Object.keys(ApiVisualizationType) = ['ROCCURVE', 'ROC_CURVE'];
   
     Additional details can be found here:
     https://www.typescriptlang.org/play/#code/KYOwrgtgBAggDgSwGoIM5gIYBsEC8MAuCA9iACoCecwUA3gLABQUUASgPIDCnAqq0gFEoAXigAeDCAoA+AOQdOAfV78BsgDRMAvkyYBjUqmJZgAOizEA5gAp4yNJhz4ipStQCUAbiA
   */
-  private getAvailableTypes(): string[] {
+  private getAvailableTypes(allowCustomVisualizations: boolean): string[] {
     return Object.keys(ApiVisualizationType)
       .map((key: string) => key.replace('_', ''))
       .filter((key: string, i: number, arr: string[]) => {
-        return (this.state.allowCustomVisualizations || key !== 'CUSTOM')
-          && arr.indexOf(key) === i;
+        const isDuplicate = arr.indexOf(key) !== i;
+        const isCustom = key === 'CUSTOM';
+        return !isDuplicate && (allowCustomVisualizations || !isCustom);
       });
   }
 
