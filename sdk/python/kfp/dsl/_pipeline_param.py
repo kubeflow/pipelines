@@ -11,11 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
 import re
 from collections import namedtuple
-from typing import Dict, List, Union
+from typing import List, Dict, Union
 
 
 # TODO: Move this to a separate class
@@ -44,10 +42,11 @@ def match_serialized_pipelineparam(payload: str):
   for match in matches:
       pattern = '{{pipelineparam:op=%s;name=%s}}' % (match[0], match[1])
       param_tuples.append(PipelineParamTuple(
-                            name=sanitize_k8s_name(match[1]), 
-                            op=sanitize_k8s_name(match[0]), 
-                            pattern=pattern))
+                          name=sanitize_k8s_name(match[1]), 
+                          op=sanitize_k8s_name(match[0]), 
+                          pattern=pattern))
   return param_tuples
+
 
 def _extract_pipelineparams(payloads: str or List[str]):
   """_extract_pipelineparam extract a list of PipelineParam instances from the payload string.
@@ -65,7 +64,7 @@ def _extract_pipelineparams(payloads: str or List[str]):
     param_tuples += match_serialized_pipelineparam(payload)
   pipeline_params = []
   for param_tuple in list(set(param_tuples)):
-    pipeline_params.append(PipelineParam(param_tuple.name, 
+    pipeline_params.append(PipelineParam(param_tuple.name,
                                          param_tuple.op, 
                                          pattern=param_tuple.pattern))
   return pipeline_params
@@ -122,7 +121,6 @@ def extract_pipelineparams_from_any(payload) -> List['PipelineParam']:
 
     return list(set(pipeline_params))
 
-
   # return empty list  
   return []
 
@@ -153,7 +151,8 @@ class PipelineParam(object):
 
     valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
     if not re.match(valid_name_regex, name):
-      raise ValueError('Only letters, numbers, spaces, "_", and "-" are allowed in name. Must begin with letter: %s' % (name))
+      raise ValueError('Only letters, numbers, spaces, "_", and "-" are allowed in name. Must begin with a letter.  '
+                       'Got name: {}'.format(name))
 
     if op_name and value:
       raise ValueError('op_name and value cannot be both set.')

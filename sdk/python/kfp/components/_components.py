@@ -25,9 +25,9 @@ from ._naming import _sanitize_file_name, _sanitize_python_function_name, genera
 from ._yaml_utils import load_yaml
 from ._structures import ComponentSpec
 from ._structures import *
+from ._data_passing import serialize_value, type_name_to_type
 from kfp.dsl import PipelineParam
-from kfp.dsl.types import InconsistentTypeException, check_types
-import kfp
+from kfp.dsl.types import verify_type_compatibility
 
 _default_component_name = 'Component'
 
@@ -170,20 +170,6 @@ def _generate_output_file_name(port_name):
     return _outputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
 
 
-def _try_get_object_by_name(obj_name):
-    '''Locates any Python object (type, module, function, global variable) by name'''
-    try:
-        ##Might be heavy since locate searches all Python modules
-        #from pydoc import locate
-        #return locate(obj_name) or obj_name
-        import builtins
-        return builtins.__dict__.get(obj_name, obj_name)
-    except:
-        pass
-    return obj_name
-
-
-
 #Holds the transformation functions that are called each time TaskSpec instance is created from a component. If there are multiple handlers, the last one is used.
 _created_task_transformation_handler = []
 
@@ -223,21 +209,30 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     component_ref._component_spec = component_spec
 
     def create_task_from_component_and_arguments(pythonic_arguments):
-        #Converting the argument names and not passing None arguments
-        valid_argument_types = (str, int, float, bool, GraphInputArgument, TaskOutputArgument, PipelineParam) #Hack for passed PipelineParams. TODO: Remove the hack once they're no longer passed here.
-        arguments = {
-            pythonic_name_to_input_name[k]: (v if isinstance(v, valid_argument_types) else str(v))
-            for k, v in pythonic_arguments.items()
-            if not isinstance(v, _DefaultValue) # Skipping passing arguments for optional values that have not been overridden.
-        }
-        for key in arguments:
-            if isinstance(arguments[key], PipelineParam):
-                if kfp.TYPE_CHECK:
-                    for input_spec in component_spec.inputs:
-                        if input_spec.name == key:
-                            if arguments[key].param_type is not None and not check_types(arguments[key].param_type, '' if input_spec.type is None else input_spec.type):
-                                raise InconsistentTypeException('Component "' + name + '" is expecting ' + key + ' to be type(' + str(input_spec.type) + '), but the passed argument is type(' + str(arguments[key].param_type) + ')')
-                arguments[key] = str(arguments[key])
+        arguments = {}
+        # Not checking for missing or extra arguments since the dynamic factory function checks that
+        for argument_name, argument_value in pythonic_arguments.items():
+            if isinstance(argument_value, _DefaultValue): # Skipping passing arguments for optional values that have not been overridden.
+                continue
+            input_name = pythonic_name_to_input_name[argument_name]
+            input_type = component_spec._inputs_dict[input_name].type
+
+            if isinstance(argument_value, (GraphInputArgument, TaskOutputArgument, PipelineParam)):
+                # argument_value is a reference 
+
+                if isinstance(argument_value, PipelineParam):
+                    reference_type = argument_value.param_type
+                    argument_value = str(argument_value)
+                else:
+                    reference_type = None
+
+                verify_type_compatibility(reference_type, input_type, 'Incompatible argument passed to the input "{}" of component "{}": '.format(input_name, component_spec.name))
+
+                arguments[input_name] = argument_value
+            else:
+                # argument_value is a constant value
+                serialized_argument_value = serialize_value(argument_value, input_type)
+                arguments[input_name] = serialized_argument_value
 
         task = TaskSpec(
             component_ref=component_ref,
@@ -263,7 +258,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     input_parameters = [
         _dynamic.KwParameter(
             input_name_to_pythonic[port.name],
-            annotation=(_try_get_object_by_name(str(port.type)) if port.type else inspect.Parameter.empty),
+            annotation=(type_name_to_type.get(str(port.type), str(port.type)) if port.type else inspect.Parameter.empty),
             default=component_default_to_func_default(port.default, port.optional),
         )
         for port in reordered_input_list

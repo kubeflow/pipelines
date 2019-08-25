@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import collections
 import re
 import warnings
 from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
@@ -729,6 +729,9 @@ class BaseOp(object):
         self.init_containers = init_containers or []
         self.sidecars = sidecars or []
 
+        # used to mark this op with loop arguments
+        self.loop_args = None
+
         # attributes specific to `BaseOp`
         self._inputs = []
         self.dependent_names = []
@@ -745,10 +748,7 @@ class BaseOp(object):
             self._inputs = []
             # TODO replace with proper k8s obj?
             for key in self.attrs_with_pipelineparams:
-                self._inputs += [
-                    param for param in _pipeline_param.
-                    extract_pipelineparams_from_any(getattr(self, key))
-                ]
+                self._inputs += _pipeline_param.extract_pipelineparams_from_any(getattr(self, key))
             # keep only unique
             self._inputs = list(set(self._inputs))
         return self._inputs
@@ -900,7 +900,7 @@ class BaseOp(object):
         return str({self.__class__.__name__: self.__dict__})
 
 
-from ._pipeline_volume import PipelineVolume #The import is here to prevent circular reference problems.
+from ._pipeline_volume import PipelineVolume  # The import is here to prevent circular reference problems.
 
 
 class ContainerOp(BaseOp):
@@ -952,20 +952,21 @@ class ContainerOp(BaseOp):
     # Excludes `file_outputs` and `outputs` as they are handled separately
     # in the compilation process to generate the DAGs and task io parameters.
 
-    def __init__(self,
-                 name: str,
-                 image: str,
-                 command: StringOrStringList = None,
-                 arguments: StringOrStringList = None,
-                 init_containers: List[UserContainer] = None,
-                 sidecars: List[Sidecar] = None,
-                 container_kwargs: Dict = None,
-                 file_outputs: Dict[str, str] = None,
-                 output_artifact_paths : Dict[str, str]=None,
-                 artifact_location: V1alpha1ArtifactLocation=None,
-                 is_exit_handler=False,
-                 pvolumes: Dict[str, V1Volume] = None,
-        ):
+    def __init__(
+      self,
+      name: str,
+      image: str,
+      command: StringOrStringList = None,
+      arguments: StringOrStringList = None,
+      init_containers: List[UserContainer] = None,
+      sidecars: List[Sidecar] = None,
+      container_kwargs: Dict = None,
+      file_outputs: Dict[str, str] = None,
+      output_artifact_paths : Dict[str, str]=None,
+      artifact_location: V1alpha1ArtifactLocation=None,
+      is_exit_handler=False,
+      pvolumes: Dict[str, V1Volume] = None,
+    ):
         """Create a new instance of ContainerOp.
 
         Args:
@@ -1059,6 +1060,7 @@ class ContainerOp(BaseOp):
 
         self.pvolumes = {}
         self.add_pvolumes(pvolumes)
+
 
     @property
     def command(self):
