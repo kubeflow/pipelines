@@ -60,6 +60,12 @@ exports[`VisualizationCreator disables all select and input fields when busy 1`]
       >
         TABLE
       </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="CUSTOM"
+        value="CUSTOM"
+      >
+        CUSTOM
+      </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
@@ -67,14 +73,6 @@ exports[`VisualizationCreator disables all select and input fields when busy 1`]
     label="Source"
     onChange={[Function]}
     placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <Component
-    disabled={true}
-    label="Arguments (optional)"
-    multiline={true}
-    onChange={[Function]}
     value=""
     variant="outlined"
   />
@@ -87,7 +85,226 @@ exports[`VisualizationCreator disables all select and input fields when busy 1`]
 </div>
 `;
 
+exports[`VisualizationCreator does not render an Editor component if a visualization type is not specified 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+    >
+      <WithStyles(MenuItem)
+        key="ROCCURVE"
+        value="ROC_CURVE"
+      >
+        ROC_CURVE
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TFDV"
+        value="TFDV"
+      >
+        TFDV
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TFMA"
+        value="TFMA"
+      >
+        TFMA
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TABLE"
+        value="TABLE"
+      >
+        TABLE
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="CUSTOM"
+        value="CUSTOM"
+      >
+        CUSTOM
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Source"
+    onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
+    value=""
+    variant="outlined"
+  />
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
 exports[`VisualizationCreator does not render component when no config is provided 1`] = `""`;
+
+exports[`VisualizationCreator renders an Editor component if a visualization type is specified 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+      value="ROC_CURVE"
+    >
+      <WithStyles(MenuItem)
+        key="ROCCURVE"
+        value="ROC_CURVE"
+      >
+        ROC_CURVE
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TFDV"
+        value="TFDV"
+      >
+        TFDV
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TFMA"
+        value="TFMA"
+      >
+        TFMA
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TABLE"
+        value="TABLE"
+      >
+        TABLE
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="CUSTOM"
+        value="CUSTOM"
+      >
+        CUSTOM
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Source"
+    onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
+    value=""
+    variant="outlined"
+  />
+  <div>
+    <WithStyles(WithFormControlContext(InputLabel))>
+      Arguments (Optional)
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <Editor
+      cursorStart={1}
+      editorProps={
+        Object {
+          "$blockScrolling": true,
+        }
+      }
+      enableBasicAutocompletion={false}
+      enableLiveAutocompletion={false}
+      enableSnippets={false}
+      focus={false}
+      fontSize={12}
+      height="112px"
+      highlightActiveLine={true}
+      maxLines={null}
+      minLines={null}
+      mode="json"
+      name="brace-editor"
+      navigateToFileEnd={true}
+      onChange={[Function]}
+      onLoad={null}
+      onPaste={null}
+      onScroll={null}
+      placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp\\"y_true\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"y_score\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"pos_label\\": number | string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"sample_weight\\": array | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"drop_intermediate\\": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"is_generated\\": boolean | null,<br>        }"
+      readOnly={false}
+      scrollMargin={
+        Array [
+          0,
+          0,
+          0,
+          0,
+        ]
+      }
+      setOptions={Object {}}
+      showGutter={true}
+      showPrintMargin={true}
+      style={Object {}}
+      tabSize={4}
+      theme="github"
+      value=""
+      width="100%"
+      wrapEnabled={false}
+    />
+  </div>
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
 
 exports[`VisualizationCreator renders component when all parameters in config are provided 1`] = `
 <div
@@ -149,6 +366,12 @@ exports[`VisualizationCreator renders component when all parameters in config ar
       >
         TABLE
       </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="CUSTOM"
+        value="CUSTOM"
+      >
+        CUSTOM
+      </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
@@ -156,14 +379,6 @@ exports[`VisualizationCreator renders component when all parameters in config ar
     label="Source"
     onChange={[Function]}
     placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <Component
-    disabled={false}
-    label="Arguments (optional)"
-    multiline={true}
-    onChange={[Function]}
     value=""
     variant="outlined"
   />
@@ -236,6 +451,12 @@ exports[`VisualizationCreator renders component when empty config is provided 1`
       >
         TABLE
       </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="CUSTOM"
+        value="CUSTOM"
+      >
+        CUSTOM
+      </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
@@ -243,14 +464,6 @@ exports[`VisualizationCreator renders component when empty config is provided 1`
     label="Source"
     onChange={[Function]}
     placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <Component
-    disabled={false}
-    label="Arguments (optional)"
-    multiline={true}
-    onChange={[Function]}
     value=""
     variant="outlined"
   />
@@ -323,6 +536,12 @@ exports[`VisualizationCreator renders component when isBusy is not provided 1`] 
       >
         TABLE
       </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="CUSTOM"
+        value="CUSTOM"
+      >
+        CUSTOM
+      </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
@@ -330,14 +549,6 @@ exports[`VisualizationCreator renders component when isBusy is not provided 1`] 
     label="Source"
     onChange={[Function]}
     placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <Component
-    disabled={false}
-    label="Arguments (optional)"
-    multiline={true}
-    onChange={[Function]}
     value=""
     variant="outlined"
   />
@@ -410,6 +621,12 @@ exports[`VisualizationCreator renders component when onGenerate is not provided 
       >
         TABLE
       </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="CUSTOM"
+        value="CUSTOM"
+      >
+        CUSTOM
+      </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
@@ -417,14 +634,6 @@ exports[`VisualizationCreator renders component when onGenerate is not provided 
     label="Source"
     onChange={[Function]}
     placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <Component
-    disabled={false}
-    label="Arguments (optional)"
-    multiline={true}
-    onChange={[Function]}
     value=""
     variant="outlined"
   />
@@ -437,181 +646,7 @@ exports[`VisualizationCreator renders component when onGenerate is not provided 
 </div>
 `;
 
-exports[`VisualizationCreator renders the provided arguments correctly 1`] = `
-<div
-  style={
-    Object {
-      "width": 600,
-    }
-  }
->
-  <WithStyles(FormControl)
-    style={
-      Object {
-        "width": "100%",
-      }
-    }
-  >
-    <WithStyles(WithFormControlContext(InputLabel))
-      htmlFor="visualization-type-selector"
-    >
-      Type
-    </WithStyles(WithFormControlContext(InputLabel))>
-    <WithStyles(WithFormControlContext(Select))
-      disabled={false}
-      inputProps={
-        Object {
-          "id": "visualization-type-selector",
-          "name": "Visualization Type",
-        }
-      }
-      onChange={[Function]}
-      style={
-        Object {
-          "minHeight": 60,
-          "width": "100%",
-        }
-      }
-    >
-      <WithStyles(MenuItem)
-        key="ROCCURVE"
-        value="ROC_CURVE"
-      >
-        ROC_CURVE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFDV"
-        value="TFDV"
-      >
-        TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TABLE"
-        value="TABLE"
-      >
-        TABLE
-      </WithStyles(MenuItem)>
-    </WithStyles(WithFormControlContext(Select))>
-  </WithStyles(FormControl)>
-  <Component
-    disabled={false}
-    label="Source"
-    onChange={[Function]}
-    placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <Component
-    disabled={false}
-    label="Arguments (optional)"
-    multiline={true}
-    onChange={[Function]}
-    value="{\\"is_generated\\":\\"True\\"}"
-    variant="outlined"
-  />
-  <BusyButton
-    busy={false}
-    disabled={true}
-    onClick={[Function]}
-    title="Generate Visualization"
-  />
-</div>
-`;
-
-exports[`VisualizationCreator renders the provided source correctly 1`] = `
-<div
-  style={
-    Object {
-      "width": 600,
-    }
-  }
->
-  <WithStyles(FormControl)
-    style={
-      Object {
-        "width": "100%",
-      }
-    }
-  >
-    <WithStyles(WithFormControlContext(InputLabel))
-      htmlFor="visualization-type-selector"
-    >
-      Type
-    </WithStyles(WithFormControlContext(InputLabel))>
-    <WithStyles(WithFormControlContext(Select))
-      disabled={false}
-      inputProps={
-        Object {
-          "id": "visualization-type-selector",
-          "name": "Visualization Type",
-        }
-      }
-      onChange={[Function]}
-      style={
-        Object {
-          "minHeight": 60,
-          "width": "100%",
-        }
-      }
-    >
-      <WithStyles(MenuItem)
-        key="ROCCURVE"
-        value="ROC_CURVE"
-      >
-        ROC_CURVE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFDV"
-        value="TFDV"
-      >
-        TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TABLE"
-        value="TABLE"
-      >
-        TABLE
-      </WithStyles(MenuItem)>
-    </WithStyles(WithFormControlContext(Select))>
-  </WithStyles(FormControl)>
-  <Component
-    disabled={false}
-    label="Source"
-    onChange={[Function]}
-    placeholder="File path or path pattern of data within GCS."
-    value="gs://ml-pipeline/data.csv"
-    variant="outlined"
-  />
-  <Component
-    disabled={false}
-    label="Arguments (optional)"
-    multiline={true}
-    onChange={[Function]}
-    value=""
-    variant="outlined"
-  />
-  <BusyButton
-    busy={false}
-    disabled={true}
-    onClick={[Function]}
-    title="Generate Visualization"
-  />
-</div>
-`;
-
-exports[`VisualizationCreator renders the selected visualization type correctly 1`] = `
+exports[`VisualizationCreator renders the provided arguments 1`] = `
 <div
   style={
     Object {
@@ -672,6 +707,12 @@ exports[`VisualizationCreator renders the selected visualization type correctly 
       >
         TABLE
       </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="CUSTOM"
+        value="CUSTOM"
+      >
+        CUSTOM
+      </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
@@ -682,14 +723,370 @@ exports[`VisualizationCreator renders the selected visualization type correctly 
     value=""
     variant="outlined"
   />
+  <div>
+    <WithStyles(WithFormControlContext(InputLabel))>
+      Arguments (Optional)
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <Editor
+      cursorStart={1}
+      editorProps={
+        Object {
+          "$blockScrolling": true,
+        }
+      }
+      enableBasicAutocompletion={false}
+      enableLiveAutocompletion={false}
+      enableSnippets={false}
+      focus={false}
+      fontSize={12}
+      height="112px"
+      highlightActiveLine={true}
+      maxLines={null}
+      minLines={null}
+      mode="json"
+      name="brace-editor"
+      navigateToFileEnd={true}
+      onChange={[Function]}
+      onLoad={null}
+      onPaste={null}
+      onScroll={null}
+      placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp\\"y_true\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"y_score\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"pos_label\\": number | string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"sample_weight\\": array | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"drop_intermediate\\": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"is_generated\\": boolean | null,<br>        }"
+      readOnly={false}
+      scrollMargin={
+        Array [
+          0,
+          0,
+          0,
+          0,
+        ]
+      }
+      setOptions={Object {}}
+      showGutter={true}
+      showPrintMargin={true}
+      style={Object {}}
+      tabSize={4}
+      theme="github"
+      value="{\\"is_generated\\":\\"True\\"}"
+      width="100%"
+      wrapEnabled={false}
+    />
+  </div>
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
+exports[`VisualizationCreator renders the selected visualization type 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+      value="ROC_CURVE"
+    >
+      <WithStyles(MenuItem)
+        key="ROCCURVE"
+        value="ROC_CURVE"
+      >
+        ROC_CURVE
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TFDV"
+        value="TFDV"
+      >
+        TFDV
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TFMA"
+        value="TFMA"
+      >
+        TFMA
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TABLE"
+        value="TABLE"
+      >
+        TABLE
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="CUSTOM"
+        value="CUSTOM"
+      >
+        CUSTOM
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
   <Component
     disabled={false}
-    label="Arguments (optional)"
-    multiline={true}
+    label="Source"
     onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
     value=""
     variant="outlined"
   />
+  <div>
+    <WithStyles(WithFormControlContext(InputLabel))>
+      Arguments (Optional)
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <Editor
+      cursorStart={1}
+      editorProps={
+        Object {
+          "$blockScrolling": true,
+        }
+      }
+      enableBasicAutocompletion={false}
+      enableLiveAutocompletion={false}
+      enableSnippets={false}
+      focus={false}
+      fontSize={12}
+      height="112px"
+      highlightActiveLine={true}
+      maxLines={null}
+      minLines={null}
+      mode="json"
+      name="brace-editor"
+      navigateToFileEnd={true}
+      onChange={[Function]}
+      onLoad={null}
+      onPaste={null}
+      onScroll={null}
+      placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp\\"y_true\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"y_score\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"pos_label\\": number | string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"sample_weight\\": array | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"drop_intermediate\\": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"is_generated\\": boolean | null,<br>        }"
+      readOnly={false}
+      scrollMargin={
+        Array [
+          0,
+          0,
+          0,
+          0,
+        ]
+      }
+      setOptions={Object {}}
+      showGutter={true}
+      showPrintMargin={true}
+      style={Object {}}
+      tabSize={4}
+      theme="github"
+      value=""
+      width="100%"
+      wrapEnabled={false}
+    />
+  </div>
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
+exports[`VisualizationCreator renders two Editor components if the CUSTOM visualization type is specified 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+      value="CUSTOM"
+    >
+      <WithStyles(MenuItem)
+        key="ROCCURVE"
+        value="ROC_CURVE"
+      >
+        ROC_CURVE
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TFDV"
+        value="TFDV"
+      >
+        TFDV
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TFMA"
+        value="TFMA"
+      >
+        TFMA
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TABLE"
+        value="TABLE"
+      >
+        TABLE
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="CUSTOM"
+        value="CUSTOM"
+      >
+        CUSTOM
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Source"
+    onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
+    value=""
+    variant="outlined"
+  />
+  <div>
+    <WithStyles(WithFormControlContext(InputLabel))>
+      Custom Visualization Code
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <Editor
+      cursorStart={1}
+      editorProps={
+        Object {
+          "$blockScrolling": true,
+        }
+      }
+      enableBasicAutocompletion={true}
+      enableLiveAutocompletion={true}
+      enableSnippets={false}
+      focus={false}
+      fontSize={12}
+      height="175px"
+      highlightActiveLine={true}
+      maxLines={null}
+      minLines={null}
+      mode="python"
+      name="brace-editor"
+      navigateToFileEnd={true}
+      onChange={[Function]}
+      onLoad={null}
+      onPaste={null}
+      onScroll={null}
+      placeholder="Python code that will be run to generate visualization.<br><br>To access the source value (if provided), reference the variable \\"source\\".<br>To access any provided arguments, reference the variable \\"variables\\" (it is a dict object)."
+      readOnly={false}
+      scrollMargin={
+        Array [
+          0,
+          0,
+          0,
+          0,
+        ]
+      }
+      setOptions={Object {}}
+      showGutter={true}
+      showPrintMargin={true}
+      style={Object {}}
+      tabSize={4}
+      theme="github"
+      value=""
+      width="100%"
+      wrapEnabled={false}
+    />
+  </div>
+  <div>
+    <WithStyles(WithFormControlContext(InputLabel))>
+      Arguments (Optional)
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <Editor
+      cursorStart={1}
+      editorProps={
+        Object {
+          "$blockScrolling": true,
+        }
+      }
+      enableBasicAutocompletion={false}
+      enableLiveAutocompletion={false}
+      enableSnippets={false}
+      focus={false}
+      fontSize={12}
+      height="42px"
+      highlightActiveLine={true}
+      maxLines={null}
+      minLines={null}
+      mode="json"
+      name="brace-editor"
+      navigateToFileEnd={true}
+      onChange={[Function]}
+      onLoad={null}
+      onPaste={null}
+      onScroll={null}
+      placeholder="{<br>&nbsp&nbsp&nbsp&nbsp\\"key\\": any<br>}"
+      readOnly={false}
+      scrollMargin={
+        Array [
+          0,
+          0,
+          0,
+          0,
+        ]
+      }
+      setOptions={Object {}}
+      showGutter={true}
+      showPrintMargin={true}
+      style={Object {}}
+      tabSize={4}
+      theme="github"
+      value=""
+      width="100%"
+      wrapEnabled={false}
+    />
+  </div>
   <BusyButton
     busy={false}
     disabled={true}

@@ -151,7 +151,8 @@ export enum ApiVisualizationType {
     ROCCURVE = <any> 'ROC_CURVE',
     TFDV = <any> 'TFDV',
     TFMA = <any> 'TFMA',
-    TABLE = <any> 'TABLE'
+    TABLE = <any> 'TABLE',
+    CUSTOM = <any> 'CUSTOM'
 }
 
 /**
