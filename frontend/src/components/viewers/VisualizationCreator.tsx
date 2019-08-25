@@ -15,14 +15,20 @@
  */
 
 import * as React from 'react';
+import 'brace';
 import BusyButton from '../../atoms/BusyButton';
 import FormControl from '@material-ui/core/FormControl';
 import Input from '../../atoms/Input';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
+import Editor from '../Editor';
 import Viewer, { ViewerConfig } from './Viewer';
 import { ApiVisualizationType } from '../../apis/visualization';
+import 'brace/ext/language_tools';
+import 'brace/mode/json';
+import 'brace/mode/python';
+import 'brace/theme/github';
 
 
 export interface VisualizationCreatorConfig extends ViewerConfig {
@@ -40,6 +46,7 @@ interface VisualizationCreatorProps {
 interface VisualizationCreatorState {
   // arguments is expected to be a JSON object in string form.
   arguments: string;
+  code: string;
   source: string;
   selectedType?: ApiVisualizationType;
 }
@@ -70,6 +77,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
     super(props);
     this.state = {
       arguments: '',
+      code: '',
       source: '',
     };
   }
@@ -81,7 +89,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
   public render(): JSX.Element | null {
     const { configs } = this.props;
     const config = configs[0];
-    const { arguments: _arguments, source, selectedType } = this.state;
+    const { arguments: _arguments, code, source, selectedType } = this.state;
 
     if (!config) {
       return null;
@@ -89,14 +97,12 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
 
     const { isBusy = false, onGenerate } = config;
 
-    // Only allow a visualization to be generated if one is not already being
-    // generated (as indicated by the isBusy tag), and if there is an source
-    // provided, and a visualization type is selected, and a onGenerate function
-    // is provided.
-    const canGenerate = !isBusy &&
-      !!source.length &&
-      !!selectedType &&
-      !!onGenerate;
+    const hasSourceAndSelectedType = source.length > 0 && !!selectedType;
+    const isCustomTypeAndHasCode = selectedType === ApiVisualizationType.CUSTOM && code.length > 0;
+    const canGenerate = !isBusy && !!onGenerate && (hasSourceAndSelectedType || isCustomTypeAndHasCode);
+
+    const argumentsPlaceholder =
+      this.getArgumentPlaceholderForType(selectedType);
 
     return <div
       style={{
@@ -131,9 +137,35 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
       <Input label='Source' variant={'outlined'} value={source} disabled={isBusy}
         placeholder='File path or path pattern of data within GCS.'
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.setState({ source: e.target.value })} />
-      <Input label='Arguments (optional)' multiline={true} variant='outlined'
-        value={_arguments} disabled={isBusy}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => this.setState({ arguments: e.target.value })} />
+      {selectedType === ApiVisualizationType.CUSTOM &&
+        <div>
+          <InputLabel>Custom Visualization Code</InputLabel>
+          <Editor
+            placeholder='Python code that will be run to generate visualization.<br><br>To access the source value (if provided), reference the variable "source".<br>To access any provided arguments, reference the variable "variables" (it is a dict object).'
+            width='100%' height='175px' mode='python' theme='github'
+            value={code}
+            onChange={(value: string) => this.setState({ code: value })}
+            editorProps={{ $blockScrolling: true }}
+            enableLiveAutocompletion={true}
+            enableBasicAutocompletion={true}
+            highlightActiveLine={true} showGutter={true}
+          />
+        </div>
+      }
+      {!!selectedType &&
+        <div>
+          <InputLabel>Arguments (Optional)</InputLabel>
+          <Editor
+            placeholder={argumentsPlaceholder}
+            height={`${argumentsPlaceholder.split('<br>').length * 14}px`}
+            width='100%' mode='json' theme='github'
+            value={_arguments}
+            onChange={(value: string) => this.setState({ arguments: value })}
+            editorProps={{ $blockScrolling: true }}
+            highlightActiveLine={true} showGutter={true}
+          />
+        </div>
+      }
       <BusyButton title='Generate Visualization' busy={isBusy} disabled={!canGenerate}
         onClick={() => {
           if (onGenerate && selectedType) {
@@ -141,6 +173,43 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
           }
         }} />
     </div>;
+  }
+
+  private getArgumentPlaceholderForType(type: ApiVisualizationType | undefined): string {
+    let placeholder= 'Arguments, provided as JSON, to be used during visualization generation.';
+    switch(type) {
+      case ApiVisualizationType.ROCCURVE:
+        placeholder = `{
+        \t"y_true": array,
+        \t"y_score": array,
+        \t"pos_label": number | string | null,
+        \t"sample_weight": array | null,
+        \t"drop_intermediate": boolean | null,
+        \t"is_generated": boolean | null,
+        }`;
+        break;
+      case ApiVisualizationType.TFDV:
+        placeholder = '{}';
+        break;
+      case ApiVisualizationType.TFMA:
+        placeholder = `{
+        \t"slicing_column: string | null
+        }`;  
+        break;
+      case ApiVisualizationType.TABLE:
+        placeholder = '{\n\t"headers": array\n}';
+        break;
+      case ApiVisualizationType.CUSTOM:
+        placeholder = '{\n\t"key": any\n}';
+        break;
+    }
+    return placeholder
+      // Replaces newline escape character with HTML break so placeholder can
+      // support multiple lines.
+      .replace(new RegExp('\n', 'g'), '<br>')
+      // Replaces tab escape character with 4 blank spaces so placeholder can
+      // support indentation.
+      .replace(new RegExp('\t', 'g'), '&nbsp&nbsp&nbsp&nbsp');
   }
 }
 
