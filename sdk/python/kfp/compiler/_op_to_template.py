@@ -65,8 +65,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     # pipelineparam
     if isinstance(obj, dsl.PipelineParam):
         # if not found in unsanitized map, then likely to be sanitized
-        return map_to_tmpl_var.get(
-            str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
+        return map_to_tmpl_var.get(str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
 
     # k8s objects (generated from swaggercodegen)
     if hasattr(obj, 'swagger_types') and isinstance(obj.swagger_types, dict):
@@ -233,6 +232,10 @@ def _op_to_template(op: BaseOp):
     # tolerations
     if processed_op.tolerations:
         template['tolerations'] = processed_op.tolerations
+
+    # affinity
+    if processed_op.affinity:
+        template['affinity'] = K8sHelper.convert_k8s_obj_to_json(processed_op.affinity)
 
     # metadata
     if processed_op.pod_annotations or processed_op.pod_labels:

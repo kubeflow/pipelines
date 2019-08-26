@@ -94,7 +94,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 mlengine_batch_predict_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/0b07e456b1f319d8b7a7301274f55c00fda9f537/components/gcp/ml_engine/batch_predict/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/gcp/ml_engine/batch_predict/component.yaml')
 help(mlengine_batch_predict_op)
 ```
 
@@ -200,7 +200,7 @@ OUTPUT_FILES_PATTERN = OUTPUT_GCS_PATH + '*'
 ```
 
 ## References
-* [Component python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/ml_engine/_batch_predict.py)
+* [Component python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/ml_engine/_batch_predict.py)
 * [Component docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
 * [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/ml_engine/batch_predict/sample.ipynb)
 * [Cloud Machine Learning Engine job REST API](https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs)

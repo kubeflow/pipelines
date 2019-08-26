@@ -85,10 +85,6 @@ func (s *JobServer) DeleteJob(ctx context.Context, request *api.DeleteJobRequest
 
 func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) error {
 	job := request.Job
-	// Job must be created under an experiment.
-	if err := ValidateExperimentResourceReference(s.resourceManager, job.ResourceReferences); err != nil {
-		return util.Wrap(err, "The job must have a valid experiment resource reference.")
-	}
 
 	if err := ValidatePipelineSpec(s.resourceManager, job.PipelineSpec); err != nil {
 		return util.Wrap(err, "The pipeline spec is invalid.")

@@ -1835,7 +1835,7 @@ exports[`RunDetails shows run config fields - handles no description 1`] = `
               ],
               Array [
                 "Duration",
-                "1:01:01",
+                "25:01:01",
               ],
             ]
           }
@@ -1896,7 +1896,7 @@ exports[`RunDetails shows run config fields - handles no metadata 1`] = `
               ],
               Array [
                 "Duration",
-                "1:01:01",
+                "25:01:01",
               ],
             ]
           }
@@ -1957,7 +1957,7 @@ exports[`RunDetails shows run config fields 1`] = `
               ],
               Array [
                 "Duration",
-                "1:01:01",
+                "25:01:01",
               ],
             ]
           }

@@ -74,7 +74,7 @@ KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar
 import kfp.components as comp
 
 dataproc_create_cluster_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/0b07e456b1f319d8b7a7301274f55c00fda9f537/components/gcp/dataproc/create_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/gcp/dataproc/create_cluster/component.yaml')
 help(dataproc_create_cluster_op)
 ```
 
@@ -155,7 +155,7 @@ run_result = client.run_pipeline(experiment.id, run_name, pipeline_filename, arg
 
 ## References
 *   [Kubernetes Engine for Kubeflow](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts)
-*   [Component Python code](https://github.com/kubeflow/pipelines/blob/master/component_sdk/python/kfp_component/google/dataproc/_create_cluster.py)
+*   [Component Python code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_create_cluster.py)
 *   [Component Docker file](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/Dockerfile)
 *   [Sample notebook](https://github.com/kubeflow/pipelines/blob/master/components/gcp/dataproc/create_cluster/sample.ipynb)
 *   [Dataproc create cluster REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.clusters/create)

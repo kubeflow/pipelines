@@ -19,10 +19,12 @@ __all__ = [
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
+from ._data_passing import serialize_value, type_name_to_deserializer, type_to_type_name
 from ._structures import *
 
 import inspect
 from pathlib import Path
+import typing
 from typing import TypeVar, Generic, List
 
 T = TypeVar('T')
@@ -38,7 +40,7 @@ class OutputFile(Generic[T], str):
     pass
 
 #TODO: Replace this image name with another name once people decide what to replace it with.
-_default_base_image='tensorflow/tensorflow:1.11.0-py3'
+_default_base_image='tensorflow/tensorflow:1.13.2-py3'
 
 
 def _python_function_name_to_component_name(name):
@@ -145,9 +147,17 @@ def _extract_component_interface(func) -> ComponentSpec:
         if not annotation or annotation == inspect.Parameter.empty:
             return None
         if isinstance(annotation, type):
-            return str(annotation.__name__)
+            if annotation in type_to_type_name:
+                return type_to_type_name[annotation]
+            type_name = str(annotation.__name__)
+        elif hasattr(annotation, '__forward_arg__'): # Handling typing.ForwardRef('Type_name') (the name was _ForwardRef in python 3.5-3.6)
+            type_name = str(annotation.__forward_arg__)
         else:
-            return str(annotation)
+            type_name = str(annotation)
+
+        if type_name in type_to_type_name: # type_to_type_name can also have type name keys
+            type_name = type_to_type_name[type_name]
+        return type_name
 
     for parameter in parameters:
         type_struct = annotation_to_type_struct(parameter.annotation)
@@ -156,8 +166,12 @@ def _extract_component_interface(func) -> ComponentSpec:
         input_spec = InputSpec(
             name=parameter.name,
             type=type_struct,
-            default=str(parameter.default) if parameter.default is not inspect.Parameter.empty else None,
         )
+        if parameter.default is not inspect.Parameter.empty:
+            input_spec.optional = True
+            if parameter.default is not None:
+                input_spec.default = serialize_value(parameter.default, type_struct)
+
         inputs.append(input_spec)
 
     #Analyzing the return type annotations.
@@ -235,8 +249,18 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     from collections import OrderedDict
     parameter_to_type_name = OrderedDict((input.name, str(input.type)) for input in component_spec.inputs)
 
+    definitions = set()
+    def get_deserializer_and_register_definitions(type_name):
+        if type_name in type_name_to_deserializer:
+            (deserializer_code_str, definition_str) = type_name_to_deserializer[type_name]
+            if definition_str:
+                definitions.add(definition_str)
+            return deserializer_code_str
+        return 'str'
+
     arg_parse_code_lines = [
         'import argparse',
+        '_missing_arg = object()',
         '_parser = argparse.ArgumentParser(prog={prog_repr}, description={description_repr})'.format(
             prog_repr=repr(component_spec.name or ''),
             description_repr=repr(component_spec.description or ''),
@@ -245,16 +269,26 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     arguments = []
     for input in component_spec.inputs:
         param_flag = "--" + input.name.replace("_", "-")
-        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default={default_repr})'.format(
+        is_required = not input.optional
+        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default=_missing_arg)'.format(
             param_flag=param_flag,
             param_var=input.name,
-            param_type=(input.type if input.type in ['int', 'float', 'bool'] else 'str'),
-            is_required=str(input.default is None), # TODO: Handle actual 'None' defaults!
-            default_repr=repr(str(input.default)) if input.default is not None else None,
+            param_type=get_deserializer_and_register_definitions(input.type),
+            is_required=str(is_required),
         )
         arg_parse_code_lines.append(line)
-        arguments.append(param_flag)
-        arguments.append(InputValuePlaceholder(input.name))
+        if is_required:
+            arguments.append(param_flag)
+            arguments.append(InputValuePlaceholder(input.name))
+        else:
+            arguments.append(
+                IfPlaceholder(
+                    IfPlaceholderStructure(
+                        condition=IsPresentPlaceholder(input.name),
+                        then_value=[param_flag, InputValuePlaceholder(input.name)],
+                    )
+                )
+            )
 
     if component_spec.outputs:
         param_flag="----output-paths"
@@ -268,14 +302,15 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
         arguments.append(param_flag)
         arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
 
+    arg_parse_code_lines = list(definitions) + arg_parse_code_lines
+
     arg_parse_code_lines.extend([
-        '_parsed_args = vars(_parser.parse_args())',
+        '_parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}',
     ])
 
-    if component_spec.outputs:
-        arg_parse_code_lines.extend([
-            '_output_files = _parsed_args.pop("_output_paths")',
-        ])
+    arg_parse_code_lines.extend([
+        '_output_files = _parsed_args.pop("_output_paths", [])',
+    ])
 
     full_source = \
 '''\

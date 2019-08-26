@@ -121,7 +121,7 @@ export interface ApiVisualization {
      * @type {string}
      * @memberof ApiVisualization
      */
-    inputPath?: string;
+    source?: string;
     /**
      * Variables to be used during generation of a visualization. This should be provided as a JSON string. This is required when creating the pipeline through CreateVisualization API.
      * @type {string}
@@ -148,7 +148,10 @@ export interface ApiVisualization {
  * @enum {string}
  */
 export enum ApiVisualizationType {
-    CURVE = <any> 'ROC_CURVE'
+    ROCCURVE = <any> 'ROC_CURVE',
+    TFDV = <any> 'TFDV',
+    TFMA = <any> 'TFMA',
+    TABLE = <any> 'TABLE'
 }
 
 /**

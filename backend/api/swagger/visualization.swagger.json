@@ -73,7 +73,7 @@
         "type": {
           "$ref": "#/definitions/apiVisualizationType"
         },
-        "inputPath": {
+        "source": {
           "type": "string",
           "description": "Path pattern of input data to be used during generation of visualizations.\nThis is required when creating the pipeline through CreateVisualization\nAPI."
         },
@@ -94,7 +94,10 @@
     "apiVisualizationType": {
       "type": "string",
       "enum": [
-        "ROC_CURVE"
+        "ROC_CURVE",
+        "TFDV",
+        "TFMA",
+        "TABLE"
       ],
       "default": "ROC_CURVE",
       "description": "Type of visualization to be generated.\nThis is required when creating the pipeline through CreateVisualization\nAPI."

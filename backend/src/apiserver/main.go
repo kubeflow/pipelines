@@ -34,10 +34,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-
-	_ "ml_metadata/metadata_store/mlmetadata"
-	_ "ml_metadata/proto/metadata_store_go_proto"
-	_ "ml_metadata/proto/metadata_store_service_go_proto"
 )
 
 var (
@@ -83,7 +79,14 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
 	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager))
 	api.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
-	api.RegisterVisualizationServiceServer(s, server.NewVisualizationServer(resourceManager))
+	api.RegisterVisualizationServiceServer(
+		s,
+		server.NewVisualizationServer(
+			resourceManager,
+			getStringConfig(visualizationServiceHost),
+			getStringConfig(visualizationServicePort),
+			getDurationConfig(initConnectionTimeout),
+		))
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)

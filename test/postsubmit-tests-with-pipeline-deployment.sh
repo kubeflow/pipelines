@@ -114,14 +114,16 @@ elif [[ ${CLOUDBUILD_FINISHED} == TIMEOUT ]];then
   exit 1
 fi
 
-# Deploy Kubeflow
-source "${DIR}/deploy-kubeflow.sh"
+COMMIT_SHA=$PULL_BASE_SHA source "${DIR}/deploy-cluster.sh"
+echo "cluster deployed"
 
 # Install Argo
 source "${DIR}/install-argo.sh"
+echo "argo installed"
 
 # Deploy the pipeline
-source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR} --gcr_image_tag ${PULL_BASE_SHA}
+GCR_IMAGE_TAG=${PULL_BASE_SHA} source "${DIR}/deploy-pipeline-lite.sh"
+echo "KFP lite deployed"
 
 # Submit the argo job and check the results
 echo "submitting argo workflow for commit ${PULL_BASE_SHA}..."
