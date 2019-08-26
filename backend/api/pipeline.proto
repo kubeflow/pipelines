@@ -154,10 +154,13 @@ message GetPipelineVersionRequest {
 
 message ListPipelineVersionsRequest {
   string pipeline_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
 }
 
 message ListPipelineVersionsResponse {
   repeated PipelineVersion versions = 1;
+  string next_page_token = 2;
 }
 
 message Pipeline {
@@ -211,17 +214,19 @@ message PipelineVersion {
   // Output. The input parameters for this pipeline.
   repeated Parameter parameters = 4;
 
-  // Input.
-  oneof code_source {
-    // If pipeline is based on a git commit.
-    GithubRepo github_repo = 5;
-    // If pipeline is based on a compiled package stored at a url.
-    Url url = 6;
-  }
+  // Input. Pipeline version code source. Optional.
+  CodeSource code_source = 5;
 
   // Input.
   // Describing what the pipeline this version belongs to.
-  PipelineSpec pipeline_spec = 7;
+  PipelineSpec pipeline_spec = 6;
+}
+
+message CodeSource {
+  // A pipeline can be based on a git commit or a compiled package stored
+  // at a url. Both are optional.
+  GithubRepo github_repo = 1;
+  Url url = 2;
 }
 
 message GithubRepo {

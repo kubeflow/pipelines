@@ -85,48 +85,41 @@ func ToApiVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) 
 		return nil, err
 	}
 
-	if version.CodeSource.RepoName != "" && version.CodeSource.CommitSHA != "" {
-		return &api.PipelineVersion{
-			Id:         version.UUID,
-			Name:       version.Name,
-			CreatedAt:  &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
-			Parameters: params,
-			CodeSource: &api.PipelineVersion_GithubRepo{
-				GithubRepo: &api.GithubRepo{
-					RepoName:  version.CodeSource.RepoName,
-					CommitSha: version.CodeSource.CommitSHA,
-				},
-			},
-			PipelineSpec: &api.PipelineSpec{
-				PipelineId: version.PipelineId,
-			},
-		}, nil
-	}
-	if version.CodeSource.URL != "" {
-		return &api.PipelineVersion{
-			Id:         version.UUID,
-			Name:       version.Name,
-			CreatedAt:  &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
-			Parameters: params,
-			CodeSource: &api.PipelineVersion_Url{
-				Url: &api.Url{
-					PipelineUrl: version.CodeSource.URL,
-				},
-			},
-			PipelineSpec: &api.PipelineSpec{
-				PipelineId: version.PipelineId,
-			},
-		}, nil
-	}
 	return &api.PipelineVersion{
 		Id:         version.UUID,
 		Name:       version.Name,
 		CreatedAt:  &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
 		Parameters: params,
+		CodeSource: ToApiCodeSource(&version.CodeSource),
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId: version.PipelineId,
 		},
 	}, nil
+}
+
+func ToApiCodeSource(codeSource *model.CodeSource) *api.CodeSource {
+	if codeSource == nil {
+		return nil
+	}
+
+	var apiCodeSource api.CodeSource
+	if len(codeSource.CommitSHA) > 0 && len(codeSource.CommitSHA) > 0 {
+		apiCodeSource.GithubRepo = &api.GithubRepo {
+			RepoName: codeSource.RepoName,
+			CommitSha: codeSource.CommitSHA,
+		}
+	}
+	if len(codeSource.URL) > 0 {
+		apiCodeSource.Url = &api.Url {
+			PipelineUrl: codeSource.URL,
+		}
+	}
+
+	if apiCodeSource.GithubRepo != nil || apiCodeSource.Url != nil {
+		return &apiCodeSource
+	} else {
+		return nil
+	}
 }
 
 func ToApiVersions(versions []*model.PipelineVersion) ([]*api.PipelineVersion, error) {

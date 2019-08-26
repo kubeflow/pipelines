@@ -114,14 +114,15 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (*model.PipelineVersion, error) {
 	var codeSource model.CodeSource
 	if version.CodeSource != nil {
-		switch x := version.CodeSource.(type) {
-		case *api.PipelineVersion_GithubRepo:
-			codeSource.RepoName = x.GithubRepo.RepoName
-			codeSource.CommitSHA = x.GithubRepo.CommitSha
-		case *api.PipelineVersion_Url:
-			codeSource.URL = x.Url.PipelineUrl
+		if version.CodeSource.GithubRepo != nil {
+			codeSource.RepoName = version.CodeSource.GithubRepo.RepoName
+			codeSource.CommitSHA = version.CodeSource.GithubRepo.CommitSha
+		}
+		if version.CodeSource.Url != nil {
+			codeSource.URL = version.CodeSource.Url.PipelineUrl
 		}
 	}
+
 	paramStr, err := toModelParameters(version.Parameters)
 	if err != nil {
 		return nil, err

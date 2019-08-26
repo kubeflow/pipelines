@@ -35,6 +35,11 @@ func TestToApiPipeline(t *testing.T) {
 			CreatedAtInSec: 1,
 			Parameters: "[]",
 			PipelineId: "pipeline1",
+			CodeSource: model.CodeSource{
+				RepoName: "repo",
+				CommitSHA: "sha",
+				URL: "url",
+			},
 		},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
@@ -46,6 +51,15 @@ func TestToApiPipeline(t *testing.T) {
 			Id:			"pipelineversion1",
 			CreatedAt: &timestamp.Timestamp{Seconds: 1},
 			Parameters: []*api.Parameter{},
+			CodeSource: &api.CodeSource{
+				GithubRepo: &api.GithubRepo{
+					RepoName: "repo",
+					CommitSha: "sha",
+				},
+				Url: &api.Url{
+					PipelineUrl: "url",
+				},
+			},
 			PipelineSpec: &api.PipelineSpec{
 				PipelineId: "pipeline1",
 			},
