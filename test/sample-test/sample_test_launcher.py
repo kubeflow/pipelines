@@ -117,17 +117,17 @@ class SampleTest(object):
     # Notebook samples need to be papermilled first.
     if self._test_name == 'lightweight_component':
       pm.execute_notebook(
-        input_path='Lightweight Python components - basics.ipynb',
-        output_path='%s.ipynb' % self._test_name,
-        parameters=dict(
-            EXPERIMENT_NAME='%s-test' % self._test_name
-        )
+          input_path='Lightweight Python components - basics.ipynb',
+          output_path='%s.ipynb' % self._test_name,
+          parameters=dict(
+              EXPERIMENT_NAME='%s-test' % self._test_name
+          )
       )
     elif self._test_name == 'dsl_static_type_checking':
       pm.execute_notebook(
-        input_path='DSL Static Type Checking.ipynb',
-        output_path='%s.ipynb' % self._test_name,
-        parameters={}
+          input_path='DSL Static Type Checking.ipynb',
+          output_path='%s.ipynb' % self._test_name,
+          parameters={}
       )
     else:
       subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
