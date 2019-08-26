@@ -39,7 +39,8 @@ func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *
 // It returns an error if a go_client.Visualization object does not have valid
 // values.
 func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_client.CreateVisualizationRequest) error {
-	if len(request.Visualization.Source) == 0 {
+	// Only validate that a source is provided for non-custom visualizations.
+	if request.Visualization.Type != go_client.Visualization_CUSTOM && len(request.Visualization.Source) == 0 {
 		return util.NewInvalidInputError("A visualization requires a Source to be provided. Received %s", request.Visualization.Source)
 	}
 	// Manually set Arguments to empty JSON if nothing is provided. This is done
@@ -67,7 +68,13 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 		)
 	}
 	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
-	arguments := fmt.Sprintf("--type %s --source %s --arguments '%s'", visualizationType, request.Visualization.Source, request.Visualization.Arguments)
+	arguments := fmt.Sprintf("--type %s --arguments '''%s'''", visualizationType, request.Visualization.Arguments)
+	if !(request.Visualization.Type == go_client.Visualization_CUSTOM && len(request.Visualization.Source) == 0) {
+		// Only add the source argument if a visualization is one of the following:
+		// - Not a custom visualization
+		// - A custom visualization that has a source specified
+		arguments += fmt.Sprintf(" --source %s", request.Visualization.Source)
+	}
 	resp, err := http.PostForm(s.serviceURL, url.Values{"arguments": {arguments}})
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to initialize visualization request.")
