@@ -21,7 +21,7 @@ then activate the environment.
 Install TFX and Kubeflow Pipelines SDK
 ```
 pip3 install tfx==0.13.0 --upgrade
-pip install kfp --upgrade
+pip3 install kfp --upgrade
 ```
 
 Upload the utility code to your storage bucket. You can modify this code if needed for a different dataset.
