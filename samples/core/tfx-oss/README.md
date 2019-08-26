@@ -18,34 +18,28 @@ conda create -n tfx-kfp pip python=3.5.3
 then activate the environment.
 
 
-Install TensorFlow, TFX and Kubeflow Pipelines SDK
+Install TFX and Kubeflow Pipelines SDK
 ```
-pip install tensorflow --upgrade
-pip install tfx 
+pip3 install tfx==0.13.0 --upgrade
 pip install kfp --upgrade
-```
-
-Clone TFX github repo
-```
-git clone https://github.com/tensorflow/tfx
 ```
 
 Upload the utility code to your storage bucket. You can modify this code if needed for a different dataset.
 ```
-gsutil cp tfx/tfx/examples/chicago_taxi_pipeline/taxi_utils.py gs://my-bucket/<path>/
+gsutil cp utils/taxi_utils.py gs://my-bucket/<path>/
 ```
 
 If gsutil does not work, try `tensorflow.gfile`:
 ```
 from tensorflow import gfile
-gfile.Copy('tfx/tfx/examples/chicago_taxi_pipeline/taxi_utils.py', 'gs://<my bucket>/<path>/taxi_utils.py')
+gfile.Copy('utils/taxi_utils.py', 'gs://<my bucket>/<path>/taxi_utils.py')
 ```
 
 ## Configure the TFX Pipeline
 
-Modify the pipeline configuration file at 
+Modify the pipeline configurations at 
 ```
-tfx/tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
+TFX Example.ipynb
 ```
 Configure 
 - Set `_input_bucket` to the GCS directory where you've copied taxi_utils.py. I.e. gs://<my bucket>/<path>/
@@ -54,8 +48,7 @@ Configure
 - The original BigQuery dataset has 100M rows, which can take time to process. Modify the selection criteria (% of records) to run a sample test. 
 
 ## Compile and run the pipeline
-```
-python tfx/tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
-```
+Run the notebook.
+
 This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz
 Upload this file to the Pipelines Cluster and create a run.
