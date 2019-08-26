@@ -81,7 +81,7 @@ def file_injection(file_in, tmp_file_out, subs):
         tmp_line = line
         for old, new in subs.items():
           regex = re.compile(old)
-          tmp_line = re.sub(regex, new)
+          tmp_line = re.sub(regex, new, line)
 
         fout.write(tmp_line)
 
