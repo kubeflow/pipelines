@@ -65,6 +65,24 @@ func TestValidateCreateVisualizationRequest_SourceIsEmpty(t *testing.T) {
 	assert.Contains(t, err.Error(), "A visualization requires a Source to be provided. Received")
 }
 
+func TestValidateCreateVisualizationRequest_SourceIsEmptyAndTypeIsCustom(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := &VisualizationServer{
+		resourceManager:    manager,
+		isServiceAvailable: false,
+	}
+	visualization := &go_client.Visualization{
+		Type:      go_client.Visualization_CUSTOM,
+		Arguments: "{}",
+	}
+	request := &go_client.CreateVisualizationRequest{
+		Visualization: visualization,
+	}
+	err := server.validateCreateVisualizationRequest(request)
+	assert.Nil(t, err)
+}
+
 func TestValidateCreateVisualizationRequest_ArgumentsNotValidJSON(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
