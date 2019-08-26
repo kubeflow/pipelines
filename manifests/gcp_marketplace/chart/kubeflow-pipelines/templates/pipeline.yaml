@@ -40,29 +40,6 @@ spec:
       served: true
       storage: true
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  name: workflows.argoproj.io
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-spec:
-  group: argoproj.io
-  names:
-    kind: Workflow
-    plural: workflows
-    shortNames:
-      - wf
-  scope: Namespaced
-  version: v1alpha1
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: argo
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
----
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -104,61 +81,6 @@ metadata:
   name: pipeline-runner
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: proxy-agent-runner
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: argo-role
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-rules:
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-      - pods/exec
-    verbs:
-      - create
-      - get
-      - list
-      - watch
-      - update
-      - patch
-      - delete
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - get
-      - watch
-      - list
-  - apiGroups:
-      - ""
-    resources:
-      - persistentvolumeclaims
-    verbs:
-      - create
-      - delete
-  - apiGroups:
-      - argoproj.io
-    resources:
-      - workflows
-      - workflows/finalizers
-    verbs:
-      - get
-      - list
-      - watch
-      - update
-      - patch
-      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -396,36 +318,6 @@ rules:
       - '*'
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
-    app: proxy-agent-runner
-    app.kubernetes.io/name: {{ .Release.Name }}
-  name: proxy-agent-runner
-rules:
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - '*'
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: argo-binding
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: argo-role
-subjects:
-  - kind: ServiceAccount
-    name: argo
-    namespace: {{ .Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: ml-pipeline-persistenceagent-binding
@@ -505,22 +397,6 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-    app: proxy-agent-runner
-  name: proxy-agent-runner
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: proxy-agent-runner
-subjects:
-  - kind: ServiceAccount
-    name: proxy-agent-runner
-    namespace: {{ .Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
   name: ml-pipeline-viewer-crd-binding
   labels:
     app.kubernetes.io/name: {{ .Release.Name }}
@@ -532,78 +408,6 @@ subjects:
   - kind: ServiceAccount
     name: ml-pipeline-viewer-crd-service-account
     namespace: {{ .Release.Namespace }}
----
-apiVersion: v1
-data:
-  config: |
-    {
-    namespace: {{ .Release.Namespace }},
-    executorImage: {{ .Values.images.argoExecutor }},
-    artifactRepository:
-    {
-        s3: {
-            bucket: mlpipeline,
-            keyPrefix: artifacts,
-            endpoint: minio-service.{{ .Release.Namespace }}:9000,
-            insecure: true,
-            accessKeySecret: {
-                name: mlpipeline-minio-artifact,
-                key: accesskey
-            },
-            secretKeySecret: {
-                name: mlpipeline-minio-artifact,
-                key: secretkey
-            }
-        }
-    }
-    }
-kind: ConfigMap
-metadata:
-  name: workflow-controller-configmap
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
----
-apiVersion: v1
-data:
-  accesskey: bWluaW8=
-  secretkey: bWluaW8xMjM=
-kind: Secret
-metadata:
-  name: mlpipeline-minio-artifact
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-type: Opaque
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: metadata
-    app.kubernetes.io/name: {{ .Release.Name }}
-  name: metadata-service
-spec:
-  ports:
-    - name: md-backendapi
-      port: 8080
-      protocol: TCP
-  selector:
-    component: metadata-server
-    app.kubernetes.io/name: {{ .Release.Name }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: minio-service
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-spec:
-  ports:
-    - port: 9000
-      protocol: TCP
-      targetPort: 9000
-  selector:
-    app: minio
-    app.kubernetes.io/name: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: Service
@@ -653,60 +457,6 @@ spec:
   selector:
     app: ml-pipeline
     app.kubernetes.io/name: {{ .Release.Name }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mysql
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-spec:
-  ports:
-    - port: 3306
-  selector:
-    app: mysql
-    app.kubernetes.io/name: {{ .Release.Name }}
----
-apiVersion: apps/v1beta2
-kind: Deployment
-metadata:
-  name: minio
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-spec:
-  selector:
-    matchLabels:
-      app: minio
-      app.kubernetes.io/name: {{ .Release.Name }}
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app: minio
-        app.kubernetes.io/name: {{ .Release.Name }}
-    spec:
-      containers:
-        - args:
-            - server
-            - /data
-          env:
-            - name: MINIO_ACCESS_KEY
-              value: minio
-            - name: MINIO_SECRET_KEY
-              value: minio123
-          image: {{ .Values.images.minio }}
-          name: minio
-          ports:
-            - containerPort: 9000
-          volumeMounts:
-            - mountPath: /data
-              name: data
-              subPath: minio
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: minio-pvc
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
@@ -869,6 +619,15 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            # Following environment variables are only needed when using Cloud SQL and GCS.
+            {{ if .Values.managedstorage.enabled }}
+            - name: OBJECTSTORECONFIG_BUCKETNAME
+              value: "{{ .Release.Name }}-{{ .Values.managedstorage.gcpProject }}-{{ .Values.managedstorage.cloudsqlZone }}-{{ .Values.managedstorage.cloudsqlInstanceName }}-{{ .Values.managedstorage.databaseNamePrefix }}"
+            - name: DBCONFIG_DBNAME
+              value: "{{ .Values.managedstorage.databaseNamePrefix }}_pipeline"
+            - name: DBCONFIG_PASSWORD
+              value: "{{ .Values.managedstorage.dbPassword }}"
+            {{ end }}
           image: {{ .Values.images.apiServer }}
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
@@ -876,176 +635,3 @@ spec:
             - containerPort: 8888
             - containerPort: 8887
       serviceAccountName: ml-pipeline
----
-apiVersion: apps/v1beta2
-kind: Deployment
-metadata:
-  name: mysql
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-spec:
-  selector:
-    matchLabels:
-      app: mysql
-      app.kubernetes.io/name: {{ .Release.Name }}
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app: mysql
-        app.kubernetes.io/name: {{ .Release.Name }}
-    spec:
-      containers:
-        - env:
-            - name: MYSQL_ALLOW_EMPTY_PASSWORD
-              value: "true"
-          image: {{ .Values.images.mysql }}
-          name: mysql
-          ports:
-            - containerPort: 3306
-              name: mysql
-          volumeMounts:
-            - mountPath: /var/lib/mysql
-              name: mysql-persistent-storage
-      volumes:
-        - name: mysql-persistent-storage
-          persistentVolumeClaim:
-            claimName: mysql-pv-claim
----
-apiVersion: apps/v1beta2
-kind: Deployment
-metadata:
-  labels:
-    app: proxy-agent
-    app.kubernetes.io/name: {{ .Release.Name }}
-  name: proxy-agent
-spec:
-  selector:
-    matchLabels:
-      app: proxy-agent
-      app.kubernetes.io/name: {{ .Release.Name }}
-  template:
-    metadata:
-      labels:
-        app: proxy-agent
-        app.kubernetes.io/name: {{ .Release.Name }}
-    spec:
-      containers:
-        - image: {{ .Values.images.proxyAgent }}
-          imagePullPolicy: IfNotPresent
-          name: proxy-agent
-      serviceAccountName: proxy-agent-runner
----
-apiVersion: apps/v1beta2
-kind: Deployment
-metadata:
-  labels:
-    app: workflow-controller
-    app.kubernetes.io/name: {{ .Release.Name }}
-  name: workflow-controller
-spec:
-  progressDeadlineSeconds: 600
-  replicas: 1
-  revisionHistoryLimit: 10
-  selector:
-    matchLabels:
-      app: workflow-controller
-      app.kubernetes.io/name: {{ .Release.Name }}
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
-  template:
-    metadata:
-      creationTimestamp: null
-      labels:
-        app: workflow-controller
-        app.kubernetes.io/name: {{ .Release.Name }}
-    spec:
-      containers:
-        - args:
-            - --configmap
-            - workflow-controller-configmap
-            - --executor-image
-            - {{ .Values.images.argoExecutor }}
-          command:
-            - workflow-controller
-          env:
-            - name: ARGO_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-          image: {{ .Values.images.argoWorkflowController }}
-          imagePullPolicy: IfNotPresent
-          name: workflow-controller
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
-      serviceAccount: argo
-      serviceAccountName: argo
-      terminationGracePeriodSeconds: 30
----
-apiVersion: apps/v1beta2
-kind: Deployment
-metadata:
-  labels:
-    component: metadata-server
-    app.kubernetes.io/name: {{ .Release.Name }}
-  name: metadata-deployment
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      component: metadata-server
-      app.kubernetes.io/name: {{ .Release.Name }}
-  template:
-    metadata:
-      labels:
-        component: metadata-server
-        app.kubernetes.io/name: {{ .Release.Name }}
-    spec:
-      containers:
-        - command:
-            - ./server/server
-            - --http_port=8080
-            - --mysql_service_host=mysql
-            - --mysql_service_port=3306
-            - --mlmd_db_name=metadb
-          image: {{ .Values.images.metadataServer }}
-          name: container
-          ports:
-            - containerPort: 8080
-              name: md-backendapi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: minio-pvc
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mysql-pv-claim
-  labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi

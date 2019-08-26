@@ -37,7 +37,7 @@ spec:
                 # this is required if your server still require new connections (e.g., connection pools)
                 command: ['sleep', '10']
           ports:
-            - name: port-database1
+            - name: mysql
               containerPort: 3306
           volumeMounts:
             - mountPath: /cloudsql
