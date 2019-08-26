@@ -37,7 +37,20 @@ export interface BuildInfo {
   frontendCommitHash?: string;
 }
 
+let customVisualizationsAllowed: boolean;
+
 export class Apis {
+
+  public static async areCustomVisualizationsAllowed(): Promise<boolean> {
+    // Result is cached to prevent excessive network calls for simple request.
+    // The value of customVisualizationsAllowed will only change if the
+    // deployment is updated and then the entire pod is restarted.
+    if (customVisualizationsAllowed === undefined) {
+      const result = await this._fetch('visualizations/allowed');
+      customVisualizationsAllowed = result === 'true';
+    }
+    return customVisualizationsAllowed;
+  }
 
   /**
    * Get pod logs

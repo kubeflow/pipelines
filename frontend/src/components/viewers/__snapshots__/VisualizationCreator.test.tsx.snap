@@ -60,12 +60,6 @@ exports[`VisualizationCreator disables all select and input fields when busy 1`]
       >
         TABLE
       </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="CUSTOM"
-        value="CUSTOM"
-      >
-        CUSTOM
-      </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
@@ -144,12 +138,6 @@ exports[`VisualizationCreator does not render an Editor component if a visualiza
         value="TABLE"
       >
         TABLE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="CUSTOM"
-        value="CUSTOM"
-      >
-        CUSTOM
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
@@ -232,12 +220,6 @@ exports[`VisualizationCreator renders an Editor component if a visualization typ
         value="TABLE"
       >
         TABLE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="CUSTOM"
-        value="CUSTOM"
-      >
-        CUSTOM
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
@@ -366,12 +348,6 @@ exports[`VisualizationCreator renders component when all parameters in config ar
       >
         TABLE
       </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="CUSTOM"
-        value="CUSTOM"
-      >
-        CUSTOM
-      </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
@@ -450,12 +426,6 @@ exports[`VisualizationCreator renders component when empty config is provided 1`
         value="TABLE"
       >
         TABLE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="CUSTOM"
-        value="CUSTOM"
-      >
-        CUSTOM
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
@@ -536,12 +506,6 @@ exports[`VisualizationCreator renders component when isBusy is not provided 1`] 
       >
         TABLE
       </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="CUSTOM"
-        value="CUSTOM"
-      >
-        CUSTOM
-      </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
@@ -562,6 +526,85 @@ exports[`VisualizationCreator renders component when isBusy is not provided 1`] 
 `;
 
 exports[`VisualizationCreator renders component when onGenerate is not provided 1`] = `
+<div
+  style={
+    Object {
+      "width": 600,
+    }
+  }
+>
+  <WithStyles(FormControl)
+    style={
+      Object {
+        "width": "100%",
+      }
+    }
+  >
+    <WithStyles(WithFormControlContext(InputLabel))
+      htmlFor="visualization-type-selector"
+    >
+      Type
+    </WithStyles(WithFormControlContext(InputLabel))>
+    <WithStyles(WithFormControlContext(Select))
+      disabled={false}
+      inputProps={
+        Object {
+          "id": "visualization-type-selector",
+          "name": "Visualization Type",
+        }
+      }
+      onChange={[Function]}
+      style={
+        Object {
+          "minHeight": 60,
+          "width": "100%",
+        }
+      }
+    >
+      <WithStyles(MenuItem)
+        key="ROCCURVE"
+        value="ROC_CURVE"
+      >
+        ROC_CURVE
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TFDV"
+        value="TFDV"
+      >
+        TFDV
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TFMA"
+        value="TFMA"
+      >
+        TFMA
+      </WithStyles(MenuItem)>
+      <WithStyles(MenuItem)
+        key="TABLE"
+        value="TABLE"
+      >
+        TABLE
+      </WithStyles(MenuItem)>
+    </WithStyles(WithFormControlContext(Select))>
+  </WithStyles(FormControl)>
+  <Component
+    disabled={false}
+    label="Source"
+    onChange={[Function]}
+    placeholder="File path or path pattern of data within GCS."
+    value=""
+    variant="outlined"
+  />
+  <BusyButton
+    busy={false}
+    disabled={true}
+    onClick={[Function]}
+    title="Generate Visualization"
+  />
+</div>
+`;
+
+exports[`VisualizationCreator renders the custom type when it is allowed 1`] = `
 <div
   style={
     Object {
@@ -707,12 +750,6 @@ exports[`VisualizationCreator renders the provided arguments 1`] = `
       >
         TABLE
       </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="CUSTOM"
-        value="CUSTOM"
-      >
-        CUSTOM
-      </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
@@ -841,12 +878,6 @@ exports[`VisualizationCreator renders the selected visualization type 1`] = `
       >
         TABLE
       </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="CUSTOM"
-        value="CUSTOM"
-      >
-        CUSTOM
-      </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
   <Component
@@ -974,12 +1005,6 @@ exports[`VisualizationCreator renders two Editor components if the CUSTOM visual
         value="TABLE"
       >
         TABLE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="CUSTOM"
-        value="CUSTOM"
-      >
-        CUSTOM
       </WithStyles(MenuItem)>
     </WithStyles(WithFormControlContext(Select))>
   </WithStyles(FormControl)>
