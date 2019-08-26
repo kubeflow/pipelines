@@ -118,6 +118,19 @@ class Exporter:
 
         return new_code_cell(code)
 
+    @staticmethod
+    def create_cell_from_custom_code(code: list) -> NotebookNode:
+        """Creates a NotebookNode object with provided list as code in node.
+
+        Args:
+            code: list representing lines of code to be run.
+
+        Returns:
+            NotebookNode with specified file as code within node.
+
+        """
+        return new_code_cell("\n".join(code))
+
     def generate_html_from_notebook(self, nb: NotebookNode) -> Text:
         """Converts a provided NotebookNode to HTML.
 
