@@ -1,0 +1,10 @@
+spec:
+  templates:
+    - container:
+        image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:151c5349f13bea9d626c988563c04c0a86210c21
+    - container:
+        image: gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:151c5349f13bea9d626c988563c04c0a86210c21
+    - container:
+        image: gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:151c5349f13bea9d626c988563c04c0a86210c21
+    - container:
+        image: gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:151c5349f13bea9d626c988563c04c0a86210c21
