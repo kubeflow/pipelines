@@ -33,11 +33,11 @@ class SampleTest(object):
   """Launch a KFP sample_test provided its name.
 
   Args:
-  test_name: name of the sample test.
-  input: The path of a pipeline package that will be submitted.
-  result: The path of the test result that will be exported.
-  output: The path of the test output.
-  namespace: Namespace of the deployed pipeline system. Default: kubeflow
+    test_name: name of the sample test.
+    input: The path of a pipeline package that will be submitted.
+    result: The path of the test result that will be exported.
+    output: The path of the test output.
+    namespace: Namespace of the deployed pipeline system. Default: kubeflow
   """
 
   GITHUB_REPO = 'kubeflow/pipelines'
@@ -45,7 +45,7 @@ class SampleTest(object):
   TEST_DIR = BASE_DIR + '/test/sample-test'
 
   def __init__(self, test_name, results_gcs_dir, target_image_prefix='',
-           namespace='kubeflow'):
+               namespace='kubeflow'):
     self._test_name = test_name
     self._results_gcs_dir = results_gcs_dir
     # Capture the first segment after gs:// as the project name.
@@ -116,29 +116,29 @@ class SampleTest(object):
     # For presubmit check, do not do any image injection as for now.
     # Notebook samples need to be papermilled first.
     if self._test_name == 'lightweight_component':
-        pm.execute_notebook(
-            input_path='Lightweight Python components - basics.ipynb',
-            output_path='%s.ipynb' % self._test_name,
-            parameters=dict(
-                EXPERIMENT_NAME='%s-test' % self._test_name
-            )
+      pm.execute_notebook(
+        input_path='Lightweight Python components - basics.ipynb',
+        output_path='%s.ipynb' % self._test_name,
+        parameters=dict(
+            EXPERIMENT_NAME='%s-test' % self._test_name
         )
+      )
     elif self._test_name == 'dsl_static_type_checking':
-        pm.execute_notebook(
-            input_path='DSL Static Type Checking.ipynb',
-            output_path='%s.ipynb' % self._test_name,
-            parameters={}
-        )
+      pm.execute_notebook(
+        input_path='DSL Static Type Checking.ipynb',
+        output_path='%s.ipynb' % self._test_name,
+        parameters={}
+      )
     else:
-        subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
-                         '--output', '%s.yaml' % self._test_name])
+      subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
+                       '--output', '%s.yaml' % self._test_name])
 
   def run_test(self):
     self._compile_sample()
     if self._test_name in ['lightweight_component', 'dsl_static_type_checking']:
-        self.check_notebook_result()
+      self.check_notebook_result()
     else:
-        self.check_result()
+      self.check_result()
 
 
 class ComponentTest(SampleTest):
@@ -164,26 +164,26 @@ class ComponentTest(SampleTest):
                local_roc_image,
                target_image_prefix='',
                namespace='kubeflow'):
-      super().__init__(
-          test_name=test_name,
-          results_gcs_dir=results_gcs_dir,
-          target_image_prefix=target_image_prefix,
-          namespace=namespace
-      )
-      self._dataflow_tft_image = dataflow_tft_image
-      self._dataflow_predict_image = dataflow_predict_image
-      self._dataflow_tfma_image = dataflow_tfma_image
-      self._dataflow_tfdv_image = dataflow_tfdv_image
-      self._dataproc_create_cluster_image = dataproc_create_cluster_image
-      self._dataproc_delete_cluster_image = dataproc_delete_cluster_image
-      self._dataproc_analyze_image = dataproc_analyze_image
-      self._dataproc_transform_image = dataproc_transform_image
-      self._dataproc_train_image = dataproc_train_image
-      self._dataproc_predict_image = dataproc_predict_image
-      self._kubeflow_dnntrainer_image = kubeflow_dnntrainer_image
-      self._kubeflow_deployer_image = kubeflow_deployer_image
-      self._local_confusionmatrix_image = local_confusionmatrix_image
-      self._local_roc_image = local_roc_image
+    super().__init__(
+        test_name=test_name,
+        results_gcs_dir=results_gcs_dir,
+        target_image_prefix=target_image_prefix,
+        namespace=namespace
+    )
+    self._dataflow_tft_image = dataflow_tft_image
+    self._dataflow_predict_image = dataflow_predict_image
+    self._dataflow_tfma_image = dataflow_tfma_image
+    self._dataflow_tfdv_image = dataflow_tfdv_image
+    self._dataproc_create_cluster_image = dataproc_create_cluster_image
+    self._dataproc_delete_cluster_image = dataproc_delete_cluster_image
+    self._dataproc_analyze_image = dataproc_analyze_image
+    self._dataproc_transform_image = dataproc_transform_image
+    self._dataproc_train_image = dataproc_train_image
+    self._dataproc_predict_image = dataproc_predict_image
+    self._kubeflow_dnntrainer_image = kubeflow_dnntrainer_image
+    self._kubeflow_deployer_image = kubeflow_deployer_image
+    self._local_confusionmatrix_image = local_confusionmatrix_image
+    self._local_roc_image = local_roc_image
 
   def _injection(self):
       """Sample-specific image injection into yaml file."""
