@@ -61,6 +61,15 @@ class TestExporterMethods(snapshottest.TestCase):
         cell = self.exporter.create_cell_from_file("types/test.py")
         self.assertMatchSnapshot(cell.source)
 
+    def test_create_cell_from_custom_code(self):
+        self.maxDiff = None
+        code = [
+            "x = 2",
+            "print(x)"
+        ]
+        cell = self.exporter.create_cell_from_custom_code(code)
+        self.assertMatchSnapshot(cell.source)
+
     def test_generate_html_from_notebook(self):
         self.maxDiff = None
         nb = new_notebook()

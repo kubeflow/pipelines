@@ -70,6 +70,13 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
             response.body
         )
 
+    def test_create_visualization_passes_when_missing_input_path_and_type_is_custom(self):
+        response = self.fetch(
+            "/",
+            method="POST",
+            body='arguments=--type custom')
+        self.assertEqual(200, response.code)
+
     def test_create_visualization_fails_when_invalid_json_is_provided(self):
         response = self.fetch(
             "/",
