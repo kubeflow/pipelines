@@ -407,8 +407,8 @@ class PythonOpTestCase(unittest.TestCase):
 
     def test_handling_base64_pickle_arguments(self):
         def assert_values_are_same(
-            obj1: 'Base64Pickle',
-            obj2: 'Base64Pickle',
+            obj1: 'Base64Pickle', # noqa: F821
+            obj2: 'Base64Pickle', # noqa: F821
         ) -> int:
             import unittest
             unittest.TestCase().assertEqual(obj1['self'], obj1)
