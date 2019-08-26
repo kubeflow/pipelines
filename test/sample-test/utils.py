@@ -10,7 +10,7 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the Licens
+# limitations under the License
 
 import google
 import os
@@ -82,6 +82,7 @@ def file_injection(file_in, tmp_file_out, subs):
         for old, new in subs.items():
           regex = re.compile(old)
           tmp_line = re.sub(regex, new, line)
+          line = tmp_line
 
         fout.write(tmp_line)
 
