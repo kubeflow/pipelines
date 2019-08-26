@@ -450,6 +450,9 @@ class Compiler(object):
         condition = sub_group.condition
         operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
         operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
+        if condition.operator in ['==', '!=']:
+          operand1_value = '"' + operand1_value + '"'
+          operand2_value = '"' + operand2_value + '"'
         task['when'] = '{} {} {}'.format(operand1_value, condition.operator, operand2_value)
 
       # Generate dependencies section for this task.
