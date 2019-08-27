@@ -18,7 +18,6 @@ converting those objects to HTML.
 # limitations under the License.
 
 from enum import Enum
-import json
 from pathlib import Path
 from typing import Text
 from jupyter_client import KernelManager
