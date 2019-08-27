@@ -69,6 +69,11 @@ properties:
     default: $REGISTRY/inverse-proxy-agent:$TAG
     x-google-marketplace:
       type: IMAGE
+  image.cloudsqlProxy:
+    type: string
+    default: gcr.io/cloudsql-docker/gce-proxy:1.14
+    x-google-marketplace:
+      type: IMAGE
 
 required:
   - name
@@ -83,7 +88,6 @@ required:
   - image.frontend
   - image.viewerCrd
   - image.visualizationServer
-  - image.metadataServer
   - image.proxyAgent
 
 x-google-marketplace:

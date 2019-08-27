@@ -7,7 +7,7 @@ bases:
   - mysql
 
 # Replace with your namespace
-namespace: kubeflow2
+namespace: kubeflow
 
 patchesStrategicMerge:
   - gcp-configurations-patch.yaml

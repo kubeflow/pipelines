@@ -14,10 +14,10 @@ images:
   argoWorkflowController: gcr.io/ml-pipeline/workflow-controller:v2.3.0
 
 managedstorage:
-  enabled: true
-  cloudsqlInstanceName: kfp-test
-  cloudsqlZone: us-central1
-  dbPassword: 123
-  gcpProject: yang-experiment-6
-  gcpSecretName: user-gcp-sa
-  databaseNamePrefix: ml
+  enabled: false
+  cloudsqlInstanceName:
+  cloudsqlZone:
+  dbPassword:
+  gcpProject:
+  gcpSecretName:
+  databaseNamePrefix:
