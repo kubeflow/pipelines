@@ -39,7 +39,7 @@ import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
-import { ViewerConfig } from '../components/viewers/Viewer';
+import { ViewerConfig, PlotType } from '../components/viewers/Viewer';
 import { Workflow } from '../../third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, color, fonts, fontsize } from '../Css';
@@ -47,6 +47,9 @@ import { componentMap } from '../components/viewers/ViewerContainer';
 import { flatten } from 'lodash';
 import { formatDateString, getRunDurationFromWorkflow, logger, errorToMessage } from '../lib/Utils';
 import { statusToIcon } from './Status';
+import VisualizationCreator, { VisualizationCreatorConfig } from '../components/viewers/VisualizationCreator';
+import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
+import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 
 enum SidePaneTab {
   ARTIFACTS,
@@ -72,9 +75,17 @@ interface AnnotatedConfig {
   stepName: string;
 }
 
+interface GeneratedVisualization {
+  config: HTMLViewerConfig;
+  nodeId: string;
+}
+
 interface RunDetailsState {
   allArtifactConfigs: AnnotatedConfig[];
+  allowCustomVisualizations: boolean;
   experiment?: ApiExperiment;
+  generatedVisualizations: GeneratedVisualization[];
+  isGeneratingVisualization: boolean;
   legacyStackdriverUrl: string;
   logsBannerAdditionalInfo: string;
   logsBannerMessage: string;
@@ -135,6 +146,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     this.state = {
       allArtifactConfigs: [],
+      allowCustomVisualizations: false,
+      generatedVisualizations: [],
+      isGeneratingVisualization: false,
       legacyStackdriverUrl: '',
       logsBannerAdditionalInfo: '',
       logsBannerMessage: '',
@@ -170,7 +184,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   public render(): JSX.Element {
     const {
       allArtifactConfigs,
+      allowCustomVisualizations,
       graph,
+      isGeneratingVisualization,
       legacyStackdriverUrl,
       runFinished,
       runMetadata,
@@ -185,6 +201,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     const workflowParameters = WorkflowParser.getParameters(workflow);
     const nodeInputOutputParams = WorkflowParser.getNodeInputOutputParams(workflow, selectedNodeId);
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
+    const visualizationCreatorConfig: VisualizationCreatorConfig = {
+      allowCustomVisualizations,
+      isBusy: isGeneratingVisualization,
+      onGenerate: (visualizationArguments: string, source: string, type: ApiVisualizationType) => {
+        this._onGenerate(visualizationArguments, source, type);
+      },
+      type: PlotType.VISUALIZATION_CREATOR,
+    };
 
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
@@ -215,7 +239,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                         <div className={commonCss.page}>
                           {sidepanelSelectedTab === SidePaneTab.ARTIFACTS && (
                             <div className={commonCss.page}>
-                              {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
+                              <div className={padding(20, 'lrt')}>
+                                <PlotCard
+                                  configs={[visualizationCreatorConfig]}
+                                  title={VisualizationCreator.prototype.getDisplayName()}
+                                  maxDimension={500} />
+                                <Hr />
+                              </div>
+                              {this._getSelectedNodeConfigs().map((config, i) => {
                                 const title = componentMap[config.type].prototype.getDisplayName();
                                 return (
                                   <div key={i} className={padding(20, 'lrt')}>
@@ -394,6 +425,13 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   public async load(): Promise<void> {
     this.clearBanner();
     const runId = this.props.match.params[RouteParams.runId];
+
+    try {
+      const allowCustomVisualizations = await Apis.areCustomVisualizationsAllowed();
+      this.setState({ allowCustomVisualizations });
+    } catch (err) {
+      // Ignore error
+    }
 
     try {
       const runDetail = await Apis.runServiceApi.getRun(runId);
@@ -639,6 +677,56 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       logger.error('Error loading logs for node:', selectedNodeDetails.id);
     } finally {
       this.setStateSafe({ sidepanelBusy: false });
+    }
+  }
+
+  private _getSelectedNodeConfigs(): ViewerConfig[] {
+    const { generatedVisualizations, selectedNodeDetails } = this.state;
+    let selectedNodeConfigs: ViewerConfig[] = [];
+    if (selectedNodeDetails !== null) {
+      const nodeConfigs = selectedNodeDetails.viewerConfigs || [];
+      const generatedConfigs = generatedVisualizations
+        .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
+        .map(visualization => visualization.config);
+        selectedNodeConfigs = nodeConfigs.concat(generatedConfigs);
+    }
+    return selectedNodeConfigs;
+  }
+
+  private async _onGenerate(visualizationArguments: string, source: string, type: ApiVisualizationType): Promise<void> {
+    const { selectedNodeDetails } = this.state;
+    const nodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
+    if (nodeId.length === 0) {
+      this.showPageError('Unable to generate visualization, no component selected.');
+      return;
+    }
+
+    if (visualizationArguments.length) {
+      try {
+        JSON.parse(visualizationArguments);
+      } catch (err) {
+        this.showPageError('Unable to generate visualization, invalid JSON provided.', err);
+        return;
+      }
+    }
+    this.setState({ isGeneratingVisualization: true });
+    const visualizationData: ApiVisualization = {
+      arguments: visualizationArguments,
+      source,
+      type,
+    };
+    try {
+      const config = await Apis.buildPythonVisualizationConfig(visualizationData);
+      const { generatedVisualizations } = this.state;
+      generatedVisualizations.push({
+        config,
+        nodeId,
+      });
+      this.setState({ generatedVisualizations });
+    } catch (err) {
+      this.showPageError('Unable to generate visualization, an unexpected error was encountered.', err);
+    } finally {
+      this.setState({ isGeneratingVisualization: false });
     }
   }
 }

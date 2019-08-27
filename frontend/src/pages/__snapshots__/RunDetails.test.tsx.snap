@@ -575,6 +575,25 @@ exports[`RunDetails logs tab does not load logs if clicked node status is skippe
                 className="page"
               >
                 <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
+                <div
                   className="page"
                 >
                   <LogViewer
@@ -685,6 +704,25 @@ exports[`RunDetails logs tab keeps side pane open and on same tab when logs chan
               <div
                 className="page"
               >
+                <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
                 <div
                   className="page"
                 >
@@ -797,6 +835,25 @@ exports[`RunDetails logs tab loads and shows logs in side pane 1`] = `
                 className="page"
               >
                 <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
+                <div
                   className="page"
                 >
                   <LogViewer
@@ -908,6 +965,25 @@ exports[`RunDetails logs tab shows error banner atop logs area if fetching logs 
                 className="page"
               >
                 <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
+                <div
                   className="page"
                 >
                   <Banner
@@ -1017,6 +1093,25 @@ exports[`RunDetails logs tab shows error banner atop logs area if fetching logs 
                 className="page"
               >
                 <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
+                <div
                   className="page"
                 >
                   <Banner
@@ -1125,6 +1220,25 @@ exports[`RunDetails logs tab shows warning banner and link to Stackdriver in log
               <div
                 className="page"
               >
+                <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
                 <div
                   className="page"
                 >
@@ -1255,6 +1369,25 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
                 className="page"
               >
                 <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
+                <div
                   className="page"
                 >
                   <LogViewer
@@ -1365,6 +1498,25 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
               <div
                 className="page"
               >
+                <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
                 <div
                   className="page"
                 />
@@ -1590,6 +1742,25 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
                 className="page"
               >
                 <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
+                <div
                   className="page"
                 />
               </div>
@@ -1691,6 +1862,25 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
               <div
                 className="page"
               >
+                <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
                 <div
                   className="page"
                 >
@@ -2143,6 +2333,25 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                 <div
                   className=""
                 >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
+                <div
+                  className=""
+                >
                   <Component
                     fields={
                       Array [
@@ -2269,6 +2478,25 @@ exports[`RunDetails switches to manifest tab in side pane 1`] = `
               <div
                 className="page"
               >
+                <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
                 <div
                   className=""
                 >
@@ -2416,6 +2644,25 @@ exports[`RunDetails switches to volumes tab in side pane 1`] = `
               <div
                 className="page"
               >
+                <div
+                  className=""
+                >
+                  <PlotCard
+                    configs={
+                      Array [
+                        Object {
+                          "allowCustomVisualizations": false,
+                          "isBusy": false,
+                          "onGenerate": [Function],
+                          "type": "visualization-creator",
+                        },
+                      ]
+                    }
+                    maxDimension={500}
+                    title="Visualization Creator"
+                  />
+                  <Component />
+                </div>
                 <div
                   className=""
                 >
