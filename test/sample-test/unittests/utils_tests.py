@@ -14,10 +14,17 @@
 
 import os
 import shutil
+import sys
 import unittest
 import yaml
 
-from .. import utils
+
+# Need to adjust sys path to find utils.py
+PACKAGE_PARENT = '..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+
+import utils
 
 
 _DATAPATH = 'testdata/'

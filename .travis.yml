@@ -89,6 +89,10 @@ matrix:
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
+
+        # Sample test unittests.
+        - cd $TRAVIS_BUILD_DIR/test/sample-test/unittests
+        - python3 -m unittest utils_tests.py
     - language: python
       python: "3.6"
       env: TOXENV=py36
