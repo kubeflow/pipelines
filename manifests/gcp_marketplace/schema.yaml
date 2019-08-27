@@ -1,0 +1,98 @@
+applicationApiVersion: v1beta1
+
+properties:
+  name:
+    type: string
+    x-google-marketplace:
+      type: NAME
+  namespace:
+    type: string
+    x-google-marketplace:
+      type: NAMESPACE
+  image.mysql:
+    type: string
+    default: $REGISTRY/mysql:5.6
+    x-google-marketplace:
+      type: IMAGE
+  image.minio:
+    type: string
+    default: $REGISTRY/minio:RELEASE.2018-02-09T22-40-05Z
+    x-google-marketplace:
+      type: IMAGE
+  image.argoExecutor:
+    type: string
+    default: $REGISTRY/argoexec:v2.3.0
+    x-google-marketplace:
+      type: IMAGE
+  image.argoWorkflowController:
+    type: string
+    default: $REGISTRY/workflow-controller:v2.3.0
+    x-google-marketplace:
+      type: IMAGE
+  image.apiServer:
+    type: string
+    default: $REGISTRY/api-server:$TAG
+    x-google-marketplace:
+      type: IMAGE
+  image.persistenceagent:
+    type: string
+    default: $REGISTRY/persistenceagent:$TAG
+    x-google-marketplace:
+      type: IMAGE
+  image.scheduledworkflow:
+    type: string
+    default: $REGISTRY/scheduledworkflow:$TAG
+    x-google-marketplace:
+      type: IMAGE
+  image.frontend:
+    type: string
+    default: $REGISTRY/frontend:$TAG
+    x-google-marketplace:
+      type: IMAGE
+  image.viewerCrd:
+    type: string
+    default: $REGISTRY/viewer-crd-controller:$TAG
+    x-google-marketplace:
+      type: IMAGE
+  image.visualizationServer:
+    type: string
+    default: $REGISTRY/visualization-server:$TAG
+    x-google-marketplace:
+      type: IMAGE
+  image.metadataServer:
+    type: string
+    default: gcr.io/kubeflow-images-public/metadata:v0.1.8
+    x-google-marketplace:
+      type: IMAGE
+  image.proxyAgent:
+    type: string
+    default: $REGISTRY/inverse-proxy-agent:$TAG
+    x-google-marketplace:
+      type: IMAGE
+  image.cloudsqlProxy:
+    type: string
+    default: gcr.io/cloudsql-docker/gce-proxy:1.14
+    x-google-marketplace:
+      type: IMAGE
+
+required:
+  - name
+  - namespace
+  - image.mysql
+  - image.minio
+  - image.argoExecutor
+  - image.argoWorkflowController
+  - image.apiServer
+  - image.persistenceagent
+  - image.scheduledworkflow
+  - image.frontend
+  - image.viewerCrd
+  - image.visualizationServer
+  - image.proxyAgent
+
+x-google-marketplace:
+  deployerServiceAccount:
+    roles:
+      - type: ClusterRole        # This is a cluster-wide ClusterRole
+        rulesType: PREDEFINED
+        rulesFromRoleName: edit  # Use predefined role named "edit"
