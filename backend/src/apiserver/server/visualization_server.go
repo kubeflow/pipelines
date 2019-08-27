@@ -40,11 +40,13 @@ func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *
 // values.
 func (s *VisualizationServer) validateCreateVisualizationRequest(request *go_client.CreateVisualizationRequest) error {
 	// Only validate that a source is provided for non-custom visualizations.
-	if request.Visualization.Type != go_client.Visualization_CUSTOM && len(request.Visualization.Source) == 0 {
-		return util.NewInvalidInputError("A visualization requires a Source to be provided. Received %s", request.Visualization.Source)
+	if request.Visualization.Type != go_client.Visualization_CUSTOM {
+		if len(request.Visualization.Source) == 0 {
+			return util.NewInvalidInputError("A visualization requires a Source to be provided. Received %s", request.Visualization.Source)
+		}
 	}
 	// Manually set Arguments to empty JSON if nothing is provided. This is done
-	// because visualizations such as TFDV and TFMA only require an InputPath to
+	// because visualizations such as TFDV and TFMA only require a Source to
 	// be provided for a visualization to be generated. If no JSON is provided
 	// json.Valid will fail without this check as an empty string is provided for
 	// those visualizations.
@@ -69,10 +71,9 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 	}
 	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
 	arguments := fmt.Sprintf("--type %s --arguments '''%s'''", visualizationType, request.Visualization.Arguments)
-	if !(request.Visualization.Type == go_client.Visualization_CUSTOM && len(request.Visualization.Source) == 0) {
-		// Only add the source argument if a visualization is one of the following:
-		// - Not a custom visualization
-		// - A custom visualization that has a source specified
+	// Only add a source if one is provided to prevent the Python service from
+	// crashing because an empty argument was provided.
+	if len(request.Visualization.Source) > 0 {
 		arguments += fmt.Sprintf(" --source %s", request.Visualization.Source)
 	}
 	resp, err := http.PostForm(s.serviceURL, url.Values{"arguments": {arguments}})
