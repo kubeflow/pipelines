@@ -8,7 +8,11 @@ spec:
   ports:
     - port: 3306
   selector:
+    {{ if .Values.managedstorage.enabled }}
+    app: cloudsqlproxy
+    {{ else }}
     app: mysql
+    {{ end }}
     app.kubernetes.io/name: {{ .Release.Name }}
 ---
 {{ if .Values.managedstorage.enabled }}
@@ -17,6 +21,7 @@ kind: Deployment
 metadata:
   name: cloudsqlproxy
   labels:
+    app: cloudsqlproxy
     app.kubernetes.io/name: {{ .Release.Name }}
 spec:
   selector:
