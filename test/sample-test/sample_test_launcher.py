@@ -24,6 +24,7 @@ import sys
 import utils
 
 from check_notebook_results import NoteBookChecker
+from run_sample_test import PySampleChecker
 
 
 _PAPERMILL_ERR_MSG = 'An Exception was encountered at'
@@ -58,26 +59,18 @@ class SampleTest(object):
 
   def check_result(self):
     os.chdir(self.TEST_DIR)
-    subprocess.call([
-        sys.executable,
-        'run_sample_test.py',
-        '--input',
-        '%s/%s.yaml' % (self._work_dir, self._test_name),
-        '--result',
-        self._sample_test_result,
-        '--output',
-        self._sample_test_output,
-        '--testname',
-        self._test_name,
-        '--namespace',
-        self._namespace
-    ])
-    print('Copy the test results to GCS %s/' % self._results_gcs_dir)
+    pysample_checker = PySampleChecker(testname=self._test_name,
+                                       input='%s/%s.yaml' % (self._work_dir, self._test_name),
+                                       output=self._sample_test_output,
+                                       result=self._sample_test_result,
+                                       namespace=self._namespace)
+    pysample_checker.check()
 
+    print('Copy the test results to GCS %s/' % self._results_gcs_dir)
     utils.upload_blob(
-        self._bucket_name,
-        self._sample_test_result,
-        os.path.join(self._results_gcs_dir, self._sample_test_result)
+      self._bucket_name,
+      self._sample_test_result,
+      os.path.join(self._results_gcs_dir, self._sample_test_result)
     )
 
   def check_notebook_result(self):
