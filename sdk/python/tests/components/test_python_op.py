@@ -405,6 +405,27 @@ class PythonOpTestCase(unittest.TestCase):
         ])
 
 
+    def test_handling_base64_pickle_arguments(self):
+        def assert_values_are_same(
+            obj1: 'Base64Pickle', # noqa: F821
+            obj2: 'Base64Pickle', # noqa: F821
+        ) -> int:
+            import unittest
+            unittest.TestCase().assertEqual(obj1['self'], obj1)
+            unittest.TestCase().assertEqual(obj2, open)
+            return 1
+        
+        func = assert_values_are_same
+        op = comp.func_to_container_op(func)
+
+        recursive_obj = {}
+        recursive_obj['self'] = recursive_obj
+        self.helper_test_2_in_1_out_component_using_local_call(func, op, arguments=[
+            recursive_obj,
+            open,
+        ])
+
+
     def test_end_to_end_python_component_pipeline_compilation(self):
         import kfp.components as comp
 

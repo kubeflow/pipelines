@@ -49,6 +49,22 @@ def _serialize_json(obj) -> str:
     return json.dumps(obj)
 
 
+def _serialize_base64_pickle(obj) -> str:
+    import base64
+    import pickle
+    return base64.b64encode(pickle.dumps(obj)).decode('ascii')
+
+
+def _deserialize_base64_pickle(s):
+    import base64
+    import pickle
+    return pickle.loads(base64.b64decode(s))
+
+
+_deserialize_base64_pickle_definitions = inspect.getsource(_deserialize_base64_pickle)
+_deserialize_base64_pickle_code = _deserialize_base64_pickle.__name__
+
+
 _converters = [
     Converter([str], ['String', 'str'], str, 'str', None),
     Converter([int], ['Integer', 'int'], str, 'int', None),
@@ -57,6 +73,7 @@ _converters = [
     Converter([list], ['JsonArray', 'List', 'list'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
     Converter([dict], ['JsonObject', 'Dictionary', 'Dict', 'dict'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
     Converter([], ['Json'], _serialize_json, 'json.loads', 'import json'),
+    Converter([], ['Base64Pickle'], _serialize_base64_pickle, _deserialize_base64_pickle_code, _deserialize_base64_pickle_definitions),
 ]
 
 
