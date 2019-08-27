@@ -1,0 +1,48 @@
+apiVersion: app.k8s.io/v1beta1
+kind: Application
+metadata:
+  name: "{{ .Release.Name }}"
+  namespace: "{{ .Release.Namespace }}"
+  annotations:
+    kubernetes-engine.cloud.google.com/icon: >-
+      data:image/png;base64,{{ .Files.Get "logo.png" | b64enc }}
+    marketplace.cloud.google.com/deploy-info: '{"partner_id": "click-to-deploy-containers", "product_id": "kubeflow-pipelines", "partner_name": "Google Click to Deploy"}'
+  labels:
+    app.kubernetes.io/name: "{{ .Release.Name }}"
+spec:
+  descriptor:
+    type: KUBEFLOWPIPELINE
+    version: '0.1.27'
+    description: |-
+      Machine Learning Pipeline on Kubernetes
+    maintainers:
+      - name: Google Click to Deploy
+        url: https://cloud.google.com/solutions/#click-to-deploy
+      - name: Kubeflow Pipelines
+        url: https://github.com/kubeflow/pipelines
+    links:
+      - description: 'Kubeflow Pipelines Documentation'
+        url: https://www.kubeflow.org/docs/pipelines/
+  info:
+    - name: Application Namespace
+      value: {{ .Release.Namespace }}
+  componentKinds:
+    - group: apiextensions.k8s.io/v1beta1
+      kind: CustomResourceDefinition
+    - group: v1
+      kind: ServiceAccount
+    - group: rbac.authorization.k8s.io/v1
+      kind: Role
+    - group: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+    - group: v1
+      kind: Service
+    - group: v1
+      kind: PersistentVolumeClaim
+    - group: v1
+      kind: ConfigMap
+    - group: v1
+      kind: Secret
+    - group: apps/v1beta2
+      kind: Deployment
+

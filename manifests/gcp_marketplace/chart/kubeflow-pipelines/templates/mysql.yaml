@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  ports:
+    - port: 3306
+  selector:
+    {{ if .Values.managedstorage.enabled }}
+    app: cloudsqlproxy
+    {{ else }}
+    app: mysql
+    {{ end }}
+    app.kubernetes.io/name: {{ .Release.Name }}
+---
+{{ if .Values.managedstorage.enabled }}
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: cloudsqlproxy
+  labels:
+    app: cloudsqlproxy
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: cloudsqlproxy
+      app.kubernetes.io/name: {{ .Release.Name }}
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cloudsqlproxy
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+        - image: {{ .Values.images.cloudsqlProxy}}
+          name: cloudsqlproxy
+          env:
+            - name: GCP_PROJECT
+              value: {{ .Values.managedstorage.gcpProject }}
+            - name: CLOUDSQL_ZONE
+              value: {{ .Values.managedstorage.cloudsqlZone }}
+            - name: CLOUDSQL_INSTANCE_NAME
+              value: {{ .Values.managedstorage.cloudsqlInstanceName }}
+          command: ["/cloud_sql_proxy",
+                    "-dir=/cloudsql",
+            # Replace with your own CloudSQL instance ID
+                    "-instances=$(GCP_PROJECT):$(CLOUDSQL_ZONE):$(CLOUDSQL_INSTANCE_NAME)=tcp:0.0.0.0:3306",
+                    "-credential_file=/credentials/application_default_credentials.json",
+                    "term_timeout=10s"]
+          # set term_timeout if require graceful handling of shutdown
+          # NOTE: proxy will stop accepting new connections; only wait on existing connections
+          lifecycle:
+            preStop:
+              exec:
+                # (optional) add a preStop hook so that termination is delayed
+                # this is required if your server still require new connections (e.g., connection pools)
+                command: ['sleep', '10']
+          ports:
+            - name: mysql
+              containerPort: 3306
+          volumeMounts:
+            - mountPath: /cloudsql
+              name: cloudsql
+            - mountPath: /credentials
+              name: gcp-sa-token
+      volumes:
+        - name: cloudsql
+          emptyDir:
+        - name: gcp-sa-token
+          secret:
+            secretName: {{ .Values.managedstorage.gcpSecretName }}
+{{ end }}
+---
+{{ if not .Values.managedstorage.enabled }}
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: mysql
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+      app.kubernetes.io/name: {{ .Release.Name }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+        - env:
+            - name: MYSQL_ALLOW_EMPTY_PASSWORD
+              value: "true"
+          image: {{ .Values.images.mysql }}
+          name: mysql
+          ports:
+            - containerPort: 3306
+              name: mysql
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-persistent-storage
+      volumes:
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-pv-claim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+{{ end }}
