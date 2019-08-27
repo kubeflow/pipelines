@@ -16,7 +16,7 @@ kind: Workflow
 metadata:
   annotations:
     pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with volume.",
-      "inputs": [], "name": "Volume"}'
+      "name": "Volume"}'
   generateName: volume-
 spec:
   arguments:
