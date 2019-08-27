@@ -91,6 +91,8 @@ matrix:
         - ./run_test.sh
 
         # Sample test unittests.
+        - pip3 install minio
+        - pip3 install junit_xml
         - cd $TRAVIS_BUILD_DIR/test/sample-test/unittests
         - python3 -m unittest utils_tests.py
     - language: python
