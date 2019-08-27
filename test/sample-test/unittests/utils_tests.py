@@ -15,11 +15,14 @@
 import os
 import shutil
 import unittest
-import utils
 import yaml
+
+from .. import utils
+
 
 _DATAPATH = 'testdata/'
 _WORK_DIR = 'workdir/'
+
 
 class TestUtils(unittest.TestCase):
   """Unit tests for utility functions defined in test/sample-test/utils.py"""
