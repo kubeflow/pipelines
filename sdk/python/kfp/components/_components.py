@@ -270,5 +270,5 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
         factory_function_parameters,
         documentation='\n'.join(func_docstring_lines),
         func_name=name,
-        func_filename=component_filename
+        func_filename=component_filename if (component_filename and (component_filename.endswith('.yaml') or component_filename.endswith('.yml'))) else None,
     )
