@@ -170,7 +170,3 @@ within your cluster.
 		grpc.WithInsecure(),
 	}
     ```
-* Visualizations cannot include multiline comments.
-    * Due to how Python visualization code is escaped within network requests,
-    multiline comments such as `""" comment """` and `''' comment '''` are not
-    supported within custom visualizations.
