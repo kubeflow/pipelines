@@ -96,7 +96,10 @@ def serialize_value(value, type_name: str) -> str:
     serializer = type_name_to_serializer.get(type_name, None)
     if serializer:
         try:
-            return serializer(value)
+            serialized_value = serializer(value)
+            if not isinstance(serialized_value, str):
+                raise TypeError('Serializer {} returned result of type "{}" instead of string.'.format(serializer, type(serialized_value)))
+            return serialized_value
         except Exception as e:
             raise ValueError('Failed to serialize the value "{}" of type "{}" to type "{}". Exception: {}'.format(
                 str(value),
