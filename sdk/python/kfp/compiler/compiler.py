@@ -17,7 +17,6 @@ from collections import defaultdict
 import inspect
 import tarfile
 import zipfile
-from tfx.orchestration.data_types import RuntimeParameter as TfxPipelineParam
 from typing import Set, List, Text, Dict
 
 import yaml
@@ -749,23 +748,19 @@ class Compiler(object):
 
     return workflow
 
-  def compile(self, pipeline_func, package_path, type_check=True, pipeline_params:TfxPipelineParam=None):
+  def compile(self, pipeline_func, package_path, type_check=True):
     """Compile the given pipeline function into workflow yaml.
 
     Args:
       pipeline_func: pipeline functions with @dsl.pipeline decorator.
       package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
       type_check: whether to enable the type check or not, default: False.
-      pipeline_params: runtime pipeline params, overwrite those defined in pipeline function signature.
     """
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
     try:
       kfp.TYPE_CHECK = type_check
       workflow = self._compile(pipeline_func)
-      if pipeline_params is not None:
-        pass
-
       yaml.Dumper.ignore_aliases = lambda *args : True
       yaml_text = yaml.dump(workflow, default_flow_style=False)
 
