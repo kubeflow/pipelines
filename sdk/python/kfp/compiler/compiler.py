@@ -1,4 +1,4 @@
-# Copyright 2018-2019 Google LLC
+  # Copyright 2018-2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -506,7 +506,19 @@ class Compiler(object):
                                      "sub_group.loop_args.name: {}.".format(sub_group.loop_args.name))
                 else:
                   value = '{{inputs.parameters.%s}}' % param_name
-                task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
+                if sub_group.items_is_pipeline_param:
+                  task['withParam'] = sub_group.loop_args.to_list_for_task_yaml()
+                  # TODO: FIXME
+                  if 'dependencies' not in task or not task['dependencies']:
+                    task['dependencies'] = []
+                  task['dependencies'].append(sub_group.loop_args.items.op_name)
+                  # if pipeline_param.op_name is None:
+                  #   return '{{inputs.parameters.%s}}' % pipeline_param.name
+                  # else:
+                  #   return '{{tasks.%s.outputs.%s}}' % (pipeline_param.op_name, pipeline_param.name)
+
+                else:
+                  task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
               else:
                 value = '{{inputs.parameters.%s}}' % param_name
               arguments.append({

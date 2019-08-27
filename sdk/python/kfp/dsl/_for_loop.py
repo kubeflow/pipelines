@@ -31,10 +31,10 @@ class LoopArguments(dsl.PipelineParam):
         """
         super().__init__(name=self._make_name(code))
 
-        if not isinstance(items, (list, tuple)):
-            raise TypeError("Expected list or tuple, got {}.".format(type(items)))
+        if not isinstance(items, (list, tuple, dsl.PipelineParam)):
+            raise TypeError("Expected list, tuple, or PipelineParam, got {}.".format(type(items)))
 
-        if isinstance(items[0], dict):
+        if isinstance(items, list) and isinstance(items[0], dict):
             subvar_names = set(items[0].keys())
             for item in items:
                 if not set(item.keys()) == subvar_names:
@@ -51,7 +51,18 @@ class LoopArguments(dsl.PipelineParam):
         self.items = items
 
     def to_list_for_task_yaml(self):
-        return self.items
+        if isinstance(self.items, list):
+            return self.items
+        else:
+            # pipeline param
+            pipeline_param = self.items
+            if pipeline_param.op_name is None:
+                return '{{inputs.parameters.%s}}' % pipeline_param.name
+            else:
+                param_name = '%s-%s' % (pipeline_param.op_name, pipeline_param.name)
+                return '{{tasks.%s.outputs.parameters.%s}}' % (pipeline_param.op_name, param_name)
+                # return '{{tasks.%s.outputs.result}}' % (pipeline_param.op_name, )
+
 
     @classmethod
     def _make_name(cls, code: Text):

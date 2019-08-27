@@ -14,7 +14,7 @@
 from typing import Union
 import uuid
 
-from kfp.dsl import _for_loop
+from kfp.dsl import _for_loop, _pipeline_param
 
 from . import _container_op
 from . import _pipeline
@@ -169,6 +169,9 @@ class ParallelFor(OpsGroup):
     return uuid.uuid4().hex[:_for_loop.LoopArguments.NUM_CODE_CHARS]
 
   def __init__(self, loop_args: _for_loop.ItemList):
+
+    self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
+
     # random code to id this loop
     code = self._get_unique_id_code()
     group_name = 'for-loop-{}'.format(code)
