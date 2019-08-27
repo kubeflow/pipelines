@@ -544,7 +544,7 @@ class TestCompiler(unittest.TestCase):
         image='image'
       )
 
-    @dsl.pipeline(name='Pipeline', description='')
+    @dsl.pipeline(name='Pipeline')
     def pipeline():
       task1 = op()
       task2 = op().after(task1)
@@ -625,7 +625,7 @@ implementation:
           command=['sleep 1'],
       )
 
-    @dsl.pipeline(name='some_pipeline', description='')
+    @dsl.pipeline(name='some_pipeline')
     def some_pipeline():
       task1 = some_op()
       task2 = some_op()

@@ -65,13 +65,13 @@ def _extract_component_metadata(func):
       arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
-    inputs.append(InputSpec(name=arg, description='', type=arg_type, default=arg_default))
+    inputs.append(InputSpec(name=arg, type=arg_type, default=arg_default))
   # Outputs
   outputs = []
   if 'return' in annotations:
     for output in annotations['return']:
       arg_type = _annotation_to_typemeta(annotations['return'][output])
-      outputs.append(OutputSpec(name=output, description='', type=arg_type))
+      outputs.append(OutputSpec(name=output, type=arg_type))
 
   #TODO: add descriptions to the metadata
   #docstring parser:
@@ -81,7 +81,6 @@ def _extract_component_metadata(func):
   # Construct the ComponentSpec
   return ComponentSpec(
     name=func.__name__,
-    description='',
     inputs=inputs,
     outputs=outputs,
   )
@@ -109,9 +108,9 @@ def _extract_pipeline_metadata(func):
   pipeline_meta = ComponentSpec(
     name=getattr(func, '_pipeline_name', func.__name__),
     description=getattr(func, '_pipeline_description', func.__doc__),
-    inputs=[],
+    inputs=[] if args else None,
   )
-  # Inputs
+  # Inputs  
   for arg in args:
     arg_type = None
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
@@ -128,7 +127,7 @@ def _extract_pipeline_metadata(func):
         # In case the property value for the schema validator is a string instead of a dict.
         schema_object = json.loads(schema_object)
       validate(instance=arg_default, schema=schema_object)
-    pipeline_meta.inputs.append(InputSpec(name=arg, description='', type=arg_type, default=arg_default))
+    pipeline_meta.inputs.append(InputSpec(name=arg, type=arg_type, default=arg_default))
 
   #TODO: add descriptions to the metadata
   #docstring parser:
