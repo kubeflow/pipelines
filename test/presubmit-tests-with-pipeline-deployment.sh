@@ -63,6 +63,12 @@ while [ "$1" != "" ]; do
     shift
 done
 
+# Making the Prow's PULL_PULL_SHA variable more reliable:
+# PULL_PULL_SHA is empty when Pros/Tide tests the batches.
+# PULL_BASE_SHA cannot be used here as it still points to master tip in that case.
+
+export PULL_PULL_SHA=$(git rev-parse HEAD)
+
 # Variables
 GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${PULL_PULL_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
