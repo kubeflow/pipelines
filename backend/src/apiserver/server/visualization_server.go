@@ -70,13 +70,12 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 		)
 	}
 	visualizationType := strings.ToLower(go_client.Visualization_Type_name[int32(request.Visualization.Type)])
-	arguments := fmt.Sprintf("--type %s --arguments '''%s'''", visualizationType, request.Visualization.Arguments)
-	// Only add a source if one is provided to prevent the Python service from
-	// crashing because an empty argument was provided.
-	if len(request.Visualization.Source) > 0 {
-		arguments += fmt.Sprintf(" --source %s", request.Visualization.Source)
+	urlValues := url.Values{
+		"arguments": {request.Visualization.Arguments},
+		"source": {request.Visualization.Source},
+		"type": {visualizationType},
 	}
-	resp, err := http.PostForm(s.serviceURL, url.Values{"arguments": {arguments}})
+	resp, err := http.PostForm(s.serviceURL, urlValues)
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to initialize visualization request.")
 	}
