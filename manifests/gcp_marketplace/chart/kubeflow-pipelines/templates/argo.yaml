@@ -1,0 +1,181 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: workflows.argoproj.io
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  group: argoproj.io
+  names:
+    kind: Workflow
+    plural: workflows
+    shortNames:
+      - wf
+  scope: Namespaced
+  version: v1alpha1
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argo
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argo-role
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/exec
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - persistentvolumeclaims
+    verbs:
+      - create
+      - delete
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+      - workflows/finalizers
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-binding
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argo-role
+subjects:
+  - kind: ServiceAccount
+    name: argo
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+data:
+  config: |
+    {
+    namespace: {{ .Release.Namespace }},
+    executorImage: {{ .Values.images.argoExecutor }},
+    artifactRepository:
+    {
+        s3: {
+            bucket: mlpipeline,
+            keyPrefix: artifacts,
+            endpoint: minio-service.{{ .Release.Namespace }}:9000,
+            insecure: true,
+            accessKeySecret: {
+                name: mlpipeline-minio-artifact,
+                key: accesskey
+            },
+            secretKeySecret: {
+                name: mlpipeline-minio-artifact,
+                key: secretkey
+            }
+        }
+    }
+    }
+kind: ConfigMap
+metadata:
+  name: workflow-controller-configmap
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+---
+apiVersion: v1
+data:
+  accesskey: bWluaW8=
+  secretkey: bWluaW8xMjM=
+kind: Secret
+metadata:
+  name: mlpipeline-minio-artifact
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+type: Opaque
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    app: workflow-controller
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: workflow-controller
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: workflow-controller
+      app.kubernetes.io/name: {{ .Release.Name }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: workflow-controller
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+        - args:
+            - --configmap
+            - workflow-controller-configmap
+            - --executor-image
+            - {{ .Values.images.argoExecutor }}
+          command:
+            - workflow-controller
+          env:
+            - name: ARGO_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+          image: {{ .Values.images.argoWorkflowController }}
+          imagePullPolicy: IfNotPresent
+          name: workflow-controller
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: argo
+      serviceAccountName: argo
+      terminationGracePeriodSeconds: 30
