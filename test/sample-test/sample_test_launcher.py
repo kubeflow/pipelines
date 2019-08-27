@@ -23,10 +23,12 @@ import subprocess
 import sys
 import utils
 
+from check_notebook_results import NoteBookChecker
+
+
 _PAPERMILL_ERR_MSG = 'An Exception was encountered at'
 
 
-#TODO(numerology): Add unit-test for classes.
 class SampleTest(object):
   """Launch a KFP sample_test provided its name.
 
@@ -43,7 +45,7 @@ class SampleTest(object):
   TEST_DIR = BASE_DIR + '/test/sample-test'
 
   def __init__(self, test_name, results_gcs_dir, target_image_prefix='',
-                         namespace='kubeflow'):
+               namespace='kubeflow'):
     self._test_name = test_name
     self._results_gcs_dir = results_gcs_dir
     # Capture the first segment after gs:// as the project name.
@@ -81,35 +83,22 @@ class SampleTest(object):
   def check_notebook_result(self):
     # Workaround because papermill does not directly return exit code.
     exit_code = '1' if _PAPERMILL_ERR_MSG in \
-                     open('%s.ipynb' % self._test_name).read() else '0'
+                       open('%s.ipynb' % self._test_name).read() else '0'
 
     os.chdir(self.TEST_DIR)
+
     if self._test_name == 'dsl_static_type_checking':
-      subprocess.call([
-          sys.executable,
-          'check_notebook_results.py',
-          '--testname',
-          self._test_name,
-          '--result',
-          self._sample_test_result,
-          '--exit-code',
-          exit_code
-      ])
+        nbchecker = NoteBookChecker(testname=self._test_name,
+                                    result=self._sample_test_result,
+                                    exit_code=exit_code)
+        nbchecker.check()
     else:
-      subprocess.call([
-          sys.executable,
-          'check_notebook_results.py',
-          '--experiment',
-          '%s-test' % self._test_name,
-          '--testname',
-          self._test_name,
-          '--result',
-          self._sample_test_result,
-          '--namespace',
-          self._namespace,
-          '--exit-code',
-          exit_code
-      ])
+        nbchecker = NoteBookChecker(testname=self._test_name,
+                                    result=self._sample_test_result,
+                                    exit_code=exit_code,
+                                    experiment=None,
+                                    namespace='kubeflow')
+        nbchecker.check()
 
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
 
@@ -159,22 +148,22 @@ class ComponentTest(SampleTest):
   include xgboost_training_cm tfx_cab_classification
   """
   def __init__(self, test_name, results_gcs_dir,
-      dataflow_tft_image,
-      dataflow_predict_image,
-      dataflow_tfma_image,
-      dataflow_tfdv_image,
-      dataproc_create_cluster_image,
-      dataproc_delete_cluster_image,
-      dataproc_analyze_image,
-      dataproc_transform_image,
-      dataproc_train_image,
-      dataproc_predict_image,
-      kubeflow_dnntrainer_image,
-      kubeflow_deployer_image,
-      local_confusionmatrix_image,
-      local_roc_image,
-      target_image_prefix='',
-      namespace='kubeflow'):
+               dataflow_tft_image,
+               dataflow_predict_image,
+               dataflow_tfma_image,
+               dataflow_tfdv_image,
+               dataproc_create_cluster_image,
+               dataproc_delete_cluster_image,
+               dataproc_analyze_image,
+               dataproc_transform_image,
+               dataproc_train_image,
+               dataproc_predict_image,
+               kubeflow_dnntrainer_image,
+               kubeflow_deployer_image,
+               local_confusionmatrix_image,
+               local_roc_image,
+               target_image_prefix='',
+               namespace='kubeflow'):
     super().__init__(
         test_name=test_name,
         results_gcs_dir=results_gcs_dir,

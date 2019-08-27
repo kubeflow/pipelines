@@ -15,10 +15,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
-    pipelines.kubeflow.org/pipeline_spec: '{"description": "hello world", "inputs":
-      [{"default": null, "description": "", "name": "tag", "type": ""}, {"default":
-      "kubeflow", "description": "", "name": "namespace", "type": ""}, {"default":
-      "foobar", "description": "", "name": "bucket", "type": ""}], "name": "foo"}'
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "hello world", "inputs": [{"name": "tag"}, {"default": "kubeflow", "name": "namespace"}, {"default": "foobar", "name": "bucket"}], "name": "foo"}'
   generateName: foo-
 spec:
   arguments:

@@ -3,8 +3,7 @@ kind: Workflow
 metadata:
   annotations:
     pipelines.kubeflow.org/pipeline_spec: '{"description": "A Basic Example on VolumeOp
-      Usage.", "inputs": [{"default": null, "description": "", "name": "size", "type":
-      ""}], "name": "VolumeOp Basic"}'
+      Usage.", "inputs": [{"name": "size"}], "name": "VolumeOp Basic"}'
   generateName: volumeop-basic-
 spec:
   arguments:

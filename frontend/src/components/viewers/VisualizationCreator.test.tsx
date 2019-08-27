@@ -239,6 +239,15 @@ describe('VisualizationCreator', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('renders the custom type when it is allowed', () => {
+    const config: VisualizationCreatorConfig = {
+      allowCustomVisualizations: true,
+      type: PlotType.VISUALIZATION_CREATOR,
+    };
+    const tree = shallow(<VisualizationCreator configs={[config]} />);
+    expect(tree).toMatchSnapshot();
+  });
+
   it('disables all select and input fields when busy', () => {
     const config: VisualizationCreatorConfig = {
       isBusy: true,

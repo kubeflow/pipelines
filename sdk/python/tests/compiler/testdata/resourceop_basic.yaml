@@ -3,9 +3,7 @@ kind: Workflow
 metadata:
   annotations:
     pipelines.kubeflow.org/pipeline_spec: '{"description": "A Basic Example on ResourceOp
-      Usage.", "inputs": [{"default": null, "description": "", "name": "username",
-      "type": ""}, {"default": null, "description": "", "name": "password", "type":
-      ""}], "name": "ResourceOp Basic"}'
+      Usage.", "inputs": [{"name": "username"}, {"name": "password"}], "name": "ResourceOp Basic"}'
   generateName: resourceop-basic-
 spec:
   arguments:
