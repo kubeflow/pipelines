@@ -46,10 +46,16 @@ class ParameterMeta(BaseMeta):
     self.default = default
 
   def to_dict(self):
-    return {'name': self.name,
-            'description': self.description,
-            'type': self.param_type or '',
-            'default': self.default}
+    result = {}
+    if self.name:
+      result['name'] = self.name
+    if self.description:
+      result['description'] = self.description
+    if self.param_type:
+      result['type'] = self.param_type
+    if self.default:
+      result['default'] = self.default
+    return result
 
 
 class ComponentMeta(BaseMeta):
@@ -66,11 +72,16 @@ class ComponentMeta(BaseMeta):
     self.outputs = [] if outputs is None else outputs
 
   def to_dict(self):
-    return {'name': self.name,
-            'description': self.description,
-            'inputs': [ input.to_dict() for input in self.inputs ],
-            'outputs': [ output.to_dict() for output in self.outputs ]
-            }
+    result = {}
+    if self.name:
+      result['name'] = self.name
+    if self.description:
+      result['description'] = self.description
+    if self.inputs:
+      result['inputs'] = [input.to_dict() for input in self.inputs]
+    if self.outputs:
+      result['outputs'] = [output.to_dict() for output in self.outputs]
+    return result
 
 
 # Add a pipeline level metadata calss here.
@@ -87,10 +98,14 @@ class PipelineMeta(BaseMeta):
     self.inputs = [] if inputs is None else inputs
 
   def to_dict(self):
-    return {'name': self.name,
-            'description': self.description,
-            'inputs': [ input.to_dict() for input in self.inputs ]
-            }
+    result = {}
+    if self.name:
+      result['name'] = self.name
+    if self.description:
+      result['description'] = self.description
+    if self.inputs:
+      result['inputs'] = [input.to_dict() for input in self.inputs]
+    return result
 
 def _annotation_to_typemeta(annotation):
   '''_annotation_to_type_meta converts an annotation to a type structure

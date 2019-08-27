@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   annotations:
     pipelines.kubeflow.org/pipeline_spec: '{"description": "The third example of the
-      design doc.", "inputs": [], "name": "VolumeOp Sequential"}'
+      design doc.", "name": "VolumeOp Sequential"}'
   generateName: volumeop-sequential-
 spec:
   arguments:
