@@ -1,0 +1,23 @@
+images:
+  mysql: gcr.io/ml-pipeline/mysql:5.6
+  cloudsqlProxy: gcr.io/cloudsql-docker/gce-proxy:1.14
+  minio: gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z
+  apiServer: gcr.io/ml-pipeline/api-server:0.1.27
+  persistenceagent: gcr.io/ml-pipeline/persistenceagent:0.1.27
+  scheduledworkflow: gcr.io/ml-pipeline/scheduledworkflow:0.1.27
+  frontend: gcr.io/ml-pipeline/frontend:0.1.27
+  viewerCrd: gcr.io/ml-pipeline/viewer-crd-controller:0.1.27
+  visualizationServer: gcr.io/ml-pipeline/visualization-server:0.1.27
+  metadataServer: gcr.io/kubeflow-images-public/metadata:v0.1.8
+  proxyAgent: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.27
+  argoExecutor: gcr.io/ml-pipeline/argoexec:v2.3.0
+  argoWorkflowController: gcr.io/ml-pipeline/workflow-controller:v2.3.0
+
+managedstorage:
+  enabled: false
+  cloudsqlInstanceName:
+  cloudsqlZone:
+  dbPassword:
+  gcpProject:
+  gcpSecretName:
+  databaseNamePrefix:
