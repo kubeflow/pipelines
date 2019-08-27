@@ -21,6 +21,7 @@ import logging
 import shutil
 from collections import OrderedDict
 from pathlib import Path
+from typing import Callable
 from ..components._components import _create_task_factory_from_component_spec
 from ._container_builder import ContainerBuilder
 
@@ -407,7 +408,10 @@ def build_python_component(component_func, target_image, base_image=None, depend
   if base_image is None:
     base_image = getattr(component_func, '_component_base_image', None)
   if base_image is None:
-    raise ValueError('base_image must not be None')
+    from ..components._python_op import get_default_base_image
+    base_image = get_default_base_image()
+    if isinstance(base_image, Callable):
+      base_image = base_image()
 
   logging.info('Build an image that is based on ' +
                                  base_image +
