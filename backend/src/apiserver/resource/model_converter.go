@@ -118,9 +118,11 @@ func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (
 			codeSource.RepoName = version.CodeSource.GithubRepo.RepoName
 			codeSource.CommitSHA = version.CodeSource.GithubRepo.CommitSha
 		}
-		if version.CodeSource.Url != nil {
-			codeSource.URL = version.CodeSource.Url.PipelineUrl
-		}
+	}
+
+	var url string
+	if version.Url != nil {
+		url = version.Url.PipelineUrl
 	}
 
 	paramStr, err := toModelParameters(version.Parameters)
@@ -135,6 +137,7 @@ func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (
 		Parameters:     paramStr,
 		PipelineId:     version.PipelineSpec.PipelineId,
 		CodeSource:     codeSource,
+		URL: url,
 	}, nil
 }
 

@@ -217,19 +217,21 @@ message PipelineVersion {
   // Input. Pipeline version code source. Optional.
   CodeSource code_source = 5;
 
+  // Input. Pipeline version package source. Optional.
+  Url url = 6;
+
   // Input.
   // Describing what the pipeline this version belongs to.
-  PipelineSpec pipeline_spec = 6;
+  PipelineSpec pipeline_spec = 7;
 }
 
 message CodeSource {
-  // A pipeline can be based on a git commit or a compiled package stored
-  // at a url. Both are optional.
+  message GithubRepo {
+    string repo_name = 1;
+    string commit_sha = 2;
+  }
+
   GithubRepo github_repo = 1;
-  Url url = 2;
+  // Other types of code sources can be added here.
 }
 
-message GithubRepo {
-  string repo_name = 1;
-  string commit_sha = 2;
-}

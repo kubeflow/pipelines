@@ -38,8 +38,8 @@ func TestToApiPipeline(t *testing.T) {
 			CodeSource: model.CodeSource{
 				RepoName: "repo",
 				CommitSHA: "sha",
-				URL: "url",
 			},
+			URL: "url",
 		},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
@@ -52,13 +52,13 @@ func TestToApiPipeline(t *testing.T) {
 			CreatedAt: &timestamp.Timestamp{Seconds: 1},
 			Parameters: []*api.Parameter{},
 			CodeSource: &api.CodeSource{
-				GithubRepo: &api.GithubRepo{
+				GithubRepo: &api.CodeSource_GithubRepo {
 					RepoName: "repo",
 					CommitSha: "sha",
 				},
-				Url: &api.Url{
-					PipelineUrl: "url",
-				},
+			},
+			Url: &api.Url{
+				PipelineUrl: "url",
 			},
 			PipelineSpec: &api.PipelineSpec{
 				PipelineId: "pipeline1",

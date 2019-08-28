@@ -91,6 +91,7 @@ func ToApiVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) 
 		CreatedAt:  &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
 		Parameters: params,
 		CodeSource: ToApiCodeSource(&version.CodeSource),
+		Url: ToApiUrl(version.URL),
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId: version.PipelineId,
 		},
@@ -104,19 +105,24 @@ func ToApiCodeSource(codeSource *model.CodeSource) *api.CodeSource {
 
 	var apiCodeSource api.CodeSource
 	if len(codeSource.CommitSHA) > 0 && len(codeSource.CommitSHA) > 0 {
-		apiCodeSource.GithubRepo = &api.GithubRepo {
+		apiCodeSource.GithubRepo = &api.CodeSource_GithubRepo{
 			RepoName: codeSource.RepoName,
 			CommitSha: codeSource.CommitSHA,
 		}
 	}
-	if len(codeSource.URL) > 0 {
-		apiCodeSource.Url = &api.Url {
-			PipelineUrl: codeSource.URL,
-		}
-	}
 
-	if apiCodeSource.GithubRepo != nil || apiCodeSource.Url != nil {
+	if apiCodeSource.GithubRepo != nil {
 		return &apiCodeSource
+	} else {
+		return nil
+	}
+}
+
+func ToApiUrl(url string) *api.Url {
+	if len(url) > 0 {
+		return &api.Url{
+			PipelineUrl: url,
+		}
 	} else {
 		return nil
 	}

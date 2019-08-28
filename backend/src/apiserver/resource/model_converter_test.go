@@ -239,9 +239,13 @@ func TestToModelPipelineVersion(t *testing.T) {
 		CreatedAt: &timestamp.Timestamp{Seconds: 1},
 		Parameters: []*api.Parameter{},
 		CodeSource: &api.CodeSource{
-		  Url: &api.Url{
+			GithubRepo: &api.CodeSource_GithubRepo {
+				RepoName: "repo",
+				CommitSha: "commit",
+			},
+		},
+		Url: &api.Url{
 			PipelineUrl: "url",
-		  },
 		},
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId: "pipeline1",
@@ -257,8 +261,10 @@ func TestToModelPipelineVersion(t *testing.T) {
 		Parameters: "",
 		PipelineId: "pipeline1",
 		CodeSource: model.CodeSource{
-		  URL: "url",
+			RepoName: "repo",
+			CommitSHA: "commit",
 		},
+		URL: "url",
 	}
 
 	assert.Equal(t, convertedModelPipelineVersion, expectedModelPipelineVersion)
