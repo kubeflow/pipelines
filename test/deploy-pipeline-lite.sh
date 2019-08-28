@@ -19,7 +19,7 @@ set -ex
 # Env inputs:
 # * $GCR_IMAGE_BASE_DIR
 # * $GCR_IMAGE_TAG
-# * $KFP_TO_DEPLOY
+# * $KFP_DEPLOY_RELEASE
 GCR_IMAGE_TAG=${GCR_IMAGE_TAG:-latest}
 
 KFP_MANIFEST_DIR="${DIR}/manifests"
