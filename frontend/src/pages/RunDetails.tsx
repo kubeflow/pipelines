@@ -637,15 +637,9 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       for (const path of outputPaths) {
         viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
       }
-      // tslint:disable-next-line: no-console
-      console.log('selected node:', selectedNodeDetails);
-      // tslint:disable-next-line: no-console
-      console.log('loaded configs:', viewerConfigs);
       const generatedConfigs = generatedVisualizations
         .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
         .map(visualization => visualization.config);
-      // tslint:disable-next-line: no-console
-      console.log('generated configs:', generatedConfigs);
       viewerConfigs = viewerConfigs.concat(generatedConfigs);
 
       selectedNodeDetails.viewerConfigs = viewerConfigs;
