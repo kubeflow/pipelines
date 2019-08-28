@@ -315,12 +315,13 @@ class ComponentReference(ModelBase):
         digest: Optional[str] = None,
         tag: Optional[str] = None,
         url: Optional[str] = None,
+        spec: Optional[ComponentSpec] = None,
     ):
         super().__init__(locals())
         self._post_init()
     
     def _post_init(self) -> None:
-        if not any([self.name, self.digest, self.tag, self.url]):
+        if not any([self.name, self.digest, self.tag, self.url, self.spec]):
             raise TypeError('Need at least one argument.')
 
 
@@ -344,10 +345,13 @@ class TaskOutputReference(ModelBase):
     }
 
     def __init__(self,
-        task_id: str,
         output_name: str,
+        task_id: Optional[str] = None,      # Used for linking to the upstream task in serialized component file.
+        task: Optional['TaskSpec'] = None,  # Used for linking to the upstream task in runtime since Task does not have an ID until inserted into a graph.
     ):
         super().__init__(locals())
+        if self.task_id is None and self.task is None:
+            raise TypeError('task_id and task cannot be None at the same time.')
 
 
 class TaskOutputArgument(ModelBase): #Has additional constructor for convenience
@@ -482,6 +486,21 @@ class TaskSpec(ModelBase):
     ):
         super().__init__(locals())
         #TODO: If component_ref is resolved to component spec, then check that the arguments correspond to the inputs
+
+    def _init_outputs(self):
+        #Adding output references to the task
+        if self.component_ref.spec is None:
+            return
+        task_outputs = OrderedDict()
+        for output in self.component_ref.spec.outputs or []:
+            task_output_ref = TaskOutputReference(
+                output_name=output.name,
+                task=self,
+            )
+            task_output_arg = TaskOutputArgument(task_output=task_output_ref)
+            task_outputs[output.name] = task_output_arg
+
+        self.outputs = task_outputs
 
 
 class GraphSpec(ModelBase):
