@@ -20,7 +20,6 @@ import fire
 import os
 import papermill as pm
 import subprocess
-import sys
 import utils
 
 from check_notebook_results import NoteBookChecker
