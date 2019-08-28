@@ -74,9 +74,9 @@ class PySampleChecker(object):
         'column-names':
           'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/column-names.json',
         'evaluation':
-          'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval20.csv',
+          'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval5.csv',
         'train':
-          'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train50.csv',
+          'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train20.csv',
         'hidden-layer-size':
           '5',
         'steps':
@@ -86,10 +86,10 @@ class PySampleChecker(object):
       params = {
         'output': self._output,
         'project': 'ml-pipeline-test',
-        'train-data': 'gs://ml-pipeline-dataset/sample-test/sfpd/train_50.csv',
-        'eval-data': 'gs://ml-pipeline-dataset/sample-test/sfpd/eval_20.csv',
+        'train-data': 'gs://ml-pipeline-dataset/sample-test/sfpd/train_20.csv',
+        'eval-data': 'gs://ml-pipeline-dataset/sample-test/sfpd/eval_5.csv',
         'schema': 'gs://ml-pipeline-dataset/sample-test/sfpd/schema.json',
-        'rounds': '20',
+        'rounds': '5',
         'workers': '2'
       }
     else:
