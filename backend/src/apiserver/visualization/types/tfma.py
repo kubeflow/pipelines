@@ -14,9 +14,9 @@
 
 import tensorflow_model_analysis as tfma
 
-if variables.get("slicing_column", False) == False {
+if variables.get("slicing_column", False) == False:
     tfma.view.render_slicing_metrics(source)
-} else {
+else:
     tfma.view.render_slicing_metrics(source, slicing_column=variables.get("slicing_column"))
-}
+
 
