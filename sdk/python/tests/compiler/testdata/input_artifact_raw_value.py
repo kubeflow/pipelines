@@ -27,7 +27,7 @@ def component_with_inline_input_artifact(text: str):
     return dsl.ContainerOp(
         name='component_with_inline_input_artifact',
         image='alpine',
-        command=['cat', dsl.InputArtifactArgument(text, path='/tmp/inputs/text/data', input='text')], # path and input are optional
+        command=['cat', dsl.InputArgumentPath(text, path='/tmp/inputs/text/data', input='text')], # path and input are optional
     )
 
 
@@ -36,8 +36,8 @@ def component_with_input_artifact(text):
 
     return dsl.ContainerOp(
         name='component_with_input_artifact',
-        input_artifact_arguments=[
-            dsl.InputArtifactArgument(argument=text, path='/tmp/inputs/text/data', input='text'), # path and input are optional
+        artifact_argument_paths=[
+            dsl.InputArgumentPath(argument=text, path='/tmp/inputs/text/data', input='text'), # path and input are optional
         ],
         image='alpine',
         command=['cat', '/tmp/inputs/text/data'],
@@ -57,7 +57,7 @@ def component_with_input_artifact_value_from_file(file_path):
     name='Pipeline with artifact input raw argument value.',
     description='Pipeline shows how to define artifact inputs and pass raw artifacts to them.'
 )
-def retry_sample_pipeline():
+def input_artifact_pipeline():
     component_with_inline_input_artifact('Constant artifact value')
     component_with_input_artifact('Constant artifact value')
     component_with_hardcoded_input_artifact_value()
@@ -66,4 +66,4 @@ def retry_sample_pipeline():
     component_with_input_artifact_value_from_file(file_path)
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(input_artifact_pipeline, __file__ + '.yaml')

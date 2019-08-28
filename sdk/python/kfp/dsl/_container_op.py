@@ -903,7 +903,7 @@ class BaseOp(object):
 from ._pipeline_volume import PipelineVolume  # The import is here to prevent circular reference problems.
 
 
-class InputArtifactArgument:
+class InputArgumentPath:
     def __init__(self, argument, input=None, path=None):
         self.argument = argument
         self.input = input
@@ -968,7 +968,7 @@ class ContainerOp(BaseOp):
       init_containers: List[UserContainer] = None,
       sidecars: List[Sidecar] = None,
       container_kwargs: Dict = None,
-      input_artifact_arguments : List[InputArtifactArgument] = None,
+      artifact_argument_paths : List[InputArgumentPath] = None,
       file_outputs: Dict[str, str] = None,
       output_artifact_paths : Dict[str, str]=None,
       artifact_location: V1alpha1ArtifactLocation=None,
@@ -992,9 +992,10 @@ class ContainerOp(BaseOp):
                     together with the `main` container.
           container_kwargs: the dict of additional keyword arguments to pass to the
                             op's `Container` definition.
-          input_artifact_arguments: Maps artifact inputs to the artifact argument values and paths.
-              Only artifact argument value is required.
+          artifact_argument_paths: Optional. Maps input artifact arguments (values or references) to the local file paths where they'll be placed.
               At pipeline run time, the value of the artifact argument is saved to a local file with specified path.
+              This parameter is only needed when the input file paths are hard-coded in the program.
+              Otherwise it's better to pass input artifact placement paths by including artifact arguments in the command-line using the InputArgumentPath class instances.
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
@@ -1019,7 +1020,7 @@ class ContainerOp(BaseOp):
 
         def resolve_artifact_argument(artarg):
             from ..components._components import _generate_input_file_name
-            if not isinstance(artarg, InputArtifactArgument):
+            if not isinstance(artarg, InputArgumentPath):
                 return artarg
             input_name = getattr(artarg.input, 'name', artarg.input) or ('input-' + str(len(artifact_arguments)))
             input_path = artarg.path or _generate_input_file_name(input_name)
@@ -1030,7 +1031,7 @@ class ContainerOp(BaseOp):
             artifact_arguments[input_name] = artarg.argument
             return input_path
 
-        for artarg in input_artifact_arguments or []:
+        for artarg in artifact_argument_paths or []:
             resolve_artifact_argument(artarg)
 
         if isinstance(command, Sequence) and not isinstance(command, str):
