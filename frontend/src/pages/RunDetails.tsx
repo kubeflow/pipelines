@@ -246,7 +246,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                                   maxDimension={500} />
                                 <Hr />
                               </div>
-                              {this._getSelectedNodeConfigs().map((config, i) => {
+                              {(selectedNodeDetails.viewerConfigs || []).map((config, i) => {
                                 const title = componentMap[config.type].prototype.getDisplayName();
                                 return (
                                   <div key={i} className={padding(20, 'lrt')}>
@@ -623,7 +623,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
   }
 
   private async _loadSelectedNodeOutputs(): Promise<void> {
-    const selectedNodeDetails = this.state.selectedNodeDetails;
+    const { generatedVisualizations, selectedNodeDetails } = this.state;
     if (!selectedNodeDetails) {
       return;
     }
@@ -632,12 +632,21 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     if (workflow && workflow.status && workflow.status.nodes) {
       // Load runtime outputs from the selected Node
       const outputPaths = WorkflowParser.loadNodeOutputPaths(workflow.status.nodes[selectedNodeDetails.id]);
-
       // Load the viewer configurations from the output paths
       let viewerConfigs: ViewerConfig[] = [];
       for (const path of outputPaths) {
         viewerConfigs = viewerConfigs.concat(await OutputArtifactLoader.load(path));
       }
+      // tslint:disable-next-line: no-console
+      console.log('selected node:', selectedNodeDetails);
+      // tslint:disable-next-line: no-console
+      console.log('loaded configs:', viewerConfigs);
+      const generatedConfigs = generatedVisualizations
+        .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
+        .map(visualization => visualization.config);
+      // tslint:disable-next-line: no-console
+      console.log('generated configs:', generatedConfigs);
+      viewerConfigs = viewerConfigs.concat(generatedConfigs);
 
       selectedNodeDetails.viewerConfigs = viewerConfigs;
       this.setStateSafe({ selectedNodeDetails });
@@ -680,22 +689,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     }
   }
 
-  private _getSelectedNodeConfigs(): ViewerConfig[] {
-    const { generatedVisualizations, selectedNodeDetails } = this.state;
-    let selectedNodeConfigs: ViewerConfig[] = [];
-    if (selectedNodeDetails !== null) {
-      const nodeConfigs = selectedNodeDetails.viewerConfigs || [];
-      const generatedConfigs = generatedVisualizations
-        .filter(visualization => visualization.nodeId === selectedNodeDetails.id)
-        .map(visualization => visualization.config);
-        selectedNodeConfigs = nodeConfigs.concat(generatedConfigs);
-    }
-    return selectedNodeConfigs;
-  }
-
   private async _onGenerate(visualizationArguments: string, source: string, type: ApiVisualizationType): Promise<void> {
-    const { selectedNodeDetails } = this.state;
-    const nodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
+    const nodeId = this.state.selectedNodeDetails ? this.state.selectedNodeDetails.id : '';
     if (nodeId.length === 0) {
       this.showPageError('Unable to generate visualization, no component selected.');
       return;
@@ -717,12 +712,18 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     };
     try {
       const config = await Apis.buildPythonVisualizationConfig(visualizationData);
-      const { generatedVisualizations } = this.state;
-      generatedVisualizations.push({
+      const { generatedVisualizations, selectedNodeDetails } = this.state;
+      const generatedVisualization: GeneratedVisualization = {
         config,
         nodeId,
-      });
-      this.setState({ generatedVisualizations });
+      };
+      generatedVisualizations.push(generatedVisualization);
+      if (selectedNodeDetails) {
+        const viewerConfigs = selectedNodeDetails.viewerConfigs || []; 
+        viewerConfigs.push(generatedVisualization.config);
+        selectedNodeDetails.viewerConfigs = viewerConfigs;
+      }
+      this.setState({ generatedVisualizations, selectedNodeDetails });
     } catch (err) {
       this.showPageError('Unable to generate visualization, an unexpected error was encountered.', err);
     } finally {
