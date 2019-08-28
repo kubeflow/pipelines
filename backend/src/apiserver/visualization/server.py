@@ -13,13 +13,11 @@
 # limitations under the License.
 
 import argparse
-from argparse import Namespace
 import importlib
 import json
 import os
 from pathlib import Path
 from typing import Text
-import shlex
 
 from nbformat import NotebookNode
 from nbformat.v4 import new_notebook, new_code_cell
@@ -45,66 +43,48 @@ class VisualizationHandler(tornado.web.RequestHandler):
     """Custom RequestHandler that generates visualizations via post requests.
     """
 
-    def initialize(self):
-        """Creates custom RequestHandler that processes visualization requests.
-
-        The initialize function is used rather than the __init__ function due to
-        tornado specs for a RequestHandler.
-        """
-        # All necessary arguments required to generate visualizations.
-        self.requestParser = argparse.ArgumentParser(
-            description="Visualization Generator"
-        )
-        # Type of visualization to be generated.
-        self.requestParser.add_argument(
-            "--type",
-            type=str,
-            help="Type of visualization to be generated."
-        )
-        # Path of data to be used to generate visualization.
-        self.requestParser.add_argument(
-            "--source",
-            type=str,
-            help="Path of data to be used for generating visualization."
-        )
-        # Additional arguments to be used when generating a visualization
-        # (provided as a string representation of JSON).
-        self.requestParser.add_argument(
-            "--arguments",
-            type=str,
-            default="{}",
-            help="JSON string of arguments to be provided to visualizations."
-        )
-
-    def get_arguments_from_body(self) -> Namespace:
-        """Converts arguments from post request to Namespace format.
-
-        This is done because arguments, by default are provided in the
-        x-www-form-urlencoded format. This format is difficult to parse compared
-        to Namespace, which is a dict.
+    def validate_and_get_arguments_from_body(self) -> dict:
+        """Validates and converts arguments from post request to dict.
 
         Returns:
-            Arguments provided from post request as a Namespace object.
+            Arguments provided from post request as a dict.
         """
-        split_arguments = shlex.split(self.get_body_argument("arguments"))
-        return self.requestParser.parse_args(split_arguments)
-
-    def is_valid_request_arguments(self, arguments: Namespace):
-        """Validates arguments from post request and raises error if invalid.
-
-        Args:
-            arguments: Namespace formatted arguments
-        """
-        if arguments.type is None:
-            raise Exception("No type specified.")
-        if arguments.source is None:
-            raise Exception("No source specified.")
         try:
-            json.loads(arguments.arguments)
-        except json.JSONDecodeError:
-            raise Exception("Invalid JSON provided as arguments.")
+            arguments = {
+                "arguments": "{}",
+                "type": self.get_body_argument("type")
+            }
+        except tornado.web.MissingArgumentError:
+            raise Exception("No type provided.")
 
-        return True
+        try:
+            arguments["arguments"] = self.get_body_argument("arguments")
+        except tornado.web.MissingArgumentError:
+            # If no arguments are provided, ignore error as arguments has been
+            # set to a stringified JSON object by default.
+            pass
+
+        try:
+            arguments["arguments"] = json.loads(arguments.get("arguments"))
+        except json.decoder.JSONDecodeError as e:
+            raise Exception("Invalid JSON provided as arguments: {}".format(str(e)))
+
+        # If invalid JSON is provided that is incorretly escaped
+        # arguments.get("arguments") can be a string. This Ensure that
+        # json.loads properly converts stringified JSON to dict.
+        if type(arguments.get("arguments")) != dict:
+            raise Exception("Invalid JSON provided as arguments!")
+
+        try:
+            arguments["source"] = self.get_body_argument("source")
+        except tornado.web.MissingArgumentError:
+            arguments["source"] = ""
+
+        if arguments.get("type") != "custom":
+            if len(arguments.get("source")) == 0:
+                raise Exception("No source provided.")
+
+        return arguments
 
     def generate_notebook_from_arguments(
         self,
@@ -124,10 +104,15 @@ class VisualizationHandler(tornado.web.RequestHandler):
                 NotebookNode that contains all parameters from a post request.
         """
         nb = new_notebook()
-        nb.cells.append(_exporter.create_cell_from_args(arguments))
+        nb.cells.append(exporter.create_cell_from_args(arguments))
         nb.cells.append(new_code_cell('source = "{}"'.format(source)))
-        visualization_file = str(Path.cwd() / "types/{}.py".format(visualization_type))
-        nb.cells.append(_exporter.create_cell_from_file(visualization_file))
+        if visualization_type == "custom":
+            code = arguments.get("code", [])
+            nb.cells.append(exporter.create_cell_from_custom_code(code))
+        else:
+            visualization_file = str(Path.cwd() / "types/{}.py".format(visualization_type))
+            nb.cells.append(exporter.create_cell_from_file(visualization_file))
+        
         return nb
 
     def get(self):
@@ -138,19 +123,17 @@ class VisualizationHandler(tornado.web.RequestHandler):
     def post(self):
         """Generates visualization based on provided arguments.
         """
-        # Parse arguments from request.
-        request_arguments = self.get_arguments_from_body()
-        # Validate arguments from request.
+        # Validate arguments from request and return them as a dictionary.
         try:
-            self.is_valid_request_arguments(request_arguments)
+            request_arguments = self.validate_and_get_arguments_from_body()
         except Exception as e:
             return self.send_error(400, reason=str(e))
 
         # Create notebook with arguments from request.
         nb = self.generate_notebook_from_arguments(
-            json.loads(request_arguments.arguments),
-            request_arguments.source,
-            request_arguments.type
+            request_arguments.get("arguments"),
+            request_arguments.get("source"),
+            request_arguments.get("type")
         )
         # Generate visualization (output for notebook).
         html = _exporter.generate_html_from_notebook(nb)

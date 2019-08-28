@@ -12,12 +12,12 @@ func TestValidateCreateVisualizationRequest(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := &VisualizationServer{
-		resourceManager: manager,
+		resourceManager:    manager,
 		isServiceAvailable: false,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
-		Source: "gs://ml-pipeline/roc/data.csv",
+		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{}",
 	}
 	request := &go_client.CreateVisualizationRequest{
@@ -31,12 +31,12 @@ func TestValidateCreateVisualizationRequest_ArgumentsAreEmpty(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := &VisualizationServer{
-		resourceManager: manager,
+		resourceManager:    manager,
 		isServiceAvailable: false,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
-		Source: "gs://ml-pipeline/roc/data.csv",
+		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "",
 	}
 	request := &go_client.CreateVisualizationRequest{
@@ -50,12 +50,12 @@ func TestValidateCreateVisualizationRequest_SourceIsEmpty(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := &VisualizationServer{
-		resourceManager: manager,
+		resourceManager:    manager,
 		isServiceAvailable: false,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
-		Source: "",
+		Source:    "",
 		Arguments: "{}",
 	}
 	request := &go_client.CreateVisualizationRequest{
@@ -65,16 +65,34 @@ func TestValidateCreateVisualizationRequest_SourceIsEmpty(t *testing.T) {
 	assert.Contains(t, err.Error(), "A visualization requires a Source to be provided. Received")
 }
 
+func TestValidateCreateVisualizationRequest_SourceIsEmptyAndTypeIsCustom(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := &VisualizationServer{
+		resourceManager:    manager,
+		isServiceAvailable: false,
+	}
+	visualization := &go_client.Visualization{
+		Type:      go_client.Visualization_CUSTOM,
+		Arguments: "{}",
+	}
+	request := &go_client.CreateVisualizationRequest{
+		Visualization: visualization,
+	}
+	err := server.validateCreateVisualizationRequest(request)
+	assert.Nil(t, err)
+}
+
 func TestValidateCreateVisualizationRequest_ArgumentsNotValidJSON(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := &VisualizationServer{
-		resourceManager: manager,
+		resourceManager:    manager,
 		isServiceAvailable: false,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
-		Source: "gs://ml-pipeline/roc/data.csv",
+		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{",
 	}
 	request := &go_client.CreateVisualizationRequest{
@@ -93,13 +111,13 @@ func TestGenerateVisualization(t *testing.T) {
 	}))
 	defer httpServer.Close()
 	server := &VisualizationServer{
-		resourceManager: manager,
-		serviceURL: httpServer.URL,
+		resourceManager:    manager,
+		serviceURL:         httpServer.URL,
 		isServiceAvailable: true,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
-		Source: "gs://ml-pipeline/roc/data.csv",
+		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{}",
 	}
 	request := &go_client.CreateVisualizationRequest{
@@ -119,13 +137,13 @@ func TestGenerateVisualization_ServiceNotAvailableError(t *testing.T) {
 	}))
 	defer httpServer.Close()
 	server := &VisualizationServer{
-		resourceManager: manager,
-		serviceURL: httpServer.URL,
+		resourceManager:    manager,
+		serviceURL:         httpServer.URL,
 		isServiceAvailable: false,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
-		Source: "gs://ml-pipeline/roc/data.csv",
+		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{}",
 	}
 	request := &go_client.CreateVisualizationRequest{
@@ -145,13 +163,13 @@ func TestGenerateVisualization_ServerError(t *testing.T) {
 	}))
 	defer httpServer.Close()
 	server := &VisualizationServer{
-		resourceManager: manager,
-		serviceURL: httpServer.URL,
+		resourceManager:    manager,
+		serviceURL:         httpServer.URL,
 		isServiceAvailable: true,
 	}
 	visualization := &go_client.Visualization{
 		Type:      go_client.Visualization_ROC_CURVE,
-		Source: "gs://ml-pipeline/roc/data.csv",
+		Source:    "gs://ml-pipeline/roc/data.csv",
 		Arguments: "{}",
 	}
 	request := &go_client.CreateVisualizationRequest{

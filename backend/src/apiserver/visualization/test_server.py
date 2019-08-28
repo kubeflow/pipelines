@@ -44,7 +44,7 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
             body="")
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: Bad Request"),
+            wrap_error_in_html("400: No type provided."),
             response.body
         )
 
@@ -52,32 +52,39 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
         response = self.fetch(
             "/",
             method="POST",
-            body="arguments=--source gs://ml-pipeline/data.csv")
+            body="source=gs://ml-pipeline/data.csv")
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: No type specified."),
+            wrap_error_in_html("400: No type provided."),
             response.body
         )
 
-    def test_create_visualization_fails_when_missing_input_path(self):
+    def test_create_visualization_fails_when_missing_source(self):
         response = self.fetch(
             "/",
             method="POST",
-            body='arguments=--type test')
+            body='type=test')
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: No source specified."),
+            wrap_error_in_html("400: No source provided."),
             response.body
         )
+
+    def test_create_visualization_passes_when_missing_source_and_type_is_custom(self):
+        response = self.fetch(
+            "/",
+            method="POST",
+            body='type=custom')
+        self.assertEqual(200, response.code)
 
     def test_create_visualization_fails_when_invalid_json_is_provided(self):
         response = self.fetch(
             "/",
             method="POST",
-            body='arguments=--type test --source gs://ml-pipeline/data.csv --arguments "{"')
+            body='type=test&source=gs://ml-pipeline/data.csv&arguments={')
         self.assertEqual(400, response.code)
         self.assertEqual(
-            wrap_error_in_html("400: Invalid JSON provided as arguments."),
+            wrap_error_in_html("400: Invalid JSON provided as arguments: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"),
             response.body
         )
 
@@ -85,7 +92,7 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
         response = self.fetch(
             "/",
             method="POST",
-            body='arguments=--type test --source gs://ml-pipeline/data.csv')
+            body='type=test&source=gs://ml-pipeline/data.csv')
         self.assertEqual(200, response.code)
 
 
