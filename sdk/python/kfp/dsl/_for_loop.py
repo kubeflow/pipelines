@@ -57,12 +57,11 @@ class LoopArguments(dsl.PipelineParam):
             # pipeline param
             pipeline_param = self.items
             if pipeline_param.op_name is None:
-                return '{{inputs.parameters.%s}}' % pipeline_param.name
+                # return '{{inputs.parameters.%s}}' % pipeline_param.name
+                return '{{workflow.parameters.%s}}' % pipeline_param.name
             else:
                 param_name = '%s-%s' % (pipeline_param.op_name, pipeline_param.name)
                 return '{{tasks.%s.outputs.parameters.%s}}' % (pipeline_param.op_name, param_name)
-                # return '{{tasks.%s.outputs.result}}' % (pipeline_param.op_name, )
-
 
     @classmethod
     def _make_name(cls, code: Text):

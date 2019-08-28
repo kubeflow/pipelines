@@ -334,22 +334,22 @@ class Compiler(object):
     dependencies = defaultdict(set)
     for op in pipeline.ops.values():
       upstream_op_names = set()
+      print(op.name)
       for param in op.inputs + list(condition_params[op.name]):
         if param.op_name:
           upstream_op_names.add(param.op_name)
       upstream_op_names |= set(op.dependent_names)
 
-      for op_name in upstream_op_names:
+      for upstream_op_name in upstream_op_names:
         # the dependent op could be either a BaseOp or an opsgroup
-        if op_name in pipeline.ops:
-          upstream_op = pipeline.ops[op_name]
-        elif op_name in opsgroups:
-          upstream_op = opsgroups[op_name]
+        if upstream_op_name in pipeline.ops:
+          upstream_op = pipeline.ops[upstream_op_name]
+        elif upstream_op_name in opsgroups:
+          upstream_op = opsgroups[upstream_op_name]
         else:
-          raise ValueError('compiler cannot find the ' + op_name)
+          raise ValueError('compiler cannot find the ' + upstream_op_name)
 
-        upstream_groups, downstream_groups = \
-          self._get_uncommon_ancestors(op_groups, opsgroups_groups, upstream_op, op)
+        upstream_groups, downstream_groups = self._get_uncommon_ancestors(op_groups, opsgroups_groups, upstream_op, op)
         dependencies[downstream_groups[0]].add(upstream_groups[0])
 
     # Generate dependencies based on the recursive opsgroups
@@ -506,25 +506,37 @@ class Compiler(object):
                                      "sub_group.loop_args.name: {}.".format(sub_group.loop_args.name))
                 else:
                   value = '{{inputs.parameters.%s}}' % param_name
-                if sub_group.items_is_pipeline_param:
-                  task['withParam'] = sub_group.loop_args.to_list_for_task_yaml()
-                  # TODO: FIXME
-                  if 'dependencies' not in task or not task['dependencies']:
-                    task['dependencies'] = []
-                  task['dependencies'].append(sub_group.loop_args.items.op_name)
-                  # if pipeline_param.op_name is None:
-                  #   return '{{inputs.parameters.%s}}' % pipeline_param.name
-                  # else:
-                  #   return '{{tasks.%s.outputs.%s}}' % (pipeline_param.op_name, pipeline_param.name)
 
+                if sub_group.items_is_pipeline_param:
+                  # these loop args are a 'withParam' rather than 'withItem'.
+                  # i.e., rather than a static list, they are either the output of another task or were input
+                  # as global pipeline parameters
+                  param = sub_group.loop_args
+                  task['withParam'] = param.to_list_for_task_yaml()
+                  # shouldn't be loop-item-param, the manufactured pipeline param on the ParallelFor,
+                  # should be loopidy-doop, the global pipeline param that was passed in to the for loop
+
+                  if sub_group.original_pipeline_param.op_name is None:
+                    # the input loop_args to the ParallelFor wasn't produced by another op
+                    # (i.e.: it isn't the output of another task), rather it was a global input pipeline param
+                    param_name = sub_group.original_pipeline_param.name
+                    # value = '{{inputs.parameters.%s}}' % param_name
+                    # value = None
+                  if param.items.op_name is not None:
+                    # these loop args are the output of another task
+                    if 'dependencies' not in task or task['dependencies'] is None:
+                      task['dependencies'] = []
+                    task['dependencies'].append(param.items.op_name)
                 else:
                   task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
               else:
                 value = '{{inputs.parameters.%s}}' % param_name
-              arguments.append({
+              d = {
                 'name': param_name,
-                'value': value,
-              })
+              }
+              if value is not None:
+                d['value'] = value
+              arguments.append(d)
         arguments.sort(key=lambda x: x['name'])
         task['arguments'] = {'parameters': arguments}
       tasks.append(task)
