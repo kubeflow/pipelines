@@ -18,7 +18,6 @@ converting those objects to HTML.
 # limitations under the License.
 
 from enum import Enum
-import json
 from pathlib import Path
 from typing import Text
 from jupyter_client import KernelManager
@@ -42,6 +41,48 @@ from nbformat.v4 import new_code_cell
 class TemplateType(Enum):
     BASIC = 'basic'
     FULL = 'full'
+
+
+def create_cell_from_args(variables: dict) -> NotebookNode:
+    """Creates NotebookNode object containing dict of provided variables.
+
+    Args:
+        variables: Arguments that need to be injected into a NotebookNode.
+
+    Returns:
+        NotebookNode with provided arguments as variables.
+
+    """
+    return new_code_cell("variables = {}".format(repr(variables)))
+
+
+def create_cell_from_file(filepath: Text) -> NotebookNode:
+    """Creates a NotebookNode object with provided file as code in node.
+
+    Args:
+        filepath: Path to file that should be used.
+
+    Returns:
+        NotebookNode with specified file as code within node.
+
+    """
+    with open(filepath, 'r') as f:
+        code = f.read()
+
+    return new_code_cell(code)
+
+
+def create_cell_from_custom_code(code: list) -> NotebookNode:
+    """Creates a NotebookNode object with provided list as code in node.
+
+    Args:
+        code: list representing lines of code to be run.
+
+    Returns:
+        NotebookNode with specified file as code within node.
+
+    """
+    return new_code_cell("\n".join(code))
 
 
 class Exporter:
@@ -88,35 +129,6 @@ class Exporter:
             kernel_name='python3',
             allow_errors=True
         )
-
-    @staticmethod
-    def create_cell_from_args(variables: dict) -> NotebookNode:
-        """Creates NotebookNode object containing dict of provided variables.
-
-        Args:
-            variables: Arguments that need to be injected into a NotebookNode.
-
-        Returns:
-            NotebookNode with provided arguments as variables.
-
-        """
-        return new_code_cell("variables = {}".format(repr(variables)))
-
-    @staticmethod
-    def create_cell_from_file(filepath: Text) -> NotebookNode:
-        """Creates a NotebookNode object with provided file as code in node.
-
-        Args:
-            filepath: Path to file that should be used.
-
-        Returns:
-            NotebookNode with specified file as code within node.
-
-        """
-        with open(filepath, 'r') as f:
-            code = f.read()
-
-        return new_code_cell(code)
 
     def generate_html_from_notebook(self, nb: NotebookNode) -> Text:
         """Converts a provided NotebookNode to HTML.

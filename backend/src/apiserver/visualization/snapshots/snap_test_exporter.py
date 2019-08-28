@@ -122,3 +122,6 @@ snapshots['TestExporterMethods::test_generate_html_from_notebook 1'] = '''
 
 
 '''
+
+snapshots['TestExporterMethods::test_create_cell_from_custom_code 1'] = '''x = 2
+print(x)'''
