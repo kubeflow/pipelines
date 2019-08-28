@@ -66,6 +66,7 @@ matrix:
       env: TOXENV=py35
       install:
         # Additional dependencies
+        - cd $TRAVIS_BUILD_DIR
         - pip3 install coverage coveralls jsonschema==3.0.1
         # Sample test infra dependencies
         - pip3 install minio
