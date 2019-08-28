@@ -18,7 +18,7 @@ set -ex
 
 usage()
 {
-    echo "usage: deploy.sh
+    echo "usage: upgrade-tests.sh
     [--platform             the deployment platform. Valid values are: [gcp, minikube]. Default is gcp.]
     [--project              the gcp project. Default is ml-pipeline-test. Only used when platform is gcp.]
     [--workflow_file        the file name of the argo workflow to run]
@@ -74,6 +74,8 @@ GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${PULL_PULL_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
+LATEST_RELEASED_TAG=$(git tag --sort=v:refname | tail -1)
+
 # Configure `time` command output format.
 TIMEFORMAT="[test-timing] It took %lR."
 
@@ -91,23 +93,41 @@ echo "cluster deployed"
 time source "${DIR}/install-argo.sh"
 echo "argo installed"
 
+time KFP_DEPLOY_RELEASE=true source "${DIR}/deploy-pipeline-lite.sh"
+echo "KFP lite of latest release deployed"
+
+# echo "submitting argo workflow to setup test env before upgrade..."
+# ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+# -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+# ${IMAGE_BUILDER_ARG} \
+# -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+# -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+# -p cluster-type="${CLUSTER_TYPE}" \
+# -n ${NAMESPACE} \
+# --serviceaccount test-runner \
+# -o name
+# `
+# echo "test workflow submitted successfully"
+# time source "${DIR}/check-argo-status.sh"
+# echo "test workflow completed"
+
 time source "${DIR}/check-build-image-status.sh"
 echo "KFP images built"
 
 time source "${DIR}/deploy-pipeline-lite.sh"
-echo "KFP lite deployed"
+echo "KFP lite of commit ${PULL_PULL_SHA} deployed"
 
-echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
--p image-build-context-gcs-uri="$remote_code_archive_uri" \
-${IMAGE_BUILDER_ARG} \
--p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
--p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
--n ${NAMESPACE} \
---serviceaccount test-runner \
--o name
-`
-echo "test workflow submitted successfully"
-time source "${DIR}/check-argo-status.sh"
-echo "test workflow completed"
+# echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
+# ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+# -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+# ${IMAGE_BUILDER_ARG} \
+# -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+# -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+# -p cluster-type="${CLUSTER_TYPE}" \
+# -n ${NAMESPACE} \
+# --serviceaccount test-runner \
+# -o name
+# `
+# echo "test workflow submitted successfully"
+# time source "${DIR}/check-argo-status.sh"
+# echo "test workflow completed"

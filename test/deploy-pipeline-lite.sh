@@ -19,7 +19,11 @@ set -ex
 # Env inputs:
 # * $GCR_IMAGE_BASE_DIR
 # * $GCR_IMAGE_TAG
+# * $KFP_TO_DEPLOY
 GCR_IMAGE_TAG=${GCR_IMAGE_TAG:-latest}
+
+KFP_MANIFEST_DIR="${DIR}/manifests"
+pushd ${KFP_MANIFEST_DIR}
 
 if ! which kustomize; then
   # Download kustomize cli tool
@@ -31,23 +35,41 @@ if ! which kustomize; then
   PATH=${PATH}:${TOOL_DIR}
 fi
 
-# delete argo first because KFP comes with argo too
-kubectl delete namespace argo --wait || echo "No argo installed"
+if [ -z "$KFP_DEPLOY_RELEASE" ]; then
+  echo "Deploying KFP in working directory..."
 
-KFP_MANIFEST_DIR=${DIR}/manifests
-pushd ${KFP_MANIFEST_DIR}
+  # This is the recommended approach to do this.
+  # reference: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/eschewedFeatures.md#build-time-side-effects-from-cli-args-or-env-variables
+  kustomize edit set image gcr.io/ml-pipeline/api-server=${GCR_IMAGE_BASE_DIR}/api-server:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/persistenceagent=${GCR_IMAGE_BASE_DIR}/persistenceagent:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/scheduledworkflow=${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${GCR_IMAGE_TAG}
+  kustomize edit set image gcr.io/ml-pipeline/frontend=${GCR_IMAGE_BASE_DIR}/frontend:${GCR_IMAGE_TAG}
+  cat kustomization.yaml
 
-# This is the recommended approach to do this.
-# reference: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/eschewedFeatures.md#build-time-side-effects-from-cli-args-or-env-variables
-kustomize edit set image gcr.io/ml-pipeline/api-server=${GCR_IMAGE_BASE_DIR}/api-server:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline/persistenceagent=${GCR_IMAGE_BASE_DIR}/persistenceagent:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline/scheduledworkflow=${GCR_IMAGE_BASE_DIR}/scheduledworkflow:${GCR_IMAGE_TAG}
-kustomize edit set image gcr.io/ml-pipeline/frontend=${GCR_IMAGE_BASE_DIR}/frontend:${GCR_IMAGE_TAG}
-cat kustomization.yaml
+  kustomize build . | kubectl apply -f -
+else
+  KFP_LATEST_RELEASE=$(git tag --sort=v:refname | tail -1)
+  echo "Deploying KFP release $KFP_LATEST_RELEASE"
 
-kustomize build . | kubectl apply -f -
-# show current info
+  # temporarily checkout last release tag
+  git checkout $KFP_LATEST_RELEASE
+
+  kustomize build . | kubectl apply -f -
+
+  # go back to previous commit
+  git checkout -
+fi
+
 echo "Status of pods after kubectl apply"
+kubectl get pods -n ${NAMESPACE}
+
+# wait for all deployments to be successful
+for deployment in $(kubectl get deployments -n kubeflow -o name)
+do
+  kubectl rollout status $deployment -n kubeflow
+done
+
+echo "Status of pods after rollouts are successful"
 kubectl get pods -n ${NAMESPACE}
 
 popd
