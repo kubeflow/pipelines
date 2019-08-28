@@ -64,9 +64,8 @@ matrix:
     - language: python
       python: "3.5"
       env: TOXENV=py35
-      install:
+      install: &0
         # Additional dependencies
-        - cd $TRAVIS_BUILD_DIR
         - pip3 install coverage coveralls jsonschema==3.0.1
         # Sample test infra dependencies
         - pip3 install minio
@@ -103,10 +102,12 @@ matrix:
     - language: python
       python: "3.6"
       env: TOXENV=py36
+      install: *0
       script: *1
     - language: python
       python: "3.7"
       env: TOXENV=py37
+      install: *0
       script: *1
     - name: "Lint Python code with flake8"
       language: python
