@@ -54,8 +54,7 @@ class NoteBookChecker(object):
         except OSError as ose:
             raise FileExistsError('Default config not found:{}'.format(ose))
         else:
-            f.close()
-        test_timeout = raw_args['test_timeout']
+            test_timeout = raw_args['test_timeout']
 
         if self._experiment is not None:  # Bypassing dsl type check sample.
             ###### Initialization ######

@@ -72,7 +72,6 @@ class PySampleChecker(object):
     except OSError as ose:
       raise FileExistsError('Default config not found:{}'.format(ose))
     else:
-      f.close()
       test_timeout = raw_args['test_timeout']
 
     try:
@@ -83,7 +82,6 @@ class PySampleChecker(object):
     except OSError as ose:
       print('Config file with the same name not found, use default args:{}'.format(ose))
     else:
-      f.close()
       test_args.update(raw_args['arguments'])
       if 'output' in test_args.keys():  # output is a special param that has to be specified dynamically.
         test_args['output'] = self._output
