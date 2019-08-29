@@ -41,7 +41,6 @@ from nbformat.v4 import new_code_cell
 class TemplateType(Enum):
     BASIC = 'basic'
     FULL = 'full'
-    FULL_NO_OUTPUT = 'full-no-stdout'
 
 
 def create_cell_from_args(variables: dict) -> NotebookNode:
