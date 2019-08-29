@@ -206,7 +206,7 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
 
     if component_ref is None:
         component_ref = ComponentReference(name=component_spec.name or component_filename or _default_component_name)
-    component_ref._component_spec = component_spec
+    component_ref.spec = component_spec
 
     def create_task_from_component_and_arguments(pythonic_arguments):
         arguments = {}
@@ -238,6 +238,8 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             component_ref=component_ref,
             arguments=arguments,
         )
+        task._init_outputs()
+
         if _created_task_transformation_handler:
             task = _created_task_transformation_handler[-1](task)
         return task
