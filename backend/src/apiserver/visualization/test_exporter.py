@@ -14,7 +14,6 @@
 
 import importlib
 import unittest
-from nbformat.v4 import new_code_cell
 from nbformat.v4 import new_notebook
 import snapshottest
 
@@ -28,31 +27,22 @@ class TestExporterMethods(snapshottest.TestCase):
         self.exporter = exporter.Exporter(100, exporter.TemplateType.BASIC)
 
     def test_create_cell_from_args_with_no_args(self):
-        nb = new_notebook()
         args = {}
-        nb.cells.append(exporter.create_cell_from_args(args))
-        nb.cells.append(new_code_cell("print(variables)"))
-        html = self.exporter.generate_html_from_notebook(nb)
-        self.assertMatchSnapshot(html)
+        cell = exporter.create_cell_from_args(args)
+        self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_args_with_one_arg(self):
-        nb = new_notebook()
         args = {"source": "gs://ml-pipeline/data.csv"}
-        nb.cells.append(exporter.create_cell_from_args(args))
-        nb.cells.append(new_code_cell("print([variables[key] for key in sorted(variables.keys())])"))
-        html = self.exporter.generate_html_from_notebook(nb)
-        self.assertMatchSnapshot(html)
+        cell = exporter.create_cell_from_args(args)
+        self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_args_with_multiple_args(self):
-        nb = new_notebook()
         args = {
             "source": "gs://ml-pipeline/data.csv",
             "target_lambda": "lambda x: (x['target'] > x['fare'] * 0.2)"
         }
-        nb.cells.append(exporter.create_cell_from_args(args))
-        nb.cells.append(new_code_cell("print([variables[key] for key in sorted(variables.keys())])"))
-        html = self.exporter.generate_html_from_notebook(nb)
-        self.assertMatchSnapshot(html)
+        cell = exporter.create_cell_from_args(args)
+        self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_file(self):
         cell = exporter.create_cell_from_file("types/test.py")
@@ -66,11 +56,20 @@ class TestExporterMethods(snapshottest.TestCase):
         cell = exporter.create_cell_from_custom_code(code)
         self.assertMatchSnapshot(cell.source)
 
-    def test_generate_html_from_notebook(self):
+    # Tests to ensure output is generated for predefined visualizations.
+    def test_generate_test_visualization_html_from_notebook(self):
+        nb = new_notebook()
+        nb.cells.append(exporter.create_cell_from_file("types/test.py"))
+        html = self.exporter.generate_html_from_notebook(nb)
+        self.assertMatchSnapshot(html)
+
+    # Tests to ensure output is generated for custom visualizations.
+    def test_generate_custom_visualization_html_from_notebook(self):
         nb = new_notebook()
         args = {"x": 2}
+        code = ["print(variables.get('x'))"]
         nb.cells.append(exporter.create_cell_from_args(args))
-        nb.cells.append(new_code_cell("print(variables['x'])"))
+        nb.cells.append(exporter.create_cell_from_custom_code(code))
         html = self.exporter.generate_html_from_notebook(nb)
         self.assertMatchSnapshot(html)
 
