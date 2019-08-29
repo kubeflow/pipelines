@@ -14,11 +14,9 @@
 
 import utils
 
+from constants import RUN_LIST_PAGE_SIZE, TEST_TIMEOUT
 from kfp import Client
 
-
-_RUN_LIST_PAGE_SIZE = 1000
-_TEST_TIMEOUT = 1200
 
 class NoteBookChecker(object):
     def __init__(self, testname, result, exit_code,
@@ -56,13 +54,13 @@ class NoteBookChecker(object):
             experiment_id = client.get_experiment(experiment_name=self._experiment).id
 
             ###### Get runs ######
-            list_runs_response = client.list_runs(page_size=_RUN_LIST_PAGE_SIZE,
+            list_runs_response = client.list_runs(page_size=RUN_LIST_PAGE_SIZE,
                                                   experiment_id=experiment_id)
 
             ###### Check all runs ######
             for run in list_runs_response.runs:
                 run_id = run.id
-                response = client.wait_for_run_completion(run_id, _TEST_TIMEOUT)
+                response = client.wait_for_run_completion(run_id, TEST_TIMEOUT)
                 succ = (response.run.status.lower()=='succeeded')
                 utils.add_junit_test(test_cases, 'job completion',
                                      succ, 'waiting for job completion failure')
