@@ -21,7 +21,7 @@ PAPERMILL_ERR_MSG = 'An Exception was encountered at'
 GITHUB_REPO = 'kubeflow/pipelines'
 BASE_DIR = os.path.join('/python/src/github.com/', GITHUB_REPO)
 TEST_DIR = os.path.join(BASE_DIR, 'test/sample-test')
-CONFIG_DIR = os.path.join(TEST_DIR, 'config')
+CONFIG_DIR = os.path.join(TEST_DIR, 'configs')
 
 # Common test params
 TEST_TIMEOUT = 1200
