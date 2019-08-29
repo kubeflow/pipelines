@@ -151,7 +151,15 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
       <BusyButton title='Generate Visualization' busy={isBusy} disabled={!canGenerate}
         onClick={() => {
           if (onGenerate && selectedType) {
-            onGenerate(_arguments, source, selectedType);
+            const specifiedArguments: any = JSON.parse(_arguments || '{}');
+            if (selectedType === ApiVisualizationType.CUSTOM) {
+              specifiedArguments.code = code.split('\n');
+            }
+            onGenerate(
+              JSON.stringify(specifiedArguments),
+              source,
+              selectedType
+            );
           }
         }} />
     </div>;
