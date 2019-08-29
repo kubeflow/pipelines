@@ -66,10 +66,9 @@ def create_cell_from_file(filepath: Text) -> NotebookNode:
         NotebookNode with specified file as code within node.
 
     """
-    with open(filepath, 'r') as f:
-        code = f.read()
-
-    return new_code_cell(code)
+    cell = new_code_cell("%run {}".format(filepath))
+    cell.get("metadata")["hide_logging"] = not filepath.startswith("types/custom")
+    return cell
 
 
 def create_cell_from_custom_code(code: list) -> NotebookNode:
