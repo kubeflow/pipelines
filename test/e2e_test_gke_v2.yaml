@@ -118,55 +118,7 @@ spec:
         #TODO: Uncomment to disable the test on Minikube
         #TODO: Change the cluster-type to "minikube" once https://github.com/kubeflow/pipelines/pull/1285 and related PRs are merged.
         #when: "{{workflow.parameters.cluster-type}} != none" #Do not run the test on Minikube
-    - - name: run-condition-tests
-        template: run-basic-e2e-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "condition"
-      - name: run-exit-handler-tests
-        template: run-basic-e2e-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "exit_handler"
-      - name: run-sequential-tests
-        template: run-basic-e2e-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "sequential"
-      - name: run-parallel-join-tests
-        template: run-basic-e2e-tests
-        arguments:
-          parameters:
-          - name: test-results-gcs-dir
-            value: "{{inputs.parameters.test-results-gcs-dir}}"
-          - name: sample-tests-image
-            value: "{{inputs.parameters.target-image-prefix}}{{inputs.parameters.basic-e2e-tests-image-suffix}}"
-          - name: namespace
-            value: "{{inputs.parameters.namespace}}"
-          - name: test-name
-            value: "parallel_join"
-      - name: run-recursive-tests
+    - - name: run-basic-sample-tests
         template: run-basic-e2e-tests
         arguments:
           parameters:
@@ -177,7 +129,13 @@ spec:
             - name: namespace
               value: "{{inputs.parameters.namespace}}"
             - name: test-name
-              value: "recursion"
+              value: "{{item}}"
+        withItems:
+          - condition
+          - exit_handler
+          - sequential
+          - parallel_join
+          - recursion
 
   # Build and push image
   - name: build-image
