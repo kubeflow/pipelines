@@ -25,6 +25,6 @@ images:
   - "$_GCR_BASE/frontend"
   - "$_GCR_BASE/scheduledworkflow"
   - "$_GCR_BASE/persistenceagent"
-  - "$_GCR_BASE/viewer-crd"
-  - "$_GCR_BASE/visualizationserver"
+  - "$_GCR_BASE/viewer-crd-controller"
+  - "$_GCR_BASE/visualization-server"
 timeout: 1800s # 30min
