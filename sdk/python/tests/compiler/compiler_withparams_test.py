@@ -19,7 +19,7 @@ uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
 
 if __name__ == '__main__':
 
-    do_output = True
+    do_output = False
 
     if do_output:
         @dsl.pipeline(name='my-pipeline', description='A pipeline with multiple pipeline params.')
@@ -40,6 +40,31 @@ if __name__ == '__main__':
                     command=["sh", "-c"],
                     arguments=["echo op1 %s" % item],
                 )
+
+            op_out = dsl.ContainerOp(
+                name="my-out-cop2",
+                image="library/bash:4.4.23",
+                command=["sh", "-c"],
+                arguments=["echo %s" % op0.output],
+            )
+    else:
+        @dsl.pipeline(name='my-pipeline', description='A pipeline with multiple pipeline params.')
+        def pipeline(loopidy_doop=[3, 5, 7, 9]):
+            op0 = dsl.ContainerOp(
+                name="my-out-cop0",
+                image='python:alpine3.6',
+                command=["sh", "-c"],
+                arguments=['python -c "import json; import sys; json.dump([i for i in range(20, 31)], open(\'/tmp/out.json\', \'w\'))"'],
+                file_outputs={'out': '/tmp/out.json'},
+            )
+
+            with dsl.ParallelFor(loopidy_doop) as item:
+                op1 = dsl.ContainerOp(
+                    name="my-in-cop1",
+                    image="library/bash:4.4.23",
+                    command=["sh", "-c"],
+                    arguments=["echo op1 %s" % item.a],
+                ).after(op0)
 
             op_out = dsl.ContainerOp(
                 name="my-out-cop2",

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import json
 from typing import Union
 import uuid
 
@@ -169,19 +170,14 @@ class ParallelFor(OpsGroup):
     return uuid.uuid4().hex[:_for_loop.LoopArguments.NUM_CODE_CHARS]
 
   def __init__(self, loop_args: Union[_for_loop.ItemList, _pipeline_param.PipelineParam]):
-
-    self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
-    if self.items_is_pipeline_param:
-      self.original_pipeline_param = loop_args
-    else:
-      self.original_pipeline_param = None
-
     # random code to id this loop
     code = self._get_unique_id_code()
     group_name = 'for-loop-{}'.format(code)
     super().__init__(self.TYPE_NAME, name=group_name)
 
-    if not isinstance(loop_args, _for_loop.LoopArguments):
+    self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
+    if not self.items_is_pipeline_param and not isinstance(loop_args, _for_loop.LoopArguments):
+      # we were passed a raw list, wrap it in loop args
       loop_args = _for_loop.LoopArguments(loop_args, code)
 
     self.loop_args = loop_args

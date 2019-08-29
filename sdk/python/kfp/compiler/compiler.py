@@ -511,22 +511,14 @@ class Compiler(object):
                   # these loop args are a 'withParam' rather than 'withItem'.
                   # i.e., rather than a static list, they are either the output of another task or were input
                   # as global pipeline parameters
-                  param = sub_group.loop_args
-                  task['withParam'] = param.to_list_for_task_yaml()
+                  task['withParam'] = sub_group.loop_args.to_list_for_task_yaml()
                   # shouldn't be loop-item-param, the manufactured pipeline param on the ParallelFor,
                   # should be loopidy-doop, the global pipeline param that was passed in to the for loop
-
-                  if sub_group.original_pipeline_param.op_name is None:
-                    # the input loop_args to the ParallelFor wasn't produced by another op
-                    # (i.e.: it isn't the output of another task), rather it was a global input pipeline param
-                    param_name = sub_group.original_pipeline_param.name
-                    # value = '{{inputs.parameters.%s}}' % param_name
-                    # value = None
-                  if param.items.op_name is not None:
+                  if sub_group.loop_args.op_name is not None:
                     # these loop args are the output of another task
                     if 'dependencies' not in task or task['dependencies'] is None:
                       task['dependencies'] = []
-                    task['dependencies'].append(param.items.op_name)
+                    task['dependencies'].append(sub_group.loop_args.op_name)
                 else:
                   task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
               else:
