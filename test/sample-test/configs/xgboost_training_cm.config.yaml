@@ -14,6 +14,7 @@
 
 test_name: xgboost_training_cm
 arguments:
+  output:
   project: ml-pipeline-test
   column-names: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/column-names.json
   evaluation: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval5.csv

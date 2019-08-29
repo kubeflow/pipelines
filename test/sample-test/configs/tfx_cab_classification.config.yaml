@@ -14,6 +14,7 @@
 
 test_name: tfx_cab_classification
 arguments:
+  output:
   project: ml-pipeline-test
   train-data: gs://ml-pipeline-dataset/sample-test/sfpd/train_20.csv
   eval-data: gs://ml-pipeline-dataset/sample-test/sfpd/eval_5.csv
