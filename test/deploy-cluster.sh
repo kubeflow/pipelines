@@ -37,7 +37,7 @@ function clean_up {
     yes | gcloud container clusters delete ${TEST_CLUSTER} --async
   fi
 }
-# trap clean_up EXIT SIGINT SIGTERM
+trap clean_up EXIT SIGINT SIGTERM
 
 cd ${DIR}
 # test if ${TEST_CLUSTER} exists or not
