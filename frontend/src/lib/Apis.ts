@@ -23,7 +23,7 @@ import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
 import { PlotType } from '../components/viewers/Viewer';
 import { MetadataStoreServiceClient } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
 import { PutExecutionTypeRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
-import { ExecutionType } from '../generated/src/apis/metadata/metadata_store_pb';
+import { ExecutionType, ArtifactType, ArtifactStructType } from '../generated/src/apis/metadata/metadata_store_pb';
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -130,10 +130,22 @@ export class Apis {
     const executionType = new ExecutionType();
     executionType.setId(1);
     executionType.setName('riley-test');
+    const artifactType = new ArtifactType();
+    artifactType.setId(1);
+    artifactType.setName('artifact');
+    const artifactStructType = new ArtifactStructType();
+    artifactStructType.setSimple(artifactType);
+    executionType.setInputType(artifactStructType);
+    const artifactType2 = new ArtifactType();
+    artifactType2.setId(2);
+    artifactType2.setName('artifact2');
+    const artifactStructType2 = new ArtifactStructType();
+    artifactStructType2.setSimple(artifactType2);
+    executionType.setOutputType(artifactStructType2);
 
     const request = new PutExecutionTypeRequest();
     request.setExecutionType(executionType);
-    request.setAllFieldsMatch(false);
+    request.setAllFieldsMatch(true);
 
     const client = new MetadataStoreServiceClient('http://localhost:9090');
     client.putExecutionType(request, (err, response) => {

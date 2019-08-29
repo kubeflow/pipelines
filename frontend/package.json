@@ -47,7 +47,7 @@
     "java": "java -version",
     "mock:api": "ts-node-dev -O '{\"module\": \"commonjs\"}' mock-backend/mock-api-server.ts 3001",
     "mock:server": "ML_PIPELINE_SERVICE_HOST=localhost ML_PIPELINE_SERVICE_PORT=3001 node server/dist/server.js dist",
-    "postinstall": "cd ./server && npm i && cd ../mock-backend && npm i",
+    "postinstall": "cd ./server && npm i && cd ../mock-backend && npm i && cd ../src/generated/src/apis/metadata && npm i",
     "start": "react-scripts-ts start",
     "test": "react-scripts-ts test --env=jsdom",
     "test:coverage": "npm test -- --env=jsdom --coverage",
