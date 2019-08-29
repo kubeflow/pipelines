@@ -84,7 +84,7 @@ class PySampleChecker(object):
     ###### Monitor Job ######
     try:
       start_time = datetime.now()
-      if self._testname == 'xgboost_training_cm.config.yaml':
+      if self._testname == 'xgboost_training_cm':
         response = client.wait_for_run_completion(run_id, XGB_TEST_TIMEOUT)
       else:
         response = client.wait_for_run_completion(run_id, TEST_TIMEOUT)
@@ -108,7 +108,7 @@ class PySampleChecker(object):
 
     ###### Validate the results for specific test cases ######
     #TODO: Add result check for tfx-cab-classification after launch.
-    if self._testname == 'xgboost_training_cm.config.yaml':
+    if self._testname == 'xgboost_training_cm':
       # For xgboost sample, check its confusion matrix.
       cm_tar_path = './confusion_matrix.tar.gz'
       utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
