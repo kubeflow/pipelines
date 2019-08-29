@@ -51,4 +51,4 @@ RUN apt-get update && apt-get install -y ca-certificates
 EXPOSE 8888
 
 # Start the apiserver
-ENTRYPOINT ["/bin/apiserver", "--config=/config", "--sampleconfig=/config/sample_config.json", "-logtostderr=true"]
+ENTRYPOINT ["/bin/apiserver", "--config", "/config", "--sampleconfig", "/config/sample_config.json", "-logtostderr", "true"]

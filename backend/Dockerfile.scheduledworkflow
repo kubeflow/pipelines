@@ -18,4 +18,4 @@ RUN chmod +x /bin/controller
 
 ENV NAMESPACE ""
 
-ENTRYPOINT ["/bin/controller", "--logtostderr=true", "--namespace=${NAMESPACE}"]
+ENTRYPOINT ["/bin/controller", "--logtostderr", "true", "--namespace", ""]

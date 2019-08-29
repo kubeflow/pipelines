@@ -20,4 +20,4 @@ ENV NAMESPACE ""
 # Set Workflow TTL to 7 days
 ENV TTL_SECONDS_AFTER_WORKFLOW_FINISH 604800
 
-ENTRYPOINT ["/bin/persistence_agent", "--logtostderr=true", "--namespace=${NAMESPACE}", "--ttlSecondsAfterWorkflowFinish=${TTL_SECONDS_AFTER_WORKFLOW_FINISH}"]
+ENTRYPOINT ["/bin/persistence_agent", "--logtostderr", "true", "--namespace", "", "--ttlSecondsAfterWorkflowFinish", "604800"]
