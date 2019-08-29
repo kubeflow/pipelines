@@ -59,7 +59,7 @@ class SampleTest(object):
   def check_result(self):
     os.chdir(self.TEST_DIR)
     pysample_checker = PySampleChecker(testname=self._test_name,
-                                       input='%s/%s.yaml' % (self._work_dir, self._test_name),
+                                       input=os.path.join(self._work_dir, '%s.yaml' % self._test_name),
                                        output=self._sample_test_output,
                                        result=self._sample_test_result,
                                        namespace=self._namespace)
