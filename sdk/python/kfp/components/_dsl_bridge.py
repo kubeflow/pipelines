@@ -20,7 +20,7 @@ from kfp.dsl._metadata import ComponentMeta, ParameterMeta
 
 def create_container_op_from_task(task_spec: TaskSpec):
     argument_values = task_spec.arguments
-    component_spec = task_spec.component_ref._component_spec
+    component_spec = task_spec.component_ref.spec
 
     if not isinstance(component_spec.implementation, ContainerImplementation):
         raise TypeError('Only container component tasks can be converted to ContainerOp')

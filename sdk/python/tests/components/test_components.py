@@ -15,6 +15,7 @@
 import os
 import sys
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -22,6 +23,16 @@ import kfp
 import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml
 from kfp.dsl.types import InconsistentTypeException
+
+
+@contextmanager
+def no_task_resolving_context():
+    old_handler = kfp.components._components._created_task_transformation_handler
+    try:
+        kfp.components._components._created_task_transformation_handler = None
+        yield None
+    finally:
+        kfp.components._components._created_task_transformation_handler = old_handler
 
 class LoadComponentTestCase(unittest.TestCase):
     def _test_load_component_from_file(self, component_path: str):
@@ -577,6 +588,22 @@ implementation:
         task1 = task_factory1()
         self.assertEqual(task1.pod_annotations['key1'], 'value1')
         self.assertEqual(task1.pod_labels['key1'], 'value1')
+
+    def test_check_task_spec_outputs_dictionary(self):
+        component_text = '''\
+outputs:
+- {name: out 1}
+- {name: out 2}
+implementation:
+  container:
+    image: busybox
+    command: [touch, {outputPath: out 1}, {outputPath: out 2}]
+'''
+        op = comp.load_component_from_text(component_text)
+        with no_task_resolving_context():
+          task = op()
+
+        self.assertEqual(list(task.outputs.keys()), ['out 1', 'out 2'])
 
     def test_type_compatibility_check_for_simple_types(self):
         component_a = '''\
