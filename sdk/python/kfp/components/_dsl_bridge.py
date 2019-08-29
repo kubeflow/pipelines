@@ -15,7 +15,7 @@
 from collections import OrderedDict
 from typing import Mapping
 from ._structures import ContainerImplementation, ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
-from ._components import _generate_output_file_name, _default_component_name
+from ._components import _generate_input_file_name, _generate_output_file_name, _default_component_name
 from kfp.dsl._metadata import ComponentMeta, ParameterMeta
 
 def create_container_op_from_task(task_spec: TaskSpec):
@@ -33,6 +33,9 @@ def create_container_op_from_task(task_spec: TaskSpec):
     for output in component_spec.outputs or []:
         if output.name in unconfigurable_output_paths:
             output_paths[output.name] = unconfigurable_output_paths[output.name]
+
+    input_paths = OrderedDict()
+    artifact_arguments = OrderedDict()
 
     def expand_command_part(arg): #input values with original names
         #(Union[str,Mapping[str, Any]]) -> Union[str,List[str]]
@@ -57,8 +60,10 @@ def create_container_op_from_task(task_spec: TaskSpec):
             input_name = arg.input_name
             input_value = argument_values.get(input_name, None)
             if input_value is not None:
-                raise ValueError('ContainerOp does not support input artifacts - input {}'.format(input_name))
-                #return input_value
+                input_path = _generate_input_file_name(input_name)
+                input_paths[input_name] = input_path
+                artifact_arguments[input_name] = input_value
+                return input_path
             else:
                 input_spec = inputs_dict[input_name]
                 if input_spec.optional:
@@ -123,13 +128,15 @@ def create_container_op_from_task(task_spec: TaskSpec):
         container_image=container_spec.image,
         command=expanded_command,
         arguments=expanded_args,
+        input_paths=input_paths,
         output_paths=output_paths,
+        artifact_arguments=artifact_arguments,
         env=container_spec.env,
         component_spec=component_spec,
     )
 
 
-def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, output_paths=None, env : Mapping[str, str]=None, component_spec=None):
+def _create_container_op_from_resolved_task(name:str, container_image:str, command=None, arguments=None, input_paths=None, artifact_arguments=None, output_paths=None, env : Mapping[str, str]=None, component_spec=None):
     from .. import dsl
 
     #Renaming outputs to conform with ContainerOp/Argo
@@ -154,6 +161,7 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         command=command,
         arguments=arguments,
         file_outputs=output_paths_for_container_op,
+        artifact_argument_paths=[dsl.InputArgumentPath(argument=artifact_arguments[input_name], input=input_name, path=path) for input_name, path in input_paths.items()],
     )
 
     task._set_metadata(component_meta)
