@@ -129,7 +129,7 @@ class ComponentTest(SampleTest):
   """ Launch a KFP sample test as component test provided its name.
 
   Currently follows the same logic as sample test for compatibility.
-  include xgboost_training_cm.config.yaml tfx_cab_classification
+  include xgboost_training_cm, tfx_cab_classification
   """
   def __init__(self, test_name, results_gcs_dir,
                dataflow_tft_image,
@@ -175,7 +175,7 @@ class ComponentTest(SampleTest):
         'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:\w+':self._local_confusionmatrix_image,
         'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:\w+':self._local_roc_image
     }
-    if self._test_name == 'xgboost_training_cm.config.yaml':
+    if self._test_name == 'xgboost_training_cm':
       subs.update({
           'gcr\.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\w+':self._dataproc_create_cluster_image,
           'gcr\.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\w+':self._dataproc_delete_cluster_image,
