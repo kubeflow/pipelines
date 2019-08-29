@@ -17,6 +17,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"time"
@@ -38,17 +39,18 @@ import (
 const (
 	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
+
 	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
 	mysqlServicePort      = "MYSQL_SERVICE_PORT"
 	mysqlUser             = "DBConfig.User"
 	mysqlPassword         = "DBConfig.Password"
 	mysqlDBName           = "DBConfig.DBName"
 
-	podNamespace          = "POD_NAMESPACE"
-	initConnectionTimeout = "InitConnectionTimeout"
-
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
+
+	podNamespace          = "POD_NAMESPACE"
+	initConnectionTimeout = "InitConnectionTimeout"
 )
 
 // Container for all service clients
@@ -67,6 +69,7 @@ type ClientManager struct {
 	podClient 						 v1.PodInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
+
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -124,7 +127,7 @@ func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 func (c *ClientManager) init() {
 	glog.Infof("Initializing client manager")
 
-	db := initDBClient(getDurationConfig(initConnectionTimeout))
+	db := initDBClient(common.GetDurationConfig(initConnectionTimeout))
 
 	// time
 	c.time = util.NewRealTime()
@@ -139,16 +142,16 @@ func (c *ClientManager) init() {
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
-	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
+	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
 	c.wfClient = client.CreateWorkflowClientOrFatal(
-		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
 
 	c.podClient = client.CreatePodClientOrFatal(
-		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
@@ -161,7 +164,7 @@ func (c *ClientManager) Close() {
 }
 
 func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
-	driverName := getStringConfig("DBConfig.DriverName")
+	driverName := common.GetStringConfig("DBConfig.DriverName")
 	var arg string
 
 	switch driverName {
@@ -208,10 +211,10 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 // Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True
 func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	mysqlConfig := client.CreateMySQLConfig(
-		getStringConfigWithDefault(mysqlUser, "root"),
-		getStringConfigWithDefault(mysqlPassword, ""),
-		getStringConfig(mysqlServiceHost),
-		getStringConfig(mysqlServicePort),
+		common.GetStringConfigWithDefault(mysqlUser, "root"),
+		common.GetStringConfigWithDefault(mysqlPassword, ""),
+		common.GetStringConfig(mysqlServiceHost),
+		common.GetStringConfig(mysqlServicePort),
 		"")
 
 	var db *sql.DB
@@ -231,7 +234,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	util.TerminateIfError(err)
 
 	// Create database if not exist
-	dbName := getStringConfig(mysqlDBName)
+	dbName := common.GetStringConfig(mysqlDBName)
 	operation = func() error {
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
 		if err != nil {
@@ -250,14 +253,14 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
 	// Create minio client.
-	minioServiceHost := getStringConfigWithDefault(
+	minioServiceHost := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
-	minioServicePort := getStringConfigWithDefault(
+	minioServicePort := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
-	accessKey := getStringConfig("ObjectStoreConfig.AccessKey")
-	secretKey := getStringConfig("ObjectStoreConfig.SecretAccessKey")
-	bucketName := getStringConfig("ObjectStoreConfig.BucketName")
-	disableMultipart := getBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
+	accessKey := common.GetStringConfig("ObjectStoreConfig.AccessKey")
+	secretKey := common.GetStringConfig("ObjectStoreConfig.SecretAccessKey")
+	bucketName := common.GetStringConfig("ObjectStoreConfig.BucketName")
+	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
 		secretKey, initConnectionTimeout)

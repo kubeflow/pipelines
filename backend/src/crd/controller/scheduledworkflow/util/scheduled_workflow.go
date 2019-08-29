@@ -163,7 +163,7 @@ func (s *ScheduledWorkflow) getFormattedWorkflowParametersAsMap(
 // the appropriate OwnerReferences on the resource so handleObject can discover
 // the Schedule resource that 'owns' it.
 func (s *ScheduledWorkflow) NewWorkflow(
-		nextScheduledEpoch int64, nowEpoch int64) (*commonutil.Workflow, error) {
+		nextScheduledEpoch int64, nowEpoch int64, defaultPipelineRunnerServiceAccount string) (*commonutil.Workflow, error) {
 
 	const (
 		workflowKind       = "Workflow"
@@ -180,6 +180,8 @@ func (s *ScheduledWorkflow) NewWorkflow(
 
 	// Set the name of the workflow.
 	result.OverrideName(s.NextResourceName())
+
+	result.SetServiceAccount(defaultPipelineRunnerServiceAccount)
 
 	// Get the workflow parameters and format them.
 	formatter := NewParameterFormatter(nextScheduledEpoch, nowEpoch, s.nextIndex())

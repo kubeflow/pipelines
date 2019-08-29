@@ -641,7 +641,6 @@ class Compiler(object):
         'entrypoint': pipeline_name,
         'templates': templates,
         'arguments': {'parameters': input_params},
-        'serviceAccountName': 'pipeline-runner'
       }
     }
     # set ttl after workflow finishes

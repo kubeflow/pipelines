@@ -31,9 +31,10 @@ import (
 )
 
 var (
-	masterURL  string
-	kubeconfig string
-	namespace  string
+	masterURL                           string
+	kubeconfig                          string
+	namespace                           string
+	defaultPipelineRunnerServiceAccount string
 )
 
 func main() {
@@ -78,7 +79,8 @@ func main() {
 		workflowClient,
 		scheduleInformerFactory,
 		workflowInformerFactory,
-		commonutil.NewRealTime())
+		commonutil.NewRealTime(),
+		defaultPipelineRunnerServiceAccount)
 
 	go scheduleInformerFactory.Start(stopCh)
 	go workflowInformerFactory.Start(stopCh)
@@ -92,4 +94,5 @@ func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&namespace, "namespace", "", "The namespace name used for Kubernetes informers to obtain the listers.")
+	flag.StringVar(&defaultPipelineRunnerServiceAccount, "defaultPipelineRunnerServiceAccount", "", "The default service account used for running scheduled pipeline.")
 }

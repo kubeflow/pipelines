@@ -38,6 +38,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const (
+	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
+)
+
 type ClientManagerInterface interface {
 	ExperimentStore() storage.ExperimentStoreInterface
 	PipelineStore() storage.PipelineStoreInterface
@@ -219,6 +223,8 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	if err = workflow.VerifyParameters(parameters); err != nil {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
+
+	workflow.SetServiceAccount(common.GetStringConfig(defaultPipelineRunnerServiceAccountEnvVar))
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
 	// Add label to the workflow so it can be persisted by persistent agent later.
