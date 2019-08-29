@@ -49,12 +49,6 @@ exports[`VisualizationCreator disables all select and input fields when busy 1`]
         TFDV
       </WithStyles(MenuItem)>
       <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
         key="TABLE"
         value="TABLE"
       >
@@ -126,12 +120,6 @@ exports[`VisualizationCreator does not render an Editor component if a visualiza
         value="TFDV"
       >
         TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
       </WithStyles(MenuItem)>
       <WithStyles(MenuItem)
         key="TABLE"
@@ -208,12 +196,6 @@ exports[`VisualizationCreator renders an Editor component if a visualization typ
         value="TFDV"
       >
         TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
       </WithStyles(MenuItem)>
       <WithStyles(MenuItem)
         key="TABLE"
@@ -337,12 +319,6 @@ exports[`VisualizationCreator renders component when all parameters in config ar
         TFDV
       </WithStyles(MenuItem)>
       <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
         key="TABLE"
         value="TABLE"
       >
@@ -414,12 +390,6 @@ exports[`VisualizationCreator renders component when empty config is provided 1`
         value="TFDV"
       >
         TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
       </WithStyles(MenuItem)>
       <WithStyles(MenuItem)
         key="TABLE"
@@ -495,12 +465,6 @@ exports[`VisualizationCreator renders component when isBusy is not provided 1`] 
         TFDV
       </WithStyles(MenuItem)>
       <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
         key="TABLE"
         value="TABLE"
       >
@@ -574,12 +538,6 @@ exports[`VisualizationCreator renders component when onGenerate is not provided 
         TFDV
       </WithStyles(MenuItem)>
       <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
         key="TABLE"
         value="TABLE"
       >
@@ -651,12 +609,6 @@ exports[`VisualizationCreator renders the custom type when it is allowed 1`] = `
         value="TFDV"
       >
         TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
       </WithStyles(MenuItem)>
       <WithStyles(MenuItem)
         key="TABLE"
@@ -737,12 +689,6 @@ exports[`VisualizationCreator renders the provided arguments 1`] = `
         value="TFDV"
       >
         TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
       </WithStyles(MenuItem)>
       <WithStyles(MenuItem)
         key="TABLE"
@@ -867,12 +813,6 @@ exports[`VisualizationCreator renders the selected visualization type 1`] = `
         TFDV
       </WithStyles(MenuItem)>
       <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
         key="TABLE"
         value="TABLE"
       >
@@ -993,12 +933,6 @@ exports[`VisualizationCreator renders two Editor components if the CUSTOM visual
         value="TFDV"
       >
         TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFMA"
-        value="TFMA"
-      >
-        TFMA
       </WithStyles(MenuItem)>
       <WithStyles(MenuItem)
         key="TABLE"
