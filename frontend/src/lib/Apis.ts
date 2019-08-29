@@ -69,7 +69,9 @@ export class Apis {
         type: PlotType.WEB_APP,
       } as HTMLViewerConfig;
     } else {
-      throw new Error('Unable to generate visualization!');
+      // This should never be thrown as the html property of a generated
+      // visualization is always set for successful visualization generations.
+      throw new Error('Visualization was generated successfully but generated HTML was not found.');
     }
   }
 
