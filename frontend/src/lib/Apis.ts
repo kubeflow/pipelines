@@ -21,6 +21,9 @@ import { StoragePath } from './WorkflowParser';
 import { VisualizationServiceApi, ApiVisualization } from '../apis/visualization';
 import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
 import { PlotType } from '../components/viewers/Viewer';
+import { MetadataStoreServiceClient } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
+import { PutExecutionTypeRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
+import { ExecutionType } from '../generated/src/apis/metadata/metadata_store_pb';
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -121,6 +124,23 @@ export class Apis {
       this._visualizationServiceApi = new VisualizationServiceApi({ basePath: this.basePath });
     }
     return this._visualizationServiceApi;
+  }
+
+  public static async getMetadata(): Promise<string> {
+    const executionType = new ExecutionType();
+    executionType.setId(1);
+    executionType.setName('riley-test');
+
+    const request = new PutExecutionTypeRequest();
+    request.setExecutionType(executionType);
+    request.setAllFieldsMatch(false);
+
+    const client = new MetadataStoreServiceClient('http://localhost:9090');
+    client.putExecutionType(request, (err, response) => {
+      // tslint:disable-next-line:no-console
+      console.log(response);
+    });
+    return '';
   }
 
   /**
