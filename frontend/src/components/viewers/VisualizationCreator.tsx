@@ -180,7 +180,8 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
       .filter((key: string, i: number, arr: string[]) => {
         const isDuplicate = arr.indexOf(key) !== i;
         const isCustom = key === 'CUSTOM';
-        return !isDuplicate && (allowCustomVisualizations || !isCustom);
+        const isTFMA = key === 'TFMA';
+        return !isDuplicate && (allowCustomVisualizations || !isCustom) && !isTFMA;
       });
   }
 
