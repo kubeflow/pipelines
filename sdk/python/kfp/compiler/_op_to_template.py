@@ -228,7 +228,8 @@ def _op_to_template(op: BaseOp):
         }
 
     # inputs
-    inputs = _inputs_to_json(processed_op.inputs, getattr(processed_op, 'input_artifact_paths', None))
+    input_artifact_paths = processed_op.input_artifact_paths if isinstance(processed_op, dsl.ContainerOp) else None
+    inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths)
     if inputs:
         template['inputs'] = inputs
 

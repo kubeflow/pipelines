@@ -516,10 +516,9 @@ class Compiler(object):
         arguments.sort(key=lambda x: x['name'])
         task['arguments'] = {'parameters': arguments}
       
-      artifact_arguments = getattr(sub_group, 'artifact_arguments', None)
-      if artifact_arguments:
+      if isinstance(sub_group, dsl.ContainerOp) and sub_group.artifact_arguments:
         artifact_argument_structs = []
-        for input_name, argument in artifact_arguments.items():
+        for input_name, argument in sub_group.artifact_arguments.items():
           artifact_argument_dict = {'name': input_name}
           if isinstance(argument, str):
             artifact_argument_dict['raw'] = {'data': str(argument)}
