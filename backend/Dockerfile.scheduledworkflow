@@ -17,5 +17,5 @@ COPY --from=builder /go/src/github.com/kubeflow/pipelines/third_party/license.tx
 RUN chmod +x /bin/controller
 
 ENV NAMESPACE ""
-ENV DEFAULT_PIPELINE_RUNNER_SERVICE_ACCOUNT "pipeline-runner"
-CMD /bin/controller --logtostderr=true --namespace=${NAMESPACE} --defaultPipelineRunnerServiceAccount=${DEFAULT_PIPELINE_RUNNER_SERVICE_ACCOUNT}
+
+CMD /bin/controller --logtostderr=true --namespace=${NAMESPACE}

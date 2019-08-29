@@ -434,6 +434,9 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 		return nil, util.Wrap(err, "Create job failed")
 	}
 
+	// Set workflow to be run using default pipeline runner service account.
+	workflow.SetServiceAccount(common.GetStringConfig(defaultPipelineRunnerServiceAccountEnvVar))
+
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: v1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{

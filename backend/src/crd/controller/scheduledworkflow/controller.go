@@ -71,8 +71,6 @@ type Controller struct {
 
 	// An interface to generate the current time.
 	time commonutil.TimeInterface
-
-	defaultPipelineRunnerServiceAccount string
 }
 
 // NewController returns a new sample controller
@@ -82,8 +80,7 @@ func NewController(
 		workflowClientSet workflowclientset.Interface,
 		swfInformerFactory swfinformers.SharedInformerFactory,
 		workflowInformerFactory workflowinformers.SharedInformerFactory,
-		time commonutil.TimeInterface,
-		defaultPipelineRunnerServiceAccount string) *Controller {
+		time commonutil.TimeInterface) *Controller {
 
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
@@ -106,8 +103,7 @@ func NewController(
 		workflowClient: client.NewWorkflowClient(workflowClientSet, workflowInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
-		time:                                time,
-		defaultPipelineRunnerServiceAccount: defaultPipelineRunnerServiceAccount,
+		time: time,
 	}
 
 	log.Info("Setting up event handlers")
@@ -396,7 +392,7 @@ func (c *Controller) syncHandler(key string) (
 	// Get active workflows for this ScheduledWorkflow.
 	active, err := c.workflowClient.List(swf.Name,
 		false, /* active workflow */
-		0      /* retrieve all workflows */)
+		0 /* retrieve all workflows */)
 	if err != nil {
 		return false, true, swf,
 				wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch active workflows: %v", name, err)
@@ -499,7 +495,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	}
 
 	// If the workflow is not found, we need to create it.
-	newWorkflow, err := swf.NewWorkflow(nextScheduledEpoch, nowEpoch, c.defaultPipelineRunnerServiceAccount)
+	newWorkflow, err := swf.NewWorkflow(nextScheduledEpoch, nowEpoch)
 	createdWorkflow, err := c.workflowClient.Create(swf.Namespace, newWorkflow)
 
 	if err != nil {
