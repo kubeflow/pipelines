@@ -36,16 +36,26 @@ class TestExporterMethods(snapshottest.TestCase):
         cell = exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
+    # Test generates html to avoid issues with Python 3.5 where dict objects
+    # do not retain order upon object creation. Due to this, we test that the
+    # provided arguments exist and equal the provided value.
     def test_create_cell_from_args_with_multiple_args(self):
+        nb = new_notebook()
         args = {
             "source": "gs://ml-pipeline/data.csv",
             "target_lambda": "lambda x: (x['target'] > x['fare'] * 0.2)"
         }
-        cell = exporter.create_cell_from_args(args)
-        self.assertMatchSnapshot(cell.source)
+        code = [
+            "print(variables.get('source'))",
+            "print(variables.get('target_lambda'))"
+        ]
+        nb.cells.append(exporter.create_cell_from_args(args))
+        nb.cells.append(exporter.create_cell_from_custom_code(code))
+        html = self.exporter.generate_html_from_notebook(nb)
+        self.assertMatchSnapshot(html)
 
     def test_create_cell_from_file(self):
-        cell = exporter.create_cell_from_file("types/test.py")
+        cell = exporter.create_cell_from_file("types/tfdv.py")
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_custom_code(self):
