@@ -73,8 +73,7 @@ class PySampleChecker(object):
       print('Config file with the same name not found, use default args:{}'.format(ose))
     else:
       f.close()
-
-    test_args.update(raw_args['arguments'])
+      test_args.update(raw_args['arguments'])
 
     response = client.run_pipeline(experiment_id, job_name, self._input, test_args)
     run_id = response.id
