@@ -15,12 +15,10 @@
 import os
 import tarfile
 import utils
+import yaml
 from datetime import datetime
 from kfp import Client
-
-
-_TEST_TIMEOUT = 1200
-_XGB_TEST_TIMEOUT = 1800 # xgboost needs additional time to finish.
+from constants import CONFIG_DIR, DEFAULT_CONFIG
 
 
 class PySampleChecker(object):
@@ -64,49 +62,40 @@ class PySampleChecker(object):
 
     ###### Create Job ######
     job_name = self._testname + '_sample'
-    ###### Test-specific arguments #######
-    if self._testname == 'tfx_cab_classification':
-      params = {
-        'output':
-          self._output,
-        'project':
-          'ml-pipeline-test',
-        'column-names':
-          'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/column-names.json',
-        'evaluation':
-          'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval5.csv',
-        'train':
-          'gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train20.csv',
-        'hidden-layer-size':
-          '5',
-        'steps':
-          '5'
-      }
-    elif self._testname == 'xgboost_training_cm':
-      params = {
-        'output': self._output,
-        'project': 'ml-pipeline-test',
-        'train-data': 'gs://ml-pipeline-dataset/sample-test/sfpd/train_20.csv',
-        'eval-data': 'gs://ml-pipeline-dataset/sample-test/sfpd/eval_5.csv',
-        'schema': 'gs://ml-pipeline-dataset/sample-test/sfpd/schema.json',
-        'rounds': '5',
-        'workers': '2'
-      }
+    ###### Figure out arguments from associated config files. #######
+    test_args = {}
+    try:
+      with open(DEFAULT_CONFIG, 'r') as f:
+        raw_args = yaml.safe_load(f)
+    except yaml.YAMLError as yamlerr:
+      raise RuntimeError('Illegal default config:{}'.format(yamlerr))
+    except OSError as ose:
+      raise FileExistsError('Default config not found:{}'.format(ose))
     else:
-      # Basic tests require no additional params.
-      params = {}
+      test_timeout = raw_args['test_timeout']
 
-    response = client.run_pipeline(experiment_id, job_name, self._input, params)
+    try:
+      with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._testname), 'r') as f:
+          raw_args = yaml.safe_load(f)
+    except yaml.YAMLError as yamlerr:
+      print('No legit yaml config file found, use default args:{}'.format(yamlerr))
+    except OSError as ose:
+      print('Config file with the same name not found, use default args:{}'.format(ose))
+    else:
+      test_args.update(raw_args['arguments'])
+      if 'output' in test_args.keys():  # output is a special param that has to be specified dynamically.
+        test_args['output'] = self._output
+      if 'test_timeout' in raw_args.keys():
+        test_timeout = raw_args['test_timeout']
+
+    response = client.run_pipeline(experiment_id, job_name, self._input, test_args)
     run_id = response.id
     utils.add_junit_test(test_cases, 'create pipeline run', True)
 
     ###### Monitor Job ######
     try:
       start_time = datetime.now()
-      if self._testname == 'xgboost_training_cm':
-        response = client.wait_for_run_completion(run_id, _XGB_TEST_TIMEOUT)
-      else:
-        response = client.wait_for_run_completion(run_id, _TEST_TIMEOUT)
+      response = client.wait_for_run_completion(run_id, test_timeout)
       succ = (response.run.status.lower() == 'succeeded')
       end_time = datetime.now()
       elapsed_time = (end_time - start_time).seconds
