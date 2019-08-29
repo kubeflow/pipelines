@@ -18,7 +18,7 @@ import utils
 import yaml
 from datetime import datetime
 from kfp import Client
-from constants import XGB_TEST_TIMEOUT, TEST_TIMEOUT, CONFIG_DIR
+from constants import CONFIG_DIR, DEFAULT_CONFIG
 
 
 class PySampleChecker(object):
@@ -62,8 +62,19 @@ class PySampleChecker(object):
 
     ###### Create Job ######
     job_name = self._testname + '_sample'
-    ###### Figure out test-specific arguments from associated config files. #######
+    ###### Figure out arguments from associated config files. #######
     test_args = {}
+    try:
+      with open(DEFAULT_CONFIG, 'r') as f:
+        raw_args = yaml.safe_load(f)
+    except yaml.YAMLError as yamlerr:
+      raise RuntimeError('Illegal default config:{}'.format(yamlerr))
+    except OSError as ose:
+      raise FileExistsError('Default config not found:{}'.format(ose))
+    else:
+      f.close()
+      test_timeout = raw_args['test_timeout']
+
     try:
       with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._testname), 'r') as f:
           raw_args = yaml.safe_load(f)
@@ -76,6 +87,8 @@ class PySampleChecker(object):
       test_args.update(raw_args['arguments'])
       if 'output' in test_args.keys():  # output is a special param that has to be specified dynamically.
         test_args['output'] = self._output
+      if 'test_timeout' in raw_args.keys():
+        test_timeout = raw_args['test_timeout']
 
     response = client.run_pipeline(experiment_id, job_name, self._input, test_args)
     run_id = response.id
@@ -84,10 +97,7 @@ class PySampleChecker(object):
     ###### Monitor Job ######
     try:
       start_time = datetime.now()
-      if self._testname == 'xgboost_training_cm':
-        response = client.wait_for_run_completion(run_id, XGB_TEST_TIMEOUT)
-      else:
-        response = client.wait_for_run_completion(run_id, TEST_TIMEOUT)
+      response = client.wait_for_run_completion(run_id, test_timeout)
       succ = (response.run.status.lower() == 'succeeded')
       end_time = datetime.now()
       elapsed_time = (end_time - start_time).seconds

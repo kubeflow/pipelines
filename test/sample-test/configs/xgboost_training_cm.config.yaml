@@ -21,3 +21,4 @@ arguments:
   schema: gs://ml-pipeline-dataset/sample-test/sfpd/schema.json
   rounds: 5
   workers: 2
+test_timeout: 1800 # xgboost needs extra time.
