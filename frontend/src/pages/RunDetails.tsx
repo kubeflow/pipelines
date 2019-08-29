@@ -430,7 +430,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       const allowCustomVisualizations = await Apis.areCustomVisualizationsAllowed();
       this.setState({ allowCustomVisualizations });
     } catch (err) {
-      // Ignore error
+      this.showPageError('Error: Unable to enable custom visualizations.', err);
     }
 
     try {
@@ -692,6 +692,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     if (visualizationArguments.length) {
       try {
+        // Attempts to validate JSON, if attempt fails an error is displayed.
         JSON.parse(visualizationArguments);
       } catch (err) {
         this.showPageError('Unable to generate visualization, invalid JSON provided.', err);

@@ -647,6 +647,19 @@ describe('RunDetails', () => {
     });
   });
 
+  it('shows an error banner if the custom visualizations state API fails', async () => {
+    TestUtils.makeErrorResponseOnce(isCustomVisualizationsAllowedSpy, 'woops');
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await isCustomVisualizationsAllowedSpy;
+    await TestUtils.flushPromises();
+    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      additionalInfo: 'woops',
+      message:'Error: Unable to enable custom visualizations. Click Details for more information.',
+      mode: 'error',
+    }));
+  });
+
   describe('logs tab', () => {
     it('switches to logs tab in side pane', async () => {
       testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
