@@ -63,7 +63,7 @@ class PySampleChecker(object):
     ###### Create Job ######
     job_name = self._testname + '_sample'
     ###### Figure out test-specific arguments from associated config files. #######
-    test_args = {'output':self._output}
+    test_args = {}
     try:
       with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._testname), 'r') as f:
           raw_args = yaml.safe_load(f)
@@ -74,6 +74,8 @@ class PySampleChecker(object):
     else:
       f.close()
       test_args.update(raw_args['arguments'])
+      if 'output' in test_args.keys():  # output is a special param that has to be specified dynamically.
+        test_args['output'] = self._output
 
     response = client.run_pipeline(experiment_id, job_name, self._input, test_args)
     run_id = response.id
