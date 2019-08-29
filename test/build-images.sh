@@ -27,7 +27,9 @@ if
   echo "$BUILT_IMAGES" | grep api-server && \
   echo "$BUILT_IMAGES" | grep frontend && \
   echo "$BUILT_IMAGES" | grep scheduledworkflow && \
-  echo "$BUILT_IMAGES" | grep persistenceagent;
+  echo "$BUILT_IMAGES" | grep persistenceagent && \
+  echo "$BUILT_IMAGES" | grep viewer-crd && \
+  echo "$BUILT_IMAGES" | grep visualizationserver;
 then
   echo "docker images for api-server, frontend, scheduledworkflow and \
     persistenceagent are already built in ${GCR_IMAGE_BASE_DIR}."
