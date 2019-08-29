@@ -130,7 +130,7 @@ def _parameters_to_json(params: List[dsl.PipelineParam]):
 def _inputs_to_json(
     inputs_params: List[dsl.PipelineParam],
     input_artifact_paths: Dict[str, str] = None,
-):
+) -> Dict[str, Dict]:
     """Converts a list of PipelineParam into an argo `inputs` JSON obj."""
     parameters = _parameters_to_json(inputs_params)
 

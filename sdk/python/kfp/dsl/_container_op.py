@@ -968,7 +968,7 @@ class ContainerOp(BaseOp):
       init_containers: List[UserContainer] = None,
       sidecars: List[Sidecar] = None,
       container_kwargs: Dict = None,
-      artifact_argument_paths : List[InputArgumentPath] = None,
+      artifact_argument_paths: List[InputArgumentPath] = None,
       file_outputs: Dict[str, str] = None,
       output_artifact_paths : Dict[str, str]=None,
       artifact_location: V1alpha1ArtifactLocation=None,
