@@ -30,15 +30,6 @@ _PAPERMILL_ERR_MSG = 'An Exception was encountered at'
 
 
 class SampleTest(object):
-  """Launch a KFP sample_test provided its name.
-
-  Args:
-    test_name: name of the sample test.
-    input: The path of a pipeline package that will be submitted.
-    result: The path of the test result that will be exported.
-    output: The path of the test output.
-    namespace: Namespace of the deployed pipeline system. Default: kubeflow
-  """
 
   GITHUB_REPO = 'kubeflow/pipelines'
   BASE_DIR= '/python/src/github.com/' + GITHUB_REPO
@@ -46,6 +37,13 @@ class SampleTest(object):
 
   def __init__(self, test_name, results_gcs_dir, target_image_prefix='',
                namespace='kubeflow'):
+    """Launch a KFP sample_test provided its name.
+
+    :param test_name: name of the corresponding sample test.
+    :param results_gcs_dir: gs dir to store test result.
+    :param target_image_prefix: prefix of docker image, default is empty.
+    :param namespace: namespace for kfp, default is kubeflow.
+    """
     self._test_name = test_name
     self._results_gcs_dir = results_gcs_dir
     # Capture the first segment after gs:// as the project name.
