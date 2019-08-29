@@ -37,7 +37,7 @@ func NewWorkflow(workflow *workflowapi.Workflow) *Workflow {
 	}
 }
 
-// OverrideParameters overrides some of the parameters of a Workflow.
+// SetServiceAccount Set the service account to run the workflow.
 func (w *Workflow) SetServiceAccount(serviceAccount string) {
 	w.Spec.ServiceAccountName = serviceAccount
 }
