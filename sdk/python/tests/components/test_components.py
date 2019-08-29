@@ -270,6 +270,23 @@ implementation:
         self.assertEqual(task1.arguments[0], '--output-data')
         self.assertTrue(task1.arguments[1].startswith('/'))
 
+    def test_input_path_placeholder_with_constant_argument(self):
+        component_text = '''\
+inputs:
+- {name: input 1}
+implementation:
+  container:
+    image: busybox
+    command:
+      - --input-data
+      - {inputPath: input 1}
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        task1 = task_factory1('Text')
+
+        self.assertEqual(task1.command, ['--input-data', task1.input_artifact_paths['input 1']])
+        self.assertEqual(task1.artifact_arguments, {'input 1': 'Text'})
+
     def test_optional_inputs_reordering(self):
         '''Tests optional input reordering.
         In python signature, optional arguments must come after the required arguments.
