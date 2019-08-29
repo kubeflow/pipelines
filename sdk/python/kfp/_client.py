@@ -71,7 +71,6 @@ class Client(object):
   # in-cluster DNS name of the pipeline service
   IN_CLUSTER_DNS_NAME = 'ml-pipeline.{}.svc.cluster.local:8888'
   KUBE_PROXY_PATH = 'api/v1/namespaces/{}/services/ml-pipeline:http/proxy/'
-  INVERSE_PROXY_PATH = '.googleusercontent.com'
 
   def __init__(self, host=None, client_id=None, namespace='kubeflow'):
     """Create a new instance of kfp client.
