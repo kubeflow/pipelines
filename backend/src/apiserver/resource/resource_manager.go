@@ -40,6 +40,7 @@ import (
 
 const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
+	defaultPipelineRunnerServiceAccount = "pipeline-runner"
 )
 
 type ClientManagerInterface interface {
@@ -224,7 +225,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 
-	workflow.SetServiceAccount(common.GetStringConfig(defaultPipelineRunnerServiceAccountEnvVar))
+	workflow.SetServiceAccount(r.getDefaultSA())
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
 	// Add label to the workflow so it can be persisted by persistent agent later.
@@ -435,7 +436,7 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	}
 
 	// Set workflow to be run using default pipeline runner service account.
-	workflow.SetServiceAccount(common.GetStringConfig(defaultPipelineRunnerServiceAccountEnvVar))
+	workflow.SetServiceAccount(r.getDefaultSA())
 
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: v1.ObjectMeta{GenerateName: swfGeneratedName},
@@ -682,7 +683,7 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	}
 	// If default experiment ID is already present, don't fail, simply return.
 	if defaultExperimentId != "" {
-		glog.Info("Default experiment already exists! ID: %v", defaultExperimentId)
+		glog.Infof("Default experiment already exists! ID: %v", defaultExperimentId)
 		return "", nil
 	}
 
@@ -702,7 +703,7 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 		return "", fmt.Errorf("Failed to set default experiment ID. Err: %v", err)
 	}
 
-	glog.Info("Default experiment is set. ID is: %v", experiment.UUID)
+	glog.Infof("Default experiment is set. ID is: %v", experiment.UUID)
 	return experiment.UUID, nil
 }
 
@@ -780,4 +781,8 @@ func (r *ResourceManager) HaveSamplesLoaded() (bool, error) {
 
 func (r *ResourceManager) MarkSampleLoaded() error {
 	return r.dBStatusStore.MarkSampleLoaded()
+}
+
+func (r *ResourceManager) getDefaultSA() string{
+	return common.GetStringConfigWithDefault(defaultPipelineRunnerServiceAccountEnvVar, defaultPipelineRunnerServiceAccount)
 }
