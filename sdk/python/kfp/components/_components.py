@@ -239,6 +239,9 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
             arguments=arguments,
         )
         task._init_outputs()
+        
+        if isinstance(component_spec.implementation, GraphImplementation):
+            return _resolve_graph_task(task, component_spec)
 
         if _created_task_transformation_handler:
             task = _created_task_transformation_handler[-1](task)
@@ -276,3 +279,47 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     )
     task_factory.component_spec = component_spec
     return task_factory
+
+
+def _resolve_graph_task(graph_task: TaskSpec, graph_component_spec: ComponentSpec) -> TaskSpec:
+    from ..components import ComponentStore
+    component_store = ComponentStore.default_store
+
+    graph = graph_component_spec.implementation.graph
+
+    outputs_of_tasks = {}
+    def resolve_argument(argument):
+        if isinstance(argument, (str, int, float, bool)):
+            return argument
+        elif isinstance(argument, GraphInputArgument):
+            return graph_task.arguments[argument.input_name]
+        elif isinstance(argument, TaskOutputArgument):
+            upstream_task_output_ref = argument.task_output
+            upstream_task_outputs = outputs_of_tasks[upstream_task_output_ref.task_id]
+            upstream_task_output = upstream_task_outputs[upstream_task_output_ref.output_name]
+            return upstream_task_output
+        else:
+            raise TypeError('Argument for input has unexpected type "{}".'.format(type(argument)))
+
+    for task_id, task_spec in graph._toposorted_tasks.items(): # Cannot use graph.tasks here since they might be listed not in dependency order. Especially on python <3.6 where the dicts do not preserve ordering
+        task_factory = component_store._load_component_from_ref(task_spec.component_ref)
+        task_arguments = {input_name: resolve_argument(argument) for input_name, argument in task_spec.arguments.items()}
+        task_component_spec = task_spec.component_ref.spec
+
+        input_name_to_pythonic = generate_unique_name_conversion_table([input.name for input in task_component_spec.inputs], _sanitize_python_function_name)
+        output_name_to_pythonic = generate_unique_name_conversion_table([output.name for output in task_component_spec.outputs], _sanitize_python_function_name)
+        pythonic_output_name_to_original = {pythonic_name: original_name for original_name, pythonic_name in output_name_to_pythonic.items()}
+        pythonic_task_arguments = {input_name_to_pythonic[input_name]: argument for input_name, argument in task_arguments.items()}
+
+        task_obj = task_factory(**pythonic_task_arguments)
+        task_outputs_with_pythonic_names = task_obj.outputs
+        task_outputs_with_original_names = {pythonic_output_name_to_original[pythonic_output_name]: output_value for pythonic_output_name, output_value in task_outputs_with_pythonic_names.items()}
+        outputs_of_tasks[task_id] = task_outputs_with_original_names
+
+    resolved_graph_outputs = OrderedDict([(output_name, resolve_argument(argument)) for output_name, argument in graph.output_values.items()])
+
+    # For resolved graph component tasks task.outputs point to the actual tasks that originally produced the output that is later returned from the graph
+    graph_task.output_references = graph_task.outputs
+    graph_task.outputs = resolved_graph_outputs
+    
+    return graph_task
