@@ -65,14 +65,14 @@ from .structures.kubernetes import v1
 PrimitiveTypes = Union[str, int, float, bool]
 PrimitiveTypesIncludingNone = Optional[PrimitiveTypes]
 
-TypeType = Union[str, Dict, List]
+TypeSpecType = Union[str, Dict, List]
 
 
 class InputSpec(ModelBase):
     '''Describes the component input specification'''
     def __init__(self,
         name: str,
-        type: Optional[TypeType] = None,
+        type: Optional[TypeSpecType] = None,
         description: Optional[str] = None,
         default: Optional[PrimitiveTypes] = None,
         optional: Optional[bool] = False,
@@ -84,7 +84,7 @@ class OutputSpec(ModelBase):
     '''Describes the component output specification'''
     def __init__(self,
         name: str,
-        type: Optional[TypeType] = None,
+        type: Optional[TypeSpecType] = None,
         description: Optional[str] = None,
     ):
         super().__init__(locals())
@@ -350,13 +350,13 @@ class TaskOutputReference(ModelBase):
         output_name: str,
         task_id: Optional[str] = None,      # Used for linking to the upstream task in serialized component file.
         task: Optional['TaskSpec'] = None,  # Used for linking to the upstream task in runtime since Task does not have an ID until inserted into a graph.
-        type: Optional[TypeType] = None,    # Can be used to override the reference data type
+        type: Optional[TypeSpecType] = None,    # Can be used to override the reference data type
     ):
         super().__init__(locals())
         if self.task_id is None and self.task is None:
             raise TypeError('task_id and task cannot be None at the same time.')
 
-    def with_type(self, type_spec: TypeType) -> 'TaskOutputReference':
+    def with_type(self, type_spec: TypeSpecType) -> 'TaskOutputReference':
         return TaskOutputReference(
             output_name=self.output_name,
             task_id=self.task_id,
@@ -389,7 +389,7 @@ class TaskOutputArgument(ModelBase): #Has additional constructor for convenience
             output_name=output_name,
         ))
 
-    def with_type(self, type_spec: TypeType) -> 'TaskOutputArgument':
+    def with_type(self, type_spec: TypeSpecType) -> 'TaskOutputArgument':
         return TaskOutputArgument(
             task_output=self.task_output.with_type(type_spec),
         )
