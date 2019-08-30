@@ -22,3 +22,12 @@ arguments:
   rounds: 5
   workers: 2
 test_timeout: 1800 # xgboost needs extra time.
+images:
+  dataproc_create_cluster_image: gcr\.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\w+
+  dataproc_delete_cluster_image: gcr\.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\w+
+  dataproc_analyze_image: gcr\.io/ml-pipeline/ml-pipeline-dataproc-analyze:\w+
+  dataproc_transform_image: gcr\.io/ml-pipeline/ml-pipeline-dataproc-transform:\w+
+  dataproc_train_image: gcr\.io/ml-pipeline/ml-pipeline-dataproc-train
+  dataproc_predict_image: gcr\.io/ml-pipeline/ml-pipeline-dataproc-predict:\w+
+  local_confusionmatrix_image: gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:\w+
+  local_roc_image: gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:\w+

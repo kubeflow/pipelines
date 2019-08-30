@@ -21,8 +21,10 @@ import os
 import papermill as pm
 import subprocess
 import utils
+import yamale
+import yaml
 
-from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR
+from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR, CONFIG_DIR, SCHEMA_CONFIG
 from check_notebook_results import NoteBookChecker
 from run_sample_test import PySampleChecker
 
@@ -131,75 +133,45 @@ class ComponentTest(SampleTest):
   Currently follows the same logic as sample test for compatibility.
   include xgboost_training_cm, tfx_cab_classification
   """
-  def __init__(self, test_name, results_gcs_dir,
-               dataflow_tft_image,
-               dataflow_predict_image,
-               dataflow_tfma_image,
-               dataflow_tfdv_image,
-               dataproc_create_cluster_image,
-               dataproc_delete_cluster_image,
-               dataproc_analyze_image,
-               dataproc_transform_image,
-               dataproc_train_image,
-               dataproc_predict_image,
-               kubeflow_dnntrainer_image,
-               kubeflow_deployer_image,
-               local_confusionmatrix_image,
-               local_roc_image,
+  def __init__(self,
+               test_name,
+               results_gcs_dir,
                target_image_prefix='',
-               namespace='kubeflow'):
+               namespace='kubeflow',
+               **kwargs
+               ):
     super().__init__(
         test_name=test_name,
         results_gcs_dir=results_gcs_dir,
         target_image_prefix=target_image_prefix,
         namespace=namespace
     )
-    self._dataflow_tft_image = dataflow_tft_image
-    self._dataflow_predict_image = dataflow_predict_image
-    self._dataflow_tfma_image = dataflow_tfma_image
-    self._dataflow_tfdv_image = dataflow_tfdv_image
-    self._dataproc_create_cluster_image = dataproc_create_cluster_image
-    self._dataproc_delete_cluster_image = dataproc_delete_cluster_image
-    self._dataproc_analyze_image = dataproc_analyze_image
-    self._dataproc_transform_image = dataproc_transform_image
-    self._dataproc_train_image = dataproc_train_image
-    self._dataproc_predict_image = dataproc_predict_image
-    self._kubeflow_dnntrainer_image = kubeflow_dnntrainer_image
-    self._kubeflow_deployer_image = kubeflow_deployer_image
-    self._local_confusionmatrix_image = local_confusionmatrix_image
-    self._local_roc_image = local_roc_image
+    self._img_spec = kwargs
 
   def _injection(self):
     """Sample-specific image injection into yaml file."""
-    subs = {
-        'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:\w+':self._local_confusionmatrix_image,
-        'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:\w+':self._local_roc_image
-    }
-    if self._test_name == 'xgboost_training_cm':
-      subs.update({
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\w+':self._dataproc_create_cluster_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\w+':self._dataproc_delete_cluster_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-analyze:\w+':self._dataproc_analyze_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-transform:\w+':self._dataproc_transform_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-train:\w+':self._dataproc_train_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-predict:\w+':self._dataproc_predict_image,
-      })
-
-      utils.file_injection('%s.yaml' % self._test_name,
-                           '%s.yaml.tmp' % self._test_name,
-                           subs)
-    elif self._test_name == 'tfx_cab_classification':
-      subs.update({
-          'gcr\.io/ml-pipeline/ml-pipeline-dataflow-tft:\w+':self._dataflow_tft_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\w+':self._dataflow_predict_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-dataflow-tfdv:\w+':self._dataflow_tfdv_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-dataflow-tfma:\w+':self._dataflow_tfma_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\w+':self._kubeflow_dnntrainer_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-deployer:\w+':self._kubeflow_deployer_image,
-      })
+    config_schema = yamale.make_schema(SCHEMA_CONFIG)
+    wait_for_inject = {}  # img name to pattern in the test config.yaml
+    try:
+      with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._test_name), 'r') as f:
+        raw_args = yaml.safe_load(f)
+      test_config = yamale.make_data(os.path.join(
+        CONFIG_DIR, '%s.config.yaml' % self._test_name))
+      yamale.validate(config_schema, test_config)  # If fails, a ValueError will be raised.
+    except yaml.YAMLError as yamlerr:
+      print('No legit yaml config file found, no injection:{}'.format(yamlerr))
+    except OSError as ose:
+      print('Config file with the same name not found, no injection:{}'.format(ose))
     else:
-      # Only the above two samples need injection for now.
-      pass
+      wait_for_inject.update(raw_args['images'])
+
+    subs = {}
+    for name, pattern in wait_for_inject.items():
+      if name not in self._img_spec.keys():
+        raise NameError('Cannot find specification for image injection:{}'.format(name))
+      else:
+        subs[pattern] = self._img_spec[name]
+
     utils.file_injection('%s.yaml' % self._test_name,
                          '%s.yaml.tmp' % self._test_name,
                          subs)

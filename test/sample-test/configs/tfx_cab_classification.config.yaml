@@ -21,3 +21,12 @@ arguments:
   train: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train20.csv
   hidden-layer-size: 5
   steps: 5
+images:
+  local_confusionmatrix_image: gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-confusion-matrix:\w+
+  local_roc_image: gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-local-roc:\w+
+  dataflow_tft_image: gcr\.io/ml-pipeline/ml-pipeline-dataflow-tft:\w+
+  dataflow_predict_image: gcr\.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\w+
+  dataflow_tfdv_image: gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-dataflow-tfdv:\w+
+  dataflow_tfma_image: gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-dataflow-tfma:\w+
+  kubeflow_dnntrainer_image: gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\w+
+  kubeflow_deployer_image: gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-deployer:\w+

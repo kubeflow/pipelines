@@ -16,3 +16,4 @@
 test_name: str()
 arguments: map(required=False)
 test_timeout: int(min=0, required=False)
+images: map(str(), required=False)
