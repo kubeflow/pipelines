@@ -95,6 +95,21 @@ implementation:
         task1 = task_factory1()
         assert task1.container.image == component_dict['implementation']['container']['image']
 
+    def test_accessing_component_spec_from_task_factory(self):
+        component_text = '''\
+implementation:
+  container:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+
+        actual_component_spec = task_factory1.component_spec
+        actual_component_spec_dict = actual_component_spec.to_dict()
+        expected_component_spec_dict = load_yaml(component_text)
+        expected_component_spec = kfp.components._structures.ComponentSpec.from_dict(expected_component_spec_dict)
+        self.assertEqual(expected_component_spec_dict, actual_component_spec_dict)
+        self.assertEqual(expected_component_spec, task_factory1.component_spec)
+
     @unittest.expectedFailure
     def test_fail_on_duplicate_input_names(self):
         component_text = '''\
