@@ -15,6 +15,7 @@
 import click
 from .._client import Client
 from .run import run
+from .pipeline import pipeline
 
 @click.group()
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
@@ -28,4 +29,5 @@ def cli(ctx, endpoint, iap_client_id, namespace):
 
 def main():
     cli.add_command(run)
+    cli.add_command(pipeline)
     cli(obj={}, auto_envvar_prefix='KFP')
