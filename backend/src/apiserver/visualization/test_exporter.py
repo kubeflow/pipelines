@@ -14,7 +14,7 @@
 
 import importlib
 import unittest
-from nbformat.v4 import new_notebook
+from nbformat.v4 import new_notebook, new_code_cell
 import snapshottest
 
 exporter = importlib.import_module("exporter")
@@ -75,6 +75,54 @@ class TestExporterMethods(snapshottest.TestCase):
         nb.cells.append(exporter.create_cell_from_custom_code(code))
         html = self.exporter.generate_html_from_notebook(nb)
         self.assertMatchSnapshot(html)
+
+    def test_generate_roc_curve_visualization(self):
+        nb = new_notebook()
+        source = "https://storage.cloud.google.com/ml-pipeline-dataset/python-based-visualizations-test-data/roc.csv?folder=true&organizationId=true"
+        args = {"is_generated": True}
+        nb.cells.append(new_code_cell('source = "{}"'.format(source)))
+        nb.cells.append(exporter.create_cell_from_args(args))
+        nb.cells.append(exporter.create_cell_from_file("types/roc_curve.py"))
+        html = self.exporter.generate_html_from_notebook(nb)
+        # Ensure that no error is encountered by checking that the
+        # "output_error" class does not exist in the html.
+        self.assertTrue("output_error" not in html)
+        # Tests that both source and variables variable are accessible within
+        # the generated HTML by validating they are defined.
+        self.assertTrue("&#39;source&#39; is not defined" not in html)
+        self.assertTrue("&#39;variables&#39; is not defined" not in html)
+
+    def test_generate_table_visualization(self):
+        nb = new_notebook()
+        source = "https://storage.cloud.google.com/ml-pipeline-dataset/python-based-visualizations-test-data/table.csv?folder=true&organizationId=true"
+        args = {}
+        nb.cells.append(new_code_cell('source = "{}"'.format(source)))
+        nb.cells.append(exporter.create_cell_from_args(args))
+        nb.cells.append(exporter.create_cell_from_file("types/table.py"))
+        html = self.exporter.generate_html_from_notebook(nb)
+        # Ensure that no error is encountered by checking that the
+        # "output_error" class does not exist in the html.
+        self.assertTrue("output_error" not in html)
+        # Tests that both source and variables variable are accessible within
+        # the generated HTML by validating they are defined.
+        self.assertTrue("&#39;source&#39; is not defined" not in html)
+        self.assertTrue("&#39;variables&#39; is not defined" not in html)
+
+    def test_generate_tfdv_visualization(self):
+        nb = new_notebook()
+        source = "https://storage.cloud.google.com/ml-pipeline-dataset/python-based-visualizations-test-data/tfdv.csv?folder=true&organizationId=true"
+        args = {}
+        nb.cells.append(new_code_cell('source = "{}"'.format(source)))
+        nb.cells.append(exporter.create_cell_from_args(args))
+        nb.cells.append(exporter.create_cell_from_file("types/tfdv.py"))
+        html = self.exporter.generate_html_from_notebook(nb)
+        # Ensure that no error is encountered by checking that the
+        # "output_error" class does not exist in the html.
+        self.assertTrue("output_error" not in html)
+        # Tests that both source and variables variable are accessible within
+        # the generated HTML by validating they are defined.
+        self.assertTrue("&#39;source&#39; is not defined" not in html)
+        self.assertTrue("&#39;variables&#39; is not defined" not in html)
 
 
 if __name__ == "__main__":
