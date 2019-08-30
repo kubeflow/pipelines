@@ -60,8 +60,9 @@ const {
   /** API service will listen to this host */
   METADATA_ENVOY_SERVICE_SERVICE_HOST = 'localhost',
   /** API service will listen to this port */
-  METADATA_ENVOY_SERVICE_SERVICE_PORT = '9090'
-  ,
+  METADATA_ENVOY_SERVICE_SERVICE_PORT = '9090',
+  /** Host of UI service */
+  ML_PIPELINE_UI_SERVICE_HOST,
 } = process.env;
 
 /** construct minio endpoint from host and namespace (optional) */
@@ -366,10 +367,18 @@ app.get(BASEPATH + '/system/project-id', projectIdHandler);
 app.get('/visualizations/allowed', allowCustomVisualizationsHandler);
 app.get(BASEPATH + '/visualizations/allowed', allowCustomVisualizationsHandler);
 
-app.all('/ml_metadata', proxy({
+app.all('/ml_metadata.*', proxy({
   changeOrigin: true,
   onProxyReq: proxyReq => {
     console.log('Metadata proxied request: ', (proxyReq as any).path);
+  },
+  target: metadataServerAddress,
+}));
+
+app.all('*/ml_metadata.*', proxy({
+  changeOrigin: true,
+  onProxyReq: proxyReq => {
+    console.log('!!!!!!!!!!!!!!!!!!!!!11s: ', (proxyReq as any).path);
   },
   target: metadataServerAddress,
 }));

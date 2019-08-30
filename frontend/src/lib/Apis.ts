@@ -147,7 +147,8 @@ export class Apis {
     request.setExecutionType(executionType);
     request.setAllFieldsMatch(true);
 
-    const client = new MetadataStoreServiceClient('http://localhost:3000');
+    // TODO: replace emptystring with metadata API prefix
+    const client = new MetadataStoreServiceClient('');
     // tslint:disable-next-line:no-console
     console.log('Making metadata request!');
     client.putExecutionType(request, (err, response) => {
