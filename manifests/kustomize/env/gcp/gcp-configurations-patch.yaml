@@ -11,9 +11,9 @@ spec:
             - name: OBJECTSTORECONFIG_BUCKETNAME
               # Don't add gs:// prefix.
               # If bucket doesn't exist, the deployment will create one.
-              value: 'foobarmlpipeline'
+              value: ''
             - name: DBCONFIG_PASSWORD
-              value: '123'
+              value: ''
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
@@ -26,9 +26,9 @@ spec:
         - name: cloudsqlproxy
           env:
             - name: GCP_PROJECT
-              value: 'yang-experiment-6'
+              value: ''
             - name: CLOUDSQL_ZONE
               # E.g. us-central1
-              value: 'us-central1'
+              value: ''
             - name: CLOUDSQL_INSTANCE_NAME
-              value: 'kfp-test'
+              value: ''

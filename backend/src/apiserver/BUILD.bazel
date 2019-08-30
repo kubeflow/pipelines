@@ -4,7 +4,6 @@ go_library(
     name = "go_default_library",
     srcs = [
         "client_manager.go",
-        "config.go",
         "interceptor.go",
         "main.go",
     ],
@@ -13,6 +12,7 @@ go_library(
     deps = [
         "//backend/api:go_default_library",
         "//backend/src/apiserver/client:go_default_library",
+        "//backend/src/apiserver/common:go_default_library",
         "//backend/src/apiserver/model:go_default_library",
         "//backend/src/apiserver/resource:go_default_library",
         "//backend/src/apiserver/server:go_default_library",
