@@ -92,7 +92,7 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
         response = self.fetch(
             "/",
             method="POST",
-            body='type=test&source=gs://ml-pipeline/data.csv')
+            body='type=table&source=gs://storage.cloud.google.com/ml-pipeline-dataset/python-based-visualizations-test-data/table.csv')
         self.assertEqual(200, response.code)
 
 
