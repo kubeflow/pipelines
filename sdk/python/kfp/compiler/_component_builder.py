@@ -431,7 +431,7 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
   Args:
     staging_gcs_path (str): GCS blob that can store temporary build files
     target_image (str): gcr path to push the final image
-    dockerfile_path (str): local path to the dockerfile
+    dockerfile_path (str): local path to the dockerfile or local path to directory with docker context
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
     namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
   """
@@ -439,11 +439,19 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
 
   with tempfile.TemporaryDirectory() as local_build_dir:
     dockerfile_rel_path = 'Dockerfile'
-    dst_dockerfile_path = os.path.join(local_build_dir, dockerfile_rel_path)
-    shutil.copyfile(dockerfile_path, dst_dockerfile_path)
+    # handle a docker context directory
+    if os.path.isdir(dockerfile_path):
+      local_dir = os.path.join(local_build_dir, 'source')
+      logging.info('Going to copy a docker context directory from %s to %s', dockerfile_path, local_dir)
+      shutil.copytree(dockerfile_path, local_dir)
+    # support a single dockerfile file as a path to backward compatibility
+    else:
+      dst_dockerfile_path = os.path.join(local_build_dir, dockerfile_rel_path)
+      shutil.copyfile(dockerfile_path, dst_dockerfile_path)
+      local_dir = local_build_dir
 
     container_builder = ContainerBuilder(staging_gcs_path, target_image, namespace=namespace)
-    image_name_with_digest = container_builder.build(local_build_dir, dockerfile_rel_path, target_image, timeout)
+    image_name_with_digest = container_builder.build(local_dir, dockerfile_rel_path, target_image, timeout)
 
   logging.info('Build image complete.')
   return image_name_with_digest
