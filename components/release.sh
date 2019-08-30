@@ -23,6 +23,13 @@
 
 set -xe
 
+if [[ "$OSTYPE" == 'darwin'* ]]; then
+  if [ -z "$(which gsed)" ]; then
+    brew install gnu-sed
+  fi
+  alias sed=gsed
+fi
+
 images=(
   "ml-pipeline-dataflow-tf-predict"
   "ml-pipeline-dataflow-tfdv"
@@ -44,20 +51,23 @@ images=(
 )
 
 COMMIT_SHA=$1
+VERSION=$2
 FROM_GCR_PREFIX='gcr.io/ml-pipeline-test/'
 TO_GCR_PREFIX='gcr.io/ml-pipeline/'
 REPO=kubeflow/pipelines
 
-if [ -z "$COMMIT_SHA" ]; then
-  echo "Usage: release.sh <commit-SHA>" >&2
+if [ -z "$COMMIT_SHA" ] || [ -z "$VERSION" ]; then
+  echo "Usage: release.sh <commit-SHA> <version>" >&2
   exit 1
 fi
 
 # Checking out the repo
 clone_dir=$(mktemp -d)
+echo "Working in directory: $clone_dir"
+
 git clone "git@github.com:${REPO}.git" "$clone_dir"
 cd "$clone_dir"
-branch="release-$COMMIT_SHA"
+branch="release-$VERSION-$COMMIT_SHA"
 # Currently the release is based on master
 release_head=master
 git checkout "$release_head" -b "$branch"
@@ -93,6 +103,21 @@ done
 git add --all
 git commit --message "Updated components to version $image_update_commit_sha"
 component_update_commit_sha=$(git rev-parse HEAD)
+
+
+# Updating the SDK version
+sdk_file_path=sdk/python/setup.py
+sed -i -E "s/VERSION\s*=.*/VERSION = '$VERSION'/" "$sdk_file_path"
+git add "$sdk_file_path"
+git commit --message "Bumped the python SDK version to $VERSION"
+
+
+# Updating the manifest versions
+manifest_file_path=manifests/kustomize/base/kustomization.yaml
+sed -i -E "s/newtag: .*/newtag: $VERSION/" "$manifest_file_path"
+git add "$manifest_file_path"
+git commit --message "Set the Kustomize manifest tag to $VERSION"
+
 
 # Pushing the changes upstream
 read -p "Do you want to push the new branch to upstream to create a PR? [y|n]"
