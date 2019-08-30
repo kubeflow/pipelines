@@ -168,6 +168,165 @@ implementation:
         component_spec = ComponentSpec.from_dict(struct)
         self.assertEqual(component_spec.implementation.graph.tasks['task 1'].k8s_pod_options.spec.volumes[0].name, 'workdir')
         self.assertTrue(component_spec.implementation.graph.tasks['task 1'].k8s_pod_options.spec.volumes[0].empty_dir is not None)
+    
+    def test_load_graph_component(self):
+        component_text = '''\
+inputs:
+- {name: graph in 1}
+- {name: graph in 2}
+outputs:
+- {name: graph out 1}
+- {name: graph out 2}
+- {name: graph out 3}
+- {name: graph out 4}
+implementation:
+  graph:
+    tasks:
+      task 1:
+        componentRef:
+          spec:
+            name: Component 1
+            inputs:
+            - {name: in1_1}
+            outputs:
+            - {name: out1_1}
+            - {name: out1_2}
+            implementation:
+              container:
+                image: busybox
+                command: [sh, -c, 'echo "$0" > $1; echo "$0" > $2', {inputValue: in1_1}, {outputPath: out1_1}, {outputPath: out1_2}]
+        arguments:
+            in1_1: 11
+      task 2:
+        componentRef:
+          spec:
+            name: Component 2
+            inputs:
+            - {name: in2_1}
+            - {name: in2_2}
+            outputs:
+            - {name: out2_1}
+            implementation:
+              container:
+                image: busybox
+                command: [sh, -c, 'cat "$0" "$1" > $2', {inputValue: in2_1}, {inputValue: in2_2}, {outputPath: out2_1}]
+        arguments:
+            in2_1: 21
+            in2_2: {taskOutput: {taskId: task 1, outputName: out1_1}}
+      task 3:
+        componentRef:
+          spec:
+            name: Component 3
+            inputs:
+            - {name: in3_1}
+            - {name: in3_2}
+            outputs:
+            - {name: out3_1}
+            implementation:
+              container:
+                image: busybox
+                command: [sh, -c, 'cat "$0" "$1" > $2', {inputValue: in3_1}, {inputValue: in3_2}, {outputPath: out3_1}]
+        arguments:
+            in3_1: {taskOutput: {taskId: task 2, outputName: out2_1}}
+            in3_2: {graphInput: graph in 1}
+    outputValues:
+      graph out 1: {taskOutput: {taskId: task 3, outputName: out3_1}}
+      graph out 2: {taskOutput: {taskId: task 1, outputName: out1_2}}
+      graph out 3: {graphInput: graph in 2}
+      graph out 4: 42
+'''
+        op = comp.load_component_from_text(component_text)
+        task = op('graph 1', 'graph 2')
+        self.assertEqual(len(task.outputs), 4)
+    
+    def test_load_nested_graph_components(self):
+        component_text = '''\
+inputs:
+- {name: graph in 1}
+- {name: graph in 2}
+outputs:
+- {name: graph out 1}
+- {name: graph out 2}
+- {name: graph out 3}
+- {name: graph out 4}
+implementation:
+  graph:
+    tasks:
+      task 1:
+        componentRef:
+          spec:
+            name: Component 1
+            inputs:
+            - {name: in1_1}
+            outputs:
+            - {name: out1_1}
+            - {name: out1_2}
+            implementation:
+              container:
+                image: busybox
+                command: [sh, -c, 'echo "$0" > $1; echo "$0" > $2', {inputValue: in1_1}, {outputPath: out1_1}, {outputPath: out1_2}]
+        arguments:
+            in1_1: 11
+      task 2:
+        componentRef:
+          spec:
+            name: Component 2
+            inputs:
+            - {name: in2_1}
+            - {name: in2_2}
+            outputs:
+            - {name: out2_1}
+            implementation:
+              container:
+                image: busybox
+                command: [sh, -c, 'cat "$0" "$1" > $2', {inputValue: in2_1}, {inputValue: in2_2}, {outputPath: out2_1}]
+        arguments:
+            in2_1: 21
+            in2_2: {taskOutput: {taskId: task 1, outputName: out1_1}}
+      task 3:
+        componentRef:
+          spec:
+            inputs:
+            - {name: in3_1}
+            - {name: in3_2}
+            outputs:
+            - {name: out3_1}
+            implementation:
+              graph:
+                tasks:
+                  graph subtask:
+                    componentRef:
+                      spec:
+                        name: Component 3
+                        inputs:
+                        - {name: in3_1}
+                        - {name: in3_2}
+                        outputs:
+                        - {name: out3_1}
+                        implementation:
+                          container:
+                            image: busybox
+                            command: [sh, -c, 'cat "$0" "$1" > $2', {inputValue: in3_1}, {inputValue: in3_2}, {outputPath: out3_1}]
+                    arguments:
+                      in3_1: {graphInput: in3_1}
+                      in3_2: {graphInput: in3_1}
+                outputValues:
+                  out3_1: {taskOutput: {taskId: graph subtask, outputName: out3_1}}
+        arguments:
+          in3_1: {taskOutput: {taskId: task 2, outputName: out2_1}}
+          in3_2: {graphInput: graph in 1}
+    outputValues:
+      graph out 1: {taskOutput: {taskId: task 3, outputName: out3_1}}
+      graph out 2: {taskOutput: {taskId: task 1, outputName: out1_2}}
+      graph out 3: {graphInput: graph in 2}
+      graph out 4: 42
+'''
+        op = comp.load_component_from_text(component_text)
+        task = op('graph 1', 'graph 2')
+        self.assertIn('out3_1', str(task.outputs['graph out 1'])) # Checks that the outputs coming from tasks in nested subgraphs are properly resolved.
+        self.assertIn('out1_2', str(task.outputs['graph out 2']))
+        self.assertEqual(task.outputs['graph out 3'], 'graph 2')
+        self.assertEqual(task.outputs['graph out 4'], 42)
 
 #TODO: Test task name conversion to Argo-compatible names
 
