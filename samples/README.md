@@ -33,3 +33,5 @@ Useful parameter values:
 ## Components source
 
 All samples use pre-built components. The command to run for each container is built into the pipeline file.
+
+## (Optional) Add sample test coverage
