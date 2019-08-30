@@ -29,5 +29,5 @@ managedstorage:
   cloudsqlZone: null
   dbPassword: null
   gcpProject: null
-  gcpSecretName: null
   databaseNamePrefix: null
+  gcpSecretName: null

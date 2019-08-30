@@ -1,1 +1,1 @@
-FROM gcr.io/cloud-marketplace-tools/k8s/deployer_helm/onbuild
+FROM gcr.io/yang-experiment-6/marketplace-k8s-app-tools/k8s/deployer_helm/onbuild:unreleased-pr396
