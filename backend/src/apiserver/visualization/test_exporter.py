@@ -78,7 +78,7 @@ class TestExporterMethods(snapshottest.TestCase):
 
     def test_generate_roc_curve_visualization(self):
         nb = new_notebook()
-        source = "https://storage.cloud.google.com/ml-pipeline-dataset/python-based-visualizations-test-data/roc.csv?folder=true&organizationId=true"
+        source = "gs://ml-pipeline-dataset/python-based-visualizations-test-data/roc.csv"
         args = {"is_generated": True}
         nb.cells.append(new_code_cell('source = "{}"'.format(source)))
         nb.cells.append(exporter.create_cell_from_args(args))
@@ -94,7 +94,7 @@ class TestExporterMethods(snapshottest.TestCase):
 
     def test_generate_table_visualization(self):
         nb = new_notebook()
-        source = "https://storage.cloud.google.com/ml-pipeline-dataset/python-based-visualizations-test-data/table.csv?folder=true&organizationId=true"
+        source = "gs://ml-pipeline-dataset/python-based-visualizations-test-data/table.csv"
         args = {}
         nb.cells.append(new_code_cell('source = "{}"'.format(source)))
         nb.cells.append(exporter.create_cell_from_args(args))
@@ -110,7 +110,7 @@ class TestExporterMethods(snapshottest.TestCase):
 
     def test_generate_tfdv_visualization(self):
         nb = new_notebook()
-        source = "https://storage.cloud.google.com/ml-pipeline-dataset/python-based-visualizations-test-data/tfdv.csv?folder=true&organizationId=true"
+        source = "gs://ml-pipeline-dataset/python-based-visualizations-test-data/tfdv.csv"
         args = {}
         nb.cells.append(new_code_cell('source = "{}"'.format(source)))
         nb.cells.append(exporter.create_cell_from_args(args))
