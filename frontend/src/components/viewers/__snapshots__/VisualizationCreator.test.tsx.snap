@@ -229,7 +229,7 @@ exports[`VisualizationCreator renders an Editor component if a visualization typ
       enableSnippets={false}
       focus={false}
       fontSize={12}
-      height="112px"
+      height="84px"
       highlightActiveLine={true}
       maxLines={null}
       minLines={null}
@@ -240,7 +240,7 @@ exports[`VisualizationCreator renders an Editor component if a visualization typ
       onLoad={null}
       onPaste={null}
       onScroll={null}
-      placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp\\"y_true\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"y_score\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"pos_label\\": number | string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"sample_weight\\": array | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"drop_intermediate\\": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"is_generated\\": boolean | null,<br>        }"
+      placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp\\"is_generated\\": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"target_lambda\\": string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"trueclass\\": string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"true_score_column\\": string | null<br>        }"
       readOnly={false}
       scrollMargin={
         Array [
@@ -722,7 +722,7 @@ exports[`VisualizationCreator renders the provided arguments 1`] = `
       enableSnippets={false}
       focus={false}
       fontSize={12}
-      height="112px"
+      height="84px"
       highlightActiveLine={true}
       maxLines={null}
       minLines={null}
@@ -733,7 +733,7 @@ exports[`VisualizationCreator renders the provided arguments 1`] = `
       onLoad={null}
       onPaste={null}
       onScroll={null}
-      placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp\\"y_true\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"y_score\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"pos_label\\": number | string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"sample_weight\\": array | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"drop_intermediate\\": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"is_generated\\": boolean | null,<br>        }"
+      placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp\\"is_generated\\": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"target_lambda\\": string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"trueclass\\": string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"true_score_column\\": string | null<br>        }"
       readOnly={false}
       scrollMargin={
         Array [
@@ -844,7 +844,7 @@ exports[`VisualizationCreator renders the selected visualization type 1`] = `
       enableSnippets={false}
       focus={false}
       fontSize={12}
-      height="112px"
+      height="84px"
       highlightActiveLine={true}
       maxLines={null}
       minLines={null}
@@ -855,7 +855,7 @@ exports[`VisualizationCreator renders the selected visualization type 1`] = `
       onLoad={null}
       onPaste={null}
       onScroll={null}
-      placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp\\"y_true\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"y_score\\": array,<br>        &nbsp&nbsp&nbsp&nbsp\\"pos_label\\": number | string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"sample_weight\\": array | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"drop_intermediate\\": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"is_generated\\": boolean | null,<br>        }"
+      placeholder="{<br>        &nbsp&nbsp&nbsp&nbsp\\"is_generated\\": boolean | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"target_lambda\\": string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"trueclass\\": string | null,<br>        &nbsp&nbsp&nbsp&nbsp\\"true_score_column\\": string | null<br>        }"
       readOnly={false}
       scrollMargin={
         Array [
