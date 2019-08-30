@@ -122,7 +122,7 @@ steps:
   id:   'tagVisualizationServerCommitSHA'
   waitFor: ['pullVisualizationServer']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/visualizationServer:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/visualizationServer:$TAG_NAME']
   id:   'tagVisualizationServerForMarketplace'
   waitFor: ['pullVisualizationServer']
 
@@ -215,6 +215,7 @@ images:
 - 'gcr.io/ml-pipeline/google/pipelines/viewerCrd:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/persistenceagent:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/proxyAgent:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines/visualizationServer:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/metadataServer:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/minio:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/mysql:$TAG_NAME'
