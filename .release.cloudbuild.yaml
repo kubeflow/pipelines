@@ -162,7 +162,7 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['tag', 'gcr.io/ml-pipeline/workflow-controller:v2.3.0', 'gs://ml-pipeline/google/pipelines/argoWorkflowController:$TAG_NAME']
 
-  # Copy the Python SDK
+# Copy the Python SDK
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz', '/workspace/']
   id:   'copyPythonSDKLocal'
