@@ -19,6 +19,7 @@ steps:
   entrypoint: '/bin/sh'
   args: ['-c', 'cd /workspace/sdk/python/; python3 setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp.tar.gz']
   id:   'preparePythonSDK'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', '/workspace/kfp.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp.tar.gz']
   id:   'copyPythonSDK'
@@ -33,6 +34,7 @@ steps:
   entrypoint: '/bin/sh'
   args: ['-c', 'cd /workspace/components/gcp/container/component_sdk/python;python setup.py sdist --format=gztar; cp dist/*.tar.gz /workspace/kfp-component.tar.gz']
   id:   'preparePythonComponentSDK'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://$PROJECT_ID/builds/$COMMIT_SHA/kfp-component.tar.gz']
   id:   'copyPythonComponentSDK'
@@ -47,6 +49,7 @@ steps:
   entrypoint: '/bin/bash'
   args: ['-c', 'sed -i -e "s/ARG DATE/ENV DATE \"$(date -u)\"/" /workspace/frontend/Dockerfile']
   id:   'prepareFrontend'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA',
          '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
@@ -59,10 +62,12 @@ steps:
          '/workspace/backend/Dockerfile', '/workspace']
   id:   'buildApiServer'
   waitFor: ['copyPythonSDK']
+
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/scheduledworkflow:$COMMIT_SHA', '-f',
          '/workspace/backend/Dockerfile.scheduledworkflow', '/workspace']
   id:   'buildScheduledWorkflow'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA', '-f',
          '/workspace/backend/Dockerfile.viewercontroller', '/workspace']
@@ -71,89 +76,108 @@ steps:
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/persistenceagent:$COMMIT_SHA', '-f',
          '/workspace/backend/Dockerfile.persistenceagent', '/workspace']
   id:   'buildPersistenceAgent'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA', '-f',
          '/workspace/proxy/Dockerfile', '/workspace/proxy']
   id:   'buildInverseProxyAgent'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA',
          '--build-arg', 'COMMIT_HASH=$COMMIT_SHA', '-f',
          '/workspace/backend/Dockerfile.visualization', '/workspace']
   id: 'buildVisualizationServer'
+  waitFor: ["-"]
 
 # Build the Dataflow-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataflow/predict && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildPredictComponent'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataflow/tfdv && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildTFDVComponent'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataflow/tft && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildTFTComponent'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataflow/tfma && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildTMAComponent'
+  waitFor: ["-"]
 
 # Build the Kubeflow-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA',
          '/workspace/components/kubeflow/deployer']
   id: 'buildDeployer'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/kubeflow/launcher && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildLauncher'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/kubeflow/dnntrainer && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA -l ml-pipeline-kubeflow-tf-trainer-gpu -b 1.6.0-gpu']
   id: 'buildGpuTrainer'
+  waitFor: ["-"]
 
 # Build the Dataproc-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataproc/analyze && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocAnalyze'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataproc/create_cluster && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocCreateCluster'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataproc/delete_cluster && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocDeleteCluster'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataproc/predict && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocPredict'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataproc/transform && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocTransform'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/dataproc/train && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildDataprocTrain'
+  waitFor: ["-"]
 
 # Build the Generic GCP component image
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/gcp/container/ && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildGcpGenericComponent'
+  waitFor: ["-"]
 
 # Build the local pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/local/confusion_matrix && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildConfusionMatrix'
+  waitFor: ["-"]
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: ['-c', 'cd /workspace/components/local/roc && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
   id: 'buildROC'
+  waitFor: ["-"]
 
 images:
 # Images for the pipeline system itself
