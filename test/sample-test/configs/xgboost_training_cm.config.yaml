@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: !!str xgboost_training_cm
-arguments: !!map
+test_name: xgboost_training_cm
+arguments:
   output:
   project: ml-pipeline-test
   train-data: gs://ml-pipeline-dataset/sample-test/sfpd/train_20.csv
@@ -21,4 +21,4 @@ arguments: !!map
   schema: gs://ml-pipeline-dataset/sample-test/sfpd/schema.json
   rounds: 5
   workers: 2
-test_timeout: !!int 1800 # xgboost needs extra time.
+test_timeout: 1800 # xgboost needs extra time.
