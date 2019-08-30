@@ -15,10 +15,11 @@
 import os
 import tarfile
 import utils
+import yamale
 import yaml
 from datetime import datetime
 from kfp import Client
-from constants import CONFIG_DIR, DEFAULT_CONFIG
+from constants import CONFIG_DIR, DEFAULT_CONFIG, SCHEMA_CONFIG
 
 
 class PySampleChecker(object):
@@ -64,9 +65,12 @@ class PySampleChecker(object):
     job_name = self._testname + '_sample'
     ###### Figure out arguments from associated config files. #######
     test_args = {}
+    config_schema = yamale.make_schema(SCHEMA_CONFIG)
     try:
       with open(DEFAULT_CONFIG, 'r') as f:
         raw_args = yaml.safe_load(f)
+      default_config = yamale.make_data(DEFAULT_CONFIG)
+      yamale.validate(config_schema, default_config)  # If fails, a ValueError will be raised.
     except yaml.YAMLError as yamlerr:
       raise RuntimeError('Illegal default config:{}'.format(yamlerr))
     except OSError as ose:
@@ -76,7 +80,10 @@ class PySampleChecker(object):
 
     try:
       with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._testname), 'r') as f:
-          raw_args = yaml.safe_load(f)
+        raw_args = yaml.safe_load(f)
+      test_config = yamale.make_data(os.path.join(
+          CONFIG_DIR, '%s.config.yaml' % self._testname))
+      yamale.validate(config_schema, test_config)  # If fails, a ValueError will be raised.
     except yaml.YAMLError as yamlerr:
       print('No legit yaml config file found, use default args:{}'.format(yamlerr))
     except OSError as ose:
