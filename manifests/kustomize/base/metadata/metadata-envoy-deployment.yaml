@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: container
-        image: gcr.io/rjbauer-ml-pipelines/envoy:8-29
+        image: gcr.io/rjbauer-ml-pipelines/envoy:8-29-3
         ports:
         - name: md-envoy
           containerPort: 9090

@@ -22,7 +22,7 @@ static_resources:
               routes:
               - match: { prefix: "/" }
                 route:
-                  cluster: ${CLUSTER_NAME}
+                  cluster: rjb-kfp
                   # host_rewrite: ${METADATA_SERVICE_SERVICE_HOST}
                   max_grpc_timeout: 0s
               cors:
@@ -37,9 +37,9 @@ static_resources:
           - name: envoy.cors
           - name: envoy.router
   clusters:
-  - name: rjb-kfp # TODO: figure out if this is needed and how to stop hardcoding it.
+  - name: rjb-kfp
     connect_timeout: 0.25s
     type: logical_dns
     http2_protocol_options: {}
     lb_policy: round_robin
-    hosts: [{ socket_address: { address: ${METADATA_SERVICE_SERVICE_HOST}, port_value: 8080 }}]
+    hosts: [{ socket_address: { address: 10.0.5.120, port_value: 8080 }}]

@@ -147,10 +147,14 @@ export class Apis {
     request.setExecutionType(executionType);
     request.setAllFieldsMatch(true);
 
-    const client = new MetadataStoreServiceClient('http://localhost:9090');
+    const client = new MetadataStoreServiceClient('http://localhost:3000');
+    // tslint:disable-next-line:no-console
+    console.log('Making metadata request!');
     client.putExecutionType(request, (err, response) => {
       // tslint:disable-next-line:no-console
       console.log(response);
+      // tslint:disable-next-line:no-console
+      console.log(err);
     });
     return '';
   }

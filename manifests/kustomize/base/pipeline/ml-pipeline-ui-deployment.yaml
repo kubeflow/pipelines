@@ -14,7 +14,7 @@ spec:
         app: ml-pipeline-ui
     spec:
       containers:
-      - image: gcr.io/rjbauer-ml-pipelines/pipelines/frontend:8-29
+      - image: gcr.io/rjbauer-ml-pipelines/pipelines/frontend:8-29-4
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-ui
         ports:
