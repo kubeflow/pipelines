@@ -620,6 +620,35 @@ implementation:
 
         self.assertEqual(list(task.outputs.keys()), ['out 1', 'out 2'])
 
+    def test_check_type_validation_of_task_spec_outputs(self):
+        producer_component_text = '''\
+outputs:
+- {name: out1, type: Integer}
+- {name: out2, type: String}
+implementation:
+  container:
+    image: busybox
+    command: [touch, {outputPath: out1}, {outputPath: out2}]
+'''
+        consumer_component_text = '''\
+inputs:
+- {name: data, type: Integer}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: data}]
+'''
+        producer_op = comp.load_component_from_text(producer_component_text)
+        consumer_op = comp.load_component_from_text(consumer_component_text)
+        with no_task_resolving_context():
+          producer_task = producer_op()
+
+          consumer_op(producer_task.outputs['out1'])
+          consumer_op(producer_task.outputs['out2'].without_type())
+          consumer_op(producer_task.outputs['out2'].with_type('Integer'))
+          with self.assertRaises(InconsistentTypeException):
+            consumer_op(producer_task.outputs['out2'])
+
     def test_type_compatibility_check_for_simple_types(self):
         component_a = '''\
 outputs:
@@ -948,6 +977,7 @@ implementation:
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
+
         with self.assertRaises(InconsistentTypeException):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 
