@@ -15,4 +15,4 @@
 # This is the schema for sample test config yaml file.
 test_name: str()
 arguments: map(required=False)
-test_timeout: int(min=0)
+test_timeout: int(min=0, required=False)
