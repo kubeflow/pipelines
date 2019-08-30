@@ -11,10 +11,20 @@ steps:
     args:
       ["build", "-t", "$_GCR_BASE/frontend", "-f", "frontend/Dockerfile", "."]
     waitFor: ["-"]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      ["build", "-t", "$_GCR_BASE/viewer-crd-controller", "-f", "backend/Dockerfile.viewercontroller", "."]
+    waitFor: ["-"]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      ["build", "-t", "$_GCR_BASE/visualization-server", "-f", "backend/Dockerfile.visualization", "."]
+    waitFor: ["-"]
 options:
   machineType: N1_HIGHCPU_8 # use a fast machine to build because there a lot of work
 images:
   - "$_GCR_BASE/frontend"
   - "$_GCR_BASE/scheduledworkflow"
   - "$_GCR_BASE/persistenceagent"
+  - "$_GCR_BASE/viewer-crd-controller"
+  - "$_GCR_BASE/visualization-server"
 timeout: 1800s # 30min
