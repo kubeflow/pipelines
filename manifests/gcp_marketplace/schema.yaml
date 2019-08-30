@@ -19,55 +19,55 @@ x-google-marketplace:
           type: TAG
     mysql:
       properties:
-        image.mysql:
+        images.mysql:
           type: FULL
     minio:
       properties:
-        image.minio:
+        images.minio:
           type: FULL
     argoExecutor:
       properties:
-        image.argoExecutor:
+        images.argoExecutor:
           type: FULL
     argoWorkflowController:
       properties:
-        image.argoWorkflowController:
+        images.argoWorkflowController:
           type: FULL
     apiServer:
       properties:
-        image.apiServer:
+        images.apiServer:
           type: FULL
     persistenceagent:
       properties:
-        image.persistenceagent:
+        images.persistenceagent:
           type: FULL
     scheduledworkflow:
       properties:
-        image.scheduledworkflow:
+        images.scheduledworkflow:
           type: FULL
     frontend:
       properties:
-        image.frontend:
+        images.frontend:
           type: FULL
     viewerCrd:
       properties:
-        image.viewerCrd:
+        images.viewerCrd:
           type: FULL
     visualizationServer:
       properties:
-        image.visualizationServer:
+        images.visualizationServer:
           type: FULL
     metadataServer:
       properties:
-        image.metadataServer:
+        images.metadataServer:
           type: FULL
     proxyAgent:
       properties:
-        image.proxyAgent:
+        images.proxyAgent:
           type: FULL
     cloudsqlProxy:
       properties:
-        image.cloudsqlProxy:
+        images.cloudsqlProxy:
           type: FULL
   deployerServiceAccount:
     roles:
