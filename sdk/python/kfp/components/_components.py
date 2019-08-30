@@ -223,6 +223,8 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
                 if isinstance(argument_value, PipelineParam):
                     reference_type = argument_value.param_type
                     argument_value = str(argument_value)
+                elif isinstance(argument_value, TaskOutputArgument):
+                    reference_type = argument_value.task_output.type
                 else:
                     reference_type = None
 
