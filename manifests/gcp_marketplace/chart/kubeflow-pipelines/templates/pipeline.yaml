@@ -258,6 +258,8 @@ spec:
               value: "{{ .Values.managedstorage.databaseNamePrefix }}_pipeline"
             - name: DBCONFIG_PASSWORD
               value: "{{ .Values.managedstorage.dbPassword }}"
+            - name: DEFAULTPIPELINERUNNERSERVICEACCOUNT
+              value: "{{ .Values.serviceAccount.pipelineRunner }}"
             {{ end }}
           image: {{ .Values.images.apiServer }}
           imagePullPolicy: IfNotPresent
