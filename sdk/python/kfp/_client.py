@@ -85,9 +85,9 @@ class Client(object):
           https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
       client_id: The client ID used by Identity-Aware Proxy.
     """
-
+    host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
-    config = self._load_config(self._uihost, client_id, namespace)
+    config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
     _add_generated_apis(self, kfp_server_api.api, api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
