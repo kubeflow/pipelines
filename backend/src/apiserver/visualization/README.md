@@ -4,29 +4,30 @@ This document describes the architecture of python based visualizations,
 development guidelines to contribute new predefined visualizations to the
 Kubeflow Pipelines project, and current limitations. Python based visualizations
 are a new method of generating visualizations within Kubeflow Pipelines that
-allow for rapid development, experimentation, and customizability when
+allow for rapid development, experimentation, and customization when
 visualizing results. For information about Python based visualizations and how
 to use them, please visit the [documentation page](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations).
+
 Please check the [developer guidelines](https://github.com/kubeflow/pipelines/blob/master/developer_guide.md)
 for additional development guidelines.
 
 ## Architecture
 
 Python based visualizations rely on three parts: the frontend, the API server,
-and the Python visualization service. The architecture of all three is as
-follows. The frontend is responsible for creating the visualization request and
-displaying the results of the created requests. The API server is responsible
-for transposing the request provided by the frontend to a request that is
-understandable by the python visualization service, returning the result of the
-transposed request to the frontend, and gracefully handling incorrectly
-formatted requests from the frontend and any errors encountered with the Python
-visualization service. Finally, the Python visualization service is responsible
-for generating a visualization from a provided request.
+and the Python visualization service. The frontend is responsible for creating
+the visualization request and displaying the results of the created requests.
+The API server is responsible for transposing the request provided by the
+frontend to a request that is understandable by the python visualization
+service, returning the result of the transposed request to the frontend, and
+gracefully handling incorrectly formatted requests from the frontend and any
+errors encountered with the Python visualization service. Finally, the Python
+visualization service is responsible for generating a visualization from a
+provided request.
 
 ## How to create predefined visualizations
 
-1. Determine if the visualization should become a predefined visualization,
-consider the following:
+1. Determine if the visualization should become a predefined visualization.
+Consider the following:
     * How often will it be used?
         * Frequently used visualizations are a good candidate for predefine
         visualization.
@@ -125,7 +126,7 @@ within your cluster.
 
 ## Known limitations
 
-* Multiple visualizations cannot be generated simultaneously.
+* Multiple visualizations cannot be generated concurrently.
     * This is because a single Python kernel is used to generate visualizations.
     * If visualizations are a major part of your workflow, it is recommended to
     increase the number of replicas within the [visualization deployment YAML](https://github.com/kubeflow/pipelines/tree/master/manifests/kustomize/base/pipeline/ml-pipeline-visualization-deployment.yaml)
@@ -152,7 +153,7 @@ within your cluster.
       - name: KERNEL_TIMEOUT
         value: 100
     ```
-* Generated visualizations cannot be larger than 4MB.
+* The HTML content of the generated visualizations cannot be larger than 4MB.
     * gRPC by default imposes a limit of 4MB as the maximum size that can be
     sent and received by a server. To allow for visualizations that are larger
     than 4MB in size to be generated, you must manually set
