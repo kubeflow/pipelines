@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Dict, Union
+import warnings
+
+
 class BaseType:
 	'''MetaType is a base type for all scalar and artifact types.
 	'''
@@ -93,6 +97,36 @@ class LocalPath(BaseType):
 class InconsistentTypeException(Exception):
 	'''InconsistencyTypeException is raised when two types are not consistent'''
 	pass
+
+
+class InconsistentTypeWarning(Warning):
+	'''InconsistentTypeWarning is issued when two types are not consistent'''
+	pass
+
+
+TypeSpecType = Union[str, Dict]
+
+
+def verify_type_compatibility(given_type: TypeSpecType, expected_type: TypeSpecType, error_message_prefix : str = ''):
+	'''verify_type_compatibility verifies that the given argument type is compatible with the expected input type.
+	Args:
+		given_type (str/dict): The type of the argument passed to the input
+		expected_type (str/dict): The declared type of the input
+	'''
+	if given_type is None or expected_type is None:
+		return True # Missing types are treated as being compatible with any types
+
+	types_are_compatible = check_types(given_type, expected_type)
+
+	if not types_are_compatible:
+		error_text = error_message_prefix + 'Argument type "{}" is incompatible with the input type "{}"'.format(str(given_type), str(expected_type))
+		import kfp
+		if kfp.TYPE_CHECK:
+			raise InconsistentTypeException(error_text)
+		else:
+			warnings.warn(InconsistentTypeWarning(error_text))
+	return types_are_compatible
+
 
 def check_types(checked_type, expected_type):
 	'''check_types checks the type consistency.

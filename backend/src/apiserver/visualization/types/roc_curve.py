@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# flake8: noqa TODO
-
 import json
 from pathlib import Path
 from bokeh.layouts import row

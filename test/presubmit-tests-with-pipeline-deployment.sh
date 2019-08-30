@@ -63,6 +63,12 @@ while [ "$1" != "" ]; do
     shift
 done
 
+# PULL_PULL_SHA is empty whne Pros/Tide tests the batches.
+# PULL_BASE_SHA cannot be used here as it still points to master tip in that case.
+if [ -z "${PULL_PULL_SHA:-''}" ]; then
+    PULL_PULL_SHA=$(git rev-parse HEAD)
+fi
+
 # Variables
 GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${PULL_PULL_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
@@ -78,7 +84,7 @@ echo "test env prepared"
 time source "${DIR}/build-images.sh"
 echo "KFP images cloudbuild jobs submitted"
 
-time source "${DIR}/deploy-cluster.sh"
+time COMMIT_SHA=$PULL_PULL_SHA source "${DIR}/deploy-cluster.sh"
 echo "cluster deployed"
 
 time source "${DIR}/check-build-image-status.sh"

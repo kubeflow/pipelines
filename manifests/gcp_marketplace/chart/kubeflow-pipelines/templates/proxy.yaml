@@ -1,0 +1,23 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    app: proxy-agent
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: proxy-agent
+spec:
+  selector:
+    matchLabels:
+      app: proxy-agent
+      app.kubernetes.io/name: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: proxy-agent
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+        - image: {{ .Values.images.proxyAgent }}
+          imagePullPolicy: IfNotPresent
+          name: proxy-agent
+      serviceAccountName: {{ .Values.serviceAccount.proxyAgentRunner}}

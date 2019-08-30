@@ -1,9 +1,3 @@
-"""
-test.py is used for test_server.py as a way to test the tornado web server
-without having a reliance on the validity of visualizations. It does not serve
-as a valid visualization and is only used for testing purposes.
-"""
-
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,5 +12,17 @@ as a valid visualization and is only used for testing purposes.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-x = 2
-print(x)
+import os
+
+# String msgs.
+PAPERMILL_ERR_MSG = 'An Exception was encountered at'
+
+# Common paths
+GITHUB_REPO = 'kubeflow/pipelines'
+BASE_DIR = os.path.join('/python/src/github.com/', GITHUB_REPO)
+TEST_DIR = os.path.join(BASE_DIR, 'test/sample-test')
+CONFIG_DIR = os.path.join(TEST_DIR, 'configs')
+DEFAULT_CONFIG = os.path.join(CONFIG_DIR, 'default.config.yaml')
+
+# Common test params
+RUN_LIST_PAGE_SIZE = 1000

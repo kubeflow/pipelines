@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  ports:
+    - port: 9000
+      protocol: TCP
+      targetPort: 9000
+  selector:
+    app: minio
+    app.kubernetes.io/name: {{ .Release.Name }}
+---
+{{ if .Values.managedstorage.enabled }}
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: minio
+  labels:
+    app: minio
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: minio
+      app.kubernetes.io/name: {{ .Release.Name }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: minio
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+        - args:
+            - gateway
+            - gcs
+          env:
+            - name: MINIO_ACCESS_KEY
+              value: minio
+            - name: MINIO_SECRET_KEY
+              value: minio123
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/etc/credentials/application_default_credentials.json"
+          image: {{ .Values.images.minio }}
+          name: minio
+          ports:
+            - containerPort: 9000
+          volumeMounts:
+            - name: gcp-sa-token
+              mountPath: "/etc/credentials"
+              readOnly: true
+      volumes:
+        - name: gcp-sa-token
+          secret:
+            secretName: {{ .Values.managedstorage.gcpSecretName }}
+{{ end }}
+---
+{{ if not .Values.managedstorage.enabled }}
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: minio
+  labels:
+    app: minio
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: minio
+      app.kubernetes.io/name: {{ .Release.Name }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: minio
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      containers:
+        - args:
+            - server
+            - /data
+          env:
+            - name: MINIO_ACCESS_KEY
+              value: minio
+            - name: MINIO_SECRET_KEY
+              value: minio123
+          image: {{ .Values.images.minio }}
+          name: minio
+          ports:
+            - containerPort: 9000
+          volumeMounts:
+            - mountPath: /data
+              name: data
+              subPath: minio
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: minio-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+{{ end }}

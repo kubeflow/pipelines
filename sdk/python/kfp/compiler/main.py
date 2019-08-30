@@ -21,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from deprecated.sphinx import deprecated
 
 
 def parse_arguments():
@@ -84,6 +85,11 @@ class PipelineCollectorContext():
     dsl._pipeline._pipeline_decorator_handler = self.old_handler
 
 
+@deprecated(version='0.1.28', reason='''\
+    The ability to compile pipeline from a python package is deprecated and will be removed in next release.
+    Please switch to compiling pipeline files or functions.
+    If you use this feature please create an issue in https://github.com/kubeflow/pipelines/issues .'''
+)
 def compile_package(package_path, namespace, function_name, output_path, type_check):
   tmpdir = tempfile.mkdtemp()
   sys.path.insert(0, tmpdir)

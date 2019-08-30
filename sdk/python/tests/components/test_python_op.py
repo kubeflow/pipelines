@@ -52,18 +52,15 @@ def module_func_with_deps(a: float, b: float) -> float:
 
 
 class PythonOpTestCase(unittest.TestCase):
-    def helper_test_2_in_1_out_component_using_local_call(self, func, op):
-        arg1 = float(3)
-        arg2 = float(5)
-
-        expected = func(arg1, arg2)
+    def helper_test_2_in_1_out_component_using_local_call(self, func, op, arguments=[3., 5.]):
+        expected = func(arguments[0], arguments[1])
         if isinstance(expected, tuple):
             expected = expected[0]
         expected_str = str(expected)
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
             with components_local_output_dir_context(temp_dir_name):
-                task = op(arg1, arg2)
+                task = op(arguments[0], arguments[1])
 
             full_command = task.command + task.arguments
             subprocess.run(full_command, check=True)
@@ -214,10 +211,10 @@ class PythonOpTestCase(unittest.TestCase):
             component_spec.inputs,
             [
                 InputSpec(name='required_param'),
-                InputSpec(name='int_param', type='int', default='42', optional=True),
-                InputSpec(name='float_param', type='float', default='3.14', optional=True),
-                InputSpec(name='str_param', type='str', default='string', optional=True),
-                InputSpec(name='bool_param', type='bool', default='True', optional=True),
+                InputSpec(name='int_param', type='Integer', default='42', optional=True),
+                InputSpec(name='float_param', type='Float', default='3.14', optional=True),
+                InputSpec(name='str_param', type='String', default='string', optional=True),
+                InputSpec(name='bool_param', type='Boolean', default='True', optional=True),
                 InputSpec(name='none_param', optional=True), # No default='None'
                 InputSpec(name='custom_type_param', type='Custom type', optional=True),
             ]
@@ -225,10 +222,10 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(
             component_spec.outputs,
             [
-                OutputSpec(name='int_param', type='int'),
-                OutputSpec(name='float_param', type='float'),
-                OutputSpec(name='str_param', type='str'),
-                OutputSpec(name='bool_param', type='bool'),
+                OutputSpec(name='int_param', type='Integer'),
+                OutputSpec(name='float_param', type='Float'),
+                OutputSpec(name='str_param', type='String'),
+                OutputSpec(name='bool_param', type='Boolean'),
                 #OutputSpec(name='custom_type_param', type='Custom type', default='None'),
                 OutputSpec(name='custom_type_param', type='CustomType'),
             ]
@@ -242,18 +239,18 @@ class PythonOpTestCase(unittest.TestCase):
                 'description': 'Function docstring\n',
                 'inputs': [
                     {'name': 'required_param'},
-                    {'name': 'int_param', 'type': 'int', 'default': '42', 'optional': True},
-                    {'name': 'float_param', 'type': 'float', 'default': '3.14', 'optional': True},
-                    {'name': 'str_param', 'type': 'str', 'default': 'string', 'optional': True},
-                    {'name': 'bool_param', 'type': 'bool', 'default': 'True', 'optional': True},
+                    {'name': 'int_param', 'type': 'Integer', 'default': '42', 'optional': True},
+                    {'name': 'float_param', 'type': 'Float', 'default': '3.14', 'optional': True},
+                    {'name': 'str_param', 'type': 'String', 'default': 'string', 'optional': True},
+                    {'name': 'bool_param', 'type': 'Boolean', 'default': 'True', 'optional': True},
                     {'name': 'none_param', 'optional': True}, # No default='None'
                     {'name': 'custom_type_param', 'type': 'Custom type', 'optional': True},
                 ],
                 'outputs': [
-                    {'name': 'int_param', 'type': 'int'},
-                    {'name': 'float_param', 'type': 'float'},
-                    {'name': 'str_param', 'type': 'str'},
-                    {'name': 'bool_param', 'type': 'bool'},
+                    {'name': 'int_param', 'type': 'Integer'},
+                    {'name': 'float_param', 'type': 'Float'},
+                    {'name': 'str_param', 'type': 'String'},
+                    {'name': 'bool_param', 'type': 'Boolean'},
                     {'name': 'custom_type_param', 'type': 'CustomType'},
                 ]
             }
@@ -373,6 +370,60 @@ class PythonOpTestCase(unittest.TestCase):
         func = assert_values_are_default
         op = comp.func_to_container_op(func)
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+
+    def test_handling_boolean_arguments(self):
+        def assert_values_are_true_false(
+            bool1 : bool,
+            bool2 : bool,
+        ) -> int:
+            assert bool1 is True
+            assert bool2 is False
+            return 1
+
+        func = assert_values_are_true_false
+        op = comp.func_to_container_op(func)
+        self.helper_test_2_in_1_out_component_using_local_call(func, op, arguments=[True, False])
+
+
+    def test_handling_list_dict_arguments(self):
+        def assert_values_are_same(
+            list_param: list,
+            dict_param: dict,
+        ) -> int:
+            import unittest
+            unittest.TestCase().assertEqual(list_param, ["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}])
+            unittest.TestCase().assertEqual(dict_param, {'str': "string", 'int': 1, 'float':  2.2, 'false': False, 'true': True, 'none': None, 'list': [3, 4], 'dict': {'s': 4}})
+            return 1
+        
+        # ! JSON map keys are always strings. Python converts all keys to strings without warnings
+        func = assert_values_are_same
+        op = comp.func_to_container_op(func)
+        self.helper_test_2_in_1_out_component_using_local_call(func, op, arguments=[
+            ["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}],
+            {'str': "string", 'int': 1, 'float':  2.2, 'false': False, 'true': True, 'none': None, 'list': [3, 4], 'dict': {'s': 4}},
+        ])
+
+
+    def test_handling_base64_pickle_arguments(self):
+        def assert_values_are_same(
+            obj1: 'Base64Pickle', # noqa: F821
+            obj2: 'Base64Pickle', # noqa: F821
+        ) -> int:
+            import unittest
+            unittest.TestCase().assertEqual(obj1['self'], obj1)
+            unittest.TestCase().assertEqual(obj2, open)
+            return 1
+        
+        func = assert_values_are_same
+        op = comp.func_to_container_op(func)
+
+        recursive_obj = {}
+        recursive_obj['self'] = recursive_obj
+        self.helper_test_2_in_1_out_component_using_local_call(func, op, arguments=[
+            recursive_obj,
+            open,
+        ])
 
 
     def test_end_to_end_python_component_pipeline_compilation(self):

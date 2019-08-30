@@ -15,11 +15,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
-    pipelines.kubeflow.org/pipeline_spec: '{"description": "hello world", "inputs":
-      [{"default": null, "description": "", "name": "tag", "type": ""}, {"default":
-      "kubeflow", "description": "", "name": "namespace", "type": ""}, {"default":
-      "foobar", "description": "", "name": "bucket", "type": ""}], "name": "foo"}'
-  generateName: foo-
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "hello world", "inputs": [{"name": "tag"}, {"default": "kubeflow", "name": "namespace"}, {"default": "foobar", "name": "bucket"}], "name": "artifact-location-pipeine"}'
+  generateName: artifact-location-pipeine-
 spec:
   arguments:
     parameters:
@@ -28,7 +25,7 @@ spec:
       value: kubeflow
     - name: bucket
       value: foobar
-  entrypoint: foo
+  entrypoint: artifact-location-pipeine
   serviceAccountName: pipeline-runner
   templates:
   - dag:
@@ -56,7 +53,7 @@ spec:
       - name: bucket
       - name: namespace
       - name: tag
-    name: foo
+    name: artifact-location-pipeine
   - container:
       image: busybox:{{inputs.parameters.tag}}
     inputs:

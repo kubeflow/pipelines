@@ -639,6 +639,12 @@ implementation:
       if container:
         self.assertEqual(template['retryStrategy']['limit'], 5)
 
+  def test_withitem_basic(self):
+    self._test_py_compile_yaml('withitem_basic')
+
+  def test_withitem_nested(self):
+    self._test_py_compile_yaml('withitem_nested')
+
   def test_add_pod_env(self):
     self._test_py_compile_yaml('add_pod_env')
 
@@ -696,3 +702,7 @@ implementation:
       self.assertIsNone(delete_op_template.get("successCondition"))
       self.assertIsNone(delete_op_template.get("failureCondition"))
       self.assertDictEqual(delete_op_template.get("outputs"), {})
+
+  def test_py_input_artifact_raw_value(self):
+    """Test pipeline input_artifact_raw_value."""
+    self._test_py_compile_yaml('input_artifact_raw_value')

@@ -15,16 +15,19 @@
 __all__ = [
     'func_to_container_op',
     'func_to_component_text',
+    'get_default_base_image',
+    'set_default_base_image',
 ]
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
+from ._data_passing import serialize_value, type_name_to_deserializer, type_to_type_name
 from ._structures import *
 
 import inspect
 from pathlib import Path
 import typing
-from typing import TypeVar, Generic, List
+from typing import Callable, Generic, List, TypeVar, Union
 
 T = TypeVar('T')
 
@@ -40,6 +43,17 @@ class OutputFile(Generic[T], str):
 
 #TODO: Replace this image name with another name once people decide what to replace it with.
 _default_base_image='tensorflow/tensorflow:1.13.2-py3'
+
+
+def get_default_base_image() -> Union[str, Callable[[], str]]:
+    return _default_base_image
+
+
+def set_default_base_image(image_or_factory: Union[str, Callable[[], str]]):
+    '''set_default_base_image sets the name of the container image that will be used for component creation when base_image is not specified.
+    Alternatively, the base image can also be set to a factory function that will be returning the image.
+    '''
+    _default_base_image = image_or_factory
 
 
 def _python_function_name_to_component_name(name):
@@ -146,10 +160,17 @@ def _extract_component_interface(func) -> ComponentSpec:
         if not annotation or annotation == inspect.Parameter.empty:
             return None
         if isinstance(annotation, type):
-            return str(annotation.__name__)
-        if hasattr(annotation, '__forward_arg__'): # Handling typing.ForwardRef('Type_name') (the name was _ForwardRef in python 3.5-3.6)
-            return str(annotation.__forward_arg__) # It can only be string
-        return str(annotation)
+            if annotation in type_to_type_name:
+                return type_to_type_name[annotation]
+            type_name = str(annotation.__name__)
+        elif hasattr(annotation, '__forward_arg__'): # Handling typing.ForwardRef('Type_name') (the name was _ForwardRef in python 3.5-3.6)
+            type_name = str(annotation.__forward_arg__)
+        else:
+            type_name = str(annotation)
+
+        if type_name in type_to_type_name: # type_to_type_name can also have type name keys
+            type_name = type_to_type_name[type_name]
+        return type_name
 
     for parameter in parameters:
         type_struct = annotation_to_type_struct(parameter.annotation)
@@ -162,11 +183,7 @@ def _extract_component_interface(func) -> ComponentSpec:
         if parameter.default is not inspect.Parameter.empty:
             input_spec.optional = True
             if parameter.default is not None:
-                serialized_default = str(parameter.default)
-                if not isinstance(parameter.default, (str, int, float)):
-                    import warnings
-                    warnings.warn('Default value of unsupported type {} will be converted to string "{}".'.format(str(type(parameter.default)), serialized_default))
-                input_spec.default = serialized_default
+                input_spec.default = serialize_value(parameter.default, type_struct)
 
         inputs.append(input_spec)
 
@@ -207,7 +224,7 @@ def _extract_component_interface(func) -> ComponentSpec:
     return component_spec
 
 
-def _func_to_component_spec(func, extra_code='', base_image=_default_base_image, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
+def _func_to_component_spec(func, extra_code='', base_image : str = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
     '''Takes a self-contained python function and converts it to component
 
     Args:
@@ -220,13 +237,15 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     '''
     decorator_base_image = getattr(func, '_component_base_image', None)
     if decorator_base_image is not None:
-        if base_image is not _default_base_image and decorator_base_image != base_image:
+        if base_image is not None and decorator_base_image != base_image:
             raise ValueError('base_image ({}) conflicts with the decorator-specified base image metadata ({})'.format(base_image, decorator_base_image))
         else:
             base_image = decorator_base_image
     else:
         if base_image is None:
-            raise ValueError('base_image cannot be None')
+            base_image = _default_base_image
+            if isinstance(base_image, Callable):
+                base_image = base_image()
 
     component_spec = _extract_component_interface(func)
 
@@ -245,6 +264,15 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     from collections import OrderedDict
     parameter_to_type_name = OrderedDict((input.name, str(input.type)) for input in component_spec.inputs)
 
+    definitions = set()
+    def get_deserializer_and_register_definitions(type_name):
+        if type_name in type_name_to_deserializer:
+            (deserializer_code_str, definition_str) = type_name_to_deserializer[type_name]
+            if definition_str:
+                definitions.add(definition_str)
+            return deserializer_code_str
+        return 'str'
+
     arg_parse_code_lines = [
         'import argparse',
         '_missing_arg = object()',
@@ -260,7 +288,7 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default=_missing_arg)'.format(
             param_flag=param_flag,
             param_var=input.name,
-            param_type=(input.type if input.type in ['int', 'float', 'bool'] else 'str'),
+            param_type=get_deserializer_and_register_definitions(input.type),
             is_required=str(is_required),
         )
         arg_parse_code_lines.append(line)
@@ -288,6 +316,8 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
         arg_parse_code_lines.append(line)
         arguments.append(param_flag)
         arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
+
+    arg_parse_code_lines = list(definitions) + arg_parse_code_lines
 
     arg_parse_code_lines.extend([
         '_parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}',

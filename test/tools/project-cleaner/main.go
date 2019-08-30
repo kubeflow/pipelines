@@ -81,7 +81,13 @@ func (p *ProjectCleaner) GKEClusterHandler(resource GCPResource) {
 		log.Printf("Listing gke clusters in zone: %v", zone)
 		listResponse, err := svc.Projects.Zones.Clusters.List(p.ProjectId, zone).Do()
 		if err != nil {
-			log.Printf("Failed listing gke clusters in zone: %v", zone)
+			log.Printf("Failed listing gke clusters in zone %v: %v", zone, err)
+			continue
+		}
+
+		if listResponse == nil {
+			log.Printf("Encountered nil listResponse gke clusters listing in zone: %v", zone)
+			continue
 		}
 
 		for _, cluster := range listResponse.Clusters {
