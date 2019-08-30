@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,10 +22,12 @@ import click
 
 from tabulate import tabulate
 
+
 @click.group()
 def run():
     """manage run resources"""
     pass
+
 
 @run.command()
 @click.option('-e', '--experiment-id', help='Parent experiment ID of listed runs.')
@@ -39,6 +41,7 @@ def list(ctx, experiment_id, max_size):
         _print_runs(response.runs)
     else:
         print('No runs found.')
+
 
 @run.command()
 @click.option('-e', '--experiment-name', required=True, help='Experiment name of the run.')
@@ -65,6 +68,7 @@ def submit(ctx, experiment_name, run_name, package_file, pipeline_id, watch, arg
     print('Run {} is submitted'.format(run.id))
     _display_run(client, namespace, run.id, watch)
 
+
 @run.command()
 @click.option('-w', '--watch', is_flag=True, default=False, help='Watch the run status until it finishes.')
 @click.argument('run-id')
@@ -74,6 +78,7 @@ def get(ctx, watch, run_id):
     client = ctx.obj['client']
     namespace = ctx.obj['namespace']
     _display_run(client, namespace, run_id, watch)
+
 
 def _display_run(client, namespace, run_id, watch):
     run = client.get_run(run_id).run
@@ -96,6 +101,7 @@ def _display_run(client, namespace, run_id, watch):
     if argo_workflow_name:
         subprocess.run(['argo', 'watch', argo_workflow_name, '-n', namespace])
         _print_runs([run])
+
 
 def _print_runs(runs):
     headers = ['run id', 'name', 'status', 'created at']

@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,17 +22,19 @@ import click
 
 from tabulate import tabulate
 
+
 @click.group()
 def pipeline():
     """Upload pipelines"""
     pass
+
 
 @pipeline.command()
 @click.option('-f', '--package-file', type=click.Path(exists=True, dir_okay=False), help='Path of the pipeline package file.')
 @click.option('-n', '--pipeline-name', help='Name of the Pipeline.')
 @click.pass_context
 def upload(ctx, package_file, pipeline_name):
-    """list recent KFP runs"""
+    """Upload a pipeline package"""
     client = ctx.obj['client']
     response = client.upload_pipeline(pipeline_package_path=package_file, pipeline_name=pipeline_name)
 

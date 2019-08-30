@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ from .._client import Client
 from .run import run
 from .pipeline import pipeline
 
+
 @click.group()
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
 @click.option('--iap-client-id', help='Client ID for IAP protected endpoint.')
@@ -25,7 +26,8 @@ from .pipeline import pipeline
 def cli(ctx, endpoint, iap_client_id, namespace):
     """kfp is the command line interface to KFP service."""
     ctx.obj['client'] = Client(endpoint, iap_client_id, namespace)
-    ctx.obj['namespace']= namespace
+    ctx.obj['namespace'] = namespace
+
 
 def main():
     cli.add_command(run)
