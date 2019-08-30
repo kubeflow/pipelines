@@ -145,7 +145,9 @@ class Client(object):
     return False
 
   def _is_inverse_proxy_host(self, host):
-    return re.match(r'\S+dot-datalab-vm\S+.googleusercontent.com', host)
+    if host:
+      return re.match(r'\S+dot-datalab-vm\S+.googleusercontent.com', host)
+    return False
 
   def _is_ipython(self):
     """Returns whether we are running in notebook."""
