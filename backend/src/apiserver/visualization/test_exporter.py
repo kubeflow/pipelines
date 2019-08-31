@@ -112,7 +112,11 @@ class TestExporterMethods(snapshottest.TestCase):
 
     def test_generate_tfdv_visualization(self):
         nb = new_notebook()
-        source = "gs://ml-pipeline-dataset/python-based-visualizations-test-data/tfdv.csv"
+        # A tfdv.csv file exists in the ml-pipeline-dataset bucekt but it
+        # appears to currently have issues downloading. The TFDV and Table
+        # visualization data is also identical so no issues with either
+        # visualization should arise.
+        source = "gs://ml-pipeline-dataset/python-based-visualizations-test-data/table.csv"
         args = {}
         nb.cells.append(new_code_cell('source = "{}"'.format(source)))
         nb.cells.append(exporter.create_cell_from_args(args))
