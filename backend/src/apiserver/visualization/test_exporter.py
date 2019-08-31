@@ -1,3 +1,5 @@
+# Before running this test you must pip install snapshottest and tensorflow==1.13.1
+
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -84,7 +86,6 @@ class TestExporterMethods(snapshottest.TestCase):
         nb.cells.append(exporter.create_cell_from_args(args))
         nb.cells.append(exporter.create_cell_from_file("types/roc_curve.py"))
         html = self.exporter.generate_html_from_notebook(nb)
-        print("ROC CURVE:", html)
         # Ensure that no error is encountered by checking that the
         # "output_error" class does not exist in the html.
         self.assertTrue("output_error" not in html)
@@ -101,7 +102,6 @@ class TestExporterMethods(snapshottest.TestCase):
         nb.cells.append(exporter.create_cell_from_args(args))
         nb.cells.append(exporter.create_cell_from_file("types/table.py"))
         html = self.exporter.generate_html_from_notebook(nb)
-        print("TABLE:", html)
         # Ensure that no error is encountered by checking that the
         # "output_error" class does not exist in the html.
         self.assertTrue("output_error" not in html)
@@ -118,7 +118,6 @@ class TestExporterMethods(snapshottest.TestCase):
         nb.cells.append(exporter.create_cell_from_args(args))
         nb.cells.append(exporter.create_cell_from_file("types/tfdv.py"))
         html = self.exporter.generate_html_from_notebook(nb)
-        print("TFDV:", html)
         # Ensure that no error is encountered by checking that the
         # "output_error" class does not exist in the html.
         self.assertTrue("output_error" not in html)
