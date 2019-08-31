@@ -328,7 +328,7 @@ class NewRun extends Page<{}, NewRunState> {
               {errorMessage}
             </div>
             {this._areParametersMissing() &&
-              <div style={{ color: 'orange' }}>
+              <div id='missing-parameters-message' style={{ color: 'orange' }}>
                 Some parameters are missing values
               </div>
             }
