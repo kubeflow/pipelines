@@ -40,8 +40,8 @@ class Compiler(object):
     name='name',
     description='description'
   )
-  def my_pipeline(a: dsl.PipelineParam, b: dsl.PipelineParam):
-    pass
+  def my_pipeline(a: int = 1, b: str = "default value"):
+    ...
 
   Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
   ```
