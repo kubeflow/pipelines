@@ -70,10 +70,10 @@ matrix:
         # Sample test infra dependencies
         - pip3 install minio
         - pip3 install junit_xml
-        # Install testing dependencies
-        - pip3 install snapshottest
         # Visualization test dependencies
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
+        - pip3 install snapshottest
+        - pip3 install tensorflow==1.13.1
         - pip3 install -r requirements.txt
       script: &1
 
