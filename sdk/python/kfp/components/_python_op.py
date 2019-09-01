@@ -501,7 +501,13 @@ for idx, output_file in enumerate(_output_files):
 
 
 def _func_to_component_dict(func, extra_code='', base_image: str = None, modules_to_capture: List[str] = None, use_code_pickling=False):
-    return _func_to_component_spec(func, extra_code, base_image, modules_to_capture, use_code_pickling).to_dict()
+    return _func_to_component_spec(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    ).to_dict()
 
 
 def func_to_component_text(func, extra_code='', base_image: str = None, modules_to_capture: List[str] = None, use_code_pickling=False):
@@ -527,7 +533,13 @@ def func_to_component_text(func, extra_code='', base_image: str = None, modules_
     Returns:
         Textual representation of a component definition
     '''
-    component_dict = _func_to_component_dict(func, extra_code, base_image, modules_to_capture, use_code_pickling)
+    component_dict = _func_to_component_dict(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    )
     return dump_yaml(component_dict)
 
 
@@ -553,7 +565,13 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
     '''
 
-    component_yaml = func_to_component_text(func, extra_code, base_image, modules_to_capture, use_code_pickling)
+    component_yaml = func_to_component_text(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    )
     
     Path(output_component_file).write_text(component_yaml)
 
@@ -584,7 +602,13 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp) that can run the original function in a container.
     '''
 
-    component_spec = _func_to_component_spec(func, extra_code, base_image, modules_to_capture, use_code_pickling)
+    component_spec = _func_to_component_spec(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    )
 
     output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:
