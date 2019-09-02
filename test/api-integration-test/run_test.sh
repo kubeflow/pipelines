@@ -22,8 +22,10 @@ NAMESPACE=kubeflow
 usage()
 {
     echo "usage: run_test.sh
-    --results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/backend_unit_test
+    [--results-gcs-dir GCS directory for the test results. Usually gs://<project-id>/<commit-sha>/backend_unit_test]
     [--namespace      k8s namespace where ml-pipelines is deployed. The tests run against the instance in this namespace]
+    [--run_upgrade_tests_preparation run preparation step of upgrade tests instead]
+    [--run_upgrade_tests_verification run verification step of upgrade tests instead]
     [-h help]"
 }
 
@@ -34,6 +36,12 @@ while [ "$1" != "" ]; do
                                 ;;
              --namespace )      shift
                                 NAMESPACE=$1
+                                ;;
+             --run_upgrade_tests_preparation ) shift
+                                UPGRADE_TESTS_PREPARATION=true
+                                ;;
+             --run_upgrade_tests_verification ) shift
+                                UPGRADE_TESTS_VERIFICATION=true
                                 ;;
              -h | --help )      usage
                                 exit
@@ -64,7 +72,13 @@ cd "${BASE_DIR}/${TEST_DIR}"
 export GO111MODULE=on
 
 echo "Run integration test..."
-TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true 2>&1`
+if [ -n "$UPGRADE_TESTS_PREPARATION" ]; then
+  TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Prepare 2>&1`
+else if [ -n "$UPGRADE_TESTS_VERIFICATION" ]; then
+  TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Verify 2>&1`
+else
+  TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true 2>&1`
+fi
 TEST_EXIT_CODE=$?
 
 # Log the test result

@@ -97,6 +97,16 @@ echo "KFP images built"
 time source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP lite deployed"
 
+IMAGE_BUILDER_ARG=""
+if [ "$PROJECT" != "ml-pipeline-test" ]; then
+  COPIED_IMAGE_BUILDER_IMAGE=${GCR_IMAGE_BASE_DIR}/image-builder
+  echo "Copy image builder image to ${COPIED_IMAGE_BUILDER_IMAGE}"
+  yes | gcloud container images add-tag \
+    gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4 \
+    ${COPIED_IMAGE_BUILDER_IMAGE}:latest
+  IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
+fi
+
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \

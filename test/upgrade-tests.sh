@@ -21,7 +21,6 @@ usage()
     echo "usage: upgrade-tests.sh
     [--platform             the deployment platform. Valid values are: [gcp, minikube]. Default is gcp.]
     [--project              the gcp project. Default is ml-pipeline-test. Only used when platform is gcp.]
-    [--workflow_file        the file name of the argo workflow to run]
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
     [--timeout              timeout of the tests in seconds. Default is 1800 seconds. ]
@@ -33,6 +32,7 @@ PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
+WORKFLOW_FILE=e2e_test_gke_v2.yaml
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -41,9 +41,6 @@ while [ "$1" != "" ]; do
                                       ;;
              --project )              shift
                                       PROJECT=$1
-                                      ;;
-             --workflow_file )        shift
-                                      WORKFLOW_FILE=$1
                                       ;;
              --test_result_bucket )   shift
                                       TEST_RESULT_BUCKET=$1
@@ -86,7 +83,9 @@ echo "test env prepared"
 time source "${DIR}/build-images.sh"
 echo "KFP images cloudbuild jobs submitted"
 
-time COMMIT_SHA=$PULL_PULL_SHA source "${DIR}/deploy-cluster.sh"
+time COMMIT_SHA=$PULL_PULL_SHA \
+  TEST_CLUSTER_PREFIX="upgrade" \
+  source "${DIR}/deploy-cluster.sh"
 echo "cluster deployed"
 
 # Install Argo CLI and test-runner service account
@@ -96,20 +95,30 @@ echo "argo installed"
 time KFP_DEPLOY_RELEASE=true source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP lite of latest release deployed"
 
-# echo "submitting argo workflow to setup test env before upgrade..."
-# ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
-# -p image-build-context-gcs-uri="$remote_code_archive_uri" \
-# ${IMAGE_BUILDER_ARG} \
-# -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
-# -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
-# -p cluster-type="${CLUSTER_TYPE}" \
-# -n ${NAMESPACE} \
-# --serviceaccount test-runner \
-# -o name
-# `
-# echo "test workflow submitted successfully"
-# time source "${DIR}/check-argo-status.sh"
-# echo "test workflow completed"
+IMAGE_BUILDER_ARG=""
+if [ "$PROJECT" != "ml-pipeline-test" ]; then
+  COPIED_IMAGE_BUILDER_IMAGE=${GCR_IMAGE_BASE_DIR}/image-builder
+  echo "Copy image builder image to ${COPIED_IMAGE_BUILDER_IMAGE}"
+  yes | gcloud container images add-tag \
+    gcr.io/ml-pipeline-test/image-builder:v20181128-0.1.3-rc.1-109-ga5a14dc-e3b0c4 \
+    ${COPIED_IMAGE_BUILDER_IMAGE}:latest
+  IMAGE_BUILDER_ARG="-p image-builder-image=${COPIED_IMAGE_BUILDER_IMAGE}"
+fi
+
+echo "submitting argo workflow to setup test env before upgrade..."
+ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+--entry-point upgrade-test-preparation
+-p image-build-context-gcs-uri="$remote_code_archive_uri" \
+${IMAGE_BUILDER_ARG} \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+-p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+-p cluster-type="${CLUSTER_TYPE}" \
+-n ${NAMESPACE} \
+--serviceaccount test-runner \
+-o name
+`
+time source "${DIR}/check-argo-status.sh"
+echo "upgrade test preparation workflow completed"
 
 time source "${DIR}/check-build-image-status.sh"
 echo "KFP images built"
@@ -117,17 +126,16 @@ echo "KFP images built"
 time source "${DIR}/deploy-pipeline-lite.sh"
 echo "KFP lite of commit ${PULL_PULL_SHA} deployed"
 
-# echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
-# ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
-# -p image-build-context-gcs-uri="$remote_code_archive_uri" \
-# ${IMAGE_BUILDER_ARG} \
-# -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
-# -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
-# -p cluster-type="${CLUSTER_TYPE}" \
-# -n ${NAMESPACE} \
-# --serviceaccount test-runner \
-# -o name
-# `
-# echo "test workflow submitted successfully"
-# time source "${DIR}/check-argo-status.sh"
-# echo "test workflow completed"
+echo "submitting argo workflow to verify test env after upgrade..."
+ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
+--entry-point upgrade-test-verification
+-p image-build-context-gcs-uri="$remote_code_archive_uri" \
+${IMAGE_BUILDER_ARG} \
+-p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
+-p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
+-p cluster-type="${CLUSTER_TYPE}" \
+-n ${NAMESPACE} \
+--serviceaccount test-runner \
+-o name
+time source "${DIR}/check-argo-status.sh"
+echo "upgrade test verification workflow completed"
