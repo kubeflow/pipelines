@@ -135,5 +135,6 @@ ${IMAGE_BUILDER_ARG} \
 -n ${NAMESPACE} \
 --serviceaccount test-runner \
 -o name
+`
 time source "${DIR}/check-argo-status.sh"
 echo "upgrade test verification workflow completed"
