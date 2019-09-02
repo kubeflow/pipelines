@@ -107,12 +107,11 @@ fi
 
 echo "submitting argo workflow to setup test env before upgrade..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
---entry-point upgrade-test-preparation
+--entrypoint upgrade-test-preparation \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 ${IMAGE_BUILDER_ARG} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
 -n ${NAMESPACE} \
 --serviceaccount test-runner \
 -o name
@@ -128,12 +127,11 @@ echo "KFP lite of commit ${PULL_PULL_SHA} deployed"
 
 echo "submitting argo workflow to verify test env after upgrade..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
---entry-point upgrade-test-verification
+--entrypoint upgrade-test-verification \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
 ${IMAGE_BUILDER_ARG} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
 -n ${NAMESPACE} \
 --serviceaccount test-runner \
 -o name

@@ -113,7 +113,6 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 ${IMAGE_BUILDER_ARG} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
--p cluster-type="${CLUSTER_TYPE}" \
 -n ${NAMESPACE} \
 --serviceaccount test-runner \
 -o name
