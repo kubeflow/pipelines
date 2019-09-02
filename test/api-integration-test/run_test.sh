@@ -37,10 +37,10 @@ while [ "$1" != "" ]; do
              --namespace )      shift
                                 NAMESPACE=$1
                                 ;;
-             --run_upgrade_tests_preparation ) shift
+             --run_upgrade_tests_preparation )
                                 UPGRADE_TESTS_PREPARATION=true
                                 ;;
-             --run_upgrade_tests_verification ) shift
+             --run_upgrade_tests_verification )
                                 UPGRADE_TESTS_VERIFICATION=true
                                 ;;
              -h | --help )      usage
@@ -74,7 +74,7 @@ export GO111MODULE=on
 echo "Run integration test..."
 if [ -n "$UPGRADE_TESTS_PREPARATION" ]; then
   TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Prepare 2>&1`
-else if [ -n "$UPGRADE_TESTS_VERIFICATION" ]; then
+elif [ -n "$UPGRADE_TESTS_VERIFICATION" ]; then
   TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} -args -runUpgradeTests=true -testify.m=Verify 2>&1`
 else
   TEST_RESULT=`go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true 2>&1`
