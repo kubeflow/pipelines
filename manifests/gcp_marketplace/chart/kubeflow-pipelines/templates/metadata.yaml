@@ -40,7 +40,7 @@ spec:
             - --mysql_service_host=mysql
             - --mysql_service_port=3306
             - --mlmd_db_name={{ .Values.managedstorage.databaseNamePrefix }}_metadata
-          image: {{ .Values.images.metadataServer }}
+          image: {{ .Values.images.metadataserver }}
           name: container
           ports:
             - containerPort: 8080
