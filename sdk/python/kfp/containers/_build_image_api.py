@@ -36,46 +36,6 @@ def get_python_image() -> str:
 default_base_image = get_python_image
 
 
-_default_package_url_template = 'https://pypi.org/pypi/{}/json/'
-
-
-_package_info_cache = {}
-
-
-def _python_package_exists(name: str, version : str = None) -> str:
-    package_subdir = name + ('/' + version if version else '')
-    package_url = _default_package_url_template.format(package_subdir)
-    if package_url in _package_info_cache:
-        return True
-    
-    response = requests.get(package_url)
-    if response.ok:
-        _package_info_cache[package_url] = response.json()
-        return True
-
-    return False
-
-
-def generate_requirements_file(requirements_path: str):
-    logging.info('Generating the requirements.txt file')
-    import pkg_resources
-    with open(requirements_path, 'w') as f:
-        for dist in pkg_resources.working_set:
-            req = dist.as_requirement()
-            logging.info('Checking package: {}.'.format(req))
-
-            # Checking the existense of the particular package version and not just the package project as some system-installed packages exist on PyPI, but the version is old.
-            # ERROR: Could not find a version that satisfies the requirement python-apt===1.8.3- (from -r requirements.txt (line 195)) (from versions: 0.0.0, 0.7.8)
-            # ERROR: No matching distribution found for python-apt===1.8.3- (from -r requirements.txt (line 195))                        
-            if _python_package_exists(dist.project_name, dist.version):
-                f.write(str(req) + '\n')
-            else:
-                if _python_package_exists(dist.project_name, version=None):
-                    logging.warning('Package "{}" exists on PyPI, but version "{}" does not exist.'.format(dist.project_name, dist.version))
-                else:
-                    logging.warning('Package version "{}" does not exist on PyPI.'.format(req))
-
-
 _container_work_dir = '/python_env'
 
 
@@ -86,12 +46,6 @@ def generate_dockerfile_text(context_dir: str, dockerfile_path: str):
     requirements_rel_path = 'requirements.txt'
     requirements_path = os.path.join(context_dir, requirements_rel_path)
     requirements_file_exists = os.path.exists(requirements_path)
-
-    # Creating requirements.txt from the list of installed packages if requirements.txt does not already exist.
-    if not requirements_file_exists:
-        logging.error('''requirements.txt file was not found''')
-        generate_requirements_file(requirements_path)
-        requirements_file_exists = True
 
     base_image = default_base_image
     if callable(base_image):
