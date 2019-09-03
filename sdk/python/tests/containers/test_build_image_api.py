@@ -38,7 +38,7 @@ class MockImageBuilder:
             actual_requirements_text = (Path(local_dir) / 'requirements.txt').read_text()
             self.requirements_text_check(actual_requirements_text)
         if self.file_paths_check:
-            file_paths = set(dirpath[len(local_dir):] + '/' + file_name for dirpath, dirnames, filenames in os.walk(local_dir) for file_name in filenames)
+            file_paths = set(os.path.relpath(os.path.join(dirpath, file_name), local_dir) for dirpath, dirnames, filenames in os.walk(local_dir) for file_name in filenames)
             self.file_paths_check(file_paths)
         return target_image
 
@@ -55,15 +55,20 @@ COPY . .
         #mock_builder = 
         with tempfile.TemporaryDirectory() as context_dir:
             requirements_text = 'pandas==1.24'
-            (Path(context_dir) / 'requirements.txt').write_text(requirements_text)
-            sub_dir = (Path(context_dir) / 'lib')
-            sub_dir.mkdir(parents=True)
-            (Path(context_dir) / 'lib/file1.py').write_text('#py file')
-            (Path(context_dir) / 'lib/file2.sh').write_text('#sh file')
+            requirements_txt_relpath = Path('.') / 'requirements.txt'
+            file1_py_relpath = Path('.') / 'lib' / 'file1.py'
+            file1_sh_relpath = Path('.') / 'lib' / 'file1.sh'
+
+            context_path = Path(context_dir)
+            (context_path / requirements_txt_relpath).write_text(requirements_text)
+            (context_path / file1_py_relpath).parent.mkdir(parents=True, exist_ok=True)
+            (context_path / file1_py_relpath).write_text('#py file')
+            (context_path / file1_sh_relpath).parent.mkdir(parents=True, exist_ok=True)
+            (context_path / file1_sh_relpath).write_text('#sh file')
             expected_file_paths = {
-                '/Dockerfile',
-                '/requirements.txt',
-                '/lib/file1.py',
+                'Dockerfile',
+                str(requirements_txt_relpath),
+                str(file1_py_relpath),
             }
             def dockerfile_text_check(actual_dockerfile_text):
                 self.assertRegex(actual_dockerfile_text.strip(), expected_dockerfile_text_re.strip())
