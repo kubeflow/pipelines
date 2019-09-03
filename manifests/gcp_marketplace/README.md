@@ -29,3 +29,8 @@ export MARKETPLACE_TOOLS_IMAGE=gcr.io/cloud-marketplace-staging/marketplace-k8s-
 ```
 
 
+Install Kubeflow Pipelines
+```
+kubectl create ns test
+mpdev /scripts/install  --deployer=gcr.io/ml-pipeline/google/kfp/deployer:0.1.27 --parameters='{"name": "installation-1", "namespace": "test"}'
+```

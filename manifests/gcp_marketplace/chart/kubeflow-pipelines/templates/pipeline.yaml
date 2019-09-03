@@ -196,7 +196,7 @@ spec:
               value: "50"
             - name: NAMESPACE
               value: {{ .Release.Namespace }}
-          image: {{ .Values.images.viewer-crd }}
+          image: {{ .Values.images.viewercrd }}
           imagePullPolicy: Always
           name: ml-pipeline-viewer-crd
       serviceAccountName: {{ .Values.serviceAccount.mlPipelineViewerCrd}}
@@ -220,7 +220,7 @@ spec:
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
-        - image: {{ .Values.images.visualization-server }}
+        - image: {{ .Values.images.visualizationserver }}
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-visualizationserver
           ports:
@@ -261,7 +261,7 @@ spec:
             - name: DEFAULTPIPELINERUNNERSERVICEACCOUNT
               value: "{{ .Values.serviceAccount.pipelineRunner }}"
             {{ end }}
-          image: {{ .Values.images.api-server }}
+          image: {{ .Values.images.apiserver }}
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
           ports:
