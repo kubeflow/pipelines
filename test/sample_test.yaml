@@ -71,6 +71,13 @@ spec:
               - xgboost_training_cm
               - lightweight_component
               - dsl_static_type_checking
+              - pipeline_transformers
+              - resource_ops
+              - retry
+              - secret
+              - sidecar
+              - volume_ops
+              - volume_snapshot_ops
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:
