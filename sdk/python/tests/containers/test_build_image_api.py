@@ -47,9 +47,10 @@ class BuildImageApiTests(unittest.TestCase):
     def test_build_image_from_working_dir(self):
         expected_dockerfile_text_re = '''
 FROM python:.*
-COPY . /.*
 WORKDIR /.*
+COPY requirements.txt .
 RUN python3 -m pip install -r requirements.txt
+COPY . .
 '''
         #mock_builder = 
         with tempfile.TemporaryDirectory() as context_dir:

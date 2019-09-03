@@ -53,10 +53,11 @@ def generate_dockerfile_text(context_dir: str, dockerfile_path: str):
 
     dockerfile_lines = []
     dockerfile_lines.append('FROM {}'.format(base_image))
-    dockerfile_lines.append('COPY . {}'.format(_container_work_dir))
     dockerfile_lines.append('WORKDIR {}'.format(_container_work_dir))
     if requirements_file_exists:
+        dockerfile_lines.append('COPY {} .'.format(requirements_rel_path))
         dockerfile_lines.append('RUN python3 -m pip install -r {}'.format(requirements_rel_path))
+    dockerfile_lines.append('COPY . .')
 
     return '\n'.join(dockerfile_lines)
 
