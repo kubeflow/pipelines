@@ -28,6 +28,12 @@ export MARKETPLACE_TOOLS_TAG=unreleased-pr396
 export MARKETPLACE_TOOLS_IMAGE=gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev
 ```
 
+Download token
+```
+gcloud iam service-accounts keys create application_default_credentials.json --iam-account 32498701380-compute@developer.gserviceaccount.com
+cat application_default_credentials.json | base64
+```
+
 Install Kubeflow Pipelines
 ```
 kubectl create ns test

@@ -424,4 +424,3 @@ required:
   - name
   - namespace
   - serviceAccountCredential
-  - managedstorage.enabled
