@@ -62,10 +62,17 @@ def generate_dockerfile_text(context_dir: str, dockerfile_path: str):
 
 
 def build_image_from_working_dir(image_name : str = None, working_dir : str = None, file_filter_re : str = '.*\.py',  timeout : int = 1000, builder : ContainerBuilder = None) -> str:
-    '''build_image_from_working_dir builds and pushes a new container image that captures the current python environment.
+    '''build_image_from_working_dir builds and pushes a new container image that captures the current python working directory.
+    This function recursively scans the working directory and captures the following files in the container image context:
+    * requirements.txt files
+    * all python files (can be overridden by passing a different `file_filter_re` argument)
+
+    The function generates Dockerfile that starts from a python container image, install packages from requirements.txt (if present) and copies all the captured python files to the container image.
+    The Dockerfile can be overridden by placing a custom Dockerfile in the root of the working directory.
     Args:
         image_name: Optional. The image repo name where the new container image will be pushed. The name will be generated if not not set.
-        working_dir: Optional. The directory that will be captured. The current directory will be used if omitted. The requirements.txt and python files inside the directory will be captured.
+        working_dir: Optional. The directory that will be captured. The current directory will be used if omitted.
+        file_filter_re: Optional. A regular expression that will be used to decide which files to include in the container building context.
         timeout: Optional. The image building timeout in seconds.
         builder: Optional. An instance of ContainerBuilder or compatible class that will be used to build the image.
     Returns:
