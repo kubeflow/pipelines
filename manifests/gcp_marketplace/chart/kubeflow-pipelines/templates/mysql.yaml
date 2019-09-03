@@ -66,7 +66,7 @@ spec:
           emptyDir:
         - name: gcp-sa-token
           secret:
-            secretName: {{ .Values.managedstorage.gcpSecretName }}
+            secretName: {{ .Values.gcpSecretName }}
 {{ end }}
 ---
 {{ if not .Values.managedstorage.enabled }}
