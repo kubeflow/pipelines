@@ -169,12 +169,11 @@ class ParallelFor(OpsGroup):
     return uuid.uuid4().hex[:_for_loop.LoopArguments.NUM_CODE_CHARS]
 
   def __init__(self, loop_args: Union[_for_loop.ItemList, _pipeline_param.PipelineParam]):
-
     self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
-    if self.items_is_pipeline_param:
-      self.original_pipeline_param = loop_args
-    else:
-      self.original_pipeline_param = None
+    # if self.items_is_pipeline_param:
+    #   self.original_pipeline_param = loop_args
+    # else:
+    #   self.original_pipeline_param = None
 
     # random code to id this loop
     code = self._get_unique_id_code()
