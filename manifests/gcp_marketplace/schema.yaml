@@ -106,7 +106,7 @@ properties:
     title: GCP project
   managedstorage.databaseNamePrefix:
     type: string
-    title: databaes name prefix
+    title: database name prefix
   serviceAccount.proxyAgentRunner:
     type: string
     title: ProxyAgentRunnerServiceAccount
