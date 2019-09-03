@@ -90,13 +90,6 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
             response.body
         )
 
-    def test_create_visualization(self):
-        response = self.fetch(
-            "/",
-            method="POST",
-            body='type=table&source=gs://storage.cloud.google.com/ml-pipeline-dataset/python-based-visualizations-test-data/table.csv')
-        self.assertEqual(200, response.code)
-
 
 if __name__ == "__main__":
     unittest.main()
