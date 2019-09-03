@@ -61,13 +61,15 @@ def generate_dockerfile_text(context_dir: str, dockerfile_path: str):
     return '\n'.join(dockerfile_lines)
 
 
-def build_image_from_env(image_name : str = None, source_dir : str = None, file_filter_re : str = '.*\.py',  timeout : int = 1000, builder : ContainerBuilder = None):
+def build_image_from_env(image_name : str = None, source_dir : str = None, file_filter_re : str = '.*\.py',  timeout : int = 1000, builder : ContainerBuilder = None) -> str:
     '''build_image_from_env builds and pushes a new container image that reconstructs the current python environment.
     Args:
         image_name: Optional. The image repo name where the new container image will be pushed. The name will be generated if not not set.
         source_dir: Optional. The directory that will be used as the environment source. The requirements.txt and python files inside the directory will be captured.
         timeout: Optional. The image building timeout in seconds.
         builder: Optional. An instance of ContainerBuilder or compatible class that will be used to build the image.
+    Returns:
+        The full name of the container image including the hash digest. E.g. gcr.io/my-org/my-image@sha256:86c1...793c.
     '''
     current_dir = source_dir or os.getcwd()
     with tempfile.TemporaryDirectory() as context_dir:
