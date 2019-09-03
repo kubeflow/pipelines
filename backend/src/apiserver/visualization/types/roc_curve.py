@@ -34,7 +34,7 @@ from tensorflow.python.lib.io import file_io
 # trueclass
 # true_score_column
 
-if not variables.get("is_generated"):
+if not variables.get("is_generated", False):
     # Create data from specified csv file(s).
     # The schema file provides column names for the csv file that will be used
     # to generate the roc curve.
@@ -48,11 +48,11 @@ if not variables.get("is_generated"):
         dfs.append(pd.read_csv(f, names=names))
 
     df = pd.concat(dfs)
-    if variables["target_lambda"]:
-        df["target"] = df.apply(eval(variables["target_lambda"]), axis=1)
+    if variables.get("target_lambda", False):
+        df["target"] = df.apply(eval(variables.get("target_lambda", "")), axis=1)
     else:
-        df["target"] = df["target"].apply(lambda x: 1 if x == variables["trueclass"] else 0)
-    fpr, tpr, thresholds = roc_curve(df["target"], df[variables["true_score_column"]])
+        df["target"] = df["target"].apply(lambda x: 1 if x == variables.get("trueclass", "true") else 0)
+    fpr, tpr, thresholds = roc_curve(df["target"], df[variables.get("true_score_column", "true")])
     df = pd.DataFrame({"fpr": fpr, "tpr": tpr, "thresholds": thresholds})
 else:
     # Load data from generated csv file.

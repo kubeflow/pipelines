@@ -89,7 +89,6 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 			resourceManager,
 			common.GetStringConfig(visualizationServiceHost),
 			common.GetStringConfig(visualizationServicePort),
-			common.GetDurationConfig(initConnectionTimeout),
 		))
 
 	// Register reflection service on gRPC server.
