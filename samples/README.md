@@ -45,7 +45,8 @@ requirements/conventions.
 * For `*.py` sample, its main invokes `kfp.compiler.Compiler().compile()` to compile the pipeline function into pipeline
 yaml spec.
 * For `*.ipynb` sample, parameters (e.g., experiment name and project name) should be defined in a dedicated cell and 
-tagged as parameter. Detailed guideline is [here](https://github.com/nteract/papermill).
+tagged as parameter. Detailed guideline is [here](https://github.com/nteract/papermill). Also, custom environment setup
+should be done within the notebook itself by `!pip install`
 * If pipeline running requires additional pipeline parameters, they can be specified in a config yaml file
 placed under `test/sample-test/configs`. See 
 `test/sample-test/configs/tfx_cab_classification.config.yaml` as an example. The config yaml file will be validated 
