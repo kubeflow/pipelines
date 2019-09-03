@@ -104,8 +104,6 @@ class PipelineList extends Page<{}, PipelineListState> {
   }
 
   private async _reload(request: ListRequest): Promise<string> {
-    await Apis.getMetadata();
-
     let response: ApiListPipelinesResponse | null = null;
     try {
       response = await Apis.pipelineServiceApi.listPipelines(

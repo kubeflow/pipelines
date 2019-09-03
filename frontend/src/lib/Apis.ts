@@ -22,10 +22,36 @@ import { VisualizationServiceApi, ApiVisualization } from '../apis/visualization
 import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
 import { PlotType } from '../components/viewers/Viewer';
 import { MetadataStoreServiceClient } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
-import { PutExecutionTypeRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
-import { ExecutionType, ArtifactType, ArtifactStructType } from '../generated/src/apis/metadata/metadata_store_pb';
 
 const v1beta1Prefix = 'apis/v1beta1';
+
+/** Known Artifact properties */
+export enum ArtifactProperties {
+  ALL_META = '__ALL_META__',
+  CREATE_TIME = 'create_time',
+  DESCRIPTION = 'description',
+  NAME = 'name',
+  PIPELINE_NAME = 'pipeline_name',
+  VERSION = 'version',
+}
+
+/** Known Artifact custom properties */
+export enum ArtifactCustomProperties {
+  WORKSPACE = '__kf_workspace__',
+  RUN = '__kf_run__',
+}
+
+/** Known Execution properties */
+export enum ExecutionProperties {
+  NAME = 'name',
+  PIPELINE_NAME = 'pipeline_name',
+  STATE = 'state',
+}
+
+/** Known Execution custom properties */
+export enum ExecutionCustomProperties {
+  WORKSPACE = '__kf_workspace__',
+}
 
 export interface ListRequest {
   filter?: string;
@@ -43,9 +69,10 @@ export interface BuildInfo {
 }
 
 let customVisualizationsAllowed: boolean;
+const metadataServiceClient = new MetadataStoreServiceClient('');
 
 export class Apis {
-
+  
   public static async areCustomVisualizationsAllowed(): Promise<boolean> {
     // Result is cached to prevent excessive network calls for simple request.
     // The value of customVisualizationsAllowed will only change if the
@@ -126,40 +153,6 @@ export class Apis {
     return this._visualizationServiceApi;
   }
 
-  public static async getMetadata(): Promise<string> {
-    const executionType = new ExecutionType();
-    executionType.setId(1);
-    executionType.setName('riley-test');
-    const artifactType = new ArtifactType();
-    artifactType.setId(1);
-    artifactType.setName('artifact');
-    const artifactStructType = new ArtifactStructType();
-    artifactStructType.setSimple(artifactType);
-    executionType.setInputType(artifactStructType);
-    const artifactType2 = new ArtifactType();
-    artifactType2.setId(2);
-    artifactType2.setName('artifact2');
-    const artifactStructType2 = new ArtifactStructType();
-    artifactStructType2.setSimple(artifactType2);
-    executionType.setOutputType(artifactStructType2);
-
-    const request = new PutExecutionTypeRequest();
-    request.setExecutionType(executionType);
-    request.setAllFieldsMatch(true);
-
-    // TODO: replace emptystring with metadata API prefix
-    const client = new MetadataStoreServiceClient('');
-    // tslint:disable-next-line:no-console
-    console.log('Making metadata request!');
-    client.putExecutionType(request, (err, response) => {
-      // tslint:disable-next-line:no-console
-      console.log(response);
-      // tslint:disable-next-line:no-console
-      console.log(err);
-    });
-    return '';
-  }
-
   /**
    * Retrieve various information about the build.
    */
@@ -233,6 +226,41 @@ export class Apis {
    */
   public static async getProjectId(): Promise<string> {
     return this._fetch('system/project-id');
+  }
+
+  public static getMetadataServiceClient(): MetadataStoreServiceClient {
+    return metadataServiceClient;
+    // const executionType = new ExecutionType();
+    // executionType.setId(1);
+    // executionType.setName('riley-test');
+    // const artifactType = new ArtifactType();
+    // artifactType.setId(1);
+    // artifactType.setName('artifact');
+    // const artifactStructType = new ArtifactStructType();
+    // artifactStructType.setSimple(artifactType);
+    // executionType.setInputType(artifactStructType);
+    // const artifactType2 = new ArtifactType();
+    // artifactType2.setId(2);
+    // artifactType2.setName('artifact2');
+    // const artifactStructType2 = new ArtifactStructType();
+    // artifactStructType2.setSimple(artifactType2);
+    // executionType.setOutputType(artifactStructType2);
+
+    // const request = new PutExecutionTypeRequest();
+    // request.setExecutionType(executionType);
+    // request.setAllFieldsMatch(true);
+
+    // // TODO: replace emptystring with metadata API prefix
+    // const client = new MetadataStoreServiceClient('');
+    // // tslint:disable-next-line:no-console
+    // console.log('Making metadata request!');
+    // client.putExecutionType(request, (err, response) => {
+    //   // tslint:disable-next-line:no-console
+    //   console.log(response);
+    //   // tslint:disable-next-line:no-console
+    //   console.log(err);
+    // });
+    // return '';
   }
 
   private static _experimentServiceApi?: ExperimentServiceApi;

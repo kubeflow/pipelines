@@ -238,6 +238,12 @@ export const commonCss = stylesheet({
     paddingBottom: 16,
     paddingTop: 20,
   },
+  header2: {
+    fontSize: fontsize.medium,
+    fontWeight: 'bold',
+    paddingBottom: 16,
+    paddingTop: 20,
+  },
   infoIcon: {
     color: color.lowContrast,
     height: 16,

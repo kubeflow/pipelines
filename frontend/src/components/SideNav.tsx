@@ -16,6 +16,7 @@
 
 import * as React from 'react';
 import ArchiveIcon from '@material-ui/icons/Archive';
+import ArtifactsIcon from '@material-ui/icons/BubbleChart';
 import Button from '@material-ui/core/Button';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
 import ExperimentsIcon from '../icons/experiments';
@@ -251,6 +252,19 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
               </Button>
             </Link>
           </Tooltip>
+          <div className={classes(css.indicator, !page.startsWith(RoutePage.ARTIFACTS) && css.indicatorHidden)} />
+          <Tooltip title={'Artifacts List'} enterDelay={300} placement={'right-start'}
+            disableFocusListener={!collapsed} disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}>
+            <Link id='artifactsBtn' to={RoutePage.ARTIFACTS} className={commonCss.unstyled}>
+              <Button className={classes(css.button,
+                this._highlightArtifactsButton(page) && css.active,
+                collapsed && css.collapsedButton)}>
+                <ArtifactsIcon />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Artifacts</span>
+              </Button>
+            </Link>
+          </Tooltip>
           {this.state.jupyterHubAvailable && (
             <Tooltip title={'Open Jupyter Notebook'} enterDelay={300} placement={'right-start'}
               disableFocusListener={!collapsed} disableHoverListener={!collapsed}
@@ -309,6 +323,11 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
       // of the other pages
       || page.startsWith('/recurringrun')
       || page.startsWith(RoutePage.COMPARE);
+  }
+
+  private _highlightArtifactsButton(page: string): boolean {
+    // TODO: Router should have a constant for this, but it doesn't follow a naming convention
+    return page.startsWith('/artifact');
   }
 
   private _toggleNavClicked(): void {
