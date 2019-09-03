@@ -23,11 +23,10 @@ serviceAccount:
   pipelineRunner: null
   argo: null
 
+gcpSecretName: null
+
 managedstorage:
   enabled: false
-  cloudsqlInstanceName: null
-  cloudsqlZone: null
+  cloudsqlInstanceConnectionName: null
   dbPassword: null
-  gcpProject: null
   databaseNamePrefix: null
-  gcpSecretName: null

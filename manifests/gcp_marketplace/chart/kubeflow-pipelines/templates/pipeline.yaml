@@ -253,7 +253,7 @@ spec:
             # Following environment variables are only needed when using Cloud SQL and GCS.
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
-              value: "{{ .Values.managedstorage.gcpProject }}-{{ .Values.managedstorage.cloudsqlInstanceName }}-{{ .Values.managedstorage.cloudsqlZone }}-{{ .Values.managedstorage.databaseNamePrefix }}"
+              value: "{{ .Values.managedstorage.cloudsqlInstanceConnectionName | replace ':' '-' }}-{{ .Values.managedstorage.databaseNamePrefix }}"
             - name: DBCONFIG_DBNAME
               value: "{{ .Values.managedstorage.databaseNamePrefix }}_pipeline"
             - name: DBCONFIG_PASSWORD

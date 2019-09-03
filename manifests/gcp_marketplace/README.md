@@ -28,9 +28,20 @@ export MARKETPLACE_TOOLS_TAG=unreleased-pr396
 export MARKETPLACE_TOOLS_IMAGE=gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev
 ```
 
-
 Install Kubeflow Pipelines
 ```
 kubectl create ns test
 mpdev /scripts/install  --deployer=gcr.io/ml-pipeline/google/kfp/deployer:0.1.27 --parameters='{"name": "installation-1", "namespace": "test"}'
+```
+
+Install with Cloud SQL and GCS
+```
+mpdev /scripts/install  \
+  --deployer=gcr.io/ml-pipeline/google/kfp/deployer:0.1.27 \
+  --parameters='{"name": "installation-1", "namespace": "test" , "managedstorage.enabled": true, "managedstorage.cloudsqlInstanceConnectionName": "your-instance-name", "managedstorage.dbPassword": "your password"}'
+```
+
+To uninstall 
+```
+kubectl delete applications -n test installation-1
 ```
