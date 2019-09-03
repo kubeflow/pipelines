@@ -50,7 +50,7 @@ For those samples that cover critical functions of KFP, possibly it should be pi
 so that it won't be broken by accidental PR merge. Contributors can do that by following these steps.
 
 * Place the sample under the core sample directory `kubeflow/pipelines/samples/core`
-* Make sure it follows the [sample conventions](https://github.com/kubeflow/pipelines/blob/master/samples/README.md#sample-conventions).
+* Make sure it follows the [sample conventions](#sample-conventions).
 * If the test running requires specific values of pipeline parameters, they can be specified in a config yaml file
 placed under `test/sample-test/configs`. See 
 [`tfx_cab_classification.config.yaml`](https://github.com/kubeflow/pipelines/blob/master/test/sample-test/configs/tfx_cab_classification.config.yaml) as an example. The config yaml file will be validated 
