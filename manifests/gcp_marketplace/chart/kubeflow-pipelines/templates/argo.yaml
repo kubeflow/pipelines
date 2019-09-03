@@ -19,7 +19,7 @@ data:
   config: |
     {
     namespace: {{ .Release.Namespace }},
-    executorImage: {{ .Values.images.argoExecutor }},
+    executorImage: {{ .Values.images.argoexecutor }},
     artifactRepository:
     {
         s3: {
@@ -87,7 +87,7 @@ spec:
             - --configmap
             - workflow-controller-configmap
             - --executor-image
-            - {{ .Values.images.argoExecutor }}
+            - {{ .Values.images.argoexecutor }}
           command:
             - workflow-controller
           env:
@@ -96,7 +96,7 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.namespace
-          image: {{ .Values.images.argoWorkflowController }}
+          image: {{ .Values.images.argoworkflowcontroller }}
           imagePullPolicy: IfNotPresent
           name: workflow-controller
           resources: {}
