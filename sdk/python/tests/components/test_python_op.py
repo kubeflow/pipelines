@@ -348,7 +348,7 @@ class PythonOpTestCase(unittest.TestCase):
             return 1
 
         func = assert_is_none
-        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
+        op = comp.func_to_container_op(func)
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
 
