@@ -91,7 +91,6 @@ def build_image_from_working_dir(image_name : str = None, working_dir : str = No
                     src_path = os.path.join(dirpath, file_name)
                     dst_path = os.path.join(dst_dirpath, file_name)
                     shutil.copy(src_path, dst_path)
-            
 
         src_dockerfile_path = os.path.join(current_dir, 'Dockerfile')
         dst_dockerfile_path = os.path.join(context_dir, 'Dockerfile')
