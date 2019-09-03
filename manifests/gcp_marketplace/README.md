@@ -7,4 +7,25 @@ This directory contains the stacks to deploy on Google Cloud Marketplace.
 Popular open stacks on Kubernetes packaged by Google.
 
 # Installation
-TODO
+
+Build docker image
+```
+docker build --tag gcr.io/ml-pipeline/google/kfp/deployer:0.1.27 -f deployer/Dockerfile .
+docker push gcr.io/ml-pipeline/google/kfp/deployer:0.1.27
+```
+
+Install application CRD in a cluster
+```
+kubectl apply -f "https://raw.githubusercontent.com/GoogleCloudPlatform/marketplace-k8s-app-tools/master/crd/app-crd.yaml"
+```
+
+Install mpdev
+```
+BIN_FILE="$HOME/bin/mpdev"
+docker run  gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev:unreleased-pr396  cat /scripts/dev > "$BIN_FILE"
+chmod +x "$BIN_FILE"
+export MARKETPLACE_TOOLS_TAG=unreleased-pr396
+export MARKETPLACE_TOOLS_IMAGE=gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev
+```
+
+

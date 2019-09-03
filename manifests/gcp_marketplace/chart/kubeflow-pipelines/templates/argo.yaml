@@ -19,7 +19,7 @@ data:
   config: |
     {
     namespace: {{ .Release.Namespace }},
-    executorImage: {{ .Values.images.argoExecutor }},
+    executorImage: {{ .Values.images.argo-executor }},
     artifactRepository:
     {
         s3: {
@@ -87,7 +87,7 @@ spec:
             - --configmap
             - workflow-controller-configmap
             - --executor-image
-            - {{ .Values.images.argoExecutor }}
+            - {{ .Values.images.argo-executor }}
           command:
             - workflow-controller
           env:

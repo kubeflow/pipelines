@@ -25,17 +25,17 @@ x-google-marketplace:
       properties:
         images.minio:
           type: FULL
-    argoExecutor:
+    argo-executor:
       properties:
-        images.argoExecutor:
+        images.argo-executor:
           type: FULL
-    argoWorkflowController:
+    argo-workflow-controller:
       properties:
-        images.argoWorkflowController:
+        images.argo-workflow-controller:
           type: FULL
-    apiServer:
+    api-server:
       properties:
-        images.apiServer:
+        images.api-server:
           type: FULL
     persistenceagent:
       properties:
@@ -49,25 +49,25 @@ x-google-marketplace:
       properties:
         images.frontend:
           type: FULL
-    viewerCrd:
+    viewer-crd:
       properties:
-        images.viewerCrd:
+        images.viewer-crd:
           type: FULL
-    visualizationServer:
+    visualization-server:
       properties:
-        images.visualizationServer:
+        images.visualization-server:
           type: FULL
-    metadataServer:
+    metadata-server:
       properties:
-        images.metadataServer:
+        images.metadata-server:
           type: FULL
-    proxyAgent:
+    proxy-agent:
       properties:
-        images.proxyAgent:
+        images.proxy-agent:
           type: FULL
-    cloudsqlProxy:
+    cloudsql-proxy:
       properties:
-        images.cloudsqlProxy:
+        images.cloudsql-proxy:
           type: FULL
   deployerServiceAccount:
     roles:
