@@ -1,5 +1,5 @@
 import re
-from typing import List, Union, Dict, Text, Any, Tuple
+from typing import List, Union, Dict, Text, Any, Tuple, Optional
 
 from kfp import dsl
 
@@ -19,7 +19,7 @@ class LoopArguments(dsl.PipelineParam):
     def _subvar_name_is_legal(cls, proposed_variable_name: Text):
         return re.match(cls.LEGAL_SUBVAR_NAME_REGEX, proposed_variable_name) is not None
 
-    def __init__(self, items: ItemList, code: Text):
+    def __init__(self, items: Union[ItemList, dsl.PipelineParam], code: Text, name_override: Optional[Text]=None, op_name: Optional[Text]=None):
         """_LoopArguments represent the set of items to loop over in a ParallelFor loop.  This class shoudn't be
         instantiated by the user but rather is created by _ops_group.ParallelFor.
 
@@ -29,7 +29,10 @@ class LoopArguments(dsl.PipelineParam):
             code: A unique code used to identify these loop arguments.  Should match the code for the ParallelFor
                 ops_group which created these _LoopArguments.  This prevents parameter name collissions.
         """
-        super().__init__(name=self._make_name(code))
+        if name_override is None:
+            super().__init__(name=self._make_name(code))
+        else:
+            super().__init__(name=name_override, op_name=op_name)
 
         if not isinstance(items, (list, tuple, dsl.PipelineParam)):
             raise TypeError("Expected list, tuple, or PipelineParam, got {}.".format(type(items)))
@@ -41,21 +44,21 @@ class LoopArguments(dsl.PipelineParam):
                     raise ValueError("If you input a list of dicts then all dicts should have the same keys. "
                                      "Got: {}.".format(items))
 
-            # then this block creates loop_args.variable_a and loop_args.variable_b
-            for subvar_name in subvar_names:
-                if not self._subvar_name_is_legal(subvar_name):
-                    raise ValueError("Tried to create subvariable named {} but that's not a legal Python variable "
-                                     "name.".format(subvar_name))
-                setattr(self, subvar_name, LoopArgumentVariable(self.name, subvar_name))
+        self.items_or_pipeline_param = items
+        self.referenced_subvar_names = []
 
-        self.items = items
+    def __getattr__(self, item):
+        # this is being overridden so that we can access subvariables of the LoopArguments (i.e.: item.a) without
+        # knowing the subvariable names ahead of time
+        self.referenced_subvar_names.append(item)
+        return LoopArgumentVariable(self.name, item)
 
     def to_list_for_task_yaml(self):
-        if isinstance(self.items, list):
-            return self.items
+        if isinstance(self.items_or_pipeline_param, list):
+            return self.items_or_pipeline_param
         else:
             # pipeline param
-            pipeline_param = self.items
+            pipeline_param = self.items_or_pipeline_param
             if pipeline_param.op_name is None:
                 # return '{{inputs.parameters.%s}}' % pipeline_param.name
                 return '{{workflow.parameters.%s}}' % pipeline_param.name

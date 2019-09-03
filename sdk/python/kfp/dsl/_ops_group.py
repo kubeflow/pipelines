@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import json
 from typing import Union
 import uuid
 
@@ -180,7 +181,9 @@ class ParallelFor(OpsGroup):
     group_name = 'for-loop-{}'.format(code)
     super().__init__(self.TYPE_NAME, name=group_name)
 
-    if not isinstance(loop_args, _for_loop.LoopArguments):
+    self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
+    if not self.items_is_pipeline_param and not isinstance(loop_args, _for_loop.LoopArguments):
+      # we were passed a raw list, wrap it in loop args
       loop_args = _for_loop.LoopArguments(loop_args, code)
 
     self.loop_args = loop_args
