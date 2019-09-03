@@ -196,7 +196,7 @@ spec:
               value: "50"
             - name: NAMESPACE
               value: {{ .Release.Namespace }}
-          image: {{ .Values.images.viewerCrd }}
+          image: {{ .Values.images.viewercrd }}
           imagePullPolicy: Always
           name: ml-pipeline-viewer-crd
       serviceAccountName: {{ .Values.serviceAccount.mlPipelineViewerCrd}}
@@ -220,7 +220,7 @@ spec:
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
-        - image: {{ .Values.images.visualizationServer }}
+        - image: {{ .Values.images.visualizationserver }}
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-visualizationserver
           ports:
@@ -255,13 +255,13 @@ spec:
             # Following environment variables are only needed when using Cloud SQL and GCS.
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
-              value: "{{ .Values.managedstorage.gcpProject }}-{{ .Values.managedstorage.cloudsqlInstanceName }}-{{ .Values.managedstorage.cloudsqlZone }}-{{ .Values.managedstorage.databaseNamePrefix }}"
+              value: "{{ .Values.managedstorage.cloudsqlInstanceConnectionName | replace ':' '-' }}-{{ .Values.managedstorage.databaseNamePrefix }}"
             - name: DBCONFIG_DBNAME
               value: "{{ .Values.managedstorage.databaseNamePrefix }}_pipeline"
             - name: DBCONFIG_PASSWORD
               value: "{{ .Values.managedstorage.dbPassword }}"
             {{ end }}
-          image: {{ .Values.images.apiServer }}
+          image: {{ .Values.images.apiserver }}
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
           ports:
