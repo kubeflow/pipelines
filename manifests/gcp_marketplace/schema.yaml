@@ -1,4 +1,82 @@
-applicationApiVersion: v1beta1
+x-google-marketplace:
+  schemaVersion: v2
+  applicationApiVersion: v1beta1
+  publishedVersion: '0.1.27'
+  publishedVersionMetadata:
+    releaseNote: >-
+      Initial release.
+    releaseTypes:
+      - Feature
+    recommended: false
+  managedUpdates:
+    kalmSupported: false
+  images:
+    '':
+      properties:
+        imageRepo:
+          type: REPO_WITH_REGISTRY
+        imageTag:
+          type: TAG
+    mysql:
+      properties:
+        images.mysql:
+          type: FULL
+    minio:
+      properties:
+        images.minio:
+          type: FULL
+    argoExecutor:
+      properties:
+        images.argoExecutor:
+          type: FULL
+    argoWorkflowController:
+      properties:
+        images.argoWorkflowController:
+          type: FULL
+    apiServer:
+      properties:
+        images.apiServer:
+          type: FULL
+    persistenceagent:
+      properties:
+        images.persistenceagent:
+          type: FULL
+    scheduledworkflow:
+      properties:
+        images.scheduledworkflow:
+          type: FULL
+    frontend:
+      properties:
+        images.frontend:
+          type: FULL
+    viewerCrd:
+      properties:
+        images.viewerCrd:
+          type: FULL
+    visualizationServer:
+      properties:
+        images.visualizationServer:
+          type: FULL
+    metadataServer:
+      properties:
+        images.metadataServer:
+          type: FULL
+    proxyAgent:
+      properties:
+        images.proxyAgent:
+          type: FULL
+    cloudsqlProxy:
+      properties:
+        images.cloudsqlProxy:
+          type: FULL
+  deployerServiceAccount:
+    roles:
+      - type: ClusterRole        # This is a cluster-wide ClusterRole
+        rulesType: CUSTOM        # We specify our own custom RBAC roles
+        rules:
+          - apiGroups: ['apiextensions.k8s.io']
+            resources: ['customresourcedefinitions']
+            verbs: ['*']
 
 properties:
   name:
@@ -9,71 +87,26 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
-#  image.mysql:
-#    type: string
-#    default: $REGISTRY/mysql:5.6
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.minio:
-#    type: string
-#    default: $REGISTRY/minio:RELEASE.2018-02-09T22-40-05Z
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.argoExecutor:
-#    type: string
-#    default: $REGISTRY/argoexec:v2.3.0
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.argoWorkflowController:
-#    type: string
-#    default: $REGISTRY/workflow-controller:v2.3.0
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.apiServer:
-#    type: string
-#    default: $REGISTRY/api-server:$TAG
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.persistenceagent:
-#    type: string
-#    default: $REGISTRY/persistenceagent:$TAG
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.scheduledworkflow:
-#    type: string
-#    default: $REGISTRY/scheduledworkflow:$TAG
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.frontend:
-#    type: string
-#    default: $REGISTRY/frontend:$TAG
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.viewerCrd:
-#    type: string
-#    default: $REGISTRY/viewer-crd-controller:$TAG
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.visualizationServer:
-#    type: string
-#    default: $REGISTRY/visualization-server:$TAG
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.metadataServer:
-#    type: string
-#    default: gcr.io/kubeflow-images-public/metadata:v0.1.8
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.proxyAgent:
-#    type: string
-#    default: $REGISTRY/inverse-proxy-agent:$TAG
-#    x-google-marketplace:
-#      type: IMAGE
-#  image.cloudsqlProxy:
-#    type: string
-#    default: gcr.io/cloudsql-docker/gce-proxy:1.14
-#    x-google-marketplace:
-#      type: IMAGE
+  managedstorage.enabled:
+    type: boolean
+    title: Enable managed storage
+    description: Use Cloud SQL and GCS for storing the data
+    default: false
+  managedstorage.cloudsqlInstanceName:
+    type: string
+    title: CloudSQL instance name
+  managedstorage.cloudsqlZone:
+    type: string
+    title: CloudSQL zone
+  managedstorage.dbPassword:
+    type: string
+    title: database password
+  managedstorage.gcpProject:
+    type: string
+    title: GCP project
+  managedstorage.databaseNamePrefix:
+    type: string
+    title: database name prefix
   serviceAccount.proxyAgentRunner:
     type: string
     title: ProxyAgentRunnerServiceAccount
@@ -385,16 +418,3 @@ properties:
 required:
   - name
   - namespace
-
-x-google-marketplace:
-  deployerServiceAccount:
-    roles:
-      - type: ClusterRole        # This is a cluster-wide ClusterRole
-        rulesType: CUSTOM        # We specify our own custom RBAC roles
-        rules:
-          - apiGroups: ['apiextensions.k8s.io']
-            resources: ['customresourcedefinitions']
-            verbs: ['*']
-      - type: Role               # This is a namespaced Role
-        rulesType: PREDEFINED
-        rulesFromRoleName: edit  # Use predefined role named "edit"
