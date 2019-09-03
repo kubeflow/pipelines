@@ -1,3 +1,5 @@
+# Before running this test you must pip install snapshottest and tensorflow==1.13.1
+
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -92,7 +94,7 @@ class TestServerEndpoints(tornado.testing.AsyncHTTPTestCase):
         response = self.fetch(
             "/",
             method="POST",
-            body='type=test&source=gs://ml-pipeline/data.csv')
+            body='type=table&source=gs://storage.cloud.google.com/ml-pipeline-dataset/python-based-visualizations-test-data/table.csv')
         self.assertEqual(200, response.code)
 
 

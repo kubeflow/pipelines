@@ -1,3 +1,5 @@
+# Before running this test you must pip install snapshottest and tensorflow==1.13.1
+
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +16,7 @@
 
 import importlib
 import unittest
-from nbformat.v4 import new_notebook
+from nbformat.v4 import new_notebook, new_code_cell
 import snapshottest
 
 exporter = importlib.import_module("exporter")
@@ -65,13 +67,6 @@ class TestExporterMethods(snapshottest.TestCase):
         ]
         cell = exporter.create_cell_from_custom_code(code)
         self.assertMatchSnapshot(cell.source)
-
-    # Tests to ensure output is generated for predefined visualizations.
-    def test_generate_test_visualization_html_from_notebook(self):
-        nb = new_notebook()
-        nb.cells.append(exporter.create_cell_from_file("types/test.py"))
-        html = self.exporter.generate_html_from_notebook(nb)
-        self.assertMatchSnapshot(html)
 
     # Tests to ensure output is generated for custom visualizations.
     def test_generate_custom_visualization_html_from_notebook(self):
