@@ -21,7 +21,7 @@ from typing import Callable
 
 import mock
 
-from kfp.containers import build_image_from_env
+from kfp.containers import build_image_from_working_dir
 
 
 class MockImageBuilder:
@@ -44,7 +44,7 @@ class MockImageBuilder:
 
 
 class BuildImageApiTests(unittest.TestCase):
-    def test_build_image_from_env(self):
+    def test_build_image_from_working_dir(self):
         expected_dockerfile_text_re = '''
 FROM python:.*
 COPY . /.*
@@ -72,7 +72,7 @@ RUN python3 -m pip install -r requirements.txt
                 self.assertEqual(file_paths, expected_file_paths)
 
             builder = MockImageBuilder(dockerfile_text_check, requirements_text_check, file_paths_check)
-            result = build_image_from_env(source_dir=context_dir, builder=builder)
+            result = build_image_from_working_dir(working_dir=context_dir, builder=builder)
 
 if __name__ == '__main__':
     unittest.main()
