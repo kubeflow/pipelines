@@ -36,7 +36,7 @@ spec:
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
-        - image: {{ .Values.images.cloudsql-proxy}}
+        - image: {{ .Values.images.cloudsqlproxy}}
           name: cloudsqlproxy
           env:
             - name: GCP_PROJECT
