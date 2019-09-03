@@ -13,11 +13,21 @@ images:
   argoExecutor: gcr.io/ml-pipeline/argoexec:v2.3.0
   argoWorkflowController: gcr.io/ml-pipeline/workflow-controller:v2.3.0
 
+serviceAccount:
+  proxyAgentRunner: null
+  mlPipelinePersistenceAgent: null
+  mlPipelineScheduledWorkflow: null
+  mlPipelineUI: null
+  mlPipelineViewerCrd: null
+  mlPipeline: null
+  pipelineRunner: null
+  argo: null
+
 managedstorage:
   enabled: false
-  cloudsqlInstanceName:
-  cloudsqlZone:
-  dbPassword:
-  gcpProject:
-  gcpSecretName:
-  databaseNamePrefix:
+  cloudsqlInstanceName: null
+  cloudsqlZone: null
+  dbPassword: null
+  gcpProject: null
+  gcpSecretName: null
+  databaseNamePrefix: null
