@@ -24,10 +24,10 @@ serviceAccount:
   argo: null
 
 managedstorage:
-  enabled: false
   cloudsqlInstanceName: null
   cloudsqlZone: null
-  dbPassword: null
-  gcpProject: null
   databaseNamePrefix: null
+  dbPassword: null
+  enabled: false
+  gcpProject: null
   gcpSecretName: null
