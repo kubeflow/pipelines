@@ -124,6 +124,7 @@ def _generate_dockerfile(filename, base_image, python_version, requirement_filen
       base_image (str): the base image name.
       python_version (str): choose python2 or python3
       requirement_filename (str): requirement file name
+      add_files (Dict[str, str]): Map containing the files thats hould be added to the container. add_files maps the build context relative source paths to the container destination paths.
   """
   if python_version not in ['python2', 'python3']:
     raise ValueError('python_version has to be either python2 or python3')
