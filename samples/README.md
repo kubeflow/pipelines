@@ -52,5 +52,6 @@ placed under `test/sample-test/configs`. See
 `test/sample-test/configs/tfx_cab_classification.config.yaml` as an example. The config yaml file will be validated 
 according to `schema.config.yaml`. If no config yaml is provided, pipeline parameters will be substituted by their 
 default values.
+* Finally, add your test name (in consistency with the file name and dir name) in `test/sample_test.yaml`
 * (Optional) Current sample test infra only checks successful runs, without any result/outcome validation. If those are needed, 
 runtime checks should be included in the sample itself.
