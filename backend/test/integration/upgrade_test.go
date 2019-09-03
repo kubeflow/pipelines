@@ -138,33 +138,6 @@ func (s *UpgradeTests) TestPreparePipelines() {
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
 }
 
-func (s *UpgradeTests) TestVerifyPipelines() {
-	t := s.T()
-
-	/* ---------- Verify list pipeline sorted by creation time ---------- */
-	pipelines, _, _, err := s.pipelineClient.List(
-		&pipeline_service.ListPipelinesParams{SortBy: util.StringPointer("created_at")})
-	assert.Nil(t, err)
-	// During upgrade, default pipelines may be installed, so we only verify the
-	// 4 oldest pipelines here.
-	assert.True(t, len(pipelines) >= 4)
-	assert.Equal(t, "arguments-parameters.yaml", pipelines[0].Name)
-	assert.Equal(t, "sequential", pipelines[1].Name)
-	assert.Equal(t, "zip-arguments-parameters", pipelines[2].Name)
-	assert.Equal(t, "arguments.pipeline.zip", pipelines[3].Name)
-
-	verifyPipeline(t, pipelines[0])
-
-	/* ---------- Verify get template works ---------- */
-	template, err := s.pipelineClient.GetTemplate(&pipeline_service.GetTemplateParams{ID: pipelines[0].ID})
-	assert.Nil(t, err)
-	expected, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
-	assert.Nil(t, err)
-	var expectedWorkflow v1alpha1.Workflow
-	err = yaml.Unmarshal(expected, &expectedWorkflow)
-	assert.Equal(t, expectedWorkflow, *template)
-}
-
 func (s *UpgradeTests) TestVerifyExperiments() {
 	t := s.T()
 
@@ -190,6 +163,33 @@ func (s *UpgradeTests) TestVerifyExperiments() {
 	assert.Equal(t, "my third experiment", experiments[2].Description)
 	assert.NotEmpty(t, experiments[2].ID)
 	assert.NotEmpty(t, experiments[2].CreatedAt)
+}
+
+func (s *UpgradeTests) TestVerifyPipelines() {
+	t := s.T()
+
+	/* ---------- Verify list pipeline sorted by creation time ---------- */
+	pipelines, _, _, err := s.pipelineClient.List(
+		&pipeline_service.ListPipelinesParams{SortBy: util.StringPointer("created_at")})
+	assert.Nil(t, err)
+	// During upgrade, default pipelines may be installed, so we only verify the
+	// 4 oldest pipelines here.
+	assert.True(t, len(pipelines) >= 4)
+	assert.Equal(t, "arguments-parameters.yaml", pipelines[0].Name)
+	assert.Equal(t, "sequential", pipelines[1].Name)
+	assert.Equal(t, "zip-arguments-parameters", pipelines[2].Name)
+	assert.Equal(t, "arguments.pipeline.zip", pipelines[3].Name)
+
+	verifyPipeline(t, pipelines[0])
+
+	/* ---------- Verify get template works ---------- */
+	template, err := s.pipelineClient.GetTemplate(&pipeline_service.GetTemplateParams{ID: pipelines[0].ID})
+	assert.Nil(t, err)
+	expected, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
+	assert.Nil(t, err)
+	var expectedWorkflow v1alpha1.Workflow
+	err = yaml.Unmarshal(expected, &expectedWorkflow)
+	assert.Equal(t, expectedWorkflow, *template)
 }
 
 func TestUpgrade(t *testing.T) {
