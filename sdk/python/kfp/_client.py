@@ -17,6 +17,7 @@ import time
 import logging
 import json
 import os
+import re
 import tarfile
 import tempfile
 import zipfile
@@ -29,7 +30,7 @@ import kfp_server_api
 from kfp.compiler import compiler
 from kfp.compiler import _k8s_helper
 
-from kfp._auth import get_auth_token
+from kfp._auth import get_auth_token, get_gcp_access_token
 
 
 
@@ -84,7 +85,7 @@ class Client(object):
           https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
       client_id: The client ID used by Identity-Aware Proxy.
     """
-
+    host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
     config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
@@ -96,12 +97,14 @@ class Client(object):
 
   def _load_config(self, host, client_id, namespace):
     config = kfp_server_api.configuration.Configuration()
-    host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
     if host:
       config.host = host
 
     token = None
-    if host and client_id:
+
+    if self._is_inverse_proxy_host(host):
+      token = get_gcp_access_token()
+    if self._is_iap_host(host,client_id):
       # fetch IAP auth token
       token = get_auth_token(client_id)
 
@@ -135,6 +138,16 @@ class Client(object):
     if config.host:
       config.host = os.path.join(config.host, Client.KUBE_PROXY_PATH.format(namespace))
     return config
+
+  def _is_iap_host(self, host, client_id):
+    if host and client_id:
+      return re.match(r'\S+.endpoints.\S+.cloud.goog', host)
+    return False
+
+  def _is_inverse_proxy_host(self, host):
+    if host:
+      return re.match(r'\S+dot-datalab-vm\S+.googleusercontent.com', host)
+    return False
 
   def _is_ipython(self):
     """Returns whether we are running in notebook."""

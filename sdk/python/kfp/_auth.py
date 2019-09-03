@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+import os
 import google.auth
 import google.auth.app_engine
 import google.auth.compute_engine.credentials
@@ -24,6 +25,13 @@ import requests_toolbelt.adapters.appengine
 
 IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
+
+def get_gcp_access_token():
+    """Get and return GCP access token for the current Application Default
+    Credentials. If not set, returns None. For more information, see
+    https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token
+    """
+    return os.popen('gcloud auth print-access-token').read().rstrip()
 
 def get_auth_token(client_id):
     """Gets auth token from default service account.
