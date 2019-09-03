@@ -35,3 +35,21 @@ Useful parameter values:
 All samples use pre-built components. The command to run for each container is built into the pipeline file.
 
 ## (Optional) Add sample test coverage
+
+For those samples that cover critical functions of KFP, possibly it should be picked up by KFP's sample test
+so that it won't be broken by accidental PR merge. To do that, the sample to be covered should meet the following 
+requirements/conventions.
+
+* Under the core sample directory `kubeflow/pipelines/samples/core`
+* Make sure that the sample is either `*.py` or `*.ipynb`, and its file name is in consistence with its dir name.
+* For `*.py` sample, its main invokes `kfp.compiler.Compiler().compile()` to compile the pipeline function into pipeline
+yaml spec.
+* For `*.ipynb` sample, parameters (e.g., experiment name and project name) should be defined in a dedicated cell and 
+tagged as parameter. Detailed guideline is [here](https://github.com/nteract/papermill).
+* If pipeline running requires additional pipeline parameters, they can be specified in a config yaml file
+placed under `test/sample-test/configs`. See 
+`test/sample-test/configs/tfx_cab_classification.config.yaml` as an example. The config yaml file will be validated 
+according to `schema.config.yaml`. If no config yaml is provided, pipeline parameters will be substituted by their 
+default values.
+* (Optional) Current sample test infra only checks successful runs, without any result/outcome validation. If those are needed, 
+runtime checks should be included in the sample itself.
