@@ -73,7 +73,6 @@ spec:
               - dsl_static_type_checking
               - pipeline_transformers
               - resource_ops
-              - retry
               - secret
               - sidecar
               - volume_ops
