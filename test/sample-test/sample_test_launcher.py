@@ -46,6 +46,7 @@ class SampleTest(object):
     # Capture the first segment after gs:// as the project name.
     self._bucket_name = results_gcs_dir.split('/')[2]
     self._target_image_prefix = target_image_prefix
+    self._is_notebook = None
     self._namespace = namespace
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
     self._sample_test_output = self._results_gcs_dir
@@ -102,21 +103,24 @@ class SampleTest(object):
 
     # Looking for the entry point of the test.
     list_of_files = os.listdir('.')
-    found_ext = None
     for file in list_of_files:
       m = re.match(self._test_name + '\.[a-zA-Z]+', file)
       if m:
         file_name, ext_name = os.path.splitext(file)
-        if ext_name in ['py', 'ipynb']:
-          if found_ext:
-            raise(RuntimeError('Multiple entry points found under sample: {}'.format(self._test_name)))
+        if ext_name == 'py':
+          if self._is_notebook is None:
+            self._is_notebook = False
           else:
-            found_ext = ext_name
+            raise(RuntimeError('Multiple entry points found under sample: {}'.format(self._test_name)))
+        if ext_name == 'ipynb':
+          if self._is_notebook is None:
+            self._is_notebook = True
+          else:
+            raise(RuntimeError('Multiple entry points found under sample: {}'.format(self._test_name)))
 
     # For presubmit check, do not do any image injection as for now.
     # Notebook samples need to be papermilled first.
-    if found_ext == 'ipynb':
-      self._is_notebook = True
+    if self._is_notebook:
       # Parse necessary params from config.yaml
       nb_params = {}
       config_schema = yamale.make_schema(SCHEMA_CONFIG)
