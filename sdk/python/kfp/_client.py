@@ -172,10 +172,11 @@ class Client(object):
     # In-cluster pod. We could use relative URL.
     return '/pipeline'
 
-  def create_experiment(self, name):
+  def create_experiment(self, name, description=None):
     """Create a new experiment.
     Args:
       name: the name of the experiment.
+      description: description of the experiment
     Returns:
       An Experiment object. Most important field is id.
     """
@@ -189,7 +190,7 @@ class Client(object):
 
     if not experiment:
       logging.info('Creating experiment {}.'.format(name))
-      experiment = kfp_server_api.models.ApiExperiment(name=name)
+      experiment = kfp_server_api.models.ApiExperiment(name=name, description=description)
       experiment = self._experiment_api.create_experiment(body=experiment)
 
     if self._is_ipython():
