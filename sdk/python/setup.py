@@ -34,7 +34,8 @@ REQUIRES = [
     'argo-models == 2.2.1a',  #2.2.1a is equivalent to argo 2.2.1
     'jsonschema >= 3.0.1',
     'tabulate == 0.8.3',
-    'click == 7.0'
+    'click == 7.0',
+    'Deprecated',
 ]
 
 setup(

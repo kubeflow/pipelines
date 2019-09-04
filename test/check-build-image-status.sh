@@ -37,6 +37,10 @@ if [ "$IMAGES_BUILDING" == true ]; then
           NEW_PENDING_BUILD_IDS+=( "$id" )
         ;;
         *)
+          echo "Fetching build log for build $id"
+          gcloud builds log "$id" || echo "Fetching build log failed"
+          # Intentionally placed this status echo at the end, because when a
+          # developer is looking at logs, sth at the end is most discoverable.
           echo "Cloud build with build id ${id} failed with status ${status}"
           exit 1
         ;;

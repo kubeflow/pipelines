@@ -127,11 +127,26 @@ def _parameters_to_json(params: List[dsl.PipelineParam]):
     return params
 
 
-# TODO: artifacts?
-def _inputs_to_json(inputs_params: List[dsl.PipelineParam], _artifacts=None):
+def _inputs_to_json(
+    inputs_params: List[dsl.PipelineParam],
+    input_artifact_paths: Dict[str, str] = None,
+) -> Dict[str, Dict]:
     """Converts a list of PipelineParam into an argo `inputs` JSON obj."""
     parameters = _parameters_to_json(inputs_params)
-    return {'parameters': parameters} if parameters else None
+
+    # Building the input artifacts section
+    artifacts = []
+    for name, path in (input_artifact_paths or {}).items():
+        artifact = {'name': name, 'path': path}
+        artifacts.append(artifact)
+    artifacts.sort(key=lambda x: x['name']) #Stabilizing the input artifact ordering
+
+    inputs_dict = {}
+    if parameters:
+        inputs_dict['parameters'] = parameters
+    if artifacts:
+        inputs_dict['artifacts'] = artifacts
+    return inputs_dict
 
 
 def _outputs_to_json(op: BaseOp,
@@ -213,7 +228,8 @@ def _op_to_template(op: BaseOp):
         }
 
     # inputs
-    inputs = _inputs_to_json(processed_op.inputs)
+    input_artifact_paths = processed_op.input_artifact_paths if isinstance(processed_op, dsl.ContainerOp) else None
+    inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths)
     if inputs:
         template['inputs'] = inputs
 

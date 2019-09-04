@@ -64,9 +64,17 @@ matrix:
     - language: python
       python: "3.5"
       env: TOXENV=py35
-      script: &1
+      install: &0
         # Additional dependencies
-        - pip3 install coverage coveralls jsonschema==3.0.1 
+        - pip3 install coverage coveralls jsonschema==3.0.1
+        # Sample test infra dependencies
+        - pip3 install minio
+        - pip3 install junit_xml
+        # Visualization test dependencies
+        - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
+        - pip3 install -r requirements-test.txt
+      script: &1
+
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python3 setup.py develop
@@ -78,8 +86,6 @@ matrix:
 
         # Visualization test
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
-        # Visualization test dependencies
-        - pip3 install -r requirements-test.txt
         - python3 test_exporter.py
         - python3 test_server.py
 
@@ -89,13 +95,19 @@ matrix:
         # Component SDK tests
         - cd $TRAVIS_BUILD_DIR/components/gcp/container/component_sdk/python
         - ./run_test.sh
+
+        # Sample test unittests.
+        - cd $TRAVIS_BUILD_DIR/test/sample-test/unittests
+        - python3 -m unittest utils_tests.py
     - language: python
       python: "3.6"
       env: TOXENV=py36
+      install: *0
       script: *1
     - language: python
       python: "3.7"
       env: TOXENV=py37
+      install: *0
       script: *1
     - name: "Lint Python code with flake8"
       language: python

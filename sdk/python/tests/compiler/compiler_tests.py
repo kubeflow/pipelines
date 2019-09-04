@@ -702,3 +702,7 @@ implementation:
       self.assertIsNone(delete_op_template.get("successCondition"))
       self.assertIsNone(delete_op_template.get("failureCondition"))
       self.assertDictEqual(delete_op_template.get("outputs"), {})
+
+  def test_py_input_artifact_raw_value(self):
+    """Test pipeline input_artifact_raw_value."""
+    self._test_py_compile_yaml('input_artifact_raw_value')

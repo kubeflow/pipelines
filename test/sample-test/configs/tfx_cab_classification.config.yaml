@@ -1,5 +1,4 @@
-#!/bin/bash -e
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# build base image
-pushd ../base
-./build_image.sh
-popd
-
-../../build_image.sh -l ml-pipeline-bigquery-query "$@"
+test_name: tfx_cab_classification
+arguments:
+  output:
+  project: ml-pipeline-test
+  column-names: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/column-names.json
+  evaluation: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval5.csv
+  train: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train20.csv
+  hidden-layer-size: 5
+  steps: 5
