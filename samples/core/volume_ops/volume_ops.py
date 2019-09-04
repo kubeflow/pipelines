@@ -24,7 +24,7 @@ def volumeop_basic(size):
     vop = dsl.VolumeOp(
         name="create_pvc",
         resource_name="my-pvc",
-        modes=dsl.VOLUME_MODE_RWM,
+        modes=dsl.VOLUME_MODE_RWO,
         size=size
     )
 
