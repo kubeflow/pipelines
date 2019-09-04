@@ -141,7 +141,8 @@ class SampleTest(object):
       except OSError as ose:
         print('Config file with the same name not found, use default args:{}'.format(ose))
       else:
-        nb_params.update(raw_args['notebook_params'])
+        if 'notebook_params' in raw_args.keys():
+          nb_params.update(raw_args['notebook_params'])
         if 'run_pipeline' in raw_args.keys():
           self._run_pipeline = raw_args['run_pipeline']
 
