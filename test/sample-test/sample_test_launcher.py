@@ -102,10 +102,13 @@ class SampleTest(object):
         file_name, ext_name = os.path.splitext(file)
         if self._is_notebook is not None:
           raise(RuntimeError('Multiple entry points found under sample: {}'.format(self._test_name)))
-        if ext_name == 'py':
+        if ext_name == '.py':
           self._is_notebook = False
-        if ext_name == 'ipynb':
+        if ext_name == '.ipynb':
           self._is_notebook = True
+
+    if self._is_notebook is None:
+      raise(RuntimeError('No entry point found for sample: {}'.format(self._test_name)))
 
     config_schema = yamale.make_schema(SCHEMA_CONFIG)
     # Retrieve default config
@@ -149,7 +152,6 @@ class SampleTest(object):
       )
 
     else:
-      self._is_notebook = False
       subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
                        '--output', '%s.yaml' % self._test_name])
 
