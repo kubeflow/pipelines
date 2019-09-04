@@ -130,6 +130,7 @@ def _parameters_to_json(params: List[dsl.PipelineParam]):
 def _inputs_to_json(
     inputs_params: List[dsl.PipelineParam],
     input_artifact_paths: Dict[str, str] = None,
+    artifact_arguments: Dict[str, str] = None,
 ) -> Dict[str, Dict]:
     """Converts a list of PipelineParam into an argo `inputs` JSON obj."""
     parameters = _parameters_to_json(inputs_params)
@@ -138,6 +139,8 @@ def _inputs_to_json(
     artifacts = []
     for name, path in (input_artifact_paths or {}).items():
         artifact = {'name': name, 'path': path}
+        if name in artifact_arguments: # The arguments should be compiled as DAG task arguments, not template's default values, but in the current DSL-compiler implementation it's too hard to make that work when passing artifact references.
+            artifact['raw'] = {'data': str(artifact_arguments[name])}
         artifacts.append(artifact)
     artifacts.sort(key=lambda x: x['name']) #Stabilizing the input artifact ordering
 
@@ -229,7 +232,8 @@ def _op_to_template(op: BaseOp):
 
     # inputs
     input_artifact_paths = processed_op.input_artifact_paths if isinstance(processed_op, dsl.ContainerOp) else None
-    inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths)
+    artifact_arguments = processed_op.artifact_arguments if isinstance(processed_op, dsl.ContainerOp) else None
+    inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths, artifact_arguments)
     if inputs:
         template['inputs'] = inputs
 
