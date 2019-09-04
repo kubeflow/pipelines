@@ -107,16 +107,12 @@ class SampleTest(object):
       m = re.match(self._test_name + '\.[a-zA-Z]+', file)
       if m:
         file_name, ext_name = os.path.splitext(file)
+        if self._is_notebook is not None:
+          raise(RuntimeError('Multiple entry points found under sample: {}'.format(self._test_name)))
         if ext_name == 'py':
-          if self._is_notebook is None:
-            self._is_notebook = False
-          else:
-            raise(RuntimeError('Multiple entry points found under sample: {}'.format(self._test_name)))
+          self._is_notebook = False
         if ext_name == 'ipynb':
-          if self._is_notebook is None:
-            self._is_notebook = True
-          else:
-            raise(RuntimeError('Multiple entry points found under sample: {}'.format(self._test_name)))
+          self._is_notebook = True
 
     # For presubmit check, do not do any image injection as for now.
     # Notebook samples need to be papermilled first.
