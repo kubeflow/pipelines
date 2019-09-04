@@ -116,6 +116,7 @@ class SampleTest(object):
     # For presubmit check, do not do any image injection as for now.
     # Notebook samples need to be papermilled first.
     if found_ext == 'ipynb':
+      self._is_notebook = True
       # Parse necessary params from config.yaml
       nb_params = {}
       config_schema = yamale.make_schema(SCHEMA_CONFIG)
@@ -140,13 +141,14 @@ class SampleTest(object):
       )
 
     else:
+      self._is_notebook = False
       subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
                        '--output', '%s.yaml' % self._test_name])
 
 
   def run_test(self):
     self._compile_sample()
-    if self._test_name in ['lightweight_component', 'dsl_static_type_checking']:
+    if self._is_notebook:
       self.check_notebook_result()
     else:
       self.check_result()
