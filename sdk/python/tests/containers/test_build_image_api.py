@@ -46,7 +46,7 @@ class MockImageBuilder:
 class BuildImageApiTests(unittest.TestCase):
     def test_build_image_from_working_dir(self):
         expected_dockerfile_text_re = '''
-FROM python:.*
+FROM python:3.6.5
 WORKDIR /.*
 COPY requirements.txt .
 RUN python3 -m pip install -r requirements.txt
@@ -78,7 +78,7 @@ COPY . .
                 self.assertEqual(file_paths, expected_file_paths)
 
             builder = MockImageBuilder(dockerfile_text_check, requirements_text_check, file_paths_check)
-            result = build_image_from_working_dir(working_dir=context_dir, builder=builder)
+            result = build_image_from_working_dir(working_dir=context_dir, base_image='python:3.6.5', builder=builder)
 
 if __name__ == '__main__':
     unittest.main()
