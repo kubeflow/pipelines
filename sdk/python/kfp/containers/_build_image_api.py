@@ -14,6 +14,7 @@
 __all__ = [
     'build_image_from_working_dir',
     'default_base_image',
+    'get_python_image_for_current_version',
 ]
 
 
@@ -30,11 +31,11 @@ from . import get_default_image_builder
 from ..compiler._container_builder import ContainerBuilder
 
 
-def get_python_image() -> str:
+def get_python_image_for_current_version() -> str:
     return 'python' + ':{}.{}.{}'.format(sys.version_info[0], sys.version_info[1], sys.version_info[2])
 
 
-default_base_image = get_python_image
+default_base_image = get_python_image_for_current_version()
 
 
 _container_work_dir = '/python_env'
