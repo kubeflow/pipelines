@@ -19,6 +19,7 @@ decides which test to trigger based upon the arguments provided.
 import fire
 import os
 import papermill as pm
+import re
 import subprocess
 import utils
 
@@ -97,8 +98,27 @@ class SampleTest(object):
     os.chdir(self._work_dir)
     print('Run the sample tests...')
 
+    # Looking for the entry point of the test.
+    list_of_files = os.listdir('.')
+    found_ext = None
+    for file in list_of_files:
+      m = re.match(self._test_name + '\.[a-zA-Z]+', file)
+      if m:
+        file_name, ext_name = os.path.splitext(file)
+        if ext_name in ['py', 'ipynb']:
+          if found_ext:
+            raise(RuntimeError('Multiple entry point found under sample: {}'.format(self._test_name)))
+          else:
+            found_ext = ext_name
+
     # For presubmit check, do not do any image injection as for now.
     # Notebook samples need to be papermilled first.
+    if found_ext == 'ipynb':
+      pass
+    else:
+      subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
+                       '--output', '%s.yaml' % self._test_name])
+
     if self._test_name == 'lightweight_component':
       pm.execute_notebook(
           input_path='Lightweight Python components - basics.ipynb',
