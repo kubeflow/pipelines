@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is the schema for sample test config yaml file.
-test_name: str()
-arguments: map(required=False)
-notebook_params: map(required=False)
-test_timeout: int(min=0, required=False)
+test_name: lightweight_component
+notebook_params:
+  EXPERIMENT_NAME: lightweight_component-test

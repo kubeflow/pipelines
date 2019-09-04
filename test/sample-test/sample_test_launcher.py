@@ -22,8 +22,10 @@ import papermill as pm
 import re
 import subprocess
 import utils
+import yamale
+import yaml
 
-from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR
+from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR, SCHEMA_CONFIG, CONFIG_DIR
 from check_notebook_results import NoteBookChecker
 from run_sample_test import PySampleChecker
 
@@ -107,35 +109,40 @@ class SampleTest(object):
         file_name, ext_name = os.path.splitext(file)
         if ext_name in ['py', 'ipynb']:
           if found_ext:
-            raise(RuntimeError('Multiple entry point found under sample: {}'.format(self._test_name)))
+            raise(RuntimeError('Multiple entry points found under sample: {}'.format(self._test_name)))
           else:
             found_ext = ext_name
 
     # For presubmit check, do not do any image injection as for now.
     # Notebook samples need to be papermilled first.
     if found_ext == 'ipynb':
-      pass
+      # Parse necessary params from config.yaml
+      nb_params = {}
+      config_schema = yamale.make_schema(SCHEMA_CONFIG)
+
+      try:
+        with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._test_name), 'r') as f:
+          raw_args = yaml.safe_load(f)
+        test_config = yamale.make_data(os.path.join(
+          CONFIG_DIR, '%s.config.yaml' % self._test_name))
+        yamale.validate(config_schema, test_config)  # If fails, a ValueError will be raised.
+      except yaml.YAMLError as yamlerr:
+        print('No legit yaml config file found, use default args:{}'.format(yamlerr))
+      except OSError as ose:
+        print('Config file with the same name not found, use default args:{}'.format(ose))
+      else:
+        nb_params.update(raw_args['notebook_params'])
+
+      pm.execute_notebook(
+          input_path='%s.ipynb' % self._test_name,
+          output_path='%s.ipynb' % self._test_name,
+          parameters=nb_params
+      )
+
     else:
       subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
                        '--output', '%s.yaml' % self._test_name])
 
-    if self._test_name == 'lightweight_component':
-      pm.execute_notebook(
-          input_path='lightweight_component.ipynb',
-          output_path='%s.ipynb' % self._test_name,
-          parameters=dict(
-              EXPERIMENT_NAME='%s-test' % self._test_name
-          )
-      )
-    elif self._test_name == 'dsl_static_type_checking':
-      pm.execute_notebook(
-          input_path='dsl_static_type_checking.ipynb',
-          output_path='%s.ipynb' % self._test_name,
-          parameters={}
-      )
-    else:
-      subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
-                       '--output', '%s.yaml' % self._test_name])
 
   def run_test(self):
     self._compile_sample()
