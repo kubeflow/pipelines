@@ -37,14 +37,14 @@ cat application_default_credentials.json | base64
 Install Kubeflow Pipelines
 ```
 kubectl create ns test
-mpdev /scripts/install --deployer=gcr.io/ml-pipeline/google/kfp/deployer:0.1.27 --parameters='{"name": "installation-1", "namespace": "test"}'
+mpdev /scripts/install --deployer=gcr.io/ml-pipeline/google/kfp/deployer:0.1.27 --parameters='{"name": "installation-1", "namespace": "test", "serviceAccountCredential": "[your-credential]"}'
 ```
 
 Install with Cloud SQL and GCS
 ```
 mpdev /scripts/install \
-  --deployer=gcr.io/ml-pipeline/google/kfp/deployer:0.1.27 \
-  --parameters='{"name": "installation-1", "namespace": "test" , "managedstorage.enabled": true, "managedstorage.cloudsqlInstanceConnectionName": "your-instance-name", "managedstorage.dbPassword": "your password"}'
+ --deployer=gcr.io/ml-pipeline/google/kfp/deployer:0.1.27 \
+ --parameters='{"name": "installation-1", "namespace": "test", "serviceAccountCredential": "[your-credential]", "managedstorage.enabled": true, "managedstorage.cloudsqlInstanceConnectionName": "[your-name]", "managedstorage.dbPassword": "[your-pwd]"}'
 ```
 
 To uninstall 

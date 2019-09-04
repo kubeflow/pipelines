@@ -67,9 +67,7 @@ spec:
         - name: gcp-sa-token
           secret:
             secretName: {{ .Values.gcpSecretName }}
-{{ end }}
----
-{{ if not .Values.managedstorage.enabled }}
+{{ else }}
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:

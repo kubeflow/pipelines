@@ -39,7 +39,12 @@ spec:
             - --http_port=8080
             - --mysql_service_host=mysql
             - --mysql_service_port=3306
+            {{ if .Values.managedstorage.databaseNamePrefix }}
             - --mlmd_db_name={{ .Values.managedstorage.databaseNamePrefix }}_metadata
+            {{ else }}
+            - --mlmd_db_name={{ .Release.Name | replace "-" "_" | replace "." "_" | trunc 50 }}_metadata
+            {{ end }}
+
           image: {{ .Values.images.metadataserver }}
           name: container
           ports:
