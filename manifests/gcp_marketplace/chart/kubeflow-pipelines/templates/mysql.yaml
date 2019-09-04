@@ -36,19 +36,13 @@ spec:
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
-        - image: {{ .Values.images.cloudsqlProxy}}
+        - image: {{ .Values.images.cloudsqlproxy}}
           name: cloudsqlproxy
           env:
-            - name: GCP_PROJECT
-              value: {{ .Values.managedstorage.gcpProject }}
-            - name: CLOUDSQL_ZONE
-              value: {{ .Values.managedstorage.cloudsqlZone }}
-            - name: CLOUDSQL_INSTANCE_NAME
-              value: {{ .Values.managedstorage.cloudsqlInstanceName }}
           command: ["/cloud_sql_proxy",
                     "-dir=/cloudsql",
             # Replace with your own CloudSQL instance ID
-                    "-instances=$(GCP_PROJECT):$(CLOUDSQL_ZONE):$(CLOUDSQL_INSTANCE_NAME)=tcp:0.0.0.0:3306",
+                    "-instances={{ .Values.managedstorage.cloudsqlInstanceConnectionName }}=tcp:0.0.0.0:3306",
                     "-credential_file=/credentials/application_default_credentials.json",
                     "term_timeout=10s"]
           # set term_timeout if require graceful handling of shutdown

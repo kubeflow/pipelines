@@ -20,7 +20,7 @@ import kfp.dsl as dsl
     name="VolumeOp Basic",
     description="A Basic Example on VolumeOp Usage."
 )
-def volumeop_basic(size='10M'):
+def volumeop_basic(size):
     vop = dsl.VolumeOp(
         name="create_pvc",
         resource_name="my-pvc",
