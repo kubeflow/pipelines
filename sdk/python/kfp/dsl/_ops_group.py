@@ -171,12 +171,8 @@ class ParallelFor(OpsGroup):
 
   def __init__(self, loop_args: Union[_for_loop.ItemList, _pipeline_param.PipelineParam]):
     self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
-    # if self.items_is_pipeline_param:
-    #   self.original_pipeline_param = loop_args
-    # else:
-    #   self.original_pipeline_param = None
 
-    # random code to id this loop
+    # use a random code to uniquely identify this loop
     code = self._get_unique_id_code()
     group_name = 'for-loop-{}'.format(code)
     super().__init__(self.TYPE_NAME, name=group_name)

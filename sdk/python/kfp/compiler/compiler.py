@@ -498,44 +498,43 @@ class Compiler(object):
                 if sub_group.loop_args.name in param_name:
                   if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
                     subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
-                    value = '{{item.%s}}' % subvar_name
-                  elif _for_loop.LoopArguments.name_is_loop_arguments(param_name):
-                    value = '{{item}}'
+                    param_value = '{{item.%s}}' % subvar_name
+                  elif _for_loop.LoopArguments.name_is_loop_arguments(param_name) or sub_group.items_is_pipeline_param:
+                    param_value = '{{item}}'
                   else:
-                    raise ValueError("Failed to match loop args with param. param_name: {}, ".format(param_name) +
-                                     "sub_group.loop_args.name: {}.".format(sub_group.loop_args.name))
+                    raise ValueError("Failed to match loop args with parameter. param_name: {}, ".format(param_name))
                 else:
-                  value = '{{inputs.parameters.%s}}' % param_name
+                  param_value = '{{inputs.parameters.%s}}' % param_name
 
+                # withParam vs withItems
                 if sub_group.items_is_pipeline_param:
-                  # these loop args are a 'withParam' rather than 'withItem'.
+                  # these loop args are a 'withParam' rather than 'withItems'.
                   # i.e., rather than a static list, they are either the output of another task or were input
                   # as global pipeline parameters
-                  task['withParam'] = sub_group.loop_args.to_list_for_task_yaml()
-                  # shouldn't be loop-item-param, the manufactured pipeline param on the ParallelFor,
-                  # should be loopidy-doop, the global pipeline param that was passed in to the for loop
-                  #
-                  # if sub_group.original_pipeline_param.op_name is None:
-                  #   # the input loop_args to the ParallelFor wasn't produced by another op
-                  #   # (i.e.: it isn't the output of another task), rather it was a global input pipeline param
-                  #   param_name =
-                  #   # param_name = sub_group.original_pipeline_param.name
-                  #   # value = '{{inputs.parameters.%s}}' % param_name
-                  #   # value = None
-                  if param.items.op_name is not None:
+
+                  pipeline_param = sub_group.loop_args
+                  if pipeline_param.op_name is None:
+                    withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
+                  else:
+                    param_name = '%s-%s' % (pipeline_param.op_name, pipeline_param.name)
+                    withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (pipeline_param.op_name, param_name)
+
                     # these loop args are the output of another task
                     if 'dependencies' not in task or task['dependencies'] is None:
                       task['dependencies'] = []
-                    task['dependencies'].append(sub_group.loop_args.op_name)
+                    task['dependencies'].append(pipeline_param.op_name)
+
+                  task['withParam'] = withparam_value
                 else:
                   task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
               else:
-                value = '{{inputs.parameters.%s}}' % param_name
+                # subgroup is not a ParallelFor
+                param_value = '{{inputs.parameters.%s}}' % param_name
               d = {
                 'name': param_name,
               }
-              if value is not None:
-                d['value'] = value
+              if param_value is not None:
+                d['value'] = param_value
               arguments.append(d)
         arguments.sort(key=lambda x: x['name'])
         task['arguments'] = {'parameters': arguments}

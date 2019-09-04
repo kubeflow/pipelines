@@ -57,14 +57,8 @@ class LoopArguments(dsl.PipelineParam):
         if isinstance(self.items_or_pipeline_param, list):
             return self.items_or_pipeline_param
         else:
-            # pipeline param
-            pipeline_param = self.items_or_pipeline_param
-            if pipeline_param.op_name is None:
-                # return '{{inputs.parameters.%s}}' % pipeline_param.name
-                return '{{workflow.parameters.%s}}' % pipeline_param.name
-            else:
-                param_name = '%s-%s' % (pipeline_param.op_name, pipeline_param.name)
-                return '{{tasks.%s.outputs.parameters.%s}}' % (pipeline_param.op_name, param_name)
+            raise ValueError("You should only call this method on loop args which have list items, "
+                             "not pipeline param items.")
 
     @classmethod
     def _make_name(cls, code: Text):
