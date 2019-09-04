@@ -121,7 +121,7 @@ class SampleTest(object):
 
     if self._test_name == 'lightweight_component':
       pm.execute_notebook(
-          input_path='Lightweight Python components - basics.ipynb',
+          input_path='lightweight_component.ipynb',
           output_path='%s.ipynb' % self._test_name,
           parameters=dict(
               EXPERIMENT_NAME='%s-test' % self._test_name
@@ -129,7 +129,7 @@ class SampleTest(object):
       )
     elif self._test_name == 'dsl_static_type_checking':
       pm.execute_notebook(
-          input_path='DSL Static Type Checking.ipynb',
+          input_path='dsl_static_type_checking.ipynb',
           output_path='%s.ipynb' % self._test_name,
           parameters={}
       )
