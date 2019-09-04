@@ -13,6 +13,7 @@
 
 __all__ = [
     'build_image_from_working_dir',
+    'default_base_image',
 ]
 
 
@@ -39,7 +40,7 @@ default_base_image = get_python_image
 _container_work_dir = '/python_env'
 
 
-def generate_dockerfile_text(context_dir: str, dockerfile_path: str):
+def generate_dockerfile_text(context_dir: str, dockerfile_path: str, base_image: str = None):
     # Generating the Dockerfile
     logging.info('Generating the Dockerfile')
 
@@ -47,7 +48,8 @@ def generate_dockerfile_text(context_dir: str, dockerfile_path: str):
     requirements_path = os.path.join(context_dir, requirements_rel_path)
     requirements_file_exists = os.path.exists(requirements_path)
 
-    base_image = default_base_image
+    if not base_image:
+        base_image = default_base_image
     if callable(base_image):
         base_image = base_image()
 
@@ -62,7 +64,7 @@ def generate_dockerfile_text(context_dir: str, dockerfile_path: str):
     return '\n'.join(dockerfile_lines)
 
 
-def build_image_from_working_dir(image_name : str = None, working_dir : str = None, file_filter_re : str = '.*\.py',  timeout : int = 1000, builder : ContainerBuilder = None) -> str:
+def build_image_from_working_dir(image_name : str = None, working_dir : str = None, file_filter_re : str = '.*\.py',  timeout : int = 1000, base_image: str = None, builder : ContainerBuilder = None) -> str:
     '''build_image_from_working_dir builds and pushes a new container image that captures the current python working directory.
     This function recursively scans the working directory and captures the following files in the container image context:
     * requirements.txt files
@@ -75,6 +77,7 @@ def build_image_from_working_dir(image_name : str = None, working_dir : str = No
         working_dir: Optional. The directory that will be captured. The current directory will be used if omitted.
         file_filter_re: Optional. A regular expression that will be used to decide which files to include in the container building context.
         timeout: Optional. The image building timeout in seconds.
+        base_image: Optional. The container image to use as the base for the new image. If not set, the python:x.y.z image corresponding to the current python version will be used.
         builder: Optional. An instance of ContainerBuilder or compatible class that will be used to build the image.
     Returns:
         The full name of the container image including the hash digest. E.g. gcr.io/my-org/my-image@sha256:86c1...793c.
