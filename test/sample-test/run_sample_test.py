@@ -30,6 +30,7 @@ class PySampleChecker(object):
     :param input: The path of a pipeline file that will be submitted.
     :param output: The path of the test output.
     :param result: The path of the test result that will be exported.
+    :param run_pipeline: Whether to submit a pipeline run or not.
     :param namespace: namespace of the deployed pipeline system. Default: kubeflow
     """
     self._testname = testname
@@ -77,6 +78,7 @@ class PySampleChecker(object):
       raise FileExistsError('Default config not found:{}'.format(ose))
     else:
       test_timeout = raw_args['test_timeout']
+      run_pipeline = raw_args['run_pipeline']
 
     try:
       with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._testname), 'r') as f:
@@ -94,49 +96,52 @@ class PySampleChecker(object):
         test_args['output'] = self._output
       if 'test_timeout' in raw_args.keys():
         test_timeout = raw_args['test_timeout']
+      if 'run_pipeline' in raw_args.keys():
+        run_pipeline = raw_args['run_pipeline']
 
-    response = client.run_pipeline(experiment_id, job_name, self._input, test_args)
-    run_id = response.id
-    utils.add_junit_test(test_cases, 'create pipeline run', True)
+    if run_pipeline:
+      response = client.run_pipeline(experiment_id, job_name, self._input, test_args)
+      run_id = response.id
+      utils.add_junit_test(test_cases, 'create pipeline run', True)
 
-    ###### Monitor Job ######
-    try:
-      start_time = datetime.now()
-      response = client.wait_for_run_completion(run_id, test_timeout)
-      succ = (response.run.status.lower() == 'succeeded')
-      end_time = datetime.now()
-      elapsed_time = (end_time - start_time).seconds
-      utils.add_junit_test(test_cases, 'job completion', succ,
-                           'waiting for job completion failure', elapsed_time)
-    finally:
-      ###### Output Argo Log for Debugging ######
-      workflow_json = client._get_workflow_json(run_id)
-      workflow_id = workflow_json['metadata']['name']
-      argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(
-        self._namespace, workflow_id))
-      print('=========Argo Workflow Log=========')
-      print(argo_log)
+      ###### Monitor Job ######
+      try:
+        start_time = datetime.now()
+        response = client.wait_for_run_completion(run_id, test_timeout)
+        succ = (response.run.status.lower() == 'succeeded')
+        end_time = datetime.now()
+        elapsed_time = (end_time - start_time).seconds
+        utils.add_junit_test(test_cases, 'job completion', succ,
+                             'waiting for job completion failure', elapsed_time)
+      finally:
+        ###### Output Argo Log for Debugging ######
+        workflow_json = client._get_workflow_json(run_id)
+        workflow_id = workflow_json['metadata']['name']
+        argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(
+          self._namespace, workflow_id))
+        print('=========Argo Workflow Log=========')
+        print(argo_log)
 
-    if not succ:
-      utils.write_junit_xml(test_name, self._result, test_cases)
-      exit(1)
+      if not succ:
+        utils.write_junit_xml(test_name, self._result, test_cases)
+        exit(1)
 
-    ###### Validate the results for specific test cases ######
-    #TODO: Add result check for tfx-cab-classification after launch.
-    if self._testname == 'xgboost_training_cm':
-      # For xgboost sample, check its confusion matrix.
-      cm_tar_path = './confusion_matrix.tar.gz'
-      utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
-                                  'mlpipeline-ui-metadata')
-      with tarfile.open(cm_tar_path) as tar_handle:
-        file_handles = tar_handle.getmembers()
-        assert len(file_handles) == 1
+      ###### Validate the results for specific test cases ######
+      #TODO: Add result check for tfx-cab-classification after launch.
+      if self._testname == 'xgboost_training_cm':
+        # For xgboost sample, check its confusion matrix.
+        cm_tar_path = './confusion_matrix.tar.gz'
+        utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
+                                    'mlpipeline-ui-metadata')
+        with tarfile.open(cm_tar_path) as tar_handle:
+          file_handles = tar_handle.getmembers()
+          assert len(file_handles) == 1
 
-        with tar_handle.extractfile(file_handles[0]) as f:
-          cm_data = f.read()
-          utils.add_junit_test(test_cases, 'confusion matrix format',
-                               (len(cm_data) > 0),
-                               'the confusion matrix file is empty')
+          with tar_handle.extractfile(file_handles[0]) as f:
+            cm_data = f.read()
+            utils.add_junit_test(test_cases, 'confusion matrix format',
+                                 (len(cm_data) > 0),
+                                 'the confusion matrix file is empty')
 
     ###### Delete Job ######
     #TODO: add deletion when the backend API offers the interface.
