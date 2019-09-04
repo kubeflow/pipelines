@@ -1,5 +1,3 @@
-# Before running this test you must pip install snapshottest and tensorflow==1.13.1
-
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,7 +55,7 @@ class TestExporterMethods(snapshottest.TestCase):
         self.assertMatchSnapshot(html)
 
     def test_create_cell_from_file(self):
-        cell = exporter.create_cell_from_file("types/tfdv.py")
+        cell = exporter.create_cell_from_file("types/test.py")
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_custom_code(self):
