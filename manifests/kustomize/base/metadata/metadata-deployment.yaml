@@ -20,15 +20,16 @@ spec:
         env:
         - name: GRPC_PORT
           value: "8080"
-        - name: METADATA_STORE_SERVER_CONFIG_FILE
-          value: "/etc/config/mlmd_config.prototxt"
+        - name: MY_SQL_PASSWORD
+          value: ""
+        command: ["/bin/metadata_store_server"]
+        args: ["--grpc_port=8080",
+               "--mysql_config_host=mysql",
+               "--mysql_config_database=metadb",
+               "--mysql_config_port=3306",
+               "--mysql_config_user=root",
+               "--mysql_config_password=$(MY_SQL_PASSWORD)"
+               ]
         ports:
         - name: md-backendapi
           containerPort: 8080
-        volumeMounts:
-        - name: mlmd-server-config-volume
-          mountPath: /etc/config
-      volumes:
-        - name: mlmd-server-config-volume
-          configMap:
-            name: mlmd-service-configmap
