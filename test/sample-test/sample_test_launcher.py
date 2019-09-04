@@ -25,7 +25,7 @@ import utils
 import yamale
 import yaml
 
-from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR, SCHEMA_CONFIG, CONFIG_DIR
+from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR, SCHEMA_CONFIG, CONFIG_DIR, DEFAULT_CONFIG
 from check_notebook_results import NoteBookChecker
 from run_sample_test import PySampleChecker
 
@@ -75,18 +75,11 @@ class SampleTest(object):
 
     os.chdir(TEST_DIR)
 
-    if self._test_name == 'dsl_static_type_checking':
-        nbchecker = NoteBookChecker(testname=self._test_name,
-                                    result=self._sample_test_result,
-                                    exit_code=exit_code)
-        nbchecker.check()
-    else:
-        nbchecker = NoteBookChecker(testname=self._test_name,
-                                    result=self._sample_test_result,
-                                    exit_code=exit_code,
-                                    experiment=None,
-                                    namespace='kubeflow')
-        nbchecker.check()
+    nbchecker = NoteBookChecker(testname=self._test_name,
+                                result=self._sample_test_result,
+                                exit_code=exit_code,
+                                run_pipeline=self._run_pipeline)
+    nbchecker.check()
 
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
 
@@ -114,12 +107,25 @@ class SampleTest(object):
         if ext_name == 'ipynb':
           self._is_notebook = True
 
+    config_schema = yamale.make_schema(SCHEMA_CONFIG)
+    # Retrieve default config
+    try:
+      with open(DEFAULT_CONFIG, 'r') as f:
+        raw_args = yaml.safe_load(f)
+      default_config = yamale.make_data(DEFAULT_CONFIG)
+      yamale.validate(config_schema, default_config)  # If fails, a ValueError will be raised.
+    except yaml.YAMLError as yamlerr:
+      raise RuntimeError('Illegal default config:{}'.format(yamlerr))
+    except OSError as ose:
+      raise FileExistsError('Default config not found:{}'.format(ose))
+    else:
+      self._run_pipeline = raw_args['run_pipeline']
+
     # For presubmit check, do not do any image injection as for now.
     # Notebook samples need to be papermilled first.
     if self._is_notebook:
       # Parse necessary params from config.yaml
       nb_params = {}
-      config_schema = yamale.make_schema(SCHEMA_CONFIG)
 
       try:
         with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._test_name), 'r') as f:
@@ -133,6 +139,8 @@ class SampleTest(object):
         print('Config file with the same name not found, use default args:{}'.format(ose))
       else:
         nb_params.update(raw_args['notebook_params'])
+        if 'run_pipeline' in raw_args.keys():
+          self._run_pipeline = raw_args['run_pipeline']
 
       pm.execute_notebook(
           input_path='%s.ipynb' % self._test_name,
