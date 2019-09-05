@@ -685,7 +685,7 @@ class Compiler(object):
 
   def _compile(self, pipeline_func):
     """Compile the given pipeline function into workflow."""
-
+    # Step 1: extract param value, name and description from pipeline_func signature and decoration.
     argspec = inspect.getfullargspec(pipeline_func)
 
     # Create the arg list with no default values and call pipeline function.
@@ -702,9 +702,11 @@ class Compiler(object):
           break
       args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
 
+    # Step 2: Inflate pipeline obj.
     with dsl.Pipeline(pipeline_name) as p:
       pipeline_func(*args_list)
 
+    # Step 3: post process. Fill in the default value for pipeline params.
     # Remove when argo supports local exit handler.
     self._validate_exit_handler(p)
 
