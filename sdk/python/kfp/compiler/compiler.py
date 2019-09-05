@@ -17,7 +17,7 @@ from collections import defaultdict
 import inspect
 import tarfile
 import zipfile
-from typing import Set, List, Text, Dict
+from typing import Set, List, Text, Dict, Tuple, Any, Union, Optional
 
 import yaml
 from kfp.dsl import _container_op, _for_loop
@@ -461,94 +461,76 @@ class Compiler(object):
 
       # Generate arguments section for this task.
       if inputs.get(sub_group.name, None):
-        arguments = []
-        for param_name, dependent_name in inputs[sub_group.name]:
-          if dependent_name:
-            print(f'in dependent_name for {sub_group.name}')
-            # The value comes from an upstream sibling.
-            # Special handling for recursive subgroup: argument name comes from the existing opsgroup
-            if is_recursive_subgroup:
-              for index, input in enumerate(sub_group.inputs):
-                if param_name == self._pipelineparam_full_name(input):
-                  break
-              referenced_input = sub_group.recursive_ref.inputs[index]
-              full_name = self._pipelineparam_full_name(referenced_input)
-              arguments.append({
-                  'name': full_name,
-                  'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-              })
-            else:
-              arguments.append({
-                'name': param_name,
-                'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-              })
+        task['arguments'] = {'parameters': self.get_arguments_for_sub_group(sub_group, is_recursive_subgroup, inputs)}
+
+      # additional task modifications for withItems and withParam
+      if isinstance(sub_group, dsl.ParallelFor):
+        if sub_group.items_is_pipeline_param:
+          # these loop args are a 'withParam' rather than 'withItems'.
+          # i.e., rather than a static list, they are either the output of another task or were input
+          # as global pipeline parameters
+
+          pipeline_param = sub_group.loop_args
+          if pipeline_param.op_name is None:
+            withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
           else:
-            # The value comes from its parent.
-            # Special handling for recursive subgroup: argument name comes from the existing opsgroup
-            if is_recursive_subgroup:
-              for index, input in enumerate(sub_group.inputs):
-                if param_name == self._pipelineparam_full_name(input):
-                  break
-              referenced_input = sub_group.recursive_ref.inputs[index]
-              full_name = self._pipelineparam_full_name(referenced_input)
-              arguments.append({
-                  'name': full_name,
-                  'value': '{{inputs.parameters.%s}}' % param_name
-              })
-            else:
-              print(f'about to check parallefor for {sub_group.name}')
-              if isinstance(sub_group, dsl.ParallelFor):
-                if sub_group.loop_args.name in param_name:
-                  if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
-                    subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
-                    param_value = '{{item.%s}}' % subvar_name
-                  elif _for_loop.LoopArguments.name_is_loop_arguments(param_name) or sub_group.items_is_pipeline_param:
-                    param_value = '{{item}}'
-                  else:
-                    raise ValueError("Failed to match loop args with parameter. param_name: {}, ".format(param_name))
-                else:
-                  param_value = '{{inputs.parameters.%s}}' % param_name
+            param_name = '%s-%s' % (pipeline_param.op_name, pipeline_param.name)
+            withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (pipeline_param.op_name, param_name)
 
-                ###################
-                # OLD SPOT
-                ###################
+            # these loop args are the output of another task
+            if 'dependencies' not in task or task['dependencies'] is None:
+              task['dependencies'] = []
+            if pipeline_param.op_name not in task['dependencies']:
+              task['dependencies'].append(pipeline_param.op_name)
 
-                # withParam vs withItems
-                if sub_group.items_is_pipeline_param:
-                  # these loop args are a 'withParam' rather than 'withItems'.
-                  # i.e., rather than a static list, they are either the output of another task or were input
-                  # as global pipeline parameters
+          task['withParam'] = withparam_value
+        else:
+          task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
 
-                  pipeline_param = sub_group.loop_args
-                  if pipeline_param.op_name is None:
-                    withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
-                  else:
-                    param_name = '%s-%s' % (pipeline_param.op_name, pipeline_param.name)
-                    withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (pipeline_param.op_name, param_name)
-
-                    # these loop args are the output of another task
-                    if 'dependencies' not in task or task['dependencies'] is None:
-                      task['dependencies'] = []
-                    task['dependencies'].append(pipeline_param.op_name)
-
-                  task['withParam'] = withparam_value
-                else:
-                  task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
-              else:
-                # subgroup is not a ParallelFor
-                param_value = '{{inputs.parameters.%s}}' % param_name
-              d = {
-                'name': param_name,
-              }
-              if param_value is not None:
-                d['value'] = param_value
-              arguments.append(d)
-        arguments.sort(key=lambda x: x['name'])
-        task['arguments'] = {'parameters': arguments}
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
     template['dag'] = {'tasks': tasks}
     return template
+
+  def get_arguments_for_sub_group(
+          self,
+          sub_group: Union[OpsGroup, dsl._container_op.BaseOp],
+          is_recursive_subgroup: Optional[bool],
+          inputs: Dict[Text, Tuple[Text, Text]],
+  ):
+    arguments = []
+    for param_name, dependent_name in inputs[sub_group.name]:
+      if is_recursive_subgroup:
+        for index, input in enumerate(sub_group.inputs):
+          if param_name == self._pipelineparam_full_name(input):
+            break
+        referenced_input = sub_group.recursive_ref.inputs[index]
+        argument_name = self._pipelineparam_full_name(referenced_input)
+      else:
+        argument_name = param_name
+
+      # default argument_value + special cases
+      argument_value = '{{inputs.parameters.%s}}' % param_name
+      if isinstance(sub_group, dsl.ParallelFor):
+        if sub_group.loop_args.name in param_name:
+          if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
+            subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
+            argument_value = '{{item.%s}}' % subvar_name
+          elif _for_loop.LoopArguments.name_is_loop_arguments(param_name) or sub_group.items_is_pipeline_param:
+            argument_value = '{{item}}'
+          else:
+            raise ValueError("Failed to match loop args with parameter. param_name: {}, ".format(param_name))
+      elif dependent_name:
+        argument_value = '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+
+      arguments.append({
+        'name': argument_name,
+        'value': argument_value,
+      })
+
+    arguments.sort(key=lambda x: x['name'])
+
+    return arguments
 
   def _create_dag_templates(self, pipeline, op_transformers=None, op_to_templates_handler=None):
     """Create all groups and ops templates in the pipeline.

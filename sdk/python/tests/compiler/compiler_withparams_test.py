@@ -1,5 +1,4 @@
 import time
-from typing import Iterable, Text
 
 from kfp.compiler import compiler
 from kfp import dsl
@@ -18,7 +17,7 @@ uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
 # -------------------------------------------
 
 if __name__ == '__main__':
-    do_output = True
+    do_output = False
 
     if do_output:
         @dsl.pipeline(name='my-pipeline')
