@@ -1013,7 +1013,7 @@ class ContainerOp(BaseOp):
         """
 
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
-        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location'] #Copying the BaseOp class variable!
+        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location', 'artifact_arguments'] #Copying the BaseOp class variable!
 
         input_artifact_paths = {}
         artifact_arguments = {}
@@ -1025,10 +1025,7 @@ class ContainerOp(BaseOp):
             input_name = getattr(artarg.input, 'name', artarg.input) or ('input-' + str(len(artifact_arguments)))
             input_path = artarg.path or _generate_input_file_name(input_name)
             input_artifact_paths[input_name] = input_path
-            if not isinstance(artarg.argument, str):
-                raise TypeError('Argument "{}" was passed to the artifact input "{}", but only constant strings are supported at this moment.'.format(str(artarg.argument), input_name))
-
-            artifact_arguments[input_name] = artarg.argument
+            artifact_arguments[input_name] = str(artarg.argument)
             return input_path
 
         for artarg in artifact_argument_paths or []:
