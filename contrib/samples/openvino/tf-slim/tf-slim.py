@@ -27,16 +27,20 @@ def tf_slim_optimize(
          '--num_classes', num_classes,
          '--saved_model_dir', generated_model_dir,
          '--export_dir', export_dir],
-     file_outputs={'generated-model-dir': '/tmp/saved_model_dir.txt'})
+     file_outputs={'generated-model-dir': '/tmp/saved_model_dir.txt'},
+     output_artifact_paths={
+         'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
+     },
+    )
 
     mo = dsl.ContainerOp(
      name='Optimize_model',
      image='gcr.io/constant-cubist-173123/inference_server/ml_mo:12',
      command=['convert_model.py'],
      arguments=[
-        '--input_path', '%s/saved_model.pb' % slim.output,
+        '--input_path', '%s/saved_model.pb' % slim.outputs['generated-model-dir'],
         '--mo_options', mo_options,
-        '--output_path', slim.output],
+        '--output_path', slim.outputs['generated-model-dir']],
      file_outputs={'bin': '/tmp/bin_path.txt', 'xml': '/tmp/xml_path.txt'})
 
     dsl.ContainerOp(
