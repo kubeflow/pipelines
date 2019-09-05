@@ -44,6 +44,13 @@ func TestUpgrade(t *testing.T) {
 }
 
 func (s *UpgradeTests) TestPrepare() {
+	t := s.T()
+
+	test.DeleteAllJobs(s.jobClient, t)
+	test.DeleteAllRuns(s.runClient, t)
+	test.DeleteAllPipelines(s.pipelineClient, t)
+	test.DeleteAllExperiments(s.experimentClient, t)
+
 	s.PrepareExperiments()
 	s.PreparePipelines()
 	s.PrepareRuns()
@@ -93,13 +100,6 @@ func (s *UpgradeTests) SetupSuite() {
 	if err != nil {
 		glog.Exitf("Failed to get job client. Error: %s", err.Error())
 	}
-
-	/* ---------- Clean up ---------- */
-	t := s.T()
-	test.DeleteAllExperiments(s.experimentClient, t)
-	test.DeleteAllPipelines(s.pipelineClient, t)
-	test.DeleteAllRuns(s.runClient, t)
-	test.DeleteAllJobs(s.jobClient, t)
 }
 
 func (s *UpgradeTests) TearDownSuite() {
@@ -152,7 +152,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 	require.Nil(t, err)
 	// after upgrade, default experiment may be inserted, but the oldest 3
 	// experiments should be the ones created in this test
-	assert.True(t, len(experiments) >= 3)
+	require.True(t, len(experiments) >= 3)
 
 	assert.Equal(t, "training", experiments[0].Name)
 	assert.Equal(t, "my first experiment", experiments[0].Description)
