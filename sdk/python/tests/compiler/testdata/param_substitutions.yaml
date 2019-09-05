@@ -23,14 +23,6 @@ spec:
       parameters:
       - name: create-volume-name
     name: cop
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - name: create-volume
     outputs:
       parameters:

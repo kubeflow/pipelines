@@ -232,8 +232,9 @@ def _op_to_template(op: BaseOp):
         param_outputs = processed_op.file_outputs
     elif isinstance(op, dsl.ResourceOp):
         param_outputs = processed_op.attribute_outputs
-    template['outputs'] = _outputs_to_json(op, processed_op.outputs,
-                                           param_outputs, output_artifacts)
+    outputs_dict = _outputs_to_json(op, processed_op.outputs, param_outputs, output_artifacts)
+    if outputs_dict:
+        template['outputs'] = outputs_dict
 
     # node selector
     if processed_op.node_selector:

@@ -20,14 +20,6 @@ spec:
       - name: text
         path: /tmp/inputs/text/data
     name: component-with-inline-input-artifact
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       command:
       - cat
@@ -38,14 +30,6 @@ spec:
       - name: text
         path: /tmp/inputs/text/data
     name: component-with-input-artifact
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       command:
       - cat
@@ -56,14 +40,6 @@ spec:
       - name: text
         path: /tmp/inputs/text/data
     name: component-with-input-artifact-2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       command:
       - cat
@@ -74,14 +50,6 @@ spec:
       - name: text
         path: /tmp/inputs/text/data
     name: component-with-input-artifact-3
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - dag:
       tasks:
       - arguments:

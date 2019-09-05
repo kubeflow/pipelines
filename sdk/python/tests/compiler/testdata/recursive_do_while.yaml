@@ -33,13 +33,6 @@ spec:
       image: python:alpine3.6
     name: flip
     outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
       parameters:
       - name: flip-output
         valueFrom:
@@ -54,13 +47,6 @@ spec:
       image: python:alpine3.6
     name: flip-2
     outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
       parameters:
       - name: flip-2-output
         valueFrom:
@@ -75,13 +61,6 @@ spec:
       image: python:alpine3.6
     name: flip-3
     outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
       parameters:
       - name: flip-3-output
         valueFrom:
@@ -145,14 +124,6 @@ spec:
       parameters:
       - name: flip-output
     name: print
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - container:
       command:
       - echo
@@ -162,11 +133,3 @@ spec:
       parameters:
       - name: flip-output
     name: print-2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true

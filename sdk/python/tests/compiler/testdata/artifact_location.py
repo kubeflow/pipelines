@@ -38,10 +38,19 @@ def foo_pipeline(tag: str, namespace: str = "kubeflow", bucket: str = "foobar"):
     dsl.get_pipeline_conf().set_artifact_location(pipeline_artifact_location)
 
     # pipeline level artifact location (to minio)
-    op1 = dsl.ContainerOp(name='foo', image='busybox:%s' % tag)
+    op1 = dsl.ContainerOp(
+        name='foo', 
+        image='busybox:%s' % tag,
+        output_artifact_paths={
+            'out_art': '/tmp/out_art.txt',
+        },
+    )
 
     # op level artifact location (to s3 bucket)
     op2 = dsl.ContainerOp(name='foo',
                           image='busybox:%s' % tag,
+                          output_artifact_paths={
+                              'out_art': '/tmp/out_art.txt',
+                          },
                           # configures artifact location
                           artifact_location=artifact_location)
