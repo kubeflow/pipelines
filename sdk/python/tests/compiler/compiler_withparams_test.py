@@ -3,7 +3,6 @@ from typing import Iterable, Text
 
 from kfp.compiler import compiler
 from kfp import dsl
-import kfp
 
 # reproducible UUIDs: https://stackoverflow.com/a/56757552/9357327
 import uuid
@@ -22,7 +21,7 @@ if __name__ == '__main__':
     do_output = True
 
     if do_output:
-        @dsl.pipeline(name='my-pipeline', description='A pipeline with multiple pipeline params.')
+        @dsl.pipeline(name='my-pipeline')
         def pipeline():
             op0 = dsl.ContainerOp(
                 name="my-out-cop0",
@@ -38,20 +37,20 @@ if __name__ == '__main__':
                     name="my-in-cop1",
                     image="library/bash:4.4.23",
                     command=["sh", "-c"],
-                    arguments=["echo op1 %s" % item],
+                    arguments=["echo do output op1 item: %s" % item],
                 )
 
             op_out = dsl.ContainerOp(
                 name="my-out-cop2",
                 image="library/bash:4.4.23",
                 command=["sh", "-c"],
-                arguments=["echo %s" % op0.output],
+                arguments=["echo do output op2, outp: %s" % op0.output],
             )
 
-        job_name = f'withparams_passed_param_{time.time()}'
+        job_name = f'do-output=TRUE-passed-{time.time()}'
         params = {}
     else:
-        @dsl.pipeline(name='my-pipeline', description='A pipeline with multiple pipeline params.')
+        @dsl.pipeline(name='my-pipeline')
         def pipeline(loopidy_doop=[3, 5, 7, 9]):
             op0 = dsl.ContainerOp(
                 name="my-out-cop0",
@@ -66,17 +65,17 @@ if __name__ == '__main__':
                     name="my-in-cop1",
                     image="library/bash:4.4.23",
                     command=["sh", "-c"],
-                    arguments=["echo op1 %s" % item],
+                    arguments=["echo no output global op1, item: %s" % item],
                 ).after(op0)
 
             op_out = dsl.ContainerOp(
                 name="my-out-cop2",
                 image="library/bash:4.4.23",
                 command=["sh", "-c"],
-                arguments=["echo %s" % op0.output],
-            ).after(op1)
+                arguments=["echo no output global op2, outp: %s" % op0.output],
+            )
 
-        job_name = f'withparams_global_param_{time.time()}'
+        job_name = f'do-output=FALSE-global-{time.time()}'
         params = {}
 
     yaml_text = compiler.Compiler().compile(pipeline, None)

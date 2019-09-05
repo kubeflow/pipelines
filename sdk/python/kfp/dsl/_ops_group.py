@@ -10,7 +10,6 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
 import json
 from typing import Union
 import uuid
@@ -19,7 +18,7 @@ from kfp.dsl import _for_loop, _pipeline_param
 
 from . import _container_op
 from . import _pipeline
-from ._pipeline_param import ConditionOperator
+
 
 class OpsGroup(object):
   """Represents a logical group of ops and group of OpsGroups.
@@ -93,6 +92,7 @@ class OpsGroup(object):
     """Specify explicit dependency on another op."""
     self.dependencies.append(dependency)
     return self
+
 
 class ExitHandler(OpsGroup):
   """Represents an exit handler that is invoked upon exiting a group of ops.

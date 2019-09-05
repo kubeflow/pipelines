@@ -433,6 +433,7 @@ class Compiler(object):
     # Generate tasks section.
     tasks = []
     for sub_group in group.groups + group.ops:
+      print(f"sub_group.name = {sub_group.name}")
       is_recursive_subgroup = (isinstance(sub_group, OpsGroup) and sub_group.recursive_ref)
       # Special handling for recursive subgroup: use the existing opsgroup name
       if is_recursive_subgroup:
@@ -463,6 +464,7 @@ class Compiler(object):
         arguments = []
         for param_name, dependent_name in inputs[sub_group.name]:
           if dependent_name:
+            print(f'in dependent_name for {sub_group.name}')
             # The value comes from an upstream sibling.
             # Special handling for recursive subgroup: argument name comes from the existing opsgroup
             if is_recursive_subgroup:
@@ -494,6 +496,7 @@ class Compiler(object):
                   'value': '{{inputs.parameters.%s}}' % param_name
               })
             else:
+              print(f'about to check parallefor for {sub_group.name}')
               if isinstance(sub_group, dsl.ParallelFor):
                 if sub_group.loop_args.name in param_name:
                   if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
@@ -505,6 +508,10 @@ class Compiler(object):
                     raise ValueError("Failed to match loop args with parameter. param_name: {}, ".format(param_name))
                 else:
                   param_value = '{{inputs.parameters.%s}}' % param_name
+
+                ###################
+                # OLD SPOT
+                ###################
 
                 # withParam vs withItems
                 if sub_group.items_is_pipeline_param:
