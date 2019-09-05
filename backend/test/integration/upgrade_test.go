@@ -54,6 +54,7 @@ func (s *UpgradeTests) TestVerify() {
 	s.VerifyExperiments()
 	s.VerifyPipelines()
 	s.VerifyRuns()
+	s.VerifyJobs()
 }
 
 // Check the namespace have ML job installed and ready
