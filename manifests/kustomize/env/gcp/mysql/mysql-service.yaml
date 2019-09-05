@@ -5,6 +5,5 @@ metadata:
 spec:
   ports:
     - port: 3306
-      targetPort: port-database1
   selector:
     app: cloudsqlproxy

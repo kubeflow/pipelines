@@ -12,55 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package common
 
 import (
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/spf13/viper"
 )
 
-func initConfig() {
-	// Import environment variable, support nested vars e.g. OBJECTSTORECONFIG_ACCESSKEY
-	replacer := strings.NewReplacer(".", "_")
-	viper.SetEnvKeyReplacer(replacer)
-	viper.AutomaticEnv()
 
-	// Set configuration file name. The format is auto detected in this case.
-	viper.SetConfigName("config")
-	viper.AddConfigPath(*configPath)
-	err := viper.ReadInConfig()
-	if err != nil {
-		glog.Fatalf("Fatal error config file: %s", err)
-	}
-
-	// Watch for configuration change
-	viper.WatchConfig()
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		// Read in config again
-		viper.ReadInConfig()
-	})
-}
-
-func getStringConfig(configName string) string {
+func GetStringConfig(configName string) string {
 	if !viper.IsSet(configName) {
 		glog.Fatalf("Please specify flag %s", configName)
 	}
 	return viper.GetString(configName)
 }
 
-func getStringConfigWithDefault(configName, value string) string {
+func GetStringConfigWithDefault(configName, value string) string {
 	if !viper.IsSet(configName) {
 		return value
 	}
 	return viper.GetString(configName)
 }
 
-func getBoolConfigWithDefault(configName string, value bool) bool {
+func GetBoolConfigWithDefault(configName string, value bool) bool {
 	if !viper.IsSet(configName) {
 		return value
 	}
@@ -71,7 +48,7 @@ func getBoolConfigWithDefault(configName string, value bool) bool {
 	return value
 }
 
-func getDurationConfig(configName string) time.Duration {
+func GetDurationConfig(configName string) time.Duration {
 	if !viper.IsSet(configName) {
 		glog.Fatalf("Please specify flag %s", configName)
 	}

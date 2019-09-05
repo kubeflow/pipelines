@@ -20,30 +20,24 @@ import fire
 import os
 import papermill as pm
 import subprocess
-import sys
 import utils
 
-_PAPERMILL_ERR_MSG = 'An Exception was encountered at'
+from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR
+from check_notebook_results import NoteBookChecker
+from run_sample_test import PySampleChecker
 
 
-#TODO(numerology): Add unit-test for classes.
 class SampleTest(object):
-  """Launch a KFP sample_test provided its name.
-
-  Args:
-    test_name: name of the sample test.
-    input: The path of a pipeline package that will be submitted.
-    result: The path of the test result that will be exported.
-    output: The path of the test output.
-    namespace: Namespace of the deployed pipeline system. Default: kubeflow
-  """
-
-  GITHUB_REPO = 'kubeflow/pipelines'
-  BASE_DIR= '/python/src/github.com/' + GITHUB_REPO
-  TEST_DIR = BASE_DIR + '/test/sample-test'
 
   def __init__(self, test_name, results_gcs_dir, target_image_prefix='',
-                         namespace='kubeflow'):
+               namespace='kubeflow'):
+    """Launch a KFP sample_test provided its name.
+
+    :param test_name: name of the corresponding sample test.
+    :param results_gcs_dir: gs dir to store test result.
+    :param target_image_prefix: prefix of docker image, default is empty.
+    :param namespace: namespace for kfp, default is kubeflow.
+    """
     self._test_name = test_name
     self._results_gcs_dir = results_gcs_dir
     # Capture the first segment after gs:// as the project name.
@@ -52,64 +46,43 @@ class SampleTest(object):
     self._namespace = namespace
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
     self._sample_test_output = self._results_gcs_dir
-    self._work_dir = os.path.join(self.BASE_DIR, 'samples/core/', self._test_name)
+    self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
 
   def check_result(self):
-    os.chdir(self.TEST_DIR)
-    subprocess.call([
-        sys.executable,
-        'run_sample_test.py',
-        '--input',
-        '%s/%s.yaml' % (self._work_dir, self._test_name),
-        '--result',
-        self._sample_test_result,
-        '--output',
-        self._sample_test_output,
-        '--testname',
-        self._test_name,
-        '--namespace',
-        self._namespace
-    ])
-    print('Copy the test results to GCS %s/' % self._results_gcs_dir)
+    os.chdir(TEST_DIR)
+    pysample_checker = PySampleChecker(testname=self._test_name,
+                                       input=os.path.join(self._work_dir, '%s.yaml' % self._test_name),
+                                       output=self._sample_test_output,
+                                       result=self._sample_test_result,
+                                       namespace=self._namespace)
+    pysample_checker.check()
 
+    print('Copy the test results to GCS %s/' % self._results_gcs_dir)
     utils.upload_blob(
-        self._bucket_name,
-        self._sample_test_result,
-        os.path.join(self._results_gcs_dir, self._sample_test_result)
+      self._bucket_name,
+      self._sample_test_result,
+      os.path.join(self._results_gcs_dir, self._sample_test_result)
     )
 
   def check_notebook_result(self):
     # Workaround because papermill does not directly return exit code.
-    exit_code = '1' if _PAPERMILL_ERR_MSG in \
-                     open('%s.ipynb' % self._test_name).read() else '0'
+    exit_code = '1' if PAPERMILL_ERR_MSG in \
+                       open('%s.ipynb' % self._test_name).read() else '0'
 
-    os.chdir(self.TEST_DIR)
+    os.chdir(TEST_DIR)
+
     if self._test_name == 'dsl_static_type_checking':
-      subprocess.call([
-          sys.executable,
-          'check_notebook_results.py',
-          '--testname',
-          self._test_name,
-          '--result',
-          self._sample_test_result,
-          '--exit-code',
-          exit_code
-      ])
+        nbchecker = NoteBookChecker(testname=self._test_name,
+                                    result=self._sample_test_result,
+                                    exit_code=exit_code)
+        nbchecker.check()
     else:
-      subprocess.call([
-          sys.executable,
-          'check_notebook_results.py',
-          '--experiment',
-          '%s-test' % self._test_name,
-          '--testname',
-          self._test_name,
-          '--result',
-          self._sample_test_result,
-          '--namespace',
-          self._namespace,
-          '--exit-code',
-          exit_code
-      ])
+        nbchecker = NoteBookChecker(testname=self._test_name,
+                                    result=self._sample_test_result,
+                                    exit_code=exit_code,
+                                    experiment=None,
+                                    namespace='kubeflow')
+        nbchecker.check()
 
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
 
@@ -156,25 +129,25 @@ class ComponentTest(SampleTest):
   """ Launch a KFP sample test as component test provided its name.
 
   Currently follows the same logic as sample test for compatibility.
-  include xgboost_training_cm tfx_cab_classification
+  include xgboost_training_cm, tfx_cab_classification
   """
   def __init__(self, test_name, results_gcs_dir,
-      dataflow_tft_image,
-      dataflow_predict_image,
-      dataflow_tfma_image,
-      dataflow_tfdv_image,
-      dataproc_create_cluster_image,
-      dataproc_delete_cluster_image,
-      dataproc_analyze_image,
-      dataproc_transform_image,
-      dataproc_train_image,
-      dataproc_predict_image,
-      kubeflow_dnntrainer_image,
-      kubeflow_deployer_image,
-      local_confusionmatrix_image,
-      local_roc_image,
-      target_image_prefix='',
-      namespace='kubeflow'):
+               dataflow_tft_image,
+               dataflow_predict_image,
+               dataflow_tfma_image,
+               dataflow_tfdv_image,
+               dataproc_create_cluster_image,
+               dataproc_delete_cluster_image,
+               dataproc_analyze_image,
+               dataproc_transform_image,
+               dataproc_train_image,
+               dataproc_predict_image,
+               kubeflow_dnntrainer_image,
+               kubeflow_deployer_image,
+               local_confusionmatrix_image,
+               local_roc_image,
+               target_image_prefix='',
+               namespace='kubeflow'):
     super().__init__(
         test_name=test_name,
         results_gcs_dir=results_gcs_dir,

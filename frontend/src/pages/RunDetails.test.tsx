@@ -40,12 +40,13 @@ describe('RunDetails', () => {
   const getClusterNameSpy = jest.spyOn(Apis, 'getClusterName');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const isCustomVisualizationsAllowedSpy = jest.spyOn(Apis, 'areCustomVisualizationsAllowed');
   const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
   const pathsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths');
   const pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
   const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
-  // test enviroments
+  // test environments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
   let testRun: ApiRunDetail = {};
@@ -93,6 +94,7 @@ describe('RunDetails', () => {
     getClusterNameSpy.mockImplementation(() => Promise.resolve('some-cluster'));
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
     getExperimentSpy.mockImplementation(() => Promise.resolve({ id: 'some-experiment-id', name: 'some experiment' }));
+    isCustomVisualizationsAllowedSpy.mockImplementation(() => Promise.resolve(false));
     getPodLogsSpy.mockImplementation(() => 'test logs');
     pathsParser.mockImplementation(() => []);
     pathsWithStepsParser.mockImplementation(() => []);
@@ -643,6 +645,19 @@ describe('RunDetails', () => {
 
       expect(tree).toMatchSnapshot();
     });
+  });
+
+  it('shows an error banner if the custom visualizations state API fails', async () => {
+    TestUtils.makeErrorResponseOnce(isCustomVisualizationsAllowedSpy, 'woops');
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await isCustomVisualizationsAllowedSpy;
+    await TestUtils.flushPromises();
+    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      additionalInfo: 'woops',
+      message:'Error: Unable to enable custom visualizations. Click Details for more information.',
+      mode: 'error',
+    }));
   });
 
   describe('logs tab', () => {

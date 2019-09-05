@@ -16,7 +16,7 @@ from kfp import dsl
 from kubernetes.client.models import V1SecretKeySelector
 
 
-@dsl.pipeline(name='foo', description='hello world')
+@dsl.pipeline(name='artifact-location-pipeine', description='hello world')
 def foo_pipeline(tag: str, namespace: str = "kubeflow", bucket: str = "foobar"):
 
     # configures artifact location

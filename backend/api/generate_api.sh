@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# !/bin/sh
 
 # This file generates API sources from the protocol buffers defined in this
 # directory using Bazel, then copies them back into the source tree so they can
@@ -98,6 +99,14 @@ ${SWAGGER_CMD} generate client \
   --principal models.Principal \
   -c pipeline_client \
   -m pipeline_model \
+  -t go_http_client
+
+${SWAGGER_CMD} generate client \
+  -f ${DIR}/swagger/visualization.swagger.json \
+  -A visualization \
+  --principal models.Principal \
+  -c visualization_client \
+  -m visualization_model \
   -t go_http_client
 
 # Hack to fix an issue with go-swagger

@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - metadata-deployment.yaml
   - metadata-service.yaml
+  - mlmd-server-configmap.yaml

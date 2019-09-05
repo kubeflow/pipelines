@@ -4,6 +4,7 @@ __all__ = [
 
 from pathlib import Path
 import requests
+from typing import Callable
 from . import _components as comp
 from ._structures import ComponentReference
 
@@ -91,3 +92,24 @@ class ComponentStore:
                 return comp._load_component_from_yaml_or_zip_bytes(response.content, url, component_ref)
 
         raise RuntimeError('Component {} was not found. Tried the following locations:\n{}'.format(name, '\n'.join(tried_locations)))
+
+    def _load_component_from_ref(self, component_ref: ComponentReference) -> Callable:
+        if component_ref.spec:
+            return comp._create_task_factory_from_component_spec(component_spec=component_ref.spec, component_ref=component_ref)
+        if component_ref.url:
+            return self.load_component_from_url(component_ref.url)
+        return self.load_component(
+            name=component_ref.name,
+            digest=component_ref.digest,
+            tag=component_ref.tag,
+        )
+
+
+ComponentStore.default_store = ComponentStore(
+    local_search_paths=[
+        '.',
+    ],
+    url_search_prefixes=[
+        'https://raw.githubusercontent.com/kubeflow/pipelines/master/components/'
+    ],
+)
