@@ -11,11 +11,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
+	experimentParams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
+	pipelineParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	runParams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
@@ -30,6 +32,7 @@ type UpgradeTests struct {
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
+	runClient            *api_server.RunClient
 }
 
 // Check the namespace have ML job installed and ready
@@ -60,6 +63,16 @@ func (s *UpgradeTests) SetupSuite() {
 	if err != nil {
 		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}
+	s.runClient, err = api_server.NewRunClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get run client. Error: %s", err.Error())
+	}
+
+	/* ---------- Clean up ---------- */
+	t := s.T()
+	test.DeleteAllExperiments(s.experimentClient, t)
+	test.DeleteAllPipelines(s.pipelineClient, t)
+	test.DeleteAllRuns(s.runClient, t)
 }
 
 func (s *UpgradeTests) TearDownSuite() {
@@ -71,18 +84,16 @@ func (s *UpgradeTests) TearDownSuite() {
 		// later.)
 		test.DeleteAllExperiments(s.experimentClient, t)
 		test.DeleteAllPipelines(s.pipelineClient, t)
+		test.DeleteAllRuns(s.runClient, t)
 	}
 }
 
 func (s *UpgradeTests) TestPrepareExperiments() {
 	t := s.T()
 
-	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, t)
-
 	/* ---------- Create a new experiment ---------- */
 	experiment := &experiment_model.APIExperiment{Name: "training", Description: "my first experiment"}
-	_, err := s.experimentClient.Create(&experiment_service.CreateExperimentParams{
+	_, err := s.experimentClient.Create(&experimentParams.CreateExperimentParams{
 		Body: experiment,
 	})
 	assert.Nil(t, err)
@@ -91,14 +102,14 @@ func (s *UpgradeTests) TestPrepareExperiments() {
 	// This ensures they can be sorted by create time in expected order.
 	time.Sleep(1 * time.Second)
 	experiment = &experiment_model.APIExperiment{Name: "prediction", Description: "my second experiment"}
-	_, err = s.experimentClient.Create(&experiment_service.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentParams{
 		Body: experiment,
 	})
 	assert.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 	experiment = &experiment_model.APIExperiment{Name: "moonshot", Description: "my third experiment"}
-	_, err = s.experimentClient.Create(&experiment_service.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentParams{
 		Body: experiment,
 	})
 	assert.Nil(t, err)
@@ -110,13 +121,13 @@ func (s *UpgradeTests) TestPreparePipelines() {
 	test.DeleteAllPipelines(s.pipelineClient, t)
 
 	/* ---------- Upload pipelines YAML ---------- */
-	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", pipeline_upload_service.NewUploadPipelineParams())
+	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", uploadParams.NewUploadPipelineParams())
 	assert.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.Name)
 
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
-	sequentialPipeline, err := s.pipelineClient.Create(&pipeline_service.CreatePipelineParams{
+	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineParams{
 		Body: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
 	assert.Nil(t, err)
@@ -125,17 +136,45 @@ func (s *UpgradeTests) TestPreparePipelines() {
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUploadPipeline, err := s.pipelineUploadClient.UploadFile(
-		"../resources/arguments.pipeline.zip", &pipeline_upload_service.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
+		"../resources/arguments.pipeline.zip", &uploadParams.UploadPipelineParams{Name: util.StringPointer("zip-arguments-parameters")})
 	assert.Nil(t, err)
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
-	argumentUrlPipeline, err := s.pipelineClient.Create(&pipeline_service.CreatePipelineParams{
+	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineParams{
 		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip"}}})
 	assert.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
+}
+
+func (s *UpgradeTests) TestPrepareRuns() {
+	t := s.T()
+
+	/* ---------- Upload pipelines YAML ---------- */
+	helloWorldPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
+	assert.Nil(t, err)
+
+	/* ---------- Create a new hello world experiment ---------- */
+	experiment := &experiment_model.APIExperiment{Name: "hello world experiment"}
+	helloWorldExperiment, err := s.experimentClient.Create(&experimentParams.CreateExperimentParams{Body: experiment})
+	assert.Nil(t, err)
+
+	/* ---------- Create a new hello world run by specifying pipeline ID ---------- */
+	createRunRequest := &runParams.CreateRunParams{Body: &run_model.APIRun{
+		Name:        "hello world",
+		Description: "this is hello world",
+		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID: helloWorldPipeline.ID,
+		},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
+				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
+		},
+	}}
+	_, _, err = s.runClient.Create(createRunRequest)
+	assert.Nil(t, err)
 }
 
 func (s *UpgradeTests) TestVerifyExperiments() {
@@ -143,7 +182,7 @@ func (s *UpgradeTests) TestVerifyExperiments() {
 
 	/* ---------- Verify list experiments sorted by creation time ---------- */
 	experiments, _, _, err := s.experimentClient.List(
-		&experiment_service.ListExperimentParams{SortBy: util.StringPointer("created_at")})
+		&experimentParams.ListExperimentParams{SortBy: util.StringPointer("created_at")})
 	assert.Nil(t, err)
 	// after upgrade, default experiment may be inserted, but the oldest 3
 	// experiments should be the ones created in this test
@@ -170,7 +209,7 @@ func (s *UpgradeTests) TestVerifyPipelines() {
 
 	/* ---------- Verify list pipeline sorted by creation time ---------- */
 	pipelines, _, _, err := s.pipelineClient.List(
-		&pipeline_service.ListPipelinesParams{SortBy: util.StringPointer("created_at")})
+		&pipelineParams.ListPipelinesParams{SortBy: util.StringPointer("created_at")})
 	assert.Nil(t, err)
 	// During upgrade, default pipelines may be installed, so we only verify the
 	// 4 oldest pipelines here.
@@ -183,7 +222,7 @@ func (s *UpgradeTests) TestVerifyPipelines() {
 	verifyPipeline(t, pipelines[0])
 
 	/* ---------- Verify get template works ---------- */
-	template, err := s.pipelineClient.GetTemplate(&pipeline_service.GetTemplateParams{ID: pipelines[0].ID})
+	template, err := s.pipelineClient.GetTemplate(&pipelineParams.GetTemplateParams{ID: pipelines[0].ID})
 	assert.Nil(t, err)
 	expected, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
@@ -192,6 +231,49 @@ func (s *UpgradeTests) TestVerifyPipelines() {
 	assert.Equal(t, expectedWorkflow, *template)
 }
 
+func (s *UpgradeTests) TestVerifyRuns() {
+	t := s.T()
+
+	/* ---------- List the runs, sorted by creation time ---------- */
+	runs, _, _, err := s.runClient.List(
+		&runParams.ListRunsParams{SortBy: util.StringPointer("created_at")})
+	assert.Nil(t, err)
+	assert.Equal(t, "hello world", runs[0].Name)
+
+	/* ---------- Get hello world run ---------- */
+	helloWorldRunDetail, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: runs[0].ID})
+	assert.Nil(t, err)
+	checkHelloWorldRunDetail(t, helloWorldRunDetail)
+}
+
 func TestUpgrade(t *testing.T) {
 	suite.Run(t, new(UpgradeTests))
+}
+
+func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
+	// Check workflow manifest is not empty
+	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay")
+	// Check runtime workflow manifest is not empty
+	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
+
+	expectedRun := &run_model.APIRun{
+		ID:          runDetail.Run.ID,
+		Name:        "hello world",
+		Description: "this is hello world",
+		Status:      runDetail.Run.Status,
+		PipelineSpec: &run_model.APIPipelineSpec{
+			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
+			PipelineName:     "hello-world.yaml",
+			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+		},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: runDetail.Run.ResourceReferences[0].Key.ID},
+				Name: "hello world experiment", Relationship: run_model.APIRelationshipOWNER,
+			},
+		},
+		CreatedAt:   runDetail.Run.CreatedAt,
+		ScheduledAt: runDetail.Run.ScheduledAt,
+		FinishedAt:  runDetail.Run.FinishedAt,
+	}
+	assert.Equal(t, expectedRun, runDetail.Run)
 }
