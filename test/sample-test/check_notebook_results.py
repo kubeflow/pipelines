@@ -27,7 +27,6 @@ class NoteBookChecker(object):
         :param result: name of the file that stores the test result
         :param exit_code: the exit code of the notebook run. 0 for passed test.
         :param run_pipeline: whether to submit for a pipeline run.
-        :param experiment: where the test run belong, only necessary when a job is submitted.
         :param namespace: where the pipeline system is deployed.
         """
         self._testname = testname

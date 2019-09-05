@@ -30,7 +30,6 @@ class PySampleChecker(object):
     :param input: The path of a pipeline file that will be submitted.
     :param output: The path of the test output.
     :param result: The path of the test result that will be exported.
-    :param run_pipeline: Whether to submit a pipeline run or not.
     :param namespace: namespace of the deployed pipeline system. Default: kubeflow
     """
     self._testname = testname
