@@ -108,10 +108,6 @@ def main(argv=None):
   
   submit_job(command)
   
-  #with open('/mlpipeline-ui-metadata.json', 'w') as f:
-  #    json.dump(metadata, f)
-
-  
   succ = True
 
   # wait for job done

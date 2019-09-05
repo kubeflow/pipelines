@@ -15,6 +15,7 @@ inputs:
 - {name: Analysis results dir, type: GCSPath,   description: GCS or local directory where the analysis results should be written.} # type: {GCSPath: {path_type: Directory}}
 outputs:
 - {name: Analysis results dir, type: GCSPath,   description: GCS or local directory where the analysis results should were written.} # type: {GCSPath: {path_type: Directory}}
+- {name: MLPipeline UI metadata, type: UI metadata}
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:151c5349f13bea9d626c988563c04c0a86210c21
@@ -30,3 +31,4 @@ implementation:
     ]
     fileOutputs:
       Analysis results dir: /output.txt
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
