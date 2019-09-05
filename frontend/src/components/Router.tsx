@@ -70,6 +70,12 @@ export enum RouteParams {
 }
 
 // tslint:disable-next-line:variable-name
+export const RoutePrefix = {
+  ARTIFACT: '/artifact',
+  RECURRING_RUN: '/recurringrun',
+};
+
+// tslint:disable-next-line:variable-name
 export const RoutePage = {
   ARCHIVE: '/archive',
   ARTIFACTS: '/artifacts',

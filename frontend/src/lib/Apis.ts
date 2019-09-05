@@ -72,7 +72,7 @@ let customVisualizationsAllowed: boolean;
 const metadataServiceClient = new MetadataStoreServiceClient('');
 
 export class Apis {
-  
+
   public static async areCustomVisualizationsAllowed(): Promise<boolean> {
     // Result is cached to prevent excessive network calls for simple request.
     // The value of customVisualizationsAllowed will only change if the
@@ -230,37 +230,6 @@ export class Apis {
 
   public static getMetadataServiceClient(): MetadataStoreServiceClient {
     return metadataServiceClient;
-    // const executionType = new ExecutionType();
-    // executionType.setId(1);
-    // executionType.setName('riley-test');
-    // const artifactType = new ArtifactType();
-    // artifactType.setId(1);
-    // artifactType.setName('artifact');
-    // const artifactStructType = new ArtifactStructType();
-    // artifactStructType.setSimple(artifactType);
-    // executionType.setInputType(artifactStructType);
-    // const artifactType2 = new ArtifactType();
-    // artifactType2.setId(2);
-    // artifactType2.setName('artifact2');
-    // const artifactStructType2 = new ArtifactStructType();
-    // artifactStructType2.setSimple(artifactType2);
-    // executionType.setOutputType(artifactStructType2);
-
-    // const request = new PutExecutionTypeRequest();
-    // request.setExecutionType(executionType);
-    // request.setAllFieldsMatch(true);
-
-    // // TODO: replace emptystring with metadata API prefix
-    // const client = new MetadataStoreServiceClient('');
-    // // tslint:disable-next-line:no-console
-    // console.log('Making metadata request!');
-    // client.putExecutionType(request, (err, response) => {
-    //   // tslint:disable-next-line:no-console
-    //   console.log(response);
-    //   // tslint:disable-next-line:no-console
-    //   console.log(err);
-    // });
-    // return '';
   }
 
   private static _experimentServiceApi?: ExperimentServiceApi;

@@ -28,7 +28,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { Apis } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
-import { RoutePage } from '../components/Router';
+import { RoutePage, RoutePrefix } from '../components/Router';
 import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, commonCss } from '../Css';
@@ -319,15 +319,12 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
   private _highlightExperimentsButton(page: string): boolean {
     return page.startsWith(RoutePage.EXPERIMENTS)
       || page.startsWith(RoutePage.RUNS)
-      // TODO: Router should have a constant for this, but it doesn't follow the naming convention
-      // of the other pages
-      || page.startsWith('/recurringrun')
+      || page.startsWith(RoutePrefix.RECURRING_RUN)
       || page.startsWith(RoutePage.COMPARE);
   }
 
   private _highlightArtifactsButton(page: string): boolean {
-    // TODO: Router should have a constant for this, but it doesn't follow a naming convention
-    return page.startsWith('/artifact');
+    return page.startsWith(RoutePrefix.ARTIFACT);
   }
 
   private _toggleNavClicked(): void {

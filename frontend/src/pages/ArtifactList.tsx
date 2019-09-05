@@ -20,7 +20,7 @@ import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { getResourceProperty, rowCompareFn, rowFilterFn, groupRows, getExpandedRow } from '../lib/Utils';
+import { getResourceProperty, rowCompareFn, rowFilterFn, groupRows, getExpandedRow, serviceErrorToString } from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
 import { Link } from 'react-router-dom';
 import { Artifact, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
@@ -36,7 +36,6 @@ interface ArtifactListState {
 
 class ArtifactList extends Page<{}, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
-  private artifactTypes: Map<number, ArtifactType>;
 
   constructor(props: any) {
     super(props);
@@ -103,54 +102,19 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
-    // TODO: Consider making an Api method for returning and caching types
-    if (!this.artifactTypes || !this.artifactTypes.size) {
-      this.artifactTypes = await this.getArtifactTypes();
-    }
-    let { artifacts } = this.state;
-    if (!artifacts.length) {
       Apis.getMetadataServiceClient().getArtifacts(new GetArtifactsRequest(), (err, res) => {
         if (err) {
-          // TODO: show error message
-          // tslint:disable-next-line:no-console
-          console.log('Error fetching artifacts!', err);
+          this.showPageError(serviceErrorToString(err));
           return;
         }
 
-        // tslint:disable-next-line:no-console
-        console.log('Success retrieving artifacts!', res!.getArtifactsList());
-        // tslint:disable-next-line:no-console
-        console.log('Artifact 1, before:', res!.getArtifactsList()[0]);
-        // tslint:disable-next-line:no-console
-        console.log('Artifact 1, after:', (res!.getArtifactsList()[0].toObject()));
-        // this.setState({ artifacts: (res && res.getArtifactsList()) || [] });
-        artifacts = (res && res.getArtifactsList()) || [];
+        const artifacts = (res && res.getArtifactsList()) || [];
         this.getRowsFromArtifacts(request, artifacts);
         this.clearBanner();
       });
-    }
-    return '';
+      return '';
   }
 
-  private async getArtifactTypes(): Promise<Map<number, ArtifactType>> {
-    const artifactTypesMap = new Map<number, ArtifactType>();
-    Apis.getMetadataServiceClient().getArtifactTypes(new GetArtifactTypesRequest(), (err, res) => {
-      if (err) {
-        // TODO: show error message
-        // tslint:disable-next-line:no-console
-        console.log('Error fetching artifact types!', err);
-        return;
-      }
-      // tslint:disable-next-line:no-console
-      console.log('Success retrieving artifact types!', res!.getArtifactTypesList());
-      (res && res.getArtifactTypesList() || []).forEach((artifactType) => {
-        artifactTypesMap.set(artifactType.getId()!, artifactType);
-      });
-    });
-    // tslint:disable-next-line:no-console
-    console.log(artifactTypesMap);
-    return artifactTypesMap;
-  }
 
   private nameCustomRenderer: React.FC<CustomRendererProps<string>> =
     (props: CustomRendererProps<string>) => {
@@ -174,38 +138,49 @@ class ArtifactList extends Page<{}, ArtifactListState> {
    * @param request
    */
   private getRowsFromArtifacts(request: ListRequest, artifacts: Artifact[]): void {
-    const collapsedAndExpandedRows = groupRows(artifacts
-      .map((a) => { // Flattens
-        const typeId = a.getTypeId();
-        const type = (typeId && this.artifactTypes && this.artifactTypes.get(typeId))
-          ? this.artifactTypes.get(typeId)!.getName()
-          : typeId;
-        // tslint:disable-next-line:no-console
-        console.log('artifact id: ', a.getId());
-        // tslint:disable-next-line:no-console
-        console.log('type: ', type);
-        return {
-          id: `${type}:${a.getId()}`, // Join with colon so we can build the link
-          otherFields: [
-            getResourceProperty(a, ArtifactProperties.PIPELINE_NAME)
-            || getResourceProperty(a, ArtifactCustomProperties.WORKSPACE, true),
-            getResourceProperty(a, ArtifactProperties.NAME),
-            a.getId(),
-            type,
-            a.getUri(),
-            // TODO: Get timestamp from the event that created this artifact.
-            // formatDateString(
-            //   getArtifactProperty(a, ArtifactProperties.CREATE_TIME) || ''),
-          ],
-        } as Row;
-      })
-      .filter(rowFilterFn(request))
-      .sort(rowCompareFn(request, this.state.columns)));
+    const artifactTypesMap = new Map<number, ArtifactType>();
+    // TODO: Consider making an Api method for returning and caching types
+    Apis.getMetadataServiceClient().getArtifactTypes(new GetArtifactTypesRequest(), (err, res) => {
+      if (err) {
+        this.showPageError(serviceErrorToString(err));
+        return;
+      }
 
-    this.setState({
-      artifacts,
-      expandedRows: collapsedAndExpandedRows.expandedRows,
-      rows: collapsedAndExpandedRows.collapsedRows,
+      (res && res.getArtifactTypesList() || []).forEach((artifactType) => {
+        artifactTypesMap.set(artifactType.getId()!, artifactType);
+      });
+
+      const collapsedAndExpandedRows =
+        groupRows(artifacts
+          .map((a) => { // Flattens
+            const typeId = a.getTypeId();
+            const type = (typeId && artifactTypesMap && artifactTypesMap.get(typeId))
+              ? artifactTypesMap.get(typeId)!.getName()
+              : typeId;
+            return {
+              id: `${type}:${a.getId()}`, // Join with colon so we can build the link
+              otherFields: [
+                getResourceProperty(a, ArtifactProperties.PIPELINE_NAME)
+                || getResourceProperty(a, ArtifactCustomProperties.WORKSPACE, true),
+                getResourceProperty(a, ArtifactProperties.NAME),
+                a.getId(),
+                type,
+                a.getUri(),
+                // TODO: Get timestamp from the event that created this artifact.
+                // formatDateString(
+                //   getArtifactProperty(a, ArtifactProperties.CREATE_TIME) || ''),
+              ],
+            } as Row;
+          })
+          .filter(rowFilterFn(request))
+          .sort(rowCompareFn(request, this.state.columns))
+        );
+
+      this.setState({
+        artifacts,
+        expandedRows: collapsedAndExpandedRows.expandedRows,
+        rows: collapsedAndExpandedRows.collapsedRows,
+      });
     });
   }
 

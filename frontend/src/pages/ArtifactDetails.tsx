@@ -21,7 +21,7 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
-import { titleCase, getResourceProperty } from '../lib/Utils';
+import { titleCase, getResourceProperty, serviceErrorToString } from '../lib/Utils';
 import { ResourceInfo } from '../components/ResourceInfo';
 import { Artifact } from '../generated/src/apis/metadata/metadata_store_pb';
 import { Apis, ArtifactProperties } from '../lib/Apis';
@@ -87,22 +87,22 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     getArtifactsRequest.setArtifactIdsList([this.id]);
     Apis.getMetadataServiceClient().getArtifactsByID(getArtifactsRequest, (err, res) => {
       if (err) {
-        // TODO: show error message
-        // tslint:disable-next-line:no-console
-        console.log('Error fetching artifact!', err);
+        this.showPageError(serviceErrorToString(err));
         return;
       }
+
       if (!res || !res.getArtifactsList().length) {
-        // TODO: will this be caught? 
-        throw new Error(`No ${this.fullTypeName} identified by id: ${this.id}`);
+        this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
+        return;
       }
+
       if (res.getArtifactsList().length > 1) {
-        // TODO: show error message (can this happen?)
-        // tslint:disable-next-line:no-console
-        console.log(`Found multiple artifacts with ID: ${this.id}`, err);
+        this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
+        return;
       }
+
       const artifact = res.getArtifactsList()[0];
-      
+
       const artifactName = getResourceProperty(artifact, ArtifactProperties.NAME);
       let title = artifactName ? artifactName.toString() : '';
       const version = getResourceProperty(artifact, ArtifactProperties.VERSION);

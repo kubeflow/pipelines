@@ -26,6 +26,7 @@ import { padding } from '../Css';
 import { classes } from 'typestyle';
 import { Value, Artifact, Execution } from '../generated/src/apis/metadata/metadata_store_pb';
 import { CustomTableRow, css } from '../components/CustomTableRow';
+import { ServiceError } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
 
 export const logger = {
   error: (...args: any[]) => {
@@ -133,6 +134,14 @@ export function getResourceProperty(resource: Artifact | Execution,
     || null;
 }
 
+export function serviceErrorToString(error: ServiceError): string {
+  return `Error: ${error.message}. Code: ${error.code}`;
+}
+
+/**
+ * Extracts an int, double, or string from a metadata Value. Returns '' if no value is found.
+ * @param value
+ */
 export function getMetadataValue(value?: Value): string | number {
   if (!value) {
     return '';
@@ -170,7 +179,12 @@ export function rowCompareFn(request: ListRequest, columns: Column[]): (r1: Row,
       return -1;
     }
 
-    const sortIndex = columns.findIndex((c) => request.sortBy === c.sortKey);
+    const descSuffix = ' desc';
+    const cleanedSortBy = request.sortBy.endsWith(descSuffix)
+      ? request.sortBy.substring(0, request.sortBy.length - descSuffix.length)
+      : request.sortBy;
+
+    const sortIndex = columns.findIndex((c) => cleanedSortBy === c.sortKey);
 
     // Convert null to string to avoid null comparison behavior
     const compare = (r1.otherFields[sortIndex] || '') < (r2.otherFields[sortIndex] || '');

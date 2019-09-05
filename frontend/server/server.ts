@@ -116,8 +116,7 @@ const commitHash =
 const port = process.argv[3] || 3000;
 const apiServerAddress = `http://${ML_PIPELINE_SERVICE_HOST}:${ML_PIPELINE_SERVICE_PORT}`;
 
-// TODO: rename: envoyServiceAddress
-const metadataServerAddress = `http://${METADATA_ENVOY_SERVICE_SERVICE_HOST}:${METADATA_ENVOY_SERVICE_SERVICE_PORT}`
+const envoyServiceAddress = `http://${METADATA_ENVOY_SERVICE_SERVICE_HOST}:${METADATA_ENVOY_SERVICE_SERVICE_PORT}`
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -365,21 +364,14 @@ app.get(BASEPATH + '/system/project-id', projectIdHandler);
 app.get('/visualizations/allowed', allowCustomVisualizationsHandler);
 app.get(BASEPATH + '/visualizations/allowed', allowCustomVisualizationsHandler);
 
+// Proxy metadata requests to the Envoy instance which will handle routing to the metadata gRPC server
 app.all('/ml_metadata.*', proxy({
   changeOrigin: true,
   onProxyReq: proxyReq => {
     console.log('Metadata proxied request: ', (proxyReq as any).path);
   },
-  target: metadataServerAddress,
+  target: envoyServiceAddress,
 }));
-
-// app.all('*/ml_metadata.*', proxy({
-//   changeOrigin: true,
-//   onProxyReq: proxyReq => {
-//     console.log('!!!!!!!!!!!!!!!!!!!!!11s: ', (proxyReq as any).path);
-//   },
-//   target: metadataServerAddress,
-// }));
 
 // Order matters here, since both handlers can match any proxied request with a referer,
 // and we prioritize the basepath-friendly handler
