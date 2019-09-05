@@ -89,7 +89,7 @@ class SampleTest(object):
         os.path.join(self._results_gcs_dir, self._sample_test_result)
     )
 
-  def _compile_sample(self):
+  def _compile(self):
 
     os.chdir(self._work_dir)
     print('Run the sample tests...')
@@ -149,7 +149,8 @@ class SampleTest(object):
       pm.execute_notebook(
           input_path='%s.ipynb' % self._test_name,
           output_path='%s.ipynb' % self._test_name,
-          parameters=nb_params
+          parameters=nb_params,
+          prepare_only=True
       )
 
     else:
@@ -158,7 +159,7 @@ class SampleTest(object):
 
 
   def run_test(self):
-    self._compile_sample()
+    self._compile()
     if self._is_notebook:
       self.check_notebook_result()
     else:
@@ -247,7 +248,7 @@ class ComponentTest(SampleTest):
 
   def run_test(self):
     # compile, injection, check_result
-    self._compile_sample()
+    self._compile()
     self._injection()
     self.check_result()
 

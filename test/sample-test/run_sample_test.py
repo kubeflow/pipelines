@@ -37,34 +37,43 @@ class PySampleChecker(object):
     self._output = output
     self._result = result
     self._namespace = namespace
+    self._run_pipeline = None
+    self._test_timeout = None
 
-  def check(self):
-    """Run sample test and check results."""
-    test_cases = []
-    test_name = self._testname + ' Sample Test'
+    self._test_cases = []
+    self._test_name = self._testname + ' Sample Test'
+
+    self._client = None
+    self._experiment_id = None
+    self._job_name = None
+    self._test_args = None
+
+  def run(self):
+    """Run compiled KFP pipeline."""
+
 
     ###### Initialization ######
     host = 'ml-pipeline.%s.svc.cluster.local:8888' % self._namespace
-    client = Client(host=host)
+    self._client = Client(host=host)
 
     ###### Check Input File ######
-    utils.add_junit_test(test_cases, 'input generated yaml file',
+    utils.add_junit_test(self._test_cases, 'input generated yaml file',
                          os.path.exists(self._input), 'yaml file is not generated')
     if not os.path.exists(self._input):
-      utils.write_junit_xml(test_name, self._result, test_cases)
+      utils.write_junit_xml(self._test_name, self._result, self._test_cases)
       print('Error: job not found.')
       exit(1)
 
     ###### Create Experiment ######
     experiment_name = self._testname + ' sample experiment'
-    response = client.create_experiment(experiment_name)
-    experiment_id = response.id
-    utils.add_junit_test(test_cases, 'create experiment', True)
+    response = self._client.create_experiment(experiment_name)
+    self._experiment_id = response.id
+    utils.add_junit_test(self._test_cases, 'create experiment', True)
 
     ###### Create Job ######
-    job_name = self._testname + '_sample'
+    self._job_name = self._testname + '_sample'
     ###### Figure out arguments from associated config files. #######
-    test_args = {}
+    self._test_args = {}
     config_schema = yamale.make_schema(SCHEMA_CONFIG)
     try:
       with open(DEFAULT_CONFIG, 'r') as f:
@@ -76,45 +85,48 @@ class PySampleChecker(object):
     except OSError as ose:
       raise FileExistsError('Default config not found:{}'.format(ose))
     else:
-      test_timeout = raw_args['test_timeout']
-      run_pipeline = raw_args['run_pipeline']
+      self._test_timeout = raw_args['test_timeout']
+      self._run_pipeline = raw_args['run_pipeline']
 
     try:
       with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._testname), 'r') as f:
         raw_args = yaml.safe_load(f)
       test_config = yamale.make_data(os.path.join(
-          CONFIG_DIR, '%s.config.yaml' % self._testname))
+        CONFIG_DIR, '%s.config.yaml' % self._testname))
       yamale.validate(config_schema, test_config)  # If fails, a ValueError will be raised.
     except yaml.YAMLError as yamlerr:
       print('No legit yaml config file found, use default args:{}'.format(yamlerr))
     except OSError as ose:
       print('Config file with the same name not found, use default args:{}'.format(ose))
     else:
-      test_args.update(raw_args['arguments'])
-      if 'output' in test_args.keys():  # output is a special param that has to be specified dynamically.
-        test_args['output'] = self._output
+      self._test_args.update(raw_args['arguments'])
+      if 'output' in self._test_args.keys():  # output is a special param that has to be specified dynamically.
+        self._test_args['output'] = self._output
       if 'test_timeout' in raw_args.keys():
-        test_timeout = raw_args['test_timeout']
+        self._test_timeout = raw_args['test_timeout']
       if 'run_pipeline' in raw_args.keys():
-        run_pipeline = raw_args['run_pipeline']
+        self._run_pipeline = raw_args['run_pipeline']
 
-    if run_pipeline:
-      response = client.run_pipeline(experiment_id, job_name, self._input, test_args)
+
+  def check(self):
+    """Check pipeline run results."""
+    if self._run_pipeline:
+      response = self._client.run_pipeline(self._experiment_id, self._job_name, self._input, self._test_args)
       run_id = response.id
-      utils.add_junit_test(test_cases, 'create pipeline run', True)
+      utils.add_junit_test(self._test_cases, 'create pipeline run', True)
 
       ###### Monitor Job ######
       try:
         start_time = datetime.now()
-        response = client.wait_for_run_completion(run_id, test_timeout)
+        response = self._client.wait_for_run_completion(run_id, self._test_timeout)
         succ = (response.run.status.lower() == 'succeeded')
         end_time = datetime.now()
         elapsed_time = (end_time - start_time).seconds
-        utils.add_junit_test(test_cases, 'job completion', succ,
+        utils.add_junit_test(self._test_cases, 'job completion', succ,
                              'waiting for job completion failure', elapsed_time)
       finally:
         ###### Output Argo Log for Debugging ######
-        workflow_json = client._get_workflow_json(run_id)
+        workflow_json = self._client._get_workflow_json(run_id)
         workflow_id = workflow_json['metadata']['name']
         argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(
           self._namespace, workflow_id))
@@ -122,7 +134,7 @@ class PySampleChecker(object):
         print(argo_log)
 
       if not succ:
-        utils.write_junit_xml(test_name, self._result, test_cases)
+        utils.write_junit_xml(self._test_name, self._result, self._test_cases)
         exit(1)
 
       ###### Validate the results for specific test cases ######
@@ -138,7 +150,7 @@ class PySampleChecker(object):
 
           with tar_handle.extractfile(file_handles[0]) as f:
             cm_data = f.read()
-            utils.add_junit_test(test_cases, 'confusion matrix format',
+            utils.add_junit_test(self._test_cases, 'confusion matrix format',
                                  (len(cm_data) > 0),
                                  'the confusion matrix file is empty')
 
@@ -146,4 +158,4 @@ class PySampleChecker(object):
     #TODO: add deletion when the backend API offers the interface.
 
     ###### Write out the test result in junit xml ######
-    utils.write_junit_xml(test_name, self._result, test_cases)
+    utils.write_junit_xml(self._test_name, self._result, self._test_cases)
