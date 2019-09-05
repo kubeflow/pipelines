@@ -107,7 +107,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
     if (!this.artifactTypes || !this.artifactTypes.size) {
       this.artifactTypes = await this.getArtifactTypes();
     }
-    const { artifacts } = this.state;
+    let { artifacts } = this.state;
     if (!artifacts.length) {
       Apis.getMetadataServiceClient().getArtifacts(new GetArtifactsRequest(), (err, res) => {
         if (err) {
@@ -116,13 +116,19 @@ class ArtifactList extends Page<{}, ArtifactListState> {
           console.log('Error fetching artifacts!', err);
           return;
         }
-        this.setState({ artifacts: (res && res.getArtifactsList()) || [] });
+
+        // tslint:disable-next-line:no-console
+        console.log('Success retrieving artifacts!', res!.getArtifactsList());
+        // tslint:disable-next-line:no-console
+        console.log('Artifact 1, before:', res!.getArtifactsList()[0]);
+        // tslint:disable-next-line:no-console
+        console.log('Artifact 1, after:', (res!.getArtifactsList()[0].toObject()));
+        // this.setState({ artifacts: (res && res.getArtifactsList()) || [] });
+        artifacts = (res && res.getArtifactsList()) || [];
+        this.getRowsFromArtifacts(request, artifacts);
         this.clearBanner();
       });
     }
-    this.setState({
-      rows: this.getRowsFromArtifacts(request),
-    });
     return '';
   }
 
@@ -135,12 +141,14 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         console.log('Error fetching artifact types!', err);
         return;
       }
-      if (res) {
-        (res.getArtifactTypesList() || []).forEach((artifactType) => {
-          artifactTypesMap.set(artifactType.getId()!, artifactType);
-        });
-      }
+      // tslint:disable-next-line:no-console
+      console.log('Success retrieving artifact types!', res!.getArtifactTypesList());
+      (res && res.getArtifactTypesList() || []).forEach((artifactType) => {
+        artifactTypesMap.set(artifactType.getId()!, artifactType);
+      });
     });
+    // tslint:disable-next-line:no-console
+    console.log(artifactTypesMap);
     return artifactTypesMap;
   }
 
@@ -165,13 +173,17 @@ class ArtifactList extends Page<{}, ArtifactListState> {
    * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
    * @param request
    */
-  private getRowsFromArtifacts(request: ListRequest): Row[] {
-    const collapsedAndExpandedRows = groupRows(this.state.artifacts
+  private getRowsFromArtifacts(request: ListRequest, artifacts: Artifact[]): void {
+    const collapsedAndExpandedRows = groupRows(artifacts
       .map((a) => { // Flattens
         const typeId = a.getTypeId();
         const type = (typeId && this.artifactTypes && this.artifactTypes.get(typeId))
           ? this.artifactTypes.get(typeId)!.getName()
           : typeId;
+        // tslint:disable-next-line:no-console
+        console.log('artifact id: ', a.getId());
+        // tslint:disable-next-line:no-console
+        console.log('type: ', type);
         return {
           id: `${type}:${a.getId()}`, // Join with colon so we can build the link
           otherFields: [
@@ -190,8 +202,11 @@ class ArtifactList extends Page<{}, ArtifactListState> {
       .filter(rowFilterFn(request))
       .sort(rowCompareFn(request, this.state.columns)));
 
-    this.setState({ expandedRows: collapsedAndExpandedRows.expandedRows });
-    return collapsedAndExpandedRows.collapsedRows;
+    this.setState({
+      artifacts,
+      expandedRows: collapsedAndExpandedRows.expandedRows,
+      rows: collapsedAndExpandedRows.collapsedRows,
+    });
   }
 
   /**

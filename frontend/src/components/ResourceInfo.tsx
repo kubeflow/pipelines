@@ -59,24 +59,24 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
         <h1 className={commonCss.header}>Type: {this.props.typeName}</h1>
         <h2 className={commonCss.header2}>Properties</h2>
         <dl className={css.resourceInfo}>
-          {Object.keys(propertyMap || {})
+          {propertyMap.getEntryList()
             // TODO: __ALL_META__ is something of a hack, is redundant, and can be ignored
-            .filter(k => k !== '__ALL_META__')
+            .filter(k => k[0] !== '__ALL_META__')
             .map(k =>
-              <div className={css.field} key={k}>
-                <dt className={css.term}>{k}</dt>
-                <dd className={css.value}>{propertyMap && getMetadataValue(propertyMap.get(k))}</dd>
+              <div className={css.field} key={k[0]}>
+                <dt className={css.term}>{k[0]}</dt>
+                <dd className={css.value}>{propertyMap && getMetadataValue(propertyMap.get(k[0]))}</dd>
               </div>
             )
           }
         </dl>
         <h2 className={commonCss.header2}>Custom Properties</h2>
         <dl className={css.resourceInfo}>
-          {Object.keys(customPropertyMap || {}).map(k =>
-            <div className={css.field} key={k}>
-              <dt className={css.term}>{k}</dt>
+          {customPropertyMap.getEntryList().map(k =>
+            <div className={css.field} key={k[0]}>
+              <dt className={css.term}>{k[0]}</dt>
               <dd className={css.value}>
-                {customPropertyMap && getMetadataValue(customPropertyMap.get(k))}
+                {customPropertyMap && getMetadataValue(customPropertyMap.get(k[0]))}
               </dd>
             </div>
           )}

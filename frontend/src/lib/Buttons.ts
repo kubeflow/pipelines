@@ -175,6 +175,7 @@ export default class Buttons {
     };
     return this;
   }
+
   public expandSections(action: () => void): Buttons {
     this._map[ButtonKeys.EXPAND] = {
       action,
@@ -182,6 +183,17 @@ export default class Buttons {
       id: 'expandBtn',
       title: 'Expand all',
       tooltip: 'Expand all sections',
+    };
+    return this;
+  }
+
+  public insertArtifact(action: () => void): Buttons {
+    this._map[ButtonKeys.EXPAND] = {
+      action,
+      icon: AddIcon,
+      id: 'insertArtifact',
+      title: 'Insert',
+      tooltip: 'Insert all sections',
     };
     return this;
   }

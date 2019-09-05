@@ -129,7 +129,7 @@ export function getResourceProperty(resource: Artifact | Execution,
     ? resource.getCustomPropertiesMap()
     : resource.getPropertiesMap();
 
-  return (props && props[propertyName] && getMetadataValue(props[propertyName]))
+  return (props && props.get(propertyName) && getMetadataValue(props.get(propertyName)))
     || null;
 }
 
@@ -137,7 +137,19 @@ export function getMetadataValue(value?: Value): string | number {
   if (!value) {
     return '';
   }
-  return value.getDoubleValue() || value.getIntValue() || value.getStringValue() || '';
+
+  if (value.hasDoubleValue()) {
+    return value.getDoubleValue() || '';
+  }
+
+  if (value.hasIntValue()) {
+    return value.getIntValue() || '';
+  }
+
+  if (value.hasStringValue()) {
+    return value.getStringValue() || '';
+  }
+  return '';
 }
 
 /**
