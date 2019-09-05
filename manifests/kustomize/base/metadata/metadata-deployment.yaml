@@ -16,12 +16,19 @@ spec:
     spec:
       containers:
       - name: container
-        image: gcr.io/kubeflow-images-public/metadata:v0.1.8
-        command: ["./server/server",
-                  "--http_port=8080",
-                  "--mysql_service_host=mysql",
-                  "--mysql_service_port=3306",
-                  "--mlmd_db_name=metadb"]
+        image: gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0
+        env:
+        - name: GRPC_PORT
+          value: "8080"
+        - name: METADATA_STORE_SERVER_CONFIG_FILE
+          value: "/etc/config/mlmd_config.prototxt"
         ports:
         - name: md-backendapi
           containerPort: 8080
+        volumeMounts:
+        - name: mlmd-server-config-volume
+          mountPath: /etc/config
+      volumes:
+        - name: mlmd-server-config-volume
+          configMap:
+            name: mlmd-service-configmap

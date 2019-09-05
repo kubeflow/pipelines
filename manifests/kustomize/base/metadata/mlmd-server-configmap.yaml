@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mlmd-service-configmap
+  labels:
+    component: metadata-server
+data:
+  mlmd_config.prototxt: |
+    connection_config: <
+      mysql: <
+        host: "mysql"
+        port: 3306
+        database: "metadb"
+        user: "root"
+        password: ""
+      >
+    >

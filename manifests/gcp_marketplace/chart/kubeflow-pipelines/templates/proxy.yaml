@@ -17,7 +17,7 @@ spec:
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
-        - image: {{ .Values.images.proxyAgent }}
+        - image: {{ .Values.images.proxyagent }}
           imagePullPolicy: IfNotPresent
           name: proxy-agent
       serviceAccountName: {{ .Values.serviceAccount.proxyAgentRunner}}

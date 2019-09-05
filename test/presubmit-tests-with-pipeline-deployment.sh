@@ -79,6 +79,8 @@ echo "presubmit test starts"
 time source "${DIR}/test-prep.sh"
 echo "test env prepared"
 
+# We don't wait for image building here, because cluster can be deployed in
+# parallel so that we save a few minutes of test time.
 time source "${DIR}/build-images.sh"
 echo "KFP images cloudbuild jobs submitted"
 

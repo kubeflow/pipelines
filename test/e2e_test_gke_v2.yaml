@@ -136,6 +136,7 @@ spec:
           - sequential
           - parallel_join
           - recursion
+          - volume_ops
 
   # Build and push image
   - name: build-image
