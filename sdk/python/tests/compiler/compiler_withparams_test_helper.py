@@ -1,3 +1,5 @@
+"""This module is useful for generating yaml files for the withParams tests and for running unformal
+compiler tests during development."""
 import time
 
 from kfp.compiler import compiler

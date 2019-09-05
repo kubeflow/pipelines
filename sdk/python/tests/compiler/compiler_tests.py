@@ -670,7 +670,6 @@ implementation:
         init_container = init_containers[0]
         self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})
 
-
   def test_delete_resource_op(self):
       """Test a pipeline with a delete resource operation."""
       from kubernetes import client as k8s
@@ -702,3 +701,9 @@ implementation:
       self.assertIsNone(delete_op_template.get("successCondition"))
       self.assertIsNone(delete_op_template.get("failureCondition"))
       self.assertDictEqual(delete_op_template.get("outputs"), {})
+
+  def test_withparam_global(self):
+    self._test_py_compile_yaml('withparam_global')
+
+  def test_withparam_output(self):
+    self._test_py_compile_yaml('withparam_output')

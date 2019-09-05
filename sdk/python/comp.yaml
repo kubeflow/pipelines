@@ -1,0 +1,54 @@
+implementation:
+  container:
+    args:
+    - --a
+    - inputValue: a
+    - --b
+    - inputValue: b
+    - if:
+        cond:
+          isPresent: arg
+        then:
+        - --arg
+        - inputValue: arg
+    - '----output-paths'
+    - outputPath: Output
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      def assert_is_none(a, b, arg=None) -> int:
+          assert arg is None
+          return 1
+
+      import argparse
+      _missing_arg = object()
+      _parser = argparse.ArgumentParser(prog='Assert is none', description='')
+      _parser.add_argument("--a", dest="a", type=str, required=True, default=_missing_arg)
+      _parser.add_argument("--b", dest="b", type=str, required=True, default=_missing_arg)
+      _parser.add_argument("--arg", dest="arg", type=str, required=False, default=_missing_arg)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = assert_is_none(**_parsed_args)
+
+      if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+          _outputs = [_outputs]
+
+      from pathlib import Path
+      for idx, filename in enumerate(_output_files):
+          _output_path = Path(filename)
+          _output_path.parent.mkdir(parents=True, exist_ok=True)
+          _output_path.write_text(str(_outputs[idx]))
+    image: tensorflow/tensorflow:1.13.2-py3
+inputs:
+- name: a
+- name: b
+- name: arg
+  optional: true
+name: Assert is none
+outputs:
+- name: Output
+  type: Integer

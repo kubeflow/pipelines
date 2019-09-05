@@ -334,7 +334,6 @@ class Compiler(object):
     dependencies = defaultdict(set)
     for op in pipeline.ops.values():
       upstream_op_names = set()
-      print(op.name)
       for param in op.inputs + list(condition_params[op.name]):
         if param.op_name:
           upstream_op_names.add(param.op_name)
@@ -433,7 +432,6 @@ class Compiler(object):
     # Generate tasks section.
     tasks = []
     for sub_group in group.groups + group.ops:
-      print(f"sub_group.name = {sub_group.name}")
       is_recursive_subgroup = (isinstance(sub_group, OpsGroup) and sub_group.recursive_ref)
       # Special handling for recursive subgroup: use the existing opsgroup name
       if is_recursive_subgroup:
