@@ -1,9 +1,3 @@
-"""
-test.py is used for test_server.py as a way to test the tornado web server
-without having a reliance on the validity of visualizations. It does not serve
-as a valid visualization and is only used for testing purposes.
-"""
-
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,5 +12,12 @@ as a valid visualization and is only used for testing purposes.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-x = 2
-print(x)
+test_name: tfx_cab_classification
+arguments:
+  output:
+  project: ml-pipeline-test
+  column-names: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/column-names.json
+  evaluation: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval5.csv
+  train: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train20.csv
+  hidden-layer-size: 5
+  steps: 5

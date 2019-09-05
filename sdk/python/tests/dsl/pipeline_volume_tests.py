@@ -13,7 +13,8 @@
 # limitations under the License.
 
 
-from kfp.dsl import Pipeline, VolumeOp, ContainerOp, PipelineVolume
+from kfp.dsl import (Pipeline, VolumeOp, ContainerOp, PipelineVolume,
+                     PipelineParam)
 import unittest
 
 
@@ -70,3 +71,8 @@ class TestPipelineVolume(unittest.TestCase):
         name2 = "provided"
         self.assertEqual(vol1.name, name1)
         self.assertEqual(vol2.name, name2)
+
+        # Testing json.dumps() when pvc is a PipelineParam to avoid
+        # `TypeError: Object of type PipelineParam is not JSON serializable`
+        param = PipelineParam(name="foo")
+        vol3 = PipelineVolume(pvc=param)

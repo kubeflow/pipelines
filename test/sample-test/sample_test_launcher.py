@@ -20,32 +20,24 @@ import fire
 import os
 import papermill as pm
 import subprocess
-import sys
 import utils
 
+from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR
 from check_notebook_results import NoteBookChecker
-
-
-_PAPERMILL_ERR_MSG = 'An Exception was encountered at'
+from run_sample_test import PySampleChecker
 
 
 class SampleTest(object):
-  """Launch a KFP sample_test provided its name.
-
-  Args:
-    test_name: name of the sample test.
-    input: The path of a pipeline package that will be submitted.
-    result: The path of the test result that will be exported.
-    output: The path of the test output.
-    namespace: Namespace of the deployed pipeline system. Default: kubeflow
-  """
-
-  GITHUB_REPO = 'kubeflow/pipelines'
-  BASE_DIR= '/python/src/github.com/' + GITHUB_REPO
-  TEST_DIR = BASE_DIR + '/test/sample-test'
 
   def __init__(self, test_name, results_gcs_dir, target_image_prefix='',
                namespace='kubeflow'):
+    """Launch a KFP sample_test provided its name.
+
+    :param test_name: name of the corresponding sample test.
+    :param results_gcs_dir: gs dir to store test result.
+    :param target_image_prefix: prefix of docker image, default is empty.
+    :param namespace: namespace for kfp, default is kubeflow.
+    """
     self._test_name = test_name
     self._results_gcs_dir = results_gcs_dir
     # Capture the first segment after gs:// as the project name.
@@ -54,38 +46,30 @@ class SampleTest(object):
     self._namespace = namespace
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
     self._sample_test_output = self._results_gcs_dir
-    self._work_dir = os.path.join(self.BASE_DIR, 'samples/core/', self._test_name)
+    self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
 
   def check_result(self):
-    os.chdir(self.TEST_DIR)
-    subprocess.call([
-        sys.executable,
-        'run_sample_test.py',
-        '--input',
-        '%s/%s.yaml' % (self._work_dir, self._test_name),
-        '--result',
-        self._sample_test_result,
-        '--output',
-        self._sample_test_output,
-        '--testname',
-        self._test_name,
-        '--namespace',
-        self._namespace
-    ])
-    print('Copy the test results to GCS %s/' % self._results_gcs_dir)
+    os.chdir(TEST_DIR)
+    pysample_checker = PySampleChecker(testname=self._test_name,
+                                       input=os.path.join(self._work_dir, '%s.yaml' % self._test_name),
+                                       output=self._sample_test_output,
+                                       result=self._sample_test_result,
+                                       namespace=self._namespace)
+    pysample_checker.check()
 
+    print('Copy the test results to GCS %s/' % self._results_gcs_dir)
     utils.upload_blob(
-        self._bucket_name,
-        self._sample_test_result,
-        os.path.join(self._results_gcs_dir, self._sample_test_result)
+      self._bucket_name,
+      self._sample_test_result,
+      os.path.join(self._results_gcs_dir, self._sample_test_result)
     )
 
   def check_notebook_result(self):
     # Workaround because papermill does not directly return exit code.
-    exit_code = '1' if _PAPERMILL_ERR_MSG in \
+    exit_code = '1' if PAPERMILL_ERR_MSG in \
                        open('%s.ipynb' % self._test_name).read() else '0'
 
-    os.chdir(self.TEST_DIR)
+    os.chdir(TEST_DIR)
 
     if self._test_name == 'dsl_static_type_checking':
         nbchecker = NoteBookChecker(testname=self._test_name,
@@ -145,7 +129,7 @@ class ComponentTest(SampleTest):
   """ Launch a KFP sample test as component test provided its name.
 
   Currently follows the same logic as sample test for compatibility.
-  include xgboost_training_cm tfx_cab_classification
+  include xgboost_training_cm, tfx_cab_classification
   """
   def __init__(self, test_name, results_gcs_dir,
                dataflow_tft_image,

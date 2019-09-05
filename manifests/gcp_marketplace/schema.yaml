@@ -1,4 +1,82 @@
-applicationApiVersion: v1beta1
+x-google-marketplace:
+  schemaVersion: v2
+  applicationApiVersion: v1beta1
+  publishedVersion: '0.1.27'
+  publishedVersionMetadata:
+    releaseNote: >-
+      Initial release.
+    releaseTypes:
+      - Feature
+    recommended: false
+  managedUpdates:
+    kalmSupported: false
+  images:
+    '':
+      properties:
+        imageRepo:
+          type: REPO_WITH_REGISTRY
+        imageTag:
+          type: TAG
+    mysql:
+      properties:
+        images.mysql:
+          type: FULL
+    minio:
+      properties:
+        images.minio:
+          type: FULL
+    argo-executor:
+      properties:
+        images.argo-executor:
+          type: FULL
+    argo-workflow-controller:
+      properties:
+        images.argo-workflow-controller:
+          type: FULL
+    api-server:
+      properties:
+        images.api-server:
+          type: FULL
+    persistenceagent:
+      properties:
+        images.persistenceagent:
+          type: FULL
+    scheduledworkflow:
+      properties:
+        images.scheduledworkflow:
+          type: FULL
+    frontend:
+      properties:
+        images.frontend:
+          type: FULL
+    viewer-crd:
+      properties:
+        images.viewer-crd:
+          type: FULL
+    visualization-server:
+      properties:
+        images.visualization-server:
+          type: FULL
+    metadata-server:
+      properties:
+        images.metadata-server:
+          type: FULL
+    proxy-agent:
+      properties:
+        images.proxy-agent:
+          type: FULL
+    cloudsql-proxy:
+      properties:
+        images.cloudsql-proxy:
+          type: FULL
+  deployerServiceAccount:
+    roles:
+      - type: ClusterRole        # This is a cluster-wide ClusterRole
+        rulesType: CUSTOM        # We specify our own custom RBAC roles
+        rules:
+          - apiGroups: ['apiextensions.k8s.io']
+            resources: ['customresourcedefinitions']
+            verbs: ['*']
 
 properties:
   name:
@@ -9,90 +87,334 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
-  image.mysql:
+  managedstorage.enabled:
+    type: boolean
+    title: Enable managed storage
+    description: Use Cloud SQL and GCS for storing the data
+    default: false
+  managedstorage.cloudsqlInstanceName:
     type: string
-    default: $REGISTRY/mysql:5.6
-    x-google-marketplace:
-      type: IMAGE
-  image.minio:
+    title: CloudSQL instance name
+  managedstorage.cloudsqlZone:
     type: string
-    default: $REGISTRY/minio:RELEASE.2018-02-09T22-40-05Z
-    x-google-marketplace:
-      type: IMAGE
-  image.argoExecutor:
+    title: CloudSQL zone
+  managedstorage.dbPassword:
     type: string
-    default: $REGISTRY/argoexec:v2.3.0
-    x-google-marketplace:
-      type: IMAGE
-  image.argoWorkflowController:
+    title: database password
+  managedstorage.gcpProject:
     type: string
-    default: $REGISTRY/workflow-controller:v2.3.0
-    x-google-marketplace:
-      type: IMAGE
-  image.apiServer:
+    title: GCP project
+  managedstorage.databaseNamePrefix:
     type: string
-    default: $REGISTRY/api-server:$TAG
-    x-google-marketplace:
-      type: IMAGE
-  image.persistenceagent:
+    title: database name prefix
+  serviceAccount.proxyAgentRunner:
     type: string
-    default: $REGISTRY/persistenceagent:$TAG
+    title: ProxyAgentRunnerServiceAccount
     x-google-marketplace:
-      type: IMAGE
-  image.scheduledworkflow:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups: ['']
+                resources: ['configmaps']
+                verbs: ['*']
+  serviceAccount.mlPipelinePersistenceAgent:
     type: string
-    default: $REGISTRY/scheduledworkflow:$TAG
+    title: mlPipelinePersistenceAgent
     x-google-marketplace:
-      type: IMAGE
-  image.frontend:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - argoproj.io
+                resources:
+                  - workflows
+                verbs:
+                  - get
+                  - list
+                  - watch
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - scheduledworkflows
+                verbs:
+                  - get
+                  - list
+                  - watch
+  serviceAccount.mlPipelineScheduledWorkflow:
     type: string
-    default: $REGISTRY/frontend:$TAG
+    title: mlPipelineScheduledWorkflow
     x-google-marketplace:
-      type: IMAGE
-  image.viewerCrd:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - argoproj.io
+                resources:
+                  - workflows
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - scheduledworkflows
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+  serviceAccount.mlPipelineUI:
     type: string
-    default: $REGISTRY/viewer-crd-controller:$TAG
+    title: mlPipelineUI
     x-google-marketplace:
-      type: IMAGE
-  image.visualizationServer:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - ""
+                resources:
+                  - pods
+                  - pods/log
+                verbs:
+                  - create
+                  - get
+                  - list
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - viewers
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - delete
+  serviceAccount.mlPipelineViewerCrd:
     type: string
-    default: $REGISTRY/visualization-server:$TAG
+    title: mlPipelineViewerCrd
     x-google-marketplace:
-      type: IMAGE
-  image.metadataServer:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - '*'
+                resources:
+                  - deployments
+                  - services
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - viewers
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+  serviceAccount.mlPipeline:
     type: string
-    default: gcr.io/kubeflow-images-public/metadata:v0.1.8
+    title: mlPipeline
     x-google-marketplace:
-      type: IMAGE
-  image.proxyAgent:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - ""
+                resources:
+                  - pods
+                verbs:
+                  - get
+                  - list
+                  - delete
+              - apiGroups:
+                  - argoproj.io
+                resources:
+                  - workflows
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - scheduledworkflows
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - update
+                  - patch
+                  - delete
+  serviceAccount.pipelineRunner:
     type: string
-    default: $REGISTRY/inverse-proxy-agent:$TAG
+    title: pipelineRunner
     x-google-marketplace:
-      type: IMAGE
-  image.cloudsqlProxy:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - ""
+                resources:
+                  - secrets
+                verbs:
+                  - get
+              - apiGroups:
+                  - ""
+                resources:
+                  - configmaps
+                verbs:
+                  - get
+                  - watch
+                  - list
+              - apiGroups:
+                  - ""
+                resources:
+                  - persistentvolumes
+                  - persistentvolumeclaims
+                verbs:
+                  - '*'
+              - apiGroups:
+                  - snapshot.storage.k8s.io
+                resources:
+                  - volumesnapshots
+                verbs:
+                  - create
+                  - delete
+                  - get
+              - apiGroups:
+                  - argoproj.io
+                resources:
+                  - workflows
+                verbs:
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+              - apiGroups:
+                  - ""
+                resources:
+                  - pods
+                  - pods/exec
+                  - pods/log
+                  - services
+                verbs:
+                  - '*'
+              - apiGroups:
+                  - ""
+                  - apps
+                  - extensions
+                resources:
+                  - deployments
+                  - replicasets
+                verbs:
+                  - '*'
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - '*'
+                verbs:
+                  - '*'
+              - apiGroups:
+                  - batch
+                resources:
+                  - jobs
+                verbs:
+                  - '*'
+  serviceAccount.argo:
     type: string
-    default: gcr.io/cloudsql-docker/gce-proxy:1.14
+    title: argo
     x-google-marketplace:
-      type: IMAGE
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - ""
+                resources:
+                  - pods
+                  - pods/exec
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+              - apiGroups:
+                  - ""
+                resources:
+                  - configmaps
+                verbs:
+                  - get
+                  - watch
+                  - list
+              - apiGroups:
+                  - ""
+                resources:
+                  - persistentvolumeclaims
+                verbs:
+                  - create
+                  - delete
+              - apiGroups:
+                  - argoproj.io
+                resources:
+                  - workflows
+                  - workflows/finalizers
+                verbs:
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
 
 required:
   - name
   - namespace
-  - image.mysql
-  - image.minio
-  - image.argoExecutor
-  - image.argoWorkflowController
-  - image.apiServer
-  - image.persistenceagent
-  - image.scheduledworkflow
-  - image.frontend
-  - image.viewerCrd
-  - image.visualizationServer
-  - image.proxyAgent
-
-x-google-marketplace:
-  deployerServiceAccount:
-    roles:
-      - type: ClusterRole        # This is a cluster-wide ClusterRole
-        rulesType: PREDEFINED
-        rulesFromRoleName: edit  # Use predefined role named "edit"

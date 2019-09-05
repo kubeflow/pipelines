@@ -27,10 +27,13 @@ if
   echo "$BUILT_IMAGES" | grep api-server && \
   echo "$BUILT_IMAGES" | grep frontend && \
   echo "$BUILT_IMAGES" | grep scheduledworkflow && \
-  echo "$BUILT_IMAGES" | grep persistenceagent;
+  echo "$BUILT_IMAGES" | grep persistenceagent && \
+  echo "$BUILT_IMAGES" | grep viewer-crd-controller && \
+  echo "$BUILT_IMAGES" | grep visualization-server;
 then
-  echo "docker images for api-server, frontend, scheduledworkflow and \
-    persistenceagent are already built in ${GCR_IMAGE_BASE_DIR}."
+  echo "docker images for api-server, frontend, scheduledworkflow, \
+    persistenceagent, viewer-crd-controller, and visualization-server \
+    are already built in ${GCR_IMAGE_BASE_DIR}."
 else
   echo "submitting cloud build to build docker images for commit ${PULL_PULL_SHA}..."
   IMAGES_BUILDING=true

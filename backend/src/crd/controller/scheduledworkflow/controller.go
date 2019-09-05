@@ -75,12 +75,12 @@ type Controller struct {
 
 // NewController returns a new sample controller
 func NewController(
-	kubeClientSet kubernetes.Interface,
-	swfClientSet swfclientset.Interface,
-	workflowClientSet workflowclientset.Interface,
-	swfInformerFactory swfinformers.SharedInformerFactory,
-	workflowInformerFactory workflowinformers.SharedInformerFactory,
-	time commonutil.TimeInterface) *Controller {
+		kubeClientSet kubernetes.Interface,
+		swfClientSet swfclientset.Interface,
+		workflowClientSet workflowclientset.Interface,
+		swfInformerFactory swfinformers.SharedInformerFactory,
+		workflowInformerFactory workflowinformers.SharedInformerFactory,
+		time commonutil.TimeInterface) *Controller {
 
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
@@ -365,14 +365,14 @@ func (c *Controller) processNextWorkItem() bool {
 // converge the two. It then updates the Status block of the ScheduledWorkflow
 // with the current status of the resource.
 func (c *Controller) syncHandler(key string) (
-	syncAgain bool, retryOnError bool, swf *util.ScheduledWorkflow, err error) {
+		syncAgain bool, retryOnError bool, swf *util.ScheduledWorkflow, err error) {
 
 	// Convert the namespace/name string into a distinct namespace and name
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		// Permanent failure.
 		return false, false, nil,
-			wraperror.Wrapf(err, "Invalid resource key (%s): %v", key, err)
+				wraperror.Wrapf(err, "Invalid resource key (%s): %v", key, err)
 	}
 
 	// Get the ScheduledWorkflow with this namespace/name
@@ -381,7 +381,7 @@ func (c *Controller) syncHandler(key string) (
 		// Permanent failure.
 		// The ScheduledWorkflow may no longer exist, we stop processing and do not retry.
 		return false, false, nil,
-			wraperror.Wrapf(err, "ScheduledWorkflow (%s) in work queue no longer exists: %v", key, err)
+				wraperror.Wrapf(err, "ScheduledWorkflow (%s) in work queue no longer exists: %v", key, err)
 	}
 
 	// Get the current time
@@ -395,7 +395,7 @@ func (c *Controller) syncHandler(key string) (
 		0 /* retrieve all workflows */)
 	if err != nil {
 		return false, true, swf,
-			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch active workflows: %v", name, err)
+				wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch active workflows: %v", name, err)
 	}
 
 	// Get completed workflows for this ScheduledWorkflow.
@@ -404,19 +404,19 @@ func (c *Controller) syncHandler(key string) (
 		swf.MinIndex())
 	if err != nil {
 		return false, true, swf,
-			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
+				wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
 	}
 
 	workflow, nextScheduledEpoch, err := c.submitNextWorkflowIfNeeded(swf, len(active), nowEpoch)
 	if err != nil {
 		return false, true, swf,
-			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
+				wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
 	}
 
 	err = c.updateStatus(swf, workflow, active, completed, nextScheduledEpoch, nowEpoch)
 	if err != nil {
 		return false, true, swf,
-			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't update swf status: %v", name, err)
+				wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't update swf status: %v", name, err)
 	}
 
 	if workflow != nil {
@@ -439,8 +439,8 @@ func (c *Controller) syncHandler(key string) (
 // an error (if any), and a boolean indicating (in case of an error) whether handling the
 // ScheduledWorkflow should be attempted again at a later time.
 func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflow,
-	activeWorkflowCount int, nowEpoch int64) (
-	workflow *commonutil.Workflow, nextScheduledEpoch int64, err error) {
+		activeWorkflowCount int, nowEpoch int64) (
+		workflow *commonutil.Workflow, nextScheduledEpoch int64, err error) {
 	// Compute the next scheduled time.
 	nextScheduledEpoch, shouldRunNow := swf.GetNextScheduledEpoch(
 		int64(activeWorkflowCount), nowEpoch)
@@ -472,8 +472,8 @@ func (c *Controller) submitNextWorkflowIfNeeded(swf *util.ScheduledWorkflow,
 }
 
 func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
-	swf *util.ScheduledWorkflow, nextScheduledEpoch int64, nowEpoch int64) (
-	*commonutil.Workflow, error) {
+		swf *util.ScheduledWorkflow, nextScheduledEpoch int64, nowEpoch int64) (
+		*commonutil.Workflow, error) {
 
 	workflowName := swf.NextResourceName()
 
@@ -505,12 +505,12 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 }
 
 func (c *Controller) updateStatus(
-	swf *util.ScheduledWorkflow,
-	workflow *commonutil.Workflow,
-	active []swfapi.WorkflowStatus,
-	completed []swfapi.WorkflowStatus,
-	nextScheduledEpoch int64,
-	nowEpoch int64) error {
+		swf *util.ScheduledWorkflow,
+		workflow *commonutil.Workflow,
+		active []swfapi.WorkflowStatus,
+		completed []swfapi.WorkflowStatus,
+		nextScheduledEpoch int64,
+		nowEpoch int64) error {
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance

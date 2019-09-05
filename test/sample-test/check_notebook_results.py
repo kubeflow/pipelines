@@ -13,12 +13,11 @@
 # limitations under the License.
 
 import utils
+import yaml
 
+from constants import RUN_LIST_PAGE_SIZE, DEFAULT_CONFIG
 from kfp import Client
 
-
-_RUN_LIST_PAGE_SIZE = 1000
-_TEST_TIMEOUT = 1200
 
 class NoteBookChecker(object):
     def __init__(self, testname, result, exit_code,
@@ -47,6 +46,16 @@ class NoteBookChecker(object):
                              'test script failure with exit code: '
                              + self._exit_code)
 
+        try:
+            with open(DEFAULT_CONFIG, 'r') as f:
+                raw_args = yaml.safe_load(f)
+        except yaml.YAMLError as yamlerr:
+            raise RuntimeError('Illegal default config:{}'.format(yamlerr))
+        except OSError as ose:
+            raise FileExistsError('Default config not found:{}'.format(ose))
+        else:
+            test_timeout = raw_args['test_timeout']
+
         if self._experiment is not None:  # Bypassing dsl type check sample.
             ###### Initialization ######
             host = 'ml-pipeline.%s.svc.cluster.local:8888' % self._namespace
@@ -56,13 +65,13 @@ class NoteBookChecker(object):
             experiment_id = client.get_experiment(experiment_name=self._experiment).id
 
             ###### Get runs ######
-            list_runs_response = client.list_runs(page_size=_RUN_LIST_PAGE_SIZE,
+            list_runs_response = client.list_runs(page_size=RUN_LIST_PAGE_SIZE,
                                                   experiment_id=experiment_id)
 
             ###### Check all runs ######
             for run in list_runs_response.runs:
                 run_id = run.id
-                response = client.wait_for_run_completion(run_id, _TEST_TIMEOUT)
+                response = client.wait_for_run_completion(run_id, test_timeout)
                 succ = (response.run.status.lower()=='succeeded')
                 utils.add_junit_test(test_cases, 'job completion',
                                      succ, 'waiting for job completion failure')
