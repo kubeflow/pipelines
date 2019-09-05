@@ -1,5 +1,4 @@
 approvers:
-  - vicaire
   - IronPan
   - paveldournov
   - neuromage
@@ -7,7 +6,6 @@ approvers:
   - jingzhang36
   - rmgogogo
 reviewers:
-  - vicaire
   - IronPan
   - neuromage
   - bobgy

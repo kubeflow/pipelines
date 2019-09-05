@@ -126,6 +126,8 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 	newWF := wf.DeepCopy()
 	// Delete/reset fields which indicate workflow completed
 	delete(newWF.Labels, common.LabelKeyCompleted)
+	// Delete/reset fields which indicate workflow is finished being persisted to the database
+	delete(newWF.Labels, util.LabelKeyWorkflowPersistedFinalState)
 	newWF.ObjectMeta.Labels[common.LabelKeyPhase] = string(wfv1.NodeRunning)
 	newWF.Status.Phase = wfv1.NodeRunning
 	newWF.Status.Message = ""
@@ -169,7 +171,7 @@ func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error)
 	return util.NewWorkflow(newWF), podsToDelete, nil
 }
 
-func deletePods(podClient corev1.PodInterface, podsToDelete []string, namespace string) error {
+func deletePods(podClient corev1.PodInterface, podsToDelete []string) error {
 	for _, podId := range podsToDelete {
 		err := podClient.Delete(podId, &metav1.DeleteOptions{})
 		if err != nil && !apierr.IsNotFound(err) {

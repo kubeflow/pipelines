@@ -149,7 +149,7 @@ describe('NewRun', () => {
     await TestUtils.flushPromises();
 
     expect(updateToolbarSpy).toHaveBeenLastCalledWith({
-      actions: [],
+      actions: {},
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'Start a run',
     });
@@ -256,7 +256,7 @@ describe('NewRun', () => {
     await TestUtils.flushPromises();
 
     expect(updateToolbarSpy).toHaveBeenLastCalledWith({
-      actions: [],
+      actions: {},
       breadcrumbs: [
         { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
         {
@@ -1176,7 +1176,7 @@ describe('NewRun', () => {
       await TestUtils.flushPromises();
 
       expect(updateToolbarSpy).toHaveBeenLastCalledWith({
-        actions: [],
+        actions: {},
         breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
         pageTitle: 'Start a recurring run',
       });

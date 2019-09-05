@@ -30,6 +30,30 @@ const viewerGroup = 'kubeflow.org';
 const viewerVersion = 'v1beta1';
 const viewerPlural = 'viewers';
 
+export const defaultPodTemplateSpec = {
+  spec: {
+    containers: [{
+      env: [{
+        name: "GOOGLE_APPLICATION_CREDENTIALS",
+        value: "/secret/gcp-credentials/user-gcp-sa.json"
+      }],
+      volumeMounts: [{
+        name: "gcp-credentials",
+        mountPath: "/secret/gcp-credentials/user-gcp-sa.json",
+        readOnly: true
+      }]
+    }],
+    volumes: [{
+      name: "gcp-credentials",
+      volumeSource: {
+        secret: {
+          secretName: "user-gcp-sa"
+        }
+      }
+    }]
+  }
+}
+
 export const isInCluster = fs.existsSync(namespaceFilePath);
 
 if (isInCluster) {
@@ -49,7 +73,7 @@ function getNameOfViewerResource(logdir: string): string {
  * Create Tensorboard instance via CRD with the given logdir if there is no
  * existing Tensorboard instance.
  */
-export async function newTensorboardInstance(logdir: string): Promise<void> {
+export async function newTensorboardInstance(logdir: string, podTemplateSpec: Object = defaultPodTemplateSpec): Promise<void> {
   if (!k8sV1CustomObjectClient) {
     throw new Error('Cannot access kubernetes Custom Object API');
   }
@@ -70,29 +94,7 @@ export async function newTensorboardInstance(logdir: string): Promise<void> {
       tensorboardSpec: {
         logDir: logdir,
       },
-      podTemplateSpec: {
-        spec: {
-          containers: [{
-            env: [{
-              name: "GOOGLE_APPLICATION_CREDENTIALS",
-              value: "/secret/gcp-credentials/user-gcp-sa.json"
-            }],
-            volumeMounts: [{
-              name: "gcp-credentials",
-              mountPath: "/secret/gcp-credentials/user-gcp-sa.json",
-              readOnly: true
-            }]
-          }],
-          volumes: [{
-            name: "gcp-credentials",
-            volumeSource: {
-              secret: {
-                secretName: "user-gcp-sa"
-              }
-            }
-          }]
-        }
-      }
+      podTemplateSpec
     }
   };
   await k8sV1CustomObjectClient.createNamespacedCustomObject(viewerGroup,

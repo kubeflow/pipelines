@@ -24,15 +24,13 @@ In order to run this pipeline, make sure to upload the notebook to your notebook
 ### Create base image
 In order to run this pipeline, you need to first build the docker base image and upload it to a container registry.  This can be done locally with the following commands:
 
-`git clone https://github.com/kubeflow/pipelines.git`
-
-`cd pipelines/samples/notebooks/image-captioning-gcp/src`
-
-`docker build -t img-cap .` 
-
-`docker tag img-cap gcr.io/[PROJECT-ID]/img-cap:latest`
-
-`docker push gcr.io/[PROJECT ID]/img-cap:latest`
+```
+git clone https://github.com/kubeflow/pipelines.git
+cd pipelines/samples/contrib/image-captioning-gcp/src
+docker build -t img-cap .
+docker tag img-cap gcr.io/[PROJECT-ID]/img-cap:latest
+docker push gcr.io/[PROJECT ID]/img-cap:latest
+```
 
 ### Download dataset
 To download the dataset, run the first few cells in the notebook.
@@ -50,4 +48,4 @@ Below are some screenshots of the final pipeline and the model outputs.
 3. Use `file_io.FileIO()` instead of `open()` when loading files from GCS.
 4. To pass multiple outputs downstream, pass them as a tuple of strings. Kubeflow converts this tuple to a string when you pass it downstream. So, you have to convert it from a string back to a tuple in the downstream component to get the multiple outputs.
 5. To pass many numpy arrays to downstream components, first save them on GCS.  Put the paths to the saved numpy files in a new array, and then save that array on GCS as well.  Pass the path to this array to the downstream components.
-6. Use `tf.io.read_file` and then `tf.image.decode_jpeg` instead of `PIL.Image` to be compatible with GCS
+6. Use `tf.io.read_file` and then `tf.image.decode_jpeg` instead of `PIL.Image` to be compatible with GCS.

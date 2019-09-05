@@ -31,6 +31,7 @@ func TestCreateRun(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
 			Id:           "123e4567-e89b-12d3-a456-426655440000",
@@ -45,8 +46,8 @@ func TestCreateRun(t *testing.T) {
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{
-					Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
-					Relationship: api.Relationship_OWNER,
+					Key:  &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+					Name: "123", Relationship: api.Relationship_OWNER,
 				},
 			},
 		},
@@ -85,8 +86,8 @@ func TestListRun(t *testing.T) {
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{
-				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
-				Relationship: api.Relationship_OWNER,
+				Key:  &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Name: "123", Relationship: api.Relationship_OWNER,
 			},
 		},
 	}

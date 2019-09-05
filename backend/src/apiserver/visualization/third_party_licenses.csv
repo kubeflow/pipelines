@@ -53,6 +53,7 @@ ipykernel,https://github.com/ipython/ipykernel/blob/master/COPYING.md,BSD-3
 ipython,https://github.com/ipython/ipython/blob/master/LICENSE,BSD-3
 ipython-genutils,https://github.com/ipython/ipython_genutils/blob/master/COPYING.md,BSD-3
 ipywidgets,https://github.com/jupyter-widgets/ipywidgets/blob/master/LICENSE,BSD-3
+itables,https://github.com/mwouts/itables/blob/master/LICENSE,MIT
 jedi,https://github.com/davidhalter/jedi/blob/master/LICENSE.txt,MIT
 joblib,https://github.com/joblib/joblib/blob/master/LICENSE.txt,BSD-3
 jsonschema,https://github.com/Julian/jsonschema/blob/master/COPYING,MIT
@@ -73,6 +74,7 @@ packaging,https://creativecommons.org/licenses/by-sa/3.0/,CC by-SA 3
 pandas,https://github.com/pandas-dev/pandas/blob/master/LICENSE,BSD-3
 pandocfilters,https://github.com/jgm/pandocfilters/blob/master/LICENSE,BSD-3
 parso,https://github.com/davidhalter/parso/blob/master/LICENSE.txt,MIT
+pbr,https://opendev.org/openstack/pbr/src/branch/master/LICENSE,Apache 2.0
 pexpect,https://github.com/pexpect/pexpect/blob/master/LICENSE,ISC
 pickleshare,https://github.com/pickleshare/pickleshare/blob/master/LICENSE,MIT
 prometheus-client,https://github.com/prometheus/client_python/blob/master/LICENSE,Apache 2.0
@@ -83,9 +85,11 @@ pyarrow,https://github.com/apache/arrow/blob/master/LICENSE.txt,Apache 2.0
 pyasn1,https://github.com/etingof/pyasn1/blob/master/LICENSE.rst,BSD-2
 pyasn1-modules,https://github.com/etingof/pyasn1-modules/blob/master/LICENSE.txt,BSD-2
 pydot,https://github.com/pydot/pydot/blob/master/LICENSE,MIT
+pymongo,https://github.com/mongodb/mongo-python-driver/blob/master/LICENSE,Apache 2.0
 pyparsing,https://github.com/pyparsing/pyparsing/blob/master/LICENSE,MIT
 pyrsistent,https://github.com/tobgu/pyrsistent/blob/master/LICENCE.mit,MIT
 python-dateutil,https://github.com/dateutil/dateutil/blob/master/LICENSE,Apache 2.0
+pymongo,https://github.com/mongodb/mongo-python-driver/blob/master/LICENSE,Apache 2.0
 pytz,http://pytz.sourceforge.net/index.html#license,MIT
 pyzmq,https://github.com/zeromq/pyzmq/blob/master/COPYING.BSD,BSD-3
 qtconsole,https://github.com/jupyter/qtconsole/blob/master/LICENSE,BSD-3

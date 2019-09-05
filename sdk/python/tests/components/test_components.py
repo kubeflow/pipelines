@@ -15,14 +15,24 @@
 import os
 import sys
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 
-sys.path.insert(0, __file__ + '/../../../')
 
 import kfp
 import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml
 from kfp.dsl.types import InconsistentTypeException
+
+
+@contextmanager
+def no_task_resolving_context():
+    old_handler = kfp.components._components._created_task_transformation_handler
+    try:
+        kfp.components._components._created_task_transformation_handler = None
+        yield None
+    finally:
+        kfp.components._components._created_task_transformation_handler = old_handler
 
 class LoadComponentTestCase(unittest.TestCase):
     def _test_load_component_from_file(self, component_path: str):
@@ -84,6 +94,21 @@ implementation:
 
         task1 = task_factory1()
         assert task1.container.image == component_dict['implementation']['container']['image']
+
+    def test_accessing_component_spec_from_task_factory(self):
+        component_text = '''\
+implementation:
+  container:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+
+        actual_component_spec = task_factory1.component_spec
+        actual_component_spec_dict = actual_component_spec.to_dict()
+        expected_component_spec_dict = load_yaml(component_text)
+        expected_component_spec = kfp.components._structures.ComponentSpec.from_dict(expected_component_spec_dict)
+        self.assertEqual(expected_component_spec_dict, actual_component_spec_dict)
+        self.assertEqual(expected_component_spec, task_factory1.component_spec)
 
     @unittest.expectedFailure
     def test_fail_on_duplicate_input_names(self):
@@ -270,6 +295,23 @@ implementation:
         self.assertEqual(len(task1.arguments), 2)
         self.assertEqual(task1.arguments[0], '--output-data')
         self.assertTrue(task1.arguments[1].startswith('/'))
+
+    def test_input_path_placeholder_with_constant_argument(self):
+        component_text = '''\
+inputs:
+- {name: input 1}
+implementation:
+  container:
+    image: busybox
+    command:
+      - --input-data
+      - {inputPath: input 1}
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        task1 = task_factory1('Text')
+
+        self.assertEqual(task1.command, ['--input-data', task1.input_artifact_paths['input 1']])
+        self.assertEqual(task1.artifact_arguments, {'input 1': 'Text'})
 
     def test_optional_inputs_reordering(self):
         '''Tests optional input reordering.
@@ -561,6 +603,51 @@ implementation:
         task1 = task_factory1()
         self.assertEqual(task1.pod_annotations['key1'], 'value1')
         self.assertEqual(task1.pod_labels['key1'], 'value1')
+
+    def test_check_task_spec_outputs_dictionary(self):
+        component_text = '''\
+outputs:
+- {name: out 1}
+- {name: out 2}
+implementation:
+  container:
+    image: busybox
+    command: [touch, {outputPath: out 1}, {outputPath: out 2}]
+'''
+        op = comp.load_component_from_text(component_text)
+        with no_task_resolving_context():
+          task = op()
+
+        self.assertEqual(list(task.outputs.keys()), ['out 1', 'out 2'])
+
+    def test_check_type_validation_of_task_spec_outputs(self):
+        producer_component_text = '''\
+outputs:
+- {name: out1, type: Integer}
+- {name: out2, type: String}
+implementation:
+  container:
+    image: busybox
+    command: [touch, {outputPath: out1}, {outputPath: out2}]
+'''
+        consumer_component_text = '''\
+inputs:
+- {name: data, type: Integer}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: data}]
+'''
+        producer_op = comp.load_component_from_text(producer_component_text)
+        consumer_op = comp.load_component_from_text(consumer_component_text)
+        with no_task_resolving_context():
+          producer_task = producer_op()
+
+          consumer_op(producer_task.outputs['out1'])
+          consumer_op(producer_task.outputs['out2'].without_type())
+          consumer_op(producer_task.outputs['out2'].with_type('Integer'))
+          with self.assertRaises(InconsistentTypeException):
+            consumer_op(producer_task.outputs['out2'])
 
     def test_type_compatibility_check_for_simple_types(self):
         component_a = '''\
@@ -890,6 +977,7 @@ implementation:
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
+
         with self.assertRaises(InconsistentTypeException):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 

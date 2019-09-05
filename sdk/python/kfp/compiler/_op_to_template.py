@@ -65,8 +65,7 @@ def _process_obj(obj: Any, map_to_tmpl_var: dict):
     # pipelineparam
     if isinstance(obj, dsl.PipelineParam):
         # if not found in unsanitized map, then likely to be sanitized
-        return map_to_tmpl_var.get(
-            str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
+        return map_to_tmpl_var.get(str(obj), '{{inputs.parameters.%s}}' % obj.full_name)
 
     # k8s objects (generated from swaggercodegen)
     if hasattr(obj, 'swagger_types') and isinstance(obj.swagger_types, dict):
@@ -128,11 +127,26 @@ def _parameters_to_json(params: List[dsl.PipelineParam]):
     return params
 
 
-# TODO: artifacts?
-def _inputs_to_json(inputs_params: List[dsl.PipelineParam], _artifacts=None):
+def _inputs_to_json(
+    inputs_params: List[dsl.PipelineParam],
+    input_artifact_paths: Dict[str, str] = None,
+) -> Dict[str, Dict]:
     """Converts a list of PipelineParam into an argo `inputs` JSON obj."""
     parameters = _parameters_to_json(inputs_params)
-    return {'parameters': parameters} if parameters else None
+
+    # Building the input artifacts section
+    artifacts = []
+    for name, path in (input_artifact_paths or {}).items():
+        artifact = {'name': name, 'path': path}
+        artifacts.append(artifact)
+    artifacts.sort(key=lambda x: x['name']) #Stabilizing the input artifact ordering
+
+    inputs_dict = {}
+    if parameters:
+        inputs_dict['parameters'] = parameters
+    if artifacts:
+        inputs_dict['artifacts'] = artifacts
+    return inputs_dict
 
 
 def _outputs_to_json(op: BaseOp,
@@ -214,7 +228,8 @@ def _op_to_template(op: BaseOp):
         }
 
     # inputs
-    inputs = _inputs_to_json(processed_op.inputs)
+    input_artifact_paths = processed_op.input_artifact_paths if isinstance(processed_op, dsl.ContainerOp) else None
+    inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths)
     if inputs:
         template['inputs'] = inputs
 
@@ -233,6 +248,10 @@ def _op_to_template(op: BaseOp):
     # tolerations
     if processed_op.tolerations:
         template['tolerations'] = processed_op.tolerations
+
+    # affinity
+    if processed_op.affinity:
+        template['affinity'] = K8sHelper.convert_k8s_obj_to_json(processed_op.affinity)
 
     # metadata
     if processed_op.pod_annotations or processed_op.pod_labels:

@@ -8,7 +8,7 @@
     "crypto-js": "^3.1.8",
     "express": "^4.16.3",
     "http-proxy-middleware": "^0.18.0",
-    "lodash": ">=4.17.11",
+    "lodash": ">=4.17.13",
     "minio": "^7.0.0",
     "node-fetch": "^2.1.2",
     "tar": "^4.4.6"

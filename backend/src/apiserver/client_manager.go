@@ -17,39 +17,39 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
-	"strconv"
 	"time"
 
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/metadata"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/minio/minio-go"
-
-	"ml_metadata/metadata_store/mlmetadata"
-	mlpb "ml_metadata/proto/metadata_store_go_proto"
 )
 
 const (
-	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
-	mysqlServiceHost = "MYSQL_SERVICE_HOST"
-	mysqlUser        = "DBConfig.User"
-	mysqlPassword    = "DBConfig.Password"
-	mysqlServicePort = "MYSQL_SERVICE_PORT"
+	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
+
+	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
+	mysqlServicePort      = "MYSQL_SERVICE_PORT"
+	mysqlUser             = "DBConfig.User"
+	mysqlPassword         = "DBConfig.Password"
+	mysqlDBName           = "DBConfig.DBName"
+
+	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
+	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 
 	podNamespace          = "POD_NAMESPACE"
-	dbName                = "mlpipeline"
 	initConnectionTimeout = "InitConnectionTimeout"
 )
 
@@ -70,7 +70,6 @@ type ClientManager struct {
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 
-	MetadataStore *mlmetadata.Store
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -128,7 +127,7 @@ func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 func (c *ClientManager) init() {
 	glog.Infof("Initializing client manager")
 
-	db := initDBClient(getDurationConfig(initConnectionTimeout))
+	db := initDBClient(common.GetDurationConfig(initConnectionTimeout))
 
 	// time
 	c.time = util.NewRealTime()
@@ -143,19 +142,18 @@ func (c *ClientManager) init() {
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
-	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
+	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
 	c.wfClient = client.CreateWorkflowClientOrFatal(
-		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
 
 	c.podClient = client.CreatePodClientOrFatal(
-		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
 
-	metadataStore := initMetadataStore()
-	runStore := storage.NewRunStore(db, c.time, metadataStore)
+	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
 	glog.Infof("Client manager initialized successfully")
@@ -165,33 +163,8 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func initMetadataStore() *metadata.Store {
-	port, err := strconv.Atoi(getStringConfig(mysqlServicePort))
-	if err != nil {
-		glog.Fatalf("Failed to parse valid MySQL service port from %q: %v", getStringConfig(mysqlServicePort), err)
-	}
-
-	cfg := &mlpb.ConnectionConfig{
-		Config: &mlpb.ConnectionConfig_Mysql{
-			&mlpb.MySQLDatabaseConfig{
-				Host:     proto.String(getStringConfig(mysqlServiceHost)),
-				Port:     proto.Uint32(uint32(port)),
-				Database: proto.String("mlmetadata"),
-				User:     proto.String(getStringConfigWithDefault(mysqlUser, "root")),
-				Password: proto.String(getStringConfigWithDefault(mysqlPassword, "")),
-			},
-		},
-	}
-
-	mlmdStore, err := mlmetadata.NewStore(cfg)
-	if err != nil {
-		glog.Fatalf("Failed to create ML Metadata store: %v", err)
-	}
-	return metadata.NewStore(mlmdStore)
-}
-
 func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
-	driverName := getStringConfig("DBConfig.DriverName")
+	driverName := common.GetStringConfig("DBConfig.DriverName")
 	var arg string
 
 	switch driverName {
@@ -220,6 +193,12 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
+
+	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext")
+	if response.Error != nil {
+		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
+	}
+
 	response = db.Model(&model.RunMetric{}).
 		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
@@ -232,10 +211,10 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 // Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True
 func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	mysqlConfig := client.CreateMySQLConfig(
-		getStringConfigWithDefault(mysqlUser, "root"),
-		getStringConfigWithDefault(mysqlPassword, ""),
-		getStringConfig(mysqlServiceHost),
-		getStringConfig(mysqlServicePort),
+		common.GetStringConfigWithDefault(mysqlUser, "root"),
+		common.GetStringConfigWithDefault(mysqlPassword, ""),
+		common.GetStringConfig(mysqlServiceHost),
+		common.GetStringConfig(mysqlServicePort),
 		"")
 
 	var db *sql.DB
@@ -255,6 +234,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	util.TerminateIfError(err)
 
 	// Create database if not exist
+	dbName := common.GetStringConfig(mysqlDBName)
 	operation = func() error {
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
 		if err != nil {
@@ -273,14 +253,14 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
 	// Create minio client.
-	minioServiceHost := getStringConfigWithDefault(
+	minioServiceHost := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
-	minioServicePort := getStringConfigWithDefault(
+	minioServicePort := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
-	accessKey := getStringConfig("ObjectStoreConfig.AccessKey")
-	secretKey := getStringConfig("ObjectStoreConfig.SecretAccessKey")
-	bucketName := getStringConfig("ObjectStoreConfig.BucketName")
-	disableMultipart := getBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", false)
+	accessKey := common.GetStringConfig("ObjectStoreConfig.AccessKey")
+	secretKey := common.GetStringConfig("ObjectStoreConfig.SecretAccessKey")
+	bucketName := common.GetStringConfig("ObjectStoreConfig.BucketName")
+	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
 		secretKey, initConnectionTimeout)
