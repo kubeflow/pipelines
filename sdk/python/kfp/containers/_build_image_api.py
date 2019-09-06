@@ -25,7 +25,6 @@ import tempfile
 
 import requests
 
-from . import get_default_image_builder
 from ..compiler._container_builder import ContainerBuilder
 
 
