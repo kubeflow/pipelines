@@ -226,6 +226,11 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for RunID in run_metrics table. Error: %s", response.Error)
 	}
+	response = db.Model(&model.PipelineVersion{}).
+		AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
+	if response.Error != nil {
+		glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
+	}
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
 

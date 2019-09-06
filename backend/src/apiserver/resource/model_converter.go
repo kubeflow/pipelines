@@ -137,7 +137,7 @@ func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (
 		Parameters:     paramStr,
 		PipelineId:     version.PipelineSpec.PipelineId,
 		CodeSource:     codeSource,
-		URL: url,
+		URL:            url,
 	}, nil
 }
 
