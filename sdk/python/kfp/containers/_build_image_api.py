@@ -13,8 +13,6 @@
 
 __all__ = [
     'build_image_from_working_dir',
-    'default_base_image',
-    'get_python_image_for_current_version',
 ]
 
 
@@ -31,10 +29,6 @@ from . import get_default_image_builder
 from ..compiler._container_builder import ContainerBuilder
 
 
-def get_python_image_for_current_version() -> str:
-    return 'python' + ':{}.{}.{}'.format(sys.version_info[0], sys.version_info[1], sys.version_info[2])
-
-
 #default_base_image = get_python_image_for_current_version()
 default_base_image = 'gcr.io/deeplearning-platform-release/tf-cpu.1-14' # The size of this image is 4.35GB which really concerns me. The GPU image size is 6.45GB.
 
@@ -42,7 +36,17 @@ default_base_image = 'gcr.io/deeplearning-platform-release/tf-cpu.1-14' # The si
 _container_work_dir = '/python_env'
 
 
-def generate_dockerfile_text(context_dir: str, dockerfile_path: str, base_image: str = None):
+_default_image_builder = None
+
+
+def _get_default_image_builder():
+    global _default_image_builder
+    if _default_image_builder is None:
+        from ..compiler._container_builder import ContainerBuilder
+        _default_image_builder = ContainerBuilder()
+
+
+def _generate_dockerfile_text(context_dir: str, dockerfile_path: str, base_image: str = None) -> str:
     # Generating the Dockerfile
     logging.info('Generating the Dockerfile')
 
@@ -105,12 +109,12 @@ def build_image_from_working_dir(image_name: str = None, working_dir: str = None
                 raise ValueError('Cannot specify base_image when using custom Dockerfile (which already specifies the base image).')
             shutil.copy(src_dockerfile_path, dst_dockerfile_path)
         else:
-            dockerfile_text = generate_dockerfile_text(context_dir, dst_dockerfile_path, base_image)
+            dockerfile_text = _generate_dockerfile_text(context_dir, dst_dockerfile_path, base_image)
             with open(dst_dockerfile_path, 'w') as f:
                 f.write(dockerfile_text)
 
         if builder is None:
-            builder = get_default_image_builder()
+            builder = _get_default_image_builder()
         return builder.build(
             local_dir=context_dir,
             target_image=image_name,
