@@ -20,8 +20,8 @@ from kfp import components
 from kfp import dsl
 from kfp import gcp
 
-confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/local/confusion_matrix/component.yaml')
-roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/local/roc/component.yaml')
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/local/confusion_matrix/component.yaml')
+roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/local/roc/component.yaml')
 
 # ! Please do not forget to enable the Dataproc API in your cluster https://console.developers.google.com/apis/api/dataproc.googleapis.com/overview
 
@@ -188,7 +188,10 @@ def dataproc_predict_op(
         ],
         file_outputs={
             'output': '/output.txt',
-        }
+        },
+        output_artifact_paths={
+            'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
+        },
     )
 
 # =======================================================================
@@ -280,4 +283,4 @@ def xgb_train_pipeline(
         ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')

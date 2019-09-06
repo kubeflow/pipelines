@@ -14,6 +14,7 @@
 
 from typing import Dict, List
 from abc import ABCMeta, abstractmethod
+import warnings
 from .types import BaseType, _check_valid_type_dict, _instance_to_dict
 
 
@@ -153,6 +154,7 @@ def _extract_component_metadata(func):
     arg_type = None
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
     if isinstance(arg_default, PipelineParam):
+      warnings.warn('Explicit creation of `kfp.dsl.PipelineParam`s by the users is deprecated. The users should define the parameter type and default values using standard pythonic constructs: def my_func(a: int = 1, b: str = "default"):')
       arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
@@ -206,6 +208,7 @@ def _extract_pipeline_metadata(func):
     arg_type = None
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
     if isinstance(arg_default, PipelineParam):
+      warnings.warn('Explicit creation of `kfp.dsl.PipelineParam`s by the users is deprecated. The users should define the parameter type and default values using standard pythonic constructs: def my_func(a: int = 1, b: str = "default"):')
       arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])

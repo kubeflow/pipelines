@@ -49,6 +49,8 @@ outputs:
   - name: job_id
     description: 'The id of the created dataflow job.'
     type: String
+  - name: MLPipeline UI metadata
+    type: UI metadata
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:151c5349f13bea9d626c988563c04c0a86210c21
@@ -65,3 +67,4 @@ implementation:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       job_id: /tmp/kfp/output/dataflow/job_id.txt
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
