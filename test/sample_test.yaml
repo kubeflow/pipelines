@@ -71,6 +71,9 @@ spec:
               - xgboost_training_cm
               - lightweight_component
               - dsl_static_type_checking
+              - pipeline_transformers
+              - secret
+              - sidecar
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:

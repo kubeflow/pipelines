@@ -17,18 +17,16 @@
 import kfp
 from kfp import dsl
 
-
-def random_failure_op(exit_codes):
-  """A component that fails randomly."""
+def print_op(msg):
+  """Print a message."""
   return dsl.ContainerOp(
-      name='random_failure',
-      image='python:alpine3.6',
-      command=['python', '-c'],
-      arguments=['import random; import sys; exit_code = random.choice(sys.argv[1].split(",")); print(exit_code); sys.exit(exit_code)', exit_codes]
+      name='Print',
+      image='alpine:3.6',
+      command=['echo', msg],
   )
 
-def add_retry(op):
-  op.set_retry(5)
+def add_annotation(op):
+  op.add_pod_annotation(name='hobby', value='football')
   return op
 
 @dsl.pipeline(
@@ -36,9 +34,9 @@ def add_retry(op):
     description='The pipeline includes two steps which fail randomly. It shows how to use ContainerOp(...).set_retry(...).'
 )
 def retry_sample_pipeline():
-  op1 = random_failure_op('0,1,2,3')
-  op2 = random_failure_op('0,1')
-  dsl.get_pipeline_conf().add_op_transformer(add_retry)
+  op1 = print_op('hey, what are you up to?')
+  op2 = print_op('train my model.')
+  dsl.get_pipeline_conf().add_op_transformer(add_annotation)
 
 if __name__ == '__main__':
   kfp.compiler.Compiler().compile(retry_sample_pipeline, __file__ + '.zip')
