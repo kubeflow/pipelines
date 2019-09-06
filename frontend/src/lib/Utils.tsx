@@ -169,8 +169,25 @@ export function getMetadataValue(value?: Value): string | number {
 export function rowFilterFn(request: ListRequest): (r: Row) => boolean {
   // TODO: We are currently searching across all properties of all artifacts. We should figure
   // what the most useful fields are and limit filtering to those
-  return (r) => !request.filter
-    || (r.otherFields.join('').toLowerCase().indexOf(request.filter.toLowerCase()) > -1);
+  return (r) => {
+    if (!request.filter) {
+      return true;
+    }
+
+    const decodedFilter = decodeURIComponent(request.filter);
+    try {
+      const filter = JSON.parse(decodedFilter);
+      if (!filter.predicates || filter.predicates.length === 0) {
+        return true;
+      }
+      // TODO: Extend this to look at more than a single predicate
+      const filterString = '' + (filter.predicates[0].int_value || filter.predicates[0].long_value || filter.predicates[0].string_value);
+      return (r.otherFields.join('').toLowerCase().indexOf(filterString.toLowerCase()) > -1);
+    } catch (err) {
+      logger.error('Error parsing request filter!', err);
+      return true;
+    }
+  };
 }
 
 export function rowCompareFn(request: ListRequest, columns: Column[]): (r1: Row, r2: Row) => number {
