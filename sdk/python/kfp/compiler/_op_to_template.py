@@ -190,8 +190,6 @@ def _op_to_template(op: BaseOp):
     if isinstance(op, dsl.ContainerOp):
         # default output artifacts
         output_artifact_paths = OrderedDict(op.output_artifact_paths)
-        output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
-        output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
 
         output_artifacts = [
              K8sHelper.convert_k8s_obj_to_json(
@@ -202,10 +200,6 @@ def _op_to_template(op: BaseOp):
                      key='runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz'))
             for name, path in output_artifact_paths.items()
         ]
-
-        for output_artifact in output_artifacts:
-            if output_artifact['name'] in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']:
-                output_artifact['optional'] = True
 
         # workflow template
         template = {
@@ -242,8 +236,9 @@ def _op_to_template(op: BaseOp):
         param_outputs = processed_op.file_outputs
     elif isinstance(op, dsl.ResourceOp):
         param_outputs = processed_op.attribute_outputs
-    template['outputs'] = _outputs_to_json(op, processed_op.outputs,
-                                           param_outputs, output_artifacts)
+    outputs_dict = _outputs_to_json(op, processed_op.outputs, param_outputs, output_artifacts)
+    if outputs_dict:
+        template['outputs'] = outputs_dict
 
     # node selector
     if processed_op.node_selector:

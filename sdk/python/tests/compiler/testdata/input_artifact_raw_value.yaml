@@ -22,14 +22,6 @@ spec:
         raw:
           data: Constant artifact value
     name: component-with-inline-input-artifact
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       command:
       - cat
@@ -42,14 +34,6 @@ spec:
         raw:
           data: Constant artifact value
     name: component-with-input-artifact
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       command:
       - cat
@@ -62,14 +46,6 @@ spec:
         raw:
           data: hard-coded artifact value
     name: component-with-input-artifact-2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       command:
       - cat
@@ -82,14 +58,6 @@ spec:
         raw:
           data: Text from a file with hard-coded artifact value
     name: component-with-input-artifact-3
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - dag:
       tasks:
       - name: component-with-inline-input-artifact

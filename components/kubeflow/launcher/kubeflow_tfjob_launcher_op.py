@@ -27,5 +27,8 @@ def kubeflow_tfjob_launcher_op(container_image, command, number_of_workers: int,
             '--ui-metadata-type', 'tensorboard',
             '--',
         ] + command,
-        file_outputs = {'train': '/output.txt'}
+        file_outputs = {'train': '/output.txt'},
+        output_artifact_paths={
+            'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
+        },
     )
