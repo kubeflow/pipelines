@@ -62,7 +62,6 @@ class LoadComponentTestCase(unittest.TestCase):
         component_path = _test_data_dir.joinpath('python_add.component.zip')
         self._test_load_component_from_file(str(component_path))
 
-    #The repo is non-public and will change soon. TODO: Update the URL and enable the test once we move to a public repo
     def test_load_component_from_url(self):
         url = 'https://raw.githubusercontent.com/kubeflow/pipelines/e54fe675432cfef1d115a7a2909f08ed95ea8933/sdk/python/tests/components/test_data/python_add.component.yaml'
 
