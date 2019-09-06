@@ -66,6 +66,8 @@ outputs:
   - name: cluster_name
     description: 'The cluster name of the created cluster.'
     type: String
+  - name: MLPipeline UI metadata
+    type: UI metadata
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:151c5349f13bea9d626c988563c04c0a86210c21
@@ -85,3 +87,4 @@ implementation:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       cluster_name: /tmp/kfp/output/dataproc/cluster_name.txt
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
