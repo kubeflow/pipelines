@@ -1,6 +1,6 @@
 FROM envoyproxy/envoy:latest
 
-COPY envoy.yaml /tmpl/envoy.yaml.tmpl
+COPY envoy.yaml /etc/envoy.yaml
 COPY envoy-entrypoint.sh /
 
 RUN chmod 500 /envoy-entrypoint.sh

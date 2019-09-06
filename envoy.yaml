@@ -23,7 +23,6 @@ static_resources:
               - match: { prefix: "/" }
                 route:
                   cluster: metadata-cluster
-                  # host_rewrite: ${METADATA_SERVICE_SERVICE_HOST}
                   max_grpc_timeout: 0s
               cors:
                 allow_origin:
@@ -42,6 +41,4 @@ static_resources:
     type: logical_dns
     http2_protocol_options: {}
     lb_policy: round_robin
-    # TODO(rjbauer): this host address CANNOT remain hardcoded
-    # hosts: [{ socket_address: { address: 10.0.0.220, port_value: 8080 }}]
     hosts: [{ socket_address: { address: "metadata-service", port_value: 8080 }}]

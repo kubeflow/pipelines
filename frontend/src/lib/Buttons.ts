@@ -187,17 +187,6 @@ export default class Buttons {
     return this;
   }
 
-  public insertArtifact(action: () => void): Buttons {
-    this._map[ButtonKeys.EXPAND] = {
-      action,
-      icon: AddIcon,
-      id: 'insertArtifact',
-      title: 'Insert',
-      tooltip: 'Insert all sections',
-    };
-    return this;
-  }
-
   public newExperiment(getPipelineId?: () => string): Buttons {
     this._map[ButtonKeys.NEW_EXPERIMENT] = {
       action: () => this._createNewExperiment(getPipelineId ? getPipelineId() : ''),
