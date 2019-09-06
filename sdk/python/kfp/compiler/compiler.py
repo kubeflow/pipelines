@@ -671,44 +671,15 @@ class Compiler(object):
 
     return _validate_exit_handler_helper(pipeline.groups[0], [], False)
 
-  def _compile(self, pipeline_func):
-    """Compile the given pipeline function into workflow."""
-
-    argspec = inspect.getfullargspec(pipeline_func)
-
-    # Create the arg list with no default values and call pipeline function.
-    # Assign type information to the PipelineParam
-    pipeline_meta = _extract_pipeline_metadata(pipeline_func)
-    pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_meta.name)
-
-    args_list = []
-    for arg_name in argspec.args:
-      arg_type = None
-      for input in pipeline_meta.inputs:
-        if arg_name == input.name:
-          arg_type = input.param_type
-          break
-      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
-
-    with dsl.Pipeline(pipeline_name) as p:
-      pipeline_func(*args_list)
-
-    # Remove when argo supports local exit handler.
-    self._validate_exit_handler(p)
-
-    # Fill in the default values.
-    args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
-                               for arg_name in argspec.args]
-    if argspec.defaults:
-      for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
-        arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+  def _sanitize_and_inject_artifact(self, pipeline: dsl.Pipeline):
+    """Sanitize operator/param names and inject pipeline artifact location."""
 
     # Sanitize operator names and param names
     sanitized_ops = {}
     # pipeline level artifact location
-    artifact_location = p.conf.artifact_location
+    artifact_location = pipeline.conf.artifact_location
 
-    for op in p.ops.values():
+    for op in pipeline.ops.values():
       # inject pipeline level artifact location into if the op does not have
       # an artifact location config already.
       if hasattr(op, "artifact_location"):
@@ -738,7 +709,43 @@ class Compiler(object):
             op.attribute_outputs[key]
         op.attribute_outputs = sanitized_attribute_outputs
       sanitized_ops[sanitized_name] = op
-    p.ops = sanitized_ops
+    pipeline.ops = sanitized_ops
+
+  def _compile(self, pipeline_func):
+    """Compile the given pipeline function into workflow."""
+    # Step 1: extract param value, name and description from pipeline_func signature and decoration.
+    argspec = inspect.getfullargspec(pipeline_func)
+
+    # Create the arg list with no default values and call pipeline function.
+    # Assign type information to the PipelineParam
+    pipeline_meta = _extract_pipeline_metadata(pipeline_func)
+    pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_meta.name)
+
+    args_list = []
+    for arg_name in argspec.args:
+      arg_type = None
+      for input in pipeline_meta.inputs:
+        if arg_name == input.name:
+          arg_type = input.param_type
+          break
+      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
+
+    # Step 2: Inflate pipeline obj with ContainerOps.
+    with dsl.Pipeline(pipeline_name) as p:
+      pipeline_func(*args_list)
+
+    # Step 3: post process. Fill in the default value for pipeline params.
+    # Remove when argo supports local exit handler.
+    self._validate_exit_handler(p)
+
+    # Fill in the default values.
+    args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
+                               for arg_name in argspec.args]
+    if argspec.defaults:
+      for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
+        arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+
+    self._sanitize_and_inject_artifact(p)
 
     op_transformers = [add_pod_env]
     op_transformers.extend(p.conf.op_transformers)
