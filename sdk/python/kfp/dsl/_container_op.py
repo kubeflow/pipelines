@@ -1017,6 +1017,8 @@ class ContainerOp(BaseOp):
 
         input_artifact_paths = {}
         artifact_arguments = {}
+        file_outputs = dict(file_outputs or {}) # Making a copy
+        output_artifact_paths = dict(output_artifact_paths or {}) # Making a copy
 
         def resolve_artifact_argument(artarg):
             from ..components._components import _generate_input_file_name
@@ -1072,6 +1074,14 @@ class ContainerOp(BaseOp):
                     attr_to_proxy not in ignore_set):
                 # only proxy public callables
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
+
+        # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics outputs that should always be saved as artifacts
+        # TODO: Remove when outputs are always saved as artifacts
+        for output_name, path in dict(file_outputs).items():
+            normalized_output_name = re.sub('[^a-zA-Z0-9]', '-', output_name.lower())
+            if normalized_output_name in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']:
+                output_artifact_paths[normalized_output_name] = path
+                del file_outputs[output_name]
 
         # attributes specific to `ContainerOp`
         self.input_artifact_paths = input_artifact_paths

@@ -24,12 +24,12 @@ platform = 'GCP'
 
 dataflow_tf_data_validation_op  = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/dataflow/tfdv/component.yaml')
 dataflow_tf_transform_op        = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/dataflow/tft/component.yaml')
-tf_train_op                     = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/kubeflow/dnntrainer/component.yaml')
-dataflow_tf_model_analyze_op    = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/dataflow/tfma/component.yaml')
-dataflow_tf_predict_op          = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/dataflow/predict/component.yaml')
+tf_train_op                     = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/kubeflow/dnntrainer/component.yaml')
+dataflow_tf_model_analyze_op    = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/dataflow/tfma/component.yaml')
+dataflow_tf_predict_op          = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/dataflow/predict/component.yaml')
 
-confusion_matrix_op             = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/local/confusion_matrix/component.yaml')
-roc_op                          = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/local/roc/component.yaml')
+confusion_matrix_op             = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/local/confusion_matrix/component.yaml')
+roc_op                          = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/local/roc/component.yaml')
 
 kubeflow_deploy_op              = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/kubeflow/deployer/component.yaml')
 
@@ -106,7 +106,7 @@ def taxi_cab_classification(
     )
 
     analysis = dataflow_tf_model_analyze_op(
-        model=training.output,
+        model=training.outputs['training_output_dir'],
         evaluation_data=evaluation,
         schema=validation.outputs['schema'],
         gcp_project=project,
@@ -119,20 +119,20 @@ def taxi_cab_classification(
         data_file_pattern=evaluation,
         schema=validation.outputs['schema'],
         target_column='tips',
-        model=training.output,
+        model=training.outputs['training_output_dir'],
         run_mode=mode,
         gcp_project=project,
         predictions_dir=output_template
     )
 
     cm = confusion_matrix_op(
-        predictions=prediction.output,
+        predictions=prediction.outputs['predictions_dir'],
         target_lambda=target_lambda,
         output_dir=output_template
     )
 
     roc = roc_op(
-        predictions_dir=prediction.output,
+        predictions_dir=prediction.outputs['predictions_dir'],
         target_lambda=target_class_lambda,
         output_dir=output_template
     )

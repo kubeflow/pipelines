@@ -102,15 +102,6 @@ class TestCompiler(unittest.TestCase):
             {'name': 'echo-merged',
             'valueFrom': {'path': '/tmp/message.txt'}
             }],
-          'artifacts': [{
-            'name': 'mlpipeline-ui-metadata',
-            'path': '/mlpipeline-ui-metadata.json',
-            'optional': True,
-          },{
-            'name': 'mlpipeline-metrics',
-            'path': '/mlpipeline-metrics.json',
-            'optional': True,
-          }]
         }
       }
       res_output = {
@@ -699,7 +690,7 @@ implementation:
       # See https://github.com/argoproj/argo/blob/5331fc02e257266a4a5887dfe6277e5a0b42e7fc/cmd/argoexec/commands/resource.go#L30
       self.assertIsNone(delete_op_template.get("successCondition"))
       self.assertIsNone(delete_op_template.get("failureCondition"))
-      self.assertDictEqual(delete_op_template.get("outputs"), {})
+      self.assertDictEqual(delete_op_template.get("outputs", {}), {})
 
   def test_py_input_artifact_raw_value(self):
     """Test pipeline input_artifact_raw_value."""

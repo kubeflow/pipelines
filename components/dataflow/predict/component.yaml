@@ -13,6 +13,7 @@ inputs:
   - {name: Predictions dir,     type: GCSPath,  description: 'GCS or local directory.'} #Will contain prediction_results-* and schema.json files; TODO: Split outputs and replace dir with single file # type: {GCSPath: {path_type: Directory}}
 outputs:
   - {name: Predictions dir,     type: GCSPath,  description: 'GCS or local directory.'} #Will contain prediction_results-* and schema.json files; TODO: Split outputs and replace dir with single file # type: {GCSPath: {path_type: Directory}}
+  - {name: MLPipeline UI metadata, type: UI metadata}
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:151c5349f13bea9d626c988563c04c0a86210c21
@@ -29,3 +30,4 @@ implementation:
     ]
     fileOutputs:
       Predictions dir: /output.txt
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
