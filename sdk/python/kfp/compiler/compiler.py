@@ -795,5 +795,7 @@ class Compiler(object):
         raise ValueError('The output path '+ package_path + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
     finally:
       kfp.TYPE_CHECK = type_check_old_value
+    if '{{pipelineparam' in yaml_text:
+      raise RuntimeError('Internal compiler error: Found unresolved PipelineParam. Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.' )
 
 
