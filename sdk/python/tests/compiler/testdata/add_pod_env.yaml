@@ -30,14 +30,6 @@ spec:
       labels:
         add-pod-env: 'true'
     name: echo
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - dag:
       tasks:
       - name: echo

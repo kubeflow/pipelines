@@ -27,14 +27,6 @@ spec:
       parameters:
       - name: create-my-secret-name
     name: cop
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - inputs:
       parameters:
       - name: password

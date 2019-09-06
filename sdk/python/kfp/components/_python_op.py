@@ -72,13 +72,20 @@ def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str]
 
     # Hack to force cloudpickle to capture the whole function instead of just referencing the code file. See https://github.com/cloudpipe/cloudpickle/blob/74d69d759185edaeeac7bdcb7015cfc0c652f204/cloudpickle/cloudpickle.py#L490
     old_modules = {}
+    old_sig = getattr(func, '__signature__', None)
     try: # Try is needed to restore the state if something goes wrong
         for module_name in modules_to_capture:
             if module_name in sys.modules:
                 old_modules[module_name] = sys.modules.pop(module_name)
+        # Hack to prevent cloudpickle from trying to pickle generic types that might be present in the signature. See https://github.com/cloudpipe/cloudpickle/issues/196 
+        # Currently the __signature__ is only set by Airflow components as a means to spoof/pass the function signature to _func_to_component_spec
+        if hasattr(func, '__signature__'):
+            del func.__signature__
         func_pickle = base64.b64encode(cloudpickle.dumps(func, pickle.DEFAULT_PROTOCOL))
     finally:
         sys.modules.update(old_modules)
+        if old_sig:
+            func.__signature__ = old_sig
 
     function_loading_code = '''\
 import sys

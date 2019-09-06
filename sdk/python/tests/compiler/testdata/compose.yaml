@@ -37,13 +37,6 @@ spec:
       - name: url
     name: download
     outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
       parameters:
       - name: download-downloaded
         valueFrom:
@@ -92,13 +85,6 @@ spec:
       - name: download-downloaded
     name: get-frequent
     outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
       parameters:
       - name: get-frequent-word
         valueFrom:
@@ -116,11 +102,3 @@ spec:
       - name: get-frequent-word
       - name: outputpath
     name: save
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
