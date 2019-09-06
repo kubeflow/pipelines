@@ -29,8 +29,7 @@ from . import get_default_image_builder
 from ..compiler._container_builder import ContainerBuilder
 
 
-#default_base_image = get_python_image_for_current_version()
-default_base_image = 'gcr.io/deeplearning-platform-release/tf-cpu.1-14' # The size of this image is 4.35GB which really concerns me. The GPU image size is 6.45GB.
+default_base_image = 'gcr.io/deeplearning-platform-release/tf-cpu.1-14'
 
 
 _container_work_dir = '/python_env'
