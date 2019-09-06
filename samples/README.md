@@ -5,7 +5,7 @@ The sample pipelines give you a quick start to build and deploy machine learning
 # Sample Structure
 The samples are organized into the core set and the contrib set. 
 
-**Core samples** demonstrates the full KFP functionalities and covered by the sample test infra. 
+**Core samples** demonstrates the full KFP functionalities and are covered by the sample test infra. 
 The current status is not all samples are covered by the tests but they will be all covered in the near future.
 A selected set of these core samples will also be preloaded to the KFP during deployment. 
 The core samples will also include intermediate samples that are 
@@ -24,10 +24,10 @@ An example of the resulting structure is as follows:
 ```
 pipelines/samples/
 Core/
-	DSL Static Type Checking/
-		DSL Static Type Checking.ipynb
-	xgboost/
-		xgboost.py
+	dsl_static_type_checking/
+		dsl_static_type_checking.ipynb
+	xgboost_training_cm/
+		xgboost_training_cm.py
 	condition/
 		condition.py
 	recursion/
