@@ -407,6 +407,9 @@ func (s *UpgradeTests) createHelloWorldPipeline() *pipeline_model.APIPipeline {
 func checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineID string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
+
+	// Trigger field is different, suppress its comparison
+	job.Trigger = &job_model.APITrigger{}
 	expectedJob := &job_model.APIJob{
 		ID:          job.ID,
 		Name:        "hello world",
