@@ -90,8 +90,6 @@ export default class CompareUtils {
    * execution.
    */
   public static singleRunToMetricsCompareProps(run?: ApiRun, workflow?: Workflow): CompareTableProps {
-    // tslint:disable-next-line:no-console
-    console.log('test');
     let rows: string[][] = [];
     let xLabels: string[] = [];
     const yLabels: string[] = [];
