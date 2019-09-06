@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@grpc/proto-loader": "^0.3.0",
     "@material-ui/core": "3.7.1",
     "@material-ui/icons": "^3.0.1",
     "@types/js-yaml": "^3.11.2",
@@ -10,6 +11,9 @@
     "d3": "^5.7.0",
     "d3-dsv": "^1.0.10",
     "dagre": "^0.8.2",
+    "google-protobuf": "^3.6.1",
+    "grpc": "^1.15.0",
+    "grpc-web": "^1.0.0",
     "http-proxy-middleware": "^0.19.0",
     "immer": "^1.7.4",
     "js-yaml": "^3.12.0",
@@ -25,6 +29,7 @@
     "react-scripts-ts": "2.17.0",
     "react-virtualized": "^9.20.1",
     "react-vis": "^1.11.2",
+    "ts-protoc-gen": "^0.10.0",
     "typestyle": "^2.0.1"
   },
   "scripts": {
@@ -42,7 +47,7 @@
     "java": "java -version",
     "mock:api": "ts-node-dev -O '{\"module\": \"commonjs\"}' mock-backend/mock-api-server.ts 3001",
     "mock:server": "ML_PIPELINE_SERVICE_HOST=localhost ML_PIPELINE_SERVICE_PORT=3001 node server/dist/server.js dist",
-    "postinstall": "cd ./server && npm i && cd ../mock-backend && npm i",
+    "postinstall": "cd ./server && npm i && cd ../mock-backend && npm i && cd ../src/generated/src/apis/metadata && npm i",
     "start": "react-scripts-ts start",
     "test": "react-scripts-ts test --env=jsdom",
     "test:coverage": "npm test -- --env=jsdom --coverage",

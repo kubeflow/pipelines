@@ -174,7 +174,7 @@ class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                   <Button className={css.cardBtn} id='manageExperimentRecurringRunsBtn' disableRipple={true}
                     onClick={() => this.setState({ recurringRunsManagerOpen: true })}>
                     Manage
-                    </Button>
+                  </Button>
                 </div>
               </Paper>
               <Paper id='experimentDescriptionCard' className={classes(css.card, css.runStatsCard)} elevation={0}>

@@ -262,22 +262,6 @@ describe('CustomTable', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  it('renders some rows using a custom renderer', async () => {
-    columns[0].customRenderer = () => (<span>this is custom output</span>) as any;
-    const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
-    columns[0].customRenderer = undefined;
-  });
-
-  it('displays warning icon with tooltip if row has error', async () => {
-    rows[0].error = 'dummy error';
-    const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} />);
-    await TestUtils.flushPromises();
-    expect(tree).toMatchSnapshot();
-    rows[0].error = undefined;
-  });
-
   it('starts out with no selected rows', () => {
     const spy = jest.fn();
     shallow(<CustomTable {...props} rows={rows} columns={columns} updateSelection={spy} />);
