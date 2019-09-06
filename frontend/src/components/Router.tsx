@@ -16,6 +16,8 @@
 
 import * as React from 'react';
 import Archive from '../pages/Archive';
+import ArtifactList from '../pages/ArtifactList';
+import ArtifactDetails from '../pages/ArtifactDetails';
 import Banner, { BannerProps } from '../components/Banner';
 import Button from '@material-ui/core/Button';
 import Compare from '../pages/Compare';
@@ -61,12 +63,26 @@ export enum RouteParams {
   experimentId = 'eid',
   pipelineId = 'pid',
   runId = 'rid',
+  ARTIFACT_TYPE = 'artifactType',
+  EXECUTION_TYPE = 'executionType',
+  // TODO: create one of these for artifact and execution?
+  ID = 'id',
 }
+
+// tslint:disable-next-line:variable-name
+export const RoutePrefix = {
+  ARTIFACT: '/artifact',
+  RECURRING_RUN: '/recurringrun',
+};
 
 // tslint:disable-next-line:variable-name
 export const RoutePage = {
   ARCHIVE: '/archive',
+  ARTIFACTS: '/artifacts',
+  ARTIFACT_DETAILS: `/artifact_types/:${RouteParams.ARTIFACT_TYPE}+/artifacts/:${RouteParams.ID}`,
   COMPARE: `/compare`,
+  EXECUTIONS: '/executions',
+  EXECUTION_DETAILS: `/execution_types/:${RouteParams.EXECUTION_TYPE}+/executions/:${RouteParams.ID}`,
   EXPERIMENTS: '/experiments',
   EXPERIMENT_DETAILS: `/experiments/details/:${RouteParams.experimentId}`,
   NEW_EXPERIMENT: '/experiments/new',
@@ -118,6 +134,8 @@ class Router extends React.Component<{}, RouteComponentState> {
 
     const routes: Array<{ path: string, Component: React.ComponentClass, view?: any }> = [
       { path: RoutePage.ARCHIVE, Component: Archive },
+      { path: RoutePage.ARTIFACTS, Component: ArtifactList },
+      { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
       { path: RoutePage.EXPERIMENTS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.EXPERIMENTS },
       { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
       { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
