@@ -25,7 +25,7 @@ import { titleCase, getResourceProperty, serviceErrorToString } from '../lib/Uti
 import { ResourceInfo } from '../components/ResourceInfo';
 import { Execution } from '../generated/src/apis/metadata/metadata_store_pb';
 import { Apis, ExecutionProperties } from '../lib/Apis';
-import { GetExecutionsByIDRequest } from 'src/generated/src/apis/metadata/metadata_store_service_pb';
+import { GetExecutionsByIDRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
 
 interface ExecutionDetailsState {
   execution?: Execution;
