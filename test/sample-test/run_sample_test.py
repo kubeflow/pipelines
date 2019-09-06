@@ -47,6 +47,7 @@ class PySampleChecker(object):
     self._experiment_id = None
     self._job_name = None
     self._test_args = None
+    self._run_id = None
 
   def run(self):
     """Run compiled KFP pipeline."""
@@ -107,18 +108,20 @@ class PySampleChecker(object):
       if 'run_pipeline' in raw_args.keys():
         self._run_pipeline = raw_args['run_pipeline']
 
+    # Submit for pipeline running.
+    if self._run_pipeline:
+      response = self._client.run_pipeline(self._experiment_id, self._job_name, self._input, self._test_args)
+      self._run_id = response.id
+      utils.add_junit_test(self._test_cases, 'create pipeline run', True)
+
 
   def check(self):
     """Check pipeline run results."""
     if self._run_pipeline:
-      response = self._client.run_pipeline(self._experiment_id, self._job_name, self._input, self._test_args)
-      run_id = response.id
-      utils.add_junit_test(self._test_cases, 'create pipeline run', True)
-
       ###### Monitor Job ######
       try:
         start_time = datetime.now()
-        response = self._client.wait_for_run_completion(run_id, self._test_timeout)
+        response = self._client.wait_for_run_completion(self._run_id, self._test_timeout)
         succ = (response.run.status.lower() == 'succeeded')
         end_time = datetime.now()
         elapsed_time = (end_time - start_time).seconds
@@ -126,7 +129,7 @@ class PySampleChecker(object):
                              'waiting for job completion failure', elapsed_time)
       finally:
         ###### Output Argo Log for Debugging ######
-        workflow_json = self._client._get_workflow_json(run_id)
+        workflow_json = self._client._get_workflow_json(self._run_id)
         workflow_id = workflow_json['metadata']['name']
         argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(
           self._namespace, workflow_id))

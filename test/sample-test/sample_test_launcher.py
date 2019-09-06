@@ -52,6 +52,16 @@ class SampleTest(object):
     self._sample_test_output = self._results_gcs_dir
     self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
 
+  def _copy_result(self):
+    """ Copy generated sample test result to gcs, so that Prow can pick it. """
+    print('Copy the test results to GCS %s/' % self._results_gcs_dir)
+
+    utils.upload_blob(
+        self._bucket_name,
+        self._sample_test_result,
+        os.path.join(self._results_gcs_dir, self._sample_test_result)
+    )
+
   def check_result(self):
     os.chdir(TEST_DIR)
     pysample_checker = PySampleChecker(testname=self._test_name,
@@ -80,14 +90,6 @@ class SampleTest(object):
                                 exit_code=exit_code,
                                 run_pipeline=self._run_pipeline)
     nbchecker.check()
-
-    print('Copy the test results to GCS %s/' % self._results_gcs_dir)
-
-    utils.upload_blob(
-        self._bucket_name,
-        self._sample_test_result,
-        os.path.join(self._results_gcs_dir, self._sample_test_result)
-    )
 
   def _compile(self):
 
@@ -152,18 +154,44 @@ class SampleTest(object):
           parameters=nb_params,
           prepare_only=True
       )
+      # Convert to python script.
+      subprocess.call([
+          'jupyter', 'nbconvert', '--to', 'python', '%s.ipynb' % self._test_name
+      ])
 
     else:
       subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
                        '--output', '%s.yaml' % self._test_name])
 
+  def _injection(self):
+    """Inject images for pipeline components.
+    This is only valid for coimponent test
+    """
+    pass
 
   def run_test(self):
     self._compile()
+    self._injection()
     if self._is_notebook:
-      self.check_notebook_result()
+      nbchecker = NoteBookChecker(testname=self._test_name,
+                                  result=self._sample_test_result,
+                                  run_pipeline=self._run_pipeline)
+      nbchecker.run()
+      os.chdir(TEST_DIR)
+      nbchecker.check()
     else:
-      self.check_result()
+      os.chdir(TEST_DIR)
+      pysample_checker = PySampleChecker(testname=self._test_name,
+                                         input=os.path.join(
+                                             self._work_dir,
+                                             '%s.yaml' % self._test_name),
+                                         output=self._sample_test_output,
+                                         result=self._sample_test_result,
+                                         namespace=self._namespace)
+      pysample_checker.run()
+      pysample_checker.check()
+
+    self._copy_result()
 
 
 class ComponentTest(SampleTest):
@@ -244,13 +272,6 @@ class ComponentTest(SampleTest):
     utils.file_injection('%s.yaml' % self._test_name,
                          '%s.yaml.tmp' % self._test_name,
                          subs)
-
-
-  def run_test(self):
-    # compile, injection, check_result
-    self._compile()
-    self._injection()
-    self.check_result()
 
 
 def main():
