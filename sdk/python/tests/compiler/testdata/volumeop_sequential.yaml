@@ -42,14 +42,6 @@ spec:
       parameters:
       - name: mypvc-name
     name: step1
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - container:
       args:
       - cp /data/file1 /data/file2
@@ -64,14 +56,6 @@ spec:
       parameters:
       - name: mypvc-name
     name: step2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - container:
       command:
       - cat
@@ -85,14 +69,6 @@ spec:
       parameters:
       - name: mypvc-name
     name: step3
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - dag:
       tasks:
       - name: mypvc
