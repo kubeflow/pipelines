@@ -74,6 +74,35 @@ exports[`SideNav populates the display build information using the response from
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
     <hr
       className="separator"
     />
@@ -224,6 +253,35 @@ exports[`SideNav renders Pipelines as active page 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
     <hr
       className="separator"
     />
@@ -349,6 +407,35 @@ exports[`SideNav renders Pipelines as active when on PipelineDetails page 1`] = 
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -482,6 +569,35 @@ exports[`SideNav renders collapsed state 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={false}
+      disableHoverListener={false}
+      disableTouchListener={false}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button collapsedButton"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="collapsedLabel label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
     <hr
       className="separator collapsedSeparator"
     />
@@ -607,6 +723,35 @@ exports[`SideNav renders expanded state 1`] = `
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -740,6 +885,35 @@ exports[`SideNav renders experiments as active page 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
     <hr
       className="separator"
     />
@@ -865,6 +1039,35 @@ exports[`SideNav renders experiments as active page when on AllRuns page 1`] = `
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -998,6 +1201,35 @@ exports[`SideNav renders experiments as active page when on Compare page 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
     <hr
       className="separator"
     />
@@ -1123,6 +1355,35 @@ exports[`SideNav renders experiments as active page when on NewExperiment page 1
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1256,6 +1517,35 @@ exports[`SideNav renders experiments as active page when on NewRun page 1`] = `
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
     <hr
       className="separator"
     />
@@ -1381,6 +1671,35 @@ exports[`SideNav renders experiments as active page when on RecurringRunDetails 
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
           </span>
         </WithStyles(Button)>
       </Link>
@@ -1514,6 +1833,35 @@ exports[`SideNav renders experiments as active page when on RunDetails page 1`] 
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
     <hr
       className="separator"
     />
@@ -1643,6 +1991,35 @@ exports[`SideNav renders experiments as active when on ExperimentDetails page 1`
         </WithStyles(Button)>
       </Link>
     </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
     <hr
       className="separator"
     />
@@ -1768,6 +2145,35 @@ exports[`SideNav show jupyterhub link if accessible 1`] = `
             className="label"
           >
             Experiments
+          </span>
+        </WithStyles(Button)>
+      </Link>
+    </WithStyles(Tooltip)>
+    <div
+      className="indicator indicatorHidden"
+    />
+    <WithStyles(Tooltip)
+      disableFocusListener={true}
+      disableHoverListener={true}
+      disableTouchListener={true}
+      enterDelay={300}
+      placement="right-start"
+      title="Artifacts List"
+    >
+      <Link
+        className="unstyled"
+        id="artifactsBtn"
+        replace={false}
+        to="/artifacts"
+      >
+        <WithStyles(Button)
+          className="button"
+        >
+          <pure(BubbleChartIcon) />
+          <span
+            className="label"
+          >
+            Artifacts
           </span>
         </WithStyles(Button)>
       </Link>
