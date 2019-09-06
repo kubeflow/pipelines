@@ -683,7 +683,7 @@ class Compiler(object):
 
     return _validate_exit_handler_helper(pipeline.groups[0], [], False)
 
-  def _postprocess(self, pipeline: dsl.Pipeline):
+  def _sanitize_and_inject_artifact(self, pipeline: dsl.Pipeline):
     """Sanitize operator/param names and inject pipeline artifact location."""
 
     # Sanitize operator names and param names
@@ -757,7 +757,7 @@ class Compiler(object):
       for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
         arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
 
-    self._postprocess(p)
+    self._sanitize_and_inject_artifact(p)
 
     op_transformers = [add_pod_env]
     op_transformers.extend(p.conf.op_transformers)
