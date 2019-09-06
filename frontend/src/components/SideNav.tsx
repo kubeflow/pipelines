@@ -19,6 +19,7 @@ import ArchiveIcon from '@material-ui/icons/Archive';
 import ArtifactsIcon from '@material-ui/icons/BubbleChart';
 import Button from '@material-ui/core/Button';
 import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
+import ExecutionsIcon from '@material-ui/icons/PlayArrow';
 import ExperimentsIcon from '../icons/experiments';
 import IconButton from '@material-ui/core/IconButton';
 import JupyterhubIcon from '@material-ui/icons/Code';
@@ -252,7 +253,7 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
               </Button>
             </Link>
           </Tooltip>
-          <div className={classes(css.indicator, !page.startsWith(RoutePage.ARTIFACTS) && css.indicatorHidden)} />
+          <div className={classes(css.indicator, !this._highlightArtifactsButton(page) && css.indicatorHidden)} />
           <Tooltip title={'Artifacts List'} enterDelay={300} placement={'right-start'}
             disableFocusListener={!collapsed} disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}>
@@ -262,6 +263,19 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
                 collapsed && css.collapsedButton)}>
                 <ArtifactsIcon />
                 <span className={classes(collapsed && css.collapsedLabel, css.label)}>Artifacts</span>
+              </Button>
+            </Link>
+          </Tooltip>
+          <div className={classes(css.indicator, !this._highlightExecutionsButton(page) && css.indicatorHidden)} />
+          <Tooltip title={'Executions List'} enterDelay={300} placement={'right-start'}
+            disableFocusListener={!collapsed} disableHoverListener={!collapsed}
+            disableTouchListener={!collapsed}>
+            <Link id='executionsBtn' to={RoutePage.EXECUTIONS} className={commonCss.unstyled}>
+              <Button className={classes(css.button,
+                this._highlightExecutionsButton(page) && css.active,
+                collapsed && css.collapsedButton)}>
+                <ExecutionsIcon />
+                <span className={classes(collapsed && css.collapsedLabel, css.label)}>Executions</span>
               </Button>
             </Link>
           </Tooltip>
@@ -325,6 +339,10 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
 
   private _highlightArtifactsButton(page: string): boolean {
     return page.startsWith(RoutePrefix.ARTIFACT);
+  }
+
+  private _highlightExecutionsButton(page: string): boolean {
+    return page.startsWith(RoutePrefix.EXECUTION);
   }
 
   private _toggleNavClicked(): void {

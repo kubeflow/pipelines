@@ -25,7 +25,7 @@ import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from '../components/Router';
 import { Execution, ExecutionType } from '../generated/src/apis/metadata/metadata_store_pb';
 import { ListRequest, ExecutionProperties, ExecutionCustomProperties, Apis } from '../lib/Apis';
-import { GetExecutionsRequest, GetExecutionTypesRequest } from 'src/generated/src/apis/metadata/metadata_store_service_pb';
+import { GetExecutionsRequest, GetExecutionTypesRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
 
 interface ExecutionListState {
   executions: Execution[];
