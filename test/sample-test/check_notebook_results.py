@@ -37,9 +37,8 @@ class NoteBookChecker(object):
 
     def run(self):
         """ Run the notebook sample as a python script. """
-        self._exit_code = subprocess.call([
-            'ipython', '%s.py' % self._testname
-        ])
+        self._exit_code = str(
+            subprocess.call(['ipython', '%s.py' % self._testname]))
 
 
     def check(self):
