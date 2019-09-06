@@ -32,60 +32,72 @@ exports[`Router initial render 1`] = `
           <Route
             exact={true}
             key="1"
-            path="/experiments"
+            path="/artifacts"
             render={[Function]}
           />
           <Route
             exact={true}
             key="2"
-            path="/experiments/details/:eid"
+            path="/artifact_types/:artifactType+/artifacts/:id"
             render={[Function]}
           />
           <Route
             exact={true}
             key="3"
-            path="/experiments/new"
+            path="/experiments"
             render={[Function]}
           />
           <Route
             exact={true}
             key="4"
-            path="/runs/new"
+            path="/experiments/details/:eid"
             render={[Function]}
           />
           <Route
             exact={true}
             key="5"
-            path="/pipelines"
+            path="/experiments/new"
             render={[Function]}
           />
           <Route
             exact={true}
             key="6"
-            path="/pipelines/details/:pid?"
+            path="/runs/new"
             render={[Function]}
           />
           <Route
             exact={true}
             key="7"
-            path="/runs"
+            path="/pipelines"
             render={[Function]}
           />
           <Route
             exact={true}
             key="8"
-            path="/recurringrun/details/:rid"
+            path="/pipelines/details/:pid?"
             render={[Function]}
           />
           <Route
             exact={true}
             key="9"
-            path="/runs/details/:rid"
+            path="/runs"
             render={[Function]}
           />
           <Route
             exact={true}
             key="10"
+            path="/recurringrun/details/:rid"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            key="11"
+            path="/runs/details/:rid"
+            render={[Function]}
+          />
+          <Route
+            exact={true}
+            key="12"
             path="/compare"
             render={[Function]}
           />
