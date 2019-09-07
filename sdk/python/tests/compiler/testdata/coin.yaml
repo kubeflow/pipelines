@@ -35,7 +35,7 @@ spec:
         - flip-again
         name: condition-2
         template: condition-2
-        when: '{{tasks.flip-again.outputs.parameters.flip-again-output}} == tails'
+        when: '"{{tasks.flip-again.outputs.parameters.flip-again-output}}" == "tails"'
       - arguments:
           parameters:
           - name: flip-output
@@ -119,7 +119,7 @@ spec:
         - flip
         name: condition-1
         template: condition-1
-        when: '{{tasks.flip.outputs.parameters.flip-output}} == heads'
+        when: '"{{tasks.flip.outputs.parameters.flip-output}}" == "heads"'
       - arguments:
           parameters:
           - name: flip-again-output
@@ -131,7 +131,7 @@ spec:
         - flip
         name: condition-3
         template: condition-3
-        when: '{{tasks.flip.outputs.parameters.flip-output}} == tails'
+        when: '"{{tasks.flip.outputs.parameters.flip-output}}" == "tails"'
       - name: flip
         template: flip
     name: pipeline-flip-coin

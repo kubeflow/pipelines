@@ -97,7 +97,7 @@ spec:
             value: '{{inputs.parameters.maxval}}'
         name: condition-2
         template: condition-2
-        when: '{{inputs.parameters.flip-output}} == heads'
+        when: '"{{inputs.parameters.flip-output}}" == "heads"'
     inputs:
       parameters:
       - name: flip-output
