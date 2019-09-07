@@ -75,7 +75,7 @@ spec:
         - flip-3
         name: condition-2
         template: condition-2
-        when: '{{tasks.flip-3.outputs.parameters.flip-3-output}} == heads'
+        when: '"{{tasks.flip-3.outputs.parameters.flip-3-output}}" == "heads"'
       - dependencies:
         - print
         name: flip-3
