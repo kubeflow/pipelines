@@ -25,7 +25,7 @@ if ! which kustomize; then
   # Download kustomize cli tool
   TOOL_DIR=${DIR}/bin
   mkdir -p ${TOOL_DIR}
-  wget https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64 \
+  wget --no-verbose https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64 \
     -O ${TOOL_DIR}/kustomize --no-verbose
   chmod +x ${TOOL_DIR}/kustomize
   PATH=${PATH}:${TOOL_DIR}

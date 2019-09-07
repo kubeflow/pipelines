@@ -29,7 +29,7 @@ sudo apt-get update
 sudo apt install -t jessie-backports build-essential git maven openjdk-8-jre-headless \
                     openjdk-8-jre openjdk-8-jdk-headless openjdk-8-jdk ca-certificates-java -y
 
-wget http://www.cmake.org/files/v3.5/cmake-3.5.2.tar.gz
+wget --no-verbose http://www.cmake.org/files/v3.5/cmake-3.5.2.tar.gz
 tar xf cmake-3.5.2.tar.gz
 cd cmake-3.5.2
 ./configure
