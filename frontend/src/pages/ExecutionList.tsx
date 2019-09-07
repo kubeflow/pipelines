@@ -21,26 +21,25 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { getResourceProperty, rowCompareFn, rowFilterFn, groupRows, getExpandedRow, serviceErrorToString } from '../lib/Utils';
-import { RoutePage, RouteParams } from '../components/Router';
 import { Link } from 'react-router-dom';
-import { Artifact, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
-import { ArtifactProperties, ArtifactCustomProperties, ListRequest, Apis } from '../lib/Apis';
-import { GetArtifactTypesRequest, GetArtifactsRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
+import { RoutePage, RouteParams } from '../components/Router';
+import { Execution, ExecutionType } from '../generated/src/apis/metadata/metadata_store_pb';
+import { ListRequest, ExecutionProperties, ExecutionCustomProperties, Apis } from '../lib/Apis';
+import { GetExecutionsRequest, GetExecutionTypesRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
 
-interface ArtifactListState {
-  artifacts: Artifact[];
+interface ExecutionListState {
+  executions: Execution[];
   rows: Row[];
   expandedRows: Map<number, Row[]>;
   columns: Column[];
 }
 
-class ArtifactList extends Page<{}, ArtifactListState> {
+class ExecutionList extends Page<{}, ExecutionListState> {
   private tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
     super(props);
     this.state = {
-      artifacts: [],
       columns: [
         {
           customRenderer: this.nameCustomRenderer,
@@ -54,25 +53,24 @@ class ArtifactList extends Page<{}, ArtifactListState> {
           label: 'Name',
           sortKey: 'name',
         },
+        { label: 'State', flex: 1, sortKey: 'state', },
         { label: 'ID', flex: 1, sortKey: 'id' },
         { label: 'Type', flex: 2, sortKey: 'type' },
-        { label: 'URI', flex: 2, sortKey: 'uri', },
-        // TODO: Get timestamp from the event that created this artifact.
-        // {label: 'Created at', flex: 1, sortKey: 'created_at'},
       ],
+      executions: [],
       expandedRows: new Map(),
       rows: [],
     };
     this.reload = this.reload.bind(this);
     this.toggleRowExpand = this.toggleRowExpand.bind(this);
-    this.getExpandedArtifactsRow = this.getExpandedArtifactsRow.bind(this);
+    this.getExpandedExecutionsRow = this.getExpandedExecutionsRow.bind(this);
   }
 
   public getInitialToolbarState(): ToolbarProps {
     return {
       actions: {},
       breadcrumbs: [],
-      pageTitle: 'Artifacts',
+      pageTitle: 'Executions',
     };
   }
 
@@ -88,9 +86,9 @@ class ArtifactList extends Page<{}, ArtifactListState> {
           reload={this.reload}
           initialSortColumn='pipelineName'
           initialSortOrder='asc'
-          getExpandComponent={this.getExpandedArtifactsRow}
+          getExpandComponent={this.getExpandedExecutionsRow}
           toggleExpansion={this.toggleRowExpand}
-          emptyMessage='No artifacts found.' />
+          emptyMessage='No executions found.' />
       </div>
     );
   }
@@ -102,26 +100,25 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   }
 
   private async reload(request: ListRequest): Promise<string> {
-    Apis.getMetadataServiceClient().getArtifacts(new GetArtifactsRequest(), (err, res) => {
+    Apis.getMetadataServiceClient().getExecutions(new GetExecutionsRequest(), (err, res) => {
       if (err) {
         this.showPageError(serviceErrorToString(err));
         return;
       }
 
-      const artifacts = (res && res.getArtifactsList()) || [];
-      this.getRowsFromArtifacts(request, artifacts);
+      const executions = (res && res.getExecutionsList()) || [];
+      this.getRowsFromExecutions(request, executions);
       this.clearBanner();
     });
     return '';
   }
 
-
   private nameCustomRenderer: React.FC<CustomRendererProps<string>> =
     (props: CustomRendererProps<string>) => {
-      const [artifactType, artifactId] = props.id.split(':');
-      const link = RoutePage.ARTIFACT_DETAILS
-        .replace(`:${RouteParams.ARTIFACT_TYPE}+`, artifactType)
-        .replace(`:${RouteParams.ID}`, artifactId);
+      const [executionType, executionId] = props.id.split(':');
+      const link = RoutePage.EXECUTION_DETAILS
+        .replace(`:${RouteParams.EXECUTION_TYPE}+`, executionType)
+        .replace(`:${RouteParams.ID}`, executionId);
       return (
         <Link onClick={(e) => e.stopPropagation()}
           className={commonCss.link}
@@ -133,51 +130,48 @@ class ArtifactList extends Page<{}, ArtifactListState> {
 
   /**
    * Temporary solution to apply sorting, filtering, and pagination to the
-   * local list of artifacts until server-side handling is available
+   * local list of executions until server-side handling is available
    * TODO: Replace once https://github.com/kubeflow/metadata/issues/73 is done.
    * @param request
    */
-  private getRowsFromArtifacts(request: ListRequest, artifacts: Artifact[]): void {
-    const artifactTypesMap = new Map<number, ArtifactType>();
+  private getRowsFromExecutions(request: ListRequest, executions: Execution[]): void {
+    const executionTypesMap = new Map<number, ExecutionType>();
     // TODO: Consider making an Api method for returning and caching types
-    Apis.getMetadataServiceClient().getArtifactTypes(new GetArtifactTypesRequest(), (err, res) => {
+    Apis.getMetadataServiceClient().getExecutionTypes(new GetExecutionTypesRequest(), (err, res) => {
       if (err) {
         this.showPageError(serviceErrorToString(err));
         return;
       }
 
-      (res && res.getArtifactTypesList() || []).forEach((artifactType) => {
-        artifactTypesMap.set(artifactType.getId()!, artifactType);
+      (res && res.getExecutionTypesList() || []).forEach((executionType) => {
+        executionTypesMap.set(executionType.getId()!, executionType);
       });
 
       const collapsedAndExpandedRows =
-        groupRows(artifacts
-          .map((artifact) => { // Flattens
-            const typeId = artifact.getTypeId();
-            const type = (typeId && artifactTypesMap && artifactTypesMap.get(typeId))
-              ? artifactTypesMap.get(typeId)!.getName()
+        groupRows(executions
+          .map((execution) => { // Flattens
+            const typeId = execution.getTypeId();
+            const type = (typeId && executionTypesMap && executionTypesMap.get(typeId))
+              ? executionTypesMap.get(typeId)!.getName()
               : typeId;
             return {
-              id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
+              id: `${type}:${execution.getId()}`, // Join with colon so we can build the link
               otherFields: [
-                getResourceProperty(artifact, ArtifactProperties.PIPELINE_NAME)
-                || getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true),
-                getResourceProperty(artifact, ArtifactProperties.NAME),
-                artifact.getId(),
+                getResourceProperty(execution, ExecutionProperties.PIPELINE_NAME)
+                || getResourceProperty(execution, ExecutionCustomProperties.WORKSPACE, true),
+                getResourceProperty(execution, ExecutionProperties.NAME),
+                getResourceProperty(execution, ExecutionProperties.STATE),
+                execution.getId(),
                 type,
-                artifact.getUri(),
-                // TODO: Get timestamp from the event that created this artifact.
-                // formatDateString(
-                //   getArtifactProperty(a, ArtifactProperties.CREATE_TIME) || ''),
               ],
-            } as Row;
+            };
           })
           .filter(rowFilterFn(request))
           .sort(rowCompareFn(request, this.state.columns))
         );
 
       this.setState({
-        artifacts,
+        executions,
         expandedRows: collapsedAndExpandedRows.expandedRows,
         rows: collapsedAndExpandedRows.collapsedRows,
       });
@@ -193,14 +187,15 @@ class ArtifactList extends Page<{}, ArtifactListState> {
     if (!rows[index]) {
       return;
     }
-    rows[index].expandState = rows[index].expandState === ExpandState.EXPANDED ?
-      ExpandState.COLLAPSED : ExpandState.EXPANDED;
+    rows[index].expandState = rows[index].expandState === ExpandState.EXPANDED
+      ? ExpandState.COLLAPSED
+      : ExpandState.EXPANDED;
     this.setState({ rows });
   }
 
-  private getExpandedArtifactsRow(index: number): React.ReactNode {
+  private getExpandedExecutionsRow(index: number): React.ReactNode {
     return getExpandedRow(this.state.expandedRows, this.state.columns)(index);
   }
 }
 
-export default ArtifactList;
+export default ExecutionList;
