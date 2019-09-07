@@ -20,8 +20,8 @@ from kfp import components
 from kfp import dsl
 from kfp import gcp
 
-confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/local/confusion_matrix/component.yaml')
-roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/local/roc/component.yaml')
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/63f704e9f12384b583076898bf103016f766a0a0/components/local/confusion_matrix/component.yaml')
+roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/63f704e9f12384b583076898bf103016f766a0a0/components/local/roc/component.yaml')
 
 # ! Please do not forget to enable the Dataproc API in your cluster https://console.developers.google.com/apis/api/dataproc.googleapis.com/overview
 
