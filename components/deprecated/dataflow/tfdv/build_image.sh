@@ -18,4 +18,4 @@ pushd ../base
 ./build_image.sh
 popd
 
-../../build_image.sh -l ml-pipeline-dataflow-tfdv "$@"
+../../../build_image.sh -l ml-pipeline-dataflow-tfdv "$@"

@@ -19,8 +19,8 @@ rsync -arvp "../tfdv/src"/ ./build/
 rsync -arvp "../tft/src"/ ./build/
 rsync -arvp "../tfma/src"/ ./build/
 rsync -arvp "../predict/src"/ ./build/
-cp ../../license.sh ./build
-cp ../../third_party_licenses.csv ./build
+cp ../../../license.sh ./build
+cp ../../../third_party_licenses.csv ./build
 
 docker build -t ml-pipeline-dataflow-base .
 rm -rf ./build
