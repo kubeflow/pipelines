@@ -25,6 +25,8 @@ import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
+import ExecutionList from '../pages/ExecutionList';
+import ExecutionDetails from '../pages/ExecutionDetails';
 import ExperimentDetails from '../pages/ExperimentDetails';
 import ExperimentsAndRuns, { ExperimentsAndRunsTab } from '../pages/ExperimentsAndRuns';
 import NewExperiment from '../pages/NewExperiment';
@@ -72,6 +74,7 @@ export enum RouteParams {
 // tslint:disable-next-line:variable-name
 export const RoutePrefix = {
   ARTIFACT: '/artifact',
+  EXECUTION: '/execution',
   RECURRING_RUN: '/recurringrun',
 };
 
@@ -136,6 +139,8 @@ class Router extends React.Component<{}, RouteComponentState> {
       { path: RoutePage.ARCHIVE, Component: Archive },
       { path: RoutePage.ARTIFACTS, Component: ArtifactList },
       { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails },
+      { path: RoutePage.EXECUTIONS, Component: ExecutionList },
+      { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
       { path: RoutePage.EXPERIMENTS, Component: ExperimentsAndRuns, view: ExperimentsAndRunsTab.EXPERIMENTS },
       { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
       { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
