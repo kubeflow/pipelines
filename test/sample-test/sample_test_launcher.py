@@ -19,10 +19,13 @@ decides which test to trigger based upon the arguments provided.
 import fire
 import os
 import papermill as pm
+import re
 import subprocess
 import utils
+import yamale
+import yaml
 
-from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR
+from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR, SCHEMA_CONFIG, CONFIG_DIR, DEFAULT_CONFIG
 from check_notebook_results import NoteBookChecker
 from run_sample_test import PySampleChecker
 
@@ -43,47 +46,14 @@ class SampleTest(object):
     # Capture the first segment after gs:// as the project name.
     self._bucket_name = results_gcs_dir.split('/')[2]
     self._target_image_prefix = target_image_prefix
+    self._is_notebook = None
     self._namespace = namespace
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
     self._sample_test_output = self._results_gcs_dir
     self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
 
-  def check_result(self):
-    os.chdir(TEST_DIR)
-    pysample_checker = PySampleChecker(testname=self._test_name,
-                                       input=os.path.join(self._work_dir, '%s.yaml' % self._test_name),
-                                       output=self._sample_test_output,
-                                       result=self._sample_test_result,
-                                       namespace=self._namespace)
-    pysample_checker.check()
-
-    print('Copy the test results to GCS %s/' % self._results_gcs_dir)
-    utils.upload_blob(
-      self._bucket_name,
-      self._sample_test_result,
-      os.path.join(self._results_gcs_dir, self._sample_test_result)
-    )
-
-  def check_notebook_result(self):
-    # Workaround because papermill does not directly return exit code.
-    exit_code = '1' if PAPERMILL_ERR_MSG in \
-                       open('%s.ipynb' % self._test_name).read() else '0'
-
-    os.chdir(TEST_DIR)
-
-    if self._test_name == 'dsl_static_type_checking':
-        nbchecker = NoteBookChecker(testname=self._test_name,
-                                    result=self._sample_test_result,
-                                    exit_code=exit_code)
-        nbchecker.check()
-    else:
-        nbchecker = NoteBookChecker(testname=self._test_name,
-                                    result=self._sample_test_result,
-                                    exit_code=exit_code,
-                                    experiment=None,
-                                    namespace='kubeflow')
-        nbchecker.check()
-
+  def _copy_result(self):
+    """ Copy generated sample test result to gcs, so that Prow can pick it. """
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
 
     utils.upload_blob(
@@ -92,37 +62,107 @@ class SampleTest(object):
         os.path.join(self._results_gcs_dir, self._sample_test_result)
     )
 
-  def _compile_sample(self):
+  def _compile(self):
 
     os.chdir(self._work_dir)
     print('Run the sample tests...')
 
+    # Looking for the entry point of the test.
+    list_of_files = os.listdir('.')
+    for file in list_of_files:
+      m = re.match(self._test_name + '\.[a-zA-Z]+', file)
+      if m:
+        file_name, ext_name = os.path.splitext(file)
+        if self._is_notebook is not None:
+          raise(RuntimeError('Multiple entry points found under sample: {}'.format(self._test_name)))
+        if ext_name == '.py':
+          self._is_notebook = False
+        if ext_name == '.ipynb':
+          self._is_notebook = True
+
+    if self._is_notebook is None:
+      raise(RuntimeError('No entry point found for sample: {}'.format(self._test_name)))
+
+    config_schema = yamale.make_schema(SCHEMA_CONFIG)
+    # Retrieve default config
+    try:
+      with open(DEFAULT_CONFIG, 'r') as f:
+        raw_args = yaml.safe_load(f)
+      default_config = yamale.make_data(DEFAULT_CONFIG)
+      yamale.validate(config_schema, default_config)  # If fails, a ValueError will be raised.
+    except yaml.YAMLError as yamlerr:
+      raise RuntimeError('Illegal default config:{}'.format(yamlerr))
+    except OSError as ose:
+      raise FileExistsError('Default config not found:{}'.format(ose))
+    else:
+      self._run_pipeline = raw_args['run_pipeline']
+
     # For presubmit check, do not do any image injection as for now.
     # Notebook samples need to be papermilled first.
-    if self._test_name == 'lightweight_component':
+    if self._is_notebook:
+      # Parse necessary params from config.yaml
+      nb_params = {}
+
+      try:
+        with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._test_name), 'r') as f:
+          raw_args = yaml.safe_load(f)
+        test_config = yamale.make_data(os.path.join(
+          CONFIG_DIR, '%s.config.yaml' % self._test_name))
+        yamale.validate(config_schema, test_config)  # If fails, a ValueError will be raised.
+      except yaml.YAMLError as yamlerr:
+        print('No legit yaml config file found, use default args:{}'.format(yamlerr))
+      except OSError as ose:
+        print('Config file with the same name not found, use default args:{}'.format(ose))
+      else:
+        if 'notebook_params' in raw_args.keys():
+          nb_params.update(raw_args['notebook_params'])
+        if 'run_pipeline' in raw_args.keys():
+          self._run_pipeline = raw_args['run_pipeline']
+
       pm.execute_notebook(
-          input_path='Lightweight Python components - basics.ipynb',
+          input_path='%s.ipynb' % self._test_name,
           output_path='%s.ipynb' % self._test_name,
-          parameters=dict(
-              EXPERIMENT_NAME='%s-test' % self._test_name
-          )
+          parameters=nb_params,
+          prepare_only=True
       )
-    elif self._test_name == 'dsl_static_type_checking':
-      pm.execute_notebook(
-          input_path='DSL Static Type Checking.ipynb',
-          output_path='%s.ipynb' % self._test_name,
-          parameters={}
-      )
+      # Convert to python script.
+      subprocess.call([
+          'jupyter', 'nbconvert', '--to', 'python', '%s.ipynb' % self._test_name
+      ])
+
     else:
       subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
                        '--output', '%s.yaml' % self._test_name])
 
+  def _injection(self):
+    """Inject images for pipeline components.
+    This is only valid for coimponent test
+    """
+    pass
+
   def run_test(self):
-    self._compile_sample()
-    if self._test_name in ['lightweight_component', 'dsl_static_type_checking']:
-      self.check_notebook_result()
+    self._compile()
+    self._injection()
+    if self._is_notebook:
+      nbchecker = NoteBookChecker(testname=self._test_name,
+                                  result=self._sample_test_result,
+                                  run_pipeline=self._run_pipeline)
+      nbchecker.run()
+      os.chdir(TEST_DIR)
+      nbchecker.check()
     else:
-      self.check_result()
+      os.chdir(TEST_DIR)
+      pysample_checker = PySampleChecker(testname=self._test_name,
+                                         input=os.path.join(
+                                             self._work_dir,
+                                             '%s.yaml' % self._test_name),
+                                         output=self._sample_test_output,
+                                         result=self._sample_test_result,
+                                         namespace=self._namespace)
+      pysample_checker.run()
+      pysample_checker.check()
+
+    self._copy_result()
 
 
 class ComponentTest(SampleTest):
@@ -203,13 +243,6 @@ class ComponentTest(SampleTest):
     utils.file_injection('%s.yaml' % self._test_name,
                          '%s.yaml.tmp' % self._test_name,
                          subs)
-
-
-  def run_test(self):
-    # compile, injection, check_result
-    self._compile_sample()
-    self._injection()
-    self.check_result()
 
 
 def main():

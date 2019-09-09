@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import subprocess
 import utils
 import yaml
 
@@ -20,23 +21,28 @@ from kfp import Client
 
 
 class NoteBookChecker(object):
-    def __init__(self, testname, result, exit_code,
-                 experiment=None, namespace='kubeflow'):
+    def __init__(self, testname, result, run_pipeline, namespace='kubeflow'):
         """ Util class for checking notebook sample test running results.
 
         :param testname: test name in the json xml.
         :param result: name of the file that stores the test result
-        :param exit_code: the exit code of the notebook run. 0 for passed test.
-        :param experiment: where the test run belong, only necessary when a job is submitted.
+        :param run_pipeline: whether to submit for a pipeline run.
         :param namespace: where the pipeline system is deployed.
         """
         self._testname = testname
         self._result = result
-        self._exit_code = exit_code
-        self._experiment = experiment
+        self._exit_code = None
+        self._run_pipeline = run_pipeline
         self._namespace = namespace
 
+    def run(self):
+        """ Run the notebook sample as a python script. """
+        self._exit_code = str(
+            subprocess.call(['ipython', '%s.py' % self._testname]))
+
+
     def check(self):
+        """ Check the pipeline running results of the notebook sample. """
         test_cases = []
         test_name = self._testname + ' Sample Test'
 
@@ -56,13 +62,14 @@ class NoteBookChecker(object):
         else:
             test_timeout = raw_args['test_timeout']
 
-        if self._experiment is not None:  # Bypassing dsl type check sample.
+        if self._run_pipeline:
+            experiment = self._testname + '-test'
             ###### Initialization ######
             host = 'ml-pipeline.%s.svc.cluster.local:8888' % self._namespace
             client = Client(host=host)
 
             ###### Get experiments ######
-            experiment_id = client.get_experiment(experiment_name=self._experiment).id
+            experiment_id = client.get_experiment(experiment_name=experiment).id
 
             ###### Get runs ######
             list_runs_response = client.list_runs(page_size=RUN_LIST_PAGE_SIZE,
