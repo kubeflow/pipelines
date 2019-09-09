@@ -78,7 +78,7 @@ metadata:
 type: Opaque
 data:
   username: {{ .Values.managedstorage.dbUsername | quote}}
-  password: {{ .Values.managedstorage.dbPassword | quote}}
+  password: {{ .Values.managedstorage.dbPassword | b64enc | quote}}
 {{ else }}
 apiVersion: apps/v1beta2
 kind: Deployment
