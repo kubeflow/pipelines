@@ -15,7 +15,7 @@
 from setuptools import setup
 
 NAME = 'kfp'
-VERSION = '0.1.26'
+VERSION = '0.1.27'
 
 REQUIRES = [
     'urllib3>=1.15,<1.25',  #Fixing the version conflict with the "requests" package
@@ -34,7 +34,8 @@ REQUIRES = [
     'argo-models == 2.2.1a',  #2.2.1a is equivalent to argo 2.2.1
     'jsonschema >= 3.0.1',
     'tabulate == 0.8.3',
-    'click == 7.0'
+    'click == 7.0',
+    'Deprecated',
 ]
 
 setup(
@@ -50,6 +51,7 @@ setup(
         'kfp.components',
         'kfp.components.structures',
         'kfp.components.structures.kubernetes',
+        'kfp.containers',
         'kfp.dsl',
         'kfp.notebook',
     ],

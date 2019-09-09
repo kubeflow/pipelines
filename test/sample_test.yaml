@@ -67,12 +67,13 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - kubeflow_training_classification
               - tfx_cab_classification
               - xgboost_training_cm
-              - kubeflow_pipeline_using_TFX_OSS_components
               - lightweight_component
               - dsl_static_type_checking
+              - pipeline_transformers
+              - secret
+              #- sidecar
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:
@@ -126,6 +127,7 @@ spec:
       container:
         image: "{{inputs.parameters.sample-tests-image}}"
         args: [
+          "sample_test", "run_test",
           "--namespace", "{{inputs.parameters.namespace}}",
           "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
           "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}",

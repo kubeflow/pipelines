@@ -68,17 +68,17 @@ Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compi
 ## Components source
 
 Preprocessing:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tft)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataflow/tft/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataflow/tft)
 
 Training:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher/src) 
   [container](https://github.com/kubeflow/pipelines/tree/master/components/kubeflow/launcher)
 
 Analysis:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tfma/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/tfma)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataflow/tfma/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataflow/tfma)
 
 Prediction:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataflow/predict)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataflow/predict/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataflow/predict)

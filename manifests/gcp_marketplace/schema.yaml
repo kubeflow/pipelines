@@ -1,0 +1,426 @@
+x-google-marketplace:
+  schemaVersion: v2
+  applicationApiVersion: v1beta1
+  publishedVersion: '0.1.27'
+  publishedVersionMetadata:
+    releaseNote: >-
+      Initial release.
+    releaseTypes:
+      - Feature
+    recommended: false
+  managedUpdates:
+    kalmSupported: false
+  images:
+    '':
+      properties:
+        imageRepo:
+          type: REPO_WITH_REGISTRY
+        imageTag:
+          type: TAG
+    mysql:
+      properties:
+        images.mysql:
+          type: FULL
+    minio:
+      properties:
+        images.minio:
+          type: FULL
+    argo-executor:
+      properties:
+        images.argo-executor:
+          type: FULL
+    argo-workflow-controller:
+      properties:
+        images.argo-workflow-controller:
+          type: FULL
+    api-server:
+      properties:
+        images.api-server:
+          type: FULL
+    persistenceagent:
+      properties:
+        images.persistenceagent:
+          type: FULL
+    scheduledworkflow:
+      properties:
+        images.scheduledworkflow:
+          type: FULL
+    frontend:
+      properties:
+        images.frontend:
+          type: FULL
+    viewer-crd:
+      properties:
+        images.viewer-crd:
+          type: FULL
+    visualization-server:
+      properties:
+        images.visualization-server:
+          type: FULL
+    metadata-server:
+      properties:
+        images.metadata-server:
+          type: FULL
+    proxy-agent:
+      properties:
+        images.proxy-agent:
+          type: FULL
+    cloudsql-proxy:
+      properties:
+        images.cloudsql-proxy:
+          type: FULL
+  deployerServiceAccount:
+    roles:
+      - type: ClusterRole        # This is a cluster-wide ClusterRole
+        rulesType: CUSTOM        # We specify our own custom RBAC roles
+        rules:
+          - apiGroups: ['apiextensions.k8s.io']
+            resources: ['customresourcedefinitions']
+            verbs: ['*']
+
+properties:
+  name:
+    type: string
+    x-google-marketplace:
+      type: NAME
+  namespace:
+    type: string
+    x-google-marketplace:
+      type: NAMESPACE
+  serviceAccountCredential:
+    title: Service Account credentials used to call other GCP services, such as CloudSQL.
+    description: |-
+      To be able to call other GCP services, we need to be
+      authenticated. This field is used to store the content of the service account
+      JSON file. It can be encoded using base64 instead of messing with JSON format.
+    type: string
+    default: ""
+    x-google-marketplace:
+      type: STRING
+  managedstorage.enabled:
+    type: boolean
+    title: Enable managed storage
+    description: Use Cloud SQL and GCS for storing the data
+    default: false
+  managedstorage.cloudsqlInstanceConnectionName:
+    type: string
+    title: CloudSQL instance connection name. Format projectId:zone:instanceName
+  managedstorage.dbPassword:
+    type: string
+    title: database password
+  managedstorage.databaseNamePrefix:
+    type: string
+    title: database name prefix
+
+  serviceAccount.proxyAgentRunner:
+    type: string
+    title: ProxyAgentRunnerServiceAccount
+    x-google-marketplace:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups: ['']
+                resources: ['configmaps']
+                verbs: ['*']
+  serviceAccount.mlPipelinePersistenceAgent:
+    type: string
+    title: mlPipelinePersistenceAgent
+    x-google-marketplace:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - argoproj.io
+                resources:
+                  - workflows
+                verbs:
+                  - get
+                  - list
+                  - watch
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - scheduledworkflows
+                verbs:
+                  - get
+                  - list
+                  - watch
+  serviceAccount.mlPipelineScheduledWorkflow:
+    type: string
+    title: mlPipelineScheduledWorkflow
+    x-google-marketplace:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - argoproj.io
+                resources:
+                  - workflows
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - scheduledworkflows
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+  serviceAccount.mlPipelineUI:
+    type: string
+    title: mlPipelineUI
+    x-google-marketplace:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - ""
+                resources:
+                  - pods
+                  - pods/log
+                verbs:
+                  - create
+                  - get
+                  - list
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - viewers
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - delete
+  serviceAccount.mlPipelineViewerCrd:
+    type: string
+    title: mlPipelineViewerCrd
+    x-google-marketplace:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - '*'
+                resources:
+                  - deployments
+                  - services
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - viewers
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+  serviceAccount.mlPipeline:
+    type: string
+    title: mlPipeline
+    x-google-marketplace:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - ""
+                resources:
+                  - pods
+                verbs:
+                  - get
+                  - list
+                  - delete
+              - apiGroups:
+                  - argoproj.io
+                resources:
+                  - workflows
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - scheduledworkflows
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - update
+                  - patch
+                  - delete
+  serviceAccount.pipelineRunner:
+    type: string
+    title: pipelineRunner
+    x-google-marketplace:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - ""
+                resources:
+                  - secrets
+                verbs:
+                  - get
+              - apiGroups:
+                  - ""
+                resources:
+                  - configmaps
+                verbs:
+                  - get
+                  - watch
+                  - list
+              - apiGroups:
+                  - ""
+                resources:
+                  - persistentvolumes
+                  - persistentvolumeclaims
+                verbs:
+                  - '*'
+              - apiGroups:
+                  - snapshot.storage.k8s.io
+                resources:
+                  - volumesnapshots
+                verbs:
+                  - create
+                  - delete
+                  - get
+              - apiGroups:
+                  - argoproj.io
+                resources:
+                  - workflows
+                verbs:
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+              - apiGroups:
+                  - ""
+                resources:
+                  - pods
+                  - pods/exec
+                  - pods/log
+                  - services
+                verbs:
+                  - '*'
+              - apiGroups:
+                  - ""
+                  - apps
+                  - extensions
+                resources:
+                  - deployments
+                  - replicasets
+                verbs:
+                  - '*'
+              - apiGroups:
+                  - kubeflow.org
+                resources:
+                  - '*'
+                verbs:
+                  - '*'
+              - apiGroups:
+                  - batch
+                resources:
+                  - jobs
+                verbs:
+                  - '*'
+  serviceAccount.argo:
+    type: string
+    title: argo
+    x-google-marketplace:
+      type: SERVICE_ACCOUNT
+      serviceAccount:
+        roles:
+          - type: Role
+            rulesType: CUSTOM
+            rules:
+              - apiGroups:
+                  - ""
+                resources:
+                  - pods
+                  - pods/exec
+                verbs:
+                  - create
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+              - apiGroups:
+                  - ""
+                resources:
+                  - configmaps
+                verbs:
+                  - get
+                  - watch
+                  - list
+              - apiGroups:
+                  - ""
+                resources:
+                  - persistentvolumeclaims
+                verbs:
+                  - create
+                  - delete
+              - apiGroups:
+                  - argoproj.io
+                resources:
+                  - workflows
+                  - workflows/finalizers
+                verbs:
+                  - get
+                  - list
+                  - watch
+                  - update
+                  - patch
+                  - delete
+
+required:
+  - name
+  - namespace
+  - serviceAccountCredential

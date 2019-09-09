@@ -1367,7 +1367,27 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
               >
                 <div
                   className="page"
-                />
+                >
+                  <div
+                    className=""
+                  >
+                    <PlotCard
+                      configs={
+                        Array [
+                          Object {
+                            "allowCustomVisualizations": false,
+                            "isBusy": false,
+                            "onGenerate": [Function],
+                            "type": "visualization-creator",
+                          },
+                        ]
+                      }
+                      maxDimension={500}
+                      title="Visualization Creator"
+                    />
+                    <Component />
+                  </div>
+                </div>
               </div>
             </div>
           </SidePanel>
@@ -1591,7 +1611,27 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
               >
                 <div
                   className="page"
-                />
+                >
+                  <div
+                    className=""
+                  >
+                    <PlotCard
+                      configs={
+                        Array [
+                          Object {
+                            "allowCustomVisualizations": false,
+                            "isBusy": false,
+                            "onGenerate": [Function],
+                            "type": "visualization-creator",
+                          },
+                        ]
+                      }
+                      maxDimension={500}
+                      title="Visualization Creator"
+                    />
+                    <Component />
+                  </div>
+                </div>
               </div>
             </div>
           </SidePanel>
@@ -1694,6 +1734,25 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
                 <div
                   className="page"
                 >
+                  <div
+                    className=""
+                  >
+                    <PlotCard
+                      configs={
+                        Array [
+                          Object {
+                            "allowCustomVisualizations": false,
+                            "isBusy": false,
+                            "onGenerate": [Function],
+                            "type": "visualization-creator",
+                          },
+                        ]
+                      }
+                      maxDimension={500}
+                      title="Visualization Creator"
+                    />
+                    <Component />
+                  </div>
                   <div
                     className=""
                     key="0"

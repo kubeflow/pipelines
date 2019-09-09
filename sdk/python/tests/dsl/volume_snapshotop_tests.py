@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from kubernetes import client as k8s_client
-from kfp.dsl import (
-        Pipeline, PipelineParam, VolumeOp, VolumeSnapshotOp
-)
+import kfp
+from kfp.dsl import PipelineParam, VolumeOp, VolumeSnapshotOp
 import unittest
 
 
@@ -23,9 +22,7 @@ class TestVolumeSnapshotOp(unittest.TestCase):
 
     def test_basic(self):
         """Test basic usage."""
-        with Pipeline("somename") as p:
-            param1 = PipelineParam("param1")
-            param2 = PipelineParam("param2")
+        def my_pipeline(param1, param2):
             vol = VolumeOp(
                 name="myvol_creation",
                 resource_name="myvol",
@@ -43,55 +40,57 @@ class TestVolumeSnapshotOp(unittest.TestCase):
                 attribute_outputs={"size": "test"}
             )
 
-        self.assertEqual(
-            sorted([x.name for x in snap1.inputs]), ["name", "param1"]
-        )
-        self.assertEqual(
-            sorted([x.name for x in snap2.inputs]), ["param2"]
-        )
-        expected_attribute_outputs_1 = {
-            "manifest": "{}",
-            "name": "{.metadata.name}",
-            "size": "{.status.restoreSize}"
-        }
-        self.assertEqual(snap1.attribute_outputs, expected_attribute_outputs_1)
-        expected_attribute_outputs_2 = {
-            "manifest": "{}",
-            "name": "{.metadata.name}",
-            "size": "test"
-        }
-        self.assertEqual(snap2.attribute_outputs, expected_attribute_outputs_2)
-        expected_outputs_1 = {
-            "manifest": PipelineParam(name="manifest", op_name=snap1.name),
-            "name": PipelineParam(name="name", op_name=snap1.name),
-            "size": PipelineParam(name="name", op_name=snap1.name),
-        }
-        self.assertEqual(snap1.outputs, expected_outputs_1)
-        expected_outputs_2 = {
-            "manifest": PipelineParam(name="manifest", op_name=snap2.name),
-            "name": PipelineParam(name="name", op_name=snap2.name),
-            "size": PipelineParam(name="name", op_name=snap2.name),
-        }
-        self.assertEqual(snap2.outputs, expected_outputs_2)
-        self.assertEqual(
-            snap1.output,
-            PipelineParam(name="name", op_name=snap1.name)
-        )
-        self.assertEqual(
-            snap2.output,
-            PipelineParam(name="size", op_name=snap2.name)
-        )
-        self.assertEqual(snap1.dependent_names, [])
-        self.assertEqual(snap2.dependent_names, [])
-        expected_snapshot_1 = k8s_client.V1TypedLocalObjectReference(
-            api_group="snapshot.storage.k8s.io",
-            kind="VolumeSnapshot",
-            name=PipelineParam(name="name", op_name=vol.name)
-        )
-        self.assertEqual(snap1.snapshot, expected_snapshot_1)
-        expected_snapshot_2 = k8s_client.V1TypedLocalObjectReference(
-            api_group="snapshot.storage.k8s.io",
-            kind="VolumeSnapshot",
-            name=PipelineParam(name="param1")
-        )
-        self.assertEqual(snap2.snapshot, expected_snapshot_2)
+            self.assertEqual(
+                sorted([x.name for x in snap1.inputs]), ["name", "param1"]
+            )
+            self.assertEqual(
+                sorted([x.name for x in snap2.inputs]), ["param2"]
+            )
+            expected_attribute_outputs_1 = {
+                "manifest": "{}",
+                "name": "{.metadata.name}",
+                "size": "{.status.restoreSize}"
+            }
+            self.assertEqual(snap1.attribute_outputs, expected_attribute_outputs_1)
+            expected_attribute_outputs_2 = {
+                "manifest": "{}",
+                "name": "{.metadata.name}",
+                "size": "test"
+            }
+            self.assertEqual(snap2.attribute_outputs, expected_attribute_outputs_2)
+            expected_outputs_1 = {
+                "manifest": PipelineParam(name="manifest", op_name=snap1.name),
+                "name": PipelineParam(name="name", op_name=snap1.name),
+                "size": PipelineParam(name="name", op_name=snap1.name),
+            }
+            self.assertEqual(snap1.outputs, expected_outputs_1)
+            expected_outputs_2 = {
+                "manifest": PipelineParam(name="manifest", op_name=snap2.name),
+                "name": PipelineParam(name="name", op_name=snap2.name),
+                "size": PipelineParam(name="name", op_name=snap2.name),
+            }
+            self.assertEqual(snap2.outputs, expected_outputs_2)
+            self.assertEqual(
+                snap1.output,
+                PipelineParam(name="name", op_name=snap1.name)
+            )
+            self.assertEqual(
+                snap2.output,
+                PipelineParam(name="size", op_name=snap2.name)
+            )
+            self.assertEqual(snap1.dependent_names, [])
+            self.assertEqual(snap2.dependent_names, [])
+            expected_snapshot_1 = k8s_client.V1TypedLocalObjectReference(
+                api_group="snapshot.storage.k8s.io",
+                kind="VolumeSnapshot",
+                name=PipelineParam(name="name", op_name=vol.name)
+            )
+            self.assertEqual(snap1.snapshot, expected_snapshot_1)
+            expected_snapshot_2 = k8s_client.V1TypedLocalObjectReference(
+                api_group="snapshot.storage.k8s.io",
+                kind="VolumeSnapshot",
+                name=PipelineParam(name="param1")
+            )
+            self.assertEqual(snap2.snapshot, expected_snapshot_2)
+
+        kfp.compiler.Compiler()._compile(my_pipeline)

@@ -28,7 +28,8 @@ import yaml
 from kfp.dsl._component import component
 from kfp.dsl import ContainerOp, pipeline
 from kfp.dsl.types import Integer, InconsistentTypeException
-from kubernetes.client import V1Toleration
+from kubernetes.client import V1Toleration, V1Affinity, V1NodeSelector, V1NodeSelectorRequirement, V1NodeSelectorTerm, \
+  V1NodeAffinity
 
 
 def some_op():
@@ -49,11 +50,7 @@ class TestCompiler(unittest.TestCase):
 
     from kubernetes import client as k8s_client
 
-    with dsl.Pipeline('somename') as p:
-      msg1 = dsl.PipelineParam('msg1')
-      msg2 = dsl.PipelineParam('msg2', value='value2')
-      json = dsl.PipelineParam('json')
-      kind = dsl.PipelineParam('kind')
+    def my_pipeline(msg1, json, kind, msg2='value2'):
       op = dsl.ContainerOp(name='echo', image='image', command=['sh', '-c'],
                            arguments=['echo %s %s | tee /tmp/message.txt' % (msg1, msg2)],
                            file_outputs={'merged': '/tmp/message.txt'}) \
@@ -74,89 +71,82 @@ class TestCompiler(unittest.TestCase):
         ),
         attribute_outputs={"out": json}
       )
-    golden_output = {
-      'container': {
-        'image': 'image',
-        'args': [
-          'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
-        ],
-        'command': ['sh', '-c'],
-        'env': [
-          {
-            'name': 'GOOGLE_APPLICATION_CREDENTIALS',
-            'value': '/secret/gcp-credentials/user-gcp-sa.json'
-          }
-        ],
-        'volumeMounts':[
-          {
-            'mountPath': '/secret/gcp-credentials',
-            'name': 'gcp-credentials',
-          }
-        ]
-      },
-      'inputs': {'parameters':
-        [
-          {'name': 'msg1'},
-          {'name': 'msg2'},
-        ]},
-      'name': 'echo',
-      'outputs': {
-        'parameters': [
-          {'name': 'echo-merged',
-           'valueFrom': {'path': '/tmp/message.txt'}
-          }],
-        'artifacts': [{
-          'name': 'mlpipeline-ui-metadata',
-          'path': '/mlpipeline-ui-metadata.json',
-          'optional': True,
-        },{
-          'name': 'mlpipeline-metrics',
-          'path': '/mlpipeline-metrics.json',
-          'optional': True,
-        }]
+      golden_output = {
+        'container': {
+          'image': 'image',
+          'args': [
+            'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
+          ],
+          'command': ['sh', '-c'],
+          'env': [
+            {
+              'name': 'GOOGLE_APPLICATION_CREDENTIALS',
+              'value': '/secret/gcp-credentials/user-gcp-sa.json'
+            }
+          ],
+          'volumeMounts':[
+            {
+              'mountPath': '/secret/gcp-credentials',
+              'name': 'gcp-credentials',
+            }
+          ]
+        },
+        'inputs': {'parameters':
+          [
+            {'name': 'msg1'},
+            {'name': 'msg2'},
+          ]},
+        'name': 'echo',
+        'outputs': {
+          'parameters': [
+            {'name': 'echo-merged',
+            'valueFrom': {'path': '/tmp/message.txt'}
+            }],
+        }
       }
-    }
-    res_output = {
-      'inputs': {
-        'parameters': [{
-          'name': 'json'
-        }, {
-          'name': 'kind'
-        }]
-      },
-      'name': 'test-resource',
-      'outputs': {
-        'parameters': [{
-          'name': 'test-resource-manifest',
-          'valueFrom': {
-            'jsonPath': '{}'
-          }
-        }, {
-          'name': 'test-resource-name',
-          'valueFrom': {
-            'jsonPath': '{.metadata.name}'
-          }
-        }, {
-          'name': 'test-resource-out',
-          'valueFrom': {
-            'jsonPath': '{{inputs.parameters.json}}'
-          }
-        }]
-      },
-      'resource': {
-        'action': 'create',
-        'manifest': (
-          "apiVersion: v1\n"
-          "kind: '{{inputs.parameters.kind}}'\n"
-          "metadata:\n"
-          "  name: resource\n"
-        )
+      res_output = {
+        'inputs': {
+          'parameters': [{
+            'name': 'json'
+          }, {
+            'name': 'kind'
+          }]
+        },
+        'name': 'test-resource',
+        'outputs': {
+          'parameters': [{
+            'name': 'test-resource-manifest',
+            'valueFrom': {
+              'jsonPath': '{}'
+            }
+          }, {
+            'name': 'test-resource-name',
+            'valueFrom': {
+              'jsonPath': '{.metadata.name}'
+            }
+          }, {
+            'name': 'test-resource-out',
+            'valueFrom': {
+              'jsonPath': '{{inputs.parameters.json}}'
+            }
+          }]
+        },
+        'resource': {
+          'action': 'create',
+          'manifest': (
+            "apiVersion: v1\n"
+            "kind: '{{inputs.parameters.kind}}'\n"
+            "metadata:\n"
+            "  name: resource\n"
+          )
+        }
       }
-    }
 
-    self.maxDiff = None
-    self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
-    self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
+      self.maxDiff = None
+      self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
+      self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
+    
+    kfp.compiler.Compiler()._compile(my_pipeline)
 
   def _get_yaml_from_zip(self, zip_file):
     with zipfile.ZipFile(zip_file, 'r') as zip:
@@ -355,6 +345,36 @@ class TestCompiler(unittest.TestCase):
     template = name_to_template[main_dag_tasks[0]['template']]
 
     self.assertEqual(template['retryStrategy']['limit'], number_of_retries)
+
+  def test_affinity(self):
+    """Test affinity functionality."""
+    exp_affinity = {
+      'affinity': {
+        'nodeAffinity': {
+          'requiredDuringSchedulingIgnoredDuringExecution': {
+            'nodeSelectorTerms': [
+              {'matchExpressions': [
+                {
+                  'key': 'beta.kubernetes.io/instance-type',
+                  'operator': 'In',
+                  'values': ['p2.xlarge']}
+              ]
+              }]
+          }}
+      }
+    }
+    def my_pipeline():
+      affinity = V1Affinity(
+        node_affinity=V1NodeAffinity(
+          required_during_scheduling_ignored_during_execution=V1NodeSelector(
+            node_selector_terms=[V1NodeSelectorTerm(
+              match_expressions=[V1NodeSelectorRequirement(
+                key='beta.kubernetes.io/instance-type', operator='In', values=['p2.xlarge'])])])))
+      some_op().add_affinity(affinity)
+
+    workflow = kfp.compiler.Compiler()._compile(my_pipeline)
+
+    self.assertEqual(workflow['spec']['templates'][1]['affinity'], exp_affinity['affinity'])
 
   def test_py_image_pull_secrets(self):
     """Test pipeline imagepullsecret."""
@@ -608,6 +628,12 @@ implementation:
       if container:
         self.assertEqual(template['retryStrategy']['limit'], 5)
 
+  def test_withitem_basic(self):
+    self._test_py_compile_yaml('withitem_basic')
+
+  def test_withitem_nested(self):
+    self._test_py_compile_yaml('withitem_nested')
+
   def test_add_pod_env(self):
     self._test_py_compile_yaml('add_pod_env')
 
@@ -633,3 +659,39 @@ implementation:
         init_container = init_containers[0]
         self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})
 
+
+  def test_delete_resource_op(self):
+      """Test a pipeline with a delete resource operation."""
+      from kubernetes import client as k8s
+
+      @dsl.pipeline()
+      def some_pipeline():
+        # create config map object with k6 load test script
+        config_map = k8s.V1ConfigMap(
+          api_version="v1",
+          data={"foo": "bar"},
+          kind="ConfigMap",
+          metadata=k8s.V1ObjectMeta(
+              name="foo-bar-cm",
+              namespace="default"
+          )
+        )        
+        # delete the config map in k8s
+        dsl.ResourceOp(
+          name="delete-config-map", 
+          action="delete", 
+          k8s_resource=config_map
+        )
+
+      workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
+      delete_op_template = [template for template in workflow_dict['spec']['templates'] if template['name'] == 'delete-config-map'][0]
+
+      # delete resource operation should not have success condition, failure condition or output parameters.
+      # See https://github.com/argoproj/argo/blob/5331fc02e257266a4a5887dfe6277e5a0b42e7fc/cmd/argoexec/commands/resource.go#L30
+      self.assertIsNone(delete_op_template.get("successCondition"))
+      self.assertIsNone(delete_op_template.get("failureCondition"))
+      self.assertDictEqual(delete_op_template.get("outputs", {}), {})
+
+  def test_py_input_artifact_raw_value(self):
+    """Test pipeline input_artifact_raw_value."""
+    self._test_py_compile_yaml('input_artifact_raw_value')

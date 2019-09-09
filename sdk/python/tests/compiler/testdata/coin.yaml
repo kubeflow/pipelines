@@ -15,7 +15,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
-    pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use dsl.Condition.", "inputs": [], "name": "pipeline flip coin"}'
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use dsl.Condition.", "name": "pipeline flip coin"}'
   generateName: pipeline-flip-coin-
 spec:
   arguments:
@@ -35,7 +35,7 @@ spec:
         - flip-again
         name: condition-2
         template: condition-2
-        when: '{{tasks.flip-again.outputs.parameters.flip-again-output}} == tails'
+        when: '"{{tasks.flip-again.outputs.parameters.flip-again-output}}" == "tails"'
       - arguments:
           parameters:
           - name: flip-output
@@ -91,13 +91,6 @@ spec:
       image: python:alpine3.6
     name: flip
     outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
       parameters:
       - name: flip-output
         valueFrom:
@@ -112,13 +105,6 @@ spec:
       image: python:alpine3.6
     name: flip-again
     outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
       parameters:
       - name: flip-again-output
         valueFrom:
@@ -133,7 +119,7 @@ spec:
         - flip
         name: condition-1
         template: condition-1
-        when: '{{tasks.flip.outputs.parameters.flip-output}} == heads'
+        when: '"{{tasks.flip.outputs.parameters.flip-output}}" == "heads"'
       - arguments:
           parameters:
           - name: flip-again-output
@@ -145,7 +131,7 @@ spec:
         - flip
         name: condition-3
         template: condition-3
-        when: '{{tasks.flip.outputs.parameters.flip-output}} == tails'
+        when: '"{{tasks.flip.outputs.parameters.flip-output}}" == "tails"'
       - name: flip
         template: flip
     name: pipeline-flip-coin
@@ -158,14 +144,6 @@ spec:
       parameters:
       - name: flip-again-output
     name: print1
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - container:
       command:
       - echo
@@ -175,11 +153,3 @@ spec:
       parameters:
       - name: flip-again-output
     name: print2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true

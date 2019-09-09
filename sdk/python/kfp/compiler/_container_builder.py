@@ -41,7 +41,7 @@ class ContainerBuilder(object):
       try:
         gcs_bucket = self._get_project_id()
       except:
-        raise ValueError('Please provide the gcr_staging.')
+        raise ValueError('Cannot get the Google Cloud project ID, please specify the gcs_staging argument.')
       self._gcs_staging = 'gs://' + gcs_bucket + '/' + GCS_STAGING_BLOB_DEFAULT_PREFIX
     else:
       from pathlib import PurePath
@@ -152,15 +152,15 @@ class ContainerBuilder(object):
     with tarfile.open(tarball_path, 'w:gz') as tarball:
       tarball.add(dir_name, arcname='')
 
-  def build(self, local_dir, docker_filename, target_image=None, timeout=1000):
+  def build(self, local_dir, docker_filename : str = 'Dockerfile', target_image=None, timeout=1000):
     """
     Args:
       local_dir (str): local directory that stores all the necessary build files
-      docker_filename (str): the dockerfile name that is in the local_dir
+      docker_filename (str): the path of the Dockerfile relative to the local_dir
       target_image (str): the target image tag to push the final image.
       timeout (int): time out in seconds. Default: 1000
     """
-    target_image = self._gcr_image_tag if target_image is None else target_image
+    target_image = target_image or self._gcr_image_tag
     # Prepare build context
     with tempfile.TemporaryDirectory() as local_build_dir:
       from ._gcs_helper import GCSHelper

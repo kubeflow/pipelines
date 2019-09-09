@@ -14,9 +14,14 @@ spec:
         app: ml-pipeline-ui
     spec:
       containers:
-      - image: gcr.io/ml-pipeline/frontend:0.1.15
+      - image: gcr.io/ml-pipeline/frontend:0.1.27
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-ui
         ports:
         - containerPort: 3000
+        env:
+          - name: MINIO_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
       serviceAccountName: ml-pipeline-ui
