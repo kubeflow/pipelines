@@ -62,35 +62,6 @@ class SampleTest(object):
         os.path.join(self._results_gcs_dir, self._sample_test_result)
     )
 
-  def check_result(self):
-    os.chdir(TEST_DIR)
-    pysample_checker = PySampleChecker(testname=self._test_name,
-                                       input=os.path.join(self._work_dir, '%s.yaml' % self._test_name),
-                                       output=self._sample_test_output,
-                                       result=self._sample_test_result,
-                                       namespace=self._namespace)
-    pysample_checker.check()
-
-    print('Copy the test results to GCS %s/' % self._results_gcs_dir)
-    utils.upload_blob(
-      self._bucket_name,
-      self._sample_test_result,
-      os.path.join(self._results_gcs_dir, self._sample_test_result)
-    )
-
-  def check_notebook_result(self):
-    # Workaround because papermill does not directly return exit code.
-    exit_code = '1' if PAPERMILL_ERR_MSG in \
-                       open('%s.ipynb' % self._test_name).read() else '0'
-
-    os.chdir(TEST_DIR)
-
-    nbchecker = NoteBookChecker(testname=self._test_name,
-                                result=self._sample_test_result,
-                                exit_code=exit_code,
-                                run_pipeline=self._run_pipeline)
-    nbchecker.check()
-
   def _compile(self):
 
     os.chdir(self._work_dir)
