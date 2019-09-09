@@ -30,6 +30,5 @@ managedstorage:
   enabled: false
   cloudsqlInstanceConnectionName: null
   databaseNamePrefix: null
-  dbCredentialName: mysqlCredential
   dbUsername: root
   dbPassword: null
