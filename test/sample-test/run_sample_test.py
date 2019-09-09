@@ -60,7 +60,7 @@ class PySampleChecker(object):
     ###### Check Input File ######
     utils.add_junit_test(self._test_cases, 'input generated yaml file',
                          os.path.exists(self._input), 'yaml file is not generated')
-    if not os.path.exists(self._input):
+    if True:
       utils.write_junit_xml(self._test_name, self._result, self._test_cases)
       print('Error: job not found.')
       exit(1)
