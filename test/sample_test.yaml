@@ -68,7 +68,7 @@ spec:
                   value: "{{item}}"
             withItems:
               - tfx_cab_classification
-              - xgboost_training_cm
+              # - xgboost_training_cm
               - lightweight_component
               - dsl_static_type_checking
               - pipeline_transformers

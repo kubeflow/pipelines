@@ -56,11 +56,18 @@ class SampleTest(object):
     """ Copy generated sample test result to gcs, so that Prow can pick it. """
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
 
-    utils.upload_blob(
-        self._bucket_name,
+    subprocess.call([
+        'gsutil',
+        'cp',
         self._sample_test_result,
         os.path.join(self._results_gcs_dir, self._sample_test_result)
-    )
+    ])
+    #
+    # utils.upload_blob(
+    #     self._bucket_name,
+    #     self._sample_test_result,
+    #     os.path.join(self._results_gcs_dir, self._sample_test_result)
+    # )
 
   def _compile(self):
 
