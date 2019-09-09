@@ -256,9 +256,9 @@ spec:
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
-              value: '{{ .Values.managedstorage.cloudsqlInstanceConnectionName | replace ":" "-" }}-{{ .Values.managedstorage.databaseNamePrefix }}'
+              value: '{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .values.managedstore.databaseNamePrefix | replace ":" "-" | trunc 50 }}'
               {{ else }}
-              value: '{{ .Values.managedstorage.cloudsqlInstanceConnectionName | replace ":" "-" }}-{{ .Release.Name | replace "-" "_" | replace "." "_" | trunc 50 }}'
+              value: '{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Release.Name | replace ":" "-" | trunc 50 }}'
               {{ end }}
             - name: DBCONFIG_DBNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
