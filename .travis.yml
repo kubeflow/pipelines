@@ -32,7 +32,7 @@ matrix:
       before_install:
         # Install Bazel
         - |
-          wget -O install.sh "${BAZEL_URL}"
+          wget --no-verbose -O install.sh "${BAZEL_URL}"
           chmod +x install.sh
           ./install.sh --user
           rm -f install.sh

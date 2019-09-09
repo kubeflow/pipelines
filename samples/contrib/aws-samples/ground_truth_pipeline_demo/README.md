@@ -11,7 +11,7 @@ For this demo, you will be using a very small subset of the [Google Open Images 
 
 Run the following to download `openimgs-annotations.csv`:
 ```bash
-wget https://storage.googleapis.com/openimages/2018_04/test/test-annotations-human-imagelabels-boxable.csv -O openimgs-annotations.csv
+wget --no-verbose https://storage.googleapis.com/openimages/2018_04/test/test-annotations-human-imagelabels-boxable.csv -O openimgs-annotations.csv
 ```
 Create a s3 bucket and run [this python script](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/ground_truth_pipeline_demo/prep_inputs.py) to get the images and generate `train.manifest`, `validation.manifest`, `class_labels.json`, and `instuctions.template`.
 
