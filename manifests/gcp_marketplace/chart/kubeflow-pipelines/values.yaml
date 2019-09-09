@@ -13,6 +13,9 @@ images:
   viewercrd: gcr.io/ml-pipeline/viewer-crd-controller:0.1.27
   visualizationserver: gcr.io/ml-pipeline/visualization-server:0.1.27
 
+gcpSecretName: "user-gcp-sa"
+serviceAccountCredential: null
+
 serviceAccount:
   argo: null
   mlPipeline: null
@@ -22,8 +25,6 @@ serviceAccount:
   mlPipelineViewerCrd: null
   pipelineRunner: null
   proxyAgentRunner: null
-
-gcpSecretName: null
 
 managedstorage:
   enabled: false
