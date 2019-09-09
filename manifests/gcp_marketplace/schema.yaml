@@ -1,7 +1,7 @@
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
-  publishedVersion: '0.1.27'
+  publishedVersion: '0.1.29'
   publishedVersionMetadata:
     releaseNote: >-
       Initial release.
@@ -25,17 +25,17 @@ x-google-marketplace:
       properties:
         images.minio:
           type: FULL
-    argo-executor:
+    argoexecutor:
       properties:
-        images.argo-executor:
+        images.argoexecutor:
           type: FULL
-    argo-workflow-controller:
+    argoworkflowcontroller:
       properties:
-        images.argo-workflow-controller:
+        images.argoworkflowcontroller:
           type: FULL
-    api-server:
+    apiserver:
       properties:
-        images.api-server:
+        images.apiserver:
           type: FULL
     persistenceagent:
       properties:
@@ -49,25 +49,25 @@ x-google-marketplace:
       properties:
         images.frontend:
           type: FULL
-    viewer-crd:
+    viewercrd:
       properties:
-        images.viewer-crd:
+        images.viewercrd:
           type: FULL
-    visualization-server:
+    visualizationserver:
       properties:
-        images.visualization-server:
+        images.visualizationserver:
           type: FULL
-    metadata-server:
+    metadataserver:
       properties:
-        images.metadata-server:
+        images.metadataserver:
           type: FULL
-    proxy-agent:
+    proxyagent:
       properties:
-        images.proxy-agent:
+        images.proxyagent:
           type: FULL
-    cloudsql-proxy:
+    cloudsqlproxy:
       properties:
-        images.cloudsql-proxy:
+        images.cloudsqlproxy:
           type: FULL
   deployerServiceAccount:
     roles:
