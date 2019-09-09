@@ -29,7 +29,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { Apis } from '../lib/Apis';
 import { Link } from 'react-router-dom';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
-import { RoutePage, RoutePrefix } from '../components/Router';
+import { RoutePage, RoutePrefix, ExternalLink } from '../components/Router';
 import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, commonCss } from '../Css';
@@ -90,6 +90,12 @@ export const css = stylesheet({
   },
   collapsedChevron: {
     transform: 'rotate(180deg)',
+  },
+  collapsedExternalLabel: {
+    // Hide text when collapsing, but do it with a transition of both height and
+    // opacity
+    height: 0,
+    opacity: 0,
   },
   collapsedLabel: {
     // Hide text when collapsing, but do it with a transition
@@ -408,6 +414,14 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
             </Link>
           </Tooltip>
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
+          <ExternalUri
+            title={'Documentation'}
+            to={ExternalLink.DOCUMENTATION}
+            collapsed={collapsed}
+          />
+          <ExternalUri title={'Github'} to={ExternalLink.GITHUB} collapsed={collapsed} />
+          <ExternalUri title={'AI Hub'} to={ExternalLink.AI_HUB} collapsed={collapsed} />
+          <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <IconButton
             className={classes(css.chevron, collapsed && css.collapsedChevron)}
             onClick={this._toggleNavClicked.bind(this)}
@@ -485,3 +499,28 @@ export default class SideNav extends React.Component<SideNavProps, SideNavState>
     }
   }
 }
+
+interface ExternalUriProps {
+  title: string;
+  to: string;
+  collapsed: boolean;
+}
+
+// tslint:disable-next-line:variable-name
+const ExternalUri: React.FC<ExternalUriProps> = ({ title, to, collapsed }) => (
+  <Tooltip
+    title={title}
+    enterDelay={300}
+    placement={'right-start'}
+    disableFocusListener={!collapsed}
+    disableHoverListener={!collapsed}
+    disableTouchListener={!collapsed}
+  >
+    <a href={to} className={commonCss.unstyled} target='_blank' rel='noopener noreferrer'>
+      <Button className={classes(css.button, collapsed && css.collapsedButton)}>
+        <OpenInNewIcon className={css.openInNewTabIcon} />
+        <span className={classes(collapsed && css.collapsedLabel, css.label)}>{title}</span>
+      </Button>
+    </a>
+  </Tooltip>
+);
