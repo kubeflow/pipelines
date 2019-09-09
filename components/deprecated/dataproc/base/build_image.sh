@@ -23,8 +23,8 @@ rsync -arvp "../delete_cluster/src"/ ./build/
 rsync -arvp "../transform/src"/ ./build/
 rsync -arvp "../common"/ ./build/common/
 
-cp ../../license.sh ./build
-cp ../../third_party_licenses.csv ./build
+cp ../../../license.sh ./build
+cp ../../../third_party_licenses.csv ./build
 
 docker build -t ml-pipeline-dataproc-base .
 rm -rf ./build

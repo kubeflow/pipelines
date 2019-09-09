@@ -18,4 +18,4 @@ pushd ../base
 ./build_image.sh
 popd
 
-../../build_image.sh -l ml-pipeline-dataflow-tft "$@"
+../../../build_image.sh -l ml-pipeline-dataflow-tft "$@"
