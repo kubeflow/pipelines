@@ -87,26 +87,31 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
+  serviceAccountCredential:
+    title: Service Account credentials used to call other GCP services, such as CloudSQL.
+    description: |-
+      To be able to call other GCP services, we need to be
+      authenticated. This field is used to store the content of the service account
+      JSON file. It can be encoded using base64 instead of messing with JSON format.
+    type: string
+    default: ""
+    x-google-marketplace:
+      type: STRING
   managedstorage.enabled:
     type: boolean
     title: Enable managed storage
     description: Use Cloud SQL and GCS for storing the data
     default: false
-  managedstorage.cloudsqlInstanceName:
+  managedstorage.cloudsqlInstanceConnectionName:
     type: string
-    title: CloudSQL instance name
-  managedstorage.cloudsqlZone:
-    type: string
-    title: CloudSQL zone
+    title: CloudSQL instance connection name. Format projectId:zone:instanceName
   managedstorage.dbPassword:
     type: string
     title: database password
-  managedstorage.gcpProject:
-    type: string
-    title: GCP project
   managedstorage.databaseNamePrefix:
     type: string
     title: database name prefix
+
   serviceAccount.proxyAgentRunner:
     type: string
     title: ProxyAgentRunnerServiceAccount
@@ -418,3 +423,4 @@ properties:
 required:
   - name
   - namespace
+  - serviceAccountCredential
