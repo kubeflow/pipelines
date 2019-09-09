@@ -269,12 +269,12 @@ spec:
             - name: DBCONFIG_USER
               valueFrom:
                 secretKeyRef:
-                  name: mysqlCredential
+                  name: mysql-credential
                   key: username
             - name: DBCONFIG_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mysqlCredential
+                  name: mysql-credential
                   key: password
             {{ end }}
           image: {{ .Values.images.apiserver }}

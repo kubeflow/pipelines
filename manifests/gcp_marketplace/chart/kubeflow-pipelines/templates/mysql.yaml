@@ -71,7 +71,7 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mysqlCredential
+  name: mysql-credential
   labels:
     app: mysql-credential
     app.kubernetes.io/name: {{ .Release.Name }}
