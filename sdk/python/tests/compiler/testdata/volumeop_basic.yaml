@@ -22,9 +22,6 @@ spec:
       volumeMounts:
       - mountPath: /mnt
         name: create-pvc
-    inputs:
-      parameters:
-      - name: create-pvc-name
     name: cop
   - inputs:
       parameters:
@@ -48,11 +45,7 @@ spec:
         \    storage: '{{inputs.parameters.size}}'\n"
   - dag:
       tasks:
-      - arguments:
-          parameters:
-          - name: create-pvc-name
-            value: '{{tasks.create-pvc.outputs.parameters.create-pvc-name}}'
-        dependencies:
+      - dependencies:
         - create-pvc
         name: cop
         template: cop

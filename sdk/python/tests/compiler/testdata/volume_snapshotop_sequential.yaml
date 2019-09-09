@@ -41,7 +41,6 @@ spec:
         name: create-volume
     inputs:
       parameters:
-      - name: create-volume-name
       - name: url
     name: step1-ingest
   - inputs:
@@ -75,9 +74,6 @@ spec:
       volumeMounts:
       - mountPath: /data
         name: create-volume
-    inputs:
-      parameters:
-      - name: create-volume-name
     name: step2-gunzip
   - inputs:
       parameters:
@@ -110,9 +106,6 @@ spec:
       volumeMounts:
       - mountPath: /data
         name: create-volume
-    inputs:
-      parameters:
-      - name: create-volume-name
     name: step3-copy
   - inputs:
       parameters:
@@ -144,9 +137,6 @@ spec:
       volumeMounts:
       - mountPath: /data
         name: create-volume
-    inputs:
-      parameters:
-      - name: create-volume-name
     name: step4-output
   - dag:
       tasks:
@@ -154,8 +144,6 @@ spec:
         template: create-volume
       - arguments:
           parameters:
-          - name: create-volume-name
-            value: '{{tasks.create-volume.outputs.parameters.create-volume-name}}'
           - name: url
             value: '{{inputs.parameters.url}}'
         dependencies:
@@ -171,11 +159,7 @@ spec:
         - step1-ingest
         name: step1-snap
         template: step1-snap
-      - arguments:
-          parameters:
-          - name: create-volume-name
-            value: '{{tasks.create-volume.outputs.parameters.create-volume-name}}'
-        dependencies:
+      - dependencies:
         - create-volume
         - step1-ingest
         name: step2-gunzip
@@ -189,11 +173,7 @@ spec:
         - step2-gunzip
         name: step2-snap
         template: step2-snap
-      - arguments:
-          parameters:
-          - name: create-volume-name
-            value: '{{tasks.create-volume.outputs.parameters.create-volume-name}}'
-        dependencies:
+      - dependencies:
         - create-volume
         - step2-gunzip
         name: step3-copy
@@ -207,11 +187,7 @@ spec:
         - step3-copy
         name: step3-snap
         template: step3-snap
-      - arguments:
-          parameters:
-          - name: create-volume-name
-            value: '{{tasks.create-volume.outputs.parameters.create-volume-name}}'
-        dependencies:
+      - dependencies:
         - create-volume
         - step3-copy
         name: step4-output

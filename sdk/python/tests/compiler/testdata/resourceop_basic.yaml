@@ -3,7 +3,8 @@ kind: Workflow
 metadata:
   annotations:
     pipelines.kubeflow.org/pipeline_spec: '{"description": "A Basic Example on ResourceOp
-      Usage.", "inputs": [{"name": "username"}, {"name": "password"}], "name": "ResourceOp Basic"}'
+      Usage.", "inputs": [{"name": "username"}, {"name": "password"}], "name": "ResourceOp
+      Basic"}'
   generateName: resourceop-basic-
 spec:
   arguments:
@@ -23,9 +24,6 @@ spec:
       volumeMounts:
       - mountPath: /etc/secret-volume
         name: my-secret
-    inputs:
-      parameters:
-      - name: create-my-secret-name
     name: cop
   - inputs:
       parameters:
@@ -47,11 +45,7 @@ spec:
         \ generateName: my-secret-\ntype: Opaque\n"
   - dag:
       tasks:
-      - arguments:
-          parameters:
-          - name: create-my-secret-name
-            value: '{{tasks.create-my-secret.outputs.parameters.create-my-secret-name}}'
-        dependencies:
+      - dependencies:
         - create-my-secret
         name: cop
         template: cop
