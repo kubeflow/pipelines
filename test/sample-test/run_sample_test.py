@@ -69,7 +69,9 @@ class PySampleChecker(object):
     experiment_name = self._testname + ' sample experiment'
     response = self._client.create_experiment(experiment_name)
     self._experiment_id = response.id
-    utils.add_junit_test(self._test_cases, 'create experiment', True)
+    # TODO(numerology): Change it back.
+    # Intentionally fail.
+    utils.add_junit_test(self._test_cases, 'create experiment', False)
 
     ###### Create Job ######
     self._job_name = self._testname + '_sample'
