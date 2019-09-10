@@ -718,7 +718,7 @@ class Compiler(object):
       pipeline_func: Callable,
       pipeline_name: Text,
       pipeline_description: Text=None,
-      params_list: List[dsl.PipelineParam]=None) -> Dict[Text, Any]:
+      params_list: List[dsl.PipelineParam]=[]) -> Dict[Text, Any]:
     """ Create workflow spec from pipeline function and specified pipeline
     params/metadata. Currently, the pipeline params are either specified in
     the signature of the pipeline function or by passing a list of
