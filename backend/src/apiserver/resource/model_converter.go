@@ -116,6 +116,7 @@ func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (
 	if version.CodeSourceLinks != nil && len(version.CodeSourceLinks) > 0 {
 		for _, codeSource := range version.CodeSourceLinks {
 			codeSources = append(codeSources, codeSource...)
+			codeSources = append(codeSources, ';')
 		}
 	}
 
@@ -123,6 +124,7 @@ func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (
 	if version.PackageSourceLinks != nil && len(version.PackageSourceLinks) > 0 {
 		for _, packageSource := range version.PackageSourceLinks {
 			packageSources = append(packageSources, packageSource...)
+			packageSources = append(packageSources, ';')
 		}
 	}
 
