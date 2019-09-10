@@ -4,6 +4,8 @@ This sample demonstrates how to create a simple Kubeflow pipeline using standard
 
 The model predicts the number of crime reports expected today, given the daily totals from the previous week. It can illustrate how to do *automated model retraining* if it is configured as a recurring run in Kubeflow pipelines.
 
+To use the TPU in the AI Platform Training service, check out these [samples](https://github.com/GoogleCloudPlatform/cloudml-samples/tree/950bc396bb5e45609e55ff401a333255cc47c29b/tpu)
+
 ## Pipeline
 
 The pipeline has three steps:
