@@ -62,26 +62,24 @@ class LoadComponentTestCase(unittest.TestCase):
         component_path = _test_data_dir.joinpath('python_add.component.zip')
         self._test_load_component_from_file(str(component_path))
 
-    @unittest.skip
-    @unittest.expectedFailure #The repo is non-public and will change soon. TODO: Update the URL and enable the test once we move to a public repo
     def test_load_component_from_url(self):
-        url = 'https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/sdk/python/tests/components/test_data/python_add.component.yaml'
+        url = 'https://raw.githubusercontent.com/kubeflow/pipelines/e54fe675432cfef1d115a7a2909f08ed95ea8933/sdk/python/tests/components/test_data/python_add.component.yaml'
 
         import requests
         resp = requests.get(url)
         component_text = resp.content
         component_dict = load_yaml(component_text)
         task_factory1 = comp.load_component_from_url(url)
-        assert task_factory1.__doc__ == component_dict['name'] + '\n' + component_dict['description']
+        self.assertEqual(task_factory1.__doc__, component_dict['name'] + '\n' + component_dict['description'])
 
         arg1 = 3
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
-        assert task1.human_name == component_dict['name']
-        assert task1.container.image == component_dict['implementation']['container']['image']
+        self.assertEqual(task1.human_name, component_dict['name'])
+        self.assertEqual(task1.container.image, component_dict['implementation']['container']['image'])
 
-        assert task1.arguments[0] == str(arg1)
-        assert task1.arguments[1] == str(arg2)
+        self.assertEqual(task1.arguments[0], str(arg1))
+        self.assertEqual(task1.arguments[1], str(arg2))
 
     def test_loading_minimal_component(self):
         component_text = '''\
@@ -93,7 +91,7 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task1 = task_factory1()
-        assert task1.container.image == component_dict['implementation']['container']['image']
+        self.assertEqual(task1.container.image, component_dict['implementation']['container']['image'])
 
     def test_accessing_component_spec_from_task_factory(self):
         component_text = '''\
@@ -110,7 +108,6 @@ implementation:
         self.assertEqual(expected_component_spec_dict, actual_component_spec_dict)
         self.assertEqual(expected_component_spec, task_factory1.component_spec)
 
-    @unittest.expectedFailure
     def test_fail_on_duplicate_input_names(self):
         component_text = '''\
 inputs:
@@ -120,9 +117,9 @@ implementation:
   container:
     image: busybox
 '''
-        task_factory1 = comp.load_component_from_text(component_text)
+        with self.assertRaises(ValueError):
+            task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.expectedFailure
     def test_fail_on_duplicate_output_names(self):
         component_text = '''\
 outputs:
@@ -132,7 +129,8 @@ implementation:
   container:
     image: busybox
 '''
-        task_factory1 = comp.load_component_from_text(component_text)
+        with self.assertRaises(ValueError):
+            task_factory1 = comp.load_component_from_text(component_text)
 
     def test_handle_underscored_input_names(self):
         component_text = '''\
@@ -212,7 +210,6 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.expectedFailure
     def test_fail_on_unknown_value_argument(self):
         component_text = '''\
 inputs:
@@ -223,9 +220,9 @@ implementation:
     args:
       - {inputValue: Wrong}
 '''
-        task_factory1 = comp.load_component_from_text(component_text)
+        with self.assertRaises(TypeError):
+            task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.expectedFailure
     def test_fail_on_unknown_file_output(self):
         component_text = '''\
 outputs:
@@ -236,31 +233,32 @@ implementation:
     fileOutputs:
         Wrong: '/outputs/output.txt'
 '''
-        task_factory1 = comp.load_component_from_text(component_text)
+        with self.assertRaises(TypeError):
+            task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.expectedFailure
     def test_load_component_fail_on_no_sources(self):
-        comp.load_component()
+        with self.assertRaises(ValueError):
+            comp.load_component()
 
-    @unittest.expectedFailure
     def test_load_component_fail_on_multiple_sources(self):
-        comp.load_component(filename='', text='')
+        with self.assertRaises(ValueError):
+            comp.load_component(filename='', text='')
 
-    @unittest.expectedFailure
     def test_load_component_fail_on_none_arguments(self):
-        comp.load_component(filename=None, url=None, text=None)
+        with self.assertRaises(ValueError):
+            comp.load_component(filename=None, url=None, text=None)
 
-    @unittest.expectedFailure
     def test_load_component_from_file_fail_on_none_arg(self):
-        comp.load_component_from_file(None)
+        with self.assertRaises(TypeError):
+            comp.load_component_from_file(None)
 
-    @unittest.expectedFailure
     def test_load_component_from_url_fail_on_none_arg(self):
-        comp.load_component_from_url(None)
+        with self.assertRaises(TypeError):
+            comp.load_component_from_url(None)
 
-    @unittest.expectedFailure
     def test_load_component_from_text_fail_on_none_arg(self):
-        comp.load_component_from_text(None)
+        with self.assertRaises(TypeError):
+            comp.load_component_from_text(None)
 
     def test_input_value_resolving(self):
         component_text = '''\
