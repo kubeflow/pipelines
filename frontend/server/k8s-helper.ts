@@ -13,6 +13,7 @@
 // limitations under the License.
 
 // @ts-ignore
+import {Client as MinioClient} from 'minio';
 import {Core_v1Api, Custom_objectsApi, KubeConfig} from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
@@ -155,4 +156,19 @@ export function getPodLogs(podName: string): Promise<string> {
       (response: any) => (response && response.body) ? response.body.toString() : '',
       (error: any) => {throw new Error(JSON.stringify(error.body));}
     );
+}
+
+/** Returns a function to retrieve pod logs archived by argo. */
+export function getPodLogsFromArtifactoryHelper(client: MinioClient, bucketName: string, prefix: string) {
+  return function(podName: string) {
+    let workflowName = workflowNameFromPodName(podName);
+    return client.getObject(bucketName, `${prefix}/${workflowName}/${podName}/main.log`)
+  }
+}
+
+/** Infers workflow name from pod name. */
+function workflowNameFromPodName(podName: string) {
+  let chunks = podName.split("-");
+  chunks.pop();
+  return chunks.join("-");
 }
