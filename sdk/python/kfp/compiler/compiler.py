@@ -27,7 +27,7 @@ from ._k8s_helper import K8sHelper
 from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
-from ..dsl._metadata import _extract_pipeline_metadata
+from ..dsl._metadata import ParameterMeta, _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
 
@@ -714,15 +714,19 @@ class Compiler(object):
       sanitized_ops[sanitized_name] = op
     pipeline.ops = sanitized_ops
 
-  def create_workflow(self,
+  def create_workflow_from_func(self,
       pipeline_func: Callable,
+      pipeline_name: Text,
+      pipeline_description: Text=None,
       params_list: List[dsl.PipelineParam]=None) -> Dict[Text, Any]:
     """ Create workflow dict from pipeline function and specified pipeline
-    params. Currently, the pipeline params are either specified in the signature
-    of the pipeline function or by passing a list of dsl.PipelineParam.
-    Conflict will cause ValueError.
+    params/metadata. Currently, the pipeline params are either specified in
+    the signature of the pipeline function or by passing a list of
+    dsl.PipelineParam. Conflict will cause ValueError.
 
     :param pipeline_func: pipeline function where ContainerOps are invoked.
+    :param pipeline_name:
+    :param pipeline_description:
     :param params_list: list of pipeline params to append to the pipeline.
     :return: workflow dict.
     """
@@ -731,6 +735,8 @@ class Compiler(object):
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
     pipeline_meta = _extract_pipeline_metadata(pipeline_func)
+    pipeline_meta.name = pipeline_name or pipeline_meta.name
+    pipeline_meta.description = pipeline_description or pipeline_meta.description
     pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_meta.name)
 
     # Currently only allow specifying pipeline params at one place.
@@ -745,7 +751,10 @@ class Compiler(object):
           if arg_name == input.name:
             arg_type = input.param_type
             break
-        args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
+        args_list.append(
+            dsl.PipelineParam(
+                K8sHelper.sanitize_k8s_name(arg_name),
+                param_type=arg_type))
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
@@ -762,6 +771,12 @@ class Compiler(object):
           arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
     else:
       args_list_with_defaults = params_list
+      pipeline_meta.inputs = [
+        ParameterMeta(
+            name=param.name,
+            description='',
+            param_type=param.param_type,
+            default=param.value) for param in params_list]
 
     op_transformers = [add_pod_env]
     op_transformers.extend(dsl_pipeline.conf.op_transformers)
@@ -778,7 +793,7 @@ class Compiler(object):
 
   def _compile(self, pipeline_func):
     """Compile the given pipeline function into workflow."""
-    return self.create_workflow(pipeline_func, [])
+    return self.create_workflow_from_func(pipeline_func, [])
 
   def compile(self, pipeline_func, package_path, type_check=True):
     """Compile the given pipeline function into workflow yaml.
