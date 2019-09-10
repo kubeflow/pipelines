@@ -27,6 +27,7 @@ import yaml
 
 from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR, SCHEMA_CONFIG, CONFIG_DIR, DEFAULT_CONFIG
 from check_notebook_results import NoteBookChecker
+from kfp.compiler._gcs_helper import GCSHelper
 from run_sample_test import PySampleChecker
 
 
@@ -56,11 +57,15 @@ class SampleTest(object):
     """ Copy generated sample test result to gcs, so that Prow can pick it. """
     print('Copy the test results to GCS %s/' % self._results_gcs_dir)
 
-    utils.upload_blob(
-        self._bucket_name,
+    GCSHelper.upload_gcs_file(
         self._sample_test_result,
-        os.path.join(self._results_gcs_dir, self._sample_test_result)
-    )
+        os.path.join(self._results_gcs_dir, self._sample_test_result))
+
+    # utils.upload_blob(
+    #     self._bucket_name,
+    #     self._sample_test_result,
+    #     os.path.join(self._results_gcs_dir, self._sample_test_result)
+    # )
 
   def _compile(self):
 
