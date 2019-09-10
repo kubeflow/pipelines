@@ -66,7 +66,10 @@ def create_cell_from_file(filepath: Text) -> NotebookNode:
         NotebookNode with specified file as code within node.
 
     """
-    return new_code_cell("%run {}".format(filepath))
+    with open(filepath, 'r') as f:
+        code = f.read()	
+
+    return new_code_cell(code)
 
 
 def create_cell_from_custom_code(code: list) -> NotebookNode:
