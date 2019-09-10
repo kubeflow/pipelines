@@ -61,12 +61,6 @@ class SampleTest(object):
         self._sample_test_result,
         os.path.join(self._results_gcs_dir, self._sample_test_result))
 
-    # utils.upload_blob(
-    #     self._bucket_name,
-    #     self._sample_test_result,
-    #     os.path.join(self._results_gcs_dir, self._sample_test_result)
-    # )
-
   def _compile(self):
 
     os.chdir(self._work_dir)
