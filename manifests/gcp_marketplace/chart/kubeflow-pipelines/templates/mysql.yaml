@@ -67,6 +67,18 @@ spec:
         - name: gcp-sa-token
           secret:
             secretName: {{ .Values.gcpSecretName }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-credential
+  labels:
+    app: mysql-credential
+    app.kubernetes.io/name: {{ .Release.Name }}
+type: Opaque
+data:
+  username: {{ .Values.managedstorage.dbUsername | b64enc | quote}}
+  password: {{ .Values.managedstorage.dbPassword | b64enc | quote}}
 {{ else }}
 apiVersion: apps/v1beta2
 kind: Deployment

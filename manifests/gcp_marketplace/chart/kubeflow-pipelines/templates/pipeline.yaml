@@ -251,7 +251,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: DEFAULTPIPELINERUNNERSERVICEACCOUNT
-              value: "{{ .Values.serviceAccount.pipelineRunner }}"
+              value: '{{ .Values.serviceAccount.pipelineRunner }}'
             # Following environment variables are only needed when using Cloud SQL and GCS.
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
@@ -262,12 +262,20 @@ spec:
               {{ end }}
             - name: DBCONFIG_DBNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
-              value: "{{ .Values.managedstorage.databaseNamePrefix }}_pipeline"
+              value: '{{ .Values.managedstorage.databaseNamePrefix }}_pipeline'
               {{ else }}
               value: '{{ .Release.Name | replace "-" "_" | replace "." "_" | trunc 50 }}_pipeline'
               {{ end }}
+            - name: DBCONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credential
+                  key: username
             - name: DBCONFIG_PASSWORD
-              value: "{{ .Values.managedstorage.dbPassword }}"
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credential
+                  key: password
             {{ end }}
           image: {{ .Values.images.apiserver }}
           imagePullPolicy: IfNotPresent
