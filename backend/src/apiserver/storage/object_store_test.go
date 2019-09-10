@@ -45,79 +45,88 @@ func (c *FakeBadMinioClient) DeleteObject(bucketName, objectName string) error {
 }
 
 func TestAddFile(t *testing.T) {
+	objectPaths := NewObjectPaths("pipelines")
 	minioClient := NewFakeMinioClient()
 	manager := &MinioObjectStore{minioClient: minioClient}
-	error := manager.AddFile([]byte("abc"), CreatePipelinePath("1"))
+	error := manager.AddFile([]byte("abc"), objectPaths.GetPipelinePath("1"))
 	assert.Nil(t, error)
 	assert.Equal(t, 1, minioClient.GetObjectCount())
 }
 
 func TestAddFileError(t *testing.T) {
+	objectPaths := NewObjectPaths("pipelines")
 	manager := &MinioObjectStore{minioClient: &FakeBadMinioClient{}}
-	error := manager.AddFile([]byte("abc"), CreatePipelinePath("1"))
+	error := manager.AddFile([]byte("abc"), objectPaths.GetPipelinePath("1"))
 	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 }
 
 func TestGetFile(t *testing.T) {
+	objectPaths := NewObjectPaths("pipelines")
 	manager := &MinioObjectStore{minioClient: NewFakeMinioClient()}
-	manager.AddFile([]byte("abc"), CreatePipelinePath("1"))
-	file, error := manager.GetFile(CreatePipelinePath("1"))
+	manager.AddFile([]byte("abc"), objectPaths.GetPipelinePath("1"))
+	file, error := manager.GetFile(objectPaths.GetPipelinePath("1"))
 	assert.Nil(t, error)
 	assert.Equal(t, file, []byte("abc"))
 }
 
 func TestGetFileError(t *testing.T) {
+	objectPaths := NewObjectPaths("pipelines")
 	manager := &MinioObjectStore{minioClient: &FakeBadMinioClient{}}
-	_, error := manager.GetFile(CreatePipelinePath("1"))
+	_, error := manager.GetFile(objectPaths.GetPipelinePath("1"))
 	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 }
 
 func TestDeleteFile(t *testing.T) {
+	objectPaths := NewObjectPaths("pipelines")
 	minioClient := NewFakeMinioClient()
 	manager := &MinioObjectStore{minioClient: minioClient}
-	manager.AddFile([]byte("abc"), CreatePipelinePath("1"))
-	error := manager.DeleteFile(CreatePipelinePath("1"))
+	manager.AddFile([]byte("abc"), objectPaths.GetPipelinePath("1"))
+	error := manager.DeleteFile(objectPaths.GetPipelinePath("1"))
 	assert.Nil(t, error)
 	assert.Equal(t, 0, minioClient.GetObjectCount())
 }
 
 func TestDeleteFileError(t *testing.T) {
+	objectPaths := NewObjectPaths("pipelines")
 	manager := &MinioObjectStore{minioClient: &FakeBadMinioClient{}}
-	error := manager.DeleteFile(CreatePipelinePath("1"))
+	error := manager.DeleteFile(objectPaths.GetPipelinePath("1"))
 	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 }
 
 func TestAddAsYamlFile(t *testing.T) {
+	objectPaths := NewObjectPaths("pipelines")
 	minioClient := NewFakeMinioClient()
 	manager := &MinioObjectStore{minioClient: minioClient}
-	error := manager.AddAsYamlFile(Foo{ID: 1}, CreatePipelinePath("1"))
+	error := manager.AddAsYamlFile(Foo{ID: 1}, objectPaths.GetPipelinePath("1"))
 	assert.Nil(t, error)
 	assert.Equal(t, 1, minioClient.GetObjectCount())
 }
 
 func TestGetFromYamlFile(t *testing.T) {
+	objectPaths := NewObjectPaths("pipelines")
 	minioClient := NewFakeMinioClient()
 	manager := &MinioObjectStore{minioClient: minioClient}
 	manager.minioClient.PutObject(
-		"", CreatePipelinePath("1"),
+		"", objectPaths.GetPipelinePath("1"),
 		bytes.NewReader([]byte("id: 1")), -1,
 		minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	expectedFoo := Foo{ID: 1}
 	var foo Foo
-	error := manager.GetFromYamlFile(&foo, CreatePipelinePath("1"))
+	error := manager.GetFromYamlFile(&foo, objectPaths.GetPipelinePath("1"))
 	assert.Nil(t, error)
 	assert.Equal(t, expectedFoo, foo)
 }
 
 func TestGetFromYamlFile_UnmarshalError(t *testing.T) {
+	objectPaths := NewObjectPaths("pipelines")
 	minioClient := NewFakeMinioClient()
 	manager := &MinioObjectStore{minioClient: minioClient}
 	manager.minioClient.PutObject(
-		"", CreatePipelinePath("1"),
+		"", objectPaths.GetPipelinePath("1"),
 		bytes.NewReader([]byte("invalid")), -1,
 		minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	var foo Foo
-	error := manager.GetFromYamlFile(&foo, CreatePipelinePath("1"))
+	error := manager.GetFromYamlFile(&foo, objectPaths.GetPipelinePath("1"))
 	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, error.Error(), "Failed to unmarshal")
 }

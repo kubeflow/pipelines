@@ -52,6 +52,7 @@ type ClientManagerInterface interface {
 	DBStatusStore() storage.DBStatusStoreInterface
 	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
+	ObjectPaths() storage.ObjectPathsInterface
 	Workflow() workflowclient.WorkflowInterface
 	ScheduledWorkflow() scheduledworkflowclient.ScheduledWorkflowInterface
 	PodClient() corev1.PodInterface
@@ -68,6 +69,7 @@ type ResourceManager struct {
 	dBStatusStore           storage.DBStatusStoreInterface
 	defaultExperimentStore  storage.DefaultExperimentStoreInterface
 	objectStore             storage.ObjectStoreInterface
+	objectPaths         storage.ObjectPathsInterface
 	workflowClient          workflowclient.WorkflowInterface
 	scheduledWorkflowClient scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient               corev1.PodInterface
@@ -85,6 +87,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		dBStatusStore:           clientManager.DBStatusStore(),
 		defaultExperimentStore:  clientManager.DefaultExperimentStore(),
 		objectStore:             clientManager.ObjectStore(),
+		objectPaths:         clientManager.ObjectPaths(),
 		workflowClient:          clientManager.Workflow(),
 		scheduledWorkflowClient: clientManager.ScheduledWorkflow(),
 		podClient:               clientManager.PodClient(),
@@ -148,7 +151,7 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// versions and hence multiple files, and we shall improve performance by
 	// either using async deletion in order for this method to be non-blocking
 	// or or exploring other performance optimization tools provided by gcs.
-	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
+	err = r.objectStore.DeleteFile(r.objectPaths.GetPipelinePath(fmt.Sprint(pipelineId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
 		return nil
@@ -183,8 +186,7 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 	}
 
 	// Store the pipeline file to a path dependent on pipeline version
-	err = r.objectStore.AddFile(pipelineFile,
-		storage.CreatePipelinePath(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
+	err = r.objectStore.AddFile(pipelineFile, r.objectPaths.GetPipelinePath(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -221,7 +223,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 		return nil, util.Wrap(err,
 			"Get pipeline template failed since no default version is defined")
 	}
-	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipeline.DefaultVersion.UUID)))
+	template, err := r.objectStore.GetFile(r.objectPaths.GetPipelinePath(fmt.Sprint(pipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
@@ -690,7 +692,7 @@ func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) 
 func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, error) {
 	if spec.GetPipelineId() != "" {
 		var workflow util.Workflow
-		err := r.objectStore.GetFromYamlFile(&workflow, storage.CreatePipelinePath(spec.GetPipelineId()))
+		err := r.objectStore.GetFromYamlFile(&workflow, r.objectPaths.GetPipelinePath(spec.GetPipelineId()))
 		if err != nil {
 			return nil, util.Wrap(err, "Get pipeline YAML failed.")
 		}

@@ -30,7 +30,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -55,7 +54,7 @@ func TestUploadPipeline_YAML(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `"created_at":"1970-01-01T00:00:01Z"`)
 
 	// Verify stored in object store
-	template, err := clientManager.ObjectStore().GetFile(storage.CreatePipelinePath(resource.DefaultFakeUUID))
+	template, err := clientManager.ObjectStore().GetFile(clientManager.ObjectPaths().GetPipelinePath(resource.DefaultFakeUUID))
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
@@ -107,7 +106,7 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `"created_at":"1970-01-01T00:00:01Z"`)
 
 	// Verify stored in object store
-	template, err := clientManager.ObjectStore().GetFile(storage.CreatePipelinePath(resource.DefaultFakeUUID))
+	template, err := clientManager.ObjectStore().GetFile(clientManager.ObjectPaths().GetPipelinePath(resource.DefaultFakeUUID))
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 
@@ -175,7 +174,7 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	assert.Equal(t, 200, rr.Code)
 
 	// Verify stored in object store
-	template, err := clientManager.ObjectStore().GetFile(storage.CreatePipelinePath(resource.DefaultFakeUUID))
+	template, err := clientManager.ObjectStore().GetFile(clientManager.ObjectPaths().GetPipelinePath(resource.DefaultFakeUUID))
 	assert.Nil(t, err)
 	assert.NotNil(t, template)
 

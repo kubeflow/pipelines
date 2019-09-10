@@ -17,10 +17,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
@@ -39,6 +40,9 @@ import (
 const (
 	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
+
+	pipelineFolder   = "ObjectStoreConfig.PipelineFolder"
+
 	mysqlServiceHost = "DBConfig.Host"
 	mysqlServicePort = "DBConfig.Port"
 	mysqlUser        = "DBConfig.User"
@@ -63,6 +67,7 @@ type ClientManager struct {
 	dBStatusStore          storage.DBStatusStoreInterface
 	defaultExperimentStore storage.DefaultExperimentStoreInterface
 	objectStore            storage.ObjectStoreInterface
+	objectPaths        storage.ObjectPathsInterface
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
 	podClient              v1.PodInterface
@@ -100,6 +105,10 @@ func (c *ClientManager) DefaultExperimentStore() storage.DefaultExperimentStoreI
 
 func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
 	return c.objectStore
+}
+
+func (c *ClientManager) ObjectPaths() storage.ObjectPathsInterface {
+	return c.objectPaths
 }
 
 func (c *ClientManager) Workflow() workflowclient.WorkflowInterface {
@@ -140,6 +149,7 @@ func (c *ClientManager) init() {
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
+	c.objectPaths = storage.NewObjectPaths(common.GetStringConfigWithDefault(pipelineFolder, "pipelines"))
 
 	c.wfClient = client.CreateWorkflowClientOrFatal(
 		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))

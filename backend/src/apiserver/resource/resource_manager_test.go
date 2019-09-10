@@ -26,7 +26,6 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
@@ -252,7 +251,7 @@ func TestGetPipelineTemplate_PipelineMetadataNotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	template := []byte("workflow: foo")
-	store.ObjectStore().AddFile(template, storage.CreatePipelinePath(fmt.Sprint(1)))
+	store.ObjectStore().AddFile(template, store.objectPaths.GetPipelinePath(fmt.Sprint(1)))
 	manager := NewResourceManager(store)
 	_, err := manager.GetPipelineTemplate("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())

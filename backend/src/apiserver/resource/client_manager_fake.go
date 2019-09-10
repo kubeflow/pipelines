@@ -38,6 +38,7 @@ type FakeClientManager struct {
 	dBStatusStore               storage.DBStatusStoreInterface
 	defaultExperimentStore      storage.DefaultExperimentStoreInterface
 	objectStore                 storage.ObjectStoreInterface
+	objectPaths             storage.ObjectPathsInterface
 	workflowClientFake          *FakeWorkflowClient
 	scheduledWorkflowClientFake *FakeScheduledWorkflowClient
 	podClientFake               v1.PodInterface
@@ -74,6 +75,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		dBStatusStore:               storage.NewDBStatusStore(db),
 		defaultExperimentStore:      storage.NewDefaultExperimentStore(db),
 		objectStore:                 storage.NewFakeObjectStore(),
+		objectPaths:             storage.NewObjectPaths("pipelines"),
 		scheduledWorkflowClientFake: NewScheduledWorkflowClientFake(),
 		podClientFake:               FakePodClient{},
 		time:                        time,
@@ -100,6 +102,10 @@ func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
 
 func (f *FakeClientManager) ObjectStore() storage.ObjectStoreInterface {
 	return f.objectStore
+}
+
+func (c *FakeClientManager) ObjectPaths() storage.ObjectPathsInterface {
+	return c.objectPaths
 }
 
 func (f *FakeClientManager) Time() util.TimeInterface {

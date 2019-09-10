@@ -16,13 +16,23 @@ package storage
 
 import (
 	"path"
-
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 )
 
-var pipelineFolder string = common.GetStringConfigWithDefault("ObjectStoreConfig.PipelineFolder", "pipelines")
+// Interface for getting path for different objects in the object store.
+type ObjectPathsInterface interface {
+	GetPipelinePath(pipelineID string) string
+}
 
-// CreatePipelinePath creates object store path to a pipeline spec.
-func CreatePipelinePath(pipelineID string) string {
-	return path.Join(pipelineFolder, pipelineID)
+// how to store various objects in the object store
+type ObjectPaths struct {
+	pipelineFolder string
+}
+
+// GetPipelinePath return the object store path to a pipeline spec.
+func (p *ObjectPaths) GetPipelinePath(pipelineID string) string {
+	return path.Join(p.pipelineFolder, pipelineID)
+}
+
+func NewObjectPaths(pipelineFolder string) *ObjectPaths {
+	return &ObjectPaths{pipelineFolder: pipelineFolder}
 }
