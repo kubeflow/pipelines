@@ -17,7 +17,7 @@ from collections import defaultdict
 import inspect
 import tarfile
 import zipfile
-from typing import Set, List, Text, Dict
+from typing import Any, Callable, Set, List, Text, Dict
 
 import yaml
 from kfp.dsl import _container_op, _for_loop
@@ -714,9 +714,18 @@ class Compiler(object):
       sanitized_ops[sanitized_name] = op
     pipeline.ops = sanitized_ops
 
-  def _compile(self, pipeline_func):
-    """Compile the given pipeline function into workflow."""
-    # Step 1: extract param value, name and description from pipeline_func signature and decoration.
+  def create_workflow(self,
+      pipeline_func: Callable,
+      params_list: List[dsl.PipelineParam]=None) -> Dict[Text, Any]:
+    """ Create workflow dict from pipeline function and specified pipeline
+    params. Currently, the pipeline params are either specified in the signature
+    of the pipeline function or by passing a list of dsl.PipelineParam.
+    Conflict will cause ValueError.
+
+    :param pipeline_func: pipeline function where ContainerOps are invoked.
+    :param params_list: list of pipeline params to append to the pipeline.
+    :return: workflow dict.
+    """
     argspec = inspect.getfullargspec(pipeline_func)
 
     # Create the arg list with no default values and call pipeline function.
@@ -724,40 +733,52 @@ class Compiler(object):
     pipeline_meta = _extract_pipeline_metadata(pipeline_func)
     pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_meta.name)
 
-    args_list = []
-    for arg_name in argspec.args:
-      arg_type = None
-      for input in pipeline_meta.inputs:
-        if arg_name == input.name:
-          arg_type = input.param_type
-          break
-      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
+    # Currently only allow specifying pipeline params at one place.
+    if params_list and pipeline_meta.inputs:
+      raise ValueError('Only support specifying params by pipeline function signature, or params_list')
 
-    # Step 2: Inflate pipeline obj with ContainerOps.
-    with dsl.Pipeline(pipeline_name) as p:
+    args_list = []
+    if pipeline_meta.inputs:
+      for arg_name in argspec.args:
+        arg_type = None
+        for input in pipeline_meta.inputs:
+          if arg_name == input.name:
+            arg_type = input.param_type
+            break
+        args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
+
+    with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
 
-    # Step 3: post process. Fill in the default value for pipeline params.
-    # Remove when argo supports local exit handler.
-    self._validate_exit_handler(p)
+    self._validate_exit_handler(dsl_pipeline)
+    self._sanitize_and_inject_artifact(dsl_pipeline)
 
     # Fill in the default values.
-    args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
-                               for arg_name in argspec.args]
-    if argspec.defaults:
-      for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
-        arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
-
-    self._sanitize_and_inject_artifact(p)
+    if pipeline_meta.inputs:
+      args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
+                                 for arg_name in argspec.args]
+      if argspec.defaults:
+        for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
+          arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+    else:
+      args_list_with_defaults = params_list
 
     op_transformers = [add_pod_env]
-    op_transformers.extend(p.conf.op_transformers)
-    workflow = self._create_pipeline_workflow(args_list_with_defaults, p, op_transformers)
+    op_transformers.extend(dsl_pipeline.conf.op_transformers)
+
+    workflow = self._create_pipeline_workflow(
+        args_list_with_defaults,
+        dsl_pipeline,
+        op_transformers)
 
     import json
     workflow.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
 
     return workflow
+
+  def _compile(self, pipeline_func):
+    """Compile the given pipeline function into workflow."""
+    return self.create_workflow(pipeline_func, [])
 
   def compile(self, pipeline_func, package_path, type_check=True):
     """Compile the given pipeline function into workflow yaml.
