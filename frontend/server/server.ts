@@ -61,6 +61,14 @@ const {
   METADATA_ENVOY_SERVICE_SERVICE_HOST = 'localhost',
   /** Envoy service will listen to this port */
   METADATA_ENVOY_SERVICE_SERVICE_PORT = '9090',
+  /** Is Argo log archive enabled? */
+  ARGO_ARCHIVE_LOGS = "false",
+  /** Use minio or s3 client to retrieve archives. */
+  ARGO_ARCHIVE_ARTIFACTORY = 'minio',
+  /** Bucket to retrive logs from */
+  ARGO_ARCHIVE_BUCKETNAME = 'mlpipeline',
+  /** Prefix to logs. */
+  ARGO_ARCHIVE_PREFIX = 'logs',
 } = process.env;
 
 /** construct minio endpoint from host and namespace (optional) */
@@ -87,6 +95,13 @@ const s3Client = new MinioClient({
 
 /** pod template spec to use for viewer crd */
 const podTemplateSpec = loadJSON(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH, k8sHelper.defaultPodTemplateSpec)
+
+/** helper function to retrieve pod logs from argo artifactory. */
+const getPodLogsFromArtifactory = _as_bool(ARGO_ARCHIVE_LOGS) ? k8sHelper.getPodLogsFromArtifactoryHelper(
+  ARGO_ARCHIVE_ARTIFACTORY==='minio' ? minioClient : s3Client,
+  ARGO_ARCHIVE_BUCKETNAME,
+  ARGO_ARCHIVE_PREFIX
+) : undefined;
 
 const app = express() as Application;
 
@@ -316,6 +331,18 @@ const logsHandler = async (req, res) => {
   try {
     res.send(await k8sHelper.getPodLogs(podName));
   } catch (err) {
+    // try argo archive if cannot retrieve from k8s pod
+    if (!!getPodLogsFromArtifactory) {
+      try {
+        let stream = await getPodLogsFromArtifactory(podName);
+        stream.pipe(res);
+        return;
+      } catch (archiveErr) {
+        res.status(500).send(
+          `Could not get main container logs: ${err}\nCould not get main container logs from archive: ${archiveErr}`);
+        return;
+      }
+    }
     res.status(500).send('Could not get main container logs: ' + err);
   }
 };
