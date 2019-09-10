@@ -105,6 +105,9 @@ properties:
   managedstorage.cloudsqlInstanceConnectionName:
     type: string
     title: CloudSQL instance connection name. Format projectId:zone:instanceName
+  managedstorage.dbUsername:
+    type: string
+    title: database username
   managedstorage.dbPassword:
     type: string
     title: database password
