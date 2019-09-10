@@ -719,7 +719,7 @@ class Compiler(object):
       pipeline_name: Text,
       pipeline_description: Text=None,
       params_list: List[dsl.PipelineParam]=None) -> Dict[Text, Any]:
-    """ Create workflow dict from pipeline function and specified pipeline
+    """ Create workflow spec from pipeline function and specified pipeline
     params/metadata. Currently, the pipeline params are either specified in
     the signature of the pipeline function or by passing a list of
     dsl.PipelineParam. Conflict will cause ValueError.
