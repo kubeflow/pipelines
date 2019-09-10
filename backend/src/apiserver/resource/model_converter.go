@@ -112,17 +112,18 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 }
 
 func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (*model.PipelineVersion, error) {
-	var codeSource model.CodeSource
-	if version.CodeSource != nil {
-		if version.CodeSource.GithubRepo != nil {
-			codeSource.RepoName = version.CodeSource.GithubRepo.RepoName
-			codeSource.CommitSHA = version.CodeSource.GithubRepo.CommitSha
+	codeSources := make([]byte, 0)
+	if version.CodeSourceLinks != nil && len(version.CodeSourceLinks) > 0 {
+		for _, codeSource := range version.CodeSourceLinks {
+			codeSources = append(codeSources, codeSource...)
 		}
 	}
 
-	var url string
-	if version.Url != nil {
-		url = version.Url.PipelineUrl
+	packageSources := make([]byte, 0)
+	if version.PackageSourceLinks != nil && len(version.PackageSourceLinks) > 0 {
+		for _, packageSource := range version.PackageSourceLinks {
+			packageSources = append(packageSources, packageSource...)
+		}
 	}
 
 	paramStr, err := toModelParameters(version.Parameters)
@@ -131,13 +132,13 @@ func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (
 	}
 
 	return &model.PipelineVersion{
-		UUID:           string(version.Id),
-		Name:           version.Name,
-		CreatedAtInSec: version.CreatedAt.Seconds,
-		Parameters:     paramStr,
-		PipelineId:     version.PipelineSpec.PipelineId,
-		CodeSource:     codeSource,
-		URL:            url,
+		UUID:               string(version.Id),
+		Name:               version.Name,
+		CreatedAtInSec:     version.CreatedAt.Seconds,
+		Parameters:         paramStr,
+		PipelineId:         version.PipelineSpec.PipelineId,
+		CodeSourceLinks:    string(codeSources),
+		PackageSourceLinks: string(packageSources),
 	}, nil
 }
 

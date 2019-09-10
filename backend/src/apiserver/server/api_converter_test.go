@@ -31,35 +31,25 @@ func TestToApiPipeline(t *testing.T) {
 		CreatedAtInSec: 1,
 		Parameters:     "[]",
 		DefaultVersion: &model.PipelineVersion{
-			UUID:	"pipelineversion1",
-			CreatedAtInSec: 1,
-			Parameters: "[]",
-			PipelineId: "pipeline1",
-			CodeSource: model.CodeSource{
-				RepoName: "repo",
-				CommitSHA: "sha",
-			},
-			URL: "url",
+			UUID:               "pipelineversion1",
+			CreatedAtInSec:     1,
+			Parameters:         "[]",
+			PipelineId:         "pipeline1",
+			CodeSourceLinks:    "http://repo/22222",
+			PackageSourceLinks: "http://storage/22222",
 		},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
 	expectedApiPipeline := &api.Pipeline{
-		Id:             "pipeline1",
-		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
+		Id:         "pipeline1",
+		CreatedAt:  &timestamp.Timestamp{Seconds: 1},
 		Parameters: []*api.Parameter{},
 		DefaultVersion: &api.PipelineVersion{
-			Id:			"pipelineversion1",
-			CreatedAt: &timestamp.Timestamp{Seconds: 1},
-			Parameters: []*api.Parameter{},
-			CodeSource: &api.CodeSource{
-				GithubRepo: &api.CodeSource_GithubRepo {
-					RepoName: "repo",
-					CommitSha: "sha",
-				},
-			},
-			Url: &api.Url{
-				PipelineUrl: "url",
-			},
+			Id:                 "pipelineversion1",
+			CreatedAt:          &timestamp.Timestamp{Seconds: 1},
+			Parameters:         []*api.Parameter{},
+			CodeSourceLinks:    []string{"http://repo/22222"},
+			PackageSourceLinks: []string{"http://storage/22222"},
 			PipelineSpec: &api.PipelineSpec{
 				PipelineId: "pipeline1",
 			},

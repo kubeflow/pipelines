@@ -38,15 +38,13 @@ type PipelineVersion struct {
 	// deleted from PipelineVersion table.
 	PipelineId string                `gorm:"column:PipelineId; not null;index;"`
 	Status     PipelineVersionStatus `gorm:"column:VersionStatus; not null"`
-	// PipelineVersion can be based on a git commit or a package stored at some
-	// url.
-	URL string `gorm:"column:URL`
-	CodeSource
-}
-
-type CodeSource struct {
-	RepoName  string `gorm:"column:RepoName"`
-	CommitSHA string `gorm:"column:CommitSHA"`
+	// PipelineVersion can be based on either code snapshots or packages. We
+	// allow multiple code snapshot references and multiple package references
+	// for a single PipelineVersion.
+	// CodeSourceLinks stores URL links to code snapshorts, separated by ";"
+	// PackageLinks stores URL links to package storages, separated by ";"
+	CodeSourceLinks    string `gorm:"column:CodeSourceLinks`
+	PackageSourceLinks string `gorm:"column:PackageSourceLinks`
 }
 
 func (p PipelineVersion) GetValueOfPrimaryKey() string {

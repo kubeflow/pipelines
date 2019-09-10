@@ -28,7 +28,7 @@ type Run struct {
 	Metrics            []*RunMetric
 	ResourceReferences []*ResourceReference
 	PipelineSpec
-	PipelineVersionSpec
+	// PipelineVersionSpec
 }
 
 type PipelineRuntime struct {

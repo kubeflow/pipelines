@@ -16,6 +16,7 @@ package server
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -86,46 +87,23 @@ func ToApiVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) 
 	}
 
 	return &api.PipelineVersion{
-		Id:         version.UUID,
-		Name:       version.Name,
-		CreatedAt:  &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
-		Parameters: params,
-		CodeSource: ToApiCodeSource(&version.CodeSource),
-		Url: ToApiUrl(version.URL),
+		Id:                 version.UUID,
+		Name:               version.Name,
+		CreatedAt:          &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
+		Parameters:         params,
+		CodeSourceLinks:    ToApiSources(&version.CodeSourceLinks),
+		PackageSourceLinks: ToApiSources(&version.PackageSourceLinks),
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId: version.PipelineId,
 		},
 	}, nil
 }
 
-func ToApiCodeSource(codeSource *model.CodeSource) *api.CodeSource {
-	if codeSource == nil {
+func ToApiSources(sources *string) []string {
+	if sources == nil || len(*sources) == 0 {
 		return nil
 	}
-
-	var apiCodeSource api.CodeSource
-	if len(codeSource.CommitSHA) > 0 && len(codeSource.CommitSHA) > 0 {
-		apiCodeSource.GithubRepo = &api.CodeSource_GithubRepo{
-			RepoName: codeSource.RepoName,
-			CommitSha: codeSource.CommitSHA,
-		}
-	}
-
-	if apiCodeSource.GithubRepo != nil {
-		return &apiCodeSource
-	} else {
-		return nil
-	}
-}
-
-func ToApiUrl(url string) *api.Url {
-	if len(url) > 0 {
-		return &api.Url{
-			PipelineUrl: url,
-		}
-	} else {
-		return nil
-	}
+	return strings.Split(*sources, ";")
 }
 
 func ToApiVersions(versions []*model.PipelineVersion) ([]*api.PipelineVersion, error) {

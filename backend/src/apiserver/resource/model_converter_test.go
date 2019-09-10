@@ -235,18 +235,11 @@ func TestToModelPipelineVersion(t *testing.T) {
 	store, manager := initResourceManager()
 	defer store.Close()
 	apiPipelineVersion := &api.PipelineVersion{
-		Id:			"pipelineversion1",
-		CreatedAt: &timestamp.Timestamp{Seconds: 1},
-		Parameters: []*api.Parameter{},
-		CodeSource: &api.CodeSource{
-			GithubRepo: &api.CodeSource_GithubRepo {
-				RepoName: "repo",
-				CommitSha: "commit",
-			},
-		},
-		Url: &api.Url{
-			PipelineUrl: "url",
-		},
+		Id:                 "pipelineversion1",
+		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
+		Parameters:         []*api.Parameter{},
+		CodeSourceLinks:    []string{"http://repo/11111"},
+		PackageSourceLinks: []string{"http://storage/11111"},
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId: "pipeline1",
 		},
@@ -256,15 +249,12 @@ func TestToModelPipelineVersion(t *testing.T) {
 		apiPipelineVersion)
 
 	expectedModelPipelineVersion := &model.PipelineVersion{
-		UUID:	"pipelineversion1",
-		CreatedAtInSec: 1,
-		Parameters: "",
-		PipelineId: "pipeline1",
-		CodeSource: model.CodeSource{
-			RepoName: "repo",
-			CommitSHA: "commit",
-		},
-		URL: "url",
+		UUID:               "pipelineversion1",
+		CreatedAtInSec:     1,
+		Parameters:         "",
+		PipelineId:         "pipeline1",
+		CodeSourceLinks:    "http://repo/11111",
+		PackageSourceLinks: "http://storage/11111",
 	}
 
 	assert.Equal(t, convertedModelPipelineVersion, expectedModelPipelineVersion)
