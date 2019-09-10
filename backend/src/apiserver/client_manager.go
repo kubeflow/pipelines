@@ -22,11 +22,11 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -37,6 +37,8 @@ import (
 const (
 	minioServiceHost       = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort       = "MINIO_SERVICE_SERVICE_PORT"
+	pipelineBucketName     = "MINIO_PIPELINE_BUCKET_NAME"
+	pipelineFolder         = "MINIO_PIPELINE_FOLDER"
 	mysqlServiceHost       = "DBConfig.Host"
 	mysqlServicePort       = "DBConfig.Port"
 	mysqlUser              = "DBConfig.User"
@@ -311,14 +313,15 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
 	accessKey := common.GetStringConfig("ObjectStoreConfig.AccessKey")
 	secretKey := common.GetStringConfig("ObjectStoreConfig.SecretAccessKey")
-	bucketName := common.GetStringConfig("ObjectStoreConfig.BucketName")
+	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", os.Getenv(pipelineBucketName))
+	pipelineFolder := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelineFolder", os.Getenv(pipelineFolder))
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
 		secretKey, initConnectionTimeout)
 	createMinioBucket(minioClient, bucketName)
 
-	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, disableMultipart)
+	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelineFolder, disableMultipart)
 }
 
 func createMinioBucket(minioClient *minio.Client, bucketName string) {
