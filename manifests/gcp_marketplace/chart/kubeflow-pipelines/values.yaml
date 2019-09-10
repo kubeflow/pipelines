@@ -30,4 +30,5 @@ managedstorage:
   enabled: false
   cloudsqlInstanceConnectionName: null
   databaseNamePrefix: null
+  dbUsername: 'root'
   dbPassword: null
