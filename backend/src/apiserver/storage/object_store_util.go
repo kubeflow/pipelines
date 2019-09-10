@@ -14,11 +14,13 @@
 
 package storage
 
-import "path"
+import (
+	"path"
 
-const (
-	pipelineFolder = "pipelines"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 )
+
+var pipelineFolder string = common.GetStringConfigWithDefault("ObjectStoreConfig.PipelineFolder", "pipelines")
 
 // CreatePipelinePath creates object store path to a pipeline spec.
 func CreatePipelinePath(pipelineID string) string {

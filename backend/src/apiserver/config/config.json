@@ -7,7 +7,8 @@
   "ObjectStoreConfig":{
     "AccessKey": "minio",
     "SecretAccessKey": "minio123",
-    "BucketName": "mlpipeline"
+    "BucketName": "mlpipeline",
+    "PipelineFolder": "pipelines"
   },
   "InitConnectionTimeout": "6m",
   "DefaultPipelineRunnerServiceAccount": "pipeline-runner"
