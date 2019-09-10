@@ -88,6 +88,7 @@ def file_injection(file_in, tmp_file_out, subs):
 
   os.rename(tmp_file_out, file_in)
 
+# TODO(Issue#2076): Currently broken, further investigation needed.
 def upload_blob(bucket_name, source_file_name, destination_blob_name):
   """Uploads a file to the bucket."""
   storage_client = storage.Client()
