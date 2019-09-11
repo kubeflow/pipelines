@@ -179,6 +179,28 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
       # print(tmpdir)
 
+  def test_basic_workflow_without_decorator(self):
+    """Test compiling a workflow and appending pipeline params."""
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+    import basic_no_decorator
+    tmpdir = tempfile.mkdtemp()
+    try:
+      compiled_workflow = compiler.Compiler().create_workflow(
+          basic_no_decorator.save_most_frequent_word,
+          'Save Most Frequent',
+          'Get Most Frequent Word and Save to GCS',
+          [
+            basic_no_decorator.message_param,
+            basic_no_decorator.output_path_param
+          ])
+      with open(os.path.join(test_data_dir, 'basic_no_decorator.yaml'), 'r') as f:
+        golden = yaml.safe_load(f)
+
+      self.assertEqual(golden, compiled_workflow)
+    finally:
+      shutil.rmtree(tmpdir)
+
   def test_composing_workflow(self):
     """Test compiling a simple workflow, and a bigger one composed from the simple one."""
 
