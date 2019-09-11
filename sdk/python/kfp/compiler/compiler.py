@@ -714,9 +714,9 @@ class Compiler(object):
       sanitized_ops[sanitized_name] = op
     pipeline.ops = sanitized_ops
 
-  def create_workflow_from_func(self,
+  def create_workflow(self,
       pipeline_func: Callable,
-      pipeline_name: Text,
+      pipeline_name: Text=None,
       pipeline_description: Text=None,
       params_list: List[dsl.PipelineParam]=()) -> Dict[Text, Any]:
     """ Create workflow spec from pipeline function and specified pipeline
@@ -741,7 +741,7 @@ class Compiler(object):
 
     # Currently only allow specifying pipeline params at one place.
     if params_list and pipeline_meta.inputs:
-      raise ValueError('Only support specifying params by pipeline function signature, or params_list')
+      raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
     args_list = []
     if pipeline_meta.inputs:
@@ -793,7 +793,7 @@ class Compiler(object):
 
   def _compile(self, pipeline_func):
     """Compile the given pipeline function into workflow."""
-    return self.create_workflow_from_func(pipeline_func, [])
+    return self.create_workflow(pipeline_func, [])
 
   def compile(self, pipeline_func, package_path, type_check=True):
     """Compile the given pipeline function into workflow yaml.

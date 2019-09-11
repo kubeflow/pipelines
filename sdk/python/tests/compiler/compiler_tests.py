@@ -186,7 +186,7 @@ class TestCompiler(unittest.TestCase):
     import basic_no_decorator
     tmpdir = tempfile.mkdtemp()
     try:
-      compiled_workflow = compiler.Compiler().create_workflow_from_func(
+      compiled_workflow = compiler.Compiler().create_workflow(
           basic_no_decorator.save_most_frequent_word,
           'Save Most Frequent',
           'Get Most Frequent Word and Save to GCS',
