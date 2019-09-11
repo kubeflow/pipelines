@@ -35,11 +35,11 @@ class TestPythonComponent(unittest.TestCase):
 
     containerOp = componentA(1,2,c=3)
 
-    golden_meta = ComponentMeta(name='componentA', description='')
-    golden_meta.inputs.append(ParameterMeta(name='a', description='', param_type={'ArtifactA': {'file_type': 'csv'}}))
-    golden_meta.inputs.append(ParameterMeta(name='b', description='', param_type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default=12))
-    golden_meta.inputs.append(ParameterMeta(name='c', description='', param_type={'ArtifactB': {'path_type':'file', 'file_type': 'tsv'}}, default='gs://hello/world'))
-    golden_meta.outputs.append(ParameterMeta(name='model', description='', param_type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}))
+    golden_meta = ComponentMeta(name='componentA')
+    golden_meta.inputs.append(ParameterMeta(name='a', param_type={'ArtifactA': {'file_type': 'csv'}}))
+    golden_meta.inputs.append(ParameterMeta(name='b', param_type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default=12))
+    golden_meta.inputs.append(ParameterMeta(name='c', param_type={'ArtifactB': {'path_type':'file', 'file_type': 'tsv'}}, default='gs://hello/world'))
+    golden_meta.outputs.append(ParameterMeta(name='model', param_type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}))
 
     self.assertEqual(containerOp._metadata, golden_meta)
 
