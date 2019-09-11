@@ -745,16 +745,12 @@ class Compiler(object):
 
     args_list = []
     if pipeline_meta.inputs:
+      input_types = {
+        input.name : input.param_type for input in pipeline_meta.inputs }
+
       for arg_name in argspec.args:
-        arg_type = None
-        for input in pipeline_meta.inputs:
-          if arg_name == input.name:
-            arg_type = input.param_type
-            break
-        args_list.append(
-            dsl.PipelineParam(
-                K8sHelper.sanitize_k8s_name(arg_name),
-                param_type=arg_type))
+        arg_type = input_types.get(arg_name, None)
+        args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
@@ -770,6 +766,7 @@ class Compiler(object):
         for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
           arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
     else:
+      # Or, if args are provided by params_list, fill in pipeline_meta.
       args_list_with_defaults = params_list
       pipeline_meta.inputs = [
         ParameterMeta(
