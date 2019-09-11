@@ -17,7 +17,7 @@ from collections import defaultdict
 import inspect
 import tarfile
 import zipfile
-from typing import Set, List, Text, Dict
+from typing import Any, Callable, Set, List, Text, Dict
 
 import yaml
 from kfp.dsl import _container_op, _for_loop
@@ -27,7 +27,7 @@ from ._k8s_helper import K8sHelper
 from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
-from ..dsl._metadata import _extract_pipeline_metadata
+from ..dsl._metadata import ParameterMeta, _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
 
@@ -714,50 +714,83 @@ class Compiler(object):
       sanitized_ops[sanitized_name] = op
     pipeline.ops = sanitized_ops
 
-  def _compile(self, pipeline_func):
-    """Compile the given pipeline function into workflow."""
-    # Step 1: extract param value, name and description from pipeline_func signature and decoration.
+  def create_workflow(self,
+      pipeline_func: Callable,
+      pipeline_name: Text=None,
+      pipeline_description: Text=None,
+      params_list: List[dsl.PipelineParam]=()) -> Dict[Text, Any]:
+    """ Create workflow spec from pipeline function and specified pipeline
+    params/metadata. Currently, the pipeline params are either specified in
+    the signature of the pipeline function or by passing a list of
+    dsl.PipelineParam. Conflict will cause ValueError.
+
+    :param pipeline_func: pipeline function where ContainerOps are invoked.
+    :param pipeline_name:
+    :param pipeline_description:
+    :param params_list: list of pipeline params to append to the pipeline.
+    :return: workflow dict.
+    """
     argspec = inspect.getfullargspec(pipeline_func)
 
     # Create the arg list with no default values and call pipeline function.
     # Assign type information to the PipelineParam
     pipeline_meta = _extract_pipeline_metadata(pipeline_func)
+    pipeline_meta.name = pipeline_name or pipeline_meta.name
+    pipeline_meta.description = pipeline_description or pipeline_meta.description
     pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_meta.name)
 
-    args_list = []
-    for arg_name in argspec.args:
-      arg_type = None
-      for input in pipeline_meta.inputs:
-        if arg_name == input.name:
-          arg_type = input.param_type
-          break
-      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
+    # Currently only allow specifying pipeline params at one place.
+    if params_list and pipeline_meta.inputs:
+      raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
-    # Step 2: Inflate pipeline obj with ContainerOps.
-    with dsl.Pipeline(pipeline_name) as p:
+    args_list = []
+    if pipeline_meta.inputs:
+      input_types = {
+        input.name : input.param_type for input in pipeline_meta.inputs }
+
+      for arg_name in argspec.args:
+        arg_type = input_types.get(arg_name, None)
+        args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
+
+    with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
 
-    # Step 3: post process. Fill in the default value for pipeline params.
-    # Remove when argo supports local exit handler.
-    self._validate_exit_handler(p)
+    self._validate_exit_handler(dsl_pipeline)
+    self._sanitize_and_inject_artifact(dsl_pipeline)
 
     # Fill in the default values.
-    args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
-                               for arg_name in argspec.args]
-    if argspec.defaults:
-      for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
-        arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
-
-    self._sanitize_and_inject_artifact(p)
+    if pipeline_meta.inputs:
+      args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
+                                 for arg_name in argspec.args]
+      if argspec.defaults:
+        for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
+          arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+    else:
+      # Or, if args are provided by params_list, fill in pipeline_meta.
+      args_list_with_defaults = params_list
+      pipeline_meta.inputs = [
+        ParameterMeta(
+            name=param.name,
+            description='',
+            param_type=param.param_type,
+            default=param.value) for param in params_list]
 
     op_transformers = [add_pod_env]
-    op_transformers.extend(p.conf.op_transformers)
-    workflow = self._create_pipeline_workflow(args_list_with_defaults, p, op_transformers)
+    op_transformers.extend(dsl_pipeline.conf.op_transformers)
+
+    workflow = self._create_pipeline_workflow(
+        args_list_with_defaults,
+        dsl_pipeline,
+        op_transformers)
 
     import json
     workflow.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
 
     return workflow
+
+  def _compile(self, pipeline_func):
+    """Compile the given pipeline function into workflow."""
+    return self.create_workflow(pipeline_func, [])
 
   def compile(self, pipeline_func, package_path, type_check=True):
     """Compile the given pipeline function into workflow yaml.
