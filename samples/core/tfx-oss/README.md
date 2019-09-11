@@ -42,7 +42,7 @@ Modify the pipeline configurations at
 TFX Example.ipynb
 ```
 Configure 
-- Set `_input_bucket` to the GCS directory where you've copied taxi_utils.py. I.e. gs://<my bucket>/<path>/
+- Set `_input_bucket` to the GCS directory where you've copied taxi_utils.py. I.e. `gs://<my bucket>/<path>/`
 - Set `_output_bucket` to the GCS directory where you've want the results to be written
 - Set GCP project ID (replace my-gcp-project). Note that it should be project ID, not project name.
 - The original BigQuery dataset has 100M rows, which can take time to process. Modify the selection criteria (% of records) to run a sample test. 
