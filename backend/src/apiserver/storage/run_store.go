@@ -400,9 +400,6 @@ func (s *RunStore) UpdateRun(runID string, condition string, finishedAtInSec int
 	if r > 1 {
 		tx.Rollback()
 		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", runID)
-	} else if r == 0 {
-		tx.Rollback()
-		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. Row not found", runID)
 	}
 
 	if err := tx.Commit(); err != nil {
