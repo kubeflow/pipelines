@@ -561,6 +561,22 @@ kind: Service
 metadata:
   labels:
     app: metadata
+  name: metadata-envoy-service
+  namespace: kubeflow
+spec:
+  ports:
+  - name: md-envoy
+    port: 9090
+    protocol: TCP
+  selector:
+    component: metadata-envoy
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: metadata
   name: metadata-service
   namespace: kubeflow
 spec:
@@ -645,6 +661,78 @@ spec:
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
+  labels:
+    component: metadata-server
+  name: metadata-deployment
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-server
+  template:
+    metadata:
+      labels:
+        component: metadata-server
+    spec:
+      containers:
+      - args:
+        - --grpc_port=8080
+        - --mysql_config_host=mysql
+        - --mysql_config_database=metadb
+        - --mysql_config_port=3306
+        - --mysql_config_user=$(DBCONFIG_USER)
+        - --mysql_config_password=$(DBCONFIG_PASSWORD)
+        command:
+        - /bin/metadata_store_server
+        env:
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: mysql-credential
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: mysql-credential
+        image: gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0
+        name: container
+        ports:
+        - containerPort: 8080
+          name: md-backendapi
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    component: metadata-envoy
+  name: metadata-envoy
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-envoy
+  template:
+    metadata:
+      labels:
+        component: metadata-envoy
+    spec:
+      containers:
+      - image: gcr.io/ml-pipeline/envoy:initial
+        name: container
+        ports:
+        - containerPort: 9090
+          name: md-envoy
+        - containerPort: 9901
+          name: envoy-admin
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    app: minio
   name: minio
   namespace: kubeflow
 spec:
@@ -699,11 +787,10 @@ spec:
       containers:
       - env:
         - name: NAMESPACE
-          value: kubeflow
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: gcr.io/ml-pipeline/persistenceagent:0.1.27
+        image: gcr.io/ml-pipeline/persistenceagent:0.1.29
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-persistenceagent
       serviceAccountName: ml-pipeline-persistenceagent
@@ -727,11 +814,10 @@ spec:
       containers:
       - env:
         - name: NAMESPACE
-          value: kubeflow
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: gcr.io/ml-pipeline/scheduledworkflow:0.1.27
+        image: gcr.io/ml-pipeline/scheduledworkflow:0.1.29
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-scheduledworkflow
       serviceAccountName: ml-pipeline-scheduledworkflow
@@ -755,11 +841,10 @@ spec:
       containers:
       - env:
         - name: MINIO_NAMESPACE
-          value: kubeflow
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: gcr.io/ml-pipeline/frontend:0.1.27
+        image: gcr.io/ml-pipeline/frontend:0.1.29
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-ui
         ports:
@@ -790,7 +875,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: gcr.io/ml-pipeline/viewer-crd-controller:0.1.27
+        image: gcr.io/ml-pipeline/viewer-crd-controller:0.1.29
         imagePullPolicy: Always
         name: ml-pipeline-viewer-crd
       serviceAccountName: ml-pipeline-viewer-crd-service-account
@@ -812,7 +897,7 @@ spec:
         app: ml-pipeline-visualizationserver
     spec:
       containers:
-      - image: gcr.io/ml-pipeline/visualization-server:0.1.26
+      - image: gcr.io/ml-pipeline/visualization-server:0.1.29
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-visualizationserver
         ports:
@@ -840,7 +925,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        image: gcr.io/ml-pipeline/api-server:0.1.27
+        image: gcr.io/ml-pipeline/api-server:0.1.29
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-api-server
         ports:
@@ -851,6 +936,8 @@ spec:
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
+  labels:
+    app: mysql
   name: mysql
   namespace: kubeflow
 spec:
@@ -898,7 +985,7 @@ spec:
         app: proxy-agent
     spec:
       containers:
-      - image: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.27
+      - image: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.29
         imagePullPolicy: IfNotPresent
         name: proxy-agent
       serviceAccountName: proxy-agent-runner
@@ -955,36 +1042,6 @@ spec:
       serviceAccount: argo
       serviceAccountName: argo
       terminationGracePeriodSeconds: 30
----
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  labels:
-    component: metadata-server
-  name: metadata-deployment
-  namespace: kubeflow
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      component: metadata-server
-  template:
-    metadata:
-      labels:
-        component: metadata-server
-    spec:
-      containers:
-      - command:
-        - ./server/server
-        - --http_port=8080
-        - --mysql_service_host=mysql
-        - --mysql_service_port=3306
-        - --mlmd_db_name=metadb
-        image: gcr.io/kubeflow-images-public/metadata:v0.1.8
-        name: container
-        ports:
-        - containerPort: 8080
-          name: md-backendapi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
