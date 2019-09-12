@@ -90,7 +90,7 @@ class PySampleChecker(object):
       self._run_pipeline = raw_args['run_pipeline']
 
     try:
-      config_file = os.path.join(CONFIG_DIR, '%s.config.yaml' % self._test_name)
+      config_file = os.path.join(CONFIG_DIR, '%s.config.yaml' % self._testname)
       with open(config_file, 'r') as f:
         raw_args = yaml.safe_load(f)
       test_config = yamale.make_data(config_file)
