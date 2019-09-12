@@ -48,7 +48,22 @@ kubectl port-forward -n kubeflow svc/ml-pipeline-ui 8080:80
 ```
 and open http://localhost:8080/
 
+## Configure Metadata Server
 
+The Pipeline metadata server deployment requires mysql credentials to be
+configured as Kubernetes Secrets. Following command can be used to create the
+required secret object.
+
+```
+kubectl create secret generic mysql-credential --namespace <your-namespace> --from-literal=username=<your-mysql-username> --from-literal=password=<your-mysql-password>
+```
+
+Note: The name of the kubernetes secret, keys are  specified in [metadata-deployment.yaml](./base/metadata/metadata-deployment.yaml)
+If for any reason these names have to be changed, the [metadata-deployment.yaml](./base/metadata/metadata-deployment.yaml)
+also needs to be updated correspondingly.
+
+Similarly other mysql configurations such as database can also be updated in
+[metadata-deployment.yaml](./base/metadata/metadata-deployment.yaml)
 
 ## Uninstall
 You can uninstall Kubeflow Pipelines by running
