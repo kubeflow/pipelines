@@ -699,7 +699,6 @@ spec:
       containers:
       - env:
         - name: NAMESPACE
-          value: kubeflow
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
@@ -727,7 +726,6 @@ spec:
       containers:
       - env:
         - name: NAMESPACE
-          value: kubeflow
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
@@ -755,7 +753,6 @@ spec:
       containers:
       - env:
         - name: MINIO_NAMESPACE
-          value: kubeflow
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
