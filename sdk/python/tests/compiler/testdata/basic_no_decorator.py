@@ -18,7 +18,7 @@ import kfp.gcp as gcp
 
 
 message_param = dsl.PipelineParam(name='message')
-output_path_param = dsl.PipelineParam(name='outputpath')
+output_path_param = dsl.PipelineParam(name='outputpath', value='default_output')
 
 class GetFrequentWordOp(dsl.ContainerOp):
   """A get frequent word class representing a component in ML Pipelines.

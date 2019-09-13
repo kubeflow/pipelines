@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-import google
 import os
 import re
 import subprocess
 
-from google.cloud import storage
 from minio import Minio
 from junit_xml import TestSuite, TestCase
 
@@ -87,4 +85,3 @@ def file_injection(file_in, tmp_file_out, subs):
         fout.write(tmp_line)
 
   os.rename(tmp_file_out, file_in)
-
