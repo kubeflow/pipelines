@@ -90,10 +90,10 @@ class PySampleChecker(object):
       self._run_pipeline = raw_args['run_pipeline']
 
     try:
-      with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._testname), 'r') as f:
+      config_file = os.path.join(CONFIG_DIR, '%s.config.yaml' % self._testname)
+      with open(config_file, 'r') as f:
         raw_args = yaml.safe_load(f)
-      test_config = yamale.make_data(os.path.join(
-        CONFIG_DIR, '%s.config.yaml' % self._testname))
+      test_config = yamale.make_data(config_file)
       yamale.validate(config_schema, test_config)  # If fails, a ValueError will be raised.
     except yaml.YAMLError as yamlerr:
       print('No legit yaml config file found, use default args:{}'.format(yamlerr))

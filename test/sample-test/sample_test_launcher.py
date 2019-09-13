@@ -103,10 +103,10 @@ class SampleTest(object):
       nb_params = {}
 
       try:
-        with open(os.path.join(CONFIG_DIR, '%s.config.yaml' % self._test_name), 'r') as f:
+        config_file = os.path.join(CONFIG_DIR, '%s.config.yaml' % self._test_name)
+        with open(config_file, 'r') as f:
           raw_args = yaml.safe_load(f)
-        test_config = yamale.make_data(os.path.join(
-          CONFIG_DIR, '%s.config.yaml' % self._test_name))
+        test_config = yamale.make_data(config_file)
         yamale.validate(config_schema, test_config)  # If fails, a ValueError will be raised.
       except yaml.YAMLError as yamlerr:
         print('No legit yaml config file found, use default args:{}'.format(yamlerr))
@@ -115,6 +115,8 @@ class SampleTest(object):
       else:
         if 'notebook_params' in raw_args.keys():
           nb_params.update(raw_args['notebook_params'])
+          if 'output' in raw_args['notebook_params'].keys():  # output is a special param that has to be specified dynamically.
+            nb_params['output'] = self._sample_test_output
         if 'run_pipeline' in raw_args.keys():
           self._run_pipeline = raw_args['run_pipeline']
 
