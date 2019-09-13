@@ -26,7 +26,7 @@ spec:
         spec:
           containers:
           - name: tensorflow
-            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:151c5349f13bea9d626c988563c04c0a86210c21
+            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:1449d08aeeeb47731d019ea046d90904d9c77953
             command:
               - python
               - -m
@@ -49,7 +49,7 @@ spec:
         spec:
           containers:
           - name: tensorflow
-            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:151c5349f13bea9d626c988563c04c0a86210c21
+            image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:1449d08aeeeb47731d019ea046d90904d9c77953
             command:
               - python
               - -m
@@ -72,7 +72,7 @@ spec:
             spec:
               containers:
               - name: tensorflow
-                image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:151c5349f13bea9d626c988563c04c0a86210c21
+                image: gcr.io/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:1449d08aeeeb47731d019ea046d90904d9c77953
                 command:
                   - python
                   - -m
