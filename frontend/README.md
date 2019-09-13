@@ -23,7 +23,7 @@ database.
 
 **Production Build:**
 You can do `npm run build` to build the frontend code for production, which
-creates a ./dist directory with the minified bundle. You can test this bundle
+creates a ./build directory with the minified bundle. You can test this bundle
 using `server/server.js`. Note you need to have an API server running, which
 you can then feed its address (host + port) as environment variables into
 `server.js`. See the usage instructions in that file for more.
