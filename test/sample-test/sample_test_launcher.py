@@ -118,8 +118,9 @@ class SampleTest(object):
             nb_params['output'] = self._sample_test_output
         if 'run_pipeline' in raw_args.keys():
           self._run_pipeline = raw_args['run_pipeline']
-          if self._run_pipeline:
-            nb_params['experiment_name'] = self._test_name + '-test'
+
+      if self._run_pipeline:
+        nb_params['experiment_name'] = self._test_name + '-test'
 
       pm.execute_notebook(
           input_path='%s.ipynb' % self._test_name,
