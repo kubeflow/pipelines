@@ -42,6 +42,7 @@ def _get_default_image_builder():
     if _default_image_builder is None:
         from ..compiler._container_builder import ContainerBuilder
         _default_image_builder = ContainerBuilder()
+    return _default_image_builder
 
 
 def _generate_dockerfile_text(context_dir: str, dockerfile_path: str, base_image: str = None) -> str:
