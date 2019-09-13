@@ -20,7 +20,7 @@ dsl.ParallelFor._get_unique_id_code = Coder().get_code
 
 
 if __name__ == '__main__':
-    do_output = False
+    do_output = True
 
     params = {}
     if do_output:
@@ -30,7 +30,8 @@ if __name__ == '__main__':
                 name="my-out-cop0",
                 image='python:alpine3.6',
                 command=["sh", "-c"],
-                arguments=['python -c "import json; import sys; json.dump([i for i in range(20, 31)], open(\'/tmp/out.json\', \'w\'))"'],
+                # arguments=['python -c "import json; import sys; json.dump([i for i in range(20, 31)], open(\'/tmp/out.json\', \'w\'))"'],
+                arguments=['python -c "import json; import sys; json.dump([{\'a\': 1, \'b\': 2}, {\'a\': 10, \'b\': 20}], open(\'/tmp/out.json\', \'w\'))"'],
                 file_outputs={'out': '/tmp/out.json'},
             )
 
@@ -39,7 +40,7 @@ if __name__ == '__main__':
                     name="my-in-cop1",
                     image="library/bash:4.4.23",
                     command=["sh", "-c"],
-                    arguments=["echo do output op1 item: %s" % item],
+                    arguments=["echo do output op1 item.a: %s" % item.a],
                 )
 
             op_out = dsl.ContainerOp(

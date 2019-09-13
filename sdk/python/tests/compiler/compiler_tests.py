@@ -705,8 +705,14 @@ implementation:
   def test_withparam_global(self):
     self._test_py_compile_yaml('withparam_global')
 
+  def test_withparam_global_dict(self):
+    self._test_py_compile_yaml('withparam_global_dict')
+
   def test_withparam_output(self):
     self._test_py_compile_yaml('withparam_output')
+
+  def test_withparam_output_dict(self):
+    self._test_py_compile_yaml('withparam_output_dict')
 
   def test_py_input_artifact_raw_value(self):
     """Test pipeline input_artifact_raw_value."""
