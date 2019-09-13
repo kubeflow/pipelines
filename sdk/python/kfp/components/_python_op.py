@@ -53,6 +53,7 @@ def set_default_base_image(image_or_factory: Union[str, Callable[[], str]]):
     '''set_default_base_image sets the name of the container image that will be used for component creation when base_image is not specified.
     Alternatively, the base image can also be set to a factory function that will be returning the image.
     '''
+    global _default_base_image
     _default_base_image = image_or_factory
 
 
