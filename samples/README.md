@@ -75,8 +75,9 @@ For better readability and integrations with the sample test infrastructure, sam
 * The sample file should be either `*.py` or `*.ipynb`, and its file name is consistent with its directory name.
 * For `*.py` sample, it's recommended to have a main invoking `kfp.compiler.Compiler().compile()` to compile the 
 pipeline function into pipeline yaml spec.
-* For `*.ipynb` sample, parameters (e.g., experiment name and project name) should be defined in a dedicated cell and 
-tagged as parameter. Detailed guideline is [here](https://github.com/nteract/papermill). Also, all the environment setup and 
+* For `*.ipynb` sample, parameters, including but not limited to `experiment_name` and `project_name`, 
+should be defined in a dedicated cell and tagged as parameter. Detailed guideline is 
+[here](https://github.com/nteract/papermill). Also, all the environment setup and 
 preparation should be within the notebook, such as by `!pip install packages` 
 
 
