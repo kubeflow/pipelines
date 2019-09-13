@@ -34,19 +34,73 @@ spec:
         app.kubernetes.io/name: {{ .Release.Name }}
     spec:
       containers:
-        - command:
-            - ./server/server
-            - --http_port=8080
-            - --mysql_service_host=mysql
-            - --mysql_service_port=3306
-            {{ if .Values.managedstorage.databaseNamePrefix }}
-            - --mlmd_db_name={{ .Values.managedstorage.databaseNamePrefix }}_metadata
-            {{ else }}
-            - --mlmd_db_name={{ .Release.Name | replace "-" "_" | replace "." "_" | trunc 50 }}_metadata
-            {{ end }}
-
-          image: {{ .Values.images.metadataserver }}
-          name: container
+      - name: container
+        image: {{ .Values.images.metadataserver }}
+        env:
+        - name: DBCONFIG_USER
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credential
+                key: username
+        - name: DBCONFIG_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credential
+                key: password
+        command: ["/bin/metadata_store_server"]
+        args: ["--grpc_port=8080",
+                 "--mysql_config_host=mysql",
+                 {{ if .Values.managedstorage.databaseNamePrefix }}
+                 '--mysql_config_database={{ .Values.managedstorage.databaseNamePrefix }}_metadata',
+                 {{ else }}
+                 '--mysql_config_database={{ .Release.Name | replace "-" "_" | replace "." "_" | trunc 50 }}_metadata',
+                 {{ end }}
+                 "--mysql_config_port=3306",
+                 "--mysql_config_user=$(DBCONFIG_USER)",
+                 "--mysql_config_password=$(DBCONFIG_PASSWORD)"
+                ]
+        ports:
+        - containerPort: 8080
+          name: md-backendapi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: metadata
+    app.kubernetes.io/name: {{ .Release.Name }}
+  name: metadata-envoy-service
+spec:
+  selector:
+    component: metadata-envoy
+  type: ClusterIP
+  ports:
+    - port: 9090
+      protocol: TCP
+      name: md-envoy
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: metadata-envoy
+  labels:
+    component: metadata-envoy
+    app.kubernetes.io/name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: metadata-envoy
+  template:
+    metadata:
+      labels:
+        component: metadata-envoy
+    spec:
+      containers:
+        - name: container
+          image: {{ .Values.images.metadataenvoy }}
           ports:
-            - containerPort: 8080
-              name: md-backendapi
+            - name: md-envoy
+              containerPort: 9090
+            - name: envoy-admin
+              containerPort: 9901
