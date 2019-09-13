@@ -34,6 +34,7 @@
     "scripts",
     "server",
     "src/apis",
+    "src/generated",
     "src/setupTests.ts",
     "third_party",
     "webpack"

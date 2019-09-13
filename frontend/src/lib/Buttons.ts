@@ -175,6 +175,7 @@ export default class Buttons {
     };
     return this;
   }
+
   public expandSections(action: () => void): Buttons {
     this._map[ButtonKeys.EXPAND] = {
       action,

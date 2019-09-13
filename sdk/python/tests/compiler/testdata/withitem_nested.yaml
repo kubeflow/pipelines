@@ -79,14 +79,6 @@ spec:
       - name: loop-item-param-00000001-subvar-a
       - name: my-pipe-param
     name: my-in-coop1
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       args:
       - echo op2 {{inputs.parameters.loop-item-param-00000001-subvar-b}}
@@ -98,14 +90,6 @@ spec:
       parameters:
       - name: loop-item-param-00000001-subvar-b
     name: my-in-coop2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       args:
       - echo op1 {{inputs.parameters.loop-item-param-00000001-subvar-a}} {{inputs.parameters.loop-item-param-00000002}}
@@ -120,14 +104,6 @@ spec:
       - name: loop-item-param-00000002
       - name: my-pipe-param
     name: my-inner-inner-coop
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       args:
       - echo {{inputs.parameters.my-pipe-param}}
@@ -139,14 +115,6 @@ spec:
       parameters:
       - name: my-pipe-param
     name: my-out-cop
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - dag:
       tasks:
       - arguments:

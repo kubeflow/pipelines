@@ -18,17 +18,24 @@ spec:
       - name: container
         image: gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0
         env:
-        - name: GRPC_PORT
-          value: "8080"
-        - name: METADATA_STORE_SERVER_CONFIG_FILE
-          value: "/etc/config/mlmd_config.prototxt"
+        - name: DBCONFIG_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credential
+              key: username
+        - name: DBCONFIG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credential
+              key: password
+        command: ["/bin/metadata_store_server"]
+        args: ["--grpc_port=8080",
+               "--mysql_config_host=mysql",
+               "--mysql_config_database=metadb",
+               "--mysql_config_port=3306",
+               "--mysql_config_user=$(DBCONFIG_USER)",
+               "--mysql_config_password=$(DBCONFIG_PASSWORD)"
+               ]
         ports:
         - name: md-backendapi
           containerPort: 8080
-        volumeMounts:
-        - name: mlmd-server-config-volume
-          mountPath: /etc/config
-      volumes:
-        - name: mlmd-server-config-volume
-          configMap:
-            name: mlmd-service-configmap

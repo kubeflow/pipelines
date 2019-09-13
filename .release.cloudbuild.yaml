@@ -127,11 +127,18 @@ steps:
   waitFor: ['pullVisualizationServer']
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/kubeflow-images-public/metadata:v0.1.8']
+  args: ['pull', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0']
   id:   'PullMetadataServer'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/kubeflow-images-public/metadata:v0.1.8', 'gcr.io/ml-pipeline/google/pipelines/metadataserver:$TAG_NAME']
+  args: ['tag', 'gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0', 'gcr.io/ml-pipeline/google/pipelines/metadataserver:$TAG_NAME']
   waitFor: ['PullMetadataServer']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['pull', 'gcr.io/ml-pipeline/envoy:initial']
+  id:   'PullMetadataEnvoy'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['tag', 'gcr.io/ml-pipeline/envoy:initial', 'gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$TAG_NAME']
+  waitFor: ['PullMetadataEnvoy']
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['pull', 'gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z']
@@ -222,5 +229,6 @@ images:
 - 'gcr.io/ml-pipeline/google/pipelines/cloudsqlproxy:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/argoexecutor:$TAG_NAME'
 - 'gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:$TAG_NAME'
+- 'gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$TAG_NAME'
 
 timeout: '1200s'

@@ -19,15 +19,9 @@ spec:
       artifacts:
       - name: text
         path: /tmp/inputs/text/data
+        raw:
+          data: Constant artifact value
     name: component-with-inline-input-artifact
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       command:
       - cat
@@ -37,15 +31,9 @@ spec:
       artifacts:
       - name: text
         path: /tmp/inputs/text/data
+        raw:
+          data: Constant artifact value
     name: component-with-input-artifact
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       command:
       - cat
@@ -55,15 +43,9 @@ spec:
       artifacts:
       - name: text
         path: /tmp/inputs/text/data
+        raw:
+          data: hard-coded artifact value
     name: component-with-input-artifact-2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       command:
       - cat
@@ -73,43 +55,17 @@ spec:
       artifacts:
       - name: text
         path: /tmp/inputs/text/data
+        raw:
+          data: Text from a file with hard-coded artifact value
     name: component-with-input-artifact-3
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - dag:
       tasks:
-      - arguments:
-          artifacts:
-          - name: text
-            raw:
-              data: Constant artifact value
-        name: component-with-inline-input-artifact
+      - name: component-with-inline-input-artifact
         template: component-with-inline-input-artifact
-      - arguments:
-          artifacts:
-          - name: text
-            raw:
-              data: Constant artifact value
-        name: component-with-input-artifact
+      - name: component-with-input-artifact
         template: component-with-input-artifact
-      - arguments:
-          artifacts:
-          - name: text
-            raw:
-              data: hard-coded artifact value
-        name: component-with-input-artifact-2
+      - name: component-with-input-artifact-2
         template: component-with-input-artifact-2
-      - arguments:
-          artifacts:
-          - name: text
-            raw:
-              data: Text from a file with hard-coded artifact value
-        name: component-with-input-artifact-3
+      - name: component-with-input-artifact-3
         template: component-with-input-artifact-3
     name: pipeline-with-artifact-input-raw-argument-value

@@ -14,7 +14,7 @@ spec:
         app: ml-pipeline-scheduledworkflow
     spec:
       containers:
-      - image: gcr.io/ml-pipeline/scheduledworkflow:0.1.15
+      - image: gcr.io/ml-pipeline/scheduledworkflow:0.1.27
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-scheduledworkflow
         env:
