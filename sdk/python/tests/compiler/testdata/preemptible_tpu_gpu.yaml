@@ -25,13 +25,6 @@ spec:
       nodeSelector:
         cloud.google.com/gke-preemptible: 'true'
       outputs:
-        artifacts:
-          - name: mlpipeline-ui-metadata
-            optional: true
-            path: /mlpipeline-ui-metadata.json
-          - name: mlpipeline-metrics
-            optional: true
-            path: /mlpipeline-metrics.json
         parameters:
           - name: flip-output
             valueFrom:

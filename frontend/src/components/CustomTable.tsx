@@ -29,7 +29,6 @@ import Separator from '../atoms/Separator';
 import TableSortLabel from '@material-ui/core/TableSortLabel';
 import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
-import WarningIcon from '@material-ui/icons/WarningRounded';
 import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
@@ -37,6 +36,7 @@ import { logger } from '../lib/Utils';
 import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { debounce } from 'lodash';
 import { InputAdornment } from '@material-ui/core';
+import { CustomTableRow } from './CustomTableRow';
 
 export enum ExpandState {
   COLLAPSED,
@@ -102,6 +102,9 @@ export const css = stylesheet({
   expandButtonExpanded: {
     transform: 'rotate(90deg)',
   },
+  expandButtonPlaceholder: {
+    width: 54,
+  },
   expandableContainer: {
     transition: 'margin 0.2s',
   },
@@ -133,13 +136,6 @@ export const css = stylesheet({
     display: 'flex',
     flex: '0 0 40px',
     lineHeight: '40px', // must declare px
-  },
-  icon: {
-    color: color.alert,
-    height: 18,
-    paddingRight: 4,
-    verticalAlign: 'sub',
-    width: 18,
   },
   noLeftPadding: {
     paddingLeft: 0,
@@ -291,7 +287,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {!this.props.noFilterBox && (
           <div>
             <Input id='tableFilterBox' label={this.props.filterLabel || 'Filter'} height={48} maxWidth={'100%'}
-              className={css.filterBox} InputLabelProps={{ classes: { root: css.noMargin }}}
+              className={css.filterBox} InputLabelProps={{ classes: { root: css.noMargin } }}
               onChange={this.handleFilterChange} value={filterString}
               variant='outlined'
               InputProps={{
@@ -301,7 +297,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 },
                 startAdornment: (
                   <InputAdornment position='end'>
-                    <FilterIcon style={{ color: color.lowContrast, paddingRight: 16 }}/>
+                    <FilterIcon style={{ color: color.lowContrast, paddingRight: 16 }} />
                   </InputAdornment>
                 )
               }} />
@@ -373,7 +369,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   row.expandState === ExpandState.EXPANDED && css.expandedRow
                 )}
                 onClick={e => this.handleClick(e, row.id)}>
-                {(this.props.disableSelection !== true || !!this.props.getExpandComponent) && (
+                {/* Expansion toggle button */}
+                {((this.props.disableSelection !== true || !!this.props.getExpandComponent) && row.expandState !== ExpandState.NONE) && (
                   <div className={classes(css.cell, css.selectionToggle)}>
                     {/* If using checkboxes */}
                     {(this.props.disableSelection !== true && this.props.useRadioButtons !== true) && (
@@ -390,18 +387,16 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                     )}
                   </div>
                 )}
-                {row.otherFields.map((cell, c) => (
-                  <div key={c} style={{ width: widths[c] + '%' }} className={css.cell}>
-                    {c === 0 && row.error && (
-                      <Tooltip title={row.error}><WarningIcon className={css.icon} /></Tooltip>
-                    )}
-                    {this.props.columns[c].customRenderer ?
-                      this.props.columns[c].customRenderer!({ value: cell, id: row.id }) : cell}
-                  </div>
-                ))}
+
+                {/* Placeholder for non-expandable rows */}
+                {row.expandState === ExpandState.NONE && (
+                  <div className={css.expandButtonPlaceholder} />
+                )}
+
+                {<CustomTableRow row={row} columns={this.props.columns} />}
               </div>
               {row.expandState === ExpandState.EXPANDED && this.props.getExpandComponent && (
-                <div className={padding(20, 'lrb')}>
+                <div>
                   {this.props.getExpandComponent(i)}
                 </div>
               )}
@@ -506,8 +501,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       // invert the sort order it if it's the same column
       const sortOrder =
         this.state.sortBy === sortBy
-        ? (this.state.sortOrder === 'asc' ? 'desc' : 'asc')
-        : 'asc';
+          ? (this.state.sortOrder === 'asc' ? 'desc' : 'asc')
+          : 'asc';
       this.setStateSafe({ sortOrder, sortBy }, async () => {
         this._resetToFirstPage(
           await this.reload({ pageToken: '', orderAscending: sortOrder === 'asc', sortBy }));
