@@ -223,7 +223,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
   # Before: python3 -u -c 'import sys ...' --param1 ...
   # After:  python3 -u main.py --param1 ...
   command_line_args[program_code_index] = program_container_path
-  command_line_args.pop(index=dash_c_index)
+  command_line_args.pop(dash_c_index)
 
   if python_version == 'python2':
     import warnings
