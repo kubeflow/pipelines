@@ -19,7 +19,7 @@ class LoopArguments(dsl.PipelineParam):
     def _subvar_name_is_legal(cls, proposed_variable_name: Text):
         return re.match(cls.LEGAL_SUBVAR_NAME_REGEX, proposed_variable_name) is not None
 
-    def __init__(self, items: Union[ItemList, dsl.PipelineParam], code: Text, name_override: Optional[Text]=None, op_name: Optional[Text]=None):
+    def __init__(self, items: Union[ItemList, dsl.PipelineParam], code: Text, name_override: Optional[Text]=None, op_name: Optional[Text]=None, *args, **kwargs):
         """_LoopArguments represent the set of items to loop over in a ParallelFor loop.  This class shoudn't be
         instantiated by the user but rather is created by _ops_group.ParallelFor.
 
@@ -30,12 +30,15 @@ class LoopArguments(dsl.PipelineParam):
                 ops_group which created these _LoopArguments.  This prevents parameter name collissions.
         """
         if name_override is None:
-            super().__init__(name=self._make_name(code))
+            super().__init__(name=self._make_name(code), *args, **kwargs)
         else:
-            super().__init__(name=name_override, op_name=op_name)
+            super().__init__(name=name_override, op_name=op_name, *args, **kwargs)
 
         if not isinstance(items, (list, tuple, dsl.PipelineParam)):
             raise TypeError("Expected list, tuple, or PipelineParam, got {}.".format(type(items)))
+
+        if isinstance(items, tuple):
+            items = list(items)
 
         if isinstance(items, list) and isinstance(items[0], dict):
             subvar_names = set(items[0].keys())
@@ -53,6 +56,16 @@ class LoopArguments(dsl.PipelineParam):
 
         self.items_or_pipeline_param = items
         self.referenced_subvar_names = []
+
+    @classmethod
+    def from_pipeline_param(cls, param: dsl.PipelineParam) -> 'LoopArguments':
+        return LoopArguments(
+            items=param,
+            code=None,
+            name_override=param.name,
+            op_name=param.op_name,
+            value=param.value,
+        )
 
     def __getattr__(self, item):
         # this is being overridden so that we can access subvariables of the LoopArguments (i.e.: item.a) without
@@ -77,7 +90,7 @@ class LoopArguments(dsl.PipelineParam):
         """Return True if the given parameter name looks like it came from a loop arguments parameter."""
         return re.match(
             '%s-[0-9a-f]{%s}' % (cls.LOOP_ITEM_PARAM_NAME_BASE, cls.NUM_CODE_CHARS),
-            param_name
+            param_name,
         ) is not None
 
 
@@ -116,11 +129,7 @@ class LoopArgumentVariable(dsl.PipelineParam):
     def name_is_loop_arguments_variable(cls, param_name: Text) -> bool:
         """Return True if the given parameter name looks like it came from a LoopArgumentsVariable."""
         return re.match(
-            '%s-[0-9a-f]{%s}%s.*' % (
-                LoopArguments.LOOP_ITEM_PARAM_NAME_BASE,
-                LoopArguments.NUM_CODE_CHARS,
-                cls.SUBVAR_NAME_DELIMITER
-            ),
+            '.+%s.+' % cls.SUBVAR_NAME_DELIMITER,
             param_name
         ) is not None
 

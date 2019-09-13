@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
+import json
 from collections import defaultdict
 import inspect
 import tarfile
@@ -598,6 +597,7 @@ class Compiler(object):
 
     for op in pipeline.ops.values():
       templates.extend(op_to_templates_handler(op))
+
     return templates
 
   def _create_volumes(self, pipeline):
@@ -623,7 +623,7 @@ class Compiler(object):
     for arg in args:
       param = {'name': arg.name}
       if arg.value is not None:
-        param['value'] = str(arg.value)
+        param['value'] = json.dumps(arg.value)
       input_params.append(param)
 
     # Templates

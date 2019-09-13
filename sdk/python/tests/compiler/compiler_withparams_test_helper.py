@@ -4,23 +4,25 @@ import time
 
 from kfp.compiler import compiler
 from kfp import dsl
+from kfp.dsl import _for_loop
 
-# reproducible UUIDs: https://stackoverflow.com/a/56757552/9357327
-import uuid
-import random
-# -------------------------------------------
-# Remove this block to generate different
-# UUIDs everytime you run this code.
-# This block should be right below the uuid
-# import.
-rd = random.Random()
-rd.seed(0)
-uuid.uuid4 = lambda: uuid.UUID(int=rd.getrandbits(128))
-# -------------------------------------------
+
+class Coder:
+    def __init__(self, ):
+        self._code_id = 0
+
+    def get_code(self, ):
+        self._code_id += 1
+        return '{code:0{num_chars:}d}'.format(code=self._code_id, num_chars=_for_loop.LoopArguments.NUM_CODE_CHARS)
+
+
+dsl.ParallelFor._get_unique_id_code = Coder().get_code
+
 
 if __name__ == '__main__':
     do_output = False
 
+    params = {}
     if do_output:
         @dsl.pipeline(name='my-pipeline')
         def pipeline():
@@ -32,7 +34,6 @@ if __name__ == '__main__':
                 file_outputs={'out': '/tmp/out.json'},
             )
 
-            # loop_args = [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]
             with dsl.ParallelFor(op0.output) as item:
                 op1 = dsl.ContainerOp(
                     name="my-in-cop1",
@@ -49,10 +50,9 @@ if __name__ == '__main__':
             )
 
         job_name = f'do-output=TRUE-passed-{time.time()}'
-        params = {}
     else:
         @dsl.pipeline(name='my-pipeline')
-        def pipeline(loopidy_doop=[3, 5, 7, 9]):
+        def pipeline(loopidy_doop=[{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]):
             op0 = dsl.ContainerOp(
                 name="my-out-cop0",
                 image='python:alpine3.6',
@@ -66,7 +66,7 @@ if __name__ == '__main__':
                     name="my-in-cop1",
                     image="library/bash:4.4.23",
                     command=["sh", "-c"],
-                    arguments=["echo no output global op1, item: %s" % item],
+                    arguments=["echo no output global op1, item: %s" % item.a],
                 ).after(op0)
 
             op_out = dsl.ContainerOp(
@@ -77,7 +77,6 @@ if __name__ == '__main__':
             )
 
         job_name = f'do-output=FALSE-global-{time.time()}'
-        params = {}
 
     yaml_text = compiler.Compiler().compile(pipeline, None)
     print(yaml_text)
