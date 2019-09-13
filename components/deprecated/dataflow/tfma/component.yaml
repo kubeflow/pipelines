@@ -18,7 +18,7 @@ outputs:
 - {name: MLPipeline UI metadata, type: UI metadata}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:151c5349f13bea9d626c988563c04c0a86210c21
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:1449d08aeeeb47731d019ea046d90904d9c77953
     command: [python2, /ml/model_analysis.py]
     args: [
       --model,    {inputValue: Model},
