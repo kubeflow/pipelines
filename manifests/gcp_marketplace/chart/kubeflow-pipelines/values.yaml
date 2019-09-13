@@ -4,7 +4,7 @@ images:
   argoworkflowcontroller: gcr.io/ml-pipeline/workflow-controller:v2.3.0
   cloudsqlproxy: gcr.io/cloudsql-docker/gce-proxy:1.14
   frontend: gcr.io/ml-pipeline/frontend:0.1.27
-  metadataserver: gcr.io/kubeflow-images-public/metadata:v0.1.8
+  metadataserver: gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0
   minio: gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z
   mysql: gcr.io/ml-pipeline/mysql:5.6
   persistenceagent: gcr.io/ml-pipeline/persistenceagent:0.1.27
@@ -12,6 +12,7 @@ images:
   scheduledworkflow: gcr.io/ml-pipeline/scheduledworkflow:0.1.27
   viewercrd: gcr.io/ml-pipeline/viewer-crd-controller:0.1.27
   visualizationserver: gcr.io/ml-pipeline/visualization-server:0.1.27
+  metadataenvoy: gcr.io/ml-pipeline/envoy:initial
 
 gcpSecretName: "user-gcp-sa"
 serviceAccountCredential: null
