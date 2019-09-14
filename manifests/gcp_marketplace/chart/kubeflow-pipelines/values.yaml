@@ -24,7 +24,6 @@ serviceAccount:
   mlPipelineUI: null
   mlPipelineViewerCrd: null
   pipelineRunner: null
-  proxyAgentRunner: null
 
 managedstorage:
   enabled: false

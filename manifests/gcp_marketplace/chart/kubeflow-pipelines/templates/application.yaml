@@ -12,7 +12,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: '0.1.29'
+    version: '0.2'
     description: |-
       Machine Learning Pipeline on Kubernetes
     maintainers:

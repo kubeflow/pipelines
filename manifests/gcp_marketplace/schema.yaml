@@ -1,7 +1,7 @@
 x-google-marketplace:
   schemaVersion: v2
   applicationApiVersion: v1beta1
-  publishedVersion: '0.1.29'
+  publishedVersion: '0.2'
   publishedVersionMetadata:
     releaseNote: >-
       Initial release.
@@ -77,6 +77,15 @@ x-google-marketplace:
           - apiGroups: ['apiextensions.k8s.io']
             resources: ['customresourcedefinitions']
             verbs: ['*']
+  clusterConstraints:
+    resources:
+    - replicas: 3
+      requests:
+        cpu: 2
+        memory: 4Gi
+      affinity:
+        simpleNodeAffinity:
+          type: REQUIRE_ONE_NODE_PER_REPLICA
 
 properties:
   name:
@@ -115,19 +124,6 @@ properties:
     type: string
     title: database name prefix
 
-  serviceAccount.proxyAgentRunner:
-    type: string
-    title: ProxyAgentRunnerServiceAccount
-    x-google-marketplace:
-      type: SERVICE_ACCOUNT
-      serviceAccount:
-        roles:
-          - type: Role
-            rulesType: CUSTOM
-            rules:
-              - apiGroups: ['']
-                resources: ['configmaps']
-                verbs: ['*']
   serviceAccount.mlPipelinePersistenceAgent:
     type: string
     title: mlPipelinePersistenceAgent
