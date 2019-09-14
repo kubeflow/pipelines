@@ -73,6 +73,7 @@ spec:
               - dsl_static_type_checking
               - pipeline_transformers
               - secret
+              - imagepullsecrets
               #- sidecar
     # Build and push image
     - name: build-image-by-dockerfile
