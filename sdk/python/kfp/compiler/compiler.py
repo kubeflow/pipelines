@@ -627,7 +627,7 @@ class Compiler(object):
       param = {'name': arg.name}
       if arg.value is not None:
         if isinstance(arg.value, (list, tuple)):
-          param['value'] = json.dumps(arg.value)
+          param['value'] = json.dumps(arg.value, sort_keys=True)
         else:
           param['value'] = str(arg.value)
       input_params.append(param)
