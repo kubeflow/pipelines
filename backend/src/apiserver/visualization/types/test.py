@@ -1,5 +1,9 @@
+"""
+test.py provides a basic predefined visualization that can be used for testing
+because it does not have dependencies and had a low chance of being updated.
+"""
 
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +17,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import components
-from . import containers
-from . import dsl
-from ._client import Client
-from ._config import *
-from ._runners import *
+print(2)

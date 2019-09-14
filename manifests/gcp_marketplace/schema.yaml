@@ -69,6 +69,10 @@ x-google-marketplace:
       properties:
         images.cloudsqlproxy:
           type: FULL
+    metadataenvoy:
+      properties:
+        images.metadataenvoy:
+          type: FULL
   deployerServiceAccount:
     roles:
       - type: ClusterRole        # This is a cluster-wide ClusterRole
