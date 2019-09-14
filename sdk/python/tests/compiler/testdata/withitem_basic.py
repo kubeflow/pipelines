@@ -57,3 +57,16 @@ def pipeline(my_pipe_param=10):
 if __name__ == '__main__':
     from kfp import compiler
     print(compiler.Compiler().compile(pipeline, package_path=None))
+
+    import kfp
+    client = kfp.Client(host='127.0.0.1:8080/pipeline')
+
+    pkg_path = '/tmp/witest_pkg.tar.gz'
+    compiler.Compiler().compile(pipeline, package_path=pkg_path)
+    exp = client.create_experiment('withparams_exp')
+    client.run_pipeline(
+        experiment_id=exp.id,
+        job_name='withitem_basic',
+        pipeline_package_path=pkg_path,
+        params={},
+    )

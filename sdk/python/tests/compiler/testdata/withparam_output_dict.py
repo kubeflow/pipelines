@@ -43,7 +43,7 @@ def pipeline():
             name="my-in-cop1",
             image="library/bash:4.4.23",
             command=["sh", "-c"],
-            arguments=["echo do output op1 item: %s" % item],
+            arguments=["echo do output op1 item.a: %s" % item.a],
         )
 
     op_out = dsl.ContainerOp(
@@ -56,4 +56,17 @@ def pipeline():
 
 if __name__ == '__main__':
     from kfp import compiler
+    import kfp
+    import time
+    client = kfp.Client(host='127.0.0.1:8080/pipeline')
     print(compiler.Compiler().compile(pipeline, package_path=None))
+
+    pkg_path = '/tmp/witest_pkg.tar.gz'
+    compiler.Compiler().compile(pipeline, package_path=pkg_path)
+    exp = client.create_experiment('withparams_exp')
+    client.run_pipeline(
+        experiment_id=exp.id,
+        job_name='withparam_output_dict_{}'.format(time.time()),
+        pipeline_package_path=pkg_path,
+        params={},
+    )

@@ -74,7 +74,7 @@ class LoopArguments(dsl.PipelineParam):
         return LoopArgumentVariable(self.name, item)
 
     def to_list_for_task_yaml(self):
-        if isinstance(self.items_or_pipeline_param, list):
+        if isinstance(self.items_or_pipeline_param, (list, tuple)):
             return self.items_or_pipeline_param
         else:
             raise ValueError("You should only call this method on loop args which have list items, "

@@ -17,10 +17,9 @@ import inspect
 import tarfile
 import zipfile
 from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
-from typing import Any, Set, List, Text, Dict
 
 import yaml
-from kfp.dsl import _container_op, _for_loop
+from kfp.dsl import _for_loop
 
 from .. import dsl
 from ._k8s_helper import K8sHelper
@@ -627,7 +626,10 @@ class Compiler(object):
     for arg in args:
       param = {'name': arg.name}
       if arg.value is not None:
-        param['value'] = json.dumps(arg.value)
+        if isinstance(arg.value, (list, tuple)):
+          param['value'] = json.dumps(arg.value)
+        else:
+          param['value'] = str(arg.value)
       input_params.append(param)
 
     # Templates

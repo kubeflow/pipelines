@@ -36,14 +36,6 @@ spec:
       parameters:
       - name: loopidy-doop
     name: my-in-cop1
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - container:
       args:
       - python -c "import json; import sys; json.dump([i for i in range(20, 31)],
@@ -54,13 +46,6 @@ spec:
       image: python:alpine3.6
     name: my-out-cop0
     outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
       parameters:
       - name: my-out-cop0-out
         valueFrom:
@@ -76,14 +61,6 @@ spec:
       parameters:
       - name: my-out-cop0-out
     name: my-out-cop2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - dag:
       tasks:
       - arguments:

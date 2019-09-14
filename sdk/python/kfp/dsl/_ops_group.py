@@ -177,7 +177,6 @@ class ParallelFor(OpsGroup):
     group_name = 'for-loop-{}'.format(code)
     super().__init__(self.TYPE_NAME, name=group_name)
 
-    self.items_is_pipeline_param = isinstance(loop_args, _pipeline_param.PipelineParam)
     if self.items_is_pipeline_param:
       loop_args = _for_loop.LoopArguments.from_pipeline_param(loop_args)
     elif not self.items_is_pipeline_param and not isinstance(loop_args, _for_loop.LoopArguments):
