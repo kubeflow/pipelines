@@ -101,7 +101,7 @@ properties:
     x-google-marketplace:
       type: NAMESPACE
   serviceAccountCredential:
-    title: Service Account credentials used to call other GCP services, such as CloudSQL.
+    title: Service Account credentials used to call other GCP services.
     description: |-
       To be able to call other GCP services, we need to be
       authenticated. This field is used to store the content of the service account
@@ -112,7 +112,7 @@ properties:
       type: STRING
   managedstorage.enabled:
     type: boolean
-    title: Enable managed storage
+    title: Use managed storage
     description: Use Cloud SQL and GCS for storing the data
     default: false
   managedstorage.cloudsqlInstanceConnectionName:
