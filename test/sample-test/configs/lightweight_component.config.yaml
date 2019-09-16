@@ -14,4 +14,4 @@
 
 test_name: lightweight_component
 notebook_params:
-  EXPERIMENT_NAME: lightweight_component-test
+  experiment_name: lightweight_component-test
