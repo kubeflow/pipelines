@@ -104,14 +104,11 @@ properties:
     title: |-
       Service Account credentials used to call other GCP services.
     description: |-
-      To be able to call other GCP services, we need to be authenticated.
+      To be able to call other GCP services from the pipeline, we need to be authenticated.
       This field is used to store the content of the service account
       JSON file. It can be encoded using base64 instead of messing with JSON format.
-
       To get the encoded credential, run
-
-      gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account]
-      cat application_default_credentials.json | base64
+      $ gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account] && cat application_default_credentials.json | base64
     type: string
     default: ""
     x-google-marketplace:
@@ -136,20 +133,20 @@ properties:
       For more details on how to create a new instance, visit https://cloud.google.com/sql/docs/mysql/quickstart
   managedstorage.dbUsername:
     type: string
-    title: Database username. Applicable only if use managed storage.
+    title: Database username. (Managed storage only)
     description: |-
       The database username to connect to the CloudSQL instance.
       If leaveing this field empty, the deployment will use the default 'root' user account.
       For more details about mysql username, visit https://cloud.google.com/sql/docs/mysql/users
   managedstorage.dbPassword:
     type: string
-    title: Database password. Applicable if use managed storage.
+    title: Database password. (Managed storage only)
     description: |-
       The database password to connect to the CloudSQL instance.
       If leaveing this field empty, the deployment will use no password.
   managedstorage.databaseNamePrefix:
     type: string
-    title: Database name prefix
+    title: Database name prefix. (Managed storage only)
     description: |-
       The prefix of the database name. Kubeflow Pipelines will create two databases,
       [prefix]_pipeline and [prefix]_metadata.
