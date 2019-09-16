@@ -21,9 +21,15 @@ webserver to the api server at http://localhost:3001/apis/v1beta1/pipelines,
 which will return the list of pipelines currently defined in the mock
 database.
 
+### Using a real cluster as backend
+
+1. First configure your `kubectl` to talk to your kfp lite cluster.
+2. `npm run start:proxies` to start proxy servers that port forwards to your cluster.
+3. `npm start` to start a webpack dev server, it has already been configured to talk to aforementioned proxies.
+
 **Production Build:**
 You can do `npm run build` to build the frontend code for production, which
-creates a ./dist directory with the minified bundle. You can test this bundle
+creates a ./build directory with the minified bundle. You can test this bundle
 using `server/server.js`. Note you need to have an API server running, which
 you can then feed its address (host + port) as environment variables into
 `server.js`. See the usage instructions in that file for more.
