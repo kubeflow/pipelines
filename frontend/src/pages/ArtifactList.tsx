@@ -103,7 +103,9 @@ class ArtifactList extends Page<{}, ArtifactListState> {
 
   private async reload(request: ListRequest): Promise<string> {
     Apis.getMetadataServiceClient().getArtifacts(new GetArtifactsRequest(), (err, res) => {
-      if (err) {
+      // Code === 5 means no record found in backend. This is a temporary workaround.
+      // TODO: remove err.code !== 5 check when backend is fixed.
+      if (err && err.code !== 5) {
         this.showPageError(serviceErrorToString(err));
         return;
       }
@@ -129,7 +131,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
           {props.value}
         </Link>
       );
-  }
+    }
 
   /**
    * Temporary solution to apply sorting, filtering, and pagination to the
