@@ -74,6 +74,7 @@ spec:
               - pipeline_transformers
               - secret
               - sidecar
+              - dataflow
               - execution_order
               - imagepullsecrets
     # Build and push image
