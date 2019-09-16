@@ -73,6 +73,7 @@ spec:
               - dsl_static_type_checking
               - pipeline_transformers
               - secret
+              - dataflow
               - execution_order
               - imagepullsecrets
               #- sidecar
