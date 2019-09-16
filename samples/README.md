@@ -78,7 +78,7 @@ pipeline function into pipeline yaml spec.
 * For `*.ipynb` sample, parameters (e.g., experiment name and project name)
 should be defined in a dedicated cell and tagged as parameter. 
 (If the author would like to let the sample test infra run it, it's necessary to parameterize 
-experiment name and project name used.)
+experiment name used.)
 Detailed guideline is 
 [here](https://github.com/nteract/papermill). Also, all the environment setup and 
 preparation should be within the notebook, such as by `!pip install packages` 
