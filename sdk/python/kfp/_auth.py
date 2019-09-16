@@ -31,7 +31,8 @@ def get_gcp_access_token():
     Credentials. If not set, returns None. For more information, see
     https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token
     """
-    return os.popen('gcloud auth print-access-token').read().rstrip()
+    with os.popen('gcloud auth print-access-token') as token:
+        return token.read().rstrip()
 
 def get_auth_token(client_id):
     """Gets auth token from default service account.

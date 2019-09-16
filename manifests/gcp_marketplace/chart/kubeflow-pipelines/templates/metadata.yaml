@@ -36,17 +36,25 @@ spec:
       containers:
       - name: container
         image: {{ .Values.images.metadataserver }}
+        imagePullPolicy: 'Always'
         env:
+        {{ if .Values.managedstorage.enabled }}
         - name: DBCONFIG_USER
-            valueFrom:
-              secretKeyRef:
-                name: mysql-credential
-                key: username
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credential
+              key: username
         - name: DBCONFIG_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: mysql-credential
-                key: password
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credential
+              key: password
+        {{ else }}
+        - name: DBCONFIG_USER
+          value: 'root'
+        - name: DBCONFIG_PASSWORD
+          value: ''
+        {{ end }}
         command: ["/bin/metadata_store_server"]
         args: ["--grpc_port=8080",
                  "--mysql_config_host=mysql",

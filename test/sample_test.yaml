@@ -74,6 +74,9 @@ spec:
               - pipeline_transformers
               - secret
               - sidecar
+              - execution_order
+              - imagepullsecrets
+              #- sidecar
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:
