@@ -728,4 +728,4 @@ implementation:
   def test_py_input_artifact_raw_value(self):
     """Test pipeline input_artifact_raw_value."""
     self._test_py_compile_yaml('input_artifact_raw_value')
-    
+

@@ -487,17 +487,6 @@ class Compiler(object):
         else:
           task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
 
-      if isinstance(sub_group, dsl.ContainerOp) and sub_group.artifact_arguments:
-        artifact_argument_structs = []
-        for input_name, argument in sub_group.artifact_arguments.items():
-          artifact_argument_dict = {'name': input_name}
-          if isinstance(argument, str):
-            artifact_argument_dict['raw'] = {'data': str(argument)}
-          else:
-            raise TypeError('Argument "{}" was passed to the artifact input "{}", but only constant strings are supported at this moment.'.format(str(argument), input_name))
-          artifact_argument_structs.append(artifact_argument_dict)
-        task.setdefault('arguments', {})['artifacts'] = artifact_argument_structs
-
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
     template['dag'] = {'tasks': tasks}
