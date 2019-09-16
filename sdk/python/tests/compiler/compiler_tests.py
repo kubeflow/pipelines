@@ -98,6 +98,12 @@ class TestCompiler(unittest.TestCase):
           ]},
         'name': 'echo',
         'outputs': {
+          'artifacts': [
+            {
+              'name': 'echo-merged',
+              'path': '/tmp/message.txt',
+            },
+          ],
           'parameters': [
             {'name': 'echo-merged',
             'valueFrom': {'path': '/tmp/message.txt'}
@@ -571,7 +577,8 @@ class TestCompiler(unittest.TestCase):
     compiled_template = compiler._op_to_template._op_to_template(ops)
 
     del compiled_template['name'], expected['name']
-    del compiled_template['outputs']['parameters'][0]['name'], expected['outputs']['parameters'][0]['name']
+    for output in compiled_template['outputs'].get('parameters', []) + compiled_template['outputs'].get('artifacts', []) + expected['outputs'].get('parameters', []) + expected['outputs'].get('artifacts', []):
+      del output['name']
     assert compiled_template == expected
 
   def test_tolerations(self):

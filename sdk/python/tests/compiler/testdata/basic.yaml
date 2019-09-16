@@ -73,6 +73,9 @@ spec:
       - name: message
     name: get-frequent
     outputs:
+      artifacts:
+      - name: get-frequent-word
+        path: /tmp/message.txt
       parameters:
       - name: get-frequent-word
         valueFrom:

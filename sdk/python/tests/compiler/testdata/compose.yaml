@@ -37,6 +37,9 @@ spec:
       - name: url
     name: download
     outputs:
+      artifacts:
+      - name: download-downloaded
+        path: /tmp/results.txt
       parameters:
       - name: download-downloaded
         valueFrom:
@@ -85,6 +88,9 @@ spec:
       - name: download-downloaded
     name: get-frequent
     outputs:
+      artifacts:
+      - name: get-frequent-word
+        path: /tmp/message.txt
       parameters:
       - name: get-frequent-word
         valueFrom:
