@@ -235,13 +235,16 @@ func TestToModelPipelineVersion(t *testing.T) {
 	store, manager := initResourceManager()
 	defer store.Close()
 	apiPipelineVersion := &api.PipelineVersion{
-		Id:                 "pipelineversion1",
-		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
-		Parameters:         []*api.Parameter{},
-		CodeSourceLinks:    []string{"http://repo/11111", "http://repo/33333"},
-		PackageSourceLinks: []string{"http://storage/11111", "http://storage/33333"},
-		PipelineSpec: &api.PipelineSpec{
-			PipelineId: "pipeline1",
+		Id:             "pipelineversion1",
+		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
+		Parameters:     []*api.Parameter{},
+		CodeSourceUrls: []string{"http://repo/11111", "http://repo/33333"},
+		ResourceReference: &api.ResourceReference{
+			Key: &api.ResourceKey{
+				Id:   "pipeline1",
+				Type: api.ResourceType_PIPELINE,
+			},
+			Relationship: api.Relationship_OWNER,
 		},
 	}
 
@@ -249,12 +252,11 @@ func TestToModelPipelineVersion(t *testing.T) {
 		apiPipelineVersion)
 
 	expectedModelPipelineVersion := &model.PipelineVersion{
-		UUID:               "pipelineversion1",
-		CreatedAtInSec:     1,
-		Parameters:         "",
-		PipelineId:         "pipeline1",
-		CodeSourceLinks:    "http://repo/11111;http://repo/33333;",
-		PackageSourceLinks: "http://storage/11111;http://storage/33333;",
+		UUID:           "pipelineversion1",
+		CreatedAtInSec: 1,
+		Parameters:     "",
+		PipelineId:     "pipeline1",
+		CodeSourceUrls: "http://repo/11111;http://repo/33333;",
 	}
 
 	assert.Equal(t, convertedModelPipelineVersion, expectedModelPipelineVersion)

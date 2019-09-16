@@ -36,8 +36,7 @@ type Pipeline struct {
 	/* Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
 	Parameters string         `gorm:"column:Parameters; not null; size:65535"`
 	Status     PipelineStatus `gorm:"column:Status; not null"`
-	// TODO(jingzhang36): after API methods are ready to create pipeline with
-	// version, we shall enforce DefaultVersionId not null.
+	// Default version of this pipeline. It could be null.
 	DefaultVersionId string           `gorm:"column:DefaultVersionId;"`
 	DefaultVersion   *PipelineVersion `gorm:"-"`
 }
@@ -72,4 +71,9 @@ var pipelineAPIToModelFieldMap = map[string]string{
 // Pipeline.
 func (p *Pipeline) APIToModelFieldMap() map[string]string {
 	return pipelineAPIToModelFieldMap
+}
+
+// GetModelName returns table name used as sort field prefix
+func (p *Pipeline) GetModelName() string {
+	return "pipelines."
 }

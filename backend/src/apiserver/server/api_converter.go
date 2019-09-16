@@ -87,14 +87,17 @@ func ToApiVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) 
 	}
 
 	return &api.PipelineVersion{
-		Id:                 version.UUID,
-		Name:               version.Name,
-		CreatedAt:          &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
-		Parameters:         params,
-		CodeSourceLinks:    ToApiSources(&version.CodeSourceLinks),
-		PackageSourceLinks: ToApiSources(&version.PackageSourceLinks),
-		PipelineSpec: &api.PipelineSpec{
-			PipelineId: version.PipelineId,
+		Id:             version.UUID,
+		Name:           version.Name,
+		CreatedAt:      &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
+		Parameters:     params,
+		CodeSourceUrls: ToApiSources(&version.CodeSourceUrls),
+		ResourceReference: &api.ResourceReference{
+			Key: &api.ResourceKey{
+				Id:   version.PipelineId,
+				Type: api.ResourceType_PIPELINE,
+			},
+			Relationship: api.Relationship_OWNER,
 		},
 	}, nil
 }
@@ -103,7 +106,10 @@ func ToApiSources(sources *string) []string {
 	if sources == nil || len(*sources) == 0 {
 		return nil
 	}
-	return strings.Split(*sources, ";")
+	splitFn := func(c rune) bool {
+		return c == ';'
+	}
+	return strings.FieldsFunc(*sources, splitFn)
 }
 
 func ToApiVersions(versions []*model.PipelineVersion) ([]*api.PipelineVersion, error) {

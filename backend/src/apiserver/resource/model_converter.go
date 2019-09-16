@@ -113,18 +113,10 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 
 func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (*model.PipelineVersion, error) {
 	codeSources := make([]byte, 0)
-	if version.CodeSourceLinks != nil && len(version.CodeSourceLinks) > 0 {
-		for _, codeSource := range version.CodeSourceLinks {
+	if version.CodeSourceUrls != nil && len(version.CodeSourceUrls) > 0 {
+		for _, codeSource := range version.CodeSourceUrls {
 			codeSources = append(codeSources, codeSource...)
 			codeSources = append(codeSources, ';')
-		}
-	}
-
-	packageSources := make([]byte, 0)
-	if version.PackageSourceLinks != nil && len(version.PackageSourceLinks) > 0 {
-		for _, packageSource := range version.PackageSourceLinks {
-			packageSources = append(packageSources, packageSource...)
-			packageSources = append(packageSources, ';')
 		}
 	}
 
@@ -134,13 +126,12 @@ func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (
 	}
 
 	return &model.PipelineVersion{
-		UUID:               string(version.Id),
-		Name:               version.Name,
-		CreatedAtInSec:     version.CreatedAt.Seconds,
-		Parameters:         paramStr,
-		PipelineId:         version.PipelineSpec.PipelineId,
-		CodeSourceLinks:    string(codeSources),
-		PackageSourceLinks: string(packageSources),
+		UUID:           string(version.Id),
+		Name:           version.Name,
+		CreatedAtInSec: version.CreatedAt.Seconds,
+		Parameters:     paramStr,
+		PipelineId:     version.ResourceReference.Key.Id,
+		CodeSourceUrls: string(codeSources),
 	}, nil
 }
 

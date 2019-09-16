@@ -40,7 +40,7 @@ import (
 
 const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
-	defaultPipelineRunnerServiceAccount = "pipeline-runner"
+	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
 )
 
 type ClientManagerInterface interface {
@@ -162,22 +162,35 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 	}
 
 	// Create an entry with status of creating the pipeline
-	// TODO(jingzhang36): default version id should later be specified by
-	// create pipeline (version) request.
-	pipeline := &model.Pipeline{Name: name, Description: description, Parameters: params, Status: model.PipelineCreating, DefaultVersionId: ""}
+	pipeline := &model.Pipeline{
+		Name:        name,
+		Description: description,
+		Parameters:  params,
+		Status:      model.PipelineCreating,
+		DefaultVersion: &model.PipelineVersion{
+			Name:       name,
+			Parameters: params,
+			Status:     model.PipelineVersionCreating}}
 	newPipeline, err := r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
 
-	// Store the pipeline file
-	err = r.objectStore.AddFile(pipelineFile, storage.CreatePipelinePath(fmt.Sprint(newPipeline.UUID)))
+	// Store the pipeline file to a path dependent on pipeline version
+	err = r.objectStore.AddFile(pipelineFile,
+		storage.CreatePipelinePath(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
 
 	newPipeline.Status = model.PipelineReady
 	err = r.pipelineStore.UpdatePipelineStatus(newPipeline.UUID, newPipeline.Status)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline failed")
+	}
+	newPipeline.DefaultVersion.Status = model.PipelineVersionReady
+	err = r.pipelineStore.UpdatePipelineVersionStatus(
+		newPipeline.DefaultVersionId, newPipeline.DefaultVersion.Status)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -188,14 +201,18 @@ func (r *ResourceManager) UpdatePipelineStatus(pipelineId string, status model.P
 	return r.pipelineStore.UpdatePipelineStatus(pipelineId, status)
 }
 
+func (r *ResourceManager) UpdatePipelineVersionStatus(pipelineId string, status model.PipelineVersionStatus) error {
+	return r.pipelineStore.UpdatePipelineVersionStatus(pipelineId, status)
+}
+
 func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error) {
 	// Verify pipeline exist
-	_, err := r.pipelineStore.GetPipeline(pipelineId)
+	pipeline, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
 
-	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
+	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
@@ -785,6 +802,6 @@ func (r *ResourceManager) MarkSampleLoaded() error {
 	return r.dBStatusStore.MarkSampleLoaded()
 }
 
-func (r *ResourceManager) getDefaultSA() string{
+func (r *ResourceManager) getDefaultSA() string {
 	return common.GetStringConfigWithDefault(defaultPipelineRunnerServiceAccountEnvVar, defaultPipelineRunnerServiceAccount)
 }

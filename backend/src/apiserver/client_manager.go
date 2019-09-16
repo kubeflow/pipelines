@@ -17,10 +17,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
@@ -37,14 +38,14 @@ import (
 )
 
 const (
-	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
+	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
 
-	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
-	mysqlServicePort      = "MYSQL_SERVICE_PORT"
-	mysqlUser             = "DBConfig.User"
-	mysqlPassword         = "DBConfig.Password"
-	mysqlDBName           = "DBConfig.DBName"
+	mysqlServiceHost = "MYSQL_SERVICE_HOST"
+	mysqlServicePort = "MYSQL_SERVICE_PORT"
+	mysqlUser        = "DBConfig.User"
+	mysqlPassword    = "DBConfig.Password"
+	mysqlDBName      = "DBConfig.DBName"
 
 	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
 	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
@@ -66,10 +67,9 @@ type ClientManager struct {
 	objectStore            storage.ObjectStoreInterface
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
-	podClient 						 v1.PodInterface
+	podClient              v1.PodInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
-
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -179,6 +179,18 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	db, err := gorm.Open(driverName, arg)
 	util.TerminateIfError(err)
 
+	// If pipeline_versions table is introduced into DB for the first time,
+	// it needs initialization or data backfill.
+	var tableNames []string
+	var pipelineVersionsNeedInitialization = true
+	db.Raw(`show tables`).Pluck("Tables_in_mlpipeline", &tableNames)
+	for _, tableName := range tableNames {
+		if tableName == "pipeline_versions" {
+			pipelineVersionsNeedInitialization = false
+			break
+		}
+	}
+
 	// Create table
 	response := db.AutoMigrate(
 		&model.Experiment{},
@@ -210,6 +222,13 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
 	}
+
+	// Data backfill for pipeline_versions if this is the first time for
+	// pipeline_versions to enter mlpipeline DB.
+	if pipelineVersionsNeedInitialization {
+		initPipelineVersionsFromPipelines(db)
+	}
+
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
 
@@ -296,4 +315,42 @@ func newClientManager() ClientManager {
 	clientManager.init()
 
 	return clientManager
+}
+
+// Data migration in 3 steps to introduce pipeline_versions table. This
+// migration shall be called only once when pipeline_versions table is created
+// for the first time in DB.
+func initPipelineVersionsFromPipelines(db *gorm.DB) error {
+	// Step 1: acquire all existing pipelines.
+	var pipelines []model.Pipeline
+	db.Find(&pipelines)
+
+	// Step 2: for each existing pipeline, produce a default pipeline version
+	// for it.
+	for _, pipeline := range pipelines {
+		var pipelineVersionStatus model.PipelineVersionStatus
+		if pipeline.Status == model.PipelineReady {
+			pipelineVersionStatus = model.PipelineVersionReady
+		}
+		if pipeline.Status == model.PipelineCreating {
+			pipelineVersionStatus = model.PipelineVersionCreating
+		}
+		if pipeline.Status == model.PipelineDeleting {
+			pipelineVersionStatus = model.PipelineVersionDeleting
+		}
+		pipelineVersion := model.PipelineVersion{
+			UUID:           pipeline.UUID,
+			CreatedAtInSec: pipeline.CreatedAtInSec,
+			Name:           pipeline.Name + "_" + string(pipeline.CreatedAtInSec),
+			Parameters:     pipeline.Parameters,
+			Status:         pipelineVersionStatus,
+			PipelineId:     pipeline.UUID,
+		}
+		db.Create(&pipelineVersion)
+	}
+
+	// Step 3: modifiy pipelines table after pipeline_versions are populated.
+	db.Table("pipelines").UpdateColumn("DefaultVersionId", gorm.Expr("UUID"))
+
+	return nil
 }

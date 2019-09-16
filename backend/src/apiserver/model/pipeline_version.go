@@ -14,7 +14,9 @@
 
 package model
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // PipelineVersionStatus a label for the status of the Pipeline.
 // This is intend to make pipeline creation and deletion atomic.
@@ -27,24 +29,21 @@ const (
 )
 
 type PipelineVersion struct {
-	UUID           string `gorm:"column:VersionUUID; not null; primary_key"`
-	CreatedAtInSec int64  `gorm:"column:VersionCreatedAtInSec; not null"`
-	Name           string `gorm:"column:VersionName; not null; unique"`
+	UUID           string `gorm:"column:UUID; not null; primary_key"`
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index"`
+	Name           string `gorm:"column:Name; not null; unique"`
 	// Set size to 65535 so it will be stored as longtext.
 	// https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html
-	Parameters string `gorm:"column:VersionParameters; not null; size:65535"`
+	Parameters string `gorm:"column:Parameters; not null; size:65535"`
 	// PipelineVersion belongs to Pipeline. If a pipeline with a specific UUID
 	// is deleted from Pipeline table, all this pipeline's versions will be
 	// deleted from PipelineVersion table.
 	PipelineId string                `gorm:"column:PipelineId; not null;index;"`
-	Status     PipelineVersionStatus `gorm:"column:VersionStatus; not null"`
-	// PipelineVersion can be based on either code snapshots or packages. We
-	// allow multiple code snapshot references and multiple package references
-	// for a single PipelineVersion.
-	// CodeSourceLinks stores URL links to code snapshorts, separated by ";"
-	// PackageLinks stores URL links to package storages, separated by ";"
-	CodeSourceLinks    string `gorm:"column:CodeSourceLinks`
-	PackageSourceLinks string `gorm:"column:PackageSourceLinks`
+	Status     PipelineVersionStatus `gorm:"column:Status; not null"`
+	// Code source refers to the pipeline version's definition.
+	// We allow multiple code source references for a single pipeline version.
+	// CodeSourceURLs stores URL links to code source, separated by ";"
+	CodeSourceUrls string `gorm:"column:CodeSourceUrls;"`
 }
 
 func (p PipelineVersion) GetValueOfPrimaryKey() string {
@@ -52,27 +51,32 @@ func (p PipelineVersion) GetValueOfPrimaryKey() string {
 }
 
 func GetPipelineVersionTablePrimaryKeyColumn() string {
-	return "VersionUUID"
+	return "UUID"
 }
 
 // PrimaryKeyColumnName returns the primary key for model PipelineVersion.
 func (p *PipelineVersion) PrimaryKeyColumnName() string {
-	return "VersionUUID"
+	return "UUID"
 }
 
 // DefaultSortField returns the default sorting field for model Pipeline.
 func (p *PipelineVersion) DefaultSortField() string {
-	return "VersionCreatedAtInSec"
+	return "CreatedAtInSec"
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model
 // PipelineVersion.
 func (p *PipelineVersion) APIToModelFieldMap() map[string]string {
 	return map[string]string{
-		"id":          "VersionUUID",
-		"name":        "VersionName",
-		"created_at":  "VersionCreatedAtInSec",
+		"id":          "UUID",
+		"name":        "Name",
+		"created_at":  "CreatedAtInSec",
 		"pipeline_id": "PipelineId",
-		"status":      "VersionStatus",
+		"status":      "Status",
 	}
+}
+
+// GetModelName returns table name used as sort field prefix
+func (p *PipelineVersion) GetModelName() string {
+	return "pipeline_versions."
 }

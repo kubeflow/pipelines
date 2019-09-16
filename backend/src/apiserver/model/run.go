@@ -28,7 +28,6 @@ type Run struct {
 	Metrics            []*RunMetric
 	ResourceReferences []*ResourceReference
 	PipelineSpec
-	// PipelineVersionSpec
 }
 
 type PipelineRuntime struct {
@@ -81,4 +80,10 @@ var runAPIToModelFieldMap = map[string]string{
 // APIToModelFieldMap returns a map from API names to field names for model Run.
 func (r *Run) APIToModelFieldMap() map[string]string {
 	return runAPIToModelFieldMap
+}
+
+// GetModelName returns table name used as sort field prefix
+func (r *Run) GetModelName() string {
+	// For runs table, we sort without table name prefix
+	return ""
 }

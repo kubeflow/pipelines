@@ -11,7 +11,6 @@ go_library(
         "pipeline.go",
         "pipeline_spec.go",
         "pipeline_version.go",
-        "pipeline_version_spec.go",
         "resource_reference.go",
         "run.go",
     ],

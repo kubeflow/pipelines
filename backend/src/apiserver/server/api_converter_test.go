@@ -31,12 +31,11 @@ func TestToApiPipeline(t *testing.T) {
 		CreatedAtInSec: 1,
 		Parameters:     "[]",
 		DefaultVersion: &model.PipelineVersion{
-			UUID:               "pipelineversion1",
-			CreatedAtInSec:     1,
-			Parameters:         "[]",
-			PipelineId:         "pipeline1",
-			CodeSourceLinks:    "http://repo/22222;http://repo/44444",
-			PackageSourceLinks: "http://storage/22222;http://storage/44444",
+			UUID:           "pipelineversion1",
+			CreatedAtInSec: 1,
+			Parameters:     "[]",
+			PipelineId:     "pipeline1",
+			CodeSourceUrls: ";http://repo/22222;http://repo/44444;;",
 		},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
@@ -45,13 +44,16 @@ func TestToApiPipeline(t *testing.T) {
 		CreatedAt:  &timestamp.Timestamp{Seconds: 1},
 		Parameters: []*api.Parameter{},
 		DefaultVersion: &api.PipelineVersion{
-			Id:                 "pipelineversion1",
-			CreatedAt:          &timestamp.Timestamp{Seconds: 1},
-			Parameters:         []*api.Parameter{},
-			CodeSourceLinks:    []string{"http://repo/22222", "http://repo/44444"},
-			PackageSourceLinks: []string{"http://storage/22222", "http://storage/44444"},
-			PipelineSpec: &api.PipelineSpec{
-				PipelineId: "pipeline1",
+			Id:             "pipelineversion1",
+			CreatedAt:      &timestamp.Timestamp{Seconds: 1},
+			Parameters:     []*api.Parameter{},
+			CodeSourceUrls: []string{"http://repo/22222", "http://repo/44444"},
+			ResourceReference: &api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   "pipeline1",
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
 			},
 		},
 	}

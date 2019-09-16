@@ -21,6 +21,7 @@ enum ResourceType {
   UNKNOWN_RESOURCE_TYPE = 0;
   EXPERIMENT = 1;
   JOB = 2;
+  PIPELINE = 3;
 }
 
 enum Relationship {

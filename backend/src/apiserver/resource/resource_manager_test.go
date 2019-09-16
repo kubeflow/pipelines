@@ -164,19 +164,33 @@ func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManage
 }
 
 func createPipeline(name string) *model.Pipeline {
-	return &model.Pipeline{Name: name, Status: model.PipelineReady}
+	return &model.Pipeline{
+		Name:   name,
+		Status: model.PipelineReady,
+		DefaultVersion: &model.PipelineVersion{
+			Name:   name + "_version",
+			Status: model.PipelineVersionReady,
+		}}
 }
 
 func TestCreatePipeline(t *testing.T) {
 	store, _, pipeline := initWithPipeline(t)
 	defer store.Close()
 	pipelineExpected := &model.Pipeline{
-		UUID:           DefaultFakeUUID,
-		CreatedAtInSec: 1,
-		Name:           "p1",
-		Parameters:     "[{\"name\":\"param1\"}]",
-		Status:         model.PipelineReady,
-	}
+		UUID:             DefaultFakeUUID,
+		CreatedAtInSec:   1,
+		Name:             "p1",
+		Parameters:       "[{\"name\":\"param1\"}]",
+		Status:           model.PipelineReady,
+		DefaultVersionId: DefaultFakeUUID,
+		DefaultVersion: &model.PipelineVersion{
+			UUID:           DefaultFakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "p1",
+			Parameters:     "[{\"name\":\"param1\"}]",
+			Status:         model.PipelineVersionReady,
+			PipelineId:     DefaultFakeUUID,
+		}}
 	assert.Equal(t, pipelineExpected, pipeline)
 }
 
@@ -208,7 +222,7 @@ func TestCreatePipeline_StorePipelineMetadataError(t *testing.T) {
 	manager := NewResourceManager(store)
 	_, err := manager.CreatePipeline("pipeline1", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Failed to add pipeline to pipeline table")
+	assert.Contains(t, err.Error(), "Failed to start a transaction to create a new pipeline")
 }
 
 func TestCreatePipeline_CreatePipelineFileError(t *testing.T) {
