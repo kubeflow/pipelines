@@ -140,7 +140,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   private getRowsFromArtifacts(request: ListRequest, artifacts: Artifact[]): void {
     const artifactTypesMap = new Map<number, ArtifactType>();
     // TODO: Consider making an Api method for returning and caching types
-    Apis.getMetadataServiceClient().getArtifactTypes(new GetArtifactTypesRequest(), (err, res) => {
+    Apis.getMetadataServiceClient().getArtifactTypes(new GetArtifactTypesRequest(), async (err, res) => {
       if (err) {
         this.showPageError(serviceErrorToString(err));
         return;
@@ -150,50 +150,47 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         artifactTypesMap.set(artifactType.getId()!, artifactType);
       });
 
-      const artifactsWithCreationTimePromise = Promise.all(artifacts.map(async (artifact) => {
+      // TODO: When backend supports sending creation time back when we list
+      // artifacts, let's use it directly.
+      const artifactsWithCreationTimes = await Promise.all(artifacts.map(async (artifact) => {
         const artifactId = artifact.getId();
         if (!artifactId) {
-          return {
-            artifact,
-          };
+          return { artifact };
         }
 
-        const time = await getArtifactCreationTime(artifactId);
         return ({
           artifact,
-          creationTime: time,
+          creationTime: await getArtifactCreationTime(artifactId),
         });
       }));
 
-      artifactsWithCreationTimePromise.then(artifactsWithCreationTime => {
-        const collapsedAndExpandedRows = groupRows(
-          artifactsWithCreationTime.map(({ artifact, creationTime }) => {
-            const typeId = artifact.getTypeId();
-            const type = (typeId && artifactTypesMap && artifactTypesMap.get(typeId))
-              ? artifactTypesMap.get(typeId)!.getName()
-              : typeId;
-            return {
-              id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
-              otherFields: [
-                getResourceProperty(artifact, ArtifactProperties.PIPELINE_NAME)
-                || getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true),
-                getResourceProperty(artifact, ArtifactProperties.NAME),
-                artifact.getId(),
-                type,
-                artifact.getUri(),
-                creationTime || '',
-              ],
-            } as Row;
-          })
-            .filter(rowFilterFn(request))
-            .sort(rowCompareFn(request, this.state.columns))
-        );
+      const collapsedAndExpandedRows = groupRows(
+        artifactsWithCreationTimes.map(({ artifact, creationTime }) => {
+          const typeId = artifact.getTypeId();
+          const type = (typeId && artifactTypesMap && artifactTypesMap.get(typeId))
+            ? artifactTypesMap.get(typeId)!.getName()
+            : typeId;
+          return {
+            id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
+            otherFields: [
+              getResourceProperty(artifact, ArtifactProperties.PIPELINE_NAME)
+              || getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true),
+              getResourceProperty(artifact, ArtifactProperties.NAME),
+              artifact.getId(),
+              type,
+              artifact.getUri(),
+              creationTime || '',
+            ],
+          } as Row;
+        })
+          .filter(rowFilterFn(request))
+          .sort(rowCompareFn(request, this.state.columns))
+      );
 
-        this.setState({
-          artifacts,
-          expandedRows: collapsedAndExpandedRows.expandedRows,
-          rows: collapsedAndExpandedRows.collapsedRows,
-        });
+      this.setState({
+        artifacts,
+        expandedRows: collapsedAndExpandedRows.expandedRows,
+        rows: collapsedAndExpandedRows.collapsedRows,
       });
     });
   }
