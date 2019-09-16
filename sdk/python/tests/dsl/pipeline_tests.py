@@ -70,8 +70,8 @@ class TestPipeline(unittest.TestCase):
       pass
 
     golden_meta = PipelineMeta(name='p1', description='description1')
-    golden_meta.inputs.append(ParameterMeta(name='a', description='', param_type={'Schema': {'file_type': 'csv'}}, default='good'))
-    golden_meta.inputs.append(ParameterMeta(name='b', description='', param_type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default=12))
+    golden_meta.inputs.append(ParameterMeta(name='a', param_type={'Schema': {'file_type': 'csv'}}, default='good'))
+    golden_meta.inputs.append(ParameterMeta(name='b', param_type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default=12))
 
     pipeline_meta = _extract_pipeline_metadata(my_pipeline1)
     self.assertEqual(pipeline_meta, golden_meta)

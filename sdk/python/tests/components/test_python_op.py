@@ -99,6 +99,24 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
+    def test_func_to_container_op_output_component_file(self):
+        func = add_two_numbers
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            component_path = str(Path(temp_dir_name) / 'component.yaml')
+            comp.func_to_container_op(func, output_component_file=component_path)
+            op = comp.load_component_from_file(component_path)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_component_file(self):
+        func = add_two_numbers
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            component_path = str(Path(temp_dir_name) / 'component.yaml')
+            comp._python_op.func_to_component_file(func, output_component_file=component_path)
+            op = comp.load_component_from_file(component_path)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
     def test_indented_func_to_container_op_local_call(self):
         def add_two_numbers_indented(a: float, b: float) -> float:
             '''Returns sum of two arguments'''
@@ -348,7 +366,7 @@ class PythonOpTestCase(unittest.TestCase):
             return 1
 
         func = assert_is_none
-        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
+        op = comp.func_to_container_op(func)
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
 

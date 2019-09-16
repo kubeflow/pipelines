@@ -83,7 +83,6 @@ implementation:
         struct = load_yaml(component_text)
         ComponentSpec.from_dict(struct)
 
-    @unittest.expectedFailure
     def test_fail_on_cyclic_references(self):
         component_text = '''\
 implementation:
@@ -99,7 +98,8 @@ implementation:
             in2 1: {taskOutput: {taskId: task 1, outputName: out1 1}}
 '''
         struct = load_yaml(component_text)
-        ComponentSpec.from_dict(struct)
+        with self.assertRaises(TypeError):
+            ComponentSpec.from_dict(struct)
 
     def test_handle_parsing_predicates(self):
         component_text = '''\

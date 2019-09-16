@@ -1,5 +1,9 @@
-#!/bin/bash -e
-# Copyright 2018 Google LLC
+"""
+test.py provides a basic predefined visualization that can be used for testing
+because it does not have dependencies and had a low chance of being updated.
+"""
+
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +17,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# build base image
-pushd ../base
-./build_image.sh
-popd
-
-../../../build_image.sh -l ml-pipeline-dataproc-delete-cluster "$@"
+print(2)
