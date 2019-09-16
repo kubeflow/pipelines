@@ -152,48 +152,56 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         artifactTypesMap.set(artifactType.getId()!, artifactType);
       });
 
-      // TODO: When backend supports sending creation time back when we list
-      // artifacts, let's use it directly.
-      const artifactsWithCreationTimes = await Promise.all(artifacts.map(async (artifact) => {
-        const artifactId = artifact.getId();
-        if (!artifactId) {
-          return { artifact };
-        }
+      try {
+        // TODO: When backend supports sending creation time back when we list
+        // artifacts, let's use it directly.
+        const artifactsWithCreationTimes = await Promise.all(artifacts.map(async (artifact) => {
+          const artifactId = artifact.getId();
+          if (!artifactId) {
+            return { artifact };
+          }
 
-        return ({
-          artifact,
-          creationTime: await getArtifactCreationTime(artifactId),
+          return ({
+            artifact,
+            creationTime: await getArtifactCreationTime(artifactId),
+          });
+        }));
+
+        const collapsedAndExpandedRows = groupRows(
+          artifactsWithCreationTimes.map(({ artifact, creationTime }) => {
+            const typeId = artifact.getTypeId();
+            const type = (typeId && artifactTypesMap && artifactTypesMap.get(typeId))
+              ? artifactTypesMap.get(typeId)!.getName()
+              : typeId;
+            return {
+              id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
+              otherFields: [
+                getResourceProperty(artifact, ArtifactProperties.PIPELINE_NAME)
+                || getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true),
+                getResourceProperty(artifact, ArtifactProperties.NAME),
+                artifact.getId(),
+                type,
+                artifact.getUri(),
+                creationTime || '',
+              ],
+            } as Row;
+          })
+            .filter(rowFilterFn(request))
+            .sort(rowCompareFn(request, this.state.columns))
+        );
+
+        this.setState({
+          artifacts,
+          expandedRows: collapsedAndExpandedRows.expandedRows,
+          rows: collapsedAndExpandedRows.collapsedRows,
         });
-      }));
-
-      const collapsedAndExpandedRows = groupRows(
-        artifactsWithCreationTimes.map(({ artifact, creationTime }) => {
-          const typeId = artifact.getTypeId();
-          const type = (typeId && artifactTypesMap && artifactTypesMap.get(typeId))
-            ? artifactTypesMap.get(typeId)!.getName()
-            : typeId;
-          return {
-            id: `${type}:${artifact.getId()}`, // Join with colon so we can build the link
-            otherFields: [
-              getResourceProperty(artifact, ArtifactProperties.PIPELINE_NAME)
-              || getResourceProperty(artifact, ArtifactCustomProperties.WORKSPACE, true),
-              getResourceProperty(artifact, ArtifactProperties.NAME),
-              artifact.getId(),
-              type,
-              artifact.getUri(),
-              creationTime || '',
-            ],
-          } as Row;
-        })
-          .filter(rowFilterFn(request))
-          .sort(rowCompareFn(request, this.state.columns))
-      );
-
-      this.setState({
-        artifacts,
-        expandedRows: collapsedAndExpandedRows.expandedRows,
-        rows: collapsedAndExpandedRows.collapsedRows,
-      });
+      } catch (err) {
+        if (err.message) {
+          this.showPageError(err.message, err);
+        } else {
+          this.showPageError('Unknown error', err);
+        }
+      }
     });
   }
 
