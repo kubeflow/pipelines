@@ -18,9 +18,40 @@ import { JobServiceApi } from '../apis/job';
 import { RunServiceApi } from '../apis/run';
 import { PipelineServiceApi, ApiPipeline } from '../apis/pipeline';
 import { StoragePath } from './WorkflowParser';
-import { VisualizationServiceApi } from '../apis/visualization';
+import { VisualizationServiceApi, ApiVisualization } from '../apis/visualization';
+import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
+import { PlotType } from '../components/viewers/Viewer';
+import { MetadataStoreServiceClient } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
 
 const v1beta1Prefix = 'apis/v1beta1';
+
+/** Known Artifact properties */
+export enum ArtifactProperties {
+  ALL_META = '__ALL_META__',
+  CREATE_TIME = 'create_time',
+  DESCRIPTION = 'description',
+  NAME = 'name',
+  PIPELINE_NAME = 'pipeline_name',
+  VERSION = 'version',
+}
+
+/** Known Artifact custom properties */
+export enum ArtifactCustomProperties {
+  WORKSPACE = '__kf_workspace__',
+  RUN = '__kf_run__',
+}
+
+/** Known Execution properties */
+export enum ExecutionProperties {
+  NAME = 'name',
+  PIPELINE_NAME = 'pipeline_name',
+  STATE = 'state',
+}
+
+/** Known Execution custom properties */
+export enum ExecutionCustomProperties {
+  WORKSPACE = '__kf_workspace__',
+}
 
 export interface ListRequest {
   filter?: string;
@@ -38,6 +69,7 @@ export interface BuildInfo {
 }
 
 let customVisualizationsAllowed: boolean;
+const metadataServiceClient = new MetadataStoreServiceClient('');
 
 export class Apis {
 
@@ -50,6 +82,27 @@ export class Apis {
       customVisualizationsAllowed = result === 'true';
     }
     return customVisualizationsAllowed;
+  }
+
+  public static async buildPythonVisualizationConfig(visualizationData: ApiVisualization): Promise<HTMLViewerConfig> {
+    const visualization = await Apis.visualizationServiceApi.createVisualization(visualizationData);
+    if (visualization.html) {
+      const htmlContent = visualization.html
+        // Fixes issue with TFX components (and other iframe based
+        // visualizations), where the method in which javascript interacts
+        // with embedded iframes is not allowed when embedded in an additional
+        // iframe. This is resolved by setting the srcdoc value rather that
+        // manipulating the document directly.
+        .replace('contentWindow.document.write', 'srcdoc=');
+      return {
+        htmlContent,
+        type: PlotType.WEB_APP,
+      } as HTMLViewerConfig;
+    } else {
+      // This should never be thrown as the html property of a generated
+      // visualization is always set for successful visualization generations.
+      throw new Error('Visualization was generated successfully but generated HTML was not found.');
+    }
   }
 
   /**
@@ -173,6 +226,10 @@ export class Apis {
    */
   public static async getProjectId(): Promise<string> {
     return this._fetch('system/project-id');
+  }
+
+  public static getMetadataServiceClient(): MetadataStoreServiceClient {
+    return metadataServiceClient;
   }
 
   private static _experimentServiceApi?: ExperimentServiceApi;

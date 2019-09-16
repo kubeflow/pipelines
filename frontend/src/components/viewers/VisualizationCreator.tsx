@@ -151,7 +151,15 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
       <BusyButton title='Generate Visualization' busy={isBusy} disabled={!canGenerate}
         onClick={() => {
           if (onGenerate && selectedType) {
-            onGenerate(_arguments, source, selectedType);
+            const specifiedArguments: any = JSON.parse(_arguments || '{}');
+            if (selectedType === ApiVisualizationType.CUSTOM) {
+              specifiedArguments.code = code.split('\n');
+            }
+            onGenerate(
+              JSON.stringify(specifiedArguments),
+              source,
+              selectedType
+            );
           }
         }} />
     </div>;
@@ -180,7 +188,8 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
       .filter((key: string, i: number, arr: string[]) => {
         const isDuplicate = arr.indexOf(key) !== i;
         const isCustom = key === 'CUSTOM';
-        return !isDuplicate && (allowCustomVisualizations || !isCustom);
+        const isTFMA = key === 'TFMA';
+        return !isDuplicate && (allowCustomVisualizations || !isCustom) && !isTFMA;
       });
   }
 
@@ -188,13 +197,21 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
     let placeholder= 'Arguments, provided as JSON, to be used during visualization generation.';
     switch(type) {
       case ApiVisualizationType.ROCCURVE:
+        // These arguments are not yet used as the ROC curve visualization is
+        // still based on the Kubeflow Pipelines component.
+        // placeholder = `{
+        // \t"y_true": array,
+        // \t"y_score": array,
+        // \t"pos_label": number | string | null,
+        // \t"sample_weight": array | null,
+        // \t"drop_intermediate": boolean | null,
+        // \t"is_generated": boolean | null,
+        // }`;
         placeholder = `{
-        \t"y_true": array,
-        \t"y_score": array,
-        \t"pos_label": number | string | null,
-        \t"sample_weight": array | null,
-        \t"drop_intermediate": boolean | null,
         \t"is_generated": boolean | null,
+        \t"target_lambda": string | null,
+        \t"trueclass": string | null,
+        \t"true_score_column": string | null
         }`;
         break;
       case ApiVisualizationType.TFDV:

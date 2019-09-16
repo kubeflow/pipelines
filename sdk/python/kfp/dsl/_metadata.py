@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
 from .types import BaseType, _check_valid_type_dict, _instance_to_dict
 from ..components._structures import ComponentSpec, InputSpec, OutputSpec
 
@@ -62,6 +63,7 @@ def _extract_component_metadata(func):
     arg_type = None
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
     if isinstance(arg_default, PipelineParam):
+      warnings.warn('Explicit creation of `kfp.dsl.PipelineParam`s by the users is deprecated. The users should define the parameter type and default values using standard pythonic constructs: def my_func(a: int = 1, b: str = "default"):')
       arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
@@ -81,8 +83,8 @@ def _extract_component_metadata(func):
   # Construct the ComponentSpec
   return ComponentSpec(
     name=func.__name__,
-    inputs=inputs,
-    outputs=outputs,
+    inputs=inputs if inputs else None,
+    outputs=outputs if outputs else None,
   )
 
 
@@ -104,17 +106,13 @@ def _extract_pipeline_metadata(func):
     for arg, default in zip(reversed(fullargspec.args), reversed(fullargspec.defaults)):
       arg_defaults[arg] = default
 
-  # Construct the ComponentSpec
-  pipeline_meta = ComponentSpec(
-    name=getattr(func, '_pipeline_name', func.__name__),
-    description=getattr(func, '_pipeline_description', func.__doc__),
-    inputs=[] if args else None,
-  )
-  # Inputs  
+  # Inputs
+  inputs = []
   for arg in args:
     arg_type = None
     arg_default = arg_defaults[arg] if arg in arg_defaults else None
     if isinstance(arg_default, PipelineParam):
+      warnings.warn('Explicit creation of `kfp.dsl.PipelineParam`s by the users is deprecated. The users should define the parameter type and default values using standard pythonic constructs: def my_func(a: int = 1, b: str = "default"):')
       arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
@@ -127,10 +125,17 @@ def _extract_pipeline_metadata(func):
         # In case the property value for the schema validator is a string instead of a dict.
         schema_object = json.loads(schema_object)
       validate(instance=arg_default, schema=schema_object)
-    pipeline_meta.inputs.append(InputSpec(name=arg, type=arg_type, default=arg_default))
+    inputs.append(InputSpec(name=arg, type=arg_type, default=arg_default))
 
   #TODO: add descriptions to the metadata
   #docstring parser:
   #  https://github.com/rr-/docstring_parser
   #  https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
+
+  # Construct the ComponentSpec
+  pipeline_meta = ComponentSpec(
+    name=getattr(func, '_pipeline_name', func.__name__),
+    description=getattr(func, '_pipeline_description', func.__doc__),
+    inputs=inputs if inputs else None,
+  )
   return pipeline_meta

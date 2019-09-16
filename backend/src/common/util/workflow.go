@@ -37,6 +37,11 @@ func NewWorkflow(workflow *workflowapi.Workflow) *Workflow {
 	}
 }
 
+// SetServiceAccount Set the service account to run the workflow.
+func (w *Workflow) SetServiceAccount(serviceAccount string) {
+	w.Spec.ServiceAccountName = serviceAccount
+}
+
 // OverrideParameters overrides some of the parameters of a Workflow.
 func (w *Workflow) OverrideParameters(desiredParams map[string]string) {
 	desiredSlice := make([]workflowapi.Parameter, 0)
@@ -250,7 +255,7 @@ func (w *Workflow) IsInFinalState() bool {
 
 // PersistedFinalState whether the workflow final state has being persisted.
 func (w *Workflow) PersistedFinalState() bool {
-	if _, ok :=w.GetLabels()[LabelKeyWorkflowPersistedFinalState]; ok {
+	if _, ok := w.GetLabels()[LabelKeyWorkflowPersistedFinalState]; ok {
 		// If the label exist, workflow final state has being persisted.
 		return true
 	}

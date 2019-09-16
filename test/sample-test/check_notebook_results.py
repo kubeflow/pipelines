@@ -12,84 +12,88 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
-from kfp import Client
+import subprocess
 import utils
+import yaml
 
-###### Input/Output Instruction ######
-# args:
-#   experiment: where the test run belong, only necessary when a job is submitted.
-#   namespace: where the pipeline system is deployed.
-#   testname: test name in the json xml
-#   result: name of the file that stores the test result
-#   exit_code: the exit code of the bash command that runs the test.
+from constants import RUN_LIST_PAGE_SIZE, DEFAULT_CONFIG
+from kfp import Client
 
-# Parsing the input arguments
-def parse_arguments():
-  """Parse command line arguments."""
 
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--experiment',
-                      type=str,
-                      help='The experiment name')
-  parser.add_argument('--namespace',
-                      type=str,
-                      default='kubeflow',
-                      help="namespace of the deployed pipeline system. Default: kubeflow")
-  parser.add_argument('--testname',
-                      type=str,
-                      required=True,
-                      help="Test name")
-  parser.add_argument('--result',
-                      type=str,
-                      required=True,
-                      help='The path of the test result that will be exported.')
-  parser.add_argument('--exit-code',
-                      type=str,
-                      required=True,
-                      help='The exit code of the bash command that runs the test.')
-  args = parser.parse_args()
-  return args
+class NoteBookChecker(object):
+    def __init__(self, testname, result, run_pipeline, namespace='kubeflow'):
+        """ Util class for checking notebook sample test running results.
 
-def main():
-  args = parse_arguments()
-  test_cases = []
-  test_name = args.testname + ' Sample Test'
+        :param testname: test name in the json xml.
+        :param result: name of the file that stores the test result
+        :param run_pipeline: whether to submit for a pipeline run.
+        :param namespace: where the pipeline system is deployed.
+        """
+        self._testname = testname
+        self._result = result
+        self._exit_code = None
+        self._run_pipeline = run_pipeline
+        self._namespace = namespace
 
-  ###### Write the script exit code log ######
-  utils.add_junit_test(test_cases, 'test script execution', (args.exit_code == '0'), 'test script failure with exit code: ' + args.exit_code)
+    def run(self):
+        """ Run the notebook sample as a python script. """
+        self._exit_code = str(
+            subprocess.call(['ipython', '%s.py' % self._testname]))
 
-  if args.experiment is not None:
-    ###### Initialization ######
-    host = 'ml-pipeline.%s.svc.cluster.local:8888' % args.namespace
-    client = Client(host=host)
 
-    ###### Get experiments ######
-    experiment_id = client.get_experiment(experiment_name=args.experiment).id
+    def check(self):
+        """ Check the pipeline running results of the notebook sample. """
+        test_cases = []
+        test_name = self._testname + ' Sample Test'
 
-    ###### Get runs ######
-    list_runs_response = client.list_runs(page_size=1000, experiment_id=experiment_id)
+        ###### Write the script exit code log ######
+        utils.add_junit_test(test_cases, 'test script execution',
+                             (self._exit_code == '0'),
+                             'test script failure with exit code: '
+                             + self._exit_code)
 
-    ###### Check all runs ######
-    for run in list_runs_response.runs:
-      run_id = run.id
-      response = client.wait_for_run_completion(run_id, 1200)
-      succ = (response.run.status.lower()=='succeeded')
-      utils.add_junit_test(test_cases, 'job completion', succ, 'waiting for job completion failure')
+        try:
+            with open(DEFAULT_CONFIG, 'r') as f:
+                raw_args = yaml.safe_load(f)
+        except yaml.YAMLError as yamlerr:
+            raise RuntimeError('Illegal default config:{}'.format(yamlerr))
+        except OSError as ose:
+            raise FileExistsError('Default config not found:{}'.format(ose))
+        else:
+            test_timeout = raw_args['test_timeout']
 
-      ###### Output Argo Log for Debugging ######
-      workflow_json = client._get_workflow_json(run_id)
-      workflow_id = workflow_json['metadata']['name']
-      argo_log, _ = utils.run_bash_command('argo logs -n {} -w {}'.format(args.namespace, workflow_id))
-      print("=========Argo Workflow Log=========")
-      print(argo_log)
+        if self._run_pipeline:
+            experiment = self._testname + '-test'
+            ###### Initialization ######
+            host = 'ml-pipeline.%s.svc.cluster.local:8888' % self._namespace
+            client = Client(host=host)
 
-      if not succ:
-        utils.write_junit_xml(test_name, args.result, test_cases)
-        exit(1)
+            ###### Get experiments ######
+            experiment_id = client.get_experiment(experiment_name=experiment).id
 
-  ###### Write out the test result in junit xml ######
-  utils.write_junit_xml(test_name, args.result, test_cases)
+            ###### Get runs ######
+            list_runs_response = client.list_runs(page_size=RUN_LIST_PAGE_SIZE,
+                                                  experiment_id=experiment_id)
 
-if __name__ == "__main__":
-  main()
+            ###### Check all runs ######
+            for run in list_runs_response.runs:
+                run_id = run.id
+                response = client.wait_for_run_completion(run_id, test_timeout)
+                succ = (response.run.status.lower()=='succeeded')
+                utils.add_junit_test(test_cases, 'job completion',
+                                     succ, 'waiting for job completion failure')
+
+                ###### Output Argo Log for Debugging ######
+                workflow_json = client._get_workflow_json(run_id)
+                workflow_id = workflow_json['metadata']['name']
+                argo_log, _ = utils.run_bash_command(
+                    'argo logs -n {} -w {}'.format(self._namespace, workflow_id))
+                print("=========Argo Workflow Log=========")
+                print(argo_log)
+
+                if not succ:
+                    utils.write_junit_xml(test_name, self._result, test_cases)
+                    exit(1)
+
+        ###### Write out the test result in junit xml ######
+        utils.write_junit_xml(test_name, self._result, test_cases)

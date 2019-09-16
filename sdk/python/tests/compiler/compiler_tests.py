@@ -50,11 +50,7 @@ class TestCompiler(unittest.TestCase):
 
     from kubernetes import client as k8s_client
 
-    with dsl.Pipeline('somename') as p:
-      msg1 = dsl.PipelineParam('msg1')
-      msg2 = dsl.PipelineParam('msg2', value='value2')
-      json = dsl.PipelineParam('json')
-      kind = dsl.PipelineParam('kind')
+    def my_pipeline(msg1, json, kind, msg2='value2'):
       op = dsl.ContainerOp(name='echo', image='image', command=['sh', '-c'],
                            arguments=['echo %s %s | tee /tmp/message.txt' % (msg1, msg2)],
                            file_outputs={'merged': '/tmp/message.txt'}) \
@@ -75,89 +71,82 @@ class TestCompiler(unittest.TestCase):
         ),
         attribute_outputs={"out": json}
       )
-    golden_output = {
-      'container': {
-        'image': 'image',
-        'args': [
-          'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
-        ],
-        'command': ['sh', '-c'],
-        'env': [
-          {
-            'name': 'GOOGLE_APPLICATION_CREDENTIALS',
-            'value': '/secret/gcp-credentials/user-gcp-sa.json'
-          }
-        ],
-        'volumeMounts':[
-          {
-            'mountPath': '/secret/gcp-credentials',
-            'name': 'gcp-credentials',
-          }
-        ]
-      },
-      'inputs': {'parameters':
-        [
-          {'name': 'msg1'},
-          {'name': 'msg2'},
-        ]},
-      'name': 'echo',
-      'outputs': {
-        'parameters': [
-          {'name': 'echo-merged',
-           'valueFrom': {'path': '/tmp/message.txt'}
-          }],
-        'artifacts': [{
-          'name': 'mlpipeline-ui-metadata',
-          'path': '/mlpipeline-ui-metadata.json',
-          'optional': True,
-        },{
-          'name': 'mlpipeline-metrics',
-          'path': '/mlpipeline-metrics.json',
-          'optional': True,
-        }]
+      golden_output = {
+        'container': {
+          'image': 'image',
+          'args': [
+            'echo {{inputs.parameters.msg1}} {{inputs.parameters.msg2}} | tee /tmp/message.txt'
+          ],
+          'command': ['sh', '-c'],
+          'env': [
+            {
+              'name': 'GOOGLE_APPLICATION_CREDENTIALS',
+              'value': '/secret/gcp-credentials/user-gcp-sa.json'
+            }
+          ],
+          'volumeMounts':[
+            {
+              'mountPath': '/secret/gcp-credentials',
+              'name': 'gcp-credentials',
+            }
+          ]
+        },
+        'inputs': {'parameters':
+          [
+            {'name': 'msg1'},
+            {'name': 'msg2'},
+          ]},
+        'name': 'echo',
+        'outputs': {
+          'parameters': [
+            {'name': 'echo-merged',
+            'valueFrom': {'path': '/tmp/message.txt'}
+            }],
+        }
       }
-    }
-    res_output = {
-      'inputs': {
-        'parameters': [{
-          'name': 'json'
-        }, {
-          'name': 'kind'
-        }]
-      },
-      'name': 'test-resource',
-      'outputs': {
-        'parameters': [{
-          'name': 'test-resource-manifest',
-          'valueFrom': {
-            'jsonPath': '{}'
-          }
-        }, {
-          'name': 'test-resource-name',
-          'valueFrom': {
-            'jsonPath': '{.metadata.name}'
-          }
-        }, {
-          'name': 'test-resource-out',
-          'valueFrom': {
-            'jsonPath': '{{inputs.parameters.json}}'
-          }
-        }]
-      },
-      'resource': {
-        'action': 'create',
-        'manifest': (
-          "apiVersion: v1\n"
-          "kind: '{{inputs.parameters.kind}}'\n"
-          "metadata:\n"
-          "  name: resource\n"
-        )
+      res_output = {
+        'inputs': {
+          'parameters': [{
+            'name': 'json'
+          }, {
+            'name': 'kind'
+          }]
+        },
+        'name': 'test-resource',
+        'outputs': {
+          'parameters': [{
+            'name': 'test-resource-manifest',
+            'valueFrom': {
+              'jsonPath': '{}'
+            }
+          }, {
+            'name': 'test-resource-name',
+            'valueFrom': {
+              'jsonPath': '{.metadata.name}'
+            }
+          }, {
+            'name': 'test-resource-out',
+            'valueFrom': {
+              'jsonPath': '{{inputs.parameters.json}}'
+            }
+          }]
+        },
+        'resource': {
+          'action': 'create',
+          'manifest': (
+            "apiVersion: v1\n"
+            "kind: '{{inputs.parameters.kind}}'\n"
+            "metadata:\n"
+            "  name: resource\n"
+          )
+        }
       }
-    }
 
-    self.maxDiff = None
-    self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
-    self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
+      self.maxDiff = None
+      self.assertEqual(golden_output, compiler._op_to_template._op_to_template(op))
+      self.assertEqual(res_output, compiler._op_to_template._op_to_template(res))
+    
+    kfp.compiler.Compiler()._compile(my_pipeline)
 
   def _get_yaml_from_zip(self, zip_file):
     with zipfile.ZipFile(zip_file, 'r') as zip:
@@ -189,6 +178,28 @@ class TestCompiler(unittest.TestCase):
       # Replace next line with commented line for gathering golden yaml.
       shutil.rmtree(tmpdir)
       # print(tmpdir)
+
+  def test_basic_workflow_without_decorator(self):
+    """Test compiling a workflow and appending pipeline params."""
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+    import basic_no_decorator
+    tmpdir = tempfile.mkdtemp()
+    try:
+      compiled_workflow = compiler.Compiler().create_workflow(
+          basic_no_decorator.save_most_frequent_word,
+          'Save Most Frequent',
+          'Get Most Frequent Word and Save to GCS',
+          [
+            basic_no_decorator.message_param,
+            basic_no_decorator.output_path_param
+          ])
+      with open(os.path.join(test_data_dir, 'basic_no_decorator.yaml'), 'r') as f:
+        golden = yaml.safe_load(f)
+
+      self.assertEqual(golden, compiled_workflow)
+    finally:
+      shutil.rmtree(tmpdir)
 
   def test_composing_workflow(self):
     """Test compiling a simple workflow, and a bigger one composed from the simple one."""
@@ -701,4 +712,8 @@ implementation:
       # See https://github.com/argoproj/argo/blob/5331fc02e257266a4a5887dfe6277e5a0b42e7fc/cmd/argoexec/commands/resource.go#L30
       self.assertIsNone(delete_op_template.get("successCondition"))
       self.assertIsNone(delete_op_template.get("failureCondition"))
-      self.assertDictEqual(delete_op_template.get("outputs"), {})
+      self.assertDictEqual(delete_op_template.get("outputs", {}), {})
+
+  def test_py_input_artifact_raw_value(self):
+    """Test pipeline input_artifact_raw_value."""
+    self._test_py_compile_yaml('input_artifact_raw_value')

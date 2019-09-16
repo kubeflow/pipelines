@@ -44,14 +44,6 @@ spec:
       - name: create-volume-name
       - name: url
     name: step1-ingest
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - inputs:
       parameters:
       - name: create-volume-name
@@ -87,14 +79,6 @@ spec:
       parameters:
       - name: create-volume-name
     name: step2-gunzip
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - inputs:
       parameters:
       - name: create-volume-name
@@ -130,14 +114,6 @@ spec:
       parameters:
       - name: create-volume-name
     name: step3-copy
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - inputs:
       parameters:
       - name: create-volume-name
@@ -172,14 +148,6 @@ spec:
       parameters:
       - name: create-volume-name
     name: step4-output
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - dag:
       tasks:
       - name: create-volume

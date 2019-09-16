@@ -1,7 +1,6 @@
 """
-test.py is used for test_server.py as a way to test the tornado web server
-without having a reliance on the validity of visualizations. It does not serve
-as a valid visualization and is only used for testing purposes.
+test.py provides a basic predefined visualization that can be used for testing
+because it does not have dependencies and had a low chance of being updated.
 """
 
 # Copyright 2019 Google LLC
@@ -18,5 +17,4 @@ as a valid visualization and is only used for testing purposes.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-x = 2
-print(x)
+print(2)

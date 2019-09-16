@@ -18,11 +18,13 @@ from itables import show
 # itables is requires as importing it changes the way pandas DataFrames are
 # rendered.
 import itables.interactive
+from itables.javascript import load_datatables
 import itables.options as opts
 import pandas as pd
 from tensorflow.python.lib.io import file_io
 
-# flake8: noqa TODO
+# Forcefully load required JavaScript and CSS for datatables.
+load_datatables()
 
 # Remove maxByte limit to prevent issues where entire table cannot be rendered
 # due to size of data.
@@ -32,7 +34,7 @@ dfs = []
 files = file_io.get_matching_files(source)
 
 # Read data from file and write it to a DataFrame object.
-if variables.get("headers", False) == False:
+if not variables.get("headers", False):
     # If no headers are provided, use the first row as headers
     for f in files:
         dfs.append(pd.read_csv(f))
@@ -43,6 +45,6 @@ else:
 
 # Display DataFrame as output.
 df = pd.concat(dfs)
-if variables.get("headers", False) != False:
+if variables.get("headers", False):
     df.columns = variables.get("headers")
 show(df)

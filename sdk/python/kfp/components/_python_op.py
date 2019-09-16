@@ -15,6 +15,8 @@
 __all__ = [
     'func_to_container_op',
     'func_to_component_text',
+    'get_default_base_image',
+    'set_default_base_image',
 ]
 
 from ._yaml_utils import dump_yaml
@@ -25,7 +27,7 @@ from ._structures import *
 import inspect
 from pathlib import Path
 import typing
-from typing import TypeVar, Generic, List
+from typing import Callable, Generic, List, TypeVar, Union
 
 T = TypeVar('T')
 
@@ -41,6 +43,17 @@ class OutputFile(Generic[T], str):
 
 #TODO: Replace this image name with another name once people decide what to replace it with.
 _default_base_image='tensorflow/tensorflow:1.13.2-py3'
+
+
+def get_default_base_image() -> Union[str, Callable[[], str]]:
+    return _default_base_image
+
+
+def set_default_base_image(image_or_factory: Union[str, Callable[[], str]]):
+    '''set_default_base_image sets the name of the container image that will be used for component creation when base_image is not specified.
+    Alternatively, the base image can also be set to a factory function that will be returning the image.
+    '''
+    _default_base_image = image_or_factory
 
 
 def _python_function_name_to_component_name(name):
@@ -59,13 +72,20 @@ def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str]
 
     # Hack to force cloudpickle to capture the whole function instead of just referencing the code file. See https://github.com/cloudpipe/cloudpickle/blob/74d69d759185edaeeac7bdcb7015cfc0c652f204/cloudpickle/cloudpickle.py#L490
     old_modules = {}
+    old_sig = getattr(func, '__signature__', None)
     try: # Try is needed to restore the state if something goes wrong
         for module_name in modules_to_capture:
             if module_name in sys.modules:
                 old_modules[module_name] = sys.modules.pop(module_name)
+        # Hack to prevent cloudpickle from trying to pickle generic types that might be present in the signature. See https://github.com/cloudpipe/cloudpickle/issues/196 
+        # Currently the __signature__ is only set by Airflow components as a means to spoof/pass the function signature to _func_to_component_spec
+        if hasattr(func, '__signature__'):
+            del func.__signature__
         func_pickle = base64.b64encode(cloudpickle.dumps(func, pickle.DEFAULT_PROTOCOL))
     finally:
         sys.modules.update(old_modules)
+        if old_sig:
+            func.__signature__ = old_sig
 
     function_loading_code = '''\
 import sys
@@ -211,7 +231,7 @@ def _extract_component_interface(func) -> ComponentSpec:
     return component_spec
 
 
-def _func_to_component_spec(func, extra_code='', base_image=_default_base_image, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
+def _func_to_component_spec(func, extra_code='', base_image : str = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
     '''Takes a self-contained python function and converts it to component
 
     Args:
@@ -224,13 +244,15 @@ def _func_to_component_spec(func, extra_code='', base_image=_default_base_image,
     '''
     decorator_base_image = getattr(func, '_component_base_image', None)
     if decorator_base_image is not None:
-        if base_image is not _default_base_image and decorator_base_image != base_image:
+        if base_image is not None and decorator_base_image != base_image:
             raise ValueError('base_image ({}) conflicts with the decorator-specified base image metadata ({})'.format(base_image, decorator_base_image))
         else:
             base_image = decorator_base_image
     else:
         if base_image is None:
-            raise ValueError('base_image cannot be None')
+            base_image = _default_base_image
+            if isinstance(base_image, Callable):
+                base_image = base_image()
 
     component_spec = _extract_component_interface(func)
 
@@ -325,11 +347,14 @@ _outputs = {func_name}(**_parsed_args)
 if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
     _outputs = [_outputs]
 
-from pathlib import Path
-for idx, filename in enumerate(_output_files):
-    _output_path = Path(filename)
-    _output_path.parent.mkdir(parents=True, exist_ok=True)
-    _output_path.write_text(str(_outputs[idx]))
+import os
+for idx, output_file in enumerate(_output_files):
+    try:
+        os.makedirs(os.path.dirname(output_file))
+    except OSError:
+        pass
+    with open(output_file, 'w') as f:
+        f.write(str(_outputs[idx]))
 '''.format(
         func_name=func.__name__,
         func_code=func_code,

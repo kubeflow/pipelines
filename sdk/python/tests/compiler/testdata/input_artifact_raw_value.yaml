@@ -1,0 +1,71 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Pipeline shows how to define artifact inputs and pass raw artifacts to them.", "name": "Pipeline with artifact input raw argument value."}'
+  generateName: pipeline-with-artifact-input-raw-argument-value-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: pipeline-with-artifact-input-raw-argument-value
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      command:
+      - cat
+      - /tmp/inputs/text/data
+      image: alpine
+    inputs:
+      artifacts:
+      - name: text
+        path: /tmp/inputs/text/data
+        raw:
+          data: Constant artifact value
+    name: component-with-inline-input-artifact
+  - container:
+      command:
+      - cat
+      - /tmp/inputs/text/data
+      image: alpine
+    inputs:
+      artifacts:
+      - name: text
+        path: /tmp/inputs/text/data
+        raw:
+          data: Constant artifact value
+    name: component-with-input-artifact
+  - container:
+      command:
+      - cat
+      - /tmp/inputs/text/data
+      image: alpine
+    inputs:
+      artifacts:
+      - name: text
+        path: /tmp/inputs/text/data
+        raw:
+          data: hard-coded artifact value
+    name: component-with-input-artifact-2
+  - container:
+      command:
+      - cat
+      - /tmp/inputs/text/data
+      image: alpine
+    inputs:
+      artifacts:
+      - name: text
+        path: /tmp/inputs/text/data
+        raw:
+          data: Text from a file with hard-coded artifact value
+    name: component-with-input-artifact-3
+  - dag:
+      tasks:
+      - name: component-with-inline-input-artifact
+        template: component-with-inline-input-artifact
+      - name: component-with-input-artifact
+        template: component-with-input-artifact
+      - name: component-with-input-artifact-2
+        template: component-with-input-artifact-2
+      - name: component-with-input-artifact-3
+        template: component-with-input-artifact-3
+    name: pipeline-with-artifact-input-raw-argument-value

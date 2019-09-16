@@ -99,6 +99,24 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
+    def test_func_to_container_op_output_component_file(self):
+        func = add_two_numbers
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            component_path = str(Path(temp_dir_name) / 'component.yaml')
+            comp.func_to_container_op(func, output_component_file=component_path)
+            op = comp.load_component_from_file(component_path)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
+    def test_func_to_component_file(self):
+        func = add_two_numbers
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            component_path = str(Path(temp_dir_name) / 'component.yaml')
+            comp._python_op.func_to_component_file(func, output_component_file=component_path)
+            op = comp.load_component_from_file(component_path)
+
+        self.helper_test_2_in_1_out_component_using_local_call(func, op)
+
     def test_indented_func_to_container_op_local_call(self):
         def add_two_numbers_indented(a: float, b: float) -> float:
             '''Returns sum of two arguments'''
@@ -348,7 +366,7 @@ class PythonOpTestCase(unittest.TestCase):
             return 1
 
         func = assert_is_none
-        op = comp.func_to_container_op(func, output_component_file='comp.yaml')
+        op = comp.func_to_container_op(func)
         self.helper_test_2_in_1_out_component_using_local_call(func, op)
 
 
@@ -402,6 +420,27 @@ class PythonOpTestCase(unittest.TestCase):
         self.helper_test_2_in_1_out_component_using_local_call(func, op, arguments=[
             ["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}],
             {'str': "string", 'int': 1, 'float':  2.2, 'false': False, 'true': True, 'none': None, 'list': [3, 4], 'dict': {'s': 4}},
+        ])
+
+
+    def test_handling_base64_pickle_arguments(self):
+        def assert_values_are_same(
+            obj1: 'Base64Pickle', # noqa: F821
+            obj2: 'Base64Pickle', # noqa: F821
+        ) -> int:
+            import unittest
+            unittest.TestCase().assertEqual(obj1['self'], obj1)
+            unittest.TestCase().assertEqual(obj2, open)
+            return 1
+        
+        func = assert_values_are_same
+        op = comp.func_to_container_op(func)
+
+        recursive_obj = {}
+        recursive_obj['self'] = recursive_obj
+        self.helper_test_2_in_1_out_component_using_local_call(func, op, arguments=[
+            recursive_obj,
+            open,
         ])
 
 

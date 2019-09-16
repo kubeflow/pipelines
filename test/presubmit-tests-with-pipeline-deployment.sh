@@ -63,6 +63,10 @@ while [ "$1" != "" ]; do
     shift
 done
 
+# PULL_PULL_SHA is empty whne Pros/Tide tests the batches.
+# PULL_BASE_SHA cannot be used here as it still points to master tip in that case.
+PULL_PULL_SHA="${PULL_PULL_SHA:-$(git rev-parse HEAD)}"
+
 # Variables
 GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${PULL_PULL_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
@@ -75,6 +79,8 @@ echo "presubmit test starts"
 time source "${DIR}/test-prep.sh"
 echo "test env prepared"
 
+# We don't wait for image building here, because cluster can be deployed in
+# parallel so that we save a few minutes of test time.
 time source "${DIR}/build-images.sh"
 echo "KFP images cloudbuild jobs submitted"
 

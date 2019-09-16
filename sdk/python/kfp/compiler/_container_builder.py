@@ -152,11 +152,11 @@ class ContainerBuilder(object):
     with tarfile.open(tarball_path, 'w:gz') as tarball:
       tarball.add(dir_name, arcname='')
 
-  def build(self, local_dir, docker_filename, target_image=None, timeout=1000):
+  def build(self, local_dir, docker_filename : str = 'Dockerfile', target_image=None, timeout=1000):
     """
     Args:
       local_dir (str): local directory that stores all the necessary build files
-      docker_filename (str): the dockerfile name that is in the local_dir
+      docker_filename (str): the path of the Dockerfile relative to the local_dir
       target_image (str): the target image tag to push the final image.
       timeout (int): time out in seconds. Default: 1000
     """

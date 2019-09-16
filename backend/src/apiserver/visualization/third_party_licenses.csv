@@ -74,6 +74,7 @@ packaging,https://creativecommons.org/licenses/by-sa/3.0/,CC by-SA 3
 pandas,https://github.com/pandas-dev/pandas/blob/master/LICENSE,BSD-3
 pandocfilters,https://github.com/jgm/pandocfilters/blob/master/LICENSE,BSD-3
 parso,https://github.com/davidhalter/parso/blob/master/LICENSE.txt,MIT
+pbr,https://opendev.org/openstack/pbr/src/branch/master/LICENSE,Apache 2.0
 pexpect,https://github.com/pexpect/pexpect/blob/master/LICENSE,ISC
 pickleshare,https://github.com/pickleshare/pickleshare/blob/master/LICENSE,MIT
 prometheus-client,https://github.com/prometheus/client_python/blob/master/LICENSE,Apache 2.0

@@ -17,7 +17,7 @@ from collections import defaultdict
 import inspect
 import tarfile
 import zipfile
-from typing import Set, List, Text, Dict
+from typing import Any, Callable, Set, List, Text, Dict
 
 import yaml
 from kfp.dsl import _container_op, _for_loop
@@ -27,6 +27,7 @@ from ._k8s_helper import K8sHelper
 from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
+from ..components._structures import InputSpec
 from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
@@ -40,8 +41,8 @@ class Compiler(object):
     name='name',
     description='description'
   )
-  def my_pipeline(a: dsl.PipelineParam, b: dsl.PipelineParam):
-    pass
+  def my_pipeline(a: int = 1, b: str = "default value"):
+    ...
 
   Compiler().compile(my_pipeline, 'path/to/workflow.yaml')
   ```
@@ -450,6 +451,9 @@ class Compiler(object):
         condition = sub_group.condition
         operand1_value = self._resolve_value_or_reference(condition.operand1, subgroup_inputs)
         operand2_value = self._resolve_value_or_reference(condition.operand2, subgroup_inputs)
+        if condition.operator in ['==', '!=']:
+          operand1_value = '"' + operand1_value + '"'
+          operand2_value = '"' + operand2_value + '"'
         task['when'] = '{} {} {}'.format(operand1_value, condition.operator, operand2_value)
 
       # Generate dependencies section for this task.
@@ -671,48 +675,20 @@ class Compiler(object):
 
     return _validate_exit_handler_helper(pipeline.groups[0], [], False)
 
-  def _compile(self, pipeline_func):
-    """Compile the given pipeline function into workflow."""
-
-    argspec = inspect.getfullargspec(pipeline_func)
-
-    # Create the arg list with no default values and call pipeline function.
-    # Assign type information to the PipelineParam
-    pipeline_meta = _extract_pipeline_metadata(pipeline_func)
-    pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_meta.name)
-
-    args_list = []
-    for arg_name in argspec.args:
-      arg_type = None
-      for input in pipeline_meta.inputs:
-        if arg_name == input.name:
-          arg_type = input.type
-          break
-      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
-
-    with dsl.Pipeline(pipeline_name) as p:
-      pipeline_func(*args_list)
-
-    # Remove when argo supports local exit handler.
-    self._validate_exit_handler(p)
-
-    # Fill in the default values.
-    args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
-                               for arg_name in argspec.args]
-    if argspec.defaults:
-      for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
-        arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+  def _sanitize_and_inject_artifact(self, pipeline: dsl.Pipeline):
+    """Sanitize operator/param names and inject pipeline artifact location."""
 
     # Sanitize operator names and param names
     sanitized_ops = {}
     # pipeline level artifact location
-    artifact_location = p.conf.artifact_location
+    artifact_location = pipeline.conf.artifact_location
 
-    for op in p.ops.values():
+    for op in pipeline.ops.values():
       # inject pipeline level artifact location into if the op does not have
       # an artifact location config already.
-      if artifact_location and not op.artifact_location:
-        op.artifact_location = artifact_location
+      if hasattr(op, "artifact_location"):
+        if artifact_location and not op.artifact_location:
+          op.artifact_location = artifact_location
 
       sanitized_name = K8sHelper.sanitize_k8s_name(op.name)
       op.name = sanitized_name
@@ -737,16 +713,97 @@ class Compiler(object):
             op.attribute_outputs[key]
         op.attribute_outputs = sanitized_attribute_outputs
       sanitized_ops[sanitized_name] = op
-    p.ops = sanitized_ops
+    pipeline.ops = sanitized_ops
+
+  def create_workflow(self,
+      pipeline_func: Callable,
+      pipeline_name: Text=None,
+      pipeline_description: Text=None,
+      params_list: List[dsl.PipelineParam]=None) -> Dict[Text, Any]:
+    """ Create workflow spec from pipeline function and specified pipeline
+    params/metadata. Currently, the pipeline params are either specified in
+    the signature of the pipeline function or by passing a list of
+    dsl.PipelineParam. Conflict will cause ValueError.
+
+    :param pipeline_func: pipeline function where ContainerOps are invoked.
+    :param pipeline_name:
+    :param pipeline_description:
+    :param params_list: list of pipeline params to append to the pipeline.
+    :return: workflow dict.
+    """
+    params_list = params_list or []
+    argspec = inspect.getfullargspec(pipeline_func)
+
+    # Create the arg list with no default values and call pipeline function.
+    # Assign type information to the PipelineParam
+    pipeline_meta = _extract_pipeline_metadata(pipeline_func)
+    pipeline_meta.name = pipeline_name or pipeline_meta.name
+    pipeline_meta.description = pipeline_description or pipeline_meta.description
+    pipeline_name = K8sHelper.sanitize_k8s_name(pipeline_meta.name)
+
+    # Need to first clear the default value of dsl.PipelineParams. Otherwise, it
+    # will be resolved immediately in place when being to each component.
+    default_param_values = {}
+    for param in params_list:
+      default_param_values[param.name] = param.value
+      param.value = None
+
+    # Currently only allow specifying pipeline params at one place.
+    if params_list and pipeline_meta.inputs:
+      raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
+
+
+    args_list = []
+    for arg_name in argspec.args:
+      arg_type = None
+      for input in pipeline_meta.inputs or []:
+        if arg_name == input.name:
+          arg_type = input.type
+          break
+      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
+
+    with dsl.Pipeline(pipeline_name) as dsl_pipeline:
+      pipeline_func(*args_list)
+
+    self._validate_exit_handler(dsl_pipeline)
+    self._sanitize_and_inject_artifact(dsl_pipeline)
+
+    # Fill in the default values.
+    args_list_with_defaults = []
+    if pipeline_meta.inputs:
+      args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
+                                 for arg_name in argspec.args]
+      if argspec.defaults:
+        for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
+          arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
+    elif params_list:
+      # Or, if args are provided by params_list, fill in pipeline_meta.
+      for param in params_list:
+        param.value = default_param_values[param.name]
+
+      args_list_with_defaults = params_list
+      pipeline_meta.inputs = [
+        InputSpec(
+            name=param.name,
+            type=param.param_type,
+            default=param.value) for param in params_list]
 
     op_transformers = [add_pod_env]
-    op_transformers.extend(p.conf.op_transformers)
-    workflow = self._create_pipeline_workflow(args_list_with_defaults, p, op_transformers)
+    op_transformers.extend(dsl_pipeline.conf.op_transformers)
+
+    workflow = self._create_pipeline_workflow(
+        args_list_with_defaults,
+        dsl_pipeline,
+        op_transformers)
 
     import json
     workflow.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
 
     return workflow
+
+  def _compile(self, pipeline_func):
+    """Compile the given pipeline function into workflow."""
+    return self.create_workflow(pipeline_func=pipeline_func)
 
   def compile(self, pipeline_func, package_path, type_check=True):
     """Compile the given pipeline function into workflow yaml.
@@ -787,5 +844,7 @@ class Compiler(object):
         raise ValueError('The output path '+ package_path + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
     finally:
       kfp.TYPE_CHECK = type_check_old_value
+    if '{{pipelineparam' in yaml_text:
+      raise RuntimeError('Internal compiler error: Found unresolved PipelineParam. Please create a new issue at https://github.com/kubeflow/pipelines/issues attaching the pipeline code and the pipeline package.' )
 
 

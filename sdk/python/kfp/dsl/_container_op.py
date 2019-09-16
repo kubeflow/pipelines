@@ -903,6 +903,13 @@ class BaseOp(object):
 from ._pipeline_volume import PipelineVolume  # The import is here to prevent circular reference problems.
 
 
+class InputArgumentPath:
+    def __init__(self, argument, input=None, path=None):
+        self.argument = argument
+        self.input = input
+        self.path = path
+
+
 class ContainerOp(BaseOp):
     """
     Represents an op implemented by a container image.
@@ -961,6 +968,7 @@ class ContainerOp(BaseOp):
       init_containers: List[UserContainer] = None,
       sidecars: List[Sidecar] = None,
       container_kwargs: Dict = None,
+      artifact_argument_paths: List[InputArgumentPath] = None,
       file_outputs: Dict[str, str] = None,
       output_artifact_paths : Dict[str, str]=None,
       artifact_location: V1alpha1ArtifactLocation=None,
@@ -984,6 +992,10 @@ class ContainerOp(BaseOp):
                     together with the `main` container.
           container_kwargs: the dict of additional keyword arguments to pass to the
                             op's `Container` definition.
+          artifact_argument_paths: Optional. Maps input artifact arguments (values or references) to the local file paths where they'll be placed.
+              At pipeline run time, the value of the artifact argument is saved to a local file with specified path.
+              This parameter is only needed when the input file paths are hard-coded in the program.
+              Otherwise it's better to pass input artifact placement paths by including artifact arguments in the command-line using the InputArgumentPath class instances.
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
@@ -1001,7 +1013,30 @@ class ContainerOp(BaseOp):
         """
 
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
-        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location'] #Copying the BaseOp class variable!
+        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location', 'artifact_arguments'] #Copying the BaseOp class variable!
+
+        input_artifact_paths = {}
+        artifact_arguments = {}
+        file_outputs = dict(file_outputs or {}) # Making a copy
+        output_artifact_paths = dict(output_artifact_paths or {}) # Making a copy
+
+        def resolve_artifact_argument(artarg):
+            from ..components._components import _generate_input_file_name
+            if not isinstance(artarg, InputArgumentPath):
+                return artarg
+            input_name = getattr(artarg.input, 'name', artarg.input) or ('input-' + str(len(artifact_arguments)))
+            input_path = artarg.path or _generate_input_file_name(input_name)
+            input_artifact_paths[input_name] = input_path
+            artifact_arguments[input_name] = str(artarg.argument)
+            return input_path
+
+        for artarg in artifact_argument_paths or []:
+            resolve_artifact_argument(artarg)
+
+        if isinstance(command, Sequence) and not isinstance(command, str):
+            command = list(map(resolve_artifact_argument, command))
+        if isinstance(arguments, Sequence) and not isinstance(arguments, str):
+            arguments = list(map(resolve_artifact_argument, arguments))
 
         # convert to list if not a list
         command = as_string_list(command)
@@ -1040,7 +1075,17 @@ class ContainerOp(BaseOp):
                 # only proxy public callables
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
 
+        # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics outputs that should always be saved as artifacts
+        # TODO: Remove when outputs are always saved as artifacts
+        for output_name, path in dict(file_outputs).items():
+            normalized_output_name = re.sub('[^a-zA-Z0-9]', '-', output_name.lower())
+            if normalized_output_name in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']:
+                output_artifact_paths[normalized_output_name] = path
+                del file_outputs[output_name]
+
         # attributes specific to `ContainerOp`
+        self.input_artifact_paths = input_artifact_paths
+        self.artifact_arguments = artifact_arguments
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
         self.artifact_location = artifact_location
