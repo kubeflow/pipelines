@@ -87,11 +87,11 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
 
   private async load(): Promise<void> {
     const getExecutionsRequest = new GetExecutionsByIDRequest();
-    const numberId = parseInt(this.id);
+    const numberId = parseInt(this.id, 10);
     if (isNaN(numberId) || numberId < 0) {
       const error = new Error(`Invalid execution id: ${this.id}`);
       this.showPageError(error.message, error);
-      return Promise.reject(error)
+      return Promise.reject(error);
     }
 
     getExecutionsRequest.setExecutionIdsList([numberId]);
