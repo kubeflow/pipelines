@@ -101,7 +101,9 @@ class ExecutionList extends Page<{}, ExecutionListState> {
 
   private async reload(request: ListRequest): Promise<string> {
     Apis.getMetadataServiceClient().getExecutions(new GetExecutionsRequest(), (err, res) => {
-      if (err) {
+      // Code === 5 means no record found in backend. This is a temporary workaround.
+      // TODO: remove err.code !== 5 check when backend is fixed.
+      if (err && err.code !== 5) {
         this.showPageError(serviceErrorToString(err));
         return;
       }
@@ -126,7 +128,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           {props.value}
         </Link>
       );
-  }
+    }
 
   /**
    * Temporary solution to apply sorting, filtering, and pagination to the
