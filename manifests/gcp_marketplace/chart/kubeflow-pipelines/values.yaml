@@ -17,16 +17,6 @@ images:
 gcpSecretName: "user-gcp-sa"
 serviceAccountCredential: null
 
-serviceAccount:
-  argo: null
-  mlPipeline: null
-  mlPipelinePersistenceAgent: null
-  mlPipelineScheduledWorkflow: null
-  mlPipelineUI: null
-  mlPipelineViewerCrd: null
-  pipelineRunner: null
-  proxyAgentRunner: null
-
 managedstorage:
   enabled: false
   cloudsqlInstanceConnectionName: null

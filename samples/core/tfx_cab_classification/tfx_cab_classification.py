@@ -24,14 +24,14 @@ platform = 'GCP'
 
 dataflow_tf_data_validation_op  = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/dataflow/tfdv/component.yaml')
 dataflow_tf_transform_op        = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/dataflow/tft/component.yaml')
-tf_train_op                     = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/kubeflow/dnntrainer/component.yaml')
+tf_train_op                     = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/kubeflow/dnntrainer/component.yaml')
 dataflow_tf_model_analyze_op    = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/dataflow/tfma/component.yaml')
 dataflow_tf_predict_op          = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/dataflow/predict/component.yaml')
 
-confusion_matrix_op             = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/local/confusion_matrix/component.yaml')
-roc_op                          = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/b705631e892bd8181cabcd704e6e6385b16daf90/components/local/roc/component.yaml')
+confusion_matrix_op             = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/local/confusion_matrix/component.yaml')
+roc_op                          = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/local/roc/component.yaml')
 
-kubeflow_deploy_op              = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/a97f1d0ad0e7b92203f35c5b0b9af3a314952e05/components/kubeflow/deployer/component.yaml')
+kubeflow_deploy_op              = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/kubeflow/deployer/component.yaml')
 
 @dsl.pipeline(
   name='TFX Taxi Cab Classification Pipeline Example',
