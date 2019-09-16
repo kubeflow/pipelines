@@ -110,30 +110,37 @@ export APP_INSTANCE_NAME=kubeflow-pipelines-app
 export NAMESPACE=<namespace>
 ```
 
-Creat the namepsace
+Creat the namespace
 ```shell
 kubectl create namespace $NAMESPACE
 ```
 
-Download token
+Download token for your service account which you want to use for calling GCP APIs from the pipelines.
 ```shell
-gcloud iam service-accounts keys create application_default_credentials.json --iam-account 32498701380-compute@developer.gserviceaccount.com
-cat application_default_credentials.json | base64 > $SERVICE_ACCOUNT_TOKEN
+gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account]
+export SERVICE_ACCOUNT_TOKEN="$(cat application_default_credentials.json | base64 -w 0)"
 ```
 
 Follow the [instruction](https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools/blob/master/docs/tool-prerequisites.md#tool-prerequisites) and install mpdev
+TODO: The official mpdev won't work because it doesn't have permission to deploy CRD. The latest unofficial build will have right permission. Remove following instruction when change is in prod.
+```
+BIN_FILE="$HOME/bin/mpdev"
+docker run gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev:unreleased-pr396 cat /scripts/dev > "$BIN_FILE"
+chmod +x "$BIN_FILE"
+export MARKETPLACE_TOOLS_TAG=unreleased-pr396
+export MARKETPLACE_TOOLS_IMAGE=gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev
+```
 
 Run the install script
 
 ```shell
-./mpdev scripts/install  --deployer=gcr.io/ml-pipeline/google/pipelines/deployer:0.2   --parameters='{"name": "'$APP_INSTANCE_NAME'", "namespace": "'$NAMESPACE'", "serviceAccountCredential": "$SERVICE_ACCOUNT_TOKEN"}'
+mpdev scripts/install  --deployer=gcr.io/ml-pipeline/google/pipelines/deployer:0.2   --parameters='{"name": "'$APP_INSTANCE_NAME'", "namespace": "'$NAMESPACE'", "serviceAccountCredential": "$SERVICE_ACCOUNT_TOKEN"}'
 
 ```
 
 Or if using CloudSQL and GCS,
 ```
-./mpdev scripts/install  --deployer=gcr.io/ml-pipeline/google/pipelines/deployer:0.2   --parameters='{"name": "'$APP_INSTANCE_NAME'", "namespace": "'$NAMESPACE'", "serviceAccountCredential": "$SERVICE_ACCOUNT_TOKEN", "managedstorage.enabled": true, "managedstorage.cloudsqlInstanceConnectionName": "[your-name]", "managedstorage.dbPassword": "[your-pwd]"}'
-
+mpdev scripts/install  --deployer=gcr.io/ml-pipeline/google/pipelines/deployer:0.2   --parameters='{"name": "'$APP_INSTANCE_NAME'", "namespace": "'$NAMESPACE'", "serviceAccountCredential": "$SERVICE_ACCOUNT_TOKEN", "managedstorage.enabled": true, "managedstorage.cloudsqlInstanceConnectionName": "[your-name]", "managedstorage.dbPassword": "[your-pwd]"}'
 ```
 
 Watch the deployment come up with
