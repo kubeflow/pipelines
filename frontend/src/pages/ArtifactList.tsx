@@ -26,6 +26,7 @@ import { Link } from 'react-router-dom';
 import { Artifact, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
 import { ArtifactProperties, ArtifactCustomProperties, ListRequest, Apis } from '../lib/Apis';
 import { GetArtifactTypesRequest, GetArtifactsRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
+import { getArtifactCreationTime } from '../lib/MetadataUtils';
 
 interface ArtifactListState {
   artifacts: Artifact[];
@@ -57,8 +58,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         { label: 'ID', flex: 1, sortKey: 'id' },
         { label: 'Type', flex: 2, sortKey: 'type' },
         { label: 'URI', flex: 2, sortKey: 'uri', },
-        // TODO: Get timestamp from the event that created this artifact.
-        // {label: 'Created at', flex: 1, sortKey: 'created_at'},
+        { label: 'Created at', flex: 1, sortKey: 'created_at' },
       ],
       expandedRows: new Map(),
       rows: [],
@@ -142,7 +142,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   private getRowsFromArtifacts(request: ListRequest, artifacts: Artifact[]): void {
     const artifactTypesMap = new Map<number, ArtifactType>();
     // TODO: Consider making an Api method for returning and caching types
-    Apis.getMetadataServiceClient().getArtifactTypes(new GetArtifactTypesRequest(), (err, res) => {
+    Apis.getMetadataServiceClient().getArtifactTypes(new GetArtifactTypesRequest(), async (err, res) => {
       if (err) {
         this.showPageError(serviceErrorToString(err));
         return;
@@ -152,9 +152,23 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         artifactTypesMap.set(artifactType.getId()!, artifactType);
       });
 
-      const collapsedAndExpandedRows =
-        groupRows(artifacts
-          .map((artifact) => { // Flattens
+      try {
+        // TODO: When backend supports sending creation time back when we list
+        // artifacts, let's use it directly.
+        const artifactsWithCreationTimes = await Promise.all(artifacts.map(async (artifact) => {
+          const artifactId = artifact.getId();
+          if (!artifactId) {
+            return { artifact };
+          }
+
+          return ({
+            artifact,
+            creationTime: await getArtifactCreationTime(artifactId),
+          });
+        }));
+
+        const collapsedAndExpandedRows = groupRows(
+          artifactsWithCreationTimes.map(({ artifact, creationTime }) => {
             const typeId = artifact.getTypeId();
             const type = (typeId && artifactTypesMap && artifactTypesMap.get(typeId))
               ? artifactTypesMap.get(typeId)!.getName()
@@ -168,21 +182,26 @@ class ArtifactList extends Page<{}, ArtifactListState> {
                 artifact.getId(),
                 type,
                 artifact.getUri(),
-                // TODO: Get timestamp from the event that created this artifact.
-                // formatDateString(
-                //   getArtifactProperty(a, ArtifactProperties.CREATE_TIME) || ''),
+                creationTime || '',
               ],
             } as Row;
           })
-          .filter(rowFilterFn(request))
-          .sort(rowCompareFn(request, this.state.columns))
+            .filter(rowFilterFn(request))
+            .sort(rowCompareFn(request, this.state.columns))
         );
 
-      this.setState({
-        artifacts,
-        expandedRows: collapsedAndExpandedRows.expandedRows,
-        rows: collapsedAndExpandedRows.collapsedRows,
-      });
+        this.setState({
+          artifacts,
+          expandedRows: collapsedAndExpandedRows.expandedRows,
+          rows: collapsedAndExpandedRows.collapsedRows,
+        });
+      } catch (err) {
+        if (err.message) {
+          this.showPageError(err.message, err);
+        } else {
+          this.showPageError('Unknown error', err);
+        }
+      }
     });
   }
 
