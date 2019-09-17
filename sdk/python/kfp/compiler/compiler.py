@@ -861,21 +861,21 @@ class Compiler(object):
           ' should ends with one of the following formats: '
           '[.tar.gz, .tgz, .zip, .yaml, .yml]')
 
-def compile(self, pipeline_func, package_path, type_check=True):
-    """Compile the given pipeline function into workflow yaml.
+  def compile(self, pipeline_func, package_path, type_check=True):
+      """Compile the given pipeline function into workflow yaml.
 
-    Args:
-      pipeline_func: pipeline functions with @dsl.pipeline decorator.
-      package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
-      type_check: whether to enable the type check or not, default: False.
-    """
-    import kfp
-    type_check_old_value = kfp.TYPE_CHECK
-    try:
-      kfp.TYPE_CHECK = type_check
-      workflow = self._compile(pipeline_func)
+      Args:
+        pipeline_func: pipeline functions with @dsl.pipeline decorator.
+        package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
+        type_check: whether to enable the type check or not, default: False.
+      """
+      import kfp
+      type_check_old_value = kfp.TYPE_CHECK
+      try:
+        kfp.TYPE_CHECK = type_check
+        workflow = self._compile(pipeline_func)
 
-      self.write_workflow(workflow, package_path)
-    finally:
-      kfp.TYPE_CHECK = type_check_old_value
+        self.write_workflow(workflow, package_path)
+      finally:
+        kfp.TYPE_CHECK = type_check_old_value
 
