@@ -53,9 +53,13 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 		return sqlBuilder.
 			From("pipelines").
 			LeftJoin("pipeline_versions ON pipelines.DefaultVersionId = pipeline_versions.UUID").
-			Where(sq.And{
-				sq.Eq{"pipelines.Status": model.PipelineReady},
-				sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady}})
+			Where(sq.Or{
+				sq.And{
+					sq.Eq{"pipelines.Status": model.PipelineReady},
+					sq.Eq{"pipelines.DefaultVersionId": nil}},
+				sq.And{
+					sq.Eq{"pipelines.Status": model.PipelineReady},
+					sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady}}})
 	}
 
 	sqlBuilder := buildQuery(sq.Select("*"))
@@ -121,10 +125,13 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 	var pipelines []*model.Pipeline
 	for rows.Next() {
-		var uuid, name, parameters, description, defaultVersionId string
+		var uuid, name, parameters, description string
+		var defaultVersionId sql.NullString
 		var createdAtInSec int64
 		var status model.PipelineStatus
-		var pipelineVersion model.PipelineVersion
+		// var pipelineVersion model.PipelineVersion
+		var versionUUID, versionName, versionParameters, versionPipelineId, versionCodeSourceUrls, versionStatus sql.NullString
+		var versionCreatedAtInSec sql.NullInt64
 		if err := rows.Scan(
 			&uuid,
 			&createdAtInSec,
@@ -133,24 +140,44 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 			&parameters,
 			&status,
 			&defaultVersionId,
-			&pipelineVersion.UUID,
-			&pipelineVersion.CreatedAtInSec,
-			&pipelineVersion.Name,
-			&pipelineVersion.Parameters,
-			&pipelineVersion.PipelineId,
-			&pipelineVersion.Status,
-			&pipelineVersion.CodeSourceUrls); err != nil {
+			&versionUUID,
+			&versionCreatedAtInSec,
+			&versionName,
+			&versionParameters,
+			&versionPipelineId,
+			&versionStatus,
+			&versionCodeSourceUrls); err != nil {
 			return nil, err
 		}
-		pipelines = append(pipelines, &model.Pipeline{
-			UUID:             uuid,
-			CreatedAtInSec:   createdAtInSec,
-			Name:             name,
-			Description:      description,
-			Parameters:       parameters,
-			Status:           status,
-			DefaultVersionId: defaultVersionId,
-			DefaultVersion:   &pipelineVersion})
+		if defaultVersionId.Valid {
+			pipelines = append(pipelines, &model.Pipeline{
+				UUID:             uuid,
+				CreatedAtInSec:   createdAtInSec,
+				Name:             name,
+				Description:      description,
+				Parameters:       parameters,
+				Status:           status,
+				DefaultVersionId: defaultVersionId.String,
+				DefaultVersion: &model.PipelineVersion{
+					UUID:           versionUUID.String,
+					CreatedAtInSec: versionCreatedAtInSec.Int64,
+					Name:           versionName.String,
+					Parameters:     versionParameters.String,
+					PipelineId:     versionPipelineId.String,
+					Status:         model.PipelineVersionStatus(versionStatus.String),
+					CodeSourceUrls: versionCodeSourceUrls.String,
+				}})
+		} else {
+			pipelines = append(pipelines, &model.Pipeline{
+				UUID:             uuid,
+				CreatedAtInSec:   createdAtInSec,
+				Name:             name,
+				Description:      description,
+				Parameters:       parameters,
+				Status:           status,
+				DefaultVersionId: "",
+				DefaultVersion:   nil})
+		}
 	}
 	return pipelines, nil
 }
@@ -164,8 +191,13 @@ func (s *PipelineStore) GetPipelineWithStatus(id string, status model.PipelineSt
 		Select("*").
 		From("pipelines").
 		LeftJoin("pipeline_versions on pipelines.DefaultVersionId = pipeline_versions.UUID").
-		Where(sq.Eq{"pipelines.uuid": id}).
-		Where(sq.Eq{"pipelines.status": status}).
+		Where(sq.Or{
+			sq.And{
+				sq.Eq{"pipelines.Status": model.PipelineReady},
+				sq.Eq{"pipelines.DefaultVersionId": nil}},
+			sq.And{
+				sq.Eq{"pipelines.Status": model.PipelineReady},
+				sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady}}}).
 		Limit(1).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get pipeline: %v", err.Error())

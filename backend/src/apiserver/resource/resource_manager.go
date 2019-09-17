@@ -212,7 +212,13 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
 
-	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipeline.DefaultVersion.UUID)))
+	var UUID string
+	if pipeline.DefaultVersion == nil {
+		UUID = pipeline.UUID
+	} else {
+		UUID = pipeline.DefaultVersion.UUID
+	}
+	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}

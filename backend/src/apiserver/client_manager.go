@@ -191,12 +191,8 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		}
 	}
 
-	// For hereon to finishing adding foreign keys and backfilling data, every
-	// operation will be in a single transaction.
-	tx := db.Begin()
-
 	// Create table
-	response := tx.AutoMigrate(
+	response := db.AutoMigrate(
 		&model.Experiment{},
 		&model.Job{},
 		&model.Pipeline{},
@@ -208,36 +204,30 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.DefaultExperiment{})
 
 	if response.Error != nil {
-		tx.Rollback()
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
-	response = tx.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext")
+	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext")
 	if response.Error != nil {
-		tx.Rollback()
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
 	}
 
-	response = tx.Model(&model.RunMetric{}).
+	response = db.Model(&model.RunMetric{}).
 		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
-		tx.Rollback()
 		glog.Fatalf("Failed to create a foreign key for RunID in run_metrics table. Error: %s", response.Error)
 	}
-	response = tx.Model(&model.PipelineVersion{}).
+	response = db.Model(&model.PipelineVersion{}).
 		AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
-		tx.Rollback()
 		glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
 	}
 
 	// Data backfill for pipeline_versions if this is the first time for
 	// pipeline_versions to enter mlpipeline DB.
 	if pipelineVersionsNeedInitialization {
-		initPipelineVersionsFromPipelines(tx)
+		initPipelineVersionsFromPipelines(db)
 	}
-
-	tx.Commit()
 
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
@@ -331,9 +321,11 @@ func newClientManager() ClientManager {
 // migration shall be called only once when pipeline_versions table is created
 // for the first time in DB.
 func initPipelineVersionsFromPipelines(db *gorm.DB) {
+	tx := db.Begin()
+
 	// Step 1: acquire all existing pipelines.
 	var pipelines []model.Pipeline
-	db.Find(&pipelines)
+	tx.Find(&pipelines)
 
 	// Step 2: for each existing pipeline, produce a default pipeline version
 	// for it.
@@ -356,9 +348,11 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 			Status:         pipelineVersionStatus,
 			PipelineId:     pipeline.UUID,
 		}
-		db.Create(&pipelineVersion)
+		tx.Create(&pipelineVersion)
 	}
 
 	// Step 3: modifiy pipelines table after pipeline_versions are populated.
-	db.Table("pipelines").UpdateColumn("DefaultVersionId", gorm.Expr("UUID"))
+	tx.Table("pipelines").UpdateColumn("DefaultVersionId", gorm.Expr("UUID"))
+
+	tx.Commit()
 }
