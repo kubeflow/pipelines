@@ -101,7 +101,6 @@ class SampleTest(object):
     if self._is_notebook:
       # Parse necessary params from config.yaml
       nb_params = {}
-
       try:
         config_file = os.path.join(CONFIG_DIR, '%s.config.yaml' % self._test_name)
         with open(config_file, 'r') as f:
@@ -119,6 +118,9 @@ class SampleTest(object):
             nb_params['output'] = self._sample_test_output
         if 'run_pipeline' in raw_args.keys():
           self._run_pipeline = raw_args['run_pipeline']
+
+      if self._run_pipeline:
+        nb_params['experiment_name'] = self._test_name + '-test'
 
       pm.execute_notebook(
           input_path='%s.ipynb' % self._test_name,
