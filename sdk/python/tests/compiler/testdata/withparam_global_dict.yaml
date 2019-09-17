@@ -2,8 +2,8 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   annotations:
-    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": [{"a": 1, "b":
-      2}, {"a": 10, "b": 20}], "name": "loopidy_doop"}], "name": "my-pipeline"}'
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "[{\"a\": 1, \"b\":
+      2}, {\"a\": 10, \"b\": 20}]", "name": "loopidy_doop"}], "name": "my-pipeline"}'
   generateName: my-pipeline-
 spec:
   arguments:
