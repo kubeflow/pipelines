@@ -6,7 +6,7 @@ metadata:
   annotations:
     kubernetes-engine.cloud.google.com/icon: >-
       data:image/png;base64,{{ .Files.Get "logo.png" | b64enc }}
-    marketplace.cloud.google.com/deploy-info: '{"partner_id": "click-to-deploy-containers", "product_id": "kubeflow-pipelines", "partner_name": "Google Click to Deploy"}'
+    marketplace.cloud.google.com/deploy-info: '{"partner_id": "google-cloud-ai-platform", "product_id": "kubeflow-pipelines", "partner_name": "Google Cloud AI Platform"}'
   labels:
     app.kubernetes.io/name: "{{ .Release.Name }}"
 spec:
@@ -14,10 +14,10 @@ spec:
     type: Kubeflow Pipelines
     version: '0.2'
     description: |-
-      Machine Learning Pipeline on Kubernetes
+      Reusable end-to-end ML workflow
     maintainers:
-      - name: Google Click to Deploy
-        url: https://cloud.google.com/solutions/#click-to-deploy
+      - name: Google Cloud AI Platform
+        url: https://cloud.google.com/ai-platform/
       - name: Kubeflow Pipelines
         url: https://github.com/kubeflow/pipelines
     links:
