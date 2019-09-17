@@ -59,6 +59,7 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 		}
 	}
 
+	// TODO(jingzhang36): uncomment when exposing versions to API.
 	// defaultVersion, err := ToApiVersion(pipeline.DefaultVersion)
 	// if err != nil {
 	// 	return &api.Pipeline{

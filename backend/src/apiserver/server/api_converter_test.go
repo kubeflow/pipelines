@@ -30,6 +30,7 @@ func TestToApiPipeline(t *testing.T) {
 		UUID:           "pipeline1",
 		CreatedAtInSec: 1,
 		Parameters:     "[]",
+		// TODO(jingzhang36): uncomment when exposing versions to API.
 		// DefaultVersion: &model.PipelineVersion{
 		// 	UUID:           "pipelineversion1",
 		// 	CreatedAtInSec: 1,
@@ -43,6 +44,7 @@ func TestToApiPipeline(t *testing.T) {
 		Id:         "pipeline1",
 		CreatedAt:  &timestamp.Timestamp{Seconds: 1},
 		Parameters: []*api.Parameter{},
+		// TODO(jingzhang36): uncomment when exposing versions to API.
 		// DefaultVersion: &api.PipelineVersion{
 		// 	Id:             "pipelineversion1",
 		// 	CreatedAt:      &timestamp.Timestamp{Seconds: 1},
@@ -65,6 +67,7 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 		UUID:           "pipeline1",
 		CreatedAtInSec: 1,
 		Parameters:     "[invalid parameter",
+		// TODO(jingzhang36): uncomment when exposing versions to API.
 		// DefaultVersion: &model.PipelineVersion{},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
