@@ -26,7 +26,8 @@ from ._k8s_helper import K8sHelper
 from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
-from ..dsl._metadata import ParameterMeta, _extract_pipeline_metadata
+from ..components._structures import InputSpec
+from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
 
@@ -764,14 +765,15 @@ class Compiler(object):
     if params_list and pipeline_meta.inputs:
       raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
-    args_list = []
-    if pipeline_meta.inputs:
-      input_types = {
-        input.name : input.param_type for input in pipeline_meta.inputs }
 
-      for arg_name in argspec.args:
-        arg_type = input_types.get(arg_name, None)
-        args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
+    args_list = []
+    for arg_name in argspec.args:
+      arg_type = None
+      for input in pipeline_meta.inputs or []:
+        if arg_name == input.name:
+          arg_type = input.type
+          break
+      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
@@ -780,23 +782,23 @@ class Compiler(object):
     self._sanitize_and_inject_artifact(dsl_pipeline)
 
     # Fill in the default values.
+    args_list_with_defaults = []
     if pipeline_meta.inputs:
       args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
                                  for arg_name in argspec.args]
       if argspec.defaults:
         for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
           arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
-    else:
+    elif params_list:
       # Or, if args are provided by params_list, fill in pipeline_meta.
       for param in params_list:
         param.value = default_param_values[param.name]
 
       args_list_with_defaults = params_list
       pipeline_meta.inputs = [
-        ParameterMeta(
+        InputSpec(
             name=param.name,
-            description='',
-            param_type=param.param_type,
+            type=param.param_type,
             default=param.value) for param in params_list]
 
     op_transformers = [add_pod_env]

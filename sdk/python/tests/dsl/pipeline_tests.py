@@ -14,8 +14,9 @@
 
 import kfp
 from kfp.dsl import Pipeline, PipelineParam, ContainerOp, pipeline
-from kfp.dsl._metadata import PipelineMeta, ParameterMeta, _extract_pipeline_metadata
+from kfp.dsl._metadata import _extract_pipeline_metadata
 from kfp.dsl.types import GCSPath, Integer
+from kfp.components._structures import ComponentSpec, InputSpec
 import unittest
 
 
@@ -69,9 +70,9 @@ class TestPipeline(unittest.TestCase):
     def my_pipeline1(a: {'Schema': {'file_type': 'csv'}}='good', b: Integer()=12):
       pass
 
-    golden_meta = PipelineMeta(name='p1', description='description1')
-    golden_meta.inputs.append(ParameterMeta(name='a', param_type={'Schema': {'file_type': 'csv'}}, default='good'))
-    golden_meta.inputs.append(ParameterMeta(name='b', param_type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default=12))
+    golden_meta = ComponentSpec(name='p1', description='description1', inputs=[])
+    golden_meta.inputs.append(InputSpec(name='a', type={'Schema': {'file_type': 'csv'}}, default='good'))
+    golden_meta.inputs.append(InputSpec(name='b', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default=12))
 
     pipeline_meta = _extract_pipeline_metadata(my_pipeline1)
     self.assertEqual(pipeline_meta, golden_meta)
