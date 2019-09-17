@@ -206,7 +206,7 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled_workflow:
         annotations = workflow['metadata']['annotations']
-        annotations['pipelines.kubeflow.org/pipeline_spec'] = json.loads(annotations['pipelines.kubeflow.org/pipeline_spec'])
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
 
       self.assertEqual(golden, compiled_workflow)
     finally:
@@ -233,7 +233,7 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled:
         annotations = workflow['metadata']['annotations']
-        annotations['pipelines.kubeflow.org/pipeline_spec'] = json.loads(annotations['pipelines.kubeflow.org/pipeline_spec'])
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -264,7 +264,7 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled:
         annotations = workflow['metadata']['annotations']
-        annotations['pipelines.kubeflow.org/pipeline_spec'] = json.loads(annotations['pipelines.kubeflow.org/pipeline_spec'])
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -286,7 +286,7 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled:
         annotations = workflow['metadata']['annotations']
-        annotations['pipelines.kubeflow.org/pipeline_spec'] = json.loads(annotations['pipelines.kubeflow.org/pipeline_spec'])
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -307,7 +307,7 @@ class TestCompiler(unittest.TestCase):
 
       for workflow in golden, compiled:
         annotations = workflow['metadata']['annotations']
-        annotations['pipelines.kubeflow.org/pipeline_spec'] = json.loads(annotations['pipelines.kubeflow.org/pipeline_spec'])
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -330,7 +330,7 @@ class TestCompiler(unittest.TestCase):
       
       for workflow in golden, compiled:
         annotations = workflow['metadata']['annotations']
-        annotations['pipelines.kubeflow.org/pipeline_spec'] = json.loads(annotations['pipelines.kubeflow.org/pipeline_spec'])
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
