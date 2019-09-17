@@ -243,8 +243,6 @@ class Pipeline():
     Args:
       metadata (ComponentMeta): component metadata
     '''
-    if not isinstance(metadata, PipelineMeta):  # noqa: F821 TODO
-      raise ValueError('_set_medata is expecting PipelineMeta.')
     self._metadata = metadata
 
 
