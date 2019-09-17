@@ -43,6 +43,9 @@ spec:
       image: python:alpine3.6
     name: my-out-cop0
     outputs:
+      artifacts:
+      - name: my-out-cop0-out
+        path: /tmp/out.json
       parameters:
       - name: my-out-cop0-out
         valueFrom:
