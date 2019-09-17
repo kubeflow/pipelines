@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as Utils from './Utils';
+import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
 import { ExperimentServiceApi } from '../apis/experiment';
 import { JobServiceApi } from '../apis/job';
+import { ApiPipeline, PipelineServiceApi } from '../apis/pipeline';
 import { RunServiceApi } from '../apis/run';
-import { PipelineServiceApi, ApiPipeline } from '../apis/pipeline';
-import { StoragePath } from './WorkflowParser';
-import { VisualizationServiceApi, ApiVisualization } from '../apis/visualization';
-import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
+import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
 import { PlotType } from '../components/viewers/Viewer';
 import { MetadataStoreServiceClient } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
+import * as Utils from './Utils';
+import { StoragePath } from './WorkflowParser';
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -43,7 +43,8 @@ export enum ArtifactCustomProperties {
 
 /** Known Execution properties */
 export enum ExecutionProperties {
-  NAME = 'name',
+  NAME = 'name', // currently not available in api, use component_id instead
+  COMPONENT_ID = 'component_id',
   PIPELINE_NAME = 'pipeline_name',
   STATE = 'state',
 }
