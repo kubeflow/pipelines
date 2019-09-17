@@ -13,4 +13,5 @@
 # limitations under the License.
 
 test_name: retry
+arguments:
 run_pipeline: False
