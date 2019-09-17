@@ -25,6 +25,9 @@ spec:
       nodeSelector:
         cloud.google.com/gke-preemptible: 'true'
       outputs:
+        artifacts:
+          - name: flip-output
+            path: /tmp/output
         parameters:
           - name: flip-output
             valueFrom:

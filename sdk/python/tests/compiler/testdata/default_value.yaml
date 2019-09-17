@@ -57,6 +57,9 @@ spec:
       - name: url
     name: download
     outputs:
+      artifacts:
+      - name: download-downloaded
+        path: /tmp/results.txt
       parameters:
       - name: download-downloaded
         valueFrom:
