@@ -238,6 +238,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
   with tempfile.TemporaryDirectory() as local_build_dir:
     # Write the program code to a file in the context directory
     local_python_filepath = os.path.join(local_build_dir, program_rel_path)
+    os.makedirs(os.path.dirname(local_python_filepath), exist_ok=True)
     with open(local_python_filepath, 'w') as f:
       f.write(program_code)
 
@@ -247,7 +248,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
 
     # Generate Dockerfile in the context directory
     local_docker_filepath = os.path.join(local_build_dir, arc_docker_filename)
-    _generate_dockerfile(local_docker_filepath, base_image, python_version, arc_requirement_filename, add_files={program_rel_path, program_container_path})
+    _generate_dockerfile(local_docker_filepath, base_image, python_version, arc_requirement_filename, add_files={program_rel_path: program_container_path})
 
     logging.info('Building and pushing container image.')
     container_builder = ContainerBuilder(staging_gcs_path, target_image, namespace)

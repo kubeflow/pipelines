@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: lightweight_component
-notebook_params:
-  EXPERIMENT_NAME: lightweight_component-test
+test_name: sidecar
+arguments:
+  sleep_sec: 100

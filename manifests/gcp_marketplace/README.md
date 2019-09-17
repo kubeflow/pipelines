@@ -134,7 +134,7 @@ export MARKETPLACE_TOOLS_IMAGE=gcr.io/cloud-marketplace-staging/marketplace-k8s-
 Run the install script
 
 ```shell
-mpdev scripts/install  --deployer=gcr.io/ml-pipeline/google/pipelines/deployer:0.2   --parameters='{"name": "'$APP_INSTANCE_NAME'", "namespace": "'$NAMESPACE'", "serviceAccountCredential": "'$SERVICE_ACCOUNT_TOKEN"'}'
+mpdev scripts/install  --deployer=gcr.io/ml-pipeline/google/pipelines/deployer:0.2   --parameters='{"name": "'$APP_INSTANCE_NAME'", "namespace": "'$NAMESPACE'", "serviceAccountCredential": "'$SERVICE_ACCOUNT_TOKEN'"}'
 
 ```
 
