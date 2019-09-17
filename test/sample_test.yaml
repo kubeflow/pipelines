@@ -78,6 +78,7 @@ spec:
               - execution_order
               - imagepullsecrets
               - retry
+              - artifact_location
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:

@@ -14,6 +14,7 @@
 
 import warnings
 from .types import BaseType, _check_valid_type_dict, _instance_to_dict
+from ..components._data_passing import serialize_value
 from ..components._structures import ComponentSpec, InputSpec, OutputSpec
 
 
@@ -67,6 +68,8 @@ def _extract_component_metadata(func):
       arg_default = arg_default.value
     if arg in annotations:
       arg_type = _annotation_to_typemeta(annotations[arg])
+    if arg_default is not None:
+      arg_default = serialize_value(arg_default, type_name=str(arg_type) if arg_type else None) # TODO: Improve _annotation_to_typemeta or just replace the whole function with kfp.component._python_op._extract_component_interface
     inputs.append(InputSpec(name=arg, type=arg_type, default=arg_default))
   # Outputs
   outputs = []
@@ -124,7 +127,10 @@ def _extract_pipeline_metadata(func):
       if isinstance(schema_object, str):
         # In case the property value for the schema validator is a string instead of a dict.
         schema_object = json.loads(schema_object)
+      # Only validating non-serialized values
       validate(instance=arg_default, schema=schema_object)
+    if arg_default is not None:
+      arg_default = serialize_value(arg_default, type_name=str(arg_type) if arg_type else None) # TODO: Improve _annotation_to_typemeta or just replace the whole function with kfp.component._python_op._extract_component_interface
     inputs.append(InputSpec(name=arg, type=arg_type, default=arg_default))
 
   #TODO: add descriptions to the metadata
