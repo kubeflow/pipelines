@@ -3,6 +3,8 @@ import { GetEventsByArtifactIDsRequest, GetEventsByArtifactIDsResponse } from '.
 import { Apis } from '../lib/Apis';
 import { formatDateString, serviceErrorToString } from './Utils';
 
+export type EventTypes = Event.TypeMap[keyof Event.TypeMap];
+
 export const getArtifactCreationTime = async (artifactId: number): Promise<string> => {
   const eventsRequest = new GetEventsByArtifactIDsRequest();
   if (!artifactId) {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import React, { Component } from 'react';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { RoutePage, RouteParams } from '../components/Router';
@@ -24,11 +24,16 @@ import { CircularProgress } from '@material-ui/core';
 import { titleCase, getResourceProperty, serviceErrorToString } from '../lib/Utils';
 import { ResourceInfo } from '../components/ResourceInfo';
 import { Execution } from '../generated/src/apis/metadata/metadata_store_pb';
-import { Apis, ExecutionProperties } from '../lib/Apis';
-import { GetExecutionsByIDRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
+import { Apis, ExecutionProperties, ArtifactProperties } from '../lib/Apis';
+import { GetExecutionsByIDRequest, GetEventsByExecutionIDsRequest, GetEventsByExecutionIDsResponse, GetArtifactsByIDRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
+import { EventTypes } from 'src/lib/MetadataUtils';
+import { Event } from '../generated/src/apis/metadata/metadata_store_pb';
+
+type ArtifactIdList = number[];
 
 interface ExecutionDetailsState {
   execution?: Execution;
+  events?: Record<EventTypes, ArtifactIdList>;
 }
 
 export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
@@ -61,7 +66,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
   }
 
   public render(): JSX.Element {
-    if (!this.state.execution) {
+    if (!this.state.execution || !this.state.events) {
       return <CircularProgress />;
     }
 
@@ -69,6 +74,10 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         {<ResourceInfo typeName={this.properTypeName}
           resource={this.state.execution} />}
+        <SectionIO title={'Declared Inputs'} artifactIds={this.state.events[Event.Type.DECLARED_INPUT]} />
+        <SectionIO title={'Inputs'} artifactIds={this.state.events[Event.Type.DECLARED_INPUT]} />
+        <SectionIO title={'Declared Outputs'} artifactIds={this.state.events[Event.Type.DECLARED_OUTPUT]} />
+        <SectionIO title={'Outputs'} artifactIds={this.state.events[Event.Type.OUTPUT]} />
       </div >
     );
   }
@@ -95,8 +104,18 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
 
     const getExecutionsRequest = new GetExecutionsByIDRequest();
     getExecutionsRequest.setExecutionIdsList([numberId]);
+    const getEventsRequest = new GetEventsByExecutionIDsRequest();
+    getEventsRequest.setExecutionIdsList([numberId]);
 
-    const executionResponse = await Apis.getMetadataServicePromiseClient().getExecutionsByID(getExecutionsRequest);
+    const [executionResponse, eventResponse] = await Promise.all([
+      Apis.getMetadataServicePromiseClient().getExecutionsByID(getExecutionsRequest),
+      Apis.getMetadataServicePromiseClient().getEventsByExecutionIDs(getEventsRequest)
+    ]);
+
+    if (eventResponse.error) {
+      this.showPageError(serviceErrorToString(eventResponse.error));
+      // events data is optional, no need to skip the following
+    }
 
     if (executionResponse.error) {
       this.showPageError(serviceErrorToString(executionResponse.error));
@@ -118,8 +137,95 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
       pageTitle: executionName ? executionName.toString() : ''
     });
 
+    const events = parseEventsByType(eventResponse.response);
     this.setState({
+      events,
       execution,
     });
   }
 }
+
+function parseEventsByType(response: GetEventsByExecutionIDsResponse | null): Record<EventTypes, ArtifactIdList> {
+  const events: Record<EventTypes, ArtifactIdList> = {
+    [Event.Type.UNKNOWN]: [],
+    [Event.Type.DECLARED_INPUT]: [],
+    [Event.Type.INPUT]: [],
+    [Event.Type.DECLARED_OUTPUT]: [],
+    [Event.Type.OUTPUT]: [],
+  };
+
+  if (!response) {
+    return events;
+  }
+
+  response.getEventsList().forEach(event => {
+    const type = event.getType();
+    const id = event.getArtifactId();
+    if (type != null && id != null) {
+      events[type].push(id);
+    }
+  });
+
+  return events;
+}
+
+interface SectionIOProps {
+  title: string;
+  artifactIds: number[];
+}
+class SectionIO extends Component<SectionIOProps, { artifactNameMap: {} }> {
+  constructor(props: any) {
+    super(props);
+
+    this.state = {
+      artifactNameMap: {},
+    };
+  }
+
+  public async componentDidMount(): Promise<void> {
+    const request = new GetArtifactsByIDRequest();
+    request.setArtifactIdsList(this.props.artifactIds);
+    const { error, response } = await Apis.getMetadataServicePromiseClient().getArtifactsByID(request);
+    if (error || !response) {
+      return;
+    }
+
+    const artifactNameMap = {};
+    response.getArtifactsList().forEach(artifact => {
+      const name = getResourceProperty(artifact, ArtifactProperties.NAME);
+      const id = artifact.getId();
+      if (!name || !id) {
+        return;
+      }
+      artifactNameMap[id] = name;
+    });
+    this.setState({
+      artifactNameMap,
+    });
+  }
+
+  public render(): JSX.Element | null {
+    const { title, artifactIds } = this.props;
+    if (artifactIds.length === 0) {
+      return null;
+    }
+
+    return <section>
+      <h2 className={commonCss.header2}>{title}</h2>
+      <table>
+        <thead><tr><th>Artifact ID</th><th>Name</th></tr></thead>
+        <tbody>
+          {artifactIds.map(id => <ArtifactRow key={id} id={id} name={this.state.artifactNameMap[id] || ''} />)}
+        </tbody>
+      </table>
+    </section>;
+  }
+}
+
+// tslint:disable-next-line:variable-name
+const ArtifactRow: React.FC<{ id: number, name: string }> = ({ id, name }) => {
+  return <tr>
+    <td>{id}</td>
+    <td>{name}</td>
+  </tr>;
+};
