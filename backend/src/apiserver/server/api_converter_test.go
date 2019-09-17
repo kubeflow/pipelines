@@ -30,32 +30,32 @@ func TestToApiPipeline(t *testing.T) {
 		UUID:           "pipeline1",
 		CreatedAtInSec: 1,
 		Parameters:     "[]",
-		DefaultVersion: &model.PipelineVersion{
-			UUID:           "pipelineversion1",
-			CreatedAtInSec: 1,
-			Parameters:     "[]",
-			PipelineId:     "pipeline1",
-			CodeSourceUrls: ";http://repo/22222;http://repo/44444;;",
-		},
+		// DefaultVersion: &model.PipelineVersion{
+		// 	UUID:           "pipelineversion1",
+		// 	CreatedAtInSec: 1,
+		// 	Parameters:     "[]",
+		// 	PipelineId:     "pipeline1",
+		// 	CodeSourceUrls: ";http://repo/22222;http://repo/44444;;",
+		// },
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
 	expectedApiPipeline := &api.Pipeline{
 		Id:         "pipeline1",
 		CreatedAt:  &timestamp.Timestamp{Seconds: 1},
 		Parameters: []*api.Parameter{},
-		DefaultVersion: &api.PipelineVersion{
-			Id:             "pipelineversion1",
-			CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-			Parameters:     []*api.Parameter{},
-			CodeSourceUrls: []string{"http://repo/22222", "http://repo/44444"},
-			ResourceReference: &api.ResourceReference{
-				Key: &api.ResourceKey{
-					Id:   "pipeline1",
-					Type: api.ResourceType_PIPELINE,
-				},
-				Relationship: api.Relationship_OWNER,
-			},
-		},
+		// DefaultVersion: &api.PipelineVersion{
+		// 	Id:             "pipelineversion1",
+		// 	CreatedAt:      &timestamp.Timestamp{Seconds: 1},
+		// 	Parameters:     []*api.Parameter{},
+		// 	CodeSourceUrls: []string{"http://repo/22222", "http://repo/44444"},
+		// 	ResourceReference: &api.ResourceReference{
+		// 		Key: &api.ResourceKey{
+		// 			Id:   "pipeline1",
+		// 			Type: api.ResourceType_PIPELINE,
+		// 		},
+		// 		Relationship: api.Relationship_OWNER,
+		// 	},
+		// },
 	}
 	assert.Equal(t, expectedApiPipeline, apiPipeline)
 }
@@ -65,7 +65,7 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 		UUID:           "pipeline1",
 		CreatedAtInSec: 1,
 		Parameters:     "[invalid parameter",
-		DefaultVersion: &model.PipelineVersion{},
+		// DefaultVersion: &model.PipelineVersion{},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
 	expectedApiPipeline := &api.Pipeline{

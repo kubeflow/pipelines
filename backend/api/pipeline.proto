@@ -199,7 +199,8 @@ message Pipeline {
   // Output only. The default version of the pipeline. As of now, the latest
   // version is used as default. (In the future, if desired by customers, we
   // can allow them to set default version.)
-  PipelineVersion default_version = 8;
+  // TODO(jingzhang36): expose this in API pipeline definition with FE changes.
+  // PipelineVersion default_version = 8;
 }
 
 message PipelineVersion {

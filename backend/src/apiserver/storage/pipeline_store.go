@@ -214,11 +214,15 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	newPipeline.UUID = id.String()
 	newPipeline.DefaultVersion.PipelineId = id.String()
 
-	id, err = s.uuid.NewRandom()
-	if err != nil {
-		return nil, util.NewInternalServerError(err,
-			"Failed to create a pipeline version id.")
-	}
+	// TODO(jingzhang36): before we expose versions to FE, we have to use same
+	// UUID for pipeline and its (only) version and thus FE use pipeline UUID
+	// instead of version UUID to to properly retrieve pipeline package.
+	// id, err = s.uuid.NewRandom()
+	// if err != nil {
+	// 	return nil, util.NewInternalServerError(
+	// 		err,
+	// 		"Failed to create a pipeline version id.")
+	// }
 	newPipeline.DefaultVersionId = id.String()
 	newPipeline.DefaultVersion.UUID = id.String()
 
