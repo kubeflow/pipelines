@@ -98,6 +98,12 @@ class TestCompiler(unittest.TestCase):
           ]},
         'name': 'echo',
         'outputs': {
+          'artifacts': [
+            {
+              'name': 'echo-merged',
+              'path': '/tmp/message.txt',
+            },
+          ],
           'parameters': [
             {'name': 'echo-merged',
             'valueFrom': {'path': '/tmp/message.txt'}
@@ -571,7 +577,8 @@ class TestCompiler(unittest.TestCase):
     compiled_template = compiler._op_to_template._op_to_template(ops)
 
     del compiled_template['name'], expected['name']
-    del compiled_template['outputs']['parameters'][0]['name'], expected['outputs']['parameters'][0]['name']
+    for output in compiled_template['outputs'].get('parameters', []) + compiled_template['outputs'].get('artifacts', []) + expected['outputs'].get('parameters', []) + expected['outputs'].get('artifacts', []):
+      del output['name']
     assert compiled_template == expected
 
   def test_tolerations(self):
@@ -681,7 +688,6 @@ implementation:
         init_container = init_containers[0]
         self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})
 
-
   def test_delete_resource_op(self):
       """Test a pipeline with a delete resource operation."""
       from kubernetes import client as k8s
@@ -714,6 +720,19 @@ implementation:
       self.assertIsNone(delete_op_template.get("failureCondition"))
       self.assertDictEqual(delete_op_template.get("outputs", {}), {})
 
+  def test_withparam_global(self):
+    self._test_py_compile_yaml('withparam_global')
+
+  def test_withparam_global_dict(self):
+    self._test_py_compile_yaml('withparam_global_dict')
+
+  def test_withparam_output(self):
+    self._test_py_compile_yaml('withparam_output')
+
+  def test_withparam_output_dict(self):
+    self._test_py_compile_yaml('withparam_output_dict')
+
   def test_py_input_artifact_raw_value(self):
     """Test pipeline input_artifact_raw_value."""
     self._test_py_compile_yaml('input_artifact_raw_value')
+

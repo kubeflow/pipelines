@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 from collections import OrderedDict
 from typing import Mapping
 from ._structures import ContainerImplementation, ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
 from ._components import _generate_input_file_name, _generate_output_file_name, _default_component_name
-from kfp.dsl._metadata import ComponentMeta, ParameterMeta
 
 def create_container_op_from_task(task_spec: TaskSpec):
     argument_values = task_spec.arguments
@@ -145,16 +145,6 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
     output_name_to_kubernetes = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
     output_paths_for_container_op = {output_name_to_kubernetes[name]: path for name, path in output_paths.items()}
 
-    # Construct the ComponentMeta
-    component_meta = ComponentMeta(name=component_spec.name, description=component_spec.description)
-    # Inputs
-    if component_spec.inputs is not None:
-        for input in component_spec.inputs:
-            component_meta.inputs.append(ParameterMeta(name=input.name, description=input.description, param_type=input.type, default=input.default))
-    if component_spec.outputs is not None:
-        for output in component_spec.outputs:
-            component_meta.outputs.append(ParameterMeta(name=output.name, description=output.description, param_type=output.type))
-
     task = dsl.ContainerOp(
         name=name,
         image=container_image,
@@ -164,6 +154,8 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         artifact_argument_paths=[dsl.InputArgumentPath(argument=artifact_arguments[input_name], input=input_name, path=path) for input_name, path in input_paths.items()],
     )
 
+    component_meta = copy.copy(component_spec)
+    component_meta.implementation = None
     task._set_metadata(component_meta)
 
     if env:

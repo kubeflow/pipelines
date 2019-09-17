@@ -33,6 +33,9 @@ spec:
       image: python:alpine3.6
     name: flip
     outputs:
+      artifacts:
+      - name: flip-output
+        path: /tmp/output
       parameters:
       - name: flip-output
         valueFrom:
@@ -47,6 +50,9 @@ spec:
       image: python:alpine3.6
     name: flip-2
     outputs:
+      artifacts:
+      - name: flip-2-output
+        path: /tmp/output
       parameters:
       - name: flip-2-output
         valueFrom:
@@ -61,6 +67,9 @@ spec:
       image: python:alpine3.6
     name: flip-3
     outputs:
+      artifacts:
+      - name: flip-3-output
+        path: /tmp/output
       parameters:
       - name: flip-3-output
         valueFrom:

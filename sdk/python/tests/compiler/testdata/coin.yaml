@@ -91,6 +91,9 @@ spec:
       image: python:alpine3.6
     name: flip
     outputs:
+      artifacts:
+      - name: flip-output
+        path: /tmp/output
       parameters:
       - name: flip-output
         valueFrom:
@@ -105,6 +108,9 @@ spec:
       image: python:alpine3.6
     name: flip-again
     outputs:
+      artifacts:
+      - name: flip-again-output
+        path: /tmp/output
       parameters:
       - name: flip-again-output
         valueFrom:

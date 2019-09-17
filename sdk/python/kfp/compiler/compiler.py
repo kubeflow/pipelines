@@ -11,23 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
+import json
 from collections import defaultdict
 import inspect
 import tarfile
 import zipfile
-from typing import Any, Callable, Set, List, Text, Dict
+from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
 import yaml
-from kfp.dsl import _container_op, _for_loop
+from kfp.dsl import _for_loop
 
 from .. import dsl
 from ._k8s_helper import K8sHelper
 from ._op_to_template import _op_to_template
 from ._default_transformers import add_pod_env
 
-from ..dsl._metadata import ParameterMeta, _extract_pipeline_metadata
+from ..components._structures import InputSpec
+from ..dsl._metadata import _extract_pipeline_metadata
 from ..dsl._ops_group import OpsGroup
 
 
@@ -339,17 +339,16 @@ class Compiler(object):
           upstream_op_names.add(param.op_name)
       upstream_op_names |= set(op.dependent_names)
 
-      for op_name in upstream_op_names:
+      for upstream_op_name in upstream_op_names:
         # the dependent op could be either a BaseOp or an opsgroup
-        if op_name in pipeline.ops:
-          upstream_op = pipeline.ops[op_name]
-        elif op_name in opsgroups:
-          upstream_op = opsgroups[op_name]
+        if upstream_op_name in pipeline.ops:
+          upstream_op = pipeline.ops[upstream_op_name]
+        elif upstream_op_name in opsgroups:
+          upstream_op = opsgroups[upstream_op_name]
         else:
-          raise ValueError('compiler cannot find the ' + op_name)
+          raise ValueError('compiler cannot find the ' + upstream_op_name)
 
-        upstream_groups, downstream_groups = \
-          self._get_uncommon_ancestors(op_groups, opsgroups_groups, upstream_op, op)
+        upstream_groups, downstream_groups = self._get_uncommon_ancestors(op_groups, opsgroups_groups, upstream_op, op)
         dependencies[downstream_groups[0]].add(upstream_groups[0])
 
     # Generate dependencies based on the recursive opsgroups
@@ -463,65 +462,76 @@ class Compiler(object):
 
       # Generate arguments section for this task.
       if inputs.get(sub_group.name, None):
-        arguments = []
-        for param_name, dependent_name in inputs[sub_group.name]:
-          if dependent_name:
-            # The value comes from an upstream sibling.
-            # Special handling for recursive subgroup: argument name comes from the existing opsgroup
-            if is_recursive_subgroup:
-              for index, input in enumerate(sub_group.inputs):
-                if param_name == self._pipelineparam_full_name(input):
-                  break
-              referenced_input = sub_group.recursive_ref.inputs[index]
-              full_name = self._pipelineparam_full_name(referenced_input)
-              arguments.append({
-                  'name': full_name,
-                  'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-              })
-            else:
-              arguments.append({
-                'name': param_name,
-                'value': '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
-              })
+        task['arguments'] = {'parameters': self.get_arguments_for_sub_group(sub_group, is_recursive_subgroup, inputs)}
+
+      # additional task modifications for withItems and withParam
+      if isinstance(sub_group, dsl.ParallelFor):
+        if sub_group.items_is_pipeline_param:
+          # these loop args are a 'withParam' rather than 'withItems'.
+          # i.e., rather than a static list, they are either the output of another task or were input
+          # as global pipeline parameters
+
+          pipeline_param = sub_group.loop_args
+          if pipeline_param.op_name is None:
+            withparam_value = '{{workflow.parameters.%s}}' % pipeline_param.name
           else:
-            # The value comes from its parent.
-            # Special handling for recursive subgroup: argument name comes from the existing opsgroup
-            if is_recursive_subgroup:
-              for index, input in enumerate(sub_group.inputs):
-                if param_name == self._pipelineparam_full_name(input):
-                  break
-              referenced_input = sub_group.recursive_ref.inputs[index]
-              full_name = self._pipelineparam_full_name(referenced_input)
-              arguments.append({
-                  'name': full_name,
-                  'value': '{{inputs.parameters.%s}}' % param_name
-              })
-            else:
-              if isinstance(sub_group, dsl.ParallelFor):
-                if sub_group.loop_args.name in param_name:
-                  if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
-                    subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
-                    value = '{{item.%s}}' % subvar_name
-                  elif _for_loop.LoopArguments.name_is_loop_arguments(param_name):
-                    value = '{{item}}'
-                  else:
-                    raise ValueError("Failed to match loop args with param. param_name: {}, ".format(param_name) +
-                                     "sub_group.loop_args.name: {}.".format(sub_group.loop_args.name))
-                else:
-                  value = '{{inputs.parameters.%s}}' % param_name
-                task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
-              else:
-                value = '{{inputs.parameters.%s}}' % param_name
-              arguments.append({
-                'name': param_name,
-                'value': value,
-              })
-        arguments.sort(key=lambda x: x['name'])
-        task['arguments'] = {'parameters': arguments}
+            param_name = '%s-%s' % (pipeline_param.op_name, pipeline_param.name)
+            withparam_value = '{{tasks.%s.outputs.parameters.%s}}' % (pipeline_param.op_name, param_name)
+
+            # these loop args are the output of another task
+            if 'dependencies' not in task or task['dependencies'] is None:
+              task['dependencies'] = []
+            if pipeline_param.op_name not in task['dependencies']:
+              task['dependencies'].append(pipeline_param.op_name)
+
+          task['withParam'] = withparam_value
+        else:
+          task['withItems'] = sub_group.loop_args.to_list_for_task_yaml()
+
       tasks.append(task)
     tasks.sort(key=lambda x: x['name'])
     template['dag'] = {'tasks': tasks}
     return template
+
+  def get_arguments_for_sub_group(
+          self,
+          sub_group: Union[OpsGroup, dsl._container_op.BaseOp],
+          is_recursive_subgroup: Optional[bool],
+          inputs: Dict[Text, Tuple[Text, Text]],
+  ):
+    arguments = []
+    for param_name, dependent_name in inputs[sub_group.name]:
+      if is_recursive_subgroup:
+        for index, input in enumerate(sub_group.inputs):
+          if param_name == self._pipelineparam_full_name(input):
+            break
+        referenced_input = sub_group.recursive_ref.inputs[index]
+        argument_name = self._pipelineparam_full_name(referenced_input)
+      else:
+        argument_name = param_name
+
+      # default argument_value + special cases
+      argument_value = '{{inputs.parameters.%s}}' % param_name
+      if isinstance(sub_group, dsl.ParallelFor):
+        if sub_group.loop_args.name in param_name:
+          if _for_loop.LoopArgumentVariable.name_is_loop_arguments_variable(param_name):
+            subvar_name = _for_loop.LoopArgumentVariable.get_subvar_name(param_name)
+            argument_value = '{{item.%s}}' % subvar_name
+          elif _for_loop.LoopArguments.name_is_loop_arguments(param_name) or sub_group.items_is_pipeline_param:
+            argument_value = '{{item}}'
+          else:
+            raise ValueError("Failed to match loop args with parameter. param_name: {}, ".format(param_name))
+      elif dependent_name:
+        argument_value = '{{tasks.%s.outputs.parameters.%s}}' % (dependent_name, param_name)
+
+      arguments.append({
+        'name': argument_name,
+        'value': argument_value,
+      })
+
+    arguments.sort(key=lambda x: x['name'])
+
+    return arguments
 
   def _create_dag_templates(self, pipeline, op_transformers=None, op_to_templates_handler=None):
     """Create all groups and ops templates in the pipeline.
@@ -580,6 +590,7 @@ class Compiler(object):
 
     for op in pipeline.ops.values():
       templates.extend(op_to_templates_handler(op))
+
     return templates
 
   def _create_volumes(self, pipeline):
@@ -605,7 +616,10 @@ class Compiler(object):
     for arg in args:
       param = {'name': arg.name}
       if arg.value is not None:
-        param['value'] = str(arg.value)
+        if isinstance(arg.value, (list, tuple)):
+          param['value'] = json.dumps(arg.value, sort_keys=True)
+        else:
+          param['value'] = str(arg.value)
       input_params.append(param)
 
     # Templates
@@ -751,14 +765,15 @@ class Compiler(object):
     if params_list and pipeline_meta.inputs:
       raise ValueError('Either specify pipeline params in the pipeline function, or in "params_list", but not both.')
 
-    args_list = []
-    if pipeline_meta.inputs:
-      input_types = {
-        input.name : input.param_type for input in pipeline_meta.inputs }
 
-      for arg_name in argspec.args:
-        arg_type = input_types.get(arg_name, None)
-        args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
+    args_list = []
+    for arg_name in argspec.args:
+      arg_type = None
+      for input in pipeline_meta.inputs or []:
+        if arg_name == input.name:
+          arg_type = input.type
+          break
+      args_list.append(dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name), param_type=arg_type))
 
     with dsl.Pipeline(pipeline_name) as dsl_pipeline:
       pipeline_func(*args_list)
@@ -767,23 +782,23 @@ class Compiler(object):
     self._sanitize_and_inject_artifact(dsl_pipeline)
 
     # Fill in the default values.
+    args_list_with_defaults = []
     if pipeline_meta.inputs:
       args_list_with_defaults = [dsl.PipelineParam(K8sHelper.sanitize_k8s_name(arg_name))
                                  for arg_name in argspec.args]
       if argspec.defaults:
         for arg, default in zip(reversed(args_list_with_defaults), reversed(argspec.defaults)):
           arg.value = default.value if isinstance(default, dsl.PipelineParam) else default
-    else:
+    elif params_list:
       # Or, if args are provided by params_list, fill in pipeline_meta.
       for param in params_list:
         param.value = default_param_values[param.name]
 
       args_list_with_defaults = params_list
       pipeline_meta.inputs = [
-        ParameterMeta(
+        InputSpec(
             name=param.name,
-            description='',
-            param_type=param.param_type,
+            type=param.param_type,
             default=param.value) for param in params_list]
 
     op_transformers = [add_pod_env]
