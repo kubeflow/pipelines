@@ -29,44 +29,45 @@ dsl.ParallelFor._get_unique_id_code = Coder().get_code
 
 
 @dsl.pipeline(name='my-pipeline')
-def pipeline(my_pipe_param=10):
-    loop_args = [{'a': 1, 'b': 2}, {'a': 10, 'b': 20}]
-    with dsl.ParallelFor(loop_args) as item:
-        op1 = dsl.ContainerOp(
-            name="my-in-coop1",
-            image="library/bash:4.4.23",
-            command=["sh", "-c"],
-            arguments=["echo op1 %s %s" % (item.a, my_pipe_param)],
-        )
+def pipeline():
+    op0 = dsl.ContainerOp(
+        name="my-out-cop0",
+        image='python:alpine3.6',
+        command=["sh", "-c"],
+        arguments=[
+            'python -c "import json; import sys; json.dump([i for i in range(20, 31)], open(\'/tmp/out.json\', \'w\'))"'],
+        file_outputs={'out': '/tmp/out.json'},
+    )
 
-        op2 = dsl.ContainerOp(
-            name="my-in-coop2",
+    with dsl.ParallelFor(op0.output) as item:
+        op1 = dsl.ContainerOp(
+            name="my-in-cop1",
             image="library/bash:4.4.23",
             command=["sh", "-c"],
-            arguments=["echo op2 %s" % item.b],
+            arguments=["echo do output op1 item: %s" % item],
         )
 
     op_out = dsl.ContainerOp(
-        name="my-out-cop",
+        name="my-out-cop2",
         image="library/bash:4.4.23",
         command=["sh", "-c"],
-        arguments=["echo %s" % my_pipe_param],
+        arguments=["echo do output op2, outp: %s" % op0.output],
     )
 
 
 if __name__ == '__main__':
     from kfp import compiler
-    print(compiler.Compiler().compile(pipeline, package_path=None))
-
     import kfp
+    import time
     client = kfp.Client(host='127.0.0.1:8080/pipeline')
+    print(compiler.Compiler().compile(pipeline, package_path=None))
 
     pkg_path = '/tmp/witest_pkg.tar.gz'
     compiler.Compiler().compile(pipeline, package_path=pkg_path)
     exp = client.create_experiment('withparams_exp')
     client.run_pipeline(
         experiment_id=exp.id,
-        job_name='withitem_basic',
+        job_name='withparam_output_{}'.format(time.time()),
         pipeline_package_path=pkg_path,
         params={},
     )

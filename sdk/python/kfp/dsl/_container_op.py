@@ -970,7 +970,7 @@ class ContainerOp(BaseOp):
       container_kwargs: Dict = None,
       artifact_argument_paths: List[InputArgumentPath] = None,
       file_outputs: Dict[str, str] = None,
-      output_artifact_paths : Dict[str, str]=None,
+      output_artifact_paths: Dict[str, str]=None,
       artifact_location: V1alpha1ArtifactLocation=None,
       is_exit_handler=False,
       pvolumes: Dict[str, V1Volume] = None,
