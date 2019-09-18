@@ -40,9 +40,8 @@ import (
 const (
 	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
 	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
-
-	mysqlServiceHost = "MYSQL_SERVICE_HOST"
-	mysqlServicePort = "MYSQL_SERVICE_PORT"
+	mysqlServiceHost = "DBConfig.Host"
+	mysqlServicePort = "DBConfig.Port"
 	mysqlUser        = "DBConfig.User"
 	mysqlPassword    = "DBConfig.Password"
 	mysqlDBName      = "DBConfig.DBName"
@@ -125,8 +124,7 @@ func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 }
 
 func (c *ClientManager) init() {
-	glog.Infof("Initializing client manager")
-
+	glog.Info("Initializing client manager")
 	db := initDBClient(common.GetDurationConfig(initConnectionTimeout))
 
 	// time
@@ -238,8 +236,8 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	mysqlConfig := client.CreateMySQLConfig(
 		common.GetStringConfigWithDefault(mysqlUser, "root"),
 		common.GetStringConfigWithDefault(mysqlPassword, ""),
-		common.GetStringConfig(mysqlServiceHost),
-		common.GetStringConfig(mysqlServicePort),
+		common.GetStringConfigWithDefault(mysqlServiceHost, "mysql"),
+		common.GetStringConfigWithDefault(mysqlServicePort, "3306"),
 		"")
 
 	var db *sql.DB
