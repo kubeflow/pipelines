@@ -17,12 +17,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"	"os"
+	"time"
 
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
