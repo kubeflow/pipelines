@@ -86,7 +86,6 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
   }
 
   private async load(): Promise<void> {
-    const getExecutionsRequest = new GetExecutionsByIDRequest();
     const numberId = parseInt(this.id, 10);
     if (isNaN(numberId) || numberId < 0) {
       const error = new Error(`Invalid execution id: ${this.id}`);
@@ -94,30 +93,33 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
       return Promise.reject(error);
     }
 
+    const getExecutionsRequest = new GetExecutionsByIDRequest();
     getExecutionsRequest.setExecutionIdsList([numberId]);
-    Apis.getMetadataServiceClient().getExecutionsByID(getExecutionsRequest, (err, res) => {
-      if (err) {
-        this.showPageError(serviceErrorToString(err));
-        return;
-      }
 
-      if (!res || !res.getExecutionsList().length) {
-        this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
-        return;
-      }
+    const executionResponse = await Apis.getMetadataServicePromiseClient().getExecutionsByID(getExecutionsRequest);
 
-      if (res.getExecutionsList().length > 1) {
-        this.showPageError(`Found multiple executions with ID: ${this.id}`);
-        return;
-      }
+    if (executionResponse.error) {
+      this.showPageError(serviceErrorToString(executionResponse.error));
+      return;
+    }
+    if (!executionResponse.response || !executionResponse.response.getExecutionsList().length) {
+      this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
+      return;
+    }
+    if (executionResponse.response.getExecutionsList().length > 1) {
+      this.showPageError(`Found multiple executions with ID: ${this.id}`);
+      return;
+    }
 
-      const execution = res.getExecutionsList()[0];
+    const execution = executionResponse.response.getExecutionsList()[0];
 
-      const executionName = getResourceProperty(execution, ExecutionProperties.COMPONENT_ID);
-      this.props.updateToolbar({
-        pageTitle: executionName ? executionName.toString() : ''
-      });
-      this.setState({ execution });
+    const executionName = getResourceProperty(execution, ExecutionProperties.COMPONENT_ID);
+    this.props.updateToolbar({
+      pageTitle: executionName ? executionName.toString() : ''
+    });
+
+    this.setState({
+      execution,
     });
   }
 }
