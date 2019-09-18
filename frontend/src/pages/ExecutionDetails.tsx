@@ -113,7 +113,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
 
       const execution = res.getExecutionsList()[0];
 
-      const executionName = getResourceProperty(execution, ExecutionProperties.NAME);
+      const executionName = getResourceProperty(execution, ExecutionProperties.COMPONENT_ID);
       this.props.updateToolbar({
         pageTitle: executionName ? executionName.toString() : ''
       });
