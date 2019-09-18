@@ -79,6 +79,8 @@ spec:
               - imagepullsecrets
               - retry
               - artifact_location
+              - preemptible_tpu_gpu
+              - volume_snapshot_ops
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:
