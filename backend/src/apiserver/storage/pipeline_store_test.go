@@ -480,13 +480,14 @@ func TestUpdatePipelineStatus(t *testing.T) {
 		Status:           model.PipelineDeleting,
 		DefaultVersionId: fakeUUID,
 		DefaultVersion: &model.PipelineVersion{
-			UUID:           fakeUUID,
-			CreatedAtInSec: 1,
-			Name:           "pipeline1",
-			Parameters:     `[{"Name": "param1"}]`,
-			Status:         model.PipelineVersionReady,
-			PipelineId:     fakeUUID,
-		}}
+			UUID:             fakeUUID,
+			CreatedAtInSec:   1,
+			Name:             "pipeline1",
+			Parameters:       `[{"Name": "param1"}]`,
+			Status:           model.PipelineVersionReady,
+			PipelineId: fakeUUID,
+		},
+	}
 	err = pipelineStore.UpdatePipelineStatus(pipeline.UUID, model.PipelineDeleting)
 	assert.Nil(t, err)
 	pipeline, err = pipelineStore.GetPipelineWithStatus(fakeUUID, model.PipelineDeleting)

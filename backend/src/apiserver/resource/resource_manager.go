@@ -132,11 +132,19 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	if err != nil {
 		return util.Wrap(err, "Delete pipeline failed")
 	}
+	versionIds, err := r.pipelineStore.GetAllVersionIds(pipelineId)
+	if err != nil {
+		return util.Wrap(err, "Delete pipeline failed")
+	}
 
 	// Mark pipeline as deleting so it's not visible to user.
 	err = r.pipelineStore.UpdatePipelineStatus(pipelineId, model.PipelineDeleting)
 	if err != nil {
 		return util.Wrap(err, "Delete pipeline failed")
+	}
+	err = r.pipelineStore.UpdateAllPipelineVersionsStatus(pipelineId, model.PipelineVersionDeleting)
+	if err != nil {
+		return util.Wrap(err, "Delete pipeline versions failed")
 	}
 
 	// Delete pipeline file and DB entry.
@@ -146,6 +154,15 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
 		return nil
+	}
+	for _, versionId := range versionIds {
+		if versionId != pipelineId { // avoid duplicate remove of object
+			err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(versionId)))
+			if err != nil {
+				glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline version file for pipeline %v", pipelineId))
+				return nil
+			}
+		}
 	}
 	err = r.pipelineStore.DeletePipeline(pipelineId)
 	if err != nil {
@@ -192,7 +209,7 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 	err = r.pipelineStore.UpdatePipelineVersionStatus(
 		newPipeline.DefaultVersionId, newPipeline.DefaultVersion.Status)
 	if err != nil {
-		return nil, util.Wrap(err, "Create pipeline failed")
+		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
 	return newPipeline, nil
 }
