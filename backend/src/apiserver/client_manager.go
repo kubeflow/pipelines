@@ -317,42 +317,19 @@ func newClientManager() ClientManager {
 	return clientManager
 }
 
-// Data migration in 3 steps to introduce pipeline_versions table. This
+// Data migration in 2 steps to introduce pipeline_versions table. This
 // migration shall be called only once when pipeline_versions table is created
 // for the first time in DB.
 func initPipelineVersionsFromPipelines(db *gorm.DB) {
 	tx := db.Begin()
 
-	// Step 1: acquire all existing pipelines.
-	var pipelines []model.Pipeline
-	tx.Find(&pipelines)
+	// Step 1: duplicate pipelines to pipeline versions.
+	tx.Exec(`INSERT INTO
+	pipeline_versions (UUID, Name, CreatedAtInSec, Parameters, Status, PipelineId)
+	SELECT UUID, Name, CreatedAtInSec, Parameters, Status, UUID FROM pipelines;`)
 
-	// Step 2: for each existing pipeline, produce a default pipeline version
-	// for it.
-	for _, pipeline := range pipelines {
-		var pipelineVersionStatus model.PipelineVersionStatus
-		if pipeline.Status == model.PipelineReady {
-			pipelineVersionStatus = model.PipelineVersionReady
-		}
-		if pipeline.Status == model.PipelineCreating {
-			pipelineVersionStatus = model.PipelineVersionCreating
-		}
-		if pipeline.Status == model.PipelineDeleting {
-			pipelineVersionStatus = model.PipelineVersionDeleting
-		}
-		pipelineVersion := model.PipelineVersion{
-			UUID:           pipeline.UUID,
-			CreatedAtInSec: pipeline.CreatedAtInSec,
-			Name:           pipeline.Name + "_" + string(pipeline.CreatedAtInSec),
-			Parameters:     pipeline.Parameters,
-			Status:         pipelineVersionStatus,
-			PipelineId:     pipeline.UUID,
-		}
-		tx.Create(&pipelineVersion)
-	}
-
-	// Step 3: modifiy pipelines table after pipeline_versions are populated.
-	tx.Table("pipelines").UpdateColumn("DefaultVersionId", gorm.Expr("UUID"))
+	// Step 2: modifiy pipelines table after pipeline_versions are populated.
+	tx.Exec("update pipelines set DefaultVersionId=UUID;")
 
 	tx.Commit()
 }
