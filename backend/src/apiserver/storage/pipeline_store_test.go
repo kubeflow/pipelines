@@ -484,11 +484,13 @@ func TestUpdatePipelineStatus(t *testing.T) {
 			CreatedAtInSec:   1,
 			Name:             "pipeline1",
 			Parameters:       `[{"Name": "param1"}]`,
-			Status:           model.PipelineVersionReady,
+			Status:           model.PipelineVersionDeleting,
 			PipelineId: fakeUUID,
 		},
 	}
 	err = pipelineStore.UpdatePipelineStatus(pipeline.UUID, model.PipelineDeleting)
+	assert.Nil(t, err)
+	err = pipelineStore.UpdatePipelineVersionStatus(pipeline.UUID, model.PipelineVersionDeleting)
 	assert.Nil(t, err)
 	pipeline, err = pipelineStore.GetPipelineWithStatus(fakeUUID, model.PipelineDeleting)
 	assert.Nil(t, err)

@@ -35,8 +35,6 @@ type PipelineStoreInterface interface {
 
 	// Change status of a particular version.
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
-	// Change status of all versions under a pipeline.
-	UpdateAllPipelineVersionsStatus(pipelineId string, status model.PipelineVersionStatus) error
 	// Get Ids of all versions under a pipeline.
 	GetAllVersionIds(pipeleinId string) ([]string, error)
 }
@@ -362,26 +360,6 @@ func (s *PipelineStore) UpdatePipelineVersionStatus(id string, status model.Pipe
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to update the pipeline version metadata: %s", err.Error())
-	}
-	return nil
-}
-
-func (s *PipelineStore) UpdateAllPipelineVersionsStatus(pipelineId string, status model.PipelineVersionStatus) error {
-	sql, args, err := sq.
-		Update("pipeline_versions").
-		SetMap(sq.Eq{"Status": status}).
-		Where(sq.Eq{"PipelineId": pipelineId}).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			`Failed to create query to update all version
-			metadata for pipeline : %s`, err.Error())
-	}
-	_, err = s.db.Exec(sql, args...)
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to update all version metadata for pipeline: %s",
-			err.Error())
 	}
 	return nil
 }

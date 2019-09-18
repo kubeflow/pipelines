@@ -142,10 +142,6 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	if err != nil {
 		return util.Wrap(err, "Delete pipeline failed")
 	}
-	err = r.pipelineStore.UpdateAllPipelineVersionsStatus(pipelineId, model.PipelineVersionDeleting)
-	if err != nil {
-		return util.Wrap(err, "Delete pipeline versions failed")
-	}
 
 	// Delete pipeline file and DB entry.
 	// Not fail the request if this step failed. A background run will do the cleanup.
