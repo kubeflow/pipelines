@@ -67,7 +67,6 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - tfx_cab_classification
               - xgboost_training_cm
               - lightweight_component
               - dsl_static_type_checking
