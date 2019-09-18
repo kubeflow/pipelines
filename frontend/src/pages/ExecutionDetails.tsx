@@ -18,7 +18,7 @@ import React, { Component } from 'react';
 import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { RoutePage, RouteParams } from '../components/Router';
-import { classes } from 'typestyle';
+import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
 import { titleCase, getResourceProperty, serviceErrorToString } from '../lib/Utils';
@@ -75,7 +75,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
         {<ResourceInfo typeName={this.properTypeName}
           resource={this.state.execution} />}
         <SectionIO title={'Declared Inputs'} artifactIds={this.state.events[Event.Type.DECLARED_INPUT]} />
-        <SectionIO title={'Inputs'} artifactIds={this.state.events[Event.Type.DECLARED_INPUT]} />
+        <SectionIO title={'Inputs'} artifactIds={this.state.events[Event.Type.INPUT]} />
         <SectionIO title={'Declared Outputs'} artifactIds={this.state.events[Event.Type.DECLARED_OUTPUT]} />
         <SectionIO title={'Outputs'} artifactIds={this.state.events[Event.Type.OUTPUT]} />
       </div >
@@ -213,7 +213,12 @@ class SectionIO extends Component<SectionIOProps, { artifactNameMap: {} }> {
     return <section>
       <h2 className={commonCss.header2}>{title}</h2>
       <table>
-        <thead><tr><th>Artifact ID</th><th>Name</th></tr></thead>
+        <thead>
+          <tr>
+            <th className={css.tableCell}>Artifact ID</th>
+            <th className={css.tableCell}>Name</th>
+          </tr>
+        </thead>
         <tbody>
           {artifactIds.map(id => <ArtifactRow key={id} id={id} name={this.state.artifactNameMap[id] || ''} />)}
         </tbody>
@@ -225,7 +230,14 @@ class SectionIO extends Component<SectionIOProps, { artifactNameMap: {} }> {
 // tslint:disable-next-line:variable-name
 const ArtifactRow: React.FC<{ id: number, name: string }> = ({ id, name }) => {
   return <tr>
-    <td>{id}</td>
-    <td>{name}</td>
+    <td className={css.tableCell}>{id}</td>
+    <td className={css.tableCell}>{name}</td>
   </tr>;
 };
+
+const css = stylesheet({
+  tableCell: {
+    padding: 4,
+    textAlign: 'left',
+  },
+});
