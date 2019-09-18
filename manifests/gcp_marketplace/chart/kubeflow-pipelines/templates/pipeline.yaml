@@ -625,7 +625,7 @@ spec:
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
-              value: '{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .values.managedstore.databaseNamePrefix | replace ":" "-" | trunc 50 }}'
+              value: '{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .values.managedstorage.databaseNamePrefix | replace ":" "-" | trunc 50 }}'
               {{ else }}
               value: '{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Release.Name | replace ":" "-" | trunc 50 }}'
               {{ end }}
@@ -633,7 +633,7 @@ spec:
               {{ if .Values.managedstorage.databaseNamePrefix }}
               value: '{{ .Values.managedstorage.databaseNamePrefix }}_pipeline'
               {{ else }}
-              value: '{{ .Release.Name | replace "-" "_" | replace "." "_" | trunc 50 }}_pipeline'
+              value: '{{ .Release.Name | replace "-" "_" | replace "." "_" }}_pipeline'
               {{ end }}
             - name: DBCONFIG_USER
               valueFrom:
