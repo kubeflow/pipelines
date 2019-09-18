@@ -26,7 +26,7 @@ import { ResourceInfo } from '../components/ResourceInfo';
 import { Execution, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
 import { Apis, ExecutionProperties, ArtifactProperties } from '../lib/Apis';
 import { GetExecutionsByIDRequest, GetEventsByExecutionIDsRequest, GetEventsByExecutionIDsResponse, GetArtifactsByIDRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
-import { EventTypes, getArtifactTypeMap } from 'src/lib/MetadataUtils';
+import { EventTypes, getArtifactTypeMap } from '../lib/MetadataUtils';
 import { Event } from '../generated/src/apis/metadata/metadata_store_pb';
 import { Link } from 'react-router-dom';
 

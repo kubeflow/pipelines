@@ -1,6 +1,6 @@
 import { ArtifactType, Event } from '../generated/src/apis/metadata/metadata_store_pb';
 import { GetArtifactTypesRequest, GetEventsByArtifactIDsRequest, GetEventsByArtifactIDsResponse } from '../generated/src/apis/metadata/metadata_store_service_pb';
-import { Apis } from '../lib/Apis';
+import { Apis } from './Apis';
 import { formatDateString, serviceErrorToString } from './Utils';
 
 export type EventTypes = Event.TypeMap[keyof Event.TypeMap];
