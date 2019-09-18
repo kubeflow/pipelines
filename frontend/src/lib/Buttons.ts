@@ -353,7 +353,7 @@ export default class Buttons {
     callback: (selectedIds: string[], success: boolean) => void): void {
     this._dialogActionHandler(
       selectedIds,
-      'Do you want to delete this Pipeline? This action cannot be undone.',
+      `Do you want to delete ${selectedIds.length === 1 ? 'this Pipeline' : 'these Pipelines'}? This action cannot be undone.`,
       useCurrentResource,
       id => Apis.pipelineServiceApi.deletePipeline(id),
       callback,
