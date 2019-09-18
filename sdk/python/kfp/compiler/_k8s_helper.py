@@ -126,13 +126,13 @@ class K8sHelper(object):
     pod_name, succ = self._create_k8s_job(yaml_spec)
     namespace = yaml_spec['metadata']['namespace']
     if not succ:
-      return False
+      raise RuntimeError('Kubernetes job creation failed.')
     # timeout in seconds
     succ = self._wait_for_k8s_job(pod_name, yaml_spec, timeout)
     if not succ:
       logging.info('Kubernetes job failed.')
       print(self._read_pod_log(pod_name, yaml_spec))
-      return False
+      raise RuntimeError('Kubernetes job failed.')
     status_obj = self._read_pod_status(pod_name, namespace)
     self._delete_k8s_job(pod_name, yaml_spec)
     return status_obj
