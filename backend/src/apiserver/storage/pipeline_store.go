@@ -187,17 +187,27 @@ func (s *PipelineStore) GetPipeline(id string) (*model.Pipeline, error) {
 }
 
 func (s *PipelineStore) GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error) {
+	var versionStatus model.PipelineVersionStatus
+	if status == model.PipelineReady {
+		versionStatus = model.PipelineVersionReady
+	}
+	if status == model.PipelineCreating {
+		versionStatus = model.PipelineVersionCreating
+	}
+	if status == model.PipelineDeleting {
+		versionStatus = model.PipelineVersionDeleting
+	}
 	sql, args, err := sq.
 		Select("*").
 		From("pipelines").
 		LeftJoin("pipeline_versions on pipelines.DefaultVersionId = pipeline_versions.UUID").
 		Where(sq.Or{
 			sq.And{
-				sq.Eq{"pipelines.Status": model.PipelineReady},
+				sq.Eq{"pipelines.Status": status},
 				sq.Eq{"pipelines.DefaultVersionId": nil}},
 			sq.And{
-				sq.Eq{"pipelines.Status": model.PipelineReady},
-				sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady}}}).
+				sq.Eq{"pipelines.Status": status},
+				sq.Eq{"pipeline_versions.Status": versionStatus}}}).
 		Limit(1).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get pipeline: %v", err.Error())
