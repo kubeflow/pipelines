@@ -17,7 +17,7 @@ metadata:
   annotations:
     pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with multiple
       pipeline params.", "inputs": [{"default": "latest", "name":
-      "tag"}, {"default": 10, "name": "sleep_ms"}], "name": "PipelineParams"}'
+      "tag"}, {"default": "10", "name": "sleep_ms"}], "name": "PipelineParams"}'
   generateName: pipelineparams-
 spec:
   entrypoint: pipelineparams
