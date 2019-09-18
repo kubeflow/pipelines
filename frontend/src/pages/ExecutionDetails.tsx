@@ -277,17 +277,17 @@ class SectionIO extends Component<SectionIOProps, { artifactDataMap: {} }> {
 const ArtifactRow: React.FC<{ id: number, name: string, type?: string }> =
   ({ id, name, type }) => (
     <tr>
-      <td className={css.tableCell}>{id}</td>
       <td className={css.tableCell}>
         {type && id ?
           <Link
             className={commonCss.link}
             to={RoutePageFactory.artifactDetails(type, id)}>
-            {name}
+            {id}
           </Link>
-          : name
+          : id
         }
       </td>
+      <td className={css.tableCell}>{name}</td>
       <td className={css.tableCell}>{type}</td>
     </tr>
   );
