@@ -61,7 +61,7 @@ spec:
                  {{ if .Values.managedstorage.databaseNamePrefix }}
                  '--mysql_config_database={{ .Values.managedstorage.databaseNamePrefix }}_metadata',
                  {{ else }}
-                 '--mysql_config_database={{ .Release.Name | replace "-" "_" | replace "." "_" | trunc 50 }}_metadata',
+                 '--mysql_config_database={{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata',
                  {{ end }}
                  "--mysql_config_port=3306",
                  "--mysql_config_user=$(DBCONFIG_USER)",

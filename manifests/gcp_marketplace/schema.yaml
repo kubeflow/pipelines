@@ -108,7 +108,7 @@ properties:
       This field is used to store the content of the service account
       JSON file. It can be encoded using base64 instead of messing with JSON format.
       To get the encoded credential, run
-      $ gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account] && cat application_default_credentials.json | base64
+      <br><b> $ gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account] && cat application_default_credentials.json | base64 </b><br>
     type: string
     default: ""
     x-google-marketplace:
@@ -125,7 +125,7 @@ properties:
     default: false
   managedstorage.cloudsqlInstanceConnectionName:
     type: string
-    title: CloudSQL instance connection name. Required if use managed storage.
+    title: CloudSQL instance connection name (Managed storage only)
     description: |-
       Provide a pre-created CloudSQL for MySQL instance.
       The instance connection name can be found in the instance detail page.
@@ -133,20 +133,20 @@ properties:
       For more details on how to create a new instance, visit https://cloud.google.com/sql/docs/mysql/quickstart
   managedstorage.dbUsername:
     type: string
-    title: Database username. (Managed storage only)
+    title: Database username (Managed storage only)
     description: |-
       The database username to connect to the CloudSQL instance.
-      If leaveing this field empty, the deployment will use the default 'root' user account.
+      If leaving this field empty, the deployment will use the default 'root' user account.
       For more details about mysql username, visit https://cloud.google.com/sql/docs/mysql/users
   managedstorage.dbPassword:
     type: string
-    title: Database password. (Managed storage only)
+    title: Database password (Managed storage only)
     description: |-
       The database password to connect to the CloudSQL instance.
-      If leaveing this field empty, the deployment will use no password.
+      If leaving this field empty, the deployment will use no password.
   managedstorage.databaseNamePrefix:
     type: string
-    title: Database name prefix. (Managed storage only)
+    title: Database name prefix (Managed storage only)
     description: |-
       The prefix of the database name. Kubeflow Pipelines will create two databases,
       [prefix]_pipeline and [prefix]_metadata.

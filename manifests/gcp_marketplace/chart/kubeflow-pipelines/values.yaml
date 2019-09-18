@@ -22,4 +22,4 @@ managedstorage:
   cloudsqlInstanceConnectionName: null
   databaseNamePrefix: null
   dbUsername: 'root'
-  dbPassword: null
+  dbPassword: ''
