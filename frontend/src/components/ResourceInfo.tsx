@@ -65,7 +65,7 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
             .map(k =>
               <div className={css.field} key={k[0]}>
                 <dt className={css.term}>{k[0]}</dt>
-                <dd className={css.value}>{propertyMap && getMetadataValue(propertyMap.get(k[0]))}</dd>
+                <dd className={css.value}>{propertyMap && prettyPrintJsonValue(getMetadataValue(propertyMap.get(k[0])))}</dd>
               </div>
             )
           }
@@ -76,12 +76,27 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
             <div className={css.field} key={k[0]}>
               <dt className={css.term}>{k[0]}</dt>
               <dd className={css.value}>
-                {customPropertyMap && getMetadataValue(customPropertyMap.get(k[0]))}
+                {customPropertyMap && prettyPrintJsonValue(getMetadataValue(customPropertyMap.get(k[0])))}
               </dd>
             </div>
           )}
         </dl>
       </section>
     );
+  }
+}
+
+function prettyPrintJsonValue(value: string | number): JSX.Element | number | string {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  try {
+    const jsonValue = JSON.parse(value);
+    console.log(value);
+    return <pre>{JSON.stringify(jsonValue, null, 2)}</pre>;
+  } catch {
+    // not JSON, return directly
+    return value;
   }
 }
