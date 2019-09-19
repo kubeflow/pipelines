@@ -28,7 +28,6 @@ def fix_big_data_passing(workflow: dict) -> dict:
 
     workflow = copy.deepcopy(workflow)
     templates = workflow['spec']['templates']
-    name_to_template = {template['name']: template for template in templates}
 
     container_templates = [template for template in workflow['spec']['templates'] if 'container' in template]
     dag_templates = [template for template in workflow['spec']['templates'] if 'dag' in template]
@@ -45,7 +44,6 @@ def fix_big_data_passing(workflow: dict) -> dict:
         dag_template_name = template['name']
         # Indexing task arguments
         dag_tasks = template['dag']['tasks']
-        task_name_to_task = {task['name']: task for task in dag_tasks}
         task_name_to_template_name = {task['name']: task['template'] for task in dag_tasks}
         for task in dag_tasks:
             task_template_name = task['template']
