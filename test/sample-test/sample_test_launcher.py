@@ -172,7 +172,7 @@ class ComponentTest(SampleTest):
   """ Launch a KFP sample test as component test provided its name.
 
   Currently follows the same logic as sample test for compatibility.
-  include xgboost_training_cm, tfx_cab_classification
+  include xgboost_training_cm
   """
   def __init__(self, test_name, results_gcs_dir,
                dataflow_tft_image,
@@ -231,15 +231,6 @@ class ComponentTest(SampleTest):
       utils.file_injection('%s.yaml' % self._test_name,
                            '%s.yaml.tmp' % self._test_name,
                            subs)
-    elif self._test_name == 'tfx_cab_classification':
-      subs.update({
-          'gcr\.io/ml-pipeline/ml-pipeline-dataflow-tft:\w+':self._dataflow_tft_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\w+':self._dataflow_predict_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-dataflow-tfdv:\w+':self._dataflow_tfdv_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-dataflow-tfma:\w+':self._dataflow_tfma_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\w+':self._kubeflow_dnntrainer_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-deployer:\w+':self._kubeflow_deployer_image,
-      })
     else:
       # Only the above two samples need injection for now.
       pass

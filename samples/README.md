@@ -92,7 +92,7 @@ Only the core samples are expected to be added to the sample test infrastructure
 1. Make sure the sample follows the [sample conventions](#sample-conventions).
 2. If the sample requires argument inputs, they can be specified in a config yaml file
 placed under `test/sample-test/configs`. See 
-[`tfx_cab_classification.config.yaml`](https://github.com/kubeflow/pipelines/blob/master/test/sample-test/configs/tfx_cab_classification.config.yaml) 
+[`xgboost_training_cm.config.yaml`](https://github.com/kubeflow/pipelines/blob/master/test/sample-test/configs/xgboost_training_cm.config.yaml) 
 as an example. 
 The config yaml file will be validated according to `schema.config.yaml`. 
 If no config yaml is provided, pipeline parameters will be substituted by their default values.
