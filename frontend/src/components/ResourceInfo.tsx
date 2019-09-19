@@ -43,10 +43,24 @@ export const css = stylesheet({
   }
 });
 
-export interface ResourceInfoProps {
-  resource: Artifact | Execution;
+export enum ResourceType {
+  ARTIFACT = 'ARTIFACT',
+  EXECUTION = 'EXECUTION',
+}
+
+interface ArtifactProps {
+  resourceType: ResourceType.ARTIFACT;
+  resource: Artifact;
   typeName: string;
 }
+
+interface ExecutionProps {
+  resourceType: ResourceType.EXECUTION;
+  resource: Execution;
+  typeName: string;
+}
+
+export type ResourceInfoProps = ArtifactProps | ExecutionProps;
 
 export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
 
@@ -57,6 +71,15 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
     return (
       <section>
         <h1 className={commonCss.header}>Type: {this.props.typeName}</h1>
+        {(() => {
+          if (this.props.resourceType === ResourceType.ARTIFACT) {
+            return <>
+              <dt className={css.term}>URI</dt>
+              <dd className={css.value}>{this.props.resource.getUri()}</dd>
+            </>;
+          }
+          return null;
+        })()}
         <h2 className={commonCss.header2}>Properties</h2>
         <dl className={css.resourceInfo}>
           {propertyMap.getEntryList()
