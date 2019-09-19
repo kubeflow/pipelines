@@ -143,10 +143,7 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 			&versionCodeSourceUrls); err != nil {
 			return nil, err
 		}
-		if defaultVersionId.Valid && versionUUID.Valid &&
-			versionCreatedAtInSec.Valid && versionName.Valid &&
-			versionParameters.Valid && versionPipelineId.Valid &&
-			versionStatus.Valid && versionCodeSourceUrls.Valid {
+		if defaultVersionId.Valid {
 			pipelines = append(pipelines, &model.Pipeline{
 				UUID:             uuid,
 				CreatedAtInSec:   createdAtInSec,
