@@ -195,12 +195,19 @@ function parseEventsByType(response: GetEventsByExecutionIDsResponse | null): Re
   return events;
 }
 
+interface ArtifactInfo {
+  id: number;
+  name: string;
+  typeId?: number;
+  uri: string;
+}
+
 interface SectionIOProps {
   title: string;
   artifactIds: number[];
   artifactTypeMap?: Map<number, ArtifactType>;
 }
-class SectionIO extends Component<SectionIOProps, { artifactDataMap: {} }> {
+class SectionIO extends Component<SectionIOProps, { artifactDataMap: { [id: number]: ArtifactInfo } }> {
   constructor(props: any) {
     super(props);
 
@@ -225,10 +232,11 @@ class SectionIO extends Component<SectionIOProps, { artifactDataMap: {} }> {
         logger.error('Artifact has empty id', artifact.toObject());
         return;
       }
-      const data = {
+      const data: ArtifactInfo = {
         id,
-        name: getResourceProperty(artifact, ArtifactProperties.NAME),
+        name: (getResourceProperty(artifact, ArtifactProperties.NAME) || '') as string, // TODO: assert name is string
         typeId: artifact.getTypeId(),
+        uri: artifact.getUri() || '',
       };
       artifactDataMap[id] = data;
     });
@@ -251,6 +259,7 @@ class SectionIO extends Component<SectionIOProps, { artifactDataMap: {} }> {
             <th className={css.tableCell}>Artifact ID</th>
             <th className={css.tableCell}>Name</th>
             <th className={css.tableCell}>Type</th>
+            <th className={css.tableCell}>URI</th>
           </tr>
         </thead>
         <tbody>
@@ -264,6 +273,7 @@ class SectionIO extends Component<SectionIOProps, { artifactDataMap: {} }> {
               id={id}
               name={data.name || ''}
               type={type ? type.getName() : undefined}
+              uri={data.uri}
             />;
           }
           )}
@@ -274,8 +284,8 @@ class SectionIO extends Component<SectionIOProps, { artifactDataMap: {} }> {
 }
 
 // tslint:disable-next-line:variable-name
-const ArtifactRow: React.FC<{ id: number, name: string, type?: string }> =
-  ({ id, name, type }) => (
+const ArtifactRow: React.FC<{ id: number, name: string, type?: string, uri: string }> =
+  ({ id, name, type, uri }) => (
     <tr>
       <td className={css.tableCell}>
         {type && id ?
@@ -289,12 +299,13 @@ const ArtifactRow: React.FC<{ id: number, name: string, type?: string }> =
       </td>
       <td className={css.tableCell}>{name}</td>
       <td className={css.tableCell}>{type}</td>
+      <td className={css.tableCell}>{uri}</td>
     </tr>
   );
 
 const css = stylesheet({
   tableCell: {
-    padding: 4,
+    padding: 6,
     textAlign: 'left',
   },
 });
