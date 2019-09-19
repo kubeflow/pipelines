@@ -11,11 +11,11 @@
     "lodash": ">=4.17.13",
     "minio": "^7.0.0",
     "node-fetch": "^2.1.2",
-    "tar": "^4.4.6"
+    "tar": "^4.4.11"
   },
   "devDependencies": {
     "@types/express": "^4.11.1",
-    "@types/minio": "^6.0.2",
+    "@types/minio": "^7.0.3",
     "@types/node-fetch": "^2.1.2",
     "typescript": "3.3.1"
   },

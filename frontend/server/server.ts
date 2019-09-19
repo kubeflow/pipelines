@@ -16,15 +16,16 @@ import * as express from 'express';
 import {Application, static as StaticHandler} from 'express';
 import * as fs from 'fs';
 import * as proxy from 'http-proxy-middleware';
-import {Client as MinioClient} from 'minio';
+import {Client as MinioClient, ClientOptions as MinioClienOptions} from 'minio';
 import fetch from 'node-fetch';
 import * as path from 'path';
 import * as process from 'process';
 // @ts-ignore
-import * as tar from 'tar';
 import * as k8sHelper from './k8s-helper';
+import podLogsHandler from './workflow-helper';
 import proxyMiddleware from './proxy-middleware';
-import { Storage } from '@google-cloud/storage';
+import {getTarObjectAsString, getObjectStream, createMinioClient} from './minio-helper';
+import {Storage} from '@google-cloud/storage';
 import {Stream} from 'stream';
 
 import {loadJSON} from './utils';
@@ -78,30 +79,36 @@ const MINIO_ENDPOINT = MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0 ? `${MINIO_
 const _as_bool = (value: string) => ['true', '1'].indexOf(value.toLowerCase()) >= 0
 
 /** minio client for minio storage */
-const minioClient = new MinioClient({
+const minioOptions: MinioClienOptions = {
   accessKey: MINIO_ACCESS_KEY,
   endPoint: MINIO_ENDPOINT,
   port: parseInt(MINIO_PORT, 10),
   secretKey: MINIO_SECRET_KEY,
   useSSL: _as_bool(MINIO_SSL),
-} as any);
+};
+const minioClient = new MinioClient(minioOptions);
 
 /** minio client for s3 objects */
-const s3Client = new MinioClient({
+const s3Options: MinioClienOptions = {
   endPoint: 's3.amazonaws.com',
   accessKey: AWS_ACCESS_KEY_ID,
   secretKey: AWS_SECRET_ACCESS_KEY,
-} as any);
+};
+/** minio client to s3 with AWS instance profile IAM if access keys are not provided. */
+const s3ClientPromise = createMinioClient(s3Options);
 
 /** pod template spec to use for viewer crd */
 const podTemplateSpec = loadJSON(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH, k8sHelper.defaultPodTemplateSpec)
 
-/** helper function to retrieve pod logs from argo artifactory. */
-const getPodLogsFromArtifactory = _as_bool(ARGO_ARCHIVE_LOGS) ? k8sHelper.getPodLogsFromArtifactoryHelper(
-  ARGO_ARCHIVE_ARTIFACTORY==='minio' ? minioClient : s3Client,
-  ARGO_ARCHIVE_BUCKETNAME,
-  ARGO_ARCHIVE_PREFIX
-) : undefined;
+/** set a fallback query to a s3 or minio endpoint for the pod logs. */
+if (_as_bool(ARGO_ARCHIVE_LOGS)) {
+  podLogsHandler.setFallbackHandler(
+    ARGO_ARCHIVE_ARTIFACTORY==='minio' ? minioOptions : s3Options,
+    ARGO_ARCHIVE_BUCKETNAME,
+    ARGO_ARCHIVE_PREFIX,
+  )
+}
+
 
 const app = express() as Application;
 
@@ -214,48 +221,26 @@ const artifactsHandler = async (req, res) => {
         res.status(500).send('Failed to download GCS file(s). Error: ' + err);
       }
       break;
+
     case 'minio':
-      minioClient.getObject(bucket, key, (err, stream) => {
-        if (err) {
-          res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
-          return;
-        }
-
-        try {
-          let contents = '';
-          stream.pipe(new tar.Parse()).on('entry', (entry: Stream) => {
-            entry.on('data', (buffer) => contents += buffer.toString());
-          });
-
-          stream.on('end', () => {
-            res.send(contents);
-          });
-        } catch (err) {
-          res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
-        }
-      });
+      try {
+        res.send(await getTarObjectAsString({bucket, key, client: minioClient}));
+      } catch (err) {
+        res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
+      }
       break;
+
     case 's3':
-      s3Client.getObject(bucket, key, (err, stream) => {
-        if (err) {
-          res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
-          return;
-        }
-
-        try {
-          let contents = '';
-          stream.on('data', (chunk) => {
-            contents = chunk.toString();
-          });
-
-          stream.on('end', () => {
-            res.send(contents);
-          });
-        } catch (err) {
-          res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
-        }
-      });
+      try {
+        const stream = await getObjectStream({bucket, key, client: await s3ClientPromise});
+        stream.on('end', () => res.end());
+        stream.on('error', err => res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`))
+        stream.pipe(res);
+      } catch (err) {
+        res.send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`);
+      }
       break;
+
     case 'http':
     case 'https':
       // trim `/` from both ends of the base URL, then append with a single `/` to the end (empty string remains empty)
@@ -329,20 +314,11 @@ const logsHandler = async (req, res) => {
   }
 
   try {
-    res.send(await k8sHelper.getPodLogs(podName));
+    const stream = await podLogsHandler.getPodLogs(podName);
+    stream.on('error', (err) => res.status(500).send('Could not get main container logs: ' + err))
+    stream.on('end', () => res.end());
+    stream.pipe(res);
   } catch (err) {
-    // try argo archive if cannot retrieve from k8s pod
-    if (!!getPodLogsFromArtifactory) {
-      try {
-        let stream = await getPodLogsFromArtifactory(podName);
-        stream.pipe(res);
-        return;
-      } catch (archiveErr) {
-        res.status(500).send(
-          `Could not get main container logs: ${err}\nCould not get main container logs from archive: ${archiveErr}`);
-        return;
-      }
-    }
     res.status(500).send('Could not get main container logs: ' + err);
   }
 };
