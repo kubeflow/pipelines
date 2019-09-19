@@ -625,7 +625,7 @@ spec:
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
-              value: '{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .values.managedstorage.databaseNamePrefix | replace ":" "-" | trunc 50 }}'
+              value: '{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Values.managedstorage.databaseNamePrefix | replace ":" "-" | trunc 50 }}'
               {{ else }}
               value: '{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Release.Name | replace ":" "-" | trunc 50 }}'
               {{ end }}
