@@ -41,12 +41,34 @@ def ModelSpec(framework, model_uri):
         return V1alpha1ModelSpec(xgboost=V1alpha1XGBoostSpec(model_uri=model_uri))
     elif framework == 'tensorrt':
         return V1alpha1ModelSpec(tensorrt=V1alpha1TensorRTSpec(model_uri=model_uri))
-    elif framework == 'custom':
-        # TODO: implement custom container spec with more args.
-        # return V1alpha1ModelSpec(custom=V1alpha1CustomSpec(container=containerSpec))
-        raise("Custom framework is not yet implemented")
     else:
         raise("Error: No matching framework: " + framework)
+
+
+def customModelSpec(custom_model_spec):
+    env = [client.V1EnvVar(name=i['name'], value=i['value']) for i in custom_model_spec['env']] if custom_model_spec.get('env', '') else None
+    ports = [client.V1ContainerPort(container_port=int(custom_model_spec.get('port', '')))] if custom_model_spec.get('port', '') else None
+    containerSpec = client.V1Container(
+        name=custom_model_spec.get('name', 'custom-container'),
+        image=custom_model_spec['image'],
+        env=env,
+        ports=ports,
+        command=custom_model_spec.get('command', None),
+        args=custom_model_spec.get('args', None),
+        image_pull_policy=custom_model_spec.get('image_pull_policy', None),
+        working_dir=custom_model_spec.get('working_dir', None)
+    )
+    return V1alpha1ModelSpec(custom=V1alpha1CustomSpec(container=containerSpec))
+
+
+def kfserving_deployment(metadata, default_model_spec, canary_model_spec=None, canary_model_traffic=None):
+    return V1alpha1KFService(api_version=constants.KFSERVING_GROUP + '/' + constants.KFSERVING_VERSION,
+                             kind=constants.KFSERVING_KIND,
+                             metadata=metadata,
+                             spec=V1alpha1KFServiceSpec(default=default_model_spec,
+                                                        canary=canary_model_spec,
+                                                        canary_traffic_percent=canary_model_traffic))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -57,6 +79,8 @@ if __name__ == "__main__":
     parser.add_argument('--canary-model-traffic', type=str, help='Optional Traffic to be sent to the default model', default='0')
     parser.add_argument('--namespace', type=str, help='Kubernetes namespace where the KFServing service is deployed.', default='kubeflow')
     parser.add_argument('--framework', type=str, help='Model Serving Framework', default='tensorflow')
+    parser.add_argument('--default-custom-model-spec', type=json.loads, help='Custom runtime default custom model container spec', default={})
+    parser.add_argument('--canary-custom-model-spec', type=json.loads, help='Custom runtime canary custom model container spec', default={})
     parser.add_argument('--output_path', type=str, help='Path to store URI output')
     args = parser.parse_args()
 
@@ -64,35 +88,35 @@ if __name__ == "__main__":
     model_name = args.model_name
     default_model_uri = args.default_model_uri
     canary_model_uri = args.canary_model_uri
-    canary_model_traffic = args.canary_model_traffic
+    canary_model_traffic = int(args.canary_model_traffic)
     namespace = args.namespace
     framework = args.framework.lower()
     output_path = args.output_path
+    default_custom_model_spec = args.default_custom_model_spec
+    canary_custom_model_spec = args.canary_custom_model_spec
 
-    default_model_spec = ModelSpec(framework, default_model_uri)
     metadata = client.V1ObjectMeta(name=model_name, namespace=namespace)
-
-    # Create Canary deployment if canary model uri is provided.
-    if canary_model_uri:
-        canary_model_spec = ModelSpec(framework, canary_model_uri)
-        kfsvc = V1alpha1KFService(api_version=constants.KFSERVING_GROUP + '/' + constants.KFSERVING_VERSION,
-                                  kind=constants.KFSERVING_KIND,
-                                  metadata=metadata,
-                                  spec=V1alpha1KFServiceSpec(default=default_model_spec,
-                                                             canary=canary_model_spec,
-                                                             canary_traffic_percent=int(canary_model_traffic)))
+    if framework != 'custom':
+        default_model_spec = ModelSpec(framework, default_model_uri)
     else:
-        kfsvc = V1alpha1KFService(api_version=constants.KFSERVING_GROUP + '/' + constants.KFSERVING_VERSION,
-                                  kind=constants.KFSERVING_KIND,
-                                  metadata=metadata,
-                                  spec=V1alpha1KFServiceSpec(default=default_model_spec))
+        default_model_spec = customModelSpec(default_custom_model_spec)
+    # Create Canary deployment if canary model uri is provided.
+    if framework != 'custom' and canary_model_uri:
+        canary_model_spec = ModelSpec(framework, canary_model_uri)
+        kfsvc = kfserving_deployment(metadata, default_model_spec, canary_model_spec, canary_model_traffic)
+    elif framework == 'custom' and canary_custom_model_spec:
+        canary_model_spec = customModelSpec(canary_custom_model_spec)
+        kfsvc = kfserving_deployment(metadata, default_model_spec, canary_model_spec, canary_model_traffic)
+    else:
+        kfsvc = kfserving_deployment(metadata, default_model_spec)
+
     KFServing = KFServingClient()
-  
+
     if action == 'create':
         KFServing.create(kfsvc)
-    elif action  == 'update':
+    elif action == 'update':
         KFServing.patch(model_name, kfsvc)
-    elif action  == 'delete':
+    elif action == 'delete':
         KFServing.delete(model_name, namespace=namespace)
     else:
         raise("Error: No matching action: " + action)
