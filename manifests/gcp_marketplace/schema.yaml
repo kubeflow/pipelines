@@ -108,7 +108,7 @@ properties:
       This field is used to store the content of the service account
       JSON file. It can be encoded using base64 instead of messing with JSON format.
       To get the encoded credential, run
-      <br><b> $ gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account] && cat application_default_credentials.json | base64 </b><br>
+      $ gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account] && cat application_default_credentials.json | base64
     type: string
     default: ""
     x-google-marketplace:
