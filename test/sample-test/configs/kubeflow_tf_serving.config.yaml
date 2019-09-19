@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: default_sample_test
-test_timeout: 1200
-run_pipeline: True
+test_name: kubeflow_tf_serving
+notebook_params:
+  output:
+  project: ml-pipeline-test
+  experiment_name: kubeflow_tf_serving-test
