@@ -34,6 +34,13 @@ dataproc_create_cluster_op = components.load_component_from_url(
     'e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/gcp/'
     'dataproc/create_cluster/component.yaml')
 
+dataproc_delete_cluster_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/'
+    'e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/gcp/'
+    'dataproc/delete_cluster/component.yaml')
+
+
+
 # ! Please do not forget to enable the Dataproc API in your cluster https://console.developers.google.com/apis/api/dataproc.googleapis.com/overview
 
 # ================================================================
@@ -60,21 +67,21 @@ dataproc_create_cluster_op = components.load_component_from_url(
 #     )
 
 
-def dataproc_delete_cluster_op(
-    project,
-    region,
-    cluster_name='xgb-{{workflow.name}}'
-):
-    return dsl.ContainerOp(
-        name='Dataproc - Delete cluster',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:1449d08aeeeb47731d019ea046d90904d9c77953',
-        arguments=[
-            '--project', project,
-            '--region', region,
-            '--name', cluster_name,
-        ],
-        is_exit_handler=True
-    )
+# def dataproc_delete_cluster_op(
+#     project,
+#     region,
+#     cluster_name='xgb-{{workflow.name}}'
+# ):
+#     return dsl.ContainerOp(
+#         name='Dataproc - Delete cluster',
+#         image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:1449d08aeeeb47731d019ea046d90904d9c77953',
+#         arguments=[
+#             '--project', project,
+#             '--region', region,
+#             '--name', cluster_name,
+#         ],
+#         is_exit_handler=True
+#     )
 
 
 def dataproc_analyze_op(
@@ -214,6 +221,7 @@ def dataproc_predict_op(
 def xgb_train_pipeline(
     output,
     project,
+    cluster_name='xgb-{{workflow.name}}',
     region='us-central1',
     train_data='gs://ml-pipeline-playground/sfpd/train.csv',
     eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
@@ -226,15 +234,16 @@ def xgb_train_pipeline(
     output_template = str(output) + '/{{workflow.uid}}/{{pod.name}}/data'
 
     delete_cluster_op = dataproc_delete_cluster_op(
-        project,
-        region
+        project_id=project,
+        region=region,
+        name=cluster_name
     ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
     with dsl.ExitHandler(exit_op=delete_cluster_op):
         create_cluster_op = dataproc_create_cluster_op(
             project_id=project,
             region=region,
-            name='xgb-{{workflow.name}}'
+            name=cluster_name
         ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
         # create_cluster_op = dataproc_create_cluster_op(
