@@ -115,7 +115,8 @@ def set_default_base_image(image_or_factory: Union[str, Callable[[], str]]):
 
 def _python_function_name_to_component_name(name):
     import re
-    return re.sub(' +', ' ', name.replace('_', ' ')).strip(' ').capitalize()
+    name_with_spaces = re.sub(' +', ' ', name.replace('_', ' ')).strip(' ')
+    return name_with_spaces[0].upper() + name_with_spaces[1:]
 
 
 def _capture_function_code_using_cloudpickle(func, modules_to_capture: List[str] = None) -> str:
@@ -226,6 +227,10 @@ def _extract_component_interface(func) -> ComponentSpec:
     def annotation_to_type_struct(annotation):
         if not annotation or annotation == inspect.Parameter.empty:
             return None
+        if hasattr(annotation, 'to_dict'):
+            annotation = annotation.to_dict()
+        if isinstance(annotation, dict):
+            return annotation
         if isinstance(annotation, type):
             if annotation in type_to_type_name:
                 return type_to_type_name[annotation]
@@ -282,7 +287,8 @@ def _extract_component_interface(func) -> ComponentSpec:
             if parameter.default is not inspect.Parameter.empty:
                 input_spec.optional = True
                 if parameter.default is not None:
-                    input_spec.default = serialize_value(parameter.default, type_struct)
+                    outer_type_name = list(type_struct.keys())[0] if isinstance(type_struct, dict) else type_struct
+                    input_spec.default = serialize_value(parameter.default, outer_type_name)
             input_spec._passing_style = passing_style
             input_spec._parameter_name = parameter.name
             inputs.append(input_spec)
@@ -304,6 +310,16 @@ def _extract_component_interface(func) -> ComponentSpec:
             output_spec._passing_style = None
             output_spec._return_tuple_field_name = field_name
             outputs.append(output_spec)
+    elif isinstance(return_ann, dict): # Deprecated dict-based way of declaring multiple outputs. Was only used by the @acomponent decorator
+        import warnings
+        warnings.warn("The ability to specify multiple outputs using the dict syntax has been deprecated and will be removed soon after release 0.1.32. Please use typing.NamedTuple to declare multiple outputs.")
+        for output_name, output_type_annotation in return_ann.items():
+            output_type_struct = annotation_to_type_struct(output_type_annotation)
+            output_spec = OutputSpec(
+                name=output_name,
+                type=output_type_struct,
+            )
+            outputs.append(output_spec)
     elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
         output_name = _make_name_unique_by_adding_index(single_output_name_const, output_names, '_') # Fixes exotic, but possible collision: `def func(output_path: OutputPath()) -> str: ...`
         output_names.add(output_name)
@@ -321,6 +337,10 @@ def _extract_component_interface(func) -> ComponentSpec:
     description = getattr(func, '_component_description', None) or func.__doc__
     if description:
         description = description.strip() + '\n' #Interesting: unlike ruamel.yaml, PyYaml cannot handle trailing spaces in the last line (' \n') and switches the style to double-quoted.
+
+    # TODO: Parse input/output descriptions from the function docstring. See:
+    # https://github.com/rr-/docstring_parser
+    # https://github.com/terrencepreilly/darglint/blob/master/darglint/parse.py
 
     component_spec = ComponentSpec(
         name=component_name,
