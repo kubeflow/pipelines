@@ -19,6 +19,8 @@ import kfp
 from kfp import components
 from kfp import dsl
 from kfp import gcp
+import os
+import subprocess
 
 confusion_matrix_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/'
@@ -39,6 +41,21 @@ dataproc_delete_cluster_op = components.load_component_from_url(
     'e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/gcp/'
     'dataproc/delete_cluster/component.yaml')
 
+dataproc_submit_pyspark_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/'
+    'e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/gcp/'
+    'dataproc/submit_pyspark_job/component.yaml'
+)
+
+_PYSRC_PREFIX = 'gs://kfp-gcp-dataproc-example/src' # Common path to python src.
+
+
+def delete_directory_from_gcs(dir_path):
+  """Delete a GCS dir recursively. Ignore errors."""
+  try:
+    subprocess.call(['gsutil', '-m', 'rm', '-r', dir_path])
+  except:
+    pass
 
 
 # ! Please do not forget to enable the Dataproc API in your cluster https://console.developers.google.com/apis/api/dataproc.googleapis.com/overview
@@ -46,42 +63,6 @@ dataproc_delete_cluster_op = components.load_component_from_url(
 # ================================================================
 # The following classes should be provided by components provider.
 
-# def dataproc_create_cluster_op(
-#     project,
-#     region,
-#     staging,
-#     cluster_name='xgb-{{workflow.name}}'
-# ):
-#     return dsl.ContainerOp(
-#         name='Dataproc - Create cluster',
-#         image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:1449d08aeeeb47731d019ea046d90904d9c77953',
-#         arguments=[
-#             '--project', project,
-#             '--region', region,
-#             '--name', cluster_name,
-#             '--staging', staging,
-#         ],
-#         file_outputs={
-#             'output': '/output.txt',
-#         }
-#     )
-
-
-# def dataproc_delete_cluster_op(
-#     project,
-#     region,
-#     cluster_name='xgb-{{workflow.name}}'
-# ):
-#     return dsl.ContainerOp(
-#         name='Dataproc - Delete cluster',
-#         image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:1449d08aeeeb47731d019ea046d90904d9c77953',
-#         arguments=[
-#             '--project', project,
-#             '--region', region,
-#             '--name', cluster_name,
-#         ],
-#         is_exit_handler=True
-#     )
 
 
 def dataproc_analyze_op(
@@ -90,23 +71,23 @@ def dataproc_analyze_op(
     cluster_name,
     schema,
     train_data,
-    output
-):
-    return dsl.ContainerOp(
-        name='Dataproc - Analyze',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:1449d08aeeeb47731d019ea046d90904d9c77953',
-        arguments=[
-            '--project', project,
-            '--region', region,
-            '--cluster', cluster_name,
-            '--schema', schema,
-            '--train', train_data,
-            '--output', output,
-        ],
-        file_outputs={
-            'output': '/output.txt',
-        }
-    )
+    output):
+  """Submit dataproc analyze as a pyspark job.
+
+  :param project: GCP project ID.
+  :param region: Which zone to run this analyze.
+  :param cluster_name: Name of the cluster.
+  :param schema: GCS path to the schema.
+  :param train_data: GCS path to the training data.
+  :param output: GCS path to store the output.
+  """
+  return dataproc_submit_pyspark_op(
+      project_id=project,
+      region=region,
+      cluster_name=cluster_name,
+      main_python_file_uri=os.path.join(_PYSRC_PREFIX, 'analyze/analyze_run.py'),
+      args=['--output', output, '--train', train_data, '--schema', schema]
+  )
 
 
 def dataproc_transform_op(
@@ -119,24 +100,39 @@ def dataproc_transform_op(
     analysis,
     output
 ):
-    return dsl.ContainerOp(
-        name='Dataproc - Transform',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:1449d08aeeeb47731d019ea046d90904d9c77953',
-        arguments=[
-            '--project', project,
-            '--region', region,
-            '--cluster', cluster_name,
-            '--train', train_data,
-            '--eval', eval_data,
-            '--analysis', analysis,
-            '--target', target,
-            '--output', output,
-        ],
-        file_outputs={
-            'train': '/output_train.txt',
-            'eval': '/output_eval.txt',
-        }
-    )
+  """Submit dataproc transform as a pyspark job.
+
+  :param project: GCP project ID.
+  :param region: Which zone to run this analyze.
+  :param cluster_name: Name of the cluster.
+  :param train_data: GCS path to the training data.
+  :param eval_data: GCS path of the eval csv file.
+  :param target: Target column name.
+  :param analysis: GCS path of the analysis results
+  :param output: GCS path to use for output.
+  """
+
+  delete_directory_from_gcs(os.path.join(output, 'train'))
+  delete_directory_from_gcs(os.path.join(output, 'eval'))
+
+  return dataproc_submit_pyspark_op(
+      project_id=project,
+      region=region,
+      cluster_name=cluster_name,
+      main_python_file_uri=os.path.join(_PYSRC_PREFIX,
+                                        'transform/transform_run.py'),
+      args=[
+        '--output',
+        output,
+        '--analysis',
+        analysis,
+        '--target',
+        target,
+        '--train',
+        train_data,
+        '--eval',
+        eval_data
+      ])
 
 
 def dataproc_train_op(
