@@ -194,7 +194,7 @@ def fix_big_data_passing(workflow: dict) -> dict:
 
         upstream_outputs = dag_output_to_parent_template_outputs.get(template_output, [])
         for upstream_output in upstream_outputs:
-            mark_upstream_ios_of_output_as_parameters(upstream_output)
+            mark_upstream_ios_of_output_as_parameters(upstream_output, marked_inputs, marked_outputs)
 
     for input in inputs_directly_consumed_as_parameters:
         mark_upstream_ios_of_input_as_parameters(input, inputs_consumed_as_parameters, outputs_consumed_as_parameters)
