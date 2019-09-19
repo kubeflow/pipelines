@@ -20,33 +20,44 @@ from kfp import components
 from kfp import dsl
 from kfp import gcp
 
-confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/local/confusion_matrix/component.yaml')
-roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/local/roc/component.yaml')
+confusion_matrix_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/'
+    'e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/'
+    'local/confusion_matrix/component.yaml')
+roc_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/'
+    'e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/'
+    'local/roc/component.yaml')
+
+dataproc_create_cluster_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/'
+    'e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/gcp/'
+    'dataproc/create_cluster/component.yaml')
 
 # ! Please do not forget to enable the Dataproc API in your cluster https://console.developers.google.com/apis/api/dataproc.googleapis.com/overview
 
 # ================================================================
 # The following classes should be provided by components provider.
 
-def dataproc_create_cluster_op(
-    project,
-    region,
-    staging,
-    cluster_name='xgb-{{workflow.name}}'
-):
-    return dsl.ContainerOp(
-        name='Dataproc - Create cluster',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:1449d08aeeeb47731d019ea046d90904d9c77953',
-        arguments=[
-            '--project', project,
-            '--region', region,
-            '--name', cluster_name,
-            '--staging', staging,
-        ],
-        file_outputs={
-            'output': '/output.txt',
-        }
-    )
+# def dataproc_create_cluster_op(
+#     project,
+#     region,
+#     staging,
+#     cluster_name='xgb-{{workflow.name}}'
+# ):
+#     return dsl.ContainerOp(
+#         name='Dataproc - Create cluster',
+#         image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:1449d08aeeeb47731d019ea046d90904d9c77953',
+#         arguments=[
+#             '--project', project,
+#             '--region', region,
+#             '--name', cluster_name,
+#             '--staging', staging,
+#         ],
+#         file_outputs={
+#             'output': '/output.txt',
+#         }
+#     )
 
 
 def dataproc_delete_cluster_op(
@@ -221,10 +232,16 @@ def xgb_train_pipeline(
 
     with dsl.ExitHandler(exit_op=delete_cluster_op):
         create_cluster_op = dataproc_create_cluster_op(
-            project,
-            region,
-            output
+            project_id=project,
+            region=region,
+            name='xgb-{{workflow.name}}'
         ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
+        # create_cluster_op = dataproc_create_cluster_op(
+        #     project,
+        #     region,
+        #     output
+        # ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
         analyze_op = dataproc_analyze_op(
             project,
