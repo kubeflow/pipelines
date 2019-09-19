@@ -75,7 +75,7 @@ def fix_big_data_passing(workflow: dict) -> dict:
                     # workflow.parameters.* placeholders are not supported, but the DSL compiler does not produce those.
                     template_input_to_parent_constant_arguments.setdefault((task_template_name, task_input_name), set()).add(argument_value)
                 else:
-                    ...
+                    raise AssertionError
 
                 dag_input_name = extract_input_parameter_name(argument_value)
                 if dag_input_name:
@@ -103,7 +103,7 @@ def fix_big_data_passing(workflow: dict) -> dict:
                 elif placeholder_type == 'item' or placeholder_type == 'workflow' or placeholder_type == 'pod':
                     raise RuntimeError('DAG output value "{}" is not supported.'.format(output_value))
                 else:
-                    ...
+                    raise AssertionError
     # Finshed indexing the DAGs
 
     # 2. Search for direct data consumers in container/resource templates and some DAG task attributes (e.g. conditions and loops) to find out which inputs are directly consumed as parameters/artifacts.
@@ -139,7 +139,7 @@ def fix_big_data_passing(workflow: dict) -> dict:
                         input_name = parts[2]
                         inputs_directly_consumed_as_parameters.add((template_name, input_name))
                     else:
-                        ...
+                        raise AssertionError
 
     # Searching for parameter input consumers in container and resource templates
     for template in container_templates + resource_templates:
@@ -155,13 +155,13 @@ def fix_big_data_passing(workflow: dict) -> dict:
                     input_name = parts[2]
                     inputs_directly_consumed_as_parameters.add((template_name, input_name))
                 elif parts[1] == 'artifacts':
-                    ... # Should not happen in container templates
+                    raise AssertionError # Should not happen in container templates
                 else:
-                    ...
+                    raise AssertionError
             elif placeholder_type == 'outputs':
-                ... # Should not happen in container templates
+                raise AssertionError # Should not happen in container templates
             else:
-                ...
+                raise AssertionError
 
     # Finished indexing data consumers
 
