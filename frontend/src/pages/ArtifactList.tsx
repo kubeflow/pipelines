@@ -20,7 +20,7 @@ import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { getResourceProperty, rowCompareFn, rowFilterFn, groupRows, getExpandedRow, serviceErrorToString } from '../lib/Utils';
+import { getResourceProperty, rowCompareFn, rowFilterFn, groupRows, getExpandedRow, serviceErrorToString, generateGcsConsoleUri } from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
 import { Link } from 'react-router-dom';
 import { Artifact, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
@@ -57,7 +57,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
         },
         { label: 'ID', flex: 1, sortKey: 'id' },
         { label: 'Type', flex: 2, sortKey: 'type' },
-        { label: 'URI', flex: 2, sortKey: 'uri', },
+        { label: 'URI', flex: 2, sortKey: 'uri', customRenderer: this.uriCustomRenderer },
         { label: 'Created at', flex: 1, sortKey: 'created_at' },
       ],
       expandedRows: new Map(),
@@ -131,6 +131,18 @@ class ArtifactList extends Page<{}, ArtifactListState> {
           {props.value}
         </Link>
       );
+    }
+
+  private uriCustomRenderer: React.FC<CustomRendererProps<string>> =
+    (props) => {
+      const gcsUri = props.value;
+      const gcsConsoleUri = gcsUri ? generateGcsConsoleUri(gcsUri) : undefined;
+      if (gcsConsoleUri) {
+        // Opens in new window safely
+        return <a href={gcsConsoleUri} target="_blank" rel="noreferrer noopener">{gcsUri}</a>;
+      } else {
+        return <>{gcsUri}</>;
+      }
     }
 
   /**
