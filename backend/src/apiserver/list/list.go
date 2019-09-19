@@ -206,8 +206,8 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 		order = "DESC"
 	}
 	sqlBuilder = sqlBuilder.
-		OrderBy(fmt.Sprintf("%v %v", o.ModelName+o.SortByFieldName, order)).
-		OrderBy(fmt.Sprintf("%v %v", o.ModelName+o.KeyFieldName, order))
+		OrderBy(fmt.Sprintf("%v %v", modelNamePrefix+o.SortByFieldName, order)).
+		OrderBy(fmt.Sprintf("%v %v", modelNamePrefix+o.KeyFieldName, order))
 
 	return sqlBuilder
 }

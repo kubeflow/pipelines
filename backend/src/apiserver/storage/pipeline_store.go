@@ -192,7 +192,7 @@ func (s *PipelineStore) GetPipelineWithStatus(id string, status model.PipelineSt
 		Select("*").
 		From("pipelines").
 		LeftJoin("pipeline_versions on pipelines.DefaultVersionId = pipeline_versions.UUID").
-		Where(sq.Eq{"uuid": id}).
+		Where(sq.Eq{"pipelines.uuid": id}).
 		Where(sq.Eq{"pipelines.Status": status}).
 		Limit(1).ToSql()
 	if err != nil {
