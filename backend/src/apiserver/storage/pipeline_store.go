@@ -54,13 +54,7 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 		return sqlBuilder.
 			From("pipelines").
 			LeftJoin("pipeline_versions ON pipelines.DefaultVersionId = pipeline_versions.UUID").
-			Where(sq.Or{
-				sq.And{
-					sq.Eq{"pipelines.Status": model.PipelineReady},
-					sq.Eq{"pipelines.DefaultVersionId": nil}},
-				sq.And{
-					sq.Eq{"pipelines.Status": model.PipelineReady},
-					sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady}}})
+			Where(sq.Eq{"pipelines.Status": model.PipelineReady})
 	}
 
 	sqlBuilder := buildQuery(sq.Select("*"))
@@ -130,7 +124,6 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 		var defaultVersionId sql.NullString
 		var createdAtInSec int64
 		var status model.PipelineStatus
-		// var pipelineVersion model.PipelineVersion
 		var versionUUID, versionName, versionParameters, versionPipelineId, versionCodeSourceUrls, versionStatus sql.NullString
 		var versionCreatedAtInSec sql.NullInt64
 		if err := rows.Scan(
@@ -150,7 +143,10 @@ func (s *PipelineStore) scanRows(rows *sql.Rows) ([]*model.Pipeline, error) {
 			&versionCodeSourceUrls); err != nil {
 			return nil, err
 		}
-		if defaultVersionId.Valid {
+		if defaultVersionId.Valid && versionUUID.Valid &&
+			versionCreatedAtInSec.Valid && versionName.Valid &&
+			versionParameters.Valid && versionPipelineId.Valid &&
+			versionStatus.Valid && versionCodeSourceUrls.Valid {
 			pipelines = append(pipelines, &model.Pipeline{
 				UUID:             uuid,
 				CreatedAtInSec:   createdAtInSec,
@@ -243,8 +239,8 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	newPipeline.DefaultVersion.PipelineId = id.String()
 
 	// TODO(jingzhang36): before we expose versions to FE, we have to use same
-	// UUID for pipeline and its (only) version and thus FE use pipeline UUID
-	// instead of version UUID to to properly retrieve pipeline package.
+	// UUID for pipeline and its (only) version and thus FE can use pipeline
+	// UUID instead of version UUID to to properly retrieve pipeline package.
 	// id, err = s.uuid.NewRandom()
 	// if err != nil {
 	// 	return nil, util.NewInternalServerError(

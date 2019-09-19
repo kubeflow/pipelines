@@ -142,11 +142,12 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// Delete pipeline file and DB entry.
 	// Not fail the request if this step failed. A background run will do the cleanup.
 	// https://github.com/kubeflow/pipelines/issues/388
-	// TODO(jingzhang36): it is possible that we can improve performance by
-	// put all versions of a single pipeline in one directory; and remove the
-	// whole directory on deleting pipeline. For now, we have only 1 file and
-	// both pipeline and version pointing to the same file;  so it is ok to do
-	// the deletion as follows.
+	// TODO(jingzhang36): For now (before exposing version API), we have only 1
+	// file with both pipeline and version pointing to it;  so it is ok to do
+	// the deletion as follows. After exposing version API, we can have multiple
+	// versions and hence multiple files, and we shall improve performance by
+	// put all files of a single pipeline in one directory; and remove the whole
+	// directory when deleting pipeline.
 	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
