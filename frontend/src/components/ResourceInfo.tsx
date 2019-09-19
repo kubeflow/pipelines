@@ -93,7 +93,6 @@ function prettyPrintJsonValue(value: string | number): JSX.Element | number | st
 
   try {
     const jsonValue = JSON.parse(value);
-    console.log(value);
     return <pre>{JSON.stringify(jsonValue, null, 2)}</pre>;
   } catch {
     // not JSON, return directly
