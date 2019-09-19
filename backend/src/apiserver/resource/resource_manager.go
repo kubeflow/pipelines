@@ -132,10 +132,6 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	if err != nil {
 		return util.Wrap(err, "Delete pipeline failed")
 	}
-	versionIds, err := r.pipelineStore.GetAllVersionIds(pipelineId)
-	if err != nil {
-		return util.Wrap(err, "Delete pipeline failed")
-	}
 
 	// Mark pipeline as deleting so it's not visible to user.
 	err = r.pipelineStore.UpdatePipelineStatus(pipelineId, model.PipelineDeleting)
@@ -146,19 +142,15 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// Delete pipeline file and DB entry.
 	// Not fail the request if this step failed. A background run will do the cleanup.
 	// https://github.com/kubeflow/pipelines/issues/388
+	// TODO(jingzhang36): it is possible that we can improve performance by
+	// put all versions of a single pipeline in one directory; and remove the
+	// whole directory on deleting pipeline. For now, we have only 1 file and
+	// both pipeline and version pointing to the same file;  so it is ok to do
+	// the deletion as follows.
 	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
 		return nil
-	}
-	for _, versionId := range versionIds {
-		if versionId != pipelineId { // avoid duplicate remove of object
-			err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(versionId)))
-			if err != nil {
-				glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline version file for pipeline %v", pipelineId))
-				return nil
-			}
-		}
 	}
 	err = r.pipelineStore.DeletePipeline(pipelineId)
 	if err != nil {

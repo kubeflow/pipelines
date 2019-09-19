@@ -181,17 +181,23 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBu
 // containing these.
 func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	// If next row's value is specified, set those values in the clause.
+	var modelNamePrefix string
+	if len(o.ModelName) == 0 {
+		modelNamePrefix = ""
+	} else {
+		modelNamePrefix = o.ModelName + "."
+	}
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Lt{o.ModelName + o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{o.ModelName + o.SortByFieldName: o.SortByFieldValue},
-						sq.LtOrEq{o.ModelName + o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{sq.Lt{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{sq.Eq{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.LtOrEq{modelNamePrefix + o.KeyFieldName: o.KeyFieldValue}}})
 		} else {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Gt{o.ModelName + o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{o.ModelName + o.SortByFieldName: o.SortByFieldValue},
-						sq.GtOrEq{o.ModelName + o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{sq.Gt{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{sq.Eq{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.GtOrEq{modelNamePrefix + o.KeyFieldName: o.KeyFieldValue}}})
 		}
 	}
 

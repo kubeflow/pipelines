@@ -60,7 +60,7 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 	}
 
 	// TODO(jingzhang36): uncomment when exposing versions to API.
-	// defaultVersion, err := ToApiVersion(pipeline.DefaultVersion)
+	// defaultVersion, err := ToApiPipelineVersion(pipeline.DefaultVersion)
 	// if err != nil {
 	// 	return &api.Pipeline{
 	// 		Id:    pipeline.UUID,
@@ -78,7 +78,7 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 	}
 }
 
-func ToApiVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) {
+func ToApiPipelineVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) {
 	if version == nil {
 		return nil, nil
 	}
@@ -113,10 +113,10 @@ func ToApiSources(sources *string) []string {
 	return strings.FieldsFunc(*sources, splitFn)
 }
 
-func ToApiVersions(versions []*model.PipelineVersion) ([]*api.PipelineVersion, error) {
+func ToApiPipelineVersions(versions []*model.PipelineVersion) ([]*api.PipelineVersion, error) {
 	apiVersions := make([]*api.PipelineVersion, 0)
 	for _, version := range versions {
-		v, _ := ToApiVersion(version)
+		v, _ := ToApiPipelineVersion(version)
 		apiVersions = append(apiVersions, v)
 	}
 	return apiVersions, nil

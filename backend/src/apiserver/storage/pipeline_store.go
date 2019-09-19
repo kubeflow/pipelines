@@ -35,8 +35,6 @@ type PipelineStoreInterface interface {
 
 	// Change status of a particular version.
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
-	// Get Ids of all versions under a pipeline.
-	GetAllVersionIds(pipeleinId string) ([]string, error)
 }
 
 type PipelineStore struct {
@@ -362,32 +360,6 @@ func (s *PipelineStore) UpdatePipelineVersionStatus(id string, status model.Pipe
 			"Failed to update the pipeline version metadata: %s", err.Error())
 	}
 	return nil
-}
-
-func (s *PipelineStore) GetAllVersionIds(pipelineId string) ([]string, error) {
-	var versionIds []string
-	sql, args, err := sq.
-		Select("UUID").
-		From("pipeline_versions").
-		Where(sq.Eq{"pipelineId": pipelineId}).
-		ToSql()
-	if err != nil {
-		return nil, util.NewInternalServerError(err,
-			`Failed to create query to get version ids: %s`, err.Error())
-	}
-	rows, err := s.db.Query(sql, args...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err,
-			"Failed to get version ids: %s", err.Error())
-	}
-	for rows.Next() {
-		var versionId string
-		if err := rows.Scan(&versionId); err != nil {
-			return nil, err
-		}
-		versionIds = append(versionIds, versionId)
-	}
-	return versionIds, nil
 }
 
 // factory function for pipeline store
