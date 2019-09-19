@@ -15,6 +15,13 @@ rules:
   - get
   - list
 - apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+- apiGroups:
   - "kubeflow.org"
   resources:
   - viewers
@@ -24,3 +31,10 @@ rules:
   - list
   - watch
   - delete
+- apiGroups:
+  - "argoproj.io"
+  resources:
+  - workflows
+  verbs:
+  - get
+  - list
