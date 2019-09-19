@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import warnings
-from .types import BaseType, _check_valid_type_dict, _instance_to_dict
+from .types import BaseType, _check_valid_type_dict
 from ..components._data_passing import serialize_value
 from ..components._structures import ComponentSpec, InputSpec, OutputSpec
 
@@ -29,7 +29,7 @@ def _annotation_to_typemeta(annotation):
     dict or string representing the type
     '''
   if isinstance(annotation, BaseType):
-    arg_type = _instance_to_dict(annotation)
+    arg_type = annotation.to_dict()
   elif isinstance(annotation, str):
     arg_type = annotation
   elif isinstance(annotation, dict):
