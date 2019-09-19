@@ -22,7 +22,7 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
 import { titleCase, getResourceProperty, serviceErrorToString, logger } from '../lib/Utils';
-import { ResourceInfo } from '../components/ResourceInfo';
+import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { Execution, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
 import { Apis, ExecutionProperties, ArtifactProperties } from '../lib/Apis';
 import { GetExecutionsByIDRequest, GetEventsByExecutionIDsRequest, GetEventsByExecutionIDsResponse, GetArtifactsByIDRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
@@ -74,8 +74,11 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        {<ResourceInfo typeName={this.properTypeName}
-          resource={this.state.execution} />}
+        {<ResourceInfo
+          resourceType={ResourceType.EXECUTION}
+          typeName={this.properTypeName}
+          resource={this.state.execution}
+        />}
         <SectionIO
           title={'Declared Inputs'}
           artifactIds={this.state.events[Event.Type.DECLARED_INPUT]}
