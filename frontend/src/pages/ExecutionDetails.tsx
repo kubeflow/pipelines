@@ -22,7 +22,7 @@ import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
 import { titleCase, getResourceProperty, serviceErrorToString } from '../lib/Utils';
-import { ResourceInfo } from '../components/ResourceInfo';
+import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { Execution } from '../generated/src/apis/metadata/metadata_store_pb';
 import { Apis, ExecutionProperties } from '../lib/Apis';
 import { GetExecutionsByIDRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
@@ -67,8 +67,11 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        {<ResourceInfo typeName={this.properTypeName}
-          resource={this.state.execution} />}
+        {<ResourceInfo
+          resourceType={ResourceType.EXECUTION}
+          typeName={this.properTypeName}
+          resource={this.state.execution}
+        />}
       </div >
     );
   }
