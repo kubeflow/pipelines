@@ -20,13 +20,14 @@ import { Page } from './Page';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
-import { getResourceProperty, rowCompareFn, rowFilterFn, groupRows, getExpandedRow, serviceErrorToString, generateGcsConsoleUri } from '../lib/Utils';
+import { getResourceProperty, rowCompareFn, rowFilterFn, groupRows, getExpandedRow, serviceErrorToString } from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
 import { Link } from 'react-router-dom';
 import { Artifact, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
 import { ArtifactProperties, ArtifactCustomProperties, ListRequest, Apis } from '../lib/Apis';
 import { GetArtifactTypesRequest, GetArtifactsRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
 import { getArtifactCreationTime } from '../lib/MetadataUtils';
+import { GcsLink } from 'src/components/GcsLink';
 
 interface ArtifactListState {
   artifacts: Artifact[];
@@ -134,16 +135,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
     }
 
   private uriCustomRenderer: React.FC<CustomRendererProps<string>> =
-    (props) => {
-      const gcsUri = props.value;
-      const gcsConsoleUri = gcsUri ? generateGcsConsoleUri(gcsUri) : undefined;
-      if (gcsConsoleUri) {
-        // Opens in new window safely
-        return <a href={gcsConsoleUri} target="_blank" rel="noreferrer noopener">{gcsUri}</a>;
-      } else {
-        return <>{gcsUri}</>;
-      }
-    }
+    ({value}) => <GcsLink gcsUri={value} />
 
   /**
    * Temporary solution to apply sorting, filtering, and pagination to the
