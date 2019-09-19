@@ -32,9 +32,12 @@ done
 
 # Check whether the argo workflow finished or not and exit if not.
 if [[ $s != 0 ]]; then
- echo "Prow job Failed: Argo workflow timeout.."
- argo logs -w ${ARGO_WORKFLOW} -n ${NAMESPACE}
- exit $s
+  echo "Prow job Failed: Argo workflow timeout.."
+  echo "=========Argo Workflow Logs========="
+  argo logs -w ${ARGO_WORKFLOW} -n ${NAMESPACE}
+  echo "===================================="
+  argo get ${ARGO_WORKFLOW} -n ${NAMESPACE}
+  exit $s
 fi
 
 echo "Argo workflow finished."
