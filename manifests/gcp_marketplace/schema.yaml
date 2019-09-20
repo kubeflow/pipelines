@@ -105,10 +105,14 @@ properties:
      GCP Service Account credentials used to call other GCP services.
     description: |-
       To be able to call other GCP services from the pipeline, we need to be authenticated.
+      The associated service account should have Cloud SQL and GCS access permissions/roles at
+      minimum, as well as any permission you need for your pipelines.
       This field is used to store the content of the service account
       JSON file. It can be encoded using base64 instead of messing with JSON format.
       To get the encoded credential, run
       $ gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account] && cat application_default_credentials.json | base64
+      It is recommended to use google cloud shell, which saves you the effort of environment setup.
+      Then you can copy-paste the generated token into this field. Note: the token is without spaces/breaklines.
     type: string
     default: ""
     x-google-marketplace:
