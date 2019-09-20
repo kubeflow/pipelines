@@ -21,17 +21,28 @@ WORKFLOW_COMPLETE_KEYWORD="completed=true"
 WORKFLOW_FAILED_KEYWORD="phase=Failed"
 PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT=$(expr $TIMEOUT_SECONDS / 20 )
 
+workflow_completed=false
+workflow_failed=false
+
 echo "check status of argo workflow $ARGO_WORKFLOW...."
 # probing the argo workflow status until it completed. Timeout after 30 minutes
 for i in $(seq 1 ${PULL_ARGO_WORKFLOW_STATUS_MAX_ATTEMPT})
 do
   WORKFLOW_STATUS=`kubectl get workflow $ARGO_WORKFLOW -n ${NAMESPACE} --show-labels 2>&1` \
     || echo kubectl get workflow failed with "$WORKFLOW_STATUS" # Tolerate temporary network failure during kubectl get workflow
-  echo $WORKFLOW_STATUS | grep ${WORKFLOW_COMPLETE_KEYWORD} && s=0 && break || s=$? && printf "Workflow ${ARGO_WORKFLOW} is not finished.\n${WORKFLOW_STATUS}\nSleep for 20 seconds...\n" && sleep 20
+  if echo $WORKFLOW_STATUS | grep "${WORKFLOW_COMPLETE_KEYWORD}" --quiet; then
+    workflow_completed=true
+    if echo $WORKFLOW_STATUS | grep "${WORKFLOW_FAILED_KEYWORD}" --quiet; then
+      workflow_failed=true
+    fi
+    break
+  else
+    printf "Workflow ${ARGO_WORKFLOW} is not finished.\n${WORKFLOW_STATUS}\nSleep for 20 seconds...\n" && sleep 20
+  fi
 done
 
-if [[ "$s" == 0 ]]; then
-  echo "Argo workflow finished."
+if [[ "$workflow_completed" == "true" ]] && [[ "$workflow_failed" == "false" ]]; then
+  echo "Argo workflow finished successfully."
   if [[ -n "$TEST_RESULT_FOLDER" ]]; then
     echo "Copy test result"
     mkdir -p "$ARTIFACT_DIR"
@@ -42,7 +53,7 @@ if [[ "$s" == 0 ]]; then
 fi
 
 # Handling failed workflow
-if [[ "$s" != 0 ]]; then
+if [[ "$workflow_completed" == "false" ]]; then
   echo "Argo workflow timed out."
 else
   echo "Argo workflow failed."
