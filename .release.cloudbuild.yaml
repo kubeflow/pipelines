@@ -134,10 +134,10 @@ steps:
   waitFor: ['PullMetadataServer']
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/envoy:initial']
+  args: ['pull', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA']
   id:   'PullMetadataEnvoy'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/ml-pipeline/envoy:initial', 'gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$TAG_NAME']
   waitFor: ['PullMetadataEnvoy']
 
 - name: 'gcr.io/cloud-builders/docker'
