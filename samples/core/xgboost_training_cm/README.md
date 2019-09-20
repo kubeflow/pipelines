@@ -31,24 +31,24 @@ pipeline run results. Note that each pipeline run will create a unique directory
 ## Components source
 
 Create Cluster:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/create_cluster/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/create_cluster)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/create_cluster/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/create_cluster)
 
 Analyze (step one for preprocessing):
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/analyze/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/analyze)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/analyze/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/analyze)
 
 Transform (step two for preprocessing):
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/transform/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/transform)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/transform/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/transform)
 
 Distributed Training:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/train/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/train)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/train/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/train)
 
 Distributed Predictions:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/predict/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/predict)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/predict/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/predict)
 
 Confusion Matrix:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix/src) 
@@ -61,7 +61,7 @@ ROC:
 
 
 Delete Cluster:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/delete_cluster/src) 
-  [container](https://github.com/kubeflow/pipelines/tree/master/components/dataproc/delete_cluster)
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/delete_cluster/src) 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/deprecated/dataproc/delete_cluster)
 
 

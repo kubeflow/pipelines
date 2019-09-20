@@ -67,10 +67,20 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - tfx_cab_classification
               - xgboost_training_cm
               - lightweight_component
               - dsl_static_type_checking
+              - pipeline_transformers
+              - secret
+              - sidecar
+              - dataflow
+              - execution_order
+              - imagepullsecrets
+              - retry
+              - artifact_location
+              - preemptible_tpu_gpu
+              - volume_snapshot_ops
+              - kubeflow_tf_serving
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:

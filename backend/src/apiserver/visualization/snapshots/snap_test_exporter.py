@@ -40,7 +40,26 @@ snapshots['TestExporterMethods::test_create_cell_from_args_with_one_arg 1'] = "v
 snapshots['TestExporterMethods::test_create_cell_from_custom_code 1'] = '''x = 2
 print(x)'''
 
-snapshots['TestExporterMethods::test_create_cell_from_file 1'] = '%run types/tfdv.py'
+snapshots['TestExporterMethods::test_create_cell_from_file 1'] = '''"""
+test.py provides a basic predefined visualization that can be used for testing
+because it does not have dependencies and had a low chance of being updated.
+"""
+
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+print(2)'''
 
 snapshots['TestExporterMethods::test_generate_custom_visualization_html_from_notebook 1'] = '''
 <div class="output_wrapper">
@@ -58,26 +77,6 @@ snapshots['TestExporterMethods::test_generate_custom_visualization_html_from_not
 </pre>
 </div>
   
-</div>
-
-</div>
-</div>
-
-
-
-'''
-
-snapshots['TestExporterMethods::test_generate_test_visualization_html_from_notebook 1'] = '''
-<div class="output_wrapper">
-<div class="output">
-
-
-<div class="output_area">
-
-    <div class="prompt"></div>
-
-
-
 </div>
 
 </div>

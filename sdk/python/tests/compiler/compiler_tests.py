@@ -15,6 +15,7 @@
 import kfp
 import kfp.compiler as compiler
 import kfp.dsl as dsl
+import json
 import os
 import shutil
 import subprocess
@@ -98,19 +99,16 @@ class TestCompiler(unittest.TestCase):
           ]},
         'name': 'echo',
         'outputs': {
+          'artifacts': [
+            {
+              'name': 'echo-merged',
+              'path': '/tmp/message.txt',
+            },
+          ],
           'parameters': [
             {'name': 'echo-merged',
             'valueFrom': {'path': '/tmp/message.txt'}
             }],
-          'artifacts': [{
-            'name': 'mlpipeline-ui-metadata',
-            'path': '/mlpipeline-ui-metadata.json',
-            'optional': True,
-          },{
-            'name': 'mlpipeline-metrics',
-            'path': '/mlpipeline-metrics.json',
-            'optional': True,
-          }]
         }
       }
       res_output = {
@@ -188,6 +186,32 @@ class TestCompiler(unittest.TestCase):
       shutil.rmtree(tmpdir)
       # print(tmpdir)
 
+  def test_basic_workflow_without_decorator(self):
+    """Test compiling a workflow and appending pipeline params."""
+    test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
+    sys.path.append(test_data_dir)
+    import basic_no_decorator
+    tmpdir = tempfile.mkdtemp()
+    try:
+      compiled_workflow = compiler.Compiler().create_workflow(
+          basic_no_decorator.save_most_frequent_word,
+          'Save Most Frequent',
+          'Get Most Frequent Word and Save to GCS',
+          [
+            basic_no_decorator.message_param,
+            basic_no_decorator.output_path_param
+          ])
+      with open(os.path.join(test_data_dir, 'basic_no_decorator.yaml'), 'r') as f:
+        golden = yaml.safe_load(f)
+
+      for workflow in golden, compiled_workflow:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
+
+      self.assertEqual(golden, compiled_workflow)
+    finally:
+      shutil.rmtree(tmpdir)
+
   def test_composing_workflow(self):
     """Test compiling a simple workflow, and a bigger one composed from the simple one."""
 
@@ -206,6 +230,10 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(compose_package_path)
+
+      for workflow in golden, compiled:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -234,6 +262,10 @@ class TestCompiler(unittest.TestCase):
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(target_zip)
 
+      for workflow in golden, compiled:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
+
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:
@@ -252,6 +284,10 @@ class TestCompiler(unittest.TestCase):
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(target_zip)
 
+      for workflow in golden, compiled:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
+
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:
@@ -268,6 +304,11 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_tar(target_tar)
+
+      for workflow in golden, compiled:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
+
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:
@@ -286,6 +327,10 @@ class TestCompiler(unittest.TestCase):
 
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
         compiled = yaml.safe_load(f)
+      
+      for workflow in golden, compiled:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)
@@ -542,7 +587,7 @@ class TestCompiler(unittest.TestCase):
         image='image'
       )
 
-    @dsl.pipeline(name='Pipeline', description='')
+    @dsl.pipeline(name='Pipeline')
     def pipeline():
       task1 = op()
       task2 = op().after(task1)
@@ -558,7 +603,8 @@ class TestCompiler(unittest.TestCase):
     compiled_template = compiler._op_to_template._op_to_template(ops)
 
     del compiled_template['name'], expected['name']
-    del compiled_template['outputs']['parameters'][0]['name'], expected['outputs']['parameters'][0]['name']
+    for output in compiled_template['outputs'].get('parameters', []) + compiled_template['outputs'].get('artifacts', []) + expected['outputs'].get('parameters', []) + expected['outputs'].get('artifacts', []):
+      del output['name']
     assert compiled_template == expected
 
   def test_tolerations(self):
@@ -623,7 +669,7 @@ implementation:
           command=['sleep 1'],
       )
 
-    @dsl.pipeline(name='some_pipeline', description='')
+    @dsl.pipeline(name='some_pipeline')
     def some_pipeline():
       task1 = some_op()
       task2 = some_op()
@@ -668,7 +714,6 @@ implementation:
         init_container = init_containers[0]
         self.assertEqual(init_container, {'image':'alpine:latest', 'command': ['echo', 'bye'], 'name': 'echo'})
 
-
   def test_delete_resource_op(self):
       """Test a pipeline with a delete resource operation."""
       from kubernetes import client as k8s
@@ -699,8 +744,21 @@ implementation:
       # See https://github.com/argoproj/argo/blob/5331fc02e257266a4a5887dfe6277e5a0b42e7fc/cmd/argoexec/commands/resource.go#L30
       self.assertIsNone(delete_op_template.get("successCondition"))
       self.assertIsNone(delete_op_template.get("failureCondition"))
-      self.assertDictEqual(delete_op_template.get("outputs"), {})
+      self.assertDictEqual(delete_op_template.get("outputs", {}), {})
+
+  def test_withparam_global(self):
+    self._test_py_compile_yaml('withparam_global')
+
+  def test_withparam_global_dict(self):
+    self._test_py_compile_yaml('withparam_global_dict')
+
+  def test_withparam_output(self):
+    self._test_py_compile_yaml('withparam_output')
+
+  def test_withparam_output_dict(self):
+    self._test_py_compile_yaml('withparam_output_dict')
 
   def test_py_input_artifact_raw_value(self):
     """Test pipeline input_artifact_raw_value."""
     self._test_py_compile_yaml('input_artifact_raw_value')
+

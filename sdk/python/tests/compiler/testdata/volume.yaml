@@ -42,12 +42,8 @@ spec:
     name: download
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+      - name: download-downloaded
+        path: /tmp/results.txt
       parameters:
       - name: download-downloaded
         valueFrom:
@@ -63,14 +59,6 @@ spec:
       parameters:
       - name: download-downloaded
     name: echo
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - dag:
       tasks:
       - name: download
