@@ -97,6 +97,15 @@ export const RoutePage = {
   RUN_DETAILS: `/runs/details/:${RouteParams.runId}`,
 };
 
+// tslint:disable-next-line:variable-name
+export const RoutePageFactory = {
+  artifactDetails: (artifactType: string, artifactId: number) => {
+    return RoutePage.ARTIFACT_DETAILS
+      .replace(`:${RouteParams.ARTIFACT_TYPE}+`, artifactType)
+      .replace(`:${RouteParams.ID}`, '' + artifactId);
+  }
+};
+
 export interface DialogProps {
   buttons?: Array<{ onClick?: () => any, text: string }>;
   // TODO: This should be generalized to any react component.

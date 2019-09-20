@@ -21,7 +21,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { getResourceProperty, rowCompareFn, rowFilterFn, groupRows, getExpandedRow, serviceErrorToString } from '../lib/Utils';
-import { RoutePage, RouteParams } from '../components/Router';
+import { RoutePageFactory } from '../components/Router';
 import { Link } from 'react-router-dom';
 import { Artifact, ArtifactType } from '../generated/src/apis/metadata/metadata_store_pb';
 import { ArtifactProperties, ArtifactCustomProperties, ListRequest, Apis } from '../lib/Apis';
@@ -122,13 +122,10 @@ class ArtifactList extends Page<{}, ArtifactListState> {
   private nameCustomRenderer: React.FC<CustomRendererProps<string>> =
     (props: CustomRendererProps<string>) => {
       const [artifactType, artifactId] = props.id.split(':');
-      const link = RoutePage.ARTIFACT_DETAILS
-        .replace(`:${RouteParams.ARTIFACT_TYPE}+`, artifactType)
-        .replace(`:${RouteParams.ID}`, artifactId);
       return (
         <Link onClick={(e) => e.stopPropagation()}
           className={commonCss.link}
-          to={link}>
+          to={RoutePageFactory.artifactDetails(artifactType, Number(artifactId))}>
           {props.value}
         </Link>
       );
