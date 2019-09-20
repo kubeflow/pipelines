@@ -27,7 +27,7 @@ import { Artifact, ArtifactType } from '../generated/src/apis/metadata/metadata_
 import { ArtifactProperties, ArtifactCustomProperties, ListRequest, Apis } from '../lib/Apis';
 import { GetArtifactTypesRequest, GetArtifactsRequest } from '../generated/src/apis/metadata/metadata_store_service_pb';
 import { getArtifactCreationTime } from '../lib/MetadataUtils';
-import { GcsLink } from 'src/components/GcsLink';
+import { GcsLink } from '../components/GcsLink';
 
 interface ArtifactListState {
   artifacts: Artifact[];
@@ -135,7 +135,7 @@ class ArtifactList extends Page<{}, ArtifactListState> {
     }
 
   private uriCustomRenderer: React.FC<CustomRendererProps<string>> =
-    ({value}) => <GcsLink gcsUri={value} />
+    ({ value }) => <GcsLink gcsUri={value} />
 
   /**
    * Temporary solution to apply sorting, filtering, and pagination to the
