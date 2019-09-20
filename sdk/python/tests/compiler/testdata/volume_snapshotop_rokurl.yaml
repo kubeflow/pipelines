@@ -129,6 +129,9 @@ spec:
       volumeMounts:
       - mountPath: /data
         name: create-volume-1
+    inputs:
+      parameters:
+      - name: create-volume-1-name
     name: step1-concat
   - container:
       command:
@@ -139,6 +142,9 @@ spec:
       volumeMounts:
       - mountPath: /data
         name: create-volume-2
+    inputs:
+      parameters:
+      - name: create-volume-2-name
     name: step2-gunzip
   - container:
       command:
@@ -148,6 +154,9 @@ spec:
       volumeMounts:
       - mountPath: /data
         name: create-volume-3
+    inputs:
+      parameters:
+      - name: create-volume-3-name
     name: step3-output
   - dag:
       tasks:
@@ -195,15 +204,27 @@ spec:
         - create-snapshot-2
         name: create-volume-3
         template: create-volume-3
-      - dependencies:
+      - arguments:
+          parameters:
+          - name: create-volume-1-name
+            value: '{{tasks.create-volume-1.outputs.parameters.create-volume-1-name}}'
+        dependencies:
         - create-volume-1
         name: step1-concat
         template: step1-concat
-      - dependencies:
+      - arguments:
+          parameters:
+          - name: create-volume-2-name
+            value: '{{tasks.create-volume-2.outputs.parameters.create-volume-2-name}}'
+        dependencies:
         - create-volume-2
         name: step2-gunzip
         template: step2-gunzip
-      - dependencies:
+      - arguments:
+          parameters:
+          - name: create-volume-3-name
+            value: '{{tasks.create-volume-3.outputs.parameters.create-volume-3-name}}'
+        dependencies:
         - create-volume-3
         name: step3-output
         template: step3-output

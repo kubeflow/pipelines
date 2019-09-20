@@ -38,6 +38,9 @@ spec:
       volumeMounts:
       - mountPath: /mnt
         name: create-pvc
+    inputs:
+      parameters:
+      - name: create-pvc-name
     name: step1
   - container:
       args:
@@ -49,6 +52,9 @@ spec:
       volumeMounts:
       - mountPath: /common
         name: create-pvc
+    inputs:
+      parameters:
+      - name: create-pvc-name
     name: step2
   - container:
       args:
@@ -60,20 +66,35 @@ spec:
       volumeMounts:
       - mountPath: /mnt3
         name: create-pvc
+    inputs:
+      parameters:
+      - name: create-pvc-name
     name: step3
   - dag:
       tasks:
       - name: create-pvc
         template: create-pvc
-      - dependencies:
+      - arguments:
+          parameters:
+          - name: create-pvc-name
+            value: '{{tasks.create-pvc.outputs.parameters.create-pvc-name}}'
+        dependencies:
         - create-pvc
         name: step1
         template: step1
-      - dependencies:
+      - arguments:
+          parameters:
+          - name: create-pvc-name
+            value: '{{tasks.create-pvc.outputs.parameters.create-pvc-name}}'
+        dependencies:
         - create-pvc
         name: step2
         template: step2
-      - dependencies:
+      - arguments:
+          parameters:
+          - name: create-pvc-name
+            value: '{{tasks.create-pvc.outputs.parameters.create-pvc-name}}'
+        dependencies:
         - create-pvc
         name: step3
         template: step3
