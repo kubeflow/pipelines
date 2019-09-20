@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+set -e
 
 ARTIFACT_DIR=$WORKSPACE/_artifacts
 WORKFLOW_COMPLETE_KEYWORD="completed=true"
@@ -37,7 +37,8 @@ do
     fi
     break
   else
-    printf "Workflow ${ARGO_WORKFLOW} is not finished.\n${WORKFLOW_STATUS}\nSleep for 20 seconds...\n" && sleep 20
+    echo "Workflow ${ARGO_WORKFLOW} is not finished: ${WORKFLOW_STATUS} - Sleep for 20 seconds..."
+    sleep 20
   fi
 done
 
