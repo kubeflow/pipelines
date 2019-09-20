@@ -81,6 +81,7 @@ spec:
               - preemptible_tpu_gpu
               - volume_snapshot_ops
               - kubeflow_tf_serving
+              - component_build
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:
