@@ -3,8 +3,7 @@ kind: Workflow
 metadata:
   annotations:
     pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use dsl.Condition.",
-      "inputs": [{"default": "12", "name": "maxVal"}],
-      "name": "pipeline flip coin"}'
+      "inputs": [{"default": "12", "name": "maxVal"}], "name": "pipeline flip coin"}'
   generateName: pipeline-flip-coin-
 spec:
   arguments:
@@ -16,11 +15,7 @@ spec:
   templates:
   - dag:
       tasks:
-      - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
-        dependencies:
+      - dependencies:
         - print
         name: flip-3
         template: flip-3
@@ -28,8 +23,6 @@ spec:
           parameters:
           - name: flip-output
             value: '{{tasks.flip-3.outputs.parameters.flip-3-output}}'
-          - name: maxval
-            value: '{{inputs.parameters.maxval}}'
         dependencies:
         - flip-3
         name: graph-flip-component-1
@@ -43,7 +36,6 @@ spec:
     inputs:
       parameters:
       - name: flip-output
-      - name: maxval
     name: condition-2
   - container:
       args:
@@ -75,10 +67,6 @@ spec:
       artifacts:
       - name: flip-2-output
         path: /tmp/output
-      parameters:
-      - name: flip-2-output
-        valueFrom:
-          path: /tmp/output
   - container:
       args:
       - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else
@@ -102,15 +90,12 @@ spec:
           parameters:
           - name: flip-output
             value: '{{inputs.parameters.flip-output}}'
-          - name: maxval
-            value: '{{inputs.parameters.maxval}}'
         name: condition-2
         template: condition-2
         when: '"{{inputs.parameters.flip-output}}" == "heads"'
     inputs:
       parameters:
       - name: flip-output
-      - name: maxval
     name: graph-flip-component-1
   - dag:
       tasks:
@@ -122,8 +107,6 @@ spec:
           parameters:
           - name: flip-output
             value: '{{tasks.flip.outputs.parameters.flip-output}}'
-          - name: maxval
-            value: '{{inputs.parameters.maxval}}'
         dependencies:
         - flip
         - flip-2
@@ -138,9 +121,6 @@ spec:
         - graph-flip-component-1
         name: print-2
         template: print-2
-    inputs:
-      parameters:
-      - name: maxval
     name: pipeline-flip-coin
   - container:
       command:
@@ -151,7 +131,6 @@ spec:
       parameters:
       - name: flip-output
     name: print
-
   - container:
       command:
       - echo
@@ -161,4 +140,3 @@ spec:
       parameters:
       - name: flip-output
     name: print-2
-
