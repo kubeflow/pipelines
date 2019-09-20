@@ -170,7 +170,7 @@ def fix_big_data_passing(workflow: dict) -> dict:
     outputs_consumed_as_parameters = set()
     outputs_consumed_as_artifacts = set()
 
-    def mark_upstream_ios_of_input_as_parameters(template_input, marked_inputs, marked_outputs):
+    def mark_upstream_ios_of_input(template_input, marked_inputs, marked_outputs):
         # Stopping if the input has already been visited to save time and handle recursive calls
         if template_input in marked_inputs:
             return
@@ -178,13 +178,13 @@ def fix_big_data_passing(workflow: dict) -> dict:
 
         upstream_inputs = template_input_to_parent_dag_inputs.get(template_input, [])
         for upstream_input in upstream_inputs:
-            mark_upstream_ios_of_input_as_parameters(upstream_input, marked_inputs, marked_outputs)
+            mark_upstream_ios_of_input(upstream_input, marked_inputs, marked_outputs)
 
         upstream_outputs = template_input_to_parent_task_outputs.get(template_input, [])
         for upstream_output in upstream_outputs:
-            mark_upstream_ios_of_output_as_parameters(upstream_output, marked_inputs, marked_outputs)
+            mark_upstream_ios_of_output(upstream_output, marked_inputs, marked_outputs)
 
-    def mark_upstream_ios_of_output_as_parameters(template_output, marked_inputs, marked_outputs):
+    def mark_upstream_ios_of_output(template_output, marked_inputs, marked_outputs):
         # Stopping if the output has already been visited to save time and handle recursive calls
         if template_output in marked_outputs:
             return
@@ -192,12 +192,12 @@ def fix_big_data_passing(workflow: dict) -> dict:
 
         upstream_outputs = dag_output_to_parent_template_outputs.get(template_output, [])
         for upstream_output in upstream_outputs:
-            mark_upstream_ios_of_output_as_parameters(upstream_output, marked_inputs, marked_outputs)
+            mark_upstream_ios_of_output(upstream_output, marked_inputs, marked_outputs)
 
     for input in inputs_directly_consumed_as_parameters:
-        mark_upstream_ios_of_input_as_parameters(input, inputs_consumed_as_parameters, outputs_consumed_as_parameters)
+        mark_upstream_ios_of_input(input, inputs_consumed_as_parameters, outputs_consumed_as_parameters)
     for input in inputs_directly_consumed_as_artifacts:
-        mark_upstream_ios_of_input_as_parameters(input, inputs_consumed_as_artifacts, outputs_consumed_as_artifacts)
+        mark_upstream_ios_of_input(input, inputs_consumed_as_artifacts, outputs_consumed_as_artifacts)
 
 
     # 4. Convert the inputs, outputs and arguments based on how they're consumed downstream.
