@@ -47,7 +47,17 @@ dataproc_submit_pyspark_op = components.load_component_from_url(
     'dataproc/submit_pyspark_job/component.yaml'
 )
 
+dataproc_submit_spark_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/'
+    'e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/gcp/'
+    'dataproc/submit_spark_job/component.yaml'
+)
+
 _PYSRC_PREFIX = 'gs://kfp-gcp-dataproc-example/src' # Common path to python src.
+
+_TRAINER_PKG = 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar'
+
+_TRAINER_MAIN_CLS = 'ml.dmlc.xgboost4j.scala.example.spark.XGBoostTrainer'
 
 
 def delete_directory_from_gcs(dir_path):
@@ -112,6 +122,7 @@ def dataproc_transform_op(
   :param output: GCS path to use for output.
   """
 
+  # Remove existing [output]/train and [output]/eval if they exist.
   delete_directory_from_gcs(os.path.join(output, 'train'))
   delete_directory_from_gcs(os.path.join(output, 'eval'))
 
@@ -148,32 +159,67 @@ def dataproc_train_op(
     output,
     is_classification=True
 ):
-    if is_classification:
-      config='gs://ml-pipeline-playground/trainconfcla.json'
-    else:
-      config='gs://ml-pipeline-playground/trainconfreg.json'
+  if is_classification:
+    config='gs://ml-pipeline-playground/trainconfcla.json'
+  else:
+    config='gs://ml-pipeline-playground/trainconfreg.json'
 
-    return dsl.ContainerOp(
-        name='Dataproc - Train XGBoost model',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:1449d08aeeeb47731d019ea046d90904d9c77953',
-        arguments=[
-            '--project', project,
-            '--region', region,
-            '--cluster', cluster_name,
-            '--train', train_data,
-            '--eval', eval_data,
-            '--analysis', analysis,
-            '--target', target,
-            '--package', 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar',
-            '--workers', workers,
-            '--rounds', rounds,
-            '--conf', config,
-            '--output', output,
-        ],
-        file_outputs={
-            'output': '/output.txt',
-        }
-    )
+  return dataproc_submit_spark_op(
+      project_id=project,
+      region=region,
+      cluster_name=cluster_name,
+      main_jar_file_uri=_TRAINER_PKG,
+      main_class=_TRAINER_MAIN_CLS,
+      args=[
+        config,
+        str(rounds),
+        str(workers),
+        analysis,
+        target,
+        train_data,
+        eval_data,
+        output
+      ])
+
+# def dataproc_train_op(
+#     project,
+#     region,
+#     cluster_name,
+#     train_data,
+#     eval_data,
+#     target,
+#     analysis,
+#     workers,
+#     rounds,
+#     output,
+#     is_classification=True
+# ):
+#     if is_classification:
+#       config='gs://ml-pipeline-playground/trainconfcla.json'
+#     else:
+#       config='gs://ml-pipeline-playground/trainconfreg.json'
+#
+#     return dsl.ContainerOp(
+#         name='Dataproc - Train XGBoost model',
+#         image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:1449d08aeeeb47731d019ea046d90904d9c77953',
+#         arguments=[
+#             '--project', project,
+#             '--region', region,
+#             '--cluster', cluster_name,
+#             '--train', train_data,
+#             '--eval', eval_data,
+#             '--analysis', analysis,
+#             '--target', target,
+#             '--package', 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar',
+#             '--workers', workers,
+#             '--rounds', rounds,
+#             '--conf', config,
+#             '--output', output,
+#         ],
+#         file_outputs={
+#             'output': '/output.txt',
+#         }
+#     )
 
 
 def dataproc_predict_op(
