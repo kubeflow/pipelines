@@ -206,7 +206,7 @@ steps:
   args: ['kustomize', '/workspace/manifests/kustomize/env/dev', 'namespaced-install.yaml']
   id:   'generateDeploymentYaml'
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', 'namespaced-install.yaml', 'gs://ml-pipeline/namespaced_deployment/$TAG_NAME/namespaced-install.yaml']
+  args: ['cp', 'namespaced-install.yaml', 'gs://ml-pipeline/pipeline-lite/$TAG_NAME/namespaced-install.yaml']
   id:   'copyDeploymentYaml'
   waitFor: ['generateDeploymentYaml']
 
