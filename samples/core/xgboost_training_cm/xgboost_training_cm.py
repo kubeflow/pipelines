@@ -36,7 +36,7 @@ def dataproc_create_cluster_op(
 ):
     return dsl.ContainerOp(
         name='Dataproc - Create cluster',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:1449d08aeeeb47731d019ea046d90904d9c77953',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:57d9f7f1cfd458e945d297957621716062d89a49',
         arguments=[
             '--project', project,
             '--region', region,
@@ -56,7 +56,7 @@ def dataproc_delete_cluster_op(
 ):
     return dsl.ContainerOp(
         name='Dataproc - Delete cluster',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:1449d08aeeeb47731d019ea046d90904d9c77953',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:57d9f7f1cfd458e945d297957621716062d89a49',
         arguments=[
             '--project', project,
             '--region', region,
@@ -76,7 +76,7 @@ def dataproc_analyze_op(
 ):
     return dsl.ContainerOp(
         name='Dataproc - Analyze',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:1449d08aeeeb47731d019ea046d90904d9c77953',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:57d9f7f1cfd458e945d297957621716062d89a49',
         arguments=[
             '--project', project,
             '--region', region,
@@ -103,7 +103,7 @@ def dataproc_transform_op(
 ):
     return dsl.ContainerOp(
         name='Dataproc - Transform',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:1449d08aeeeb47731d019ea046d90904d9c77953',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:57d9f7f1cfd458e945d297957621716062d89a49',
         arguments=[
             '--project', project,
             '--region', region,
@@ -141,7 +141,7 @@ def dataproc_train_op(
 
     return dsl.ContainerOp(
         name='Dataproc - Train XGBoost model',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:1449d08aeeeb47731d019ea046d90904d9c77953',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:57d9f7f1cfd458e945d297957621716062d89a49',
         arguments=[
             '--project', project,
             '--region', region,
@@ -174,7 +174,7 @@ def dataproc_predict_op(
 ):
     return dsl.ContainerOp(
         name='Dataproc - Predict with XGBoost model',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:1449d08aeeeb47731d019ea046d90904d9c77953',
+        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:57d9f7f1cfd458e945d297957621716062d89a49',
         arguments=[
             '--project', project,
             '--region', region,
