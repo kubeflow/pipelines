@@ -35,6 +35,9 @@ type PipelineStoreInterface interface {
 
 	// Change status of a particular version.
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
+	// TODO(jingzhangjz): remove this temporary method after resource manager's
+	// CreatePipeline stops using it.
+	UpdatePipelineAndVersionsStatus(id string, status model.PipelineStatus, pipelineVersionId string, pipelineVersionStatus model.PipelineVersionStatus) error
 }
 
 type PipelineStore struct {
@@ -352,6 +355,48 @@ func (s *PipelineStore) UpdatePipelineVersionStatus(id string, status model.Pipe
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to update the pipeline version metadata: %s", err.Error())
+	}
+	return nil
+}
+
+func (s *PipelineStore) UpdatePipelineAndVersionsStatus(id string, status model.PipelineStatus, pipelineVersionId string, pipelineVersionStatus model.PipelineVersionStatus) error {
+	tx, err := s.db.Begin()
+
+	sql, args, err := sq.
+		Update("pipelines").
+		SetMap(sq.Eq{"Status": status}).
+		Where(sq.Eq{"UUID": id}).
+		ToSql()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to create query to update the pipeline status: %s", err.Error())
+	}
+	_, err = tx.Exec(sql, args...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to update the pipeline status: %s", err.Error())
+	}
+	sql, args, err = sq.
+		Update("pipeline_versions").
+		SetMap(sq.Eq{"Status": pipelineVersionStatus}).
+		Where(sq.Eq{"UUID": pipelineVersionId}).
+		ToSql()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err,
+			`Failed to create query to update the pipeline version
+			status: %s`, err.Error())
+	}
+	_, err = tx.Exec(sql, args...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err,
+			"Failed to update the pipeline version status: %s", err.Error())
+	}
+
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to update pipeline status and its version status: %v", err)
 	}
 	return nil
 }

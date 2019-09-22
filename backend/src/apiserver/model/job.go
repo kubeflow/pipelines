@@ -100,6 +100,5 @@ func (k *Job) APIToModelFieldMap() map[string]string {
 
 // GetModelName returns table name used as sort field prefix
 func (j *Job) GetModelName() string {
-	// For jobs table, we sort without table name prefix
-	return ""
+	return "jobs"
 }

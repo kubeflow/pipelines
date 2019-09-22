@@ -112,17 +112,24 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 }
 
 func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (*model.PipelineVersion, error) {
-	codeSources := make([]byte, 0)
+	codeSources := make([]string, 0)
 	if version.CodeSourceUrls != nil && len(version.CodeSourceUrls) > 0 {
 		for _, codeSource := range version.CodeSourceUrls {
-			codeSources = append(codeSources, codeSource...)
-			codeSources = append(codeSources, ';')
+			codeSources = append(codeSources, codeSource)
 		}
 	}
+	codeSourceJSON, _ := json.Marshal(codeSources)
 
 	paramStr, err := toModelParameters(version.Parameters)
 	if err != nil {
 		return nil, err
+	}
+
+	var pipelineId string
+	for _, resourceReference := range version.ResourceReferences {
+		if resourceReference.Key.Type == api.ResourceType_PIPELINE {
+			pipelineId = resourceReference.Key.Id
+		}
 	}
 
 	return &model.PipelineVersion{
@@ -130,8 +137,8 @@ func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (
 		Name:           version.Name,
 		CreatedAtInSec: version.CreatedAt.Seconds,
 		Parameters:     paramStr,
-		PipelineId:     version.ResourceReference.Key.Id,
-		CodeSourceUrls: string(codeSources),
+		PipelineId:     pipelineId,
+		CodeSourceUrls: string(codeSourceJSON),
 	}, nil
 }
 

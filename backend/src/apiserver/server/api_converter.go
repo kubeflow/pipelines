@@ -16,7 +16,6 @@ package server
 
 import (
 	"encoding/json"
-	"strings"
 
 	"github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -86,31 +85,40 @@ func ToApiPipelineVersion(version *model.PipelineVersion) (*api.PipelineVersion,
 	if err != nil {
 		return nil, err
 	}
+	codeSources, err := ToApiSources(&version.CodeSourceUrls)
+	if err != nil {
+		return nil, err
+	}
 
 	return &api.PipelineVersion{
 		Id:             version.UUID,
 		Name:           version.Name,
 		CreatedAt:      &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
 		Parameters:     params,
-		CodeSourceUrls: ToApiSources(&version.CodeSourceUrls),
-		ResourceReference: &api.ResourceReference{
-			Key: &api.ResourceKey{
-				Id:   version.PipelineId,
-				Type: api.ResourceType_PIPELINE,
+		CodeSourceUrls: codeSources,
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   version.PipelineId,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
 			},
-			Relationship: api.Relationship_OWNER,
 		},
 	}, nil
 }
 
-func ToApiSources(sources *string) []string {
+func ToApiSources(sources *string) ([]string, error) {
 	if sources == nil || len(*sources) == 0 {
-		return nil
+		return nil, nil
 	}
-	splitFn := func(c rune) bool {
-		return c == ';'
+	var codeSources []string
+	err := json.Unmarshal([]byte(*sources), &codeSources)
+	if err != nil {
+		return nil, util.NewInternalServerError(
+			err, "Code sources can't be parsed")
 	}
-	return strings.FieldsFunc(*sources, splitFn)
+	return codeSources, nil
 }
 
 func ToApiPipelineVersions(versions []*model.PipelineVersion) ([]*api.PipelineVersion, error) {

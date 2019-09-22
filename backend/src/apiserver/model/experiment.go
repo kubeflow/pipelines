@@ -40,6 +40,5 @@ func (e *Experiment) APIToModelFieldMap() map[string]string {
 
 // GetModelName returns table name used as sort field prefix
 func (e *Experiment) GetModelName() string {
-	// For experiments table, we sort without table name prefix
-	return ""
+	return "experiments"
 }

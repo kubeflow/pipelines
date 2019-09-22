@@ -60,11 +60,12 @@ func (p *Pipeline) DefaultSortField() string {
 }
 
 var pipelineAPIToModelFieldMap = map[string]string{
-	"id":                 "UUID",
-	"name":               "Name",
-	"created_at":         "CreatedAtInSec",
-	"description":        "Description",
-	"default_version_id": "DefaultVersionId",
+	"id":          "UUID",
+	"name":        "Name",
+	"created_at":  "CreatedAtInSec",
+	"description": "Description",
+	// TODO(jingzhang36): uncomment this field when we expose it to API
+	// "default_version_id": "DefaultVersionId",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model

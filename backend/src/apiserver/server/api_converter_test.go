@@ -50,12 +50,14 @@ func TestToApiPipeline(t *testing.T) {
 		// 	CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		// 	Parameters:     []*api.Parameter{},
 		// 	CodeSourceUrls: []string{"http://repo/22222", "http://repo/44444"},
-		// 	ResourceReference: &api.ResourceReference{
-		// 		Key: &api.ResourceKey{
-		// 			Id:   "pipeline1",
-		// 			Type: api.ResourceType_PIPELINE,
+		// 	ResourceReferences: []*api.ResourceReference{
+		// 		&api.ResourceReference{
+		// 			Key: &api.ResourceKey{
+		// 				Id:   "pipeline1",
+		// 				Type: api.ResourceType_PIPELINE,
+		// 			},
+		// 			Relationship: api.Relationship_OWNER,
 		// 		},
-		// 		Relationship: api.Relationship_OWNER,
 		// 	},
 		// },
 	}

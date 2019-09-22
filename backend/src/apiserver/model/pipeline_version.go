@@ -31,7 +31,7 @@ const (
 type PipelineVersion struct {
 	UUID           string `gorm:"column:UUID; not null; primary_key"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index"`
-	Name           string `gorm:"column:Name; not null; unique"`
+	Name           string `gorm:"column:Name; not null; unique_index:idx_pipeline_version_uuid_name"`
 	// Set size to 65535 so it will be stored as longtext.
 	// https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html
 	Parameters string `gorm:"column:Parameters; not null; size:65535"`
@@ -78,5 +78,5 @@ func (p *PipelineVersion) APIToModelFieldMap() map[string]string {
 
 // GetModelName returns table name used as sort field prefix
 func (p *PipelineVersion) GetModelName() string {
-	return "pipeline_versions."
+	return "pipeline_versions"
 }

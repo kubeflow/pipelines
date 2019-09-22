@@ -146,8 +146,8 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// file with both pipeline and version pointing to it;  so it is ok to do
 	// the deletion as follows. After exposing version API, we can have multiple
 	// versions and hence multiple files, and we shall improve performance by
-	// put all files of a single pipeline in one directory; and remove the whole
-	// directory when deleting pipeline.
+	// either using async deletion in order for this method to be non-blocking
+	// or or exploring other performance optimization tools provided by gcs.
 	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
@@ -190,15 +190,14 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 	}
 
 	newPipeline.Status = model.PipelineReady
-	err = r.pipelineStore.UpdatePipelineStatus(newPipeline.UUID, newPipeline.Status)
+	newPipeline.DefaultVersion.Status = model.PipelineVersionReady
+	err = r.pipelineStore.UpdatePipelineAndVersionsStatus(
+		newPipeline.UUID,
+		newPipeline.Status,
+		newPipeline.DefaultVersionId,
+		newPipeline.DefaultVersion.Status)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
-	}
-	newPipeline.DefaultVersion.Status = model.PipelineVersionReady
-	err = r.pipelineStore.UpdatePipelineVersionStatus(
-		newPipeline.DefaultVersionId, newPipeline.DefaultVersion.Status)
-	if err != nil {
-		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
 	return newPipeline, nil
 }

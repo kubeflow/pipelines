@@ -239,12 +239,14 @@ func TestToModelPipelineVersion(t *testing.T) {
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		Parameters:     []*api.Parameter{},
 		CodeSourceUrls: []string{"http://repo/11111", "http://repo/33333"},
-		ResourceReference: &api.ResourceReference{
-			Key: &api.ResourceKey{
-				Id:   "pipeline1",
-				Type: api.ResourceType_PIPELINE,
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   "pipeline1",
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
 			},
-			Relationship: api.Relationship_OWNER,
 		},
 	}
 
@@ -256,7 +258,7 @@ func TestToModelPipelineVersion(t *testing.T) {
 		CreatedAtInSec: 1,
 		Parameters:     "",
 		PipelineId:     "pipeline1",
-		CodeSourceUrls: "http://repo/11111;http://repo/33333;",
+		CodeSourceUrls: "[\"http://repo/11111\",\"http://repo/33333\"]",
 	}
 
 	assert.Equal(t, convertedModelPipelineVersion, expectedModelPipelineVersion)
