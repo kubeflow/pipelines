@@ -481,6 +481,19 @@ class PythonOpTestCase(unittest.TestCase):
         ])
 
 
+    def test_handling_list_dict_output_values(self):
+        def produce_list() -> list:
+            return (["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}], )
+        
+        # ! JSON map keys are always strings. Python converts all keys to strings without warnings
+        task_factory = comp.func_to_container_op(produce_list)
+
+        import json
+        expected_output = json.dumps(["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}])
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'output': expected_output})
+
+
     def test_end_to_end_python_component_pipeline_compilation(self):
         import kfp.components as comp
 
