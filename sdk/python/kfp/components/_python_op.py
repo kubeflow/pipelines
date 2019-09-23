@@ -31,7 +31,7 @@ from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
 from ._data_passing import serialize_value, type_name_to_deserializer, type_name_to_serializer, type_to_type_name
 from ._naming import _make_name_unique_by_adding_index
-from ._structures import *
+from .structures import *
 
 import inspect
 from pathlib import Path
