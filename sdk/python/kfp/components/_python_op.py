@@ -266,12 +266,6 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
     else:
         func_code = _capture_function_code_using_source_copy(func)
 
-    extra_output_names = [output.name for output in component_spec.outputs]
-    extra_output_external_names = [name + '_file' for name in extra_output_names]
-
-    from collections import OrderedDict
-    parameter_to_type_name = OrderedDict((input.name, str(input.type)) for input in component_spec.inputs)
-
     definitions = set()
     def get_deserializer_and_register_definitions(type_name):
         if type_name in type_name_to_deserializer:
