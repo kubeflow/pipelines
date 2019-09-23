@@ -201,6 +201,16 @@ steps:
   id:   'copyPythonComponentSDKToLatest'
   waitFor: ['copyPythonComponentSDKLocal']
 
+# Generate and copy the pipeline-lite deployment YAML
+- name: 'google/cloud-sdk'
+  args: ['kustomize', '/workspace/manifests/kustomize/env/dev', 'namespaced-install.yaml']
+  id:   'generateDeploymentYaml'
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', 'namespaced-install.yaml', 'gs://ml-pipeline/pipeline-lite/$TAG_NAME/namespaced-install.yaml']
+  id:   'copyDeploymentYaml'
+  waitFor: ['generateDeploymentYaml']
+
+
 images:
 - 'gcr.io/ml-pipeline/frontend:$TAG_NAME'
 - 'gcr.io/ml-pipeline/frontend:$COMMIT_SHA'
