@@ -58,3 +58,6 @@ sdk/python/tests/compiler/testdata/testpackage/pipeline.yaml
 
 # Test temporary files
 _artifacts
+
+# Generated Python SDK documentation
+docs/_build
