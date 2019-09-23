@@ -19,6 +19,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable
 
+import kfp
 import kfp.components as comp
 
 def add_two_numbers(a: float, b: float) -> float:
@@ -34,6 +35,21 @@ def components_local_output_dir_context(output_dir: str):
         yield output_dir
     finally:
         comp._components._outputs_dir = old_dir
+
+
+@contextmanager
+def components_override_input_output_dirs_context(inputs_dir: str, outputs_dir: str):
+    old_inputs_dir = comp._components._inputs_dir
+    old_outputs_dir = comp._components._outputs_dir
+    try:
+        if inputs_dir:
+            comp._components._inputs_dir = inputs_dir
+        if outputs_dir:
+            comp._components._outputs_dir = outputs_dir
+        yield
+    finally:
+        comp._components._inputs_dir = old_inputs_dir
+        comp._components._outputs_dir = old_outputs_dir
 
 
 module_level_variable = 10
@@ -117,8 +133,15 @@ class PythonOpTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir_name:
             # Creating task from the component.
             # We do it in a special context that allows us to control the output file locations.
-            with components_local_output_dir_context(temp_dir_name):
+            inputs_path = Path(temp_dir_name) / 'inputs'
+            outputs_path = Path(temp_dir_name) / 'outputs'
+            with components_override_input_output_dirs_context(str(inputs_path), str(outputs_path)):
                 task = component_task_factory(**arguments)
+
+            # Preparing input files
+            for input_name, input_file_path in (task.input_artifact_paths or {}).items():
+                Path(input_file_path).parent.mkdir(parents=True, exist_ok=True)
+                Path(input_file_path).write_text(str(arguments[input_name]))
 
             # Constructing the full command-line from resolved command+args
             full_command = task.command + task.arguments
@@ -492,6 +515,51 @@ class PythonOpTestCase(unittest.TestCase):
         expected_output = json.dumps(["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}])
 
         self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'output': expected_output})
+
+
+    def test_input_path(self):
+        from kfp.components import InputPath
+        def consume_file_path(number_file_path: InputPath(int)) -> int:
+            with open(number_file_path) as f:
+                string_data = f.read()
+            return int(string_data)
+
+        task_factory = comp.func_to_container_op(consume_file_path)
+
+        self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
+
+        # TODO: Fix the input names: "number_file_path" parameter should be exposed as "number" input
+        self.helper_test_component_using_local_call(task_factory, arguments={'number_file_path': "42"}, expected_output_values={'output': '42'})
+
+
+    def test_input_text_file(self):
+        from kfp.components import InputTextFile
+        def consume_file_path(number_file: InputTextFile(int)) -> int:
+            string_data = number_file.read()
+            assert isinstance(string_data, str)
+            return int(string_data)
+
+        task_factory = comp.func_to_container_op(consume_file_path)
+
+        self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
+
+        # TODO: Fix the input names: "number_file" parameter should be exposed as "number" input
+        self.helper_test_component_using_local_call(task_factory, arguments={'number_file': "42"}, expected_output_values={'output': '42'})
+
+
+    def test_input_binary_file(self):
+        from kfp.components import InputBinaryFile
+        def consume_file_path(number_file: InputBinaryFile(int)) -> int:
+            bytes_data = number_file.read()
+            assert isinstance(bytes_data, bytes)
+            return int(bytes_data)
+
+        task_factory = comp.func_to_container_op(consume_file_path)
+
+        self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
+
+        # TODO: Fix the input names: "number_file" parameter should be exposed as "number" input
+        self.helper_test_component_using_local_call(task_factory, arguments={'number_file': "42"}, expected_output_values={'output': '42'})
 
 
     def test_end_to_end_python_component_pipeline_compilation(self):
