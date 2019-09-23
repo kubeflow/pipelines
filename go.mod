@@ -91,3 +91,5 @@ require (
 	sigs.k8s.io/controller-runtime v0.0.0-20181121180216-5558165425ef
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 )
+
+go 1.13
