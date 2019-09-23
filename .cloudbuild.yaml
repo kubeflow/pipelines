@@ -89,28 +89,6 @@ steps:
   id: 'buildVisualizationServer'
   waitFor: ["-"]
 
-# Build the Dataflow-based pipeline component images
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataflow/predict && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildPredictComponent'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataflow/tfdv && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildTFDVComponent'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataflow/tft && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildTFTComponent'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: '/bin/bash'
-  args: ['-c', 'cd /workspace/components/deprecated/dataflow/tfma && ./build_image.sh -p $PROJECT_ID -t $COMMIT_SHA']
-  id: 'buildTMAComponent'
-  waitFor: ["-"]
-
 # Build the Kubeflow-based pipeline component images
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA',
@@ -194,12 +172,6 @@ images:
 - 'gcr.io/$PROJECT_ID/viewer-crd-controller:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/inverse-proxy-agent:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/visualization-server:$COMMIT_SHA'
-
-# Images for the Dataflow-based pipeline components
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tf-predict:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfdv:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tft:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/ml-pipeline-dataflow-tfma:$COMMIT_SHA'
 
 # Images for the Kubeflow-based pipeline components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-kubeflow-deployer:$COMMIT_SHA'
