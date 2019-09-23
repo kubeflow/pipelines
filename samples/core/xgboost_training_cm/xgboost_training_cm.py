@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-
+import json
 import kfp
 from kfp import components
 from kfp import dsl
@@ -93,7 +93,7 @@ def dataproc_analyze_op(
       region=region,
       cluster_name=cluster_name,
       main_python_file_uri=os.path.join(_PYSRC_PREFIX, 'analyze/analyze_run.py'),
-      args=['--output', output, '--train', str(train_data), '--schema', schema]
+      args=['--output', str(output), '--train', str(train_data), '--schema', str(schema)]
   )
 
 
@@ -131,15 +131,15 @@ def dataproc_transform_op(
                                         'transform/transform_run.py'),
       args=[
         '--output',
-        output,
+        str(output),
         '--analysis',
-        analysis,
+        str(analysis),
         '--target',
-        target,
+        str(target),
         '--train',
-        train_data,
+        str(train_data),
         '--eval',
-        eval_data
+        str(eval_data)
       ])
 
 
@@ -156,6 +156,7 @@ def dataproc_train_op(
     output,
     is_classification=True
 ):
+
   if is_classification:
     config='gs://ml-pipeline-playground/trainconfcla.json'
   else:
@@ -167,15 +168,16 @@ def dataproc_train_op(
       cluster_name=cluster_name,
       main_jar_file_uri=_TRAINER_PKG,
       main_class=_TRAINER_MAIN_CLS,
+      spark_job=json.dumps({ 'jarFileUris': [ SPARK_FILE_URI ] }),
       args=[
-        config,
+        str(config),
         str(rounds),
         str(workers),
-        analysis,
-        target,
-        train_data,
-        eval_data,
-        output
+        str(analysis),
+        str(target),
+        str(train_data),
+        str(eval_data),
+        str(output)
       ])
 
 
@@ -230,7 +232,7 @@ def xgb_train_pipeline(
     workers=2,
     true_label='ACTION',
 ):
-    output_template = str(output) + '/{{workflow.uid}}/{{pod.name}}/data'
+    output_template = str(output) + '/{{workflow.uid}}/data'
 
     # Current GCP pyspark/spark op do not provide outputs as return values, instead,
     # we need to use strings to pass the uri around.
