@@ -18,7 +18,7 @@ RUN apt-get update -y && \
   apt-get install --no-install-recommends -y -q python python-pip python-setuptools gettext
 RUN pip install wget
 
-COPY envoy.yaml /etc/envoy.yaml
+COPY third_party/metadata_envoy/envoy.yaml /etc/envoy.yaml
 
 # Copy license files.
 ADD . /scratch
