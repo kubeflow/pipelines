@@ -288,7 +288,6 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
 
     arg_parse_code_lines = [
         'import argparse',
-        '_missing_arg = object()',
         '_parser = argparse.ArgumentParser(prog={prog_repr}, description={description_repr})'.format(
             prog_repr=repr(component_spec.name or ''),
             description_repr=repr(component_spec.description or ''),
@@ -298,7 +297,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
     for input in component_spec.inputs:
         param_flag = "--" + input.name.replace("_", "-")
         is_required = not input.optional
-        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default=_missing_arg)'.format(
+        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default=argparse.SUPPRESS)'.format(
             param_flag=param_flag,
             param_var=input.name,
             param_type=get_deserializer_and_register_definitions(input.type),
@@ -340,10 +339,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
     arg_parse_code_lines = list(definitions) + arg_parse_code_lines
 
     arg_parse_code_lines.extend([
-        '_parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}',
-    ])
-
-    arg_parse_code_lines.extend([
+        '_parsed_args = vars(_parser.parse_args())',
         '_output_files = _parsed_args.pop("_output_paths", [])',
     ])
 
