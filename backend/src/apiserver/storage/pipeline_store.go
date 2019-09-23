@@ -53,7 +53,7 @@ type PipelineStoreInterface interface {
 
 	// Change status of a particular version.
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
-	// TODO(jingzhangjz): remove this temporary method after resource manager's
+	// TODO(jingzhang36): remove this temporary method after resource manager's
 	// CreatePipeline stops using it.
 	UpdatePipelineAndVersionsStatus(id string, status model.PipelineStatus, pipelineVersionId string, pipelineVersionStatus model.PipelineVersionStatus) error
 }
@@ -203,7 +203,7 @@ func (s *PipelineStore) GetPipeline(id string) (*model.Pipeline, error) {
 
 func (s *PipelineStore) GetPipelineWithStatus(id string, status model.PipelineStatus) (*model.Pipeline, error) {
 	sql, args, err := sq.
-		Select("*").
+		Select(pipelineColumns...).
 		From("pipelines").
 		LeftJoin("pipeline_versions on pipelines.DefaultVersionId = pipeline_versions.UUID").
 		Where(sq.Eq{"pipelines.uuid": id}).
@@ -242,34 +242,18 @@ func (s *PipelineStore) DeletePipeline(id string) error {
 }
 
 func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, error) {
-	// Set up creation time for both pipeline and pipeline version.
+	// Set up creation time, UUID and sql query for pipeline.
 	newPipeline := *p
 	now := s.time.Now().Unix()
 	newPipeline.CreatedAtInSec = now
-	newPipeline.DefaultVersion.CreatedAtInSec = now
-
-	// Set up UUID for pipeline and pipeline version.
 	id, err := s.uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a pipeline id.")
 	}
 	newPipeline.UUID = id.String()
-	newPipeline.DefaultVersion.PipelineId = id.String()
-
-	// TODO(jingzhang36): before we expose versions to FE, we have to use same
-	// UUID for pipeline and its (only) version and thus FE can use pipeline
-	// UUID instead of version UUID to to properly retrieve pipeline package.
-	// After version API is in place, CreatePipeline will NOT insert versions.
-	// id, err = s.uuid.NewRandom()
-	// if err != nil {
-	// 	return nil, util.NewInternalServerError(
-	// 		err,
-	// 		"Failed to create a pipeline version id.")
-	// }
+	// TODO(jingzhang36): remove default version id assignment after version API
+	// is ready.
 	newPipeline.DefaultVersionId = id.String()
-	newPipeline.DefaultVersion.UUID = id.String()
-
-	// Prepare sql queries for inserting into pipelines and pipeline_versions.
 	sql, args, err := sq.
 		Insert("pipelines").
 		SetMap(
@@ -286,6 +270,23 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 		return nil, util.NewInternalServerError(err, "Failed to create query to insert pipeline to pipeline table: %v",
 			err.Error())
 	}
+
+	// Set up creation time, UUID and sql query for pipeline.
+	// TODO(jingzhang36): remove version related operations from CreatePipeline
+	// when version API is ready. Before that we create an implicit version
+	// inside CreatePipeline method. And this implicit version has the same UUID
+	// as pipeline; and thus FE can use either pipeline UUID or version UUID to
+	// retrieve pipeline package.
+	if newPipeline.DefaultVersion == nil {
+		newPipeline.DefaultVersion = &model.PipelineVersion{
+			Name:           newPipeline.Name,
+			Parameters:     newPipeline.Parameters,
+			Status:         model.PipelineVersionCreating,
+			CodeSourceUrls: ""}
+	}
+	newPipeline.DefaultVersion.CreatedAtInSec = now
+	newPipeline.DefaultVersion.PipelineId = id.String()
+	newPipeline.DefaultVersion.UUID = id.String()
 	sqlPipelineVersions, argsPipelineVersions, err := sq.
 		Insert("pipeline_versions").
 		SetMap(
