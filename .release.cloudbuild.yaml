@@ -134,10 +134,10 @@ steps:
   waitFor: ['PullMetadataServer']
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/ml-pipeline/envoy:initial']
+  args: ['pull', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA']
   id:   'PullMetadataEnvoy'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['tag', 'gcr.io/ml-pipeline/envoy:initial', 'gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$TAG_NAME']
+  args: ['tag', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA', 'gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$TAG_NAME']
   waitFor: ['PullMetadataEnvoy']
 
 - name: 'gcr.io/cloud-builders/docker'
@@ -200,6 +200,16 @@ steps:
   args: ['cp', '/workspace/kfp-component.tar.gz', 'gs://ml-pipeline/release/latest/kfp-component.tar.gz']
   id:   'copyPythonComponentSDKToLatest'
   waitFor: ['copyPythonComponentSDKLocal']
+
+# Generate and copy the pipeline-lite deployment YAML
+- name: 'google/cloud-sdk'
+  args: ['kustomize', '/workspace/manifests/kustomize/env/dev', 'namespaced-install.yaml']
+  id:   'generateDeploymentYaml'
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', 'namespaced-install.yaml', 'gs://ml-pipeline/pipeline-lite/$TAG_NAME/namespaced-install.yaml']
+  id:   'copyDeploymentYaml'
+  waitFor: ['generateDeploymentYaml']
+
 
 images:
 - 'gcr.io/ml-pipeline/frontend:$TAG_NAME'

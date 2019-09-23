@@ -1,7 +1,9 @@
-import { Event } from '../generated/src/apis/metadata/metadata_store_pb';
-import { GetEventsByArtifactIDsRequest, GetEventsByArtifactIDsResponse } from '../generated/src/apis/metadata/metadata_store_service_pb';
-import { Apis } from '../lib/Apis';
+import { ArtifactType, Event } from '../generated/src/apis/metadata/metadata_store_pb';
+import { GetArtifactTypesRequest, GetEventsByArtifactIDsRequest, GetEventsByArtifactIDsResponse } from '../generated/src/apis/metadata/metadata_store_service_pb';
+import { Apis } from './Apis';
 import { formatDateString, serviceErrorToString } from './Utils';
+
+export type EventTypes = Event.TypeMap[keyof Event.TypeMap];
 
 export const getArtifactCreationTime = async (artifactId: number): Promise<string> => {
   const eventsRequest = new GetEventsByArtifactIDsRequest();
@@ -28,4 +30,20 @@ export const getArtifactCreationTime = async (artifactId: number): Promise<strin
     // No valid time found, just return empty
     return '';
   }
+};
+
+export const getArtifactTypeMap = async (): Promise<Map<number, ArtifactType>> => {
+  const map = new Map<number, ArtifactType>();
+  const { response, error } = await Apis.getMetadataServicePromiseClient().getArtifactTypes(new GetArtifactTypesRequest());
+  if (error) {
+    throw new Error(serviceErrorToString(error));
+  }
+
+  (response && response.getArtifactTypesList() || []).forEach((artifactType) => {
+    const id = artifactType.getId();
+    if (id) {
+      map.set(id, artifactType);
+    }
+  });
+  return map;
 };

@@ -28,10 +28,6 @@ spec:
         artifacts:
           - name: flip-output
             path: /tmp/output
-        parameters:
-          - name: flip-output
-            valueFrom:
-              path: /tmp/output
       retryStrategy:
         limit: 5
       tolerations:

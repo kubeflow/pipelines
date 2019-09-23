@@ -179,6 +179,12 @@ steps:
   id: 'buildROC'
   waitFor: ["-"]
 
+# Build third_party images
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA', '-f',
+         '/workspace/third_party/metadata_envoy/Dockerfile', '/workspace']
+  id:   'buildMetadataEnvoy'
+
 images:
 # Images for the pipeline system itself
 - 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
@@ -215,6 +221,9 @@ images:
 # Images for the local components
 - 'gcr.io/$PROJECT_ID/ml-pipeline-local-confusion-matrix:$COMMIT_SHA'
 - 'gcr.io/$PROJECT_ID/ml-pipeline-local-roc:$COMMIT_SHA'
+
+# Images for the third_party components
+- 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA'
 
 timeout: '3600s'
 options:
