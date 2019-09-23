@@ -175,10 +175,6 @@ class ComponentTest(SampleTest):
   include xgboost_training_cm
   """
   def __init__(self, test_name, results_gcs_dir,
-               dataflow_tft_image,
-               dataflow_predict_image,
-               dataflow_tfma_image,
-               dataflow_tfdv_image,
                dataproc_create_cluster_image,
                dataproc_delete_cluster_image,
                dataproc_analyze_image,
@@ -197,10 +193,6 @@ class ComponentTest(SampleTest):
         target_image_prefix=target_image_prefix,
         namespace=namespace
     )
-    self._dataflow_tft_image = dataflow_tft_image
-    self._dataflow_predict_image = dataflow_predict_image
-    self._dataflow_tfma_image = dataflow_tfma_image
-    self._dataflow_tfdv_image = dataflow_tfdv_image
     self._dataproc_create_cluster_image = dataproc_create_cluster_image
     self._dataproc_delete_cluster_image = dataproc_delete_cluster_image
     self._dataproc_analyze_image = dataproc_analyze_image
