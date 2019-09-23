@@ -17,6 +17,7 @@ import tempfile
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Callable
 
 import kfp.components as comp
 
@@ -92,6 +93,42 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.assertEqual(float(actual1_str), float(expected1_str))
         self.assertEqual(float(actual2_str), float(expected2_str))
+
+    def helper_test_component_created_from_func_using_local_call(self, func: Callable, arguments: dict):
+        task_factory = comp.func_to_container_op(func)
+        self.helper_test_component_against_func_using_local_call(func, task_factory, arguments)
+
+    def helper_test_component_against_func_using_local_call(self, func: Callable, op: Callable, arguments: dict):
+        # ! This function cannot be used when component has output types that use custom serialization since it will compare non-serialized function outputs with serialized component outputs.
+        # Evaluating the function to get the expected output values
+        expected_output_values_list = func(**arguments)
+        expected_output_values_list = [str(value) for value in expected_output_values_list]
+
+        output_names = [output.name for output in op.outputs]
+        from kfp.components._naming import generate_unique_name_conversion_table, _sanitize_python_function_name
+        output_name_to_pythonic = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
+        pythonic_output_names = [output_name_to_pythonic[name] for name in output_names]
+        from collections import OrderedDict
+        expected_output_values_dict = OrderedDict(zip(pythonic_output_names, expected_output_values_list))
+
+        self.helper_test_component_using_local_call(op, arguments, expected_output_values_dict)
+
+    def helper_test_component_using_local_call(self, component_task_factory: Callable, arguments: dict, expected_output_values: dict):
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            # Creating task from the component.
+            # We do it in a special context that allows us to control the output file locations.
+            with components_local_output_dir_context(temp_dir_name):
+                task = component_task_factory(**arguments)
+
+            # Constructing the full command-line from resolved command+args
+            full_command = task.command + task.arguments
+
+            # Executing the command-line locally
+            subprocess.run(full_command, check=True)
+
+            actual_output_values_dict = {output_name: Path(output_path).read_text() for output_name, output_path in task.file_outputs.items()}
+
+        self.assertEqual(actual_output_values_dict, expected_output_values)
 
     def test_func_to_container_op_local_call(self):
         func = add_two_numbers
@@ -442,6 +479,19 @@ class PythonOpTestCase(unittest.TestCase):
             recursive_obj,
             open,
         ])
+
+
+    def test_handling_list_dict_output_values(self):
+        def produce_list() -> list:
+            return (["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}], )
+        
+        # ! JSON map keys are always strings. Python converts all keys to strings without warnings
+        task_factory = comp.func_to_container_op(produce_list)
+
+        import json
+        expected_output = json.dumps(["string", 1, 2.2, True, False, None, [3, 4], {'s': 5}])
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'output': expected_output})
 
 
     def test_end_to_end_python_component_pipeline_compilation(self):

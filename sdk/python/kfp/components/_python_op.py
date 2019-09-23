@@ -21,7 +21,7 @@ __all__ = [
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
-from ._data_passing import serialize_value, type_name_to_deserializer, type_to_type_name
+from ._data_passing import serialize_value, type_name_to_deserializer, type_name_to_serializer, type_to_type_name
 from ._structures import *
 
 import inspect
@@ -275,6 +275,17 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
             return deserializer_code_str
         return 'str'
 
+    def get_serializer_and_register_definitions(type_name) -> str:
+        if type_name in type_name_to_serializer:
+            serializer_func = type_name_to_serializer[type_name]
+            # If serializer is not part of the standard python library, then include its code in the generated program
+            if hasattr(serializer_func, '__module__') and not _module_is_builtin_or_standard(serializer_func.__module__):
+                import inspect
+                serializer_code_str = inspect.getsource(serializer_func)
+                definitions.add(serializer_code_str)
+            return serializer_func.__name__
+        return 'str'
+
     arg_parse_code_lines = [
         'import argparse',
         '_missing_arg = object()',
@@ -319,6 +330,13 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
         arguments.append(param_flag)
         arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
 
+    output_serialization_expression_strings = []
+    if component_spec.outputs:
+        outputs_produced_by_func_return_value = component_spec.outputs
+        for output in outputs_produced_by_func_return_value:
+            serializer_call_str = get_serializer_and_register_definitions(output.type)
+            output_serialization_expression_strings.append(serializer_call_str)
+
     arg_parse_code_lines = list(definitions) + arg_parse_code_lines
 
     arg_parse_code_lines.extend([
@@ -342,6 +360,10 @@ _outputs = {func_name}(**_parsed_args)
 if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
     _outputs = [_outputs]
 
+_output_serializers = [
+    {output_serialization_code}
+]
+
 import os
 for idx, output_file in enumerate(_output_files):
     try:
@@ -349,12 +371,13 @@ for idx, output_file in enumerate(_output_files):
     except OSError:
         pass
     with open(output_file, 'w') as f:
-        f.write(str(_outputs[idx]))
+        f.write(_output_serializers[idx](_outputs[idx]))
 '''.format(
         func_name=func.__name__,
         func_code=func_code,
         extra_code=extra_code,
         arg_parse_code='\n'.join(arg_parse_code_lines),
+        output_serialization_code=',\n    '.join(output_serialization_expression_strings),
     )
 
     #Removing consecutive blank lines
@@ -466,3 +489,15 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
         #TODO: assert ComponentSpec.from_dict(load_yaml(output_component_file)) == component_spec
 
     return _create_task_factory_from_component_spec(component_spec)
+
+
+def _module_is_builtin_or_standard(module_name: str) -> bool:
+    import sys
+    if module_name in sys.builtin_module_names:
+        return True
+    import distutils.sysconfig as sysconfig
+    import os
+    std_lib_dir = sysconfig.get_python_lib(standard_lib=True)
+    module_name_parts = module_name.split('.')
+    expected_module_path = os.path.join(std_lib_dir, *module_name_parts)
+    return os.path.exists(expected_module_path) or os.path.exists(expected_module_path + '.py')
