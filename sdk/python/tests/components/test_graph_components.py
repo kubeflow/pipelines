@@ -19,7 +19,7 @@ from pathlib import Path
 
 
 import kfp.components as comp
-from kfp.components._structures import ComponentReference, ComponentSpec, ContainerSpec, GraphInputReference, GraphSpec, InputSpec, InputValuePlaceholder, GraphImplementation, OutputPathPlaceholder, OutputSpec, TaskOutputArgument, TaskSpec
+from kfp.components.structures import ComponentReference, ComponentSpec, ContainerSpec, GraphInputReference, GraphSpec, InputSpec, InputValuePlaceholder, GraphImplementation, OutputPathPlaceholder, OutputSpec, TaskOutputArgument, TaskSpec
 
 from kfp.components._yaml_utils import load_yaml
 

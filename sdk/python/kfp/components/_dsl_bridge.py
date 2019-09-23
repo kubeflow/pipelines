@@ -15,7 +15,7 @@
 import copy
 from collections import OrderedDict
 from typing import Mapping
-from ._structures import ContainerImplementation, ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
+from .structures import ContainerImplementation, ConcatPlaceholder, IfPlaceholder, InputValuePlaceholder, InputPathPlaceholder, IsPresentPlaceholder, OutputPathPlaceholder, TaskSpec
 from ._components import _generate_input_file_name, _generate_output_file_name, _default_component_name
 
 def create_container_op_from_task(task_spec: TaskSpec):
