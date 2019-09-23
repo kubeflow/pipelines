@@ -25,6 +25,24 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
+// The order of the selected columns must match the order used in scan rows.
+var pipelineColumns = []string{
+	"pipelines.UUID",
+	"pipelines.CreatedAtInSec",
+	"pipelines.Name",
+	"pipelines.Description",
+	"pipelines.Parameters",
+	"pipelines.Status",
+	"pipelines.DefaultVersionId",
+	"pipeline_versions.UUID",
+	"pipeline_versions.CreatedAtInSec",
+	"pipeline_versions.Name",
+	"pipeline_versions.Parameters",
+	"pipeline_versions.PipelineId",
+	"pipeline_versions.Status",
+	"pipeline_versions.CodeSourceUrls",
+}
+
 type PipelineStoreInterface interface {
 	ListPipelines(opts *list.Options) ([]*model.Pipeline, int, string, error)
 	GetPipeline(pipelineId string) (*model.Pipeline, error)
@@ -60,7 +78,7 @@ func (s *PipelineStore) ListPipelines(opts *list.Options) ([]*model.Pipeline, in
 			Where(sq.Eq{"pipelines.Status": model.PipelineReady})
 	}
 
-	sqlBuilder := buildQuery(sq.Select("*"))
+	sqlBuilder := buildQuery(sq.Select(pipelineColumns...))
 
 	// SQL for row list
 	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
@@ -241,6 +259,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	// TODO(jingzhang36): before we expose versions to FE, we have to use same
 	// UUID for pipeline and its (only) version and thus FE can use pipeline
 	// UUID instead of version UUID to to properly retrieve pipeline package.
+	// After version API is in place, CreatePipeline will NOT insert versions.
 	// id, err = s.uuid.NewRandom()
 	// if err != nil {
 	// 	return nil, util.NewInternalServerError(
