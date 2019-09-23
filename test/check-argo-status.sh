@@ -42,36 +42,37 @@ do
   fi
 done
 
-if [[ "$workflow_completed" == "true" ]] && [[ "$workflow_failed" == "false" ]]; then
-  echo "Argo workflow finished successfully."
-  if [[ -n "$TEST_RESULT_FOLDER" ]]; then
-    echo "Copy test result"
-    mkdir -p "$ARTIFACT_DIR"
-    gsutil cp -r "${TEST_RESULTS_GCS_DIR}"/* "${ARTIFACT_DIR}" || true
+if [[ "$workflow_completed" == "false" ]] || [[ "$workflow_failed" != "false" ]]; then
+  # Handling failed workflow
+  if [[ "$workflow_completed" == "false" ]]; then
+    echo "Argo workflow timed out."
+  else
+    echo "Argo workflow failed."
   fi
+
+  echo "=========Argo Workflow Logs========="
+  argo logs -w "${ARGO_WORKFLOW}" -n "${NAMESPACE}"
+
+  echo "========All workflows============="
+
+  argo --namespace "${NAMESPACE}" list --output=name |
+    while read workflow_id; do
+      echo "========${workflow_id}============="
+      argo get "${workflow_id}" -n "${NAMESPACE}"
+    done
+
+  echo "=========Main workflow=============="
   argo get "${ARGO_WORKFLOW}" -n "${NAMESPACE}"
-  exit 0
+
+  exit 1
 fi
 
-# Handling failed workflow
-if [[ "$workflow_completed" == "false" ]]; then
-  echo "Argo workflow timed out."
-else
-  echo "Argo workflow failed."
+echo "Argo workflow finished successfully."
+if [[ -n "$TEST_RESULT_FOLDER" ]]; then
+  echo "Copy test result"
+  mkdir -p "$ARTIFACT_DIR"
+  gsutil cp -r "${TEST_RESULTS_GCS_DIR}"/* "${ARTIFACT_DIR}" || true
 fi
-
-echo "=========Argo Workflow Logs========="
-argo logs -w "${ARGO_WORKFLOW}" -n "${NAMESPACE}"
-
-echo "========All workflows============="
-
-argo --namespace "${NAMESPACE}" list --output=name |
-  while read workflow_id; do
-    echo "========${workflow_id}============="
-    argo get "${workflow_id}" -n "${NAMESPACE}"
-  done
 
 echo "=========Main workflow=============="
 argo get "${ARGO_WORKFLOW}" -n "${NAMESPACE}"
-
-exit 1
