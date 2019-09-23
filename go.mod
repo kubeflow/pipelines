@@ -92,4 +92,3 @@ require (
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 )
 
-go 1.13
