@@ -6,8 +6,8 @@ This folder contains Kubeflow Pipelines Kustomize manifests for a light weight d
 
 Deploy latest version of Kubeflow Pipelines
 ```
-export PIPELINE_VERSION=0.1.26
-kubectl apply -f https://raw.githubusercontent.com/kubeflow/pipelines/$PIPELINE_VERSION/manifests/kustomize/namespaced-install.yaml
+export PIPELINE_VERSION=0.1.31
+kubectl apply -f https://storage.googleapis.com/ml-pipeline/pipeline-lite/$TAG_NAME/namespaced-install.yaml
 ```
 
 Then get the Pipeline URL
