@@ -141,7 +141,7 @@ class Client(object):
 
   def _is_iap_host(self, host, client_id):
     if host and client_id:
-      return re.match(r'\S+.endpoints.\S+.cloud.goog', host)
+      return re.match(r'\S+.endpoints.\S+.cloud.goog/pipeline', host)
     return False
 
   def _is_inverse_proxy_host(self, host):
