@@ -71,7 +71,7 @@ class AWSInstanceProfileCredentials {
     /**
      * Get the AWS metadata store session credentials.
      */
-    async get_credentials(): Promise<IAWSMetadataCredentials> {
+    async getCredentials(): Promise<IAWSMetadataCredentials> {
         // query for credentials if going to expire or no credentials yet
         if (Date.now() + 10 >= this._expiration || !this._credentials) {
             this._credentials = await this._fetchCredentials();

@@ -24,15 +24,20 @@ export interface IMinioRequestConfig {
     client: MinioClient;
 }
 
+/** IMinioClientOptionsWithOptionalSecrets wraps around MinioClientOptions where only endPoint is required (accesskey and secretkey are optional). */
+export interface IMinioClientOptionsWithOptionalSecrets extends Partial<MinioClientOptions> {
+  endPoint: string;
+}
+
 /**
  * Create minio client with aws instance profile credentials if needed.
  * @param config minio client options where `accessKey` and `secretKey` are optional.
  */
-export async function createMinioClient(config: Partial<MinioClientOptions>) {
+export async function createMinioClient(config: IMinioClientOptionsWithOptionalSecrets) {
 
     if (!config.accessKey || !config.secretKey) {
         if (await awsInstanceProfileCredentials.ok()) {
-            const credentials = await awsInstanceProfileCredentials.get_credentials();
+            const credentials = await awsInstanceProfileCredentials.getCredentials();
             if (credentials) {
               const {AccessKeyId: accessKey, SecretAccessKey: secretKey, Token: sessionToken} = credentials;
               return new MinioClient({...config, accessKey, secretKey, sessionToken} as MinioClientOptions);

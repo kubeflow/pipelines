@@ -16,7 +16,7 @@ import * as express from 'express';
 import {Application, static as StaticHandler} from 'express';
 import * as fs from 'fs';
 import * as proxy from 'http-proxy-middleware';
-import {Client as MinioClient, ClientOptions as MinioClienOptions} from 'minio';
+import {Client as MinioClient, ClientOptions as MinioClientOptions} from 'minio';
 import fetch from 'node-fetch';
 import * as path from 'path';
 import * as process from 'process';
@@ -79,7 +79,7 @@ const MINIO_ENDPOINT = MINIO_NAMESPACE && MINIO_NAMESPACE.length > 0 ? `${MINIO_
 const _as_bool = (value: string) => ['true', '1'].indexOf(value.toLowerCase()) >= 0
 
 /** minio client for minio storage */
-const minioOptions: MinioClienOptions = {
+const minioOptions: MinioClientOptions = {
   accessKey: MINIO_ACCESS_KEY,
   endPoint: MINIO_ENDPOINT,
   port: parseInt(MINIO_PORT, 10),
@@ -89,7 +89,7 @@ const minioOptions: MinioClienOptions = {
 const minioClient = new MinioClient(minioOptions);
 
 /** minio client for s3 objects */
-const s3Options: MinioClienOptions = {
+const s3Options: MinioClientOptions = {
   endPoint: 's3.amazonaws.com',
   accessKey: AWS_ACCESS_KEY_ID,
   secretKey: AWS_SECRET_ACCESS_KEY,
