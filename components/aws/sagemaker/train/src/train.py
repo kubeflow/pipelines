@@ -15,7 +15,7 @@ import logging
 
 from common import _utils
 
-def main(argv=None):
+def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Training Job')
   parser.add_argument('--region', type=str.strip, required=True, help='The region where the training job launches.')
   parser.add_argument('--job_name', type=str.strip, required=False, help='The name of the training job.', default='')
@@ -47,7 +47,19 @@ def main(argv=None):
   parser.add_argument('--vpc_subnets', type=str.strip, required=False, help='The ID of the subnets in the VPC to which you want to connect your hpo job.')
   parser.add_argument('--network_isolation', type=_utils.str_to_bool, required=False, help='Isolates the training container.', default=True)
   parser.add_argument('--traffic_encryption', type=_utils.str_to_bool, required=False, help='Encrypts all communications between ML compute instances in distributed training.', default=False)
+
+  ### Start spot instance support
+  parser.add_argument('--spot_instance', type=_utils.str_to_bool, required=False, help='Use managed spot training.', default=False)
+  parser.add_argument('--max_wait_time', type=_utils.str_to_int, required=False, help='The maximum time in seconds you are willing to wait for a managed spot training job to complete.', default=86400)
+  parser.add_argument('--checkpoint_config', type=_utils.str_to_json_dict, required=False, help='Dictionary of information about the output location for managed spot training checkpoint data.', default='{}')
+  ### End spot instance support
+
   parser.add_argument('--tags', type=_utils.str_to_json_dict, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
+
+  return parser
+
+def main(argv=None):
+  parser = create_parser()
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)

@@ -34,8 +34,13 @@ TrainingJobDefinition:
     VolumeKmsKeyId: ''
   StoppingCondition:
     MaxRuntimeInSeconds: 86400
+    MaxWaitTimeInSeconds: 86400
+  CheckpointConfig:
+    S3Uri: ''
+    LocalPath: ''
   EnableNetworkIsolation: True
   EnableInterContainerTrafficEncryption: False
+  EnableManagedSpotTraining: False
 WarmStartConfig:
   ParentHyperParameterTuningJobs: []
   WarmStartType: ''
