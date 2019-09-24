@@ -1,5 +1,4 @@
 {
-  "target_path": "/third_party",
   "libraries": [
     {
       "library": "protoc-gen-validate",
