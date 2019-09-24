@@ -24,9 +24,7 @@ import subprocess
 
 # TODO(numerology): add those back once UI metadata is enabled in this sample.
 confusion_matrix_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/'
-    'e598176c02f45371336ccaa819409e8ec83743df/components/'
-    'local/confusion_matrix/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/local/confusion_matrix/component.yaml')
 roc_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/local/roc/component.yaml')
 
@@ -35,20 +33,14 @@ roc_op = components.load_component_from_url(
 #     'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/create_cluster/component.yaml')
 
 dataproc_delete_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/'
-    'e598176c02f45371336ccaa819409e8ec83743df/components/gcp/'
-    'dataproc/delete_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/delete_cluster/component.yaml')
 
 dataproc_submit_pyspark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/'
-    'e598176c02f45371336ccaa819409e8ec83743df/components/gcp/'
-    'dataproc/submit_pyspark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_pyspark_job/component.yaml'
 )
 
 dataproc_submit_spark_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/'
-    'e598176c02f45371336ccaa819409e8ec83743df/components/gcp/'
-    'dataproc/submit_spark_job/component.yaml'
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_spark_job/component.yaml'
 )
 
 _PYSRC_PREFIX = 'gs://kfp-gcp-dataproc-example/src' # Common path to python src.
@@ -255,6 +247,7 @@ def xgb_train_pipeline(
     transform_output_train = os.path.join(output_template, 'train', 'part-*')
     transform_output_eval = os.path.join(output_template, 'eval', 'part-*')
     train_output = os.path.join(output_template, 'train_output')
+    predict_output = os.path.join(output_template, 'predict_output')
 
     with dsl.ExitHandler(exit_op=dataproc_delete_cluster_op(
         project_id=project,
@@ -309,7 +302,7 @@ def xgb_train_pipeline(
             model=train_output,
             target=target,
             analysis=analyze_output,
-            output=os.path.join(output_template, 'eval_output')
+            output=predict_output
         ).after(train_op).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
