@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,13 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Setup dependencies for deployment of the validator."""
-
-import setuptools
-
-if __name__ == '__main__':
-    setuptools.setup(name='tfdv_validation_job', version='1.0',
-                     packages=setuptools.find_packages(),
-                     install_requires=[
-                         'tensorflow==1.12.1',
-                         'tensorflow-data-validation==1.9.0'])
+test_name: kubeflow_tf_serving
+notebook_params:
+  output:
+  project: ml-pipeline-test
+  experiment_name: kubeflow_tf_serving-test

@@ -12,12 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: tfx_cab_classification
-arguments:
-  output:
-  project: ml-pipeline-test
-  column-names: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/column-names.json
-  evaluation: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/eval5.csv
-  train: gs://ml-pipeline-dataset/sample-test/taxi-cab-classification/train20.csv
-  hidden-layer-size: 5
-  steps: 5
+FROM envoyproxy/envoy:latest
+
+RUN apt-get update -y && \
+  apt-get install --no-install-recommends -y -q python python-pip python-setuptools gettext
+RUN pip install wget
+
+COPY third_party/metadata_envoy/envoy.yaml /etc/envoy.yaml
+
+# Copy license files.
+ADD third_party/metadata_envoy /scratch
+RUN python /scratch/dependency_helper.py /scratch/dependencies.json
+RUN rm -rf /scratch
+
+RUN pip uninstall --yes wget
+RUN apt-get remove --yes --purge python-setuptools  python-pip python
+
+ENTRYPOINT ["/usr/local/bin/envoy", "-c"]
+CMD ["/etc/envoy.yaml"]

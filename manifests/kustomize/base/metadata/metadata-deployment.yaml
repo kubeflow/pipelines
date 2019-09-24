@@ -28,11 +28,26 @@ spec:
             secretKeyRef:
               name: mysql-credential
               key: password
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-configmap
+              key: mysql_database
+        - name: MYSQL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-configmap
+              key: mysql_host
+        - name: MYSQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: metadata-configmap
+              key: mysql_port
         command: ["/bin/metadata_store_server"]
         args: ["--grpc_port=8080",
-               "--mysql_config_host=mysql",
-               "--mysql_config_database=metadb",
-               "--mysql_config_port=3306",
+               "--mysql_config_database=$(MYSQL_DATABASE)",
+               "--mysql_config_host=$(MYSQL_HOST)",
+               "--mysql_config_port=$(MYSQL_PORT)",
                "--mysql_config_user=$(DBCONFIG_USER)",
                "--mysql_config_password=$(DBCONFIG_PASSWORD)"
                ]
