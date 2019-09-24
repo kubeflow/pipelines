@@ -124,10 +124,12 @@ inputs:
     description: 'Key-value pairs, to categorize AWS resources.'
     default: '{}'
 outputs:
+  - name: hpo_job_name
+    description: 'The name of the hyper parameter tuning job'
   - name: model_artifact_url
     description: 'Model artifacts url'
   - name: best_job_name
-    description: 'Best training job in the hyperparameter tuning job'
+    description: 'Best training job in the hyper parameter tuning job'
   - name: best_hyperparameters
     description: 'Tuned hyperparameters'
   - name: training_image
