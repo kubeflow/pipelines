@@ -40,7 +40,7 @@ export async function createMinioClient(config: IMinioClientOptionsWithOptionalS
             const credentials = await awsInstanceProfileCredentials.getCredentials();
             if (credentials) {
               const {AccessKeyId: accessKey, SecretAccessKey: secretKey, Token: sessionToken} = credentials;
-              return new MinioClient({...config, accessKey, secretKey, sessionToken} as MinioClientOptions);
+              return new MinioClient({...config, accessKey, secretKey, sessionToken});
             }
             console.error('unable to get credentials from AWS metadata store.')
         }
