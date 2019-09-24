@@ -17,6 +17,9 @@ __all__ = [
     'func_to_component_text',
     'get_default_base_image',
     'set_default_base_image',
+    'InputPath',
+    'InputTextFile',
+    'InputBinaryFile',
 ]
 
 from ._yaml_utils import dump_yaml
@@ -31,15 +34,33 @@ from typing import Callable, Generic, List, TypeVar, Union
 
 T = TypeVar('T')
 
+
+# InputPath(list) or InputPath('JsonObject')
+
+class InputPath:
+    '''When creating component from function, InputPath should be used as function parameter annotation to tell the system to pass the *data file path* to the function instead of passing the actual data.'''
+    def __init__(self, type=None):
+        self.type = type
+
+
+class InputTextFile:
+    '''When creating component from function, InputTextFile should be used as function parameter annotation to tell the system to pass the *text data stream* object (`io.TextIOWrapper`) to the function instead of passing the actual data.'''
+    def __init__(self, type=None):
+        self.type = type
+
+
+class InputBinaryFile:
+    '''When creating component from function, InputBinaryFile should be used as function parameter annotation to tell the system to pass the *binary data stream* object (`io.BytesIO`) to the function instead of passing the actual data.'''
+    def __init__(self, type=None):
+        self.type = type
+
+
 #OutputFile[GcsPath[Gzipped[Text]]]
-
-
-class InputFile(Generic[T], str):
-    pass
 
 
 class OutputFile(Generic[T], str):
     pass
+
 
 #TODO: Replace this image name with another name once people decide what to replace it with.
 _default_base_image='tensorflow/tensorflow:1.13.2-py3'
@@ -181,7 +202,13 @@ def _extract_component_interface(func) -> ComponentSpec:
         return type_name
 
     for parameter in parameters:
-        type_struct = annotation_to_type_struct(parameter.annotation)
+        parameter_annotation = parameter.annotation
+        passing_style = None
+        if isinstance(parameter_annotation, (InputPath, InputTextFile, InputBinaryFile)):
+            passing_style = type(parameter_annotation)
+            parameter_annotation = parameter_annotation.type
+            # TODO: Fix the input names: "number_file_path" parameter should be exposed as "number" input
+        type_struct = annotation_to_type_struct(parameter_annotation)
         #TODO: Humanize the input/output names
 
         input_spec = InputSpec(
@@ -192,7 +219,7 @@ def _extract_component_interface(func) -> ComponentSpec:
             input_spec.optional = True
             if parameter.default is not None:
                 input_spec.default = serialize_value(parameter.default, type_struct)
-
+        input_spec._passing_style = passing_style
         inputs.append(input_spec)
 
     #Analyzing the return type annotations.
@@ -275,6 +302,19 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
             return deserializer_code_str
         return 'str'
 
+    pre_func_definitions = set()
+    def get_argparse_type_for_input_file(passing_style):
+        if passing_style is InputPath:
+            pre_func_definitions.add(inspect.getsource(InputPath))
+            return 'str'
+        elif passing_style is InputTextFile:
+            pre_func_definitions.add(inspect.getsource(InputTextFile))
+            return "argparse.FileType('rt')"
+        elif passing_style is InputBinaryFile:
+            pre_func_definitions.add(inspect.getsource(InputBinaryFile))
+            return "argparse.FileType('rb')"
+        return None
+
     def get_serializer_and_register_definitions(type_name) -> str:
         if type_name in type_name_to_serializer:
             serializer_func = type_name_to_serializer[type_name]
@@ -300,19 +340,24 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default=argparse.SUPPRESS)'.format(
             param_flag=param_flag,
             param_var=input.name,
-            param_type=get_deserializer_and_register_definitions(input.type),
+            param_type=get_argparse_type_for_input_file(input._passing_style) or get_deserializer_and_register_definitions(input.type),
             is_required=str(is_required),
         )
         arg_parse_code_lines.append(line)
+
+        if input._passing_style in [InputPath, InputTextFile, InputBinaryFile]:
+            arguments_for_input = [param_flag, InputPathPlaceholder(input.name)]
+        else:
+            arguments_for_input = [param_flag, InputValuePlaceholder(input.name)]
+
         if is_required:
-            arguments.append(param_flag)
-            arguments.append(InputValuePlaceholder(input.name))
+            arguments.extend(arguments_for_input)
         else:
             arguments.append(
                 IfPlaceholder(
                     IfPlaceholderStructure(
                         condition=IsPresentPlaceholder(input.name),
-                        then_value=[param_flag, InputValuePlaceholder(input.name)],
+                        then_value=arguments_for_input,
                     )
                 )
             )
@@ -336,6 +381,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
             serializer_call_str = get_serializer_and_register_definitions(output.type)
             output_serialization_expression_strings.append(serializer_call_str)
 
+    pre_func_code = '\n'.join(list(pre_func_definitions))
+
     arg_parse_code_lines = list(definitions) + arg_parse_code_lines
 
     arg_parse_code_lines.extend([
@@ -345,6 +392,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
 
     full_source = \
 '''\
+{pre_func_code}
+
 {extra_code}
 
 {func_code}
@@ -371,6 +420,7 @@ for idx, output_file in enumerate(_output_files):
 '''.format(
         func_name=func.__name__,
         func_code=func_code,
+        pre_func_code=pre_func_code,
         extra_code=extra_code,
         arg_parse_code='\n'.join(arg_parse_code_lines),
         output_serialization_code=',\n    '.join(output_serialization_expression_strings),
