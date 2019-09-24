@@ -263,53 +263,53 @@ def xgb_train_pipeline(
     ).apply(gcp.use_gcp_secret('user-gcp-sa'))):
 
         create_cluster_op = dataproc_create_cluster_op(
-            project,
-            region,
-            output
+            project=project,
+            region=region,
+            staging=output
         ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
         analyze_op = dataproc_analyze_op(
-            project,
-            region,
-            cluster_name,
-            schema,
-            train_data,
-            output_template
+            project=project,
+            region=region,
+            cluster_name=cluster_name,
+            schema=schema,
+            train_data=train_data,
+            output=output_template
         ).after(create_cluster_op).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
         transform_op = dataproc_transform_op(
-            project,
-            region,
-            cluster_name,
-            train_data,
-            eval_data,
-            target,
-            analyze_output,
-            output_template
+            project=project,
+            region=region,
+            cluster_name=cluster_name,
+            train_data=train_data,
+            eval_data=eval_data,
+            target=target,
+            analysis=analyze_output,
+            output=output_template
         ).after(analyze_op).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
         train_op = dataproc_train_op(
-            project,
-            region,
-            cluster_name,
-            transform_output_train,
-            transform_output_eval,
-            target,
-            analyze_output,
-            workers,
-            rounds,
-            train_output
+            project=project,
+            region=region,
+            cluster_name=cluster_name,
+            train_data=transform_output_train,
+            eval_data=transform_output_eval,
+            target=target,
+            analysis=analyze_output,
+            workers=workers,
+            rounds=rounds,
+            output=train_output
         ).after(transform_op).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
         predict_op = dataproc_predict_op(
-            project,
-            region,
-            cluster_name,
-            transform_output_eval,
-            train_output,
-            target,
-            analyze_output,
-            os.path.join(output_template, 'eval_output')
+            project=project,
+            region=region,
+            cluster_name=cluster_name,
+            data=transform_output_eval,
+            model=train_output,
+            target=target,
+            analysis=analyze_output,
+            output=os.path.join(output_template, 'eval_output')
         ).after(train_op).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
