@@ -80,5 +80,56 @@ COPY . .
             builder = MockImageBuilder(dockerfile_text_check, requirements_text_check, file_paths_check)
             result = build_image_from_working_dir(working_dir=context_dir, base_image='python:3.6.5', builder=builder)
 
+
+    def test_image_cache(self):
+        builder = InvocationCountingDummyImageBuilder()
+
+        from kfp.containers._cache import clear_cache
+        clear_cache('build_image_from_working_dir')
+
+        self.assertEqual(builder.invocations_count, 0)
+        with prepare_context_dir(py_content='py1', sh_content='sh1') as context_dir:
+            build_image_from_working_dir(working_dir=context_dir, base_image='python:3.6.5', builder=builder)
+        self.assertEqual(builder.invocations_count, 1)
+
+        # Check that changes to .sh files do not break cache
+        with prepare_context_dir(py_content='py1', sh_content='sh2') as context_dir:
+            build_image_from_working_dir(working_dir=context_dir, base_image='python:3.6.5', builder=builder)
+        self.assertEqual(builder.invocations_count, 1)
+
+        # Check that changes to .py files result in new image being built
+        with prepare_context_dir(py_content='py2', sh_content='sh1') as context_dir:
+            build_image_from_working_dir(working_dir=context_dir, base_image='python:3.6.5', builder=builder)
+        self.assertEqual(builder.invocations_count, 2)
+
+
+class InvocationCountingDummyImageBuilder:
+    def __init__(self):
+        self.invocations_count = 0
+    
+    def build(self, local_dir = None, target_image = None, timeout = 1000):
+        self.invocations_count = self.invocations_count + 1
+        return "image/name@sha256:0123456789abcdef0123456789abcdef"
+
+
+def prepare_context_dir(py_content: str = '#py file', sh_content: str = '#sh file') -> str:
+    context_dir = tempfile.TemporaryDirectory()
+    #Preparing context
+    requirements_text = 'pandas==1.24'
+    requirements_txt_relpath = Path('.') / 'requirements.txt'
+    file1_py_relpath = Path('.') / 'lib' / 'file1.py'
+    file1_sh_relpath = Path('.') / 'lib' / 'file1.sh'
+
+    context_path = Path(context_dir.name)
+    (context_path / requirements_txt_relpath).write_text(requirements_text)
+    (context_path / file1_py_relpath).parent.mkdir(parents=True, exist_ok=True)
+    (context_path / file1_py_relpath).write_text(py_content)
+    (context_path / file1_sh_relpath).parent.mkdir(parents=True, exist_ok=True)
+    (context_path / file1_sh_relpath).write_text(sh_content)
+    # End preparing context
+
+    return context_dir
+
+
 if __name__ == '__main__':
     unittest.main()
