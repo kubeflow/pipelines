@@ -73,12 +73,12 @@ class AWSInstanceProfileCredentials {
      */
     async getCredentials(): Promise<IAWSMetadataCredentials> {
         // query for credentials if going to expire or no credentials yet
-        if (Date.now() + 10 >= this._expiration || !this._credentials) {
+        if ((Date.now() + 10 >= this._expiration) || !this._credentials) {
             this._credentials = await this._fetchCredentials();
             if (this._credentials.Expiration)
                 this._expiration = new Date(this._credentials.Expiration).getTime();
             else 
-                this._expiration = -1;  // never expires
+                this._expiration = -1;  // always expire
         }
         return this._credentials
     }

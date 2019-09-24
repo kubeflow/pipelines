@@ -95,7 +95,7 @@ const s3Options: MinioClientOptions = {
   secretKey: AWS_SECRET_ACCESS_KEY,
 };
 /** minio client to s3 with AWS instance profile IAM if access keys are not provided. */
-const s3ClientPromise = createMinioClient(s3Options);
+const s3ClientPromise = () => createMinioClient(s3Options);
 
 /** pod template spec to use for viewer crd */
 const podTemplateSpec = loadJSON(VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH, k8sHelper.defaultPodTemplateSpec)
@@ -232,7 +232,7 @@ const artifactsHandler = async (req, res) => {
 
     case 's3':
       try {
-        const stream = await getObjectStream({bucket, key, client: await s3ClientPromise});
+        const stream = await getObjectStream({bucket, key, client: await s3ClientPromise()});
         stream.on('end', () => res.end());
         stream.on('error', err => res.status(500).send(`Failed to get object in bucket ${bucket} at path ${key}: ${err}`))
         stream.pipe(res);
