@@ -562,6 +562,52 @@ class PythonOpTestCase(unittest.TestCase):
         self.helper_test_component_using_local_call(task_factory, arguments={'number_file': "42"}, expected_output_values={'output': '42'})
 
 
+    def test_output_path(self):
+        from kfp.components import OutputPath
+        def write_to_file_path(number_file_path: OutputPath(int)):
+            with open(number_file_path, 'w') as f:
+                f.write(str(42))
+
+        task_factory = comp.func_to_container_op(write_to_file_path)
+
+        self.assertFalse(task_factory.component_spec.inputs)
+        self.assertEqual(len(task_factory.component_spec.outputs), 1)
+        self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
+
+        # TODO: Fix the output names: "number_file_path" should be exposed as "number" output
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number_file_path': '42'})
+
+
+    def test_output_text_file(self):
+        from kfp.components import OutputTextFile
+        def write_to_file_path(number_file: OutputTextFile(int)):
+            number_file.write(str(42))
+
+        task_factory = comp.func_to_container_op(write_to_file_path)
+
+        self.assertFalse(task_factory.component_spec.inputs)
+        self.assertEqual(len(task_factory.component_spec.outputs), 1)
+        self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
+
+        # TODO: Fix the output names: "number_file" should be exposed as "number" output
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number_file': '42'})
+
+
+    def test_output_binary_file(self):
+        from kfp.components import OutputBinaryFile
+        def write_to_file_path(number_file: OutputBinaryFile(int)):
+            number_file.write(b'42')
+
+        task_factory = comp.func_to_container_op(write_to_file_path)
+
+        self.assertFalse(task_factory.component_spec.inputs)
+        self.assertEqual(len(task_factory.component_spec.outputs), 1)
+        self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
+
+        # TODO: Fix the output names: "number_file" should be exposed as "number" output
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number_file': '42'})
+
+
     def test_end_to_end_python_component_pipeline_compilation(self):
         import kfp.components as comp
 
