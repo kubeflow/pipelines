@@ -25,10 +25,10 @@ import subprocess
 # TODO(numerology): add those back once UI metadata is enabled in this sample.
 confusion_matrix_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/'
-    'e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/'
+    'e598176c02f45371336ccaa819409e8ec83743df/components/'
     'local/confusion_matrix/component.yaml')
 roc_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e7a021ed1da6b0ff21f7ba30422decbdcdda0c20/components/local/roc/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/local/roc/component.yaml')
 
 # TODO(numerology): waiting for the fix.
 # dataproc_create_cluster_op = components.load_component_from_url(
