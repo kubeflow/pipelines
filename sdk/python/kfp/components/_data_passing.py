@@ -46,7 +46,12 @@ _bool_deserializer_code = _deserialize_bool.__name__
 
 def _serialize_json(obj) -> str:
     import json
-    return json.dumps(obj)
+    def default_serializer(obj):
+        if hasattr(obj, 'to_struct'):
+            return obj.to_struct()
+        else:
+            raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+    return json.dumps(obj, default=default_serializer)
 
 
 def _serialize_base64_pickle(obj) -> str:
