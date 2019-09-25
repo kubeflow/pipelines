@@ -24,7 +24,7 @@ def automl_import_data_from_bigquery(
 ) -> NamedTuple('Outputs', [('dataset_path', str)]):
     import sys
     import subprocess
-    subprocess.run([sys.executable, '-m', 'pip3', 'install', 'google-cloud-automl==0.4.0', '--quiet', '--no-warn-script-location'], env={'PIP_DISABLE_PIP_VERSION_CHECK': '1'}, check=True)
+    subprocess.run([sys.executable, "-m", "pip", "install", "google-cloud-automl==0.4.0", "--quiet", "--no-warn-script-location"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)
 
     import google
     from google.cloud import automl

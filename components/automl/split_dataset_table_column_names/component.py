@@ -22,7 +22,7 @@ def automl_split_dataset_table_column_names(
 ) -> NamedTuple('Outputs', [('target_column_path', str), ('feature_column_paths', list)]):
     import sys
     import subprocess
-    subprocess.run([sys.executable, '-m', 'pip3', 'install', 'google-cloud-automl==0.4.0', '--quiet', '--no-warn-script-location'], env={'PIP_DISABLE_PIP_VERSION_CHECK': '1'}, check=True)
+    subprocess.run([sys.executable, "-m", "pip", "install", "google-cloud-automl==0.4.0", "--quiet", "--no-warn-script-location"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)
 
     from google.cloud import automl
     client = automl.AutoMlClient()
