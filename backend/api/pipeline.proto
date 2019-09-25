@@ -224,11 +224,6 @@ message PipelineVersion {
   // file location.
   Url package_url = 6;
 
-  // Input. Required. Pipeline version package url.
-  // Whe calling CreatePipelineVersion API method, need to provide one package
-  // file location.
-  Url package_url = 6;
-
   // Input. Required. E.g., specify which pipeline this pipeline version belongs
   // to.
   repeated ResourceReference resource_references = 7;
