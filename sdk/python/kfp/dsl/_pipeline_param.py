@@ -191,7 +191,13 @@ class PipelineParam(object):
     return '{{pipelineparam:op=%s;name=%s}}' % (op_name, self.name)
   
   def __repr__(self):
-    return str({self.__class__.__name__: self.__dict__})
+    # return str({self.__class__.__name__: self.__dict__})
+    # We make repr return the placeholder string so that if someone uses str()-based serialization of complex objects containing `PipelineParam` it works properly (e.g. str([1, 2, 3, kfp.dsl.PipelineParam("aaa"), 4, 5, 6,]))
+    return str(self)
+
+  def to_struct(self):
+    # Used by the json serializer. Outputs a JSON-serializable representation of the object
+    return str(self)
 
   def __eq__(self, other):
     return ConditionOperator('==', self, other)
