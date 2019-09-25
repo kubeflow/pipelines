@@ -5,7 +5,7 @@ def automl_create_dataset_for_tables(
     gcp_project_id: str,
     gcp_region: str,
     display_name: str,
-    description: str = '',
+    description: str = None,
     tables_dataset_metadata: dict = {},
     retry=None, #=google.api_core.gapic_v1.method.DEFAULT,
     timeout: float = None, #=google.api_core.gapic_v1.method.DEFAULT,
@@ -24,6 +24,7 @@ def automl_create_dataset_for_tables(
     location_path = client.location_path(gcp_project_id, gcp_region)
     dataset_dict = {
         'display_name': display_name,
+        'description': description,
         'tables_dataset_metadata': tables_dataset_metadata,
     }
     dataset = client.create_dataset(
