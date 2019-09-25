@@ -55,4 +55,4 @@ def automl_create_model_for_tables(
 
 if __name__ == '__main__':
     import kfp
-    kfp.components.func_to_container_op(automl_create_model_for_tables, output_component_file='component.yaml')
+    kfp.components.func_to_container_op(automl_create_model_for_tables, output_component_file='component.yaml', base_image='python:3.7')

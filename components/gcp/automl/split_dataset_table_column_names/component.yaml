@@ -73,7 +73,7 @@ implementation:
               pass
           with open(output_file, 'w') as f:
               f.write(str(_outputs[idx]))
-    image: tensorflow/tensorflow:1.13.2-py3
+    image: python:3.7
 inputs:
 - name: dataset_path
   type: String
