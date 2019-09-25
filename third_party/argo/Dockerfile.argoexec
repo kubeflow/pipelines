@@ -12,14 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM alpine as builder
+
+COPY third_party /third_party
+
+RUN apk add --no-cache curl
+
+ENV OUTPUT_FOLDER /downloads/
+RUN sh /third_party/download_source.sh </third_party/argo/repo-MPL.txt
+
+
+# Argo exec image
 From gcr.io/ml-pipeline/argoexec:v2.3.0
 
 # Copy concatenated license file
 COPY third_party/argo/license.txt /third_party/license.txt
 
-RUN apt-get update -y && apt-get install --no-install-recommends -y wget
-
-# Download dependencies' source code with MPL
-RUN wget -O /third_party/go-sql-driver.source.zip https://github.com/go-sql-driver/mysql/archive/master.zip
-RUN wget -O /third_party/go-uuid.source.zip https://github.com/hashicorp/go-uuid/archive/master.zip
-RUN wget -O /third_party/golang-lru.source.zip https://github.com/hashicorp/golang-lru/archive/master.zip
+# Copy downloaded source code
+COPY --from=builder /downloads /third_party

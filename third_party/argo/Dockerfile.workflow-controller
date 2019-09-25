@@ -12,7 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM alpine as builder
+
+COPY third_party /third_party
+
+RUN apk add --no-cache curl
+
+ENV OUTPUT_FOLDER /downloads/
+RUN sh /third_party/download_source.sh </third_party/argo/repo-MPL.txt
+
 From gcr.io/ml-pipeline/workflow-controller:v2.3.0
 
 # Copy concatenated license file
 COPY third_party/argo/license.txt /third_party/license.txt
+
+# Copy downloaded source code
+COPY --from=builder /downloads /third_party
