@@ -40,10 +40,8 @@ type PipelineVersion struct {
 	// deleted from PipelineVersion table.
 	PipelineId string                `gorm:"column:PipelineId; not null;index;"`
 	Status     PipelineVersionStatus `gorm:"column:Status; not null"`
-	// Code source refers to the pipeline version's definition.
-	// We allow multiple code source references for a single pipeline version.
-	// CodeSourceURLs stores URL links to code source, separated by ";"
-	CodeSourceUrls string `gorm:"column:CodeSourceUrls;"`
+	// Code source url links to the pipeline version's definition in repo.
+	CodeSourceUrl string `gorm:"column:CodeSourceUrl;"`
 }
 
 func (p PipelineVersion) GetValueOfPrimaryKey() string {
@@ -68,11 +66,10 @@ func (p *PipelineVersion) DefaultSortField() string {
 // PipelineVersion.
 func (p *PipelineVersion) APIToModelFieldMap() map[string]string {
 	return map[string]string{
-		"id":          "UUID",
-		"name":        "Name",
-		"created_at":  "CreatedAtInSec",
-		"pipeline_id": "PipelineId",
-		"status":      "Status",
+		"id":         "UUID",
+		"name":       "Name",
+		"created_at": "CreatedAtInSec",
+		"status":     "Status",
 	}
 }
 

@@ -18,7 +18,7 @@ func TestAddSortingToSelect(t *testing.T) {
 		Parameters:     "",
 		PipelineId:     "pipeline_id_1",
 		Status:         PipelineVersionReady,
-		CodeSourceUrls: "",
+		CodeSourceUrl:  "",
 	}
 	protoFilter := &api.Filter{}
 	listableOptions, err := list.NewOptions(listable, 10, "name", protoFilter)

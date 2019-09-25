@@ -85,17 +85,13 @@ func ToApiPipelineVersion(version *model.PipelineVersion) (*api.PipelineVersion,
 	if err != nil {
 		return nil, err
 	}
-	codeSources, err := ToApiSources(&version.CodeSourceUrls)
-	if err != nil {
-		return nil, err
-	}
 
 	return &api.PipelineVersion{
-		Id:             version.UUID,
-		Name:           version.Name,
-		CreatedAt:      &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
-		Parameters:     params,
-		CodeSourceUrls: codeSources,
+		Id:            version.UUID,
+		Name:          version.Name,
+		CreatedAt:     &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
+		Parameters:    params,
+		CodeSourceUrl: version.CodeSourceUrl,
 		ResourceReferences: []*api.ResourceReference{
 			&api.ResourceReference{
 				Key: &api.ResourceKey{
@@ -106,19 +102,6 @@ func ToApiPipelineVersion(version *model.PipelineVersion) (*api.PipelineVersion,
 			},
 		},
 	}, nil
-}
-
-func ToApiSources(sources *string) ([]string, error) {
-	if sources == nil || len(*sources) == 0 {
-		return nil, nil
-	}
-	var codeSources []string
-	err := json.Unmarshal([]byte(*sources), &codeSources)
-	if err != nil {
-		return nil, util.NewInternalServerError(
-			err, "Code sources can't be parsed")
-	}
-	return codeSources, nil
 }
 
 func ToApiPipelineVersions(versions []*model.PipelineVersion) ([]*api.PipelineVersion, error) {

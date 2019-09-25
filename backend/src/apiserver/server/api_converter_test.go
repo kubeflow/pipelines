@@ -36,7 +36,7 @@ func TestToApiPipeline(t *testing.T) {
 		// 	CreatedAtInSec: 1,
 		// 	Parameters:     "[]",
 		// 	PipelineId:     "pipeline1",
-		// 	CodeSourceUrls: ";http://repo/22222;http://repo/44444;;",
+		// 	CodeSourceUrl: "http://repo/22222",
 		// },
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
@@ -49,7 +49,7 @@ func TestToApiPipeline(t *testing.T) {
 		// 	Id:             "pipelineversion1",
 		// 	CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		// 	Parameters:     []*api.Parameter{},
-		// 	CodeSourceUrls: []string{"http://repo/22222", "http://repo/44444"},
+		// 	CodeSourceUrl:  "http://repo/22222",
 		// 	ResourceReferences: []*api.ResourceReference{
 		// 		&api.ResourceReference{
 		// 			Key: &api.ResourceKey{

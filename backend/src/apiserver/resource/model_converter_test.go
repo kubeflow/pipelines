@@ -235,10 +235,10 @@ func TestToModelPipelineVersion(t *testing.T) {
 	store, manager := initResourceManager()
 	defer store.Close()
 	apiPipelineVersion := &api.PipelineVersion{
-		Id:             "pipelineversion1",
-		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-		Parameters:     []*api.Parameter{},
-		CodeSourceUrls: []string{"http://repo/11111", "http://repo/33333"},
+		Id:            "pipelineversion1",
+		CreatedAt:     &timestamp.Timestamp{Seconds: 1},
+		Parameters:    []*api.Parameter{},
+		CodeSourceUrl: "http://repo/11111",
 		ResourceReferences: []*api.ResourceReference{
 			&api.ResourceReference{
 				Key: &api.ResourceKey{
@@ -258,7 +258,7 @@ func TestToModelPipelineVersion(t *testing.T) {
 		CreatedAtInSec: 1,
 		Parameters:     "",
 		PipelineId:     "pipeline1",
-		CodeSourceUrls: "[\"http://repo/11111\",\"http://repo/33333\"]",
+		CodeSourceUrl:  "http://repo/11111",
 	}
 
 	assert.Equal(t, convertedModelPipelineVersion, expectedModelPipelineVersion)
