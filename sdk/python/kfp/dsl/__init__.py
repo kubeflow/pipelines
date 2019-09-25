@@ -26,5 +26,5 @@ from ._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor
 from ._component import python_component, graph_component, component
 from ._artifact_location import ArtifactLocation
 
-task_id_placeholder = '{{workflow.uid}}-{{pod.name}}'
+execution_id_placeholder = '{{workflow.uid}}-{{pod.name}}'
 run_id_placeholder = '{{workflow.uid}}'
