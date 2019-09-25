@@ -48,10 +48,6 @@ func (p PipelineVersion) GetValueOfPrimaryKey() string {
 	return fmt.Sprint(p.UUID)
 }
 
-func GetPipelineVersionTablePrimaryKeyColumn() string {
-	return "UUID"
-}
-
 // PrimaryKeyColumnName returns the primary key for model PipelineVersion.
 func (p *PipelineVersion) PrimaryKeyColumnName() string {
 	return "UUID"
