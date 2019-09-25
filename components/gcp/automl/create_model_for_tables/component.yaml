@@ -1,0 +1,141 @@
+implementation:
+  container:
+    args:
+    - --gcp-project-id
+    - inputValue: gcp_project_id
+    - --gcp-region
+    - inputValue: gcp_region
+    - --display-name
+    - inputValue: display_name
+    - --dataset-id
+    - inputValue: dataset_id
+    - if:
+        cond:
+          isPresent: target_column_path
+        then:
+        - --target-column-path
+        - inputValue: target_column_path
+    - if:
+        cond:
+          isPresent: input_feature_column_paths
+        then:
+        - --input-feature-column-paths
+        - inputValue: input_feature_column_paths
+    - if:
+        cond:
+          isPresent: optimization_objective
+        then:
+        - --optimization-objective
+        - inputValue: optimization_objective
+    - if:
+        cond:
+          isPresent: train_budget_milli_node_hours
+        then:
+        - --train-budget-milli-node-hours
+        - inputValue: train_budget_milli_node_hours
+    - '----output-paths'
+    - outputPath: model_path
+    - outputPath: model_id
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      from typing import NamedTuple
+
+      def automl_create_model_for_tables(
+          gcp_project_id: str,
+          gcp_region: str,
+          display_name: str,
+          dataset_id: str,
+          target_column_path: str = None,
+          input_feature_column_paths: list = None,
+          optimization_objective: str = 'MAXIMIZE_AU_PRC',
+          train_budget_milli_node_hours: int = 1000,
+      ) -> NamedTuple('Outputs', [('model_path', str), ('model_id', str)]):
+          import sys
+          import subprocess
+          subprocess.run([sys.executable, '-m', 'pip', 'install', 'google-cloud-automl==0.4.0', '--quiet', '--no-warn-script-location'], env={'PIP_DISABLE_PIP_VERSION_CHECK': '1'}, check=True)
+
+          from google.cloud import automl
+          client = automl.AutoMlClient()
+
+          location_path = client.location_path(gcp_project_id, gcp_region)
+          model_dict = {
+              'display_name': display_name,
+              'dataset_id': dataset_id,
+              'tables_model_metadata': {
+                  'target_column_spec': automl.types.ColumnSpec(name=target_column_path),
+                  'input_feature_column_specs': [automl.types.ColumnSpec(name=path) for path in input_feature_column_paths] if input_feature_column_paths else None,
+                  'optimization_objective': optimization_objective,
+                  'train_budget_milli_node_hours': train_budget_milli_node_hours,
+              },
+          }
+
+          create_model_response = client.create_model(location_path, model_dict)
+          print('Create model operation: {}'.format(create_model_response.operation))
+          result = create_model_response.result()
+          print(result)
+          model_name = result.name
+          model_id = model_name.rsplit('/', 1)[-1]
+          return (model_name, model_id)
+
+      import json
+      import argparse
+      _missing_arg = object()
+      _parser = argparse.ArgumentParser(prog='Automl create model for tables', description='')
+      _parser.add_argument("--gcp-project-id", dest="gcp_project_id", type=str, required=True, default=_missing_arg)
+      _parser.add_argument("--gcp-region", dest="gcp_region", type=str, required=True, default=_missing_arg)
+      _parser.add_argument("--display-name", dest="display_name", type=str, required=True, default=_missing_arg)
+      _parser.add_argument("--dataset-id", dest="dataset_id", type=str, required=True, default=_missing_arg)
+      _parser.add_argument("--target-column-path", dest="target_column_path", type=str, required=False, default=_missing_arg)
+      _parser.add_argument("--input-feature-column-paths", dest="input_feature_column_paths", type=json.loads, required=False, default=_missing_arg)
+      _parser.add_argument("--optimization-objective", dest="optimization_objective", type=str, required=False, default=_missing_arg)
+      _parser.add_argument("--train-budget-milli-node-hours", dest="train_budget_milli_node_hours", type=int, required=False, default=_missing_arg)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
+      _parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = automl_create_model_for_tables(**_parsed_args)
+
+      if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+          _outputs = [_outputs]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(str(_outputs[idx]))
+    image: python:3.7
+inputs:
+- name: gcp_project_id
+  type: String
+- name: gcp_region
+  type: String
+- name: display_name
+  type: String
+- name: dataset_id
+  type: String
+- name: target_column_path
+  optional: true
+  type: String
+- name: input_feature_column_paths
+  optional: true
+  type: JsonArray
+- default: MAXIMIZE_AU_PRC
+  name: optimization_objective
+  optional: true
+  type: String
+- default: '1000'
+  name: train_budget_milli_node_hours
+  optional: true
+  type: Integer
+name: Automl create model for tables
+outputs:
+- name: model_path
+  type: String
+- name: model_id
+  type: String
