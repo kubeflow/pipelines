@@ -483,6 +483,19 @@ class PythonOpTestCase(unittest.TestCase):
         ])
 
 
+    def test_handling_list_arguments_containing_pipelineparam(self):
+        '''Checks that lists containing PipelineParam can be properly serialized'''
+        def consume_list(list_param: list) -> int:
+            pass
+
+        import kfp
+        task_factory = comp.func_to_container_op(consume_list)
+        task = task_factory([1, 2, 3, kfp.dsl.PipelineParam("aaa"), 4, 5, 6])
+        full_command_line = task.command + task.arguments
+        for arg in full_command_line:
+            self.assertNotIn('PipelineParam', arg)
+
+
     def test_handling_base64_pickle_arguments(self):
         def assert_values_are_same(
             obj1: 'Base64Pickle', # noqa: F821
