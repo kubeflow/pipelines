@@ -42,6 +42,10 @@ spec:
       parameters:
       - name: create-pvc-name
     name: step1
+    volumes:
+    - name: create-pvc
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-pvc-name}}'
   - container:
       args:
       - echo 2 | tee /mnt2/file2
@@ -56,6 +60,10 @@ spec:
       parameters:
       - name: create-pvc-name
     name: step2
+    volumes:
+    - name: create-pvc
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-pvc-name}}'
   - container:
       args:
       - cat /mnt/file1 /mnt/file2
@@ -70,6 +78,10 @@ spec:
       parameters:
       - name: create-pvc-name
     name: step3
+    volumes:
+    - name: create-pvc
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-pvc-name}}'
   - dag:
       tasks:
       - name: create-pvc
@@ -101,7 +113,3 @@ spec:
         name: step3
         template: step3
     name: volume-op-dag
-  volumes:
-  - name: create-pvc
-    persistentVolumeClaim:
-      claimName: '{{inputs.parameters.create-pvc-name}}'
