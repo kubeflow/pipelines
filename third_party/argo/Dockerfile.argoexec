@@ -16,3 +16,10 @@ From gcr.io/ml-pipeline/argoexec:v2.3.0
 
 # Copy concatenated license file
 COPY third_party/argo/license.txt /third_party/license.txt
+
+RUN apt-get update -y && apt-get install --no-install-recommends -y wget
+
+# Download dependencies' source code with MPL
+RUN wget -O /third_party/go-sql-driver.source.zip https://github.com/go-sql-driver/mysql/archive/master.zip
+RUN wget -O /third_party/go-uuid.source.zip https://github.com/hashicorp/go-uuid/archive/master.zip
+RUN wget -O /third_party/golang-lru.source.zip https://github.com/hashicorp/golang-lru/archive/master.zip
