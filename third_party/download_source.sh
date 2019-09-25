@@ -1,4 +1,6 @@
-# Copyright 2019 Google LLC
+#!/bin/bash
+#
+# Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,21 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine as builder
+set -e
 
-COPY third_party /third_party
-
-RUN apk add --no-cache curl
-
-ENV OUTPUT_FOLDER /downloads/
-RUN sh /third_party/download_source.sh </third_party/minio/repo-MPL.txt
-
-
-# Minio image
-FROM gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z
-
-# Copy concatenated license file
-COPY third_party/minio/license.txt /third_party/license.txt
-
-# Copy downloaded source code
-COPY --from=builder /downloads /third_party
+while read repo
+do
+  echo "Fetching source code for repo: github.com/$repo"
+  curl --create-dirs -o "$OUTPUT_FOLDER$repo.source.zip" -L "https://github.com/$repo/archive/master.zip"
+done < "/dev/stdin"
