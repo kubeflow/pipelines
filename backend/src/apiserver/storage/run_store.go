@@ -17,7 +17,6 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-
 	"github.com/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
