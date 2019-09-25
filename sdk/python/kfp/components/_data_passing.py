@@ -45,11 +45,15 @@ _bool_deserializer_code = _deserialize_bool.__name__
 
 
 def _serialize_json(obj) -> str:
+    if isinstance(obj, str):
+        return obj
     import json
     return json.dumps(obj)
 
 
 def _serialize_base64_pickle(obj) -> str:
+    if isinstance(obj, str):
+        return obj
     import base64
     import pickle
     return base64.b64encode(pickle.dumps(obj)).decode('ascii')
