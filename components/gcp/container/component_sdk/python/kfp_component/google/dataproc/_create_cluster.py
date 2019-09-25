@@ -66,9 +66,9 @@ def create_cluster(project_id, region, name=None, name_prefix=None,
     if config_bucket:
         cluster['config']['configBucket'] = config_bucket
     if image_version:
-        if 'softwareConfig' not in cluster:
-            cluster['softwareConfig'] = {}
-        cluster['softwareConfig']['imageVersion'] = image_version
+        if 'softwareConfig' not in cluster['config']:
+            cluster['config']['softwareConfig'] = {}
+        cluster['config']['softwareConfig']['imageVersion'] = image_version
 
     return _create_cluster_internal(project_id, region, cluster, name_prefix,
         wait_interval)
