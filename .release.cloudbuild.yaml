@@ -15,7 +15,7 @@
 steps:
 # Generate and copy the pipeline-lite deployment YAML
 - name: 'google/cloud-sdk'
-  args: ['ls', '/workspace']
+  args: ['ls', '/workspace/manifests/kustomize/env/dev']
   id:   'generateDeploymentYaml'
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', 'namespaced-install.yaml', 'gs://ml-pipeline/pipeline-lite/$TAG_NAME/namespaced-install.yaml']
