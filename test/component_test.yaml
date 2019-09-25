@@ -64,14 +64,6 @@ spec:
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: target-image-prefix
             value: "{{inputs.parameters.target-image-prefix}}"
-          - name: dataflow-tft-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tft:{{inputs.parameters.commit-sha}}"
-          - name: dataflow-predict-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tf-predict:{{inputs.parameters.commit-sha}}"
-          - name: dataflow-tfma-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tfma:{{inputs.parameters.commit-sha}}"
-          - name: dataflow-tfdv-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataflow-tfdv:{{inputs.parameters.commit-sha}}"
           - name: dataproc-create-cluster-image
             value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-create-cluster:{{inputs.parameters.commit-sha}}"
           - name: dataproc-delete-cluster-image
@@ -146,10 +138,6 @@ spec:
       parameters:
       - name: test-results-gcs-dir
       - name: target-image-prefix
-      - name: dataflow-tft-image
-      - name: dataflow-predict-image
-      - name: dataflow-tfma-image
-      - name: dataflow-tfdv-image
       - name: dataproc-create-cluster-image
       - name: dataproc-delete-cluster-image
       - name: dataproc-analyze-image
@@ -169,10 +157,6 @@ spec:
         "component_test", "run_test",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}",
-        "--dataflow-tft-image","{{inputs.parameters.dataflow-tft-image}}",
-        "--dataflow-predict-image","{{inputs.parameters.dataflow-predict-image}}",
-        "--dataflow-tfma-image","{{inputs.parameters.dataflow-tfma-image}}",
-        "--dataflow-tfdv-image","{{inputs.parameters.dataflow-tfdv-image}}",
         "--dataproc-create-cluster-image","{{inputs.parameters.dataproc-create-cluster-image}}",
         "--dataproc-delete-cluster-image","{{inputs.parameters.dataproc-delete-cluster-image}}",
         "--dataproc-analyze-image","{{inputs.parameters.dataproc-analyze-image}}",

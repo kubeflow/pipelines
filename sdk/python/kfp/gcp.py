@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kubernetes.client import V1Toleration
+from kubernetes.client import V1Toleration, V1Affinity, V1NodeAffinity, \
+  V1NodeSelector, V1NodeSelectorTerm, V1NodeSelectorRequirement, V1PreferredSchedulingTerm
 
 def use_gcp_secret(secret_name='user-gcp-sa', secret_file_path_in_volume=None, volume_name=None, secret_volume_mount_path='/secret/gcp-credentials'):
     """An operator that configures the container to use GCP service account.
@@ -102,13 +103,31 @@ def use_tpu(tpu_cores: int, tpu_resource: str, tf_version: str):
 def use_preemptible_nodepool(toleration: V1Toleration = V1Toleration(effect='NoSchedule',
                                                              key='preemptible',
                                                              operator='Equal',
-                                                             value='true')):
+                                                             value='true'),
+                              hard_constraint: bool = False):
   """An operator that configures the GKE preemptible in a container op.
+  Args:
+    toleration (V1Toleration): toleration to pods, default is the preemptible label.
+    hard_constraint (bool): the constraint of scheduling the pods on preemptible
+        nodepools is hard. (Default: False)
   """
 
   def _set_preemptible(task):
     task.add_toleration(toleration)
-    task.add_node_selector_constraint("cloud.google.com/gke-preemptible", "true")
+    node_selector_term = V1NodeSelectorTerm(match_expressions=[
+        V1NodeSelectorRequirement(key='cloud.google.com/gke-preemptible',
+                                  operator='In',
+                                  values=['true'])]
+    )
+    if hard_constraint:
+      node_affinity = V1NodeAffinity(required_during_scheduling_ignored_during_execution=
+                        V1NodeSelector(node_selector_terms=[node_selector_term]))
+    else:
+      node_affinity = V1NodeAffinity(preferred_during_scheduling_ignored_during_execution=
+                        V1PreferredSchedulingTerm(preference=node_selector_term,
+                                                  weight=50))
+    affinity = V1Affinity(node_affinity=node_affinity)
+    task.add_affinity(affinity=affinity)
     return task
 
   return _set_preemptible

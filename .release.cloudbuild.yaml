@@ -203,7 +203,7 @@ steps:
 
 # Generate and copy the pipeline-lite deployment YAML
 - name: 'google/cloud-sdk'
-  args: ['kustomize', '/workspace/manifests/kustomize/env/dev', 'namespaced-install.yaml']
+  args: ['bash', '-c', 'kubectl kustomize /workspace/manifests/kustomize/env/dev > namespaced-install.yaml']
   id:   'generateDeploymentYaml'
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', 'namespaced-install.yaml', 'gs://ml-pipeline/pipeline-lite/$TAG_NAME/namespaced-install.yaml']
@@ -242,3 +242,4 @@ images:
 - 'gcr.io/ml-pipeline/google/pipelines/metadataenvoy:$TAG_NAME'
 
 timeout: '1200s'
+
