@@ -15,7 +15,7 @@
 from setuptools import setup
 
 NAME = 'kfp'
-VERSION = '0.1.27'
+VERSION = '0.1.31'
 
 REQUIRES = [
     'urllib3>=1.15,<1.25',  #Fixing the version conflict with the "requests" package
@@ -51,6 +51,7 @@ setup(
         'kfp.components',
         'kfp.components.structures',
         'kfp.components.structures.kubernetes',
+        'kfp.containers',
         'kfp.dsl',
         'kfp.notebook',
     ],

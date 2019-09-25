@@ -14,3 +14,4 @@
 
 test_name: default_sample_test
 test_timeout: 1200
+run_pipeline: True

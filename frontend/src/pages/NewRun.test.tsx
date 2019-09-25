@@ -70,6 +70,23 @@ describe('NewRun', () => {
     };
   }
 
+  function newMockPipelineWithParameters(): ApiPipeline {
+    return {
+      id: 'unoriginal-run-pipeline-id',
+      name: 'unoriginal mock pipeline name',
+      parameters: [
+        {
+          name: 'set value',
+          value: 'abc'
+        },
+        {
+          name: 'empty value',
+          value: ''
+        }
+      ]
+    };
+  }
+
   function newMockRunDetail(): ApiRunDetail {
     return {
       pipeline_runtime: {
@@ -336,6 +353,33 @@ describe('NewRun', () => {
       message: `Error: failed to retrieve pipeline: ${MOCK_PIPELINE.id}. Click Details for more information.`,
       mode: 'error',
     }));
+  });
+
+  it('renders a warning message if there are pipeline parameters with empty values', async () => {
+    tree = TestUtils.mountWithRouter(<TestNewRun {...generateProps() as any} />);
+    await TestUtils.flushPromises();
+
+    const pipeline = newMockPipelineWithParameters();
+    tree.setState({ pipeline, pipelineName: pipeline.name });
+    
+    // Ensure that at least one of the provided parameters has a missing value.
+    expect((pipeline.parameters || []).some(parameter => !parameter.value)).toBe(true);
+    expect(tree.find('#missing-parameters-message').exists()).toBe(true);
+  });
+
+  it('does not render a warning message if there are no pipeline parameters with empty values', async () => {
+    tree = TestUtils.mountWithRouter(<TestNewRun {...generateProps() as any} />);
+    await TestUtils.flushPromises();
+
+    const pipeline = newMockPipelineWithParameters();
+    (pipeline.parameters || []).forEach(parameter => {
+      parameter.value = 'I am not set';
+    });
+    tree.setState({ pipeline, pipelineName: pipeline.name });
+    
+    // Ensure all provided parameters have valid values.
+    expect((pipeline.parameters || []).every(parameter => !!parameter.value)).toBe(true);
+    expect(tree.find('#missing-parameters-message').exists()).toBe(false);
   });
 
   describe('choosing a pipeline', () => {

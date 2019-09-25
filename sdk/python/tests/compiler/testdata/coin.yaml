@@ -29,22 +29,13 @@ spec:
           parameters:
           - name: flip-again-output
             value: '{{tasks.flip-again.outputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
         dependencies:
         - flip-again
         name: condition-2
         template: condition-2
-        when: '{{tasks.flip-again.outputs.parameters.flip-again-output}} == tails'
-      - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
-        name: flip-again
+        when: '"{{tasks.flip-again.outputs.parameters.flip-again-output}}" == "tails"'
+      - name: flip-again
         template: flip-again
-    inputs:
-      parameters:
-      - name: flip-output
     name: condition-1
     outputs:
       parameters:
@@ -57,14 +48,11 @@ spec:
           parameters:
           - name: flip-again-output
             value: '{{inputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
         name: print1
         template: print1
     inputs:
       parameters:
       - name: flip-again-output
-      - name: flip-output
     name: condition-2
   - dag:
       tasks:
@@ -72,14 +60,11 @@ spec:
           parameters:
           - name: flip-again-output
             value: '{{inputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
         name: print2
         template: print2
     inputs:
       parameters:
       - name: flip-again-output
-      - name: flip-output
     name: condition-3
   - container:
       args:
@@ -92,12 +77,8 @@ spec:
     name: flip
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+      - name: flip-output
+        path: /tmp/output
       parameters:
       - name: flip-output
         valueFrom:
@@ -113,39 +94,29 @@ spec:
     name: flip-again
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+      - name: flip-again-output
+        path: /tmp/output
       parameters:
       - name: flip-again-output
         valueFrom:
           path: /tmp/output
   - dag:
       tasks:
-      - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{tasks.flip.outputs.parameters.flip-output}}'
-        dependencies:
+      - dependencies:
         - flip
         name: condition-1
         template: condition-1
-        when: '{{tasks.flip.outputs.parameters.flip-output}} == heads'
+        when: '"{{tasks.flip.outputs.parameters.flip-output}}" == "heads"'
       - arguments:
           parameters:
           - name: flip-again-output
             value: '{{tasks.condition-1.outputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{tasks.flip.outputs.parameters.flip-output}}'
         dependencies:
         - condition-1
         - flip
         name: condition-3
         template: condition-3
-        when: '{{tasks.flip.outputs.parameters.flip-output}} == tails'
+        when: '"{{tasks.flip.outputs.parameters.flip-output}}" == "tails"'
       - name: flip
         template: flip
     name: pipeline-flip-coin
@@ -158,14 +129,6 @@ spec:
       parameters:
       - name: flip-again-output
     name: print1
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - container:
       command:
       - echo
@@ -175,11 +138,3 @@ spec:
       parameters:
       - name: flip-again-output
     name: print2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true

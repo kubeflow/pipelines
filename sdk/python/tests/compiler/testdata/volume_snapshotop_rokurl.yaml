@@ -133,14 +133,6 @@ spec:
       parameters:
       - name: create-volume-1-name
     name: step1-concat
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - container:
       command:
       - gunzip
@@ -154,14 +146,6 @@ spec:
       parameters:
       - name: create-volume-2-name
     name: step2-gunzip
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - container:
       command:
       - cat
@@ -174,14 +158,6 @@ spec:
       parameters:
       - name: create-volume-3-name
     name: step3-output
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - dag:
       tasks:
       - arguments:

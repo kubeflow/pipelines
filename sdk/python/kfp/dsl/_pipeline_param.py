@@ -191,7 +191,7 @@ class PipelineParam(object):
     return '{{pipelineparam:op=%s;name=%s}}' % (op_name, self.name)
   
   def __repr__(self):
-      return str({self.__class__.__name__: self.__dict__})
+    return str({self.__class__.__name__: self.__dict__})
 
   def __eq__(self, other):
     return ConditionOperator('==', self, other)

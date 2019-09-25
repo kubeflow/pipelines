@@ -25,7 +25,7 @@ from kubernetes.client.models import (
 )
 
 from . import _pipeline_param
-from ._metadata import ComponentMeta
+from ..components._structures import ComponentSpec
 
 # generics
 T = TypeVar('T')
@@ -970,7 +970,7 @@ class ContainerOp(BaseOp):
       container_kwargs: Dict = None,
       artifact_argument_paths: List[InputArgumentPath] = None,
       file_outputs: Dict[str, str] = None,
-      output_artifact_paths : Dict[str, str]=None,
+      output_artifact_paths: Dict[str, str]=None,
       artifact_location: V1alpha1ArtifactLocation=None,
       is_exit_handler=False,
       pvolumes: Dict[str, V1Volume] = None,
@@ -1013,10 +1013,12 @@ class ContainerOp(BaseOp):
         """
 
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
-        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location'] #Copying the BaseOp class variable!
+        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location', 'artifact_arguments'] #Copying the BaseOp class variable!
 
         input_artifact_paths = {}
         artifact_arguments = {}
+        file_outputs = dict(file_outputs or {}) # Making a copy
+        output_artifact_paths = dict(output_artifact_paths or {}) # Making a copy
 
         def resolve_artifact_argument(artarg):
             from ..components._components import _generate_input_file_name
@@ -1025,10 +1027,7 @@ class ContainerOp(BaseOp):
             input_name = getattr(artarg.input, 'name', artarg.input) or ('input-' + str(len(artifact_arguments)))
             input_path = artarg.path or _generate_input_file_name(input_name)
             input_artifact_paths[input_name] = input_path
-            if not isinstance(artarg.argument, str):
-                raise TypeError('Argument "{}" was passed to the artifact input "{}", but only constant strings are supported at this moment.'.format(str(artarg.argument), input_name))
-
-            artifact_arguments[input_name] = artarg.argument
+            artifact_arguments[input_name] = str(artarg.argument)
             return input_path
 
         for artarg in artifact_argument_paths or []:
@@ -1075,6 +1074,14 @@ class ContainerOp(BaseOp):
                     attr_to_proxy not in ignore_set):
                 # only proxy public callables
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
+
+        # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics outputs that should always be saved as artifacts
+        # TODO: Remove when outputs are always saved as artifacts
+        for output_name, path in dict(file_outputs).items():
+            normalized_output_name = re.sub('[^a-zA-Z0-9]', '-', output_name.lower())
+            if normalized_output_name in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']:
+                output_artifact_paths[normalized_output_name] = path
+                del file_outputs[output_name]
 
         # attributes specific to `ContainerOp`
         self.input_artifact_paths = input_artifact_paths
@@ -1141,10 +1148,10 @@ class ContainerOp(BaseOp):
         '''_set_metadata passes the containerop the metadata information
         and configures the right output
         Args:
-          metadata (ComponentMeta): component metadata
+          metadata (ComponentSpec): component metadata
         '''
-        if not isinstance(metadata, ComponentMeta):
-            raise ValueError('_set_medata is expecting ComponentMeta.')
+        if not isinstance(metadata, ComponentSpec):
+            raise ValueError('_set_metadata is expecting ComponentSpec.')
 
         self._metadata = metadata
 
@@ -1153,7 +1160,7 @@ class ContainerOp(BaseOp):
                 output_type = self.outputs[output].param_type
                 for output_meta in self._metadata.outputs:
                     if output_meta.name == output:
-                        output_type = output_meta.param_type
+                        output_type = output_meta.type
                 self.outputs[output].param_type = output_type
 
             self.output = None

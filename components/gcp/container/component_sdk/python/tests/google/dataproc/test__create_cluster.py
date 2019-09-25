@@ -60,10 +60,10 @@ class TestCreateCluster(unittest.TestCase):
                         'executableFile': 'gs://action/2'
                     }
                 ],
-                'configBucket': 'gs://config/bucket'
-            },
-            'softwareConfig': {
-                'imageVersion': '1.10'
+                'configBucket': 'gs://config/bucket',
+                'softwareConfig': {
+                    'imageVersion': '1.10'
+                },
             },
             'labels': {
                 'label-1': 'value-1'

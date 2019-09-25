@@ -130,6 +130,7 @@ def _parameters_to_json(params: List[dsl.PipelineParam]):
 def _inputs_to_json(
     inputs_params: List[dsl.PipelineParam],
     input_artifact_paths: Dict[str, str] = None,
+    artifact_arguments: Dict[str, str] = None,
 ) -> Dict[str, Dict]:
     """Converts a list of PipelineParam into an argo `inputs` JSON obj."""
     parameters = _parameters_to_json(inputs_params)
@@ -138,6 +139,8 @@ def _inputs_to_json(
     artifacts = []
     for name, path in (input_artifact_paths or {}).items():
         artifact = {'name': name, 'path': path}
+        if name in artifact_arguments: # The arguments should be compiled as DAG task arguments, not template's default values, but in the current DSL-compiler implementation it's too hard to make that work when passing artifact references.
+            artifact['raw'] = {'data': str(artifact_arguments[name])}
         artifacts.append(artifact)
     artifacts.sort(key=lambda x: x['name']) #Stabilizing the input artifact ordering
 
@@ -187,8 +190,8 @@ def _op_to_template(op: BaseOp):
     if isinstance(op, dsl.ContainerOp):
         # default output artifacts
         output_artifact_paths = OrderedDict(op.output_artifact_paths)
-        output_artifact_paths.setdefault('mlpipeline-ui-metadata', '/mlpipeline-ui-metadata.json')
-        output_artifact_paths.setdefault('mlpipeline-metrics', '/mlpipeline-metrics.json')
+        # This should have been as easy as output_artifact_paths.update(op.file_outputs), but the _outputs_to_json function changes the output names and we must do the same here, so that the names are the same
+        output_artifact_paths.update(sorted(((param.full_name, processed_op.file_outputs[param.name]) for param in processed_op.outputs.values()), key=lambda x: x[0]))
 
         output_artifacts = [
              K8sHelper.convert_k8s_obj_to_json(
@@ -199,10 +202,6 @@ def _op_to_template(op: BaseOp):
                      key='runs/{{workflow.uid}}/{{pod.name}}/' + name + '.tgz'))
             for name, path in output_artifact_paths.items()
         ]
-
-        for output_artifact in output_artifacts:
-            if output_artifact['name'] in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']:
-                output_artifact['optional'] = True
 
         # workflow template
         template = {
@@ -229,7 +228,8 @@ def _op_to_template(op: BaseOp):
 
     # inputs
     input_artifact_paths = processed_op.input_artifact_paths if isinstance(processed_op, dsl.ContainerOp) else None
-    inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths)
+    artifact_arguments = processed_op.artifact_arguments if isinstance(processed_op, dsl.ContainerOp) else None
+    inputs = _inputs_to_json(processed_op.inputs, input_artifact_paths, artifact_arguments)
     if inputs:
         template['inputs'] = inputs
 
@@ -238,8 +238,9 @@ def _op_to_template(op: BaseOp):
         param_outputs = processed_op.file_outputs
     elif isinstance(op, dsl.ResourceOp):
         param_outputs = processed_op.attribute_outputs
-    template['outputs'] = _outputs_to_json(op, processed_op.outputs,
-                                           param_outputs, output_artifacts)
+    outputs_dict = _outputs_to_json(op, processed_op.outputs, param_outputs, output_artifacts)
+    if outputs_dict:
+        template['outputs'] = outputs_dict
 
     # node selector
     if processed_op.node_selector:
