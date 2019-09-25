@@ -28,7 +28,6 @@ def fix_big_data_passing(workflow: dict) -> dict:
 
     workflow = copy.deepcopy(workflow)
     templates = workflow['spec']['templates']
-    volume_map = {volume['name']: volume for volume in workflow['spec'].get('volumes', [])}
 
     container_templates = [template for template in workflow['spec']['templates'] if 'container' in template]
     dag_templates = [template for template in workflow['spec']['templates'] if 'dag' in template]
