@@ -27,7 +27,7 @@ def automl_create_model_for_tables(
 ) -> NamedTuple('Outputs', [('model_path', str), ('model_id', str)]):
     import sys
     import subprocess
-    subprocess.run([sys.executable, "-m", "pip", "install", "google-cloud-automl==0.4.0", "--quiet", "--no-warn-script-location"], env={"PIP_DISABLE_PIP_VERSION_CHECK": "1"}, check=True)
+    subprocess.run([sys.executable, '-m', 'pip', 'install', 'google-cloud-automl==0.4.0', '--quiet', '--no-warn-script-location'], env={'PIP_DISABLE_PIP_VERSION_CHECK': '1'}, check=True)
 
     from google.cloud import automl
     client = automl.AutoMlClient()
