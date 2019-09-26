@@ -76,7 +76,7 @@ type RunStore struct {
 // total_size. The total_size does not reflect the page size, but it does reflect the number of runs
 // matching the supplied filters and resource references.
 func (s *RunStore) ListRuns(
-		filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
+	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
 	errorF := func(err error) ([]*model.Run, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
@@ -142,7 +142,7 @@ func (s *RunStore) ListRuns(
 }
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
-		filterContext *common.FilterContext) (string, []interface{}, error) {
+	filterContext *common.FilterContext) (string, []interface{}, error) {
 	filteredSelectBuilder, err := list.FilterOnResourceReference("run_details", runColumns,
 		common.Run, selectCount, filterContext)
 	if err != nil {
@@ -218,7 +218,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 	var runs []*model.RunDetail
 	for rows.Next() {
 		var uuid, displayName, name, storageState, namespace, description, pipelineId, pipelineName, pipelineSpecManifest,
-		workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
+			workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest, workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec int64
 		var metricsInString, resourceReferencesInString sql.NullString
 		err := rows.Scan(
@@ -312,31 +312,31 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 	if r.StorageState == "" {
 		r.StorageState = api.Run_STORAGESTATE_AVAILABLE.String()
 	} else if r.StorageState != api.Run_STORAGESTATE_AVAILABLE.String() &&
-			r.StorageState != api.Run_STORAGESTATE_ARCHIVED.String() {
+		r.StorageState != api.Run_STORAGESTATE_ARCHIVED.String() {
 		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", r.StorageState)
 	}
 
 	runSql, runArgs, err := sq.
 		Insert("run_details").
-			SetMap(sq.Eq{
-				"UUID":                    r.UUID,
-				"DisplayName":             r.DisplayName,
-				"Name":                    r.Name,
-				"StorageState":            r.StorageState,
-				"Namespace":               r.Namespace,
-				"Description":             r.Description,
-				"CreatedAtInSec":          r.CreatedAtInSec,
-				"ScheduledAtInSec":        r.ScheduledAtInSec,
-				"FinishedAtInSec":         r.FinishedAtInSec,
-				"Conditions":              r.Conditions,
-				"WorkflowRuntimeManifest": r.WorkflowRuntimeManifest,
-				"PipelineRuntimeManifest": r.PipelineRuntimeManifest,
-				"PipelineId":              r.PipelineId,
-				"PipelineName":            r.PipelineName,
-				"PipelineSpecManifest":    r.PipelineSpecManifest,
-				"WorkflowSpecManifest":    r.WorkflowSpecManifest,
-				"Parameters":              r.Parameters,
-			}).ToSql()
+		SetMap(sq.Eq{
+			"UUID":                    r.UUID,
+			"DisplayName":             r.DisplayName,
+			"Name":                    r.Name,
+			"StorageState":            r.StorageState,
+			"Namespace":               r.Namespace,
+			"Description":             r.Description,
+			"CreatedAtInSec":          r.CreatedAtInSec,
+			"ScheduledAtInSec":        r.ScheduledAtInSec,
+			"FinishedAtInSec":         r.FinishedAtInSec,
+			"Conditions":              r.Conditions,
+			"WorkflowRuntimeManifest": r.WorkflowRuntimeManifest,
+			"PipelineRuntimeManifest": r.PipelineRuntimeManifest,
+			"PipelineId":              r.PipelineId,
+			"PipelineName":            r.PipelineName,
+			"PipelineSpecManifest":    r.PipelineSpecManifest,
+			"WorkflowSpecManifest":    r.WorkflowSpecManifest,
+			"Parameters":              r.Parameters,
+		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",
 			r.Namespace, r.Name)
@@ -374,10 +374,10 @@ func (s *RunStore) UpdateRun(runID string, condition string, finishedAtInSec int
 
 	sql, args, err := sq.
 		Update("run_details").
-			SetMap(sq.Eq{
-				"Conditions":              condition,
-				"FinishedAtInSec":         finishedAtInSec,
-				"WorkflowRuntimeManifest": workflowRuntimeManifest}).
+		SetMap(sq.Eq{
+			"Conditions":              condition,
+			"FinishedAtInSec":         finishedAtInSec,
+			"WorkflowRuntimeManifest": workflowRuntimeManifest}).
 		Where(sq.Eq{"UUID": runID}).
 		ToSql()
 	if err != nil {
@@ -429,9 +429,9 @@ func (s *RunStore) CreateOrUpdateRun(runDetail *model.RunDetail) error {
 func (s *RunStore) ArchiveRun(runId string) error {
 	sql, args, err := sq.
 		Update("run_details").
-			SetMap(sq.Eq{
-				"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
-			}).
+		SetMap(sq.Eq{
+			"StorageState": api.Run_STORAGESTATE_ARCHIVED.String(),
+		}).
 		Where(sq.Eq{"UUID": runId}).
 		ToSql()
 
@@ -452,9 +452,9 @@ func (s *RunStore) ArchiveRun(runId string) error {
 func (s *RunStore) UnarchiveRun(runId string) error {
 	sql, args, err := sq.
 		Update("run_details").
-			SetMap(sq.Eq{
-				"StorageState": api.Run_STORAGESTATE_AVAILABLE.String(),
-			}).
+		SetMap(sq.Eq{
+			"StorageState": api.Run_STORAGESTATE_AVAILABLE.String(),
+		}).
 		Where(sq.Eq{"UUID": runId}).
 		ToSql()
 
@@ -511,13 +511,13 @@ func (s *RunStore) ReportMetric(metric *model.RunMetric) (err error) {
 	}
 	sql, args, err := sq.
 		Insert("run_metrics").
-			SetMap(sq.Eq{
-				"RunUUID":     metric.RunUUID,
-				"NodeID":      metric.NodeID,
-				"Name":        metric.Name,
-				"NumberValue": metric.NumberValue,
-				"Format":      metric.Format,
-				"Payload":     string(payloadBytes)}).ToSql()
+		SetMap(sq.Eq{
+			"RunUUID":     metric.RunUUID,
+			"NodeID":      metric.NodeID,
+			"Name":        metric.Name,
+			"NumberValue": metric.NumberValue,
+			"Format":      metric.Format,
+			"Payload":     string(payloadBytes)}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"failed to create query for inserting metric: %+v", metric)

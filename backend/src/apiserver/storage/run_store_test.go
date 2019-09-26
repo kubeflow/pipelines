@@ -685,13 +685,13 @@ func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
 	defer db.Close()
 	sql, args, _ := sq.
 		Insert("run_metrics").
-			SetMap(sq.Eq{
-				"RunUUID":     "1",
-				"NodeID":      "node1",
-				"Name":        "accuracy",
-				"NumberValue": 0.88,
-				"Format":      "RAW",
-				"Payload":     "{ invalid; json,"}).ToSql()
+		SetMap(sq.Eq{
+			"RunUUID":     "1",
+			"NodeID":      "node1",
+			"Name":        "accuracy",
+			"NumberValue": 0.88,
+			"Format":      "RAW",
+			"Payload":     "{ invalid; json,"}).ToSql()
 	db.Exec(sql, args...)
 
 	runDetail, err := runStore.GetRun("1")
