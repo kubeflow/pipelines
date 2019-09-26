@@ -30,5 +30,16 @@ Credits to: https://stackoverflow.com/questions/44769315/how-to-see-docker-image
 ## Release to gcr.io/ml-pipeline
 
 1. First build images in your own project
-2. Use [this gcloud command](https://cloud.google.com/container-registry/docs/managing#tagging_images) to retag your images to gcr.io/ml-pipeline
-3. When choosing the new tag, use the same text as the original release tag of the third party image
+1. Use [this gcloud command](https://cloud.google.com/container-registry/docs/managing#tagging_images) to retag your images to gcr.io/ml-pipeline
+1. When choosing the new tag, use the same text as the original release tag of the third party image
+
+(This has been automated by third_party/release.sh)
+
+## Release a new thirdparty image version
+
+1. Edit third_party/$LIBRARY/Dockerfile
+1. Change the line `from IMAGE_NAME:TAG_NAME` to `from IMAGE_NAME:NEW_TAG_NAME`
+1. Edit third_party/$LIBRARY/release.sh
+1. Change TAG to NEW_TAG_NAME.
+1. Commit and ask someone for review
+1. Run third_party/$LIBRARY/release.sh (you need to have storage access to ml-pipeline project)
