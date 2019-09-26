@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.compiler._component_builder import _generate_dockerfile
-from kfp.compiler._component_builder import _dependency_to_requirements
-from kfp.compiler._component_builder import VersionedDependency
-from kfp.compiler._component_builder import DependencyHelper
+from kfp.containers._component_builder import _generate_dockerfile, _dependency_to_requirements, VersionedDependency, DependencyHelper
 
 import os
 import unittest
@@ -113,8 +110,6 @@ pytorch >= 0.3.0, <= 0.3.0
 class TestGenerator(unittest.TestCase):
   def test_generate_dockerfile(self):
     """ Test generate dockerfile """
-    from kfp.compiler._component_builder import _generate_dockerfile
-
     # prepare
     test_data_dir = os.path.join(os.path.dirname(__file__), 'testdata')
     target_dockerfile = os.path.join(test_data_dir, 'component.temp.dockerfile')
