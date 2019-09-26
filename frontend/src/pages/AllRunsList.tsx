@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import Buttons from '../lib/Buttons';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
 import RunList from './RunList';
 import { Page } from './Page';
 import { RunStorageState } from '../apis/run';
@@ -42,18 +42,18 @@ class AllRunsList extends Page<{}, AllRunsListState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [
-        buttons.newRun(),
-        buttons.newExperiment(),
-        buttons.compareRuns(() => this.state.selectedIds),
-        buttons.cloneRun(() => this.state.selectedIds, false),
-        buttons.archive(
-          () => this.state.selectedIds,
-          false,
-          selectedIds => this._selectionChanged(selectedIds),
-        ),
-        buttons.refresh(this.refresh.bind(this)),
-      ],
+      actions: buttons
+        .newRun()
+        .newExperiment()
+        .compareRuns(() => this.state.selectedIds)
+        .cloneRun(() => this.state.selectedIds, false)
+        .archive(
+            () => this.state.selectedIds,
+            false,
+            selectedIds => this._selectionChanged(selectedIds),
+          )
+        .refresh(this.refresh.bind(this))
+        .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Experiments',
     };
@@ -76,15 +76,10 @@ class AllRunsList extends Page<{}, AllRunsListState> {
   }
 
   private _selectionChanged(selectedIds: string[]): void {
-    const toolbarActions = [...this.props.toolbarProps.actions];
-    // TODO: keeping track of indices in the toolbarActions array is not ideal. This should be
-    // refactored so that individual buttons can be referenced with something other than indices.
-    // Compare runs button
-    toolbarActions[2].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
-    // Clone run button
-    toolbarActions[3].disabled = selectedIds.length !== 1;
-    // Archive run button
-    toolbarActions[4].disabled = !selectedIds.length;
+    const toolbarActions = this.props.toolbarProps.actions;
+    toolbarActions[ButtonKeys.COMPARE].disabled = selectedIds.length <= 1 || selectedIds.length > 10;
+    toolbarActions[ButtonKeys.CLONE_RUN].disabled = selectedIds.length !== 1;
+    toolbarActions[ButtonKeys.ARCHIVE].disabled = !selectedIds.length;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
   }

@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import collections
 import re
 import warnings
 from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
 
 from argo.models import V1alpha1ArtifactLocation
-from kubernetes.client import V1Toleration
+from kubernetes.client import V1Toleration, V1Affinity
 from kubernetes.client.models import (
     V1Container, V1EnvVar, V1EnvFromSource, V1SecurityContext, V1Probe,
     V1ResourceRequirements, V1VolumeDevice, V1VolumeMount, V1ContainerPort,
@@ -25,7 +25,7 @@ from kubernetes.client.models import (
 )
 
 from . import _pipeline_param
-from ._metadata import ComponentMeta
+from ..components._structures import ComponentSpec
 
 # generics
 T = TypeVar('T')
@@ -541,25 +541,25 @@ class Container(V1Container):
         return self
 
 
-class Sidecar(Container):
+class UserContainer(Container):
     """
-    Represents an argo workflow sidecar (io.argoproj.workflow.v1alpha1.Sidecar) 
-    to be used in `sidecars` property in argo's workflow template 
-    (io.argoproj.workflow.v1alpha1.Template). 
+    Represents an argo workflow UserContainer (io.argoproj.workflow.v1alpha1.UserContainer)
+    to be used in `UserContainer` property in argo's workflow template
+    (io.argoproj.workflow.v1alpha1.Template).
 
-    `Sidecar` inherits from `Container` class with an addition of `mirror_volume_mounts`
+    `UserContainer` inherits from `Container` class with an addition of `mirror_volume_mounts`
     attribute (`mirrorVolumeMounts` property).
 
     See https://github.com/argoproj/argo/blob/master/api/openapi-spec/swagger.json
 
     Example
 
-        from kfp.dsl import ContainerOp, Sidecar
+        from kfp.dsl import ContainerOp, UserContainer
 
-        # creates a `ContainerOp` and adds a redis `Sidecar`
+        # creates a `ContainerOp` and adds a redis init container
         op = (ContainerOp(name='foo-op', image='busybox:latest')
-                .add_sidecar(
-                    Sidecar(name='redis', image='redis:alpine')))
+                .add_initContainer(
+                    UserContainer(name='redis', image='redis:alpine')))
 
     """
     """
@@ -569,7 +569,7 @@ class Sidecar(Container):
       attribute_map (dict): The key is attribute name
                             and the value is json key in definition.
     """
-    # adds `mirror_volume_mounts` to `Sidecar` swagger definition
+    # adds `mirror_volume_mounts` to `UserContainer` swagger definition
     # NOTE inherits definition from `V1Container` rather than `Container`
     #      because `Container` has no `name` property.
     swagger_types = dict(
@@ -579,25 +579,25 @@ class Sidecar(Container):
         **V1Container.attribute_map, mirror_volume_mounts='mirrorVolumeMounts')
 
     def __init__(self,
-                 name: str,
-                 image: str,
-                 command: StringOrStringList = None,
-                 args: StringOrStringList = None,
-                 mirror_volume_mounts: bool = None,
-                 **kwargs):
-        """Creates a new instance of `Sidecar`.
-        
+        name: str,
+        image: str,
+        command: StringOrStringList = None,
+        args: StringOrStringList = None,
+        mirror_volume_mounts: bool = None,
+        **kwargs):
+        """Creates a new instance of `UserContainer`.
+
         Args:
-            name {str}: unique name for the sidecar container
-            image {str}: image to use for the sidecar container, e.g. redis:alpine
+            name {str}: unique name for the user container
+            image {str}: image to use for the user container, e.g. redis:alpine
             command {StringOrStringList}: entrypoint array.  Not executed within a shell.
-            args {StringOrStringList}: arguments to the entrypoint. 
-            mirror_volume_mounts {bool}: MirrorVolumeMounts will mount the same 
-                volumes specified in the main container to the sidecar (including artifacts), 
-                at the same mountPaths. This enables dind daemon to partially see the same 
-                filesystem as the main container in order to use features such as docker 
+            args {StringOrStringList}: arguments to the entrypoint.
+            mirror_volume_mounts {bool}: MirrorVolumeMounts will mount the same
+                volumes specified in the main container to the container (including artifacts),
+                at the same mountPaths. This enables dind daemon to partially see the same
+                filesystem as the main container in order to use features such as docker
                 volume binding
-            **kwargs: keyword arguments available for `Container` 
+            **kwargs: keyword arguments available for `Container`
 
         """
         super().__init__(
@@ -611,12 +611,12 @@ class Sidecar(Container):
 
     def set_mirror_volume_mounts(self, mirror_volume_mounts=True):
         """
-        Setting mirrorVolumeMounts to true will mount the same volumes specified 
-        in the main container to the sidecar (including artifacts), at the same 
-        mountPaths. This enables dind daemon to partially see the same filesystem 
-        as the main container in order to use features such as docker volume 
+        Setting mirrorVolumeMounts to true will mount the same volumes specified
+        in the main container to the container (including artifacts), at the same
+        mountPaths. This enables dind daemon to partially see the same filesystem
+        as the main container in order to use features such as docker volume
         binding.
-        
+
         Args:
             mirror_volume_mounts: boolean flag
         """
@@ -626,8 +626,41 @@ class Sidecar(Container):
 
     @property
     def inputs(self):
-        """A list of PipelineParam found in the Sidecar object."""
+        """A list of PipelineParam found in the UserContainer object."""
         return _pipeline_param.extract_pipelineparams_from_any(self)
+
+
+class Sidecar(UserContainer):
+
+    def __init__(self,
+        name: str,
+        image: str,
+        command: StringOrStringList = None,
+        args: StringOrStringList = None,
+        mirror_volume_mounts: bool = None,
+        **kwargs):
+        """Creates a new instance of `Sidecar`.
+
+        Args:
+            name {str}: unique name for the sidecar container
+            image {str}: image to use for the sidecar container, e.g. redis:alpine
+            command {StringOrStringList}: entrypoint array.  Not executed within a shell.
+            args {StringOrStringList}: arguments to the entrypoint.
+            mirror_volume_mounts {bool}: MirrorVolumeMounts will mount the same
+                volumes specified in the main container to the sidecar (including artifacts),
+                at the same mountPaths. This enables dind daemon to partially see the same
+                filesystem as the main container in order to use features such as docker
+                volume binding
+            **kwargs: keyword arguments available for `Container`
+
+        """
+        super().__init__(
+            name=name,
+            image=image,
+            command=command,
+            args=args,
+            mirror_volume_mounts=mirror_volume_mounts,
+            **kwargs)
 
 
 def _make_hash_based_id_for_op(op):
@@ -647,11 +680,12 @@ class BaseOp(object):
     # in the compilation process to generate the DAGs and task io parameters.
     attrs_with_pipelineparams = [
         'node_selector', 'volumes', 'pod_annotations', 'pod_labels',
-        'num_retries', 'sidecars', 'tolerations'
+        'num_retries', 'init_containers', 'sidecars', 'tolerations'
     ]
 
     def __init__(self,
                  name: str,
+                 init_containers: List[UserContainer] = None,
                  sidecars: List[Sidecar] = None,
                  is_exit_handler: bool = False):
         """Create a new instance of BaseOp
@@ -659,7 +693,9 @@ class BaseOp(object):
         Args:
           name: the name of the op. It does not have to be unique within a pipeline
               because the pipeline will generates a unique new name in case of conflicts.
-          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy 
+          init_containers: the list of `InitContainer` objects describing the InitContainer
+                    to deploy before the `main` container.
+          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy
                     together with the `main` container.
           is_exit_handler: Whether it is used as an exit handler.
         """
@@ -685,11 +721,16 @@ class BaseOp(object):
         self.node_selector = {}
         self.volumes = []
         self.tolerations = []
+        self.affinity = {}
         self.pod_annotations = {}
         self.pod_labels = {}
         self.num_retries = 0
         self.timeout = 0
+        self.init_containers = init_containers or []
         self.sidecars = sidecars or []
+
+        # used to mark this op with loop arguments
+        self.loop_args = None
 
         # attributes specific to `BaseOp`
         self._inputs = []
@@ -707,10 +748,7 @@ class BaseOp(object):
             self._inputs = []
             # TODO replace with proper k8s obj?
             for key in self.attrs_with_pipelineparams:
-                self._inputs += [
-                    param for param in _pipeline_param.
-                    extract_pipelineparams_from_any(getattr(self, key))
-                ]
+                self._inputs += _pipeline_param.extract_pipelineparams_from_any(getattr(self, key))
             # keep only unique
             self._inputs = list(set(self._inputs))
         return self._inputs
@@ -756,11 +794,27 @@ class BaseOp(object):
         """Add K8s tolerations
 
         Args:
-          volume: Kubernetes toleration
+          tolerations: Kubernetes toleration
           For detailed spec, check toleration definition
           https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_toleration.py
         """
         self.tolerations.append(tolerations)
+        return self
+
+    def add_affinity(self, affinity: V1Affinity):
+        """Add K8s Affinity
+        Args:
+          affinity: Kubernetes affinity
+          For detailed spec, check affinity definition
+          https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_affinity.py
+          example: V1Affinity(
+                    node_affinity=V1NodeAffinity(
+                        required_during_scheduling_ignored_during_execution=V1NodeSelector(
+                            node_selector_terms=[V1NodeSelectorTerm(
+                                match_expressions=[V1NodeSelectorRequirement(
+                                    key='beta.kubernetes.io/instance-type', operator='In', values=['p2.xlarge'])])])))
+        """
+        self.affinity = affinity
         return self
 
     def add_node_selector_constraint(self, label_name, value):
@@ -818,6 +872,16 @@ class BaseOp(object):
         self.timeout = seconds
         return self
 
+    def add_init_container(self, init_container: UserContainer):
+        """Add a init container to the Op.
+
+        Args:
+          init_container: InitContainer object.
+        """
+
+        self.init_containers.append(init_container)
+        return self
+
     def add_sidecar(self, sidecar: Sidecar):
         """Add a sidecar to the Op.
 
@@ -830,12 +894,20 @@ class BaseOp(object):
 
     def set_display_name(self, name: str):
         self.display_name = name
+        return self
 
     def __repr__(self):
         return str({self.__class__.__name__: self.__dict__})
 
 
-from ._pipeline_volume import PipelineVolume #The import is here to prevent circular reference problems.
+from ._pipeline_volume import PipelineVolume  # The import is here to prevent circular reference problems.
+
+
+class InputArgumentPath:
+    def __init__(self, argument, input=None, path=None):
+        self.argument = argument
+        self.input = input
+        self.path = path
 
 
 class ContainerOp(BaseOp):
@@ -864,6 +936,8 @@ class ContainerOp(BaseOp):
             # any attributes can be parameterized (both serialized string or actual PipelineParam)
             op = dsl.ContainerOp(name='foo', 
                                 image='busybox:%s' % tag,
+                                # pass in init_container list
+                                init_containers=[dsl.InitContainer('print', 'busybox:latest', command='echo "hello"')],
                                 # pass in sidecars list
                                 sidecars=[dsl.Sidecar('print', 'busybox:latest', command='echo "hello"')],
                                 # pass in k8s container kwargs
@@ -885,19 +959,22 @@ class ContainerOp(BaseOp):
     # Excludes `file_outputs` and `outputs` as they are handled separately
     # in the compilation process to generate the DAGs and task io parameters.
 
-    def __init__(self,
-                 name: str,
-                 image: str,
-                 command: StringOrStringList = None,
-                 arguments: StringOrStringList = None,
-                 sidecars: List[Sidecar] = None,
-                 container_kwargs: Dict = None,
-                 file_outputs: Dict[str, str] = None,
-                 output_artifact_paths : Dict[str, str]=None,
-                 artifact_location: V1alpha1ArtifactLocation=None,
-                 is_exit_handler=False,
-                 pvolumes: Dict[str, V1Volume] = None,
-        ):
+    def __init__(
+      self,
+      name: str,
+      image: str,
+      command: StringOrStringList = None,
+      arguments: StringOrStringList = None,
+      init_containers: List[UserContainer] = None,
+      sidecars: List[Sidecar] = None,
+      container_kwargs: Dict = None,
+      artifact_argument_paths: List[InputArgumentPath] = None,
+      file_outputs: Dict[str, str] = None,
+      output_artifact_paths: Dict[str, str]=None,
+      artifact_location: V1alpha1ArtifactLocation=None,
+      is_exit_handler=False,
+      pvolumes: Dict[str, V1Volume] = None,
+    ):
         """Create a new instance of ContainerOp.
 
         Args:
@@ -909,10 +986,16 @@ class ContainerOp(BaseOp):
           arguments: the arguments of the command. The command can include "%s" and supply
               a PipelineParam as the string replacement. For example, ('echo %s' % input_param).
               At container run time the argument will be 'echo param_value'.
-          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy 
+          init_containers: the list of `InitContainer` objects describing the InitContainer
+                    to deploy before the `main` container.
+          sidecars: the list of `Sidecar` objects describing the sidecar containers to deploy
                     together with the `main` container.
           container_kwargs: the dict of additional keyword arguments to pass to the
                             op's `Container` definition.
+          artifact_argument_paths: Optional. Maps input artifact arguments (values or references) to the local file paths where they'll be placed.
+              At pipeline run time, the value of the artifact argument is saved to a local file with specified path.
+              This parameter is only needed when the input file paths are hard-coded in the program.
+              Otherwise it's better to pass input artifact placement paths by including artifact arguments in the command-line using the InputArgumentPath class instances.
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
@@ -929,8 +1012,31 @@ class ContainerOp(BaseOp):
               E.g {"/my/path": vol, "/mnt": other_op.pvolumes["/output"]}.
         """
 
-        super().__init__(name=name, sidecars=sidecars, is_exit_handler=is_exit_handler)
-        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location'] #Copying the BaseOp class variable!
+        super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
+        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location', 'artifact_arguments'] #Copying the BaseOp class variable!
+
+        input_artifact_paths = {}
+        artifact_arguments = {}
+        file_outputs = dict(file_outputs or {}) # Making a copy
+        output_artifact_paths = dict(output_artifact_paths or {}) # Making a copy
+
+        def resolve_artifact_argument(artarg):
+            from ..components._components import _generate_input_file_name
+            if not isinstance(artarg, InputArgumentPath):
+                return artarg
+            input_name = getattr(artarg.input, 'name', artarg.input) or ('input-' + str(len(artifact_arguments)))
+            input_path = artarg.path or _generate_input_file_name(input_name)
+            input_artifact_paths[input_name] = input_path
+            artifact_arguments[input_name] = str(artarg.argument)
+            return input_path
+
+        for artarg in artifact_argument_paths or []:
+            resolve_artifact_argument(artarg)
+
+        if isinstance(command, Sequence) and not isinstance(command, str):
+            command = list(map(resolve_artifact_argument, command))
+        if isinstance(arguments, Sequence) and not isinstance(arguments, str):
+            arguments = list(map(resolve_artifact_argument, arguments))
 
         # convert to list if not a list
         command = as_string_list(command)
@@ -969,7 +1075,17 @@ class ContainerOp(BaseOp):
                 # only proxy public callables
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
 
+        # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics outputs that should always be saved as artifacts
+        # TODO: Remove when outputs are always saved as artifacts
+        for output_name, path in dict(file_outputs).items():
+            normalized_output_name = re.sub('[^a-zA-Z0-9]', '-', output_name.lower())
+            if normalized_output_name in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']:
+                output_artifact_paths[normalized_output_name] = path
+                del file_outputs[output_name]
+
         # attributes specific to `ContainerOp`
+        self.input_artifact_paths = input_artifact_paths
+        self.artifact_arguments = artifact_arguments
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
         self.artifact_location = artifact_location
@@ -990,6 +1106,7 @@ class ContainerOp(BaseOp):
 
         self.pvolumes = {}
         self.add_pvolumes(pvolumes)
+
 
     @property
     def command(self):
@@ -1032,10 +1149,10 @@ class ContainerOp(BaseOp):
         '''_set_metadata passes the containerop the metadata information
         and configures the right output
         Args:
-          metadata (ComponentMeta): component metadata
+          metadata (ComponentSpec): component metadata
         '''
-        if not isinstance(metadata, ComponentMeta):
-            raise ValueError('_set_medata is expecting ComponentMeta.')
+        if not isinstance(metadata, ComponentSpec):
+            raise ValueError('_set_metadata is expecting ComponentSpec.')
 
         self._metadata = metadata
 
@@ -1044,7 +1161,7 @@ class ContainerOp(BaseOp):
                 output_type = self.outputs[output].param_type
                 for output_meta in self._metadata.outputs:
                     if output_meta.name == output:
-                        output_type = output_meta.param_type
+                        output_type = output_meta.type
                 self.outputs[output].param_type = output_type
 
             if len(self.outputs) == 1:

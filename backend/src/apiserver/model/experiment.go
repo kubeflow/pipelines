@@ -7,8 +7,8 @@ type Experiment struct {
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
 }
 
-func (r Experiment) GetValueOfPrimaryKey() string {
-	return r.UUID
+func (e Experiment) GetValueOfPrimaryKey() string {
+	return e.UUID
 }
 
 func GetExperimentTablePrimaryKeyColumn() string {
@@ -36,4 +36,9 @@ var experimentAPIToModelFieldMap = map[string]string{
 // Experiment.
 func (e *Experiment) APIToModelFieldMap() map[string]string {
 	return experimentAPIToModelFieldMap
+}
+
+// GetModelName returns table name used as sort field prefix
+func (e *Experiment) GetModelName() string {
+	return "experiments"
 }

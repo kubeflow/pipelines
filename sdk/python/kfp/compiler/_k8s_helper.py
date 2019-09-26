@@ -31,20 +31,24 @@ class K8sHelper(object):
 
   def _configure_k8s(self):
     try:
-      config.load_kube_config()
-      logging.info('Found local kubernetes config. Initialized with kube_config.')
-    except:
-      logging.info('Cannot Find local kubernetes config. Trying in-cluster config.')
       config.load_incluster_config()
       logging.info('Initialized with in-cluster config.')
-    
+    except:
+      logging.info('Cannot find in-cluster config, trying the local kubernetes config. ')
+      try:
+        config.load_kube_config()
+        logging.info('Found local kubernetes config. Initialized with kube_config.')
+      except:
+        raise RuntimeError('Forgot to run the gcloud command? Check out the link: \
+        https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl for more information')
     self._api_client = k8s_client.ApiClient()
     self._corev1 = k8s_client.CoreV1Api(self._api_client)
     return True
 
   def _create_k8s_job(self, yaml_spec):
     """ _create_k8s_job creates a kubernetes job based on the yaml spec """
-    pod = k8s_client.V1Pod(metadata=k8s_client.V1ObjectMeta(generate_name=yaml_spec['metadata']['generateName']))
+    pod = k8s_client.V1Pod(metadata=k8s_client.V1ObjectMeta(generate_name=yaml_spec['metadata']['generateName'],
+                                                            annotations=yaml_spec['metadata']['annotations']))
     container = k8s_client.V1Container(name = yaml_spec['spec']['containers'][0]['name'],
                                        image = yaml_spec['spec']['containers'][0]['image'],
                                        args = yaml_spec['spec']['containers'][0]['args'],
@@ -107,19 +111,31 @@ class K8sHelper(object):
       return False
     return api_response
 
+  def _read_pod_status(self, pod_name, namespace):
+    try:
+      # Using read_namespaced_pod due to the following error: "pods \"kaniko-p2phh\" is forbidden: User \"system:serviceaccount:kubeflow:jupyter-notebook\" cannot get pods/status in the namespace \"kubeflow\""
+      #api_response = self._corev1.read_namespaced_pod_status(pod_name, namespace)
+      api_response = self._corev1.read_namespaced_pod(pod_name, namespace)
+    except k8s_client.rest.ApiException as e:
+      logging.exception('Exception when calling CoreV1Api->read_namespaced_pod_status: {}\n'.format(str(e)))
+      return False
+    return api_response
+
   def run_job(self, yaml_spec, timeout=600):
     """ run_job runs a kubernetes job and clean up afterwards """
     pod_name, succ = self._create_k8s_job(yaml_spec)
+    namespace = yaml_spec['metadata']['namespace']
     if not succ:
-      return False
+      raise RuntimeError('Kubernetes job creation failed.')
     # timeout in seconds
     succ = self._wait_for_k8s_job(pod_name, yaml_spec, timeout)
     if not succ:
       logging.info('Kubernetes job failed.')
       print(self._read_pod_log(pod_name, yaml_spec))
-      return False
+      raise RuntimeError('Kubernetes job failed.')
+    status_obj = self._read_pod_status(pod_name, namespace)
     self._delete_k8s_job(pod_name, yaml_spec)
-    return succ
+    return status_obj
 
   @staticmethod
   def sanitize_k8s_name(name):

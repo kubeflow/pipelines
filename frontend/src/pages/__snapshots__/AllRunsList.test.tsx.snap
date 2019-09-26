@@ -18,41 +18,8 @@ exports[`AllRunsList renders all runs 1`] = `
     storageState="STORAGESTATE_AVAILABLE"
     toolbarProps={
       Object {
-        "actions": Array [
-          Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRunBtn",
-            "outlined": true,
-            "primary": true,
-            "title": "Create run",
-            "tooltip": "Create a new run",
-          },
-          Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "newExperimentBtn",
-            "outlined": true,
-            "title": "Create experiment",
-            "tooltip": "Create a new experiment",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
-            "id": "compareBtn",
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select a run to clone",
-            "id": "cloneBtn",
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
-          },
-          Object {
+        "actions": Object {
+          "archive": Object {
             "action": [Function],
             "disabled": true,
             "disabledTitle": "Select at least one resource to archive",
@@ -60,13 +27,58 @@ exports[`AllRunsList renders all runs 1`] = `
             "title": "Archive",
             "tooltip": "Archive",
           },
-          Object {
+          "cloneRun": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select a run to clone",
+            "id": "cloneBtn",
+            "style": Object {
+              "minWidth": 100,
+            },
+            "title": "Clone run",
+            "tooltip": "Create a copy from this runs initial state",
+          },
+          "compare": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select multiple runs to compare",
+            "id": "compareBtn",
+            "style": Object {
+              "minWidth": 125,
+            },
+            "title": "Compare runs",
+            "tooltip": "Compare up to 10 selected runs",
+          },
+          "newExperiment": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "newExperimentBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 185,
+            },
+            "title": "Create experiment",
+            "tooltip": "Create a new experiment",
+          },
+          "newRun": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "createNewRunBtn",
+            "outlined": true,
+            "primary": true,
+            "style": Object {
+              "minWidth": 130,
+            },
+            "title": "Create run",
+            "tooltip": "Create a new run",
+          },
+          "refresh": Object {
             "action": [Function],
             "id": "refreshBtn",
             "title": "Refresh",
             "tooltip": "Refresh the list",
           },
-        ],
+        },
         "breadcrumbs": Array [],
         "pageTitle": "Experiments",
       }

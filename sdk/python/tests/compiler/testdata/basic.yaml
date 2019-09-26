@@ -14,6 +14,8 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Get Most Frequent Word and Save to GCS", "inputs": [{"name": "message"}, {"name": "outputpath"}], "name": "Save Most Frequent"}'
   generateName: save-most-frequent-
 spec:
   arguments:
@@ -55,14 +57,6 @@ spec:
       - -c
       image: python:3.5-jessie
     name: exiting
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - container:
       args:
       - python -c "from collections import Counter; words = Counter('{{inputs.parameters.message}}'.split());
@@ -80,12 +74,8 @@ spec:
     name: get-frequent
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+      - name: get-frequent-word
+        path: /tmp/message.txt
       parameters:
       - name: get-frequent-word
         valueFrom:
@@ -113,14 +103,6 @@ spec:
     name: save
     nodeSelector:
       cloud.google.com/gke-accelerator: nvidia-tesla-k80
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - dag:
       tasks:
       - arguments:

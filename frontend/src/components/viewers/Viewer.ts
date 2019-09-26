@@ -22,6 +22,7 @@ export enum PlotType {
   ROC = 'roc',
   TABLE = 'table',
   TENSORBOARD = 'tensorboard',
+  VISUALIZATION_CREATOR = 'visualization-creator',
   WEB_APP = 'web-app',
 }
 

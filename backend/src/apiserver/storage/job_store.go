@@ -29,7 +29,7 @@ import (
 var jobColumns = []string{"UUID", "DisplayName", "Name", "Namespace", "Description", "MaxConcurrency",
 	"CreatedAtInSec", "UpdatedAtInSec", "Enabled", "CronScheduleStartTimeInSec", "CronScheduleEndTimeInSec",
 	"Schedule", "PeriodicScheduleStartTimeInSec", "PeriodicScheduleEndTimeInSec", "IntervalSecond",
-	"PipelineId", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "Conditions",
+	"PipelineId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "Conditions",
 }
 
 type JobStoreInterface interface {
@@ -51,7 +51,7 @@ type JobStore struct {
 // total_size. The total_size does not reflect the page size, but it does reflect the number of jobs
 // matching the supplied filters and resource references.
 func (s *JobStore) ListJobs(
-	filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
+		filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
 	errorF := func(err error) ([]*model.Job, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
@@ -111,7 +111,7 @@ func (s *JobStore) ListJobs(
 }
 
 func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
-	filterContext *common.FilterContext) (string, []interface{}, error) {
+		filterContext *common.FilterContext) (string, []interface{}, error) {
 	filteredSelectBuilder, err := list.FilterOnResourceReference("jobs", jobColumns,
 		common.Job, selectCount, filterContext)
 	if err != nil {
@@ -173,10 +173,10 @@ func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder)
 func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 	var jobs []*model.Job
 	for r.Next() {
-		var uuid, displayName, name, namespace, pipelineId, conditions,
-			description, parameters, pipelineSpecManifest, workflowSpecManifest string
+		var uuid, displayName, name, namespace, pipelineId, pipelineName, conditions,
+		description, parameters, pipelineSpecManifest, workflowSpecManifest string
 		var cronScheduleStartTimeInSec, cronScheduleEndTimeInSec,
-			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond sql.NullInt64
+		periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond sql.NullInt64
 		var cron, resourceReferencesInString sql.NullString
 		var enabled bool
 		var createdAtInSec, updatedAtInSec, maxConcurrency int64
@@ -185,7 +185,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			&maxConcurrency, &createdAtInSec, &updatedAtInSec, &enabled,
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
-			&pipelineId, &pipelineSpecManifest, &workflowSpecManifest, &parameters, &conditions, &resourceReferencesInString)
+			&pipelineId, &pipelineName, &pipelineSpecManifest, &workflowSpecManifest, &parameters, &conditions, &resourceReferencesInString)
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +204,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 				CronSchedule: model.CronSchedule{
 					CronScheduleStartTimeInSec: NullInt64ToPointer(cronScheduleStartTimeInSec),
 					CronScheduleEndTimeInSec:   NullInt64ToPointer(cronScheduleEndTimeInSec),
-					Cron: NullStringToPointer(cron),
+					Cron:                       NullStringToPointer(cron),
 				},
 				PeriodicSchedule: model.PeriodicSchedule{
 					PeriodicScheduleStartTimeInSec: NullInt64ToPointer(periodicScheduleStartTimeInSec),
@@ -214,6 +214,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			},
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipelineId,
+				PipelineName:         pipelineName,
 				PipelineSpecManifest: pipelineSpecManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           parameters,
@@ -257,28 +258,29 @@ func (s *JobStore) DeleteJob(id string) error {
 func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	jobSql, jobArgs, err := sq.
 		Insert("jobs").
-		SetMap(sq.Eq{
-			"UUID":                           j.UUID,
-			"DisplayName":                    j.DisplayName,
-			"Name":                           j.Name,
-			"Namespace":                      j.Namespace,
-			"Description":                    j.Description,
-			"MaxConcurrency":                 j.MaxConcurrency,
-			"Enabled":                        j.Enabled,
-			"Conditions":                     j.Conditions,
-			"CronScheduleStartTimeInSec":     PointerToNullInt64(j.CronScheduleStartTimeInSec),
-			"CronScheduleEndTimeInSec":       PointerToNullInt64(j.CronScheduleEndTimeInSec),
-			"Schedule":                       PointerToNullString(j.Cron),
-			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(j.PeriodicScheduleStartTimeInSec),
-			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(j.PeriodicScheduleEndTimeInSec),
-			"IntervalSecond":                 PointerToNullInt64(j.IntervalSecond),
-			"CreatedAtInSec":                 j.CreatedAtInSec,
-			"UpdatedAtInSec":                 j.UpdatedAtInSec,
-			"PipelineId":                     j.PipelineId,
-			"PipelineSpecManifest":           j.PipelineSpecManifest,
-			"WorkflowSpecManifest":           j.WorkflowSpecManifest,
-			"Parameters":                     j.Parameters,
-		}).ToSql()
+			SetMap(sq.Eq{
+				"UUID":                           j.UUID,
+				"DisplayName":                    j.DisplayName,
+				"Name":                           j.Name,
+				"Namespace":                      j.Namespace,
+				"Description":                    j.Description,
+				"MaxConcurrency":                 j.MaxConcurrency,
+				"Enabled":                        j.Enabled,
+				"Conditions":                     j.Conditions,
+				"CronScheduleStartTimeInSec":     PointerToNullInt64(j.CronScheduleStartTimeInSec),
+				"CronScheduleEndTimeInSec":       PointerToNullInt64(j.CronScheduleEndTimeInSec),
+				"Schedule":                       PointerToNullString(j.Cron),
+				"PeriodicScheduleStartTimeInSec": PointerToNullInt64(j.PeriodicScheduleStartTimeInSec),
+				"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(j.PeriodicScheduleEndTimeInSec),
+				"IntervalSecond":                 PointerToNullInt64(j.IntervalSecond),
+				"CreatedAtInSec":                 j.CreatedAtInSec,
+				"UpdatedAtInSec":                 j.UpdatedAtInSec,
+				"PipelineId":                     j.PipelineId,
+				"PipelineName":                   j.PipelineName,
+				"PipelineSpecManifest":           j.PipelineSpecManifest,
+				"WorkflowSpecManifest":           j.WorkflowSpecManifest,
+				"Parameters":                     j.Parameters,
+			}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to add job to job table: %v",
 			err.Error())
@@ -312,9 +314,9 @@ func (s *JobStore) EnableJob(id string, enabled bool) error {
 	now := s.time.Now().Unix()
 	sql, args, err := sq.
 		Update("jobs").
-		SetMap(sq.Eq{
-			"Enabled":        enabled,
-			"UpdatedAtInSec": now}).
+			SetMap(sq.Eq{
+				"Enabled":        enabled,
+				"UpdatedAtInSec": now}).
 		Where(sq.Eq{"UUID": string(id)}).
 		Where(sq.Eq{"Enabled": !enabled}).
 		ToSql()
@@ -337,20 +339,20 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 
 	sql, args, err := sq.
 		Update("jobs").
-		SetMap(sq.Eq{
-			"Name":                           swf.Name,
-			"Namespace":                      swf.Namespace,
-			"Enabled":                        swf.Spec.Enabled,
-			"Conditions":                     swf.ConditionSummary(),
-			"MaxConcurrency":                 swf.MaxConcurrencyOr0(),
-			"Parameters":                     parameters,
-			"UpdatedAtInSec":                 now,
-			"CronScheduleStartTimeInSec":     PointerToNullInt64(swf.CronScheduleStartTimeInSecOrNull()),
-			"CronScheduleEndTimeInSec":       PointerToNullInt64(swf.CronScheduleEndTimeInSecOrNull()),
-			"Schedule":                       swf.CronOrEmpty(),
-			"PeriodicScheduleStartTimeInSec": PointerToNullInt64(swf.PeriodicScheduleStartTimeInSecOrNull()),
-			"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(swf.PeriodicScheduleEndTimeInSecOrNull()),
-			"IntervalSecond":                 swf.IntervalSecondOr0()}).
+			SetMap(sq.Eq{
+				"Name":                           swf.Name,
+				"Namespace":                      swf.Namespace,
+				"Enabled":                        swf.Spec.Enabled,
+				"Conditions":                     swf.ConditionSummary(),
+				"MaxConcurrency":                 swf.MaxConcurrencyOr0(),
+				"Parameters":                     parameters,
+				"UpdatedAtInSec":                 now,
+				"CronScheduleStartTimeInSec":     PointerToNullInt64(swf.CronScheduleStartTimeInSecOrNull()),
+				"CronScheduleEndTimeInSec":       PointerToNullInt64(swf.CronScheduleEndTimeInSecOrNull()),
+				"Schedule":                       swf.CronOrEmpty(),
+				"PeriodicScheduleStartTimeInSec": PointerToNullInt64(swf.PeriodicScheduleStartTimeInSecOrNull()),
+				"PeriodicScheduleEndTimeInSec":   PointerToNullInt64(swf.PeriodicScheduleEndTimeInSecOrNull()),
+				"IntervalSecond":                 swf.IntervalSecondOr0()}).
 		Where(sq.Eq{"UUID": string(swf.UID)}).
 		ToSql()
 	if err != nil {
@@ -384,8 +386,8 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 // factory function for job store
 func NewJobStore(db *DB, time util.TimeInterface) *JobStore {
 	return &JobStore{
-		db: db,
+		db:                     db,
 		resourceReferenceStore: NewResourceReferenceStore(db),
-		time: time,
+		time:                   time,
 	}
 }

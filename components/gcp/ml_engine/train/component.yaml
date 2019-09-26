@@ -16,6 +16,9 @@ name: Submitting a Cloud ML training job as a pipeline step
 description: |
   A Kubeflow Pipeline component to submit a Cloud Machine Learning (Cloud ML) 
   Engine training job as a step in a pipeline.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: project_id
     description: 'Required. The ID of the parent project of the job.'
@@ -96,9 +99,11 @@ outputs:
       The output path in Cloud Storage of the trainning job, which contains 
       the trained model files.
     type: GCSPath
+  - name: MLPipeline UI metadata
+    type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:d4960d3379af4735fd04dc7167fab5fff82d0f22
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:57d9f7f1cfd458e945d297957621716062d89a49
     args: [
       kfp_component.google.ml_engine, train,
       --project_id, {inputValue: project_id},
@@ -120,3 +125,4 @@ implementation:
     fileOutputs:
       job_id: /tmp/kfp/output/ml_engine/job_id.txt
       job_dir: /tmp/kfp/output/ml_engine/job_dir.txt
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json

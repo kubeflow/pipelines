@@ -1,0 +1,30 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    spec:
+      containers:
+        - name: ml-pipeline-api-server
+          env:
+            - name: OBJECTSTORECONFIG_BUCKETNAME
+              # Don't add gs:// prefix.
+              # If bucket doesn't exist, the deployment will create one.
+              value: ''
+            - name: DBCONFIG_PASSWORD
+              value: ''
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: cloudsqlproxy
+spec:
+  template:
+    spec:
+      containers:
+        - name: cloudsqlproxy
+          env:
+            - name: CLOUD_SQL_INSTANCE_CONNECTION_NAME
+              # E.g. project-id:us-central1:instance-name
+              value: ''

@@ -28,9 +28,9 @@ def create_function_from_parameter_names(func: Callable[[Mapping[str, Any]], Any
 
 def create_function_from_parameters(func: Callable[[Mapping[str, Any]], Any], parameters: Sequence[Parameter], documentation=None, func_name=None, func_filename=None):
     new_signature = Signature(parameters) # Checks the parameter consistency
-    
+
     def pass_locals():
-        return dict_func(locals())
+        return dict_func(locals())  # noqa: F821 TODO
 
     code = pass_locals.__code__
     mod_co_argcount = len(parameters)
@@ -59,10 +59,10 @@ def create_function_from_parameters(func: Callable[[Mapping[str, Any]], Any], pa
         mod_co_firstlineno,
         code.co_lnotab
     )
-    
+
     default_arg_values = tuple( p.default for p in parameters if p.default != Parameter.empty ) #!argdefs "starts from the right"/"is right-aligned"
     modified_func = types.FunctionType(modified_code, {'dict_func': func, 'locals': locals}, name=func_name, argdefs=default_arg_values)
     modified_func.__doc__ = documentation
     modified_func.__signature__ = new_signature
-    
+
     return modified_func

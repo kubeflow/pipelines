@@ -1,0 +1,34 @@
+name: TFX - Analyze model
+description: |
+  Runs Tensorflow Model Analysis. https://www.tensorflow.org/tfx/model_analysis/get_started
+  TensorFlow Model Analysis allows you to perform model evaluations in the TFX pipeline, and view resultant metrics and plots in a Jupyter notebook. Specifically, it can provide:
+  * metrics computed on entire training and holdout dataset, as well as next-day evaluations
+  * tracking metrics over time
+  * model quality performance on different feature slices
+inputs:
+- {name: Model,           type: GCSPath, description: GCS path to the model which will be evaluated.} # type: {GCSPath: {path_type: Directory, data_type: Exported TensorFlow models dir}}
+- {name: Evaluation data, type: GCSPath,              description: GCS path of eval files.} # type: {GCSPath: {data_type: CSV}}
+- {name: Schema,          type: GCSPath, description: GCS json schema file path.} # type: {GCSPath: {data_type: TFDV schema JSON}}
+- {name: Run mode,        type: String,     default: local,               description: whether to run the job locally or in Cloud Dataflow.}
+- {name: GCP project,     type: GCPProjectID, default: '',                  description: 'The GCP project to run the dataflow job, if running in the `cloud` mode.'}
+- {name: Slice columns,   type: String,                                   description: Comma-separated list of columns on which to slice for analysis.}
+- {name: Analysis results dir, type: GCSPath,   description: GCS or local directory where the analysis results should be written.} # type: {GCSPath: {path_type: Directory}}
+outputs:
+- {name: Analysis results dir, type: GCSPath,   description: GCS or local directory where the analysis results should were written.} # type: {GCSPath: {path_type: Directory}}
+- {name: MLPipeline UI metadata, type: UI metadata}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfma:57d9f7f1cfd458e945d297957621716062d89a49
+    command: [python2, /ml/model_analysis.py]
+    args: [
+      --model,    {inputValue: Model},
+      --eval,     {inputValue: Evaluation data},
+      --schema,   {inputValue: Schema},
+      --mode,     {inputValue: Run mode},
+      --project,  {inputValue: GCP project},
+      --slice-columns, {inputValue: Slice columns},
+      --output,   {inputValue: Analysis results dir},
+    ]
+    fileOutputs:
+      Analysis results dir: /output.txt
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json

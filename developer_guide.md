@@ -64,6 +64,13 @@ For example, to build API server image
 $ docker build -t ml-pipeline-api-server -f backend/Dockerfile .
 ```
 
+## Python based visualizations
+
+Python based visualizations are a new method to visualize results within the
+Kubeflow Pipelines UI. For more information about Python based visualizations
+please visit the [documentation page](https://www.kubeflow.org/docs/pipelines/sdk/python-based-visualizations).
+To create predefine visualizations please check the [developer guide](https://github.com/kubeflow/pipelines/blob/master/backend/src/apiserver/visualization/developer_guide.md). 
+
 ## Unit test
 
 ### API server
@@ -90,7 +97,7 @@ Check [this](https://github.com/kubeflow/pipelines/blob/master/test/README.md) p
 
 You can inspect mysql database directly by running:
 ```bash
-kubectl run -it --rm --image=mysql:5.6 --restart=Never mysql-client -- mysql -h mysql
+kubectl run -it --rm --image=gcr.io/ml-pipeline/mysql:5.6 --restart=Never mysql-client -- mysql -h mysql
 mysql> use mlpipeline;
 mysql> select * from jobs;
 ```

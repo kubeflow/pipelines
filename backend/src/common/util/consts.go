@@ -39,4 +39,8 @@ const (
 	// LabelKeyWorkflowScheduledWorkflowName is a label on a Workflow.
 	// It captures whether the name of the owning ScheduledWorkflow.
 	LabelKeyWorkflowScheduledWorkflowName = constants.FullName + "/scheduledWorkflowName"
+
+
+	LabelKeyWorkflowRunId = "pipeline/runid"
+	LabelKeyWorkflowPersistedFinalState = "pipeline/persistedFinalState"
 )

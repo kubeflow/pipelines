@@ -29,7 +29,7 @@ COPY ./samples .
 #I think it's better to just use a shell loop though.
 #RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 #The "for" loop breaks on all whitespace, so we either need to override IFS or use the "read" command instead.
-RUN  find . -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
+RUN  set -e; find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 
 FROM debian:stretch
 
@@ -51,4 +51,4 @@ RUN apt-get update && apt-get install -y ca-certificates
 EXPOSE 8888
 
 # Start the apiserver
-CMD apiserver --config=/config --sampleconfig=/config/sample_config.json -alsologtostderr=true
+CMD apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true

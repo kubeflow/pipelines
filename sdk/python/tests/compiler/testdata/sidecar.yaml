@@ -13,6 +13,9 @@
 # limitations under the License.
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with sidecars.",
+      "name": "Sidecar"}'
   generateName: sidecar-
 apiVersion: argoproj.io/v1alpha1
 spec:
@@ -21,12 +24,8 @@ spec:
   templates:
   - outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: "/mlpipeline-ui-metadata.json"
-        optional: true
-      - name: mlpipeline-metrics
-        path: "/mlpipeline-metrics.json"
-        optional: true
+      - name: download-downloaded
+        path: "/tmp/results.txt"
       parameters:
       - name: download-downloaded
         valueFrom:
@@ -44,15 +43,7 @@ spec:
       command:
       - sh
       - "-c"
-  - outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: "/mlpipeline-ui-metadata.json"
-        optional: true
-      - name: mlpipeline-metrics
-        path: "/mlpipeline-metrics.json"
-        optional: true
-    name: echo
+  - name: echo
     inputs:
       parameters:
       - name: download-downloaded

@@ -6,12 +6,12 @@ inputs:
   - {name: True score column, type: String, default: 'true',            description: 'The name of the column for positive probability.'}
   - {name: Target lambda,     type: String, default: '',                description: 'Text of Python lambda function which returns boolean value indicating whether the classification result is correct.\nFor example, "lambda x: x[''a''] and x[''b'']". If missing, input must have a "target" column.'}
   - {name: Output dir,        type: GCSPath,  description: 'GCS path of the output directory.'}     #TODO: Replace dir with single file # type: {GCSPath: {path_type: Directory}}
-#outputs:
-#  - {name: UI metadata,       type: UI metadata}
-#  - {name: Metrics,           type: Metrics}
+outputs:
+  - {name: MLPipeline UI metadata, type: UI metadata}
+  - {name: MLPipeline Metrics,     type: Metrics}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:d4960d3379af4735fd04dc7167fab5fff82d0f22
+    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:57d9f7f1cfd458e945d297957621716062d89a49
     command: [python2, /ml/roc.py]
     args: [
       --predictions,        {inputValue: Predictions dir},
@@ -20,6 +20,6 @@ implementation:
       --target_lambda,      {inputValue: Target lambda},
       --output,             {inputValue: Output dir},
     ]
-#    fileOutputs:
-#      UI metadata:  /mlpipeline-ui-metadata.json
-#      Metrics:      /mlpipeline-metrics.json
+    fileOutputs:
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
+      MLPipeline Metrics:     /mlpipeline-metrics.json

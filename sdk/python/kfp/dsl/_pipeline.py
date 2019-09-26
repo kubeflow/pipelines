@@ -47,7 +47,7 @@ def pipeline(name : str = None, description : str = None):
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func
     else:
-      return func 
+      return func
 
   return _pipeline
 
@@ -57,6 +57,7 @@ class PipelineConf():
   def __init__(self):
     self.image_pull_secrets = []
     self.timeout = 0
+    self.ttl_seconds_after_finished = -1
     self.artifact_location = None
     self.op_transformers = []
 
@@ -78,6 +79,15 @@ class PipelineConf():
       seconds: number of seconds for timeout
     """
     self.timeout = seconds
+    return self
+
+  def set_ttl_seconds_after_finished(self, seconds: int):
+    """Configures the ttl after the pipeline has finished.
+
+    Args:
+      seconds: number of seconds for the workflow to be garbage collected after it is finished.
+    """
+    self.ttl_seconds_after_finished = seconds
     return self
 
   def set_artifact_location(self, artifact_location):
@@ -233,8 +243,6 @@ class Pipeline():
     Args:
       metadata (ComponentMeta): component metadata
     '''
-    if not isinstance(metadata, PipelineMeta):
-      raise ValueError('_set_medata is expecting PipelineMeta.')
     self._metadata = metadata
 
 

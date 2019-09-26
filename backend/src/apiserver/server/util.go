@@ -7,14 +7,13 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"io"
 	"io/ioutil"
 	"net/url"
 	"strings"
-
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 // These are valid conditions of a ScheduledWorkflow.

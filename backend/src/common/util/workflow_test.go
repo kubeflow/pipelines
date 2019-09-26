@@ -15,8 +15,8 @@
 package util
 
 import (
+	"github.com/ghodss/yaml"
 	"testing"
-
 	workflowapi "github.com/argoproj/argo/pkg/apis/workflow/v1alpha1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -271,7 +271,7 @@ func TestSetLabels(t *testing.T) {
 	assert.Equal(t, expected, workflow.Get())
 }
 
-func TestGetSpec(t *testing.T) {
+func TestGetWorkflowSpec(t *testing.T) {
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "WORKFLOW_NAME",
@@ -291,8 +291,7 @@ func TestGetSpec(t *testing.T) {
 
 	expected := &workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   "WORKFLOW_NAME",
-			Labels: map[string]string{"key": "value"},
+			GenerateName: "WORKFLOW_NAME",
 		},
 		Spec: workflowapi.WorkflowSpec{
 			Arguments: workflowapi.Arguments{
@@ -303,7 +302,41 @@ func TestGetSpec(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, workflow.GetSpec().Get())
+	assert.Equal(t, expected, workflow.GetWorkflowSpec().Get())
+}
+
+func TestGetWorkflowSpecTruncatesNameIfLongerThan200Runes(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "THIS_NAME_IS_GREATER_THAN_200_CHARACTERS_AND_WILL_BE_TRUNCATED_AFTER_THE_X_OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOXZZZZZZZZ",
+			Labels: map[string]string{"key": "value"},
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM", Value: StringPointer("VALUE")},
+				},
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Message: "I AM A MESSAGE",
+		},
+	})
+
+	expected := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "THIS_NAME_IS_GREATER_THAN_200_CHARACTERS_AND_WILL_BE_TRUNCATED_AFTER_THE_X_OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOX",
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM", Value: StringPointer("VALUE")},
+				},
+			},
+		},
+	}
+
+	assert.Equal(t, expected, workflow.GetWorkflowSpec().Get())
 }
 
 func TestVerifyParameters(t *testing.T) {
@@ -409,4 +442,62 @@ func TestFindS3ArtifactKey_NodeNotFound(t *testing.T) {
 	actualPath := workflow.FindObjectStoreArtifactKeyOrEmpty("node-1", "artifact-1")
 
 	assert.Empty(t, actualPath)
+}
+
+func TestReplaceUID(t *testing.T) {
+	workflowString := `apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: k8s-owner-reference-
+spec:
+  entrypoint: k8s-owner-reference
+  templates:
+  - name: k8s-owner-reference
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          generateName: owned-eg-
+          ownerReferences:
+          - apiVersion: argoproj.io/v1alpha1
+            blockOwnerDeletion: true
+            kind: Workflow
+            name: "{{workflow.name}}"
+            uid: "{{workflow.uid}}"
+        data:
+          some: value`
+	var workflow Workflow
+	err := yaml.Unmarshal([]byte(workflowString), &workflow)
+	assert.Nil(t, err)
+	workflow.ReplaceUID("12345")
+	expectedWorkflowString := `apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: k8s-owner-reference-
+spec:
+  entrypoint: k8s-owner-reference
+  templates:
+  - name: k8s-owner-reference
+    resource:
+      action: create
+      manifest: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          generateName: owned-eg-
+          ownerReferences:
+          - apiVersion: argoproj.io/v1alpha1
+            blockOwnerDeletion: true
+            kind: Workflow
+            name: "{{workflow.name}}"
+            uid: "12345"
+        data:
+          some: value`
+
+	var expectedWorkflow Workflow
+	err = yaml.Unmarshal([]byte(expectedWorkflowString), &expectedWorkflow)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedWorkflow, workflow)
 }

@@ -59,7 +59,7 @@ def getJpeg(path, size, path_prefix):
             img = img.astype('float32')
             img = img.transpose(2,0,1).reshape(1,3,size,size)
             print(path, img.shape, "; data range:",np.amin(img),":",np.amax(img))
-        except e:
+        except Exception as e:
             print("Can not read the image file", e)
             img = None
     else:

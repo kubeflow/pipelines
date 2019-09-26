@@ -1,6 +1,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use graph_component.",
+      "name": "pipeline flip coin"}'
   generateName: pipeline-flip-coin-
 spec:
   arguments:
@@ -31,12 +34,8 @@ spec:
     name: flip
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+      - name: flip-output
+        path: /tmp/output
       parameters:
       - name: flip-output
         valueFrom:
@@ -52,16 +51,8 @@ spec:
     name: flip-2
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
-      parameters:
       - name: flip-2-output
-        valueFrom:
-          path: /tmp/output
+        path: /tmp/output
   - container:
       args:
       - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else
@@ -73,12 +64,8 @@ spec:
     name: flip-3
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+      - name: flip-3-output
+        path: /tmp/output
       parameters:
       - name: flip-3-output
         valueFrom:
@@ -93,7 +80,7 @@ spec:
         - flip-3
         name: condition-2
         template: condition-2
-        when: '{{tasks.flip-3.outputs.parameters.flip-3-output}} == heads'
+        when: '"{{tasks.flip-3.outputs.parameters.flip-3-output}}" == "heads"'
       - dependencies:
         - print
         name: flip-3
@@ -142,14 +129,6 @@ spec:
       parameters:
       - name: flip-output
     name: print
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - container:
       command:
       - echo
@@ -159,11 +138,3 @@ spec:
       parameters:
       - name: flip-output
     name: print-2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true

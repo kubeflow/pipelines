@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import Buttons from '../lib/Buttons';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
 import RunList from './RunList';
 import { Page } from './Page';
 import { RunStorageState } from '../apis/run';
@@ -41,14 +41,14 @@ export default class Archive extends Page<{}, ArchiveState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [
-        buttons.restore(
+      actions: buttons
+        .restore(
           () => this.state.selectedIds,
           false,
           this._selectionChanged.bind(this),
-        ),
-        buttons.refresh(this.refresh.bind(this)),
-      ],
+        )
+        .refresh(this.refresh.bind(this))
+        .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: 'Archive',
     };
@@ -71,9 +71,8 @@ export default class Archive extends Page<{}, ArchiveState> {
   }
 
   private _selectionChanged(selectedIds: string[]): void {
-    const toolbarActions = [...this.props.toolbarProps.actions];
-    // Restore button
-    toolbarActions[0].disabled = !selectedIds.length;
+    const toolbarActions = this.props.toolbarProps.actions;
+    toolbarActions[ButtonKeys.RESTORE].disabled = !selectedIds.length;
     this.props.updateToolbar({ breadcrumbs: this.props.toolbarProps.breadcrumbs, actions: toolbarActions });
     this.setState({ selectedIds });
   }

@@ -21,6 +21,11 @@ import logging
 import re
 import requests
 
+try:
+  unicode
+except NameError:
+  unicode = str
+
 def urls_for_zone(zone, location_to_urls_map):
   """Returns list of potential proxy URLs for a given zone.
 

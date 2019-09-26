@@ -36,8 +36,7 @@ def train(args):
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
-    wml_username = getSecret("/app/secrets/wml_username")
-    wml_password = getSecret("/app/secrets/wml_password")
+    wml_apikey = getSecret("/app/secrets/wml_apikey")
     wml_instance_id = getSecret("/app/secrets/wml_instance_id")
 
     wml_data_source_type = getSecret("/app/secrets/wml_data_source_type")
@@ -66,9 +65,8 @@ def train(args):
     # set up the WML client
     wml_credentials = {
                        "url": wml_url,
-                       "username": wml_username,
-                       "password": wml_password,
-                       "instance_id": wml_instance_id
+                       "instance_id": wml_instance_id,
+                       "apikey": wml_apikey
                       }
     client = WatsonMachineLearningAPIClient( wml_credentials )
 
@@ -132,6 +130,13 @@ def train(args):
         time.sleep(20)
         status = client.training.get_status( run_uid )
     print(status)
+
+    # Get training details
+    training_details = client.training.get_details(run_uid)
+    with open("/tmp/training_uid", "w") as f:
+        training_uid = training_details['entity']['training_results_reference']['location']['model_location']
+        f.write(training_uid)
+    f.close()
 
 if __name__ == "__main__":
     import argparse

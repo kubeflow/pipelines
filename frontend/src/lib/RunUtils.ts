@@ -15,8 +15,12 @@
  */
 
 import { ApiJob } from '../apis/job';
-import { ApiRun, ApiResourceType, ApiResourceReference } from '../apis/run';
+import { ApiRun, ApiResourceType, ApiResourceReference, ApiRunDetail, ApiPipelineRuntime } from '../apis/run';
 import { orderBy } from 'lodash';
+import { ApiParameter } from 'src/apis/pipeline';
+import { Workflow } from 'third_party/argo-ui/argo_template';
+import WorkflowParser from './WorkflowParser';
+import { logger } from './Utils';
 
 export interface MetricMetadata {
   count: number;
@@ -25,24 +29,53 @@ export interface MetricMetadata {
   name: string;
 }
 
+export interface ExperimentInfo {
+  displayName?: string;
+  id: string;
+}
+
+function getParametersFromRun(run: ApiRunDetail): ApiParameter[] {
+  return getParametersFromRuntime(run.pipeline_runtime);
+}
+
+function getParametersFromRuntime(runtime?: ApiPipelineRuntime): ApiParameter[] {
+  if (!runtime) {
+    return [];
+  }
+
+  try {
+    const workflow = JSON.parse(runtime.workflow_manifest!) as Workflow;
+    return WorkflowParser.getParameters(workflow);
+  } catch (err) {
+    logger.error('Failed to parse runtime workflow manifest', err);
+    return [];
+  }
+}
+
 function getPipelineId(run?: ApiRun | ApiJob): string | null {
   return (run && run.pipeline_spec && run.pipeline_spec.pipeline_id) || null;
 }
 
-function getPipelineSpec(run?: ApiRun | ApiJob): string | null {
+function getPipelineName(run?: ApiRun | ApiJob): string | null {
+  return (run && run.pipeline_spec && run.pipeline_spec.pipeline_name) || null;
+}
+
+function getWorkflowManifest(run?: ApiRun | ApiJob): string | null {
   return (run && run.pipeline_spec && run.pipeline_spec.workflow_manifest) || null;
 }
 
-function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {
-  if (run) {
-    const reference = getAllExperimentReferences(run)[0];
-    return reference && reference.key && reference.key.id || null;
-  }
-  return null;
+function getFirstExperimentReference(run?: ApiRun | ApiJob): ApiResourceReference | null {
+  return getAllExperimentReferences(run)[0] || null;
 }
 
-function getFirstExperimentReference(run?: ApiRun | ApiJob): ApiResourceReference | null {
-  return run && getAllExperimentReferences(run)[0] || null;
+function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {
+  const reference = getFirstExperimentReference(run);
+  return reference && reference.key && reference.key.id || null;
+}
+
+function getFirstExperimentReferenceName(run?: ApiRun | ApiJob): string | null {
+  const reference = getFirstExperimentReference(run);
+  return reference && reference.name || null;
 }
 
 function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference[] {
@@ -88,12 +121,31 @@ function extractMetricMetadata(runs: ApiRun[]): MetricMetadata[] {
   return orderBy(metrics, ['count', 'name'], ['desc', 'asc']);
 }
 
+function getRecurringRunId(run?: ApiRun): string {
+  if (!run) {
+    return '';
+  }
+
+  for (const ref of run.resource_references || []) {
+    if (ref.key && ref.key.type === ApiResourceType.JOB) {
+      return ref.key.id || '';
+    }
+  }
+  return '';
+}
+
+// TODO: This file needs tests
 export default {
   extractMetricMetadata,
   getAllExperimentReferences,
   getFirstExperimentReference,
   getFirstExperimentReferenceId,
+  getFirstExperimentReferenceName,
+  getParametersFromRun,
+  getParametersFromRuntime,
   getPipelineId,
-  getPipelineSpec,
+  getPipelineName,
+  getRecurringRunId,
+  getWorkflowManifest,
   runsToMetricMetadataMap,
 };

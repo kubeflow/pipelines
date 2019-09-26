@@ -1,6 +1,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "The second example of
+      the design doc.", "name": "Volume Op DAG"}'
   generateName: volume-op-dag-
 spec:
   arguments:
@@ -39,14 +42,6 @@ spec:
       parameters:
       - name: create-pvc-name
     name: step1
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - container:
       args:
       - echo 2 | tee /mnt2/file2
@@ -61,14 +56,6 @@ spec:
       parameters:
       - name: create-pvc-name
     name: step2
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - container:
       args:
       - cat /mnt/file1 /mnt/file2
@@ -83,14 +70,6 @@ spec:
       parameters:
       - name: create-pvc-name
     name: step3
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - dag:
       tasks:
       - name: create-pvc

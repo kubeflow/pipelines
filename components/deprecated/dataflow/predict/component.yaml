@@ -1,0 +1,33 @@
+name: Predict using TF on Dataflow
+description: |
+  Runs TensorFlow prediction on Google Cloud Dataflow
+  Input and output data is in GCS
+inputs:
+  - {name: Data file pattern,   type: GCSPath,        description: 'GCS or local path of test file patterns.'} # type: {GCSPath: {data_type: CSV}}
+  - {name: Schema,              type: GCSPath, description: 'GCS json schema file path.'} # type: {GCSPath: {data_type: TFDV schema JSON}}
+  - {name: Target column,       type: String,                             description: 'Name of the column for prediction target.'}
+  - {name: Model,               type: GCSPath, description: 'GCS or local path of model trained with tft preprocessed data.'}   # Models trained with estimator are exported to base/export/export/123456781 directory.  # Our trainer export only one model. #TODO: Output single model from trainer # type: {GCSPath: {path_type: Directory, data_type: Exported TensorFlow models dir}}
+  - {name: Batch size,          type: Integer,   default: '32',           description: 'Batch size used in prediction.'}
+  - {name: Run mode,            type: String,    default: local,          description: 'Whether to run the job locally or in Cloud Dataflow. Valid values are "local" and "cloud".'}
+  - {name: GCP project,         type: GCPProjectID,                         description: 'The GCP project to run the dataflow job.'}
+  - {name: Predictions dir,     type: GCSPath,  description: 'GCS or local directory.'} #Will contain prediction_results-* and schema.json files; TODO: Split outputs and replace dir with single file # type: {GCSPath: {path_type: Directory}}
+outputs:
+  - {name: Predictions dir,     type: GCSPath,  description: 'GCS or local directory.'} #Will contain prediction_results-* and schema.json files; TODO: Split outputs and replace dir with single file # type: {GCSPath: {path_type: Directory}}
+  - {name: MLPipeline UI metadata, type: UI metadata}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:57d9f7f1cfd458e945d297957621716062d89a49
+    command: [python2, /ml/predict.py]
+    args: [
+      --data,       {inputValue: Data file pattern},
+      --schema,     {inputValue: Schema},
+      --target,     {inputValue: Target column},
+      --model,      {inputValue: Model},
+      --mode,       {inputValue: Run mode},
+      --project,    {inputValue: GCP project},
+      --batchsize,  {inputValue: Batch size},
+      --output,     {inputValue: Predictions dir},
+    ]
+    fileOutputs:
+      Predictions dir: /output.txt
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json

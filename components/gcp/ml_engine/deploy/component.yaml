@@ -16,6 +16,9 @@ name: Deploying a trained model to Cloud Machine Learning Engine
 description: |
   A Kubeflow Pipeline component to deploy a trained model from a Cloud Storage
   path to a Cloud Machine Learning Engine service.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: model_uri
     description: >-
@@ -88,9 +91,11 @@ outputs:
   - name: version_name
     description: 'The name of the deployed version.'
     type: String
+  - name: MLPipeline UI metadata
+    type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:d4960d3379af4735fd04dc7167fab5fff82d0f22
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:57d9f7f1cfd458e945d297957621716062d89a49
     args: [
       kfp_component.google.ml_engine, deploy,
       --model_uri, {inputValue: model_uri},
@@ -109,3 +114,4 @@ implementation:
       model_uri: /tmp/kfp/output/ml_engine/model_uri.txt
       model_name: /tmp/kfp/output/ml_engine/model_name.txt
       version_name: /tmp/kfp/output/ml_engine/version_name.txt
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json

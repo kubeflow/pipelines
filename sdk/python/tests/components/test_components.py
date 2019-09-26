@@ -15,14 +15,24 @@
 import os
 import sys
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 
-sys.path.insert(0, __file__ + '/../../../')
 
 import kfp
 import kfp.components as comp
 from kfp.components._yaml_utils import load_yaml
 from kfp.dsl.types import InconsistentTypeException
+
+
+@contextmanager
+def no_task_resolving_context():
+    old_handler = kfp.components._components._created_task_transformation_handler
+    try:
+        kfp.components._components._created_task_transformation_handler = None
+        yield None
+    finally:
+        kfp.components._components._created_task_transformation_handler = old_handler
 
 class LoadComponentTestCase(unittest.TestCase):
     def _test_load_component_from_file(self, component_path: str):
@@ -52,26 +62,24 @@ class LoadComponentTestCase(unittest.TestCase):
         component_path = _test_data_dir.joinpath('python_add.component.zip')
         self._test_load_component_from_file(str(component_path))
 
-    @unittest.skip
-    @unittest.expectedFailure #The repo is non-public and will change soon. TODO: Update the URL and enable the test once we move to a public repo
     def test_load_component_from_url(self):
-        url = 'https://raw.githubusercontent.com/kubeflow/pipelines/eb830cd73ca148e5a1a6485a9374c2dc068314bc/sdk/python/tests/components/test_data/python_add.component.yaml'
+        url = 'https://raw.githubusercontent.com/kubeflow/pipelines/e54fe675432cfef1d115a7a2909f08ed95ea8933/sdk/python/tests/components/test_data/python_add.component.yaml'
 
         import requests
         resp = requests.get(url)
         component_text = resp.content
         component_dict = load_yaml(component_text)
         task_factory1 = comp.load_component_from_url(url)
-        assert task_factory1.__doc__ == component_dict['name'] + '\n' + component_dict['description']
+        self.assertEqual(task_factory1.__doc__, component_dict['name'] + '\n' + component_dict['description'])
 
         arg1 = 3
         arg2 = 5
         task1 = task_factory1(arg1, arg2)
-        assert task1.human_name == component_dict['name']
-        assert task1.container.image == component_dict['implementation']['container']['image']
+        self.assertEqual(task1.human_name, component_dict['name'])
+        self.assertEqual(task1.container.image, component_dict['implementation']['container']['image'])
 
-        assert task1.arguments[0] == str(arg1)
-        assert task1.arguments[1] == str(arg2)
+        self.assertEqual(task1.arguments[0], str(arg1))
+        self.assertEqual(task1.arguments[1], str(arg2))
 
     def test_loading_minimal_component(self):
         component_text = '''\
@@ -83,9 +91,23 @@ implementation:
         task_factory1 = comp.load_component(text=component_text)
 
         task1 = task_factory1()
-        assert task1.container.image == component_dict['implementation']['container']['image']
+        self.assertEqual(task1.container.image, component_dict['implementation']['container']['image'])
 
-    @unittest.expectedFailure
+    def test_accessing_component_spec_from_task_factory(self):
+        component_text = '''\
+implementation:
+  container:
+    image: busybox
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+
+        actual_component_spec = task_factory1.component_spec
+        actual_component_spec_dict = actual_component_spec.to_dict()
+        expected_component_spec_dict = load_yaml(component_text)
+        expected_component_spec = kfp.components._structures.ComponentSpec.from_dict(expected_component_spec_dict)
+        self.assertEqual(expected_component_spec_dict, actual_component_spec_dict)
+        self.assertEqual(expected_component_spec, task_factory1.component_spec)
+
     def test_fail_on_duplicate_input_names(self):
         component_text = '''\
 inputs:
@@ -95,9 +117,9 @@ implementation:
   container:
     image: busybox
 '''
-        task_factory1 = comp.load_component_from_text(component_text)
+        with self.assertRaises(ValueError):
+            task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.expectedFailure
     def test_fail_on_duplicate_output_names(self):
         component_text = '''\
 outputs:
@@ -107,7 +129,8 @@ implementation:
   container:
     image: busybox
 '''
-        task_factory1 = comp.load_component_from_text(component_text)
+        with self.assertRaises(ValueError):
+            task_factory1 = comp.load_component_from_text(component_text)
 
     def test_handle_underscored_input_names(self):
         component_text = '''\
@@ -187,7 +210,6 @@ implementation:
 '''
         task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.expectedFailure
     def test_fail_on_unknown_value_argument(self):
         component_text = '''\
 inputs:
@@ -198,9 +220,9 @@ implementation:
     args:
       - {inputValue: Wrong}
 '''
-        task_factory1 = comp.load_component_from_text(component_text)
+        with self.assertRaises(TypeError):
+            task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.expectedFailure
     def test_fail_on_unknown_file_output(self):
         component_text = '''\
 outputs:
@@ -211,31 +233,32 @@ implementation:
     fileOutputs:
         Wrong: '/outputs/output.txt'
 '''
-        task_factory1 = comp.load_component_from_text(component_text)
+        with self.assertRaises(TypeError):
+            task_factory1 = comp.load_component_from_text(component_text)
 
-    @unittest.expectedFailure
     def test_load_component_fail_on_no_sources(self):
-        comp.load_component()
+        with self.assertRaises(ValueError):
+            comp.load_component()
 
-    @unittest.expectedFailure
     def test_load_component_fail_on_multiple_sources(self):
-        comp.load_component(filename='', text='')
+        with self.assertRaises(ValueError):
+            comp.load_component(filename='', text='')
 
-    @unittest.expectedFailure
     def test_load_component_fail_on_none_arguments(self):
-        comp.load_component(filename=None, url=None, text=None)
+        with self.assertRaises(ValueError):
+            comp.load_component(filename=None, url=None, text=None)
 
-    @unittest.expectedFailure
     def test_load_component_from_file_fail_on_none_arg(self):
-        comp.load_component_from_file(None)
+        with self.assertRaises(TypeError):
+            comp.load_component_from_file(None)
 
-    @unittest.expectedFailure
     def test_load_component_from_url_fail_on_none_arg(self):
-        comp.load_component_from_url(None)
+        with self.assertRaises(TypeError):
+            comp.load_component_from_url(None)
 
-    @unittest.expectedFailure
     def test_load_component_from_text_fail_on_none_arg(self):
-        comp.load_component_from_text(None)
+        with self.assertRaises(TypeError):
+            comp.load_component_from_text(None)
 
     def test_input_value_resolving(self):
         component_text = '''\
@@ -270,6 +293,23 @@ implementation:
         self.assertEqual(len(task1.arguments), 2)
         self.assertEqual(task1.arguments[0], '--output-data')
         self.assertTrue(task1.arguments[1].startswith('/'))
+
+    def test_input_path_placeholder_with_constant_argument(self):
+        component_text = '''\
+inputs:
+- {name: input 1}
+implementation:
+  container:
+    image: busybox
+    command:
+      - --input-data
+      - {inputPath: input 1}
+'''
+        task_factory1 = comp.load_component_from_text(component_text)
+        task1 = task_factory1('Text')
+
+        self.assertEqual(task1.command, ['--input-data', task1.input_artifact_paths['input 1']])
+        self.assertEqual(task1.artifact_arguments, {'input 1': 'Text'})
 
     def test_optional_inputs_reordering(self):
         '''Tests optional input reordering.
@@ -561,6 +601,51 @@ implementation:
         task1 = task_factory1()
         self.assertEqual(task1.pod_annotations['key1'], 'value1')
         self.assertEqual(task1.pod_labels['key1'], 'value1')
+
+    def test_check_task_spec_outputs_dictionary(self):
+        component_text = '''\
+outputs:
+- {name: out 1}
+- {name: out 2}
+implementation:
+  container:
+    image: busybox
+    command: [touch, {outputPath: out 1}, {outputPath: out 2}]
+'''
+        op = comp.load_component_from_text(component_text)
+        with no_task_resolving_context():
+          task = op()
+
+        self.assertEqual(list(task.outputs.keys()), ['out 1', 'out 2'])
+
+    def test_check_type_validation_of_task_spec_outputs(self):
+        producer_component_text = '''\
+outputs:
+- {name: out1, type: Integer}
+- {name: out2, type: String}
+implementation:
+  container:
+    image: busybox
+    command: [touch, {outputPath: out1}, {outputPath: out2}]
+'''
+        consumer_component_text = '''\
+inputs:
+- {name: data, type: Integer}
+implementation:
+  container:
+    image: busybox
+    command: [echo, {inputValue: data}]
+'''
+        producer_op = comp.load_component_from_text(producer_component_text)
+        consumer_op = comp.load_component_from_text(consumer_component_text)
+        with no_task_resolving_context():
+          producer_task = producer_op()
+
+          consumer_op(producer_task.outputs['out1'])
+          consumer_op(producer_task.outputs['out2'].without_type())
+          consumer_op(producer_task.outputs['out2'].with_type('Integer'))
+          with self.assertRaises(InconsistentTypeException):
+            consumer_op(producer_task.outputs['out2'])
 
     def test_type_compatibility_check_for_simple_types(self):
         component_a = '''\
@@ -890,6 +975,7 @@ implementation:
         task_factory_a = comp.load_component_from_text(component_a)
         task_factory_b = comp.load_component_from_text(component_b)
         a_task = task_factory_a()
+
         with self.assertRaises(InconsistentTypeException):
             b_task = task_factory_b(in1=a_task.outputs['out1'])
 

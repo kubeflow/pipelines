@@ -30,6 +30,11 @@ from pathlib2 import Path
 
 from common import _utils
 
+try:
+  unicode
+except NameError:
+  unicode = str
+
 
 def main(argv=None):
   parser = argparse.ArgumentParser(description='Submit Spark Job')

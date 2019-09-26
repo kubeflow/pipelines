@@ -15,9 +15,9 @@
 import kfp
 import kfp.dsl as dsl
 from kfp.dsl import component, graph_component
-from kfp.dsl._metadata import ComponentMeta, ParameterMeta, TypeMeta
 from kfp.dsl.types import Integer, GCSPath, InconsistentTypeException
 from kfp.dsl import ContainerOp, Pipeline, PipelineParam
+from kfp.components._structures import ComponentSpec, InputSpec, OutputSpec
 import unittest
 
 class TestPythonComponent(unittest.TestCase):
@@ -35,11 +35,11 @@ class TestPythonComponent(unittest.TestCase):
 
     containerOp = componentA(1,2,c=3)
 
-    golden_meta = ComponentMeta(name='componentA', description='')
-    golden_meta.inputs.append(ParameterMeta(name='a', description='', param_type=TypeMeta(name='ArtifactA', properties={'file_type': 'csv'})))
-    golden_meta.inputs.append(ParameterMeta(name='b', description='', param_type=TypeMeta(name='Integer', properties={'openapi_schema_validator': {"type": "integer"}}), default=12))
-    golden_meta.inputs.append(ParameterMeta(name='c', description='', param_type=TypeMeta(name='ArtifactB', properties={'path_type':'file', 'file_type': 'tsv'}), default='gs://hello/world'))
-    golden_meta.outputs.append(ParameterMeta(name='model', description='', param_type=TypeMeta(name='Integer', properties={'openapi_schema_validator': {"type": "integer"}})))
+    golden_meta = ComponentSpec(name='componentA', inputs=[], outputs=[])
+    golden_meta.inputs.append(InputSpec(name='a', type={'ArtifactA': {'file_type': 'csv'}}))
+    golden_meta.inputs.append(InputSpec(name='b', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}, default="12"))
+    golden_meta.inputs.append(InputSpec(name='c', type={'ArtifactB': {'path_type':'file', 'file_type': 'tsv'}}, default='gs://hello/world'))
+    golden_meta.outputs.append(OutputSpec(name='model', type={'Integer': {'openapi_schema_validator': {"type": "integer"}}}))
 
     self.assertEqual(containerOp._metadata, golden_meta)
 
@@ -63,7 +63,7 @@ class TestPythonComponent(unittest.TestCase):
 
     @component
     def b_op(field_x: {'customized_type': {'property_a': 'value_a', 'property_b': 'value_b'}},
-        field_y: 'GcsUri',
+        field_y: 'GcsUri',  # noqa: F821 TODO
         field_z: GCSPath()) -> {'output_model_uri': 'GcsUri'}:
       return ContainerOp(
           name = 'operator b',

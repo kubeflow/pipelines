@@ -19,6 +19,9 @@ type PipelineSpec struct {
 	// a pipeline ID.
 	PipelineId string `gorm:"column:PipelineId; not null"`
 
+	// Pipeline Name will be required if ID is not empty.
+	PipelineName string `gorm:"column:PipelineName; not null"`
+
 	// Pipeline YAML definition. This is the pipeline interface for creating a pipeline.
 	// Set size to 65535 so it will be stored as longtext.
 	// https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html

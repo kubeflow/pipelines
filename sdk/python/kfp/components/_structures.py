@@ -21,6 +21,7 @@ __all__ = [
     'OutputPathPlaceholder',
     'ConcatPlaceholder',
     'IsPresentPlaceholder',
+    'IfPlaceholderStructure',
     'IfPlaceholder',
 
     'ContainerSpec',
@@ -64,12 +65,14 @@ from .structures.kubernetes import v1
 PrimitiveTypes = Union[str, int, float, bool]
 PrimitiveTypesIncludingNone = Optional[PrimitiveTypes]
 
+TypeSpecType = Union[str, Dict, List]
+
 
 class InputSpec(ModelBase):
     '''Describes the component input specification'''
     def __init__(self,
         name: str,
-        type: Optional[Union[str, Dict, List]] = None,
+        type: Optional[TypeSpecType] = None,
         description: Optional[str] = None,
         default: Optional[PrimitiveTypes] = None,
         optional: Optional[bool] = False,
@@ -81,7 +84,7 @@ class OutputSpec(ModelBase):
     '''Describes the component output specification'''
     def __init__(self,
         name: str,
-        type: Optional[Union[str, Dict, List]] = None,
+        type: Optional[TypeSpecType] = None,
         description: Optional[str] = None,
     ):
         super().__init__(locals())
@@ -314,12 +317,13 @@ class ComponentReference(ModelBase):
         digest: Optional[str] = None,
         tag: Optional[str] = None,
         url: Optional[str] = None,
+        spec: Optional[ComponentSpec] = None,
     ):
         super().__init__(locals())
         self._post_init()
     
     def _post_init(self) -> None:
-        if not any([self.name, self.digest, self.tag, self.url]):
+        if not any([self.name, self.digest, self.tag, self.url, self.spec]):
             raise TypeError('Need at least one argument.')
 
 
@@ -343,10 +347,25 @@ class TaskOutputReference(ModelBase):
     }
 
     def __init__(self,
-        task_id: str,
         output_name: str,
+        task_id: Optional[str] = None,      # Used for linking to the upstream task in serialized component file.
+        task: Optional['TaskSpec'] = None,  # Used for linking to the upstream task in runtime since Task does not have an ID until inserted into a graph.
+        type: Optional[TypeSpecType] = None,    # Can be used to override the reference data type
     ):
         super().__init__(locals())
+        if self.task_id is None and self.task is None:
+            raise TypeError('task_id and task cannot be None at the same time.')
+
+    def with_type(self, type_spec: TypeSpecType) -> 'TaskOutputReference':
+        return TaskOutputReference(
+            output_name=self.output_name,
+            task_id=self.task_id,
+            task=self.task,
+            type=type_spec,
+        )
+
+    def without_type(self) -> 'TaskOutputReference':
+        return self.with_type(None)
 
 
 class TaskOutputArgument(ModelBase): #Has additional constructor for convenience
@@ -370,6 +389,13 @@ class TaskOutputArgument(ModelBase): #Has additional constructor for convenience
             output_name=output_name,
         ))
 
+    def with_type(self, type_spec: TypeSpecType) -> 'TaskOutputArgument':
+        return TaskOutputArgument(
+            task_output=self.task_output.with_type(type_spec),
+        )
+
+    def without_type(self) -> 'TaskOutputArgument':
+        return self.with_type(None)
 
 ArgumentType = Union[PrimitiveTypes, GraphInputArgument, TaskOutputArgument]
 
@@ -481,6 +507,22 @@ class TaskSpec(ModelBase):
     ):
         super().__init__(locals())
         #TODO: If component_ref is resolved to component spec, then check that the arguments correspond to the inputs
+
+    def _init_outputs(self):
+        #Adding output references to the task
+        if self.component_ref.spec is None:
+            return
+        task_outputs = OrderedDict()
+        for output in self.component_ref.spec.outputs or []:
+            task_output_ref = TaskOutputReference(
+                output_name=output.name,
+                task=self,
+                type=output.type, # TODO: Resolve type expressions. E.g. type: {TypeOf: Input 1}
+            )
+            task_output_arg = TaskOutputArgument(task_output=task_output_ref)
+            task_outputs[output.name] = task_output_arg
+
+        self.outputs = task_outputs
 
 
 class GraphSpec(ModelBase):

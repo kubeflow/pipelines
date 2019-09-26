@@ -14,7 +14,7 @@
 # limitations under the License.
 
 mkdir -p ./build
-rsync -arvp --exclude=.tox "../../../component_sdk/python"/ ./build/
+rsync -arvp --exclude=.tox "component_sdk/python"/ ./build/
 cp ../../license.sh ./build/
 cp ../../third_party_licenses.csv ./build/
 

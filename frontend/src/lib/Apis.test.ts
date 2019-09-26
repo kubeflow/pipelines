@@ -40,6 +40,10 @@ describe('Apis', () => {
   it('hosts a singleton runServiceApi', () => {
     expect(Apis.runServiceApi).toBe(Apis.runServiceApi);
   });
+  
+  it('hosts a singleton visualizationServiceApi', () => {
+    expect(Apis.visualizationServiceApi).toBe(Apis.visualizationServiceApi);
+  });
 
   it('getPodLogs', async () => {
     const spy = fetchSpy('http://some/address');

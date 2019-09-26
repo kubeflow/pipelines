@@ -3,7 +3,7 @@
 exports[`RecurringRunsManager calls API to load recurring runs 1`] = `
 <Fragment>
   <Toolbar
-    actions={Array []}
+    actions={Object {}}
     breadcrumbs={Array []}
     pageTitle="Recurring runs"
   />

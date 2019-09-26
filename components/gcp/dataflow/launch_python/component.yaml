@@ -15,6 +15,9 @@
 name: Launch Python
 description: |
   Launch a self-executing beam python file.
+metadata:
+  labels:
+    add-pod-env: 'true'
 inputs:
   - name: python_file_path
     description: 'The gcs or local path to the python file to run.'
@@ -46,9 +49,11 @@ outputs:
   - name: job_id
     description: 'The id of the created dataflow job.'
     type: String
+  - name: MLPipeline UI metadata
+    type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:d4960d3379af4735fd04dc7167fab5fff82d0f22
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:57d9f7f1cfd458e945d297957621716062d89a49
     args: [
       kfp_component.google.dataflow, launch_python,
       --python_file_path, {inputValue: python_file_path},
@@ -62,3 +67,4 @@ implementation:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       job_id: /tmp/kfp/output/dataflow/job_id.txt
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json

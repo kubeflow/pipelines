@@ -49,7 +49,11 @@ func (r MetricsReporter) ReportMetrics(workflow *util.Workflow) error {
 	if workflow.Status.Nodes == nil {
 		return nil
 	}
-	runID := string(workflow.UID)
+	if _, ok := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
+		// Skip reporting if the workflow doesn't have the run id label
+		return nil
+	}
+	runID := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
 	runMetrics := []*api.RunMetric{}
 	partialFailures := []error{}
 	for _, nodeStatus := range workflow.Status.Nodes {

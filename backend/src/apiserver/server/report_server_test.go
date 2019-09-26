@@ -25,6 +25,7 @@ func TestReportWorkflow(t *testing.T) {
 			Name:      "run1",
 			Namespace: "default",
 			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Spec: v1alpha1.WorkflowSpec{
 			Arguments: v1alpha1.Arguments{

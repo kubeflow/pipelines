@@ -4,19 +4,18 @@ inputs:
   - {name: Predictions,     type: GCSPath,        description: 'GCS path of prediction file pattern.'} # type: {GCSPath: {data_type: CSV}}
   - {name: Target lambda,   type: String, default: '', description: 'Text of Python lambda function which computes target value. For example, "lambda x: x[''a''] + x[''b'']". If not set, the input must include a "target" column.'}
   - {name: Output dir,      type: GCSPath,  description: 'GCS path of the output directory.'} # type: {GCSPath: {path_type: Directory}}
-#outputs:
-#  - {name: UI metadata,     type: UI metadata}
-#  - {name: Metrics,         type: Metrics}
+outputs:
+  - {name: MLPipeline UI metadata, type: UI metadata}
+  - {name: MLPipeline Metrics,     type: Metrics}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:d4960d3379af4735fd04dc7167fab5fff82d0f22
+    image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:57d9f7f1cfd458e945d297957621716062d89a49
     command: [python2, /ml/confusion_matrix.py]
     args: [
       --predictions, {inputValue: Predictions},
       --target_lambda, {inputValue: Target lambda},
       --output,      {inputValue: Output dir},
     ]
-#Argo deletes the source files as soon as it uploads them to the artifact store. Trying to output the same files as parameter outputs fails since the source files are already deleted.
-#    fileOutputs:
-#      UI metadata:  /mlpipeline-ui-metadata.json
-#      Metrics:      /mlpipeline-metrics.json
+    fileOutputs:
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json
+      MLPipeline Metrics:     /mlpipeline-metrics.json

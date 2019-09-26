@@ -40,6 +40,7 @@
       true,
       "check-format",
       "ban-keywords",
+      "allow-pascal-case",
       "allow-leading-underscore",
       "allow-trailing-underscore"
     ]

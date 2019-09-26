@@ -1,2 +1,0 @@
-gsutil == 4.34
-tensorflow == 1.13.1

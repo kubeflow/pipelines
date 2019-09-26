@@ -1,0 +1,6 @@
+ipykernel==5.1.1
+jupyter_client==5.2.4
+nbconvert==5.5.0
+nbformat==4.4.0
+snapshottest==0.5.1
+tornado==6.0.2

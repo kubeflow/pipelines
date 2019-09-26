@@ -1251,10 +1251,6 @@ exports[`RunDetails logs tab switches to logs tab in side pane 1`] = `
                   ]
                 }
               />
-              <WithStyles(CircularProgress)
-                className="absoluteCenter"
-                size={30}
-              />
               <div
                 className="page"
               >
@@ -1371,7 +1367,27 @@ exports[`RunDetails opens side panel when graph node is clicked 1`] = `
               >
                 <div
                   className="page"
-                />
+                >
+                  <div
+                    className=""
+                  >
+                    <PlotCard
+                      configs={
+                        Array [
+                          Object {
+                            "allowCustomVisualizations": false,
+                            "isBusy": false,
+                            "onGenerate": [Function],
+                            "type": "visualization-creator",
+                          },
+                        ]
+                      }
+                      maxDimension={500}
+                      title="Visualization Creator"
+                    />
+                    <Component />
+                  </div>
+                </div>
               </div>
             </div>
           </SidePanel>
@@ -1595,7 +1611,27 @@ exports[`RunDetails shows clicked node message in side panel 1`] = `
               >
                 <div
                   className="page"
-                />
+                >
+                  <div
+                    className=""
+                  >
+                    <PlotCard
+                      configs={
+                        Array [
+                          Object {
+                            "allowCustomVisualizations": false,
+                            "isBusy": false,
+                            "onGenerate": [Function],
+                            "type": "visualization-creator",
+                          },
+                        ]
+                      }
+                      maxDimension={500}
+                      title="Visualization Creator"
+                    />
+                    <Component />
+                  </div>
+                </div>
               </div>
             </div>
           </SidePanel>
@@ -1698,6 +1734,25 @@ exports[`RunDetails shows clicked node output in side pane 1`] = `
                 <div
                   className="page"
                 >
+                  <div
+                    className=""
+                  >
+                    <PlotCard
+                      configs={
+                        Array [
+                          Object {
+                            "allowCustomVisualizations": false,
+                            "isBusy": false,
+                            "onGenerate": [Function],
+                            "type": "visualization-creator",
+                          },
+                        ]
+                      }
+                      maxDimension={500}
+                      title="Visualization Creator"
+                    />
+                    <Component />
+                  </div>
                   <div
                     className=""
                     key="0"
@@ -1839,7 +1894,7 @@ exports[`RunDetails shows run config fields - handles no description 1`] = `
               ],
               Array [
                 "Duration",
-                "1:01:01",
+                "25:01:01",
               ],
             ]
           }
@@ -1900,7 +1955,7 @@ exports[`RunDetails shows run config fields - handles no metadata 1`] = `
               ],
               Array [
                 "Duration",
-                "1:01:01",
+                "25:01:01",
               ],
             ]
           }
@@ -1961,7 +2016,7 @@ exports[`RunDetails shows run config fields 1`] = `
               ],
               Array [
                 "Duration",
-                "1:01:01",
+                "25:01:01",
               ],
             ]
           }

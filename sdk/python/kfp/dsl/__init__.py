@@ -15,13 +15,13 @@
 
 from ._pipeline_param import PipelineParam, match_serialized_pipelineparam
 from ._pipeline import Pipeline, pipeline, get_pipeline_conf
-from ._container_op import ContainerOp, Sidecar
+from ._container_op import ContainerOp, InputArgumentPath, UserContainer, Sidecar
 from ._resource_op import ResourceOp
 from ._volume_op import (
     VolumeOp, VOLUME_MODE_RWO, VOLUME_MODE_RWM, VOLUME_MODE_ROM
 )
 from ._pipeline_volume import PipelineVolume
 from ._volume_snapshot_op import VolumeSnapshotOp
-from ._ops_group import OpsGroup, ExitHandler, Condition
+from ._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor
 from ._component import python_component, graph_component, component
 from ._artifact_location import ArtifactLocation

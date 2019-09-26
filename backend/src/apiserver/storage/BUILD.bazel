@@ -25,7 +25,6 @@ go_library(
         "//backend/api:go_default_library",
         "//backend/src/apiserver/common:go_default_library",
         "//backend/src/apiserver/list:go_default_library",
-        "//backend/src/apiserver/metadata:go_default_library",
         "//backend/src/apiserver/model:go_default_library",
         "//backend/src/common/util:go_default_library",
         "@com_github_argoproj_argo//pkg/apis/workflow/v1alpha1:go_default_library",
@@ -38,9 +37,6 @@ go_library(
         "@com_github_minio_minio_go//:go_default_library",
         "@com_github_pkg_errors//:go_default_library",
         "@com_github_vividcortex_mysqlerr//:go_default_library",
-        "@google_ml_metadata//ml_metadata/metadata_store:metadata_store_go",  # keep
-        "@google_ml_metadata//ml_metadata/proto:metadata_store_go_proto",  # keep
-        "@google_ml_metadata//ml_metadata/proto:metadata_store_service_go_proto",  # keep
         "@io_k8s_apimachinery//pkg/util/json:go_default_library",
     ],
 )

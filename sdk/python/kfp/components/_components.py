@@ -25,9 +25,9 @@ from ._naming import _sanitize_file_name, _sanitize_python_function_name, genera
 from ._yaml_utils import load_yaml
 from ._structures import ComponentSpec
 from ._structures import *
+from ._data_passing import serialize_value, type_name_to_type
 from kfp.dsl import PipelineParam
-from kfp.dsl.types import InconsistentTypeException, check_types
-import kfp
+from kfp.dsl.types import verify_type_compatibility
 
 _default_component_name = 'Component'
 
@@ -170,20 +170,6 @@ def _generate_output_file_name(port_name):
     return _outputs_dir + '/' + _sanitize_file_name(port_name) + '/' + _single_io_file_name
 
 
-def _try_get_object_by_name(obj_name):
-    '''Locates any Python object (type, module, function, global variable) by name'''
-    try:
-        ##Might be heavy since locate searches all Python modules
-        #from pydoc import locate
-        #return locate(obj_name) or obj_name
-        import builtins
-        return builtins.__dict__.get(obj_name, obj_name)
-    except:
-        pass
-    return obj_name
-
-
-
 #Holds the transformation functions that are called each time TaskSpec instance is created from a component. If there are multiple handlers, the last one is used.
 _created_task_transformation_handler = []
 
@@ -191,6 +177,14 @@ _created_task_transformation_handler = []
 #TODO: Move to the dsl.Pipeline context class
 from . import _dsl_bridge
 _created_task_transformation_handler.append(_dsl_bridge.create_container_op_from_task)
+
+
+class _DefaultValue:
+    def __init__(self, value):
+        self.value = value
+
+    def __repr__(self):
+        return repr(self.value)
 
 
 #TODO: Refactor the function to make it shorter
@@ -212,29 +206,45 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
 
     if component_ref is None:
         component_ref = ComponentReference(name=component_spec.name or component_filename or _default_component_name)
-    component_ref._component_spec = component_spec
+    component_ref.spec = component_spec
 
     def create_task_from_component_and_arguments(pythonic_arguments):
-        #Converting the argument names and not passing None arguments
-        valid_argument_types = (str, int, float, bool, GraphInputArgument, TaskOutputArgument, PipelineParam) #Hack for passed PipelineParams. TODO: Remove the hack once they're no longer passed here.
-        arguments = {
-            pythonic_name_to_input_name[k]: (v if isinstance(v, valid_argument_types) else str(v))
-            for k, v in pythonic_arguments.items()
-            if v is not None
-        }
-        for key in arguments:
-            if isinstance(arguments[key], PipelineParam):
-                if kfp.TYPE_CHECK:
-                    for input_spec in component_spec.inputs:
-                        if input_spec.name == key:
-                            if arguments[key].param_type is not None and not check_types(arguments[key].param_type.to_dict_or_str(), '' if input_spec.type is None else input_spec.type):
-                                raise InconsistentTypeException('Component "' + name + '" is expecting ' + key + ' to be type(' + str(input_spec.type) + '), but the passed argument is type(' + arguments[key].param_type.serialize() + ')')
-                arguments[key] = str(arguments[key])
+        arguments = {}
+        # Not checking for missing or extra arguments since the dynamic factory function checks that
+        for argument_name, argument_value in pythonic_arguments.items():
+            if isinstance(argument_value, _DefaultValue): # Skipping passing arguments for optional values that have not been overridden.
+                continue
+            input_name = pythonic_name_to_input_name[argument_name]
+            input_type = component_spec._inputs_dict[input_name].type
+
+            if isinstance(argument_value, (GraphInputArgument, TaskOutputArgument, PipelineParam)):
+                # argument_value is a reference 
+
+                if isinstance(argument_value, PipelineParam):
+                    reference_type = argument_value.param_type
+                    argument_value = str(argument_value)
+                elif isinstance(argument_value, TaskOutputArgument):
+                    reference_type = argument_value.task_output.type
+                else:
+                    reference_type = None
+
+                verify_type_compatibility(reference_type, input_type, 'Incompatible argument passed to the input "{}" of component "{}": '.format(input_name, component_spec.name))
+
+                arguments[input_name] = argument_value
+            else:
+                # argument_value is a constant value
+                serialized_argument_value = serialize_value(argument_value, input_type)
+                arguments[input_name] = serialized_argument_value
 
         task = TaskSpec(
             component_ref=component_ref,
             arguments=arguments,
         )
+        task._init_outputs()
+        
+        if isinstance(component_spec.implementation, GraphImplementation):
+            return _resolve_graph_task(task, component_spec)
+
         if _created_task_transformation_handler:
             task = _created_task_transformation_handler[-1](task)
         return task
@@ -244,13 +254,74 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
 
     #Reordering the inputs since in Python optional parameters must come after required parameters
     reordered_input_list = [input for input in inputs_list if input.default is None and not input.optional] + [input for input in inputs_list if not (input.default is None and not input.optional)]
-    input_parameters  = [_dynamic.KwParameter(input_name_to_pythonic[port.name], annotation=(_try_get_object_by_name(str(port.type)) if port.type else inspect.Parameter.empty), default=port.default if port.default is not None else (None if port.optional else inspect.Parameter.empty)) for port in reordered_input_list]
+
+    def component_default_to_func_default(component_default: str, is_optional: bool):
+        if is_optional:
+            return _DefaultValue(component_default)
+        if component_default is not None:
+            return component_default
+        return inspect.Parameter.empty
+
+    input_parameters = [
+        _dynamic.KwParameter(
+            input_name_to_pythonic[port.name],
+            annotation=(type_name_to_type.get(str(port.type), str(port.type)) if port.type else inspect.Parameter.empty),
+            default=component_default_to_func_default(port.default, port.optional),
+        )
+        for port in reordered_input_list
+    ]
     factory_function_parameters = input_parameters #Outputs are no longer part of the task factory function signature. The paths are always generated by the system.
     
-    return _dynamic.create_function_from_parameters(
+    task_factory = _dynamic.create_function_from_parameters(
         create_task_from_component_and_arguments,        
         factory_function_parameters,
         documentation='\n'.join(func_docstring_lines),
         func_name=name,
-        func_filename=component_filename
+        func_filename=component_filename if (component_filename and (component_filename.endswith('.yaml') or component_filename.endswith('.yml'))) else None,
     )
+    task_factory.component_spec = component_spec
+    return task_factory
+
+
+def _resolve_graph_task(graph_task: TaskSpec, graph_component_spec: ComponentSpec) -> TaskSpec:
+    from ..components import ComponentStore
+    component_store = ComponentStore.default_store
+
+    graph = graph_component_spec.implementation.graph
+
+    outputs_of_tasks = {}
+    def resolve_argument(argument):
+        if isinstance(argument, (str, int, float, bool)):
+            return argument
+        elif isinstance(argument, GraphInputArgument):
+            return graph_task.arguments[argument.input_name]
+        elif isinstance(argument, TaskOutputArgument):
+            upstream_task_output_ref = argument.task_output
+            upstream_task_outputs = outputs_of_tasks[upstream_task_output_ref.task_id]
+            upstream_task_output = upstream_task_outputs[upstream_task_output_ref.output_name]
+            return upstream_task_output
+        else:
+            raise TypeError('Argument for input has unexpected type "{}".'.format(type(argument)))
+
+    for task_id, task_spec in graph._toposorted_tasks.items(): # Cannot use graph.tasks here since they might be listed not in dependency order. Especially on python <3.6 where the dicts do not preserve ordering
+        task_factory = component_store._load_component_from_ref(task_spec.component_ref)
+        task_arguments = {input_name: resolve_argument(argument) for input_name, argument in task_spec.arguments.items()}
+        task_component_spec = task_spec.component_ref.spec
+
+        input_name_to_pythonic = generate_unique_name_conversion_table([input.name for input in task_component_spec.inputs], _sanitize_python_function_name)
+        output_name_to_pythonic = generate_unique_name_conversion_table([output.name for output in task_component_spec.outputs], _sanitize_python_function_name)
+        pythonic_output_name_to_original = {pythonic_name: original_name for original_name, pythonic_name in output_name_to_pythonic.items()}
+        pythonic_task_arguments = {input_name_to_pythonic[input_name]: argument for input_name, argument in task_arguments.items()}
+
+        task_obj = task_factory(**pythonic_task_arguments)
+        task_outputs_with_pythonic_names = task_obj.outputs
+        task_outputs_with_original_names = {pythonic_output_name_to_original[pythonic_output_name]: output_value for pythonic_output_name, output_value in task_outputs_with_pythonic_names.items()}
+        outputs_of_tasks[task_id] = task_outputs_with_original_names
+
+    resolved_graph_outputs = OrderedDict([(output_name, resolve_argument(argument)) for output_name, argument in graph.output_values.items()])
+
+    # For resolved graph component tasks task.outputs point to the actual tasks that originally produced the output that is later returned from the graph
+    graph_task.output_references = graph_task.outputs
+    graph_task.outputs = resolved_graph_outputs
+    
+    return graph_task

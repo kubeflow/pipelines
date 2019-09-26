@@ -28,6 +28,7 @@ import { PlotType } from '../components/viewers/Viewer';
 import { RouteParams, RoutePage, QUERY_PARAMS } from '../components/Router';
 import { Workflow } from 'third_party/argo-ui/argo_template';
 import { shallow, ShallowWrapper } from 'enzyme';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('RunDetails', () => {
   const updateBannerSpy = jest.fn();
@@ -39,12 +40,13 @@ describe('RunDetails', () => {
   const getClusterNameSpy = jest.spyOn(Apis, 'getClusterName');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const isCustomVisualizationsAllowedSpy = jest.spyOn(Apis, 'areCustomVisualizationsAllowed');
   const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
   const pathsParser = jest.spyOn(WorkflowParser, 'loadNodeOutputPaths');
   const pathsWithStepsParser = jest.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
   const loaderSpy = jest.spyOn(OutputArtifactLoader, 'load');
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
-  // test enviroments
+  // test environments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
 
   let testRun: ApiRunDetail = {};
@@ -55,7 +57,7 @@ describe('RunDetails', () => {
       history: { push: historyPushSpy } as any,
       location: '' as any,
       match: { params: { [RouteParams.runId]: testRun.run!.id }, isExact: true, path: '', url: '' },
-      toolbarProps: { actions: [], breadcrumbs: [], pageTitle: '' },
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
       updateSnackbar: updateSnackbarSpy,
@@ -92,6 +94,7 @@ describe('RunDetails', () => {
     getClusterNameSpy.mockImplementation(() => Promise.resolve('some-cluster'));
     getRunSpy.mockImplementation(() => Promise.resolve(testRun));
     getExperimentSpy.mockImplementation(() => Promise.resolve({ id: 'some-experiment-id', name: 'some experiment' }));
+    isCustomVisualizationsAllowedSpy.mockImplementation(() => Promise.resolve(false));
     getPodLogsSpy.mockImplementation(() => 'test logs');
     pathsParser.mockImplementation(() => []);
     pathsWithStepsParser.mockImplementation(() => []);
@@ -129,8 +132,7 @@ describe('RunDetails', () => {
     await getRunSpy;
     await TestUtils.flushPromises();
     const instance = tree.instance() as RunDetails;
-    const cloneBtn = instance.getInitialToolbarState().actions.find(
-      b => b.title === 'Clone run');
+    const cloneBtn = instance.getInitialToolbarState().actions[ButtonKeys.CLONE_RUN];
     expect(cloneBtn).toBeDefined();
     await cloneBtn!.action();
     expect(historyPushSpy).toHaveBeenCalledTimes(1);
@@ -142,8 +144,8 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive')).toBeDefined();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore')).toBeUndefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ARCHIVE)).toBeDefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE)).toBeUndefined();
   });
 
   it('shows "All runs" in breadcrumbs if the run is not archived', async () => {
@@ -176,8 +178,8 @@ describe('RunDetails', () => {
     tree = shallow(<RunDetails {...generateProps()} />);
     await getRunSpy;
     await TestUtils.flushPromises();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore')).toBeDefined();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Archive')).toBeUndefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE)).toBeDefined();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.ARCHIVE)).toBeUndefined();
   });
 
   it('shows Archive in breadcrumbs if the run is archived', async () => {
@@ -643,6 +645,19 @@ describe('RunDetails', () => {
 
       expect(tree).toMatchSnapshot();
     });
+  });
+
+  it('shows an error banner if the custom visualizations state API fails', async () => {
+    TestUtils.makeErrorResponseOnce(isCustomVisualizationsAllowedSpy, 'woops');
+    tree = shallow(<RunDetails {...generateProps()} />);
+    await isCustomVisualizationsAllowedSpy;
+    await TestUtils.flushPromises();
+    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once initially to clear
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({
+      additionalInfo: 'woops',
+      message:'Error: Unable to enable custom visualizations. Click Details for more information.',
+      mode: 'error',
+    }));
   });
 
   describe('logs tab', () => {

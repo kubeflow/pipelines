@@ -174,7 +174,7 @@ func TestReconcile_EachViewerCreatesADeployment(t *testing.T) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:  "viewer-123-pod",
-						Image: "tensorflow/tensorflow:1.11.0",
+						Image: "tensorflow/tensorflow",
 						Args: []string{
 							"tensorboard",
 							"--logdir=gs://tensorboard/logdir",
@@ -271,7 +271,7 @@ func TestReconcile_ViewerUsesSpecifiedVolumeMountsForDeployment(t *testing.T) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:  "viewer-123-pod",
-						Image: "tensorflow/tensorflow:1.11.0",
+						Image: "tensorflow/tensorflow",
 						Args: []string{
 							"tensorboard",
 							"--logdir=gs://tensorboard/logdir",

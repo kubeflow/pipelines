@@ -1,6 +1,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A Basic Example on ResourceOp
+      Usage.", "inputs": [{"name": "username"}, {"name": "password"}], "name": "ResourceOp Basic"}'
   generateName: resourceop-basic-
 spec:
   arguments:
@@ -24,14 +27,6 @@ spec:
       parameters:
       - name: create-my-secret-name
     name: cop
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - inputs:
       parameters:
       - name: password

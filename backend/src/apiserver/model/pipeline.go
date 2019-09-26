@@ -31,9 +31,14 @@ type Pipeline struct {
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
 	Name           string `gorm:"column:Name; not null; unique"`
 	Description    string `gorm:"column:Description; not null"`
+	// TODO(jingzhang36): remove Parameters when no code is accessing this
+	// field. Should use PipelineVersion.Parameters instead.
 	/* Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
 	Parameters string         `gorm:"column:Parameters; not null; size:65535"`
 	Status     PipelineStatus `gorm:"column:Status; not null"`
+	// Default version of this pipeline. It could be null.
+	DefaultVersionId string           `gorm:"column:DefaultVersionId;"`
+	DefaultVersion   *PipelineVersion `gorm:"-"`
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {
@@ -59,10 +64,17 @@ var pipelineAPIToModelFieldMap = map[string]string{
 	"name":        "Name",
 	"created_at":  "CreatedAtInSec",
 	"description": "Description",
+	// TODO(jingzhang36): uncomment this field when we expose it to API
+	// "default_version_id": "DefaultVersionId",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model
 // Pipeline.
 func (p *Pipeline) APIToModelFieldMap() map[string]string {
 	return pipelineAPIToModelFieldMap
+}
+
+// GetModelName returns table name used as sort field prefix
+func (p *Pipeline) GetModelName() string {
+	return "pipelines"
 }

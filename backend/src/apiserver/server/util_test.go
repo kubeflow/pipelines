@@ -1,13 +1,10 @@
 package server
 
 import (
-	"testing"
-
-	"strings"
-
-	"os"
-
 	"io/ioutil"
+	"os"
+	"strings"
+	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"

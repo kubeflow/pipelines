@@ -17,6 +17,7 @@ import time
 import logging
 import json
 import os
+import re
 import tarfile
 import tempfile
 import zipfile
@@ -26,10 +27,11 @@ from typing import Mapping, Callable
 
 import kfp_server_api
 
-from .compiler import compiler
-from .compiler import _k8s_helper
+from kfp.compiler import compiler
+from kfp.compiler import _k8s_helper
 
-from ._auth import get_auth_token
+from kfp._auth import get_auth_token, get_gcp_access_token
+
 
 
 def _add_generated_apis(target_struct, api_module, api_client):
@@ -59,6 +61,9 @@ def _add_generated_apis(target_struct, api_module, api_client):
           setattr(api_struct, member_name, bound_member)
 
 
+KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
+KF_PIPELINES_UI_ENDPOINT_ENV = 'KF_PIPELINES_UI_ENDPOINT'
+
 class Client(object):
   """ API Client for KubeFlow Pipeline.
   """
@@ -80,13 +85,14 @@ class Client(object):
           https://<your-deployment>.endpoints.<your-project>.cloud.goog/pipeline".
       client_id: The client ID used by Identity-Aware Proxy.
     """
-
-    self._host = host
+    host = host or os.environ.get(KF_PIPELINES_ENDPOINT_ENV)
+    self._uihost = os.environ.get(KF_PIPELINES_UI_ENDPOINT_ENV, host)
     config = self._load_config(host, client_id, namespace)
     api_client = kfp_server_api.api_client.ApiClient(config)
     _add_generated_apis(self, kfp_server_api.api, api_client)
     self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(api_client)
     self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(api_client)
+    self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(api_client)
     self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(api_client)
 
   def _load_config(self, host, client_id, namespace):
@@ -95,10 +101,13 @@ class Client(object):
       config.host = host
 
     token = None
-    if host and client_id:
+
+    if self._is_inverse_proxy_host(host):
+      token = get_gcp_access_token()
+    if self._is_iap_host(host,client_id):
       # fetch IAP auth token
       token = get_auth_token(client_id)
-    
+
     if token:
       config.api_key['authorization'] = token
       config.api_key_prefix['authorization'] = 'Bearer'
@@ -130,6 +139,16 @@ class Client(object):
       config.host = os.path.join(config.host, Client.KUBE_PROXY_PATH.format(namespace))
     return config
 
+  def _is_iap_host(self, host, client_id):
+    if host and client_id:
+      return re.match(r'\S+.endpoints.\S+.cloud.goog', host)
+    return False
+
+  def _is_inverse_proxy_host(self, host):
+    if host:
+      return re.match(r'\S+dot-datalab-vm\S+.googleusercontent.com', host)
+    return False
+
   def _is_ipython(self):
     """Returns whether we are running in notebook."""
     try:
@@ -143,20 +162,21 @@ class Client(object):
     return True
 
   def _get_url_prefix(self):
-    if self._host:
+    if self._uihost:
       # User's own connection.
-      if self._host.startswith('http://') or self._host.startswith('https://'):
-        return self._host
+      if self._uihost.startswith('http://') or self._uihost.startswith('https://'):
+        return self._uihost
       else:
-        return 'http://' + self._host
+        return 'http://' + self._uihost
 
     # In-cluster pod. We could use relative URL.
     return '/pipeline'
 
-  def create_experiment(self, name):
+  def create_experiment(self, name, description=None):
     """Create a new experiment.
     Args:
       name: the name of the experiment.
+      description: description of the experiment
     Returns:
       An Experiment object. Most important field is id.
     """
@@ -170,9 +190,9 @@ class Client(object):
 
     if not experiment:
       logging.info('Creating experiment {}.'.format(name))
-      experiment = kfp_server_api.models.ApiExperiment(name=name)
+      experiment = kfp_server_api.models.ApiExperiment(name=name, description=description)
       experiment = self._experiment_api.create_experiment(body=experiment)
-    
+
     if self._is_ipython():
       import IPython
       html = \
@@ -223,7 +243,7 @@ class Client(object):
       yaml_files = [file for file in file_list if file.endswith('.yaml')]
       if len(yaml_files) == 0:
         raise ValueError('Invalid package. Missing pipeline yaml file in the package.')
-      
+
       if 'pipeline.yaml' in yaml_files:
         return 'pipeline.yaml'
       else:
@@ -247,6 +267,17 @@ class Client(object):
         return yaml.safe_load(f)
     else:
       raise ValueError('The package_file '+ package_file + ' should ends with one of the following formats: [.tar.gz, .tgz, .zip, .yaml, .yml]')
+
+  def list_pipelines(self, page_token='', page_size=10, sort_by=''):
+    """List pipelines.
+    Args:
+      page_token: token for starting of the page.
+      page_size: size of the page.
+      sort_by: one of 'field_name', 'field_name des'. For example, 'name des'.
+    Returns:
+      A response object including a list of pipelines and next page token.
+    """
+    return self._pipelines_api.list_pipelines(page_token=page_token, page_size=page_size, sort_by=sort_by)
 
   def run_pipeline(self, experiment_id, job_name, pipeline_package_path=None, params={}, pipeline_id=None):
     """Run a specified pipeline.
@@ -273,13 +304,13 @@ class Client(object):
     reference = kfp_server_api.models.ApiResourceReference(key, kfp_server_api.models.ApiRelationship.OWNER)
     spec = kfp_server_api.models.ApiPipelineSpec(
         pipeline_id=pipeline_id,
-        workflow_manifest=pipeline_json_string, 
+        workflow_manifest=pipeline_json_string,
         parameters=api_params)
     run_body = kfp_server_api.models.ApiRun(
         pipeline_spec=spec, resource_references=[reference], name=job_name)
 
     response = self._run_api.create_run(body=run_body)
-    
+
     if self._is_ipython():
       import IPython
       html = ('Run link <a href="%s/#/runs/details/%s" target="_blank" >here</a>'
@@ -293,6 +324,26 @@ class Client(object):
 
     Args:
       pipeline_func: A function that describes a pipeline by calling components and composing them into execution graph.
+      arguments: Arguments to the pipeline function provided as a dict.
+      run_name: Optional. Name of the run to be shown in the UI.
+      experiment_name: Optional. Name of the experiment to add the run to.
+    '''
+    #TODO: Check arguments against the pipeline function
+    pipeline_name = pipeline_func.__name__
+    run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+    try:
+      (_, pipeline_package_path) = tempfile.mkstemp(suffix='.zip')
+      compiler.Compiler().compile(pipeline_func, pipeline_package_path)
+      return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name)
+    finally:
+      os.remove(pipeline_package_path)
+
+  def create_run_from_pipeline_package(self, pipeline_file: str, arguments: Mapping[str, str], run_name=None, experiment_name=None):
+    '''Runs pipeline on KFP-enabled Kubernetes cluster.
+    This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
+
+    Args:
+      pipeline_file: A compiled pipeline package file.
       arguments: Arguments to the pipeline function provided as a dict.
       run_name: Optional. Name of the run to be shown in the UI.
       experiment_name: Optional. Name of the experiment to add the run to.
@@ -312,17 +363,12 @@ class Client(object):
         return '<RunPipelineResult(run_id={})>'.format(self.run_id)
 
     #TODO: Check arguments against the pipeline function
-    pipeline_name = pipeline_func.__name__
+    pipeline_name = os.path.basename(pipeline_file)
     experiment_name = experiment_name or 'Default'
     run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     experiment = self.create_experiment(name=experiment_name)
-    try:
-      (_, pipeline_package_path) = tempfile.mkstemp(suffix='.zip')
-      compiler.Compiler().compile(pipeline_func, pipeline_package_path)
-      run_info = self.run_pipeline(experiment.id, run_name, pipeline_package_path, arguments)
-      return RunPipelineResult(self, run_info)
-    finally:
-      os.remove(pipeline_package_path)
+    run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)
+    return RunPipelineResult(self, run_info)
 
   def list_runs(self, page_token='', page_size=10, sort_by='', experiment_id=None):
     """List runs.

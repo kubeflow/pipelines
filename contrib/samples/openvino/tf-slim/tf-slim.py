@@ -5,15 +5,16 @@ import kfp.dsl as dsl
   description='Generate slim models and optimize them with OpenVINO'
 )
 def tf_slim_optimize(
-        model_name = dsl.PipelineParam(name='model-name', value='resnet_v1_50'),
-        num_classes = dsl.PipelineParam(name='num-classes', value=1000),
-        checkpoint_url = dsl.PipelineParam(name='checkpoint-url', value='http://download.tensorflow.org/models/resnet_v1_50_2016_08_28.tar.gz'),
-        batch_size = dsl.PipelineParam(name='batch-size', value=1),
-        export_dir = dsl.PipelineParam(name='tf-export-dir', value='/tmp/export'),
-        generated_model_dir = dsl.PipelineParam(name='generated-model-dir', value='gs://your-bucket/folder'),
-        mo_options = dsl.PipelineParam(name='mo-option', value='--saved_model_dir .'),
-        input_numpy_file = dsl.PipelineParam(name='input-numpy-file', value='gs://intelai_public_models/images/imgs.npy'),
-        label_numpy_file = dsl.PipelineParam(name='label-numpy-file', value='gs://intelai_public_models/images/lbs.npy')):
+        model_name='resnet_v1_50',
+        num_classes=1000,
+        checkpoint_url='http://download.tensorflow.org/models/resnet_v1_50_2016_08_28.tar.gz',
+        batch_size=1,
+        export_dir='/tmp/export',
+        generated_model_dir='gs://your-bucket/folder',
+        mo_options='--saved_model_dir .',
+        input_numpy_file='gs://intelai_public_models/images/imgs.npy',
+        label_numpy_file='gs://intelai_public_models/images/lbs.npy'
+    ):
 
     slim = dsl.ContainerOp(
      name='Create_model',

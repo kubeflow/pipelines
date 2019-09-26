@@ -16,6 +16,7 @@ package storage
 
 import (
 	"bytes"
+	"regexp"
 
 	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -37,14 +38,24 @@ type ObjectStoreInterface interface {
 
 // Managing pipeline using Minio
 type MinioObjectStore struct {
-	minioClient MinioClientInterface
-	bucketName  string
+	minioClient      MinioClientInterface
+	bucketName       string
+	disableMultipart bool
 }
 
 func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
+
+	var parts int64
+
+	if m.disableMultipart {
+		parts = int64(len(file))
+	} else {
+		parts = multipartDefaultSize
+	}
+
 	_, err := m.minioClient.PutObject(
 		m.bucketName, filePath, bytes.NewReader(file),
-		multipartDefaultSize, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+		parts, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to store %v", filePath)
 	}
@@ -67,7 +78,16 @@ func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(reader)
-	return buf.Bytes(), nil
+
+	bytes := buf.Bytes()
+
+	// Remove single part signature if exists
+	if m.disableMultipart {
+		re := regexp.MustCompile(`\w+;chunk-signature=\w+`)
+		bytes = []byte(re.ReplaceAllString(string(bytes), ""))
+	}
+
+	return bytes, nil
 }
 
 func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
@@ -98,6 +118,6 @@ func buildPath(folder, file string) string {
 	return folder + "/" + file
 }
 
-func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string) *MinioObjectStore {
-	return &MinioObjectStore{minioClient: minioClient, bucketName: bucketName}
+func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string, disableMultipart bool) *MinioObjectStore {
+	return &MinioObjectStore{minioClient: minioClient, bucketName: bucketName, disableMultipart: disableMultipart}
 }

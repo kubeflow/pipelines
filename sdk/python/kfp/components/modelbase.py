@@ -282,7 +282,7 @@ class ModelBase:
         return self.__class__.__name__ + '(' + ', '.join(param + '=' + repr(getattr(self, param)) for param in self._get_field_names()) + ')'
 
     def __eq__(self, other):
-        return self.__class__ == other.__class__ and {k: getattr(self, k) for k in self._get_field_names()} == {k: getattr(self, k) for k in other._get_field_names()}
+        return self.__class__ == other.__class__ and {k: getattr(self, k) for k in self._get_field_names()} == {k: getattr(other, k) for k in other._get_field_names()}
 
     def __ne__(self, other):
         return not self == other

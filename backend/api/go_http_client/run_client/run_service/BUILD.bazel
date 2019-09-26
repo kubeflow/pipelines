@@ -17,6 +17,8 @@ go_library(
         "read_artifact_responses.go",
         "report_run_metrics_parameters.go",
         "report_run_metrics_responses.go",
+        "retry_run_parameters.go",
+        "retry_run_responses.go",
         "run_service_client.go",
         "terminate_run_parameters.go",
         "terminate_run_responses.go",

@@ -24,6 +24,9 @@ import { History } from 'history';
 import { Link } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { spacing, fonts, fontsize, color, dimension, commonCss } from '../Css';
+import { CSSProperties } from 'react';
+
+export interface ToolbarActionMap { [key: string]: ToolbarActionConfig; }
 
 export interface ToolbarActionConfig {
   action: () => void;
@@ -34,6 +37,7 @@ export interface ToolbarActionConfig {
   id?: string;
   outlined?: boolean;
   primary?: boolean;
+  style?: CSSProperties;
   title: string;
   tooltip: string;
 }
@@ -104,7 +108,7 @@ const css = stylesheet({
 });
 
 export interface ToolbarProps {
-  actions: ToolbarActionConfig[];
+  actions: ToolbarActionMap;
   breadcrumbs: Breadcrumb[];
   history?: History;
   pageTitle: string | JSX.Element;
@@ -115,9 +119,9 @@ export interface ToolbarProps {
 class Toolbar extends React.Component<ToolbarProps> {
 
   public render(): JSX.Element | null {
-    const { breadcrumbs, pageTitle, pageTitleTooltip } = { ...this.props };
+    const { actions, breadcrumbs, pageTitle, pageTitleTooltip } = { ...this.props };
 
-    if (!this.props.actions.length && !this.props.breadcrumbs.length && !this.props.pageTitle) {
+    if (!actions.length && !breadcrumbs.length && !pageTitle) {
       return null;
     }
 
@@ -158,17 +162,20 @@ class Toolbar extends React.Component<ToolbarProps> {
         </div>
         {/* Actions / Buttons */}
         <div className={css.actions}>
-          {this.props.actions.map((b, i) => (
-            <Tooltip title={(b.disabled && b.disabledTitle) ? b.disabledTitle : b.tooltip}
-              enterDelay={300} key={i}>
-              <div>{/* Extra level needed by tooltip when child is disabled */}
-                <BusyButton id={b.id} color='secondary' onClick={b.action} disabled={b.disabled}
-                  title={b.title} icon={b.icon} busy={b.busy || false}
-                  outlined={(b.outlined && !b.primary) || false}
-                  className={b.primary ? commonCss.buttonAction : ''} />
-              </div>
-            </Tooltip>
-          ))}
+          {Object.keys(actions).map((buttonKey, i) => {
+            const button = actions[buttonKey];
+            return (
+              <Tooltip title={(button.disabled && button.disabledTitle) ? button.disabledTitle : button.tooltip}
+                enterDelay={300} key={i}>
+                <div style={button.style}>{/* Extra level needed by tooltip when child is disabled */}
+                  <BusyButton id={button.id} color='secondary' onClick={button.action} disabled={button.disabled}
+                    title={button.title} icon={button.icon} busy={button.busy || false}
+                    outlined={(button.outlined && !button.primary) || false}
+                    className={button.primary ? commonCss.buttonAction : ''} />
+                </div>
+              </Tooltip>
+            );
+          })}
         </div>
       </div>
     );
