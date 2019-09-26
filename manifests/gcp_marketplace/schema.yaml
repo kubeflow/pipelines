@@ -125,7 +125,7 @@ properties:
     default: false
   managedstorage.cloudsqlInstanceConnectionName:
     type: string
-    title: CloudSQL instance connection name (Managed storage only)
+    title: Cloud SQL instance connection name (Managed storage only)
     description: |-
       This field must be specified if choose to use managed storage.
       Provide the instance connection name for an existing Cloud SQL for MySQL instance. 
