@@ -20,4 +20,4 @@ while read repo
 do
   echo "Fetching source code for repo: github.com/$repo"
   curl --create-dirs -o "$OUTPUT_FOLDER$repo.source.zip" -L "https://github.com/$repo/archive/master.zip"
-done < "/dev/stdin"
+done
