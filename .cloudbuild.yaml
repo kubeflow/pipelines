@@ -184,22 +184,6 @@ steps:
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA', '-f',
          '/workspace/third_party/metadata_envoy/Dockerfile', '/workspace']
   id:   'buildMetadataEnvoy'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/argoexec:$COMMIT_SHA', '-f',
-         '/workspace/third_party/argo/Dockerfile.argoexec', '/workspace']
-  id:   'buildArgoExec'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/workflow-controller:$COMMIT_SHA', '-f',
-         '/workspace/third_party/argo/Dockerfile.workflow-controller', '/workspace']
-  id:   'buildWorkflowController'
-  waitFor: ["-"]
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/minio:$COMMIT_SHA', '-f',
-         '/workspace/third_party/minio/Dockerfile', '/workspace']
-  id:   'buildMinio'
-  waitFor: ["-"]
 
 images:
 # Images for the pipeline system itself
@@ -240,9 +224,6 @@ images:
 
 # Images for the third_party components
 - 'gcr.io/$PROJECT_ID/metadata-envoy:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/argoexec:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/workflow-controller:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/minio:$COMMIT_SHA'
 
 timeout: '3600s'
 options:

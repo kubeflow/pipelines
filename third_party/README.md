@@ -12,6 +12,9 @@
     cd $KFP_SRC
     ./third_party/$LIBRARY/release.sh
     ```
+1. Make a PR that
+    * changes all image references in .release.cloudbuild.yaml
+    * changes all image references in manifests
 
 ## How to build
 ```
