@@ -27,7 +27,7 @@ import yaml
 
 from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR, SCHEMA_CONFIG, CONFIG_DIR, DEFAULT_CONFIG
 from check_notebook_results import NoteBookChecker
-from kfp.compiler._gcs_helper import GCSHelper
+from kfp.containers._gcs_helper import GCSHelper
 from run_sample_test import PySampleChecker
 
 

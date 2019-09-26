@@ -181,7 +181,7 @@ class ContainerBuilder(object):
                                                docker_filename=docker_filename,
                                                target_image=target_image)
       logging.info('Start a kaniko job for build.')
-      from ._k8s_helper import K8sHelper
+      from ..compiler._k8s_helper import K8sHelper
       k8s_helper = K8sHelper()
       result_pod_obj = k8s_helper.run_job(kaniko_spec, timeout)
       logging.info('Kaniko job complete.')
