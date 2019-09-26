@@ -25,7 +25,7 @@ import tempfile
 
 import requests
 
-from ..compiler._container_builder import ContainerBuilder
+from ._container_builder import ContainerBuilder
 
 
 default_base_image = 'gcr.io/deeplearning-platform-release/tf-cpu.1-14'
@@ -40,7 +40,6 @@ _default_image_builder = None
 def _get_default_image_builder():
     global _default_image_builder
     if _default_image_builder is None:
-        from ..compiler._container_builder import ContainerBuilder
         _default_image_builder = ContainerBuilder()
     return _default_image_builder
 
