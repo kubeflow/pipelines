@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine as builder
+FROM alpine as downloader
 
 COPY third_party /third_party
 
@@ -29,4 +29,4 @@ FROM minio/minio:RELEASE.2019-08-14T20-37-41Z
 COPY third_party/minio/license.txt /third_party/license.txt
 
 # Copy downloaded source code
-COPY --from=builder /downloads /third_party
+COPY --from=downloader /downloads /third_party
