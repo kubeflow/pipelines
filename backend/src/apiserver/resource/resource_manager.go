@@ -40,7 +40,7 @@ import (
 
 const (
 	defaultPipelineRunnerServiceAccountEnvVar = "DefaultPipelineRunnerServiceAccount"
-	defaultPipelineRunnerServiceAccount = "pipeline-runner"
+	defaultPipelineRunnerServiceAccount       = "pipeline-runner"
 )
 
 type ClientManagerInterface interface {
@@ -106,7 +106,7 @@ func (r *ResourceManager) GetExperiment(experimentId string) (*model.Experiment,
 }
 
 func (r *ResourceManager) ListExperiments(opts *list.Options) (
-		experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
+	experiments []*model.Experiment, total_size int, nextPageToken string, err error) {
 	return r.experimentStore.ListExperiments(opts)
 }
 
@@ -119,7 +119,7 @@ func (r *ResourceManager) DeleteExperiment(experimentID string) error {
 }
 
 func (r *ResourceManager) ListPipelines(opts *list.Options) (
-		pipelines []*model.Pipeline, total_size int, nextPageToken string, err error) {
+	pipelines []*model.Pipeline, total_size int, nextPageToken string, err error) {
 	return r.pipelineStore.ListPipelines(opts)
 }
 
@@ -142,6 +142,12 @@ func (r *ResourceManager) DeletePipeline(pipelineId string) error {
 	// Delete pipeline file and DB entry.
 	// Not fail the request if this step failed. A background run will do the cleanup.
 	// https://github.com/kubeflow/pipelines/issues/388
+	// TODO(jingzhang36): For now (before exposing version API), we have only 1
+	// file with both pipeline and version pointing to it;  so it is ok to do
+	// the deletion as follows. After exposing version API, we can have multiple
+	// versions and hence multiple files, and we shall improve performance by
+	// either using async deletion in order for this method to be non-blocking
+	// or or exploring other performance optimization tools provided by gcs.
 	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
 	if err != nil {
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline %v", pipelineId))
@@ -162,20 +168,34 @@ func (r *ResourceManager) CreatePipeline(name string, description string, pipeli
 	}
 
 	// Create an entry with status of creating the pipeline
-	pipeline := &model.Pipeline{Name: name, Description: description, Parameters: params, Status: model.PipelineCreating}
+	pipeline := &model.Pipeline{
+		Name:        name,
+		Description: description,
+		Parameters:  params,
+		Status:      model.PipelineCreating,
+		DefaultVersion: &model.PipelineVersion{
+			Name:       name,
+			Parameters: params,
+			Status:     model.PipelineVersionCreating}}
 	newPipeline, err := r.pipelineStore.CreatePipeline(pipeline)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
 
-	// Store the pipeline file
-	err = r.objectStore.AddFile(pipelineFile, storage.CreatePipelinePath(fmt.Sprint(newPipeline.UUID)))
+	// Store the pipeline file to a path dependent on pipeline version
+	err = r.objectStore.AddFile(pipelineFile,
+		storage.CreatePipelinePath(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
 
 	newPipeline.Status = model.PipelineReady
-	err = r.pipelineStore.UpdatePipelineStatus(newPipeline.UUID, newPipeline.Status)
+	newPipeline.DefaultVersion.Status = model.PipelineVersionReady
+	err = r.pipelineStore.UpdatePipelineAndVersionsStatus(
+		newPipeline.UUID,
+		newPipeline.Status,
+		newPipeline.DefaultVersionId,
+		newPipeline.DefaultVersion.Status)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline failed")
 	}
@@ -186,14 +206,22 @@ func (r *ResourceManager) UpdatePipelineStatus(pipelineId string, status model.P
 	return r.pipelineStore.UpdatePipelineStatus(pipelineId, status)
 }
 
+func (r *ResourceManager) UpdatePipelineVersionStatus(pipelineId string, status model.PipelineVersionStatus) error {
+	return r.pipelineStore.UpdatePipelineVersionStatus(pipelineId, status)
+}
+
 func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error) {
 	// Verify pipeline exist
-	_, err := r.pipelineStore.GetPipeline(pipelineId)
+	pipeline, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
 
-	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipelineId)))
+	if pipeline.DefaultVersion == nil {
+		return nil, util.Wrap(err,
+			"Get pipeline template failed since no default version is defined")
+	}
+	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(pipeline.DefaultVersion.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline template failed")
 	}
@@ -278,7 +306,7 @@ func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
 }
 
 func (r *ResourceManager) ListRuns(filterContext *common.FilterContext,
-		opts *list.Options) (runs []*model.Run, total_size int, nextPageToken string, err error) {
+	opts *list.Options) (runs []*model.Run, total_size int, nextPageToken string, err error) {
 	return r.runStore.ListRuns(filterContext, opts)
 }
 
@@ -309,7 +337,7 @@ func (r *ResourceManager) DeleteRun(runID string) error {
 }
 
 func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
-		opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
+	opts *list.Options) (jobs []*model.Job, total_size int, nextPageToken string, err error) {
 	return r.jobStore.ListJobs(filterContext, opts)
 }
 
@@ -783,6 +811,6 @@ func (r *ResourceManager) MarkSampleLoaded() error {
 	return r.dBStatusStore.MarkSampleLoaded()
 }
 
-func (r *ResourceManager) getDefaultSA() string{
+func (r *ResourceManager) getDefaultSA() string {
 	return common.GetStringConfigWithDefault(defaultPipelineRunnerServiceAccountEnvVar, defaultPipelineRunnerServiceAccount)
 }
