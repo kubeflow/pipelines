@@ -496,7 +496,7 @@ for idx, output_file in enumerate(_output_files):
 
     package_preinstallation_command = []
     if packages_to_install:
-        package_install_command_line = 'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet {}'.format(' '.join([repr(str(package)) for package in packages_to_install]))
+        package_install_command_line = 'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location {}'.format(' '.join([repr(str(package)) for package in packages_to_install]))
         package_preinstallation_command = ['sh', '-c', '({pip_install} || {pip_install} --user) && "$0" "$@"'.format(pip_install=package_install_command_line)]
 
     component_spec.implementation=ContainerImplementation(
