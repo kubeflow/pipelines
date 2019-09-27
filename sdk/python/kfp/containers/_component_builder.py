@@ -275,7 +275,8 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
     target_image (str): gcr path to push the final image
     dockerfile_path (str): local path to the dockerfile
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
-    namespace (str): the namespace within which to run the kubernetes kaniko job, default is None
+    namespace (str): the namespace within which to run the kubernetes kaniko job. Default is None, build_python_component 
+    internally will find the current namespace if it is run in the GKE cluster when set to None.
   """
   _configure_logger(logging.getLogger())
 
