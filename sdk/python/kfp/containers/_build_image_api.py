@@ -13,6 +13,7 @@
 
 __all__ = [
     'build_image_from_working_dir',
+    'default_image_builder',
 ]
 
 
@@ -34,14 +35,7 @@ default_base_image = 'gcr.io/deeplearning-platform-release/tf-cpu.1-14'
 _container_work_dir = '/python_env'
 
 
-_default_image_builder = None
-
-
-def _get_default_image_builder():
-    global _default_image_builder
-    if _default_image_builder is None:
-        _default_image_builder = ContainerBuilder()
-    return _default_image_builder
+default_image_builder = ContainerBuilder()
 
 
 def _generate_dockerfile_text(context_dir: str, dockerfile_path: str, base_image: str = None) -> str:
@@ -115,7 +109,7 @@ def build_image_from_working_dir(image_name: str = None, working_dir: str = None
                 f.write(dockerfile_text)
 
         if builder is None:
-            builder = _get_default_image_builder()
+            builder = default_image_builder
         return builder.build(
             local_dir=context_dir,
             target_image=image_name,
