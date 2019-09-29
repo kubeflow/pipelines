@@ -79,6 +79,7 @@ def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable) -> C
         task_id = _make_name_unique_by_adding_index(task_id, task_map.keys(), ' ')
         for output_ref in task.outputs.values():
             output_ref.task_output.task_id = task_id
+            output_ref.task_output.task = None
         task_map[task_id] = task
 
         return task #The handler is a transformation function, so it must pass the task through.
