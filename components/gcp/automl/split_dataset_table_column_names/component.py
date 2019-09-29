@@ -40,7 +40,7 @@ def automl_split_dataset_table_column_names(
     target_column_spec = [s for s in column_specs if s.display_name == target_column_name][0]
     feature_column_specs = [s for s in column_specs if s.display_name != target_column_name]
     feature_column_names = [s.name for s in feature_column_specs]
-    
+
     import json
     return (target_column_spec.name, json.dumps(feature_column_names))
 
