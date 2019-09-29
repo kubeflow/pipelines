@@ -27,7 +27,7 @@ from kfp.components._naming import _make_name_unique_by_adding_index, generate_u
 from kfp.components._python_op import _extract_component_interface
 
 
-def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_component_file: str) -> None:
+def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_component_file: str, embed_component_specs: bool = False) -> None:
     '''Experimental! Creates graph component definition from a python pipeline function. The component file can be published for sharing.
     Pipeline function is a function that only calls component functions and passes outputs to inputs.
     This feature is experimental and lacks support for some of the DSL features like conditions and loops.
@@ -36,6 +36,7 @@ def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_co
     Args:
         pipeline_func: Python function to convert
         output_component_file: Path of the file where the component definition will be written. The `component.yaml` file can then be published for sharing.
+        embed_component_specs: Whether to embed component definitions or just reference them. Embedding makes the graph component self-contained. Default is False.
 
     Example:
 
@@ -53,7 +54,7 @@ def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_co
         
         create_graph_component_from_pipeline_func(pipeline1, output_component_file='pipeline.component.yaml')
     '''
-    component_spec = create_graph_component_spec_from_pipeline_func(pipeline_func)
+    component_spec = create_graph_component_spec_from_pipeline_func(pipeline_func, embed_component_specs)
     if output_component_file:
         from pathlib import Path
         from ._yaml_utils import dump_yaml
@@ -62,7 +63,7 @@ def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_co
         Path(output_component_file).write_text(component_yaml)
 
 
-def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable) -> ComponentSpec:
+def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable, embed_component_specs: bool = False) -> ComponentSpec:
 
     component_spec = _extract_component_interface(pipeline_func)
     # Checking the function parameters - they should not have file passing annotations.
@@ -81,6 +82,9 @@ def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable) -> C
             output_ref.task_output.task_id = task_id
             output_ref.task_output.task = None
         task_map[task_id] = task
+        # Remove the component spec from component reference unless it will make the reference empty or unless explicitly asked by the user
+        if not embed_component_specs and any([task.component_ref.name, task.component_ref.url, task.component_ref.digest]):
+            task.component_ref.spec = None
 
         return task #The handler is a transformation function, so it must pass the task through.
 
