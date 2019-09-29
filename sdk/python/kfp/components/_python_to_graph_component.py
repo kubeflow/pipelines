@@ -24,6 +24,7 @@ from typing import Callable
 import kfp.components as comp
 from kfp.components._structures import TaskSpec, ComponentSpec, TaskOutputReference, InputSpec, OutputSpec, GraphInputArgument, TaskOutputArgument, GraphImplementation, GraphSpec
 from kfp.components._naming import _make_name_unique_by_adding_index, generate_unique_name_conversion_table, _sanitize_python_function_name, _convert_to_human_name
+from kfp.components._python_op import _extract_component_interface
 
 
 def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_component_file: str) -> None:
@@ -63,6 +64,13 @@ def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_co
 
 def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable) -> ComponentSpec:
 
+    component_spec = _extract_component_interface(pipeline_func)
+    # Checking the function parameters - they should not have file passing annotations.
+    input_specs = component_spec.inputs or []
+    for input in input_specs:
+        if input._passing_style:
+            raise TypeError('Graph component function parameter "{}" cannot have file-passing annotation "{}".'.format(input.name, input._passing_style))
+
     task_map = OrderedDict() #Preserving task order
 
     def task_construction_handler(task: TaskSpec):
@@ -75,16 +83,12 @@ def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable) -> C
 
         return task #The handler is a transformation function, so it must pass the task through.
 
-    pipeline_signature = inspect.signature(pipeline_func)
-    parameters = list(pipeline_signature.parameters.values())
-    parameter_names = [param.name for param in parameters]
-    human_parameter_names_map = generate_unique_name_conversion_table(parameter_names, _convert_to_human_name)
-
-    #Preparing the pipeline_func arguments 
-    pipeline_func_args = {param.name: GraphInputArgument(input_name=human_parameter_names_map[param.name]) for param in parameters}
+    # Preparing the pipeline_func arguments
+    # TODO: The key should be original parameter name if different
+    pipeline_func_args = {input.name: GraphInputArgument(input_name=input.name) for input in input_specs}
 
     try:
-        #Setting the contextmanager to fix and catch the tasks.
+        #Setting the handler to fix and catch the tasks.
         comp._components._created_task_transformation_handler.append(task_construction_handler)
         
         #Calling the pipeline_func with GraphInputArgument instances as arguments 
@@ -99,28 +103,19 @@ def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable) -> C
         graph_output_value_map = pipeline_func_result
     else:
         raise TypeError('Pipeline must return outputs as OrderedDict.')
-    
+
     #Checking the pipeline_func output object types
     for output_name, output_value in graph_output_value_map.items():
         if not isinstance(output_value, TaskOutputArgument):
             raise TypeError('Only TaskOutputArgument instances should be returned from graph component, but got "{output_name}" = "{}".'.format(output_name, str(output_value)))
 
-    graph_output_specs = [OutputSpec(name=output_name, type=output_value.task_output.type) for output_name, output_value in graph_output_value_map.items()]
-    
-    def convert_inspect_empty_to_none(value):
-        return value if value is not inspect.Parameter.empty else None
-    graph_input_specs = [InputSpec(name=human_parameter_names_map[param.name], default=convert_inspect_empty_to_none(param.default)) for param in parameters] #TODO: Convert type annotations to component artifact types
+    if not component_spec.outputs:
+        component_spec.outputs = [OutputSpec(name=output_name, type=output_value.task_output.type) for output_name, output_value in graph_output_value_map.items()]
 
-    component_name = _convert_to_human_name(pipeline_func.__name__)
-    component = ComponentSpec(
-        name=component_name,
-        inputs=graph_input_specs,
-        outputs=graph_output_specs,
-        implementation=GraphImplementation(
-            graph=GraphSpec(
-                tasks=task_map,
-                output_values=graph_output_value_map,
-            )
+    component_spec.implementation = GraphImplementation(
+        graph=GraphSpec(
+            tasks=task_map,
+            output_values=graph_output_value_map,
         )
     )
-    return component
+    return component_spec

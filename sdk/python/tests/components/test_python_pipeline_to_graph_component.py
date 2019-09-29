@@ -113,7 +113,7 @@ class PythonPipelineToGraphComponentTestCase(unittest.TestCase):
         
         graph_component = create_graph_component_spec_from_pipeline_func(pipeline1)
         self.assertEqual(len(graph_component.inputs), 1)
-        self.assertListEqual([input.name for input in graph_component.inputs], ['Pipeline param 1']) #Relies on human name conversion function stability
+        self.assertListEqual([input.name for input in graph_component.inputs], ['pipeline_param_1']) #Relies on human name conversion function stability
         self.assertListEqual([output.name for output in graph_component.outputs], ['Pipeline output 1', 'Pipeline output 2'])
         self.assertEqual(len(graph_component.implementation.graph.tasks), 2)
 
