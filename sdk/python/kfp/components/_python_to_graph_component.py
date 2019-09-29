@@ -96,20 +96,41 @@ def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable) -> C
     finally:
         comp._components._created_task_transformation_handler.pop()
 
-    graph_output_value_map = OrderedDict()
+
+    # Getting graph outputs
+    output_names = [output.name for output in (component_spec.outputs or [])]
+
+    if len(output_names) == 1 and output_names[0] == 'Output': # TODO: Check whether the NamedTuple syntax was used
+        pipeline_func_result = [pipeline_func_result]
+
+    if isinstance(pipeline_func_result, tuple) and hasattr(pipeline_func_result, '_asdict'): # collections.namedtuple and typing.NamedTuple
+        pipeline_func_result = pipeline_func_result._asdict()
+
+    if isinstance(pipeline_func_result, dict):
+        if output_names:
+            if set(output_names) != set(pipeline_func_result.keys()):
+                raise ValueError('Returned outputs do not match outputs specified in the function signature: {} = {}'.format(str(set(pipeline_func_result.keys())), str(set(output_names))))
+
     if pipeline_func_result is None:
-        pass
+        graph_output_value_map = {}
     elif isinstance(pipeline_func_result, dict):
-        graph_output_value_map = pipeline_func_result
+        graph_output_value_map = OrderedDict(pipeline_func_result)
+    elif isinstance(pipeline_func_result, (list, tuple)):
+        if output_names:
+            if len(pipeline_func_result) != len(output_names):
+                raise ValueError('Expected {} values from pipeline function, but got {}.'.format(len(output_names), len(pipeline_func_result)))
+            graph_output_value_map = OrderedDict((name_value[0], name_value[1]) for name_value in zip(output_names, pipeline_func_result))
+        else:
+            graph_output_value_map = OrderedDict((output_value.task_output.output_name, output_value) for output_value in pipeline_func_result) # TODO: Fix possible name non-uniqueness (e.g. use task id as prefix or add index to non-unique names)
     else:
-        raise TypeError('Pipeline must return outputs as OrderedDict.')
+        raise TypeError('Pipeline must return outputs as tuple or OrderedDict.')
 
     #Checking the pipeline_func output object types
     for output_name, output_value in graph_output_value_map.items():
         if not isinstance(output_value, TaskOutputArgument):
             raise TypeError('Only TaskOutputArgument instances should be returned from graph component, but got "{output_name}" = "{}".'.format(output_name, str(output_value)))
 
-    if not component_spec.outputs:
+    if not component_spec.outputs and graph_output_value_map:
         component_spec.outputs = [OutputSpec(name=output_name, type=output_value.task_output.type) for output_name, output_value in graph_output_value_map.items()]
 
     component_spec.implementation = GraphImplementation(
