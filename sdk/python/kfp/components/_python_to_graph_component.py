@@ -19,19 +19,27 @@ __all__ = [
 
 import inspect
 from collections import OrderedDict
+from typing import Callable
 
 import kfp.components as comp
 from kfp.components._structures import TaskSpec, ComponentSpec, TaskOutputReference, InputSpec, OutputSpec, GraphInputArgument, TaskOutputArgument, GraphImplementation, GraphSpec
 from kfp.components._naming import _make_name_unique_by_adding_index, generate_unique_name_conversion_table, _sanitize_python_function_name, _convert_to_human_name
 
 
-def create_graph_component_from_pipeline_func(pipeline_func) -> ComponentSpec:
-    '''Converts python pipeline function to a graph component object that can be saved, shared, composed or submitted for execution.
+def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_component_file: str) -> None:
+    '''Experimental! Creates graph component definition from a python pipeline function. The component file can be published for sharing.
+    Pipeline function is a function that only calls component functions and passes outputs to inputs.
+    This feature is experimental and lacks support for some of the DSL features like conditions and loops.
+    Only pipelines consisting of loaded components or python components are currently supported (no manually created ContainerOps or ResourceOps).
+
+    Args:
+        pipeline_func: Python function to convert
+        output_component_file: Path of the file where the component definition will be written. The `component.yaml` file can then be published for sharing.
 
     Example:
 
-        producer_op = load_component(component_with_0_inputs_and_2_outputs)
-        processor_op = load_component(component_with_2_inputs_and_2_outputs)
+        producer_op = load_component_from_file('producer/component.yaml')
+        processor_op = load_component_from_file('processor/component.yaml')
 
         def pipeline1(pipeline_param_1: int):
             producer_task = producer_op()
@@ -42,8 +50,18 @@ def create_graph_component_from_pipeline_func(pipeline_func) -> ComponentSpec:
                 ('Pipeline output 2', processor_task.outputs['Output 2']),
             ])
         
-        graph_component = create_graph_component_from_pipeline_func(pipeline1)
+        create_graph_component_from_pipeline_func(pipeline1, output_component_file='pipeline.component.yaml')
     '''
+    component_spec = create_graph_component_spec_from_pipeline_func(pipeline_func)
+    if output_component_file:
+        from pathlib import Path
+        from ._yaml_utils import dump_yaml
+        component_dict = component_spec.to_dict()
+        component_yaml = dump_yaml(component_dict)
+        Path(output_component_file).write_text(component_yaml)
+
+
+def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable) -> ComponentSpec:
 
     task_map = OrderedDict() #Preserving task order
 
