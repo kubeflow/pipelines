@@ -205,8 +205,9 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     pythonic_name_to_input_name = {v: k for k, v in input_name_to_pythonic.items()}
 
     if component_ref is None:
-        component_ref = ComponentReference(name=component_spec.name or component_filename or _default_component_name)
-    component_ref.spec = component_spec
+        component_ref = ComponentReference(spec=component_spec, url=component_filename)
+    else:
+        component_ref.spec = component_spec
 
     def create_task_from_component_and_arguments(pythonic_arguments):
         arguments = {}
