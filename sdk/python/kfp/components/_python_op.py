@@ -420,10 +420,12 @@ def get_deserializer_with_argument_interceptor(deserializer = str):
     for input in component_spec.inputs + file_outputs_passed_using_func_parameters:
         param_flag = "--" + input.name.replace("_", "-")
         is_required = isinstance(input, OutputSpec) or not input.optional
+
         param_type = get_argparse_type_for_input_file(input._passing_style) or get_deserializer_and_register_definitions(input.type)
         type_func = param_type if not argument_interceptor else 'get_deserializer_with_argument_interceptor({param_type})'.format(
             param_type=param_type
-        ),
+        )
+
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={type_func}, required={is_required}, default=argparse.SUPPRESS)'.format(
             param_flag=param_flag,
             param_var=input.name,
