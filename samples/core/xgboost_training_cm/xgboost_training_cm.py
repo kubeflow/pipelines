@@ -269,7 +269,7 @@ def xgb_train_pipeline(
                            'create/initialization_actions.sh'),
             ],
             image_version='1.2'
-        )
+        ).apply(gcp.use_gcp_secret('user-gcp-sa'))
 
         analyze_op = dataproc_analyze_op(
             project=project,
