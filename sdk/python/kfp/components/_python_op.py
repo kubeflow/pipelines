@@ -79,6 +79,10 @@ class OutputBinaryFile:
         self.type = type
 
 
+def _dummy_output_interceptor(serialized_output, _):
+    return serialized_output
+
+
 def _make_parent_dirs_and_return_path(file_path: str):
     import os
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -302,7 +306,8 @@ def _extract_component_interface(func) -> ComponentSpec:
     return component_spec
 
 
-def _func_to_component_spec(func, extra_code='', base_image : str = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
+def _func_to_component_spec(func, extra_code='', base_image : str = None, modules_to_capture: List[str] = None,
+                            use_code_pickling=False, argument_interceptor=None, output_interceptor=None) -> ComponentSpec:
     '''Takes a self-contained python function and converts it to component
 
     Args:
@@ -390,16 +395,36 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
             description_repr=repr(component_spec.description or ''),
         ),
     ]
+
+    def get_argument_interceptor_code(interceptor) -> str:
+        return '''
+{func_code}
+
+def get_deserializer_with_argument_interceptor(deserializer = str):
+    def deserialize_intercepted_value(value):
+        value = {func_name}(value)
+        return deserializer(value)
+    return deserialize_intercepted_value
+'''.format(
+            func_name=interceptor.__name__,
+            func_code=_capture_function_code_using_source_copy(interceptor)
+        )
+
+    if argument_interceptor:
+        argument_interceptor_code = get_argument_interceptor_code(argument_interceptor)
+        arg_parse_code_lines.append(argument_interceptor_code)
+
     outputs_passed_through_func_return_tuple = [output for output in (component_spec.outputs or []) if output._passing_style is None]
     file_outputs_passed_using_func_parameters = [output for output in (component_spec.outputs or []) if output._passing_style is not None]
     arguments = []
     for input in component_spec.inputs + file_outputs_passed_using_func_parameters:
         param_flag = "--" + input.name.replace("_", "-")
         is_required = isinstance(input, OutputSpec) or not input.optional
-        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default=argparse.SUPPRESS)'.format(
+        param_type = get_argparse_type_for_input_file(input._passing_style) or get_deserializer_and_register_definitions(input.type)
+        line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={type_func}, required={is_required}, default=argparse.SUPPRESS)'.format(
             param_flag=param_flag,
             param_var=input.name,
-            param_type=get_argparse_type_for_input_file(input._passing_style) or get_deserializer_and_register_definitions(input.type),
+            type_func=param_type if not argument_interceptor else f'get_deserializer_with_argument_interceptor({param_type})',
             is_required=str(is_required),
         )
         arg_parse_code_lines.append(line)
@@ -449,6 +474,9 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
         '_output_files = _parsed_args.pop("_output_paths", [])',
     ])
 
+    output_interceptor = output_interceptor or _dummy_output_interceptor
+    output_interceptor_code = _capture_function_code_using_source_copy(output_interceptor)
+
     full_source = \
 '''\
 {pre_func_code}
@@ -468,14 +496,21 @@ _output_serializers = [
     {output_serialization_code}
 ]
 
+{output_interceptor_code}
+
 import os
 for idx, output_file in enumerate(_output_files):
     try:
         os.makedirs(os.path.dirname(output_file))
     except OSError:
         pass
+    
+    _serialized_output = _output_serializers[idx](_outputs[idx])
+    
+    _output_value = {output_interceptor_name}(_serialized_output, output_file)
+    
     with open(output_file, 'w') as f:
-        f.write(_output_serializers[idx](_outputs[idx]))
+        f.write(_output_value)
 '''.format(
         func_name=func.__name__,
         func_code=func_code,
@@ -483,6 +518,8 @@ for idx, output_file in enumerate(_output_files):
         extra_code=extra_code,
         arg_parse_code='\n'.join(arg_parse_code_lines),
         output_serialization_code=',\n    '.join(output_serialization_expression_strings),
+        output_interceptor_name=output_interceptor.__name__,
+        output_interceptor_code=output_interceptor_code
     )
 
     #Removing consecutive blank lines
@@ -558,7 +595,8 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
     Path(output_component_file).write_text(component_yaml)
 
 
-def func_to_container_op(func, output_component_file=None, base_image: str = None, extra_code='', modules_to_capture: List[str] = None, use_code_pickling=False):
+def func_to_container_op(func, output_component_file=None, base_image: str = None, extra_code='',
+                         modules_to_capture: List[str] = None, use_code_pickling=False, argument_interceptor=None, output_interceptor=None):
     '''
     Converts a Python function to a component and returns a task (ContainerOp) factory
 
@@ -584,7 +622,8 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp) that can run the original function in a container.
     '''
 
-    component_spec = _func_to_component_spec(func, extra_code, base_image, modules_to_capture, use_code_pickling)
+    component_spec = _func_to_component_spec(func, extra_code, base_image, modules_to_capture,
+                                             use_code_pickling, argument_interceptor, output_interceptor)
 
     output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:
