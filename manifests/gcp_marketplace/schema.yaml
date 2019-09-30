@@ -142,6 +142,8 @@ properties:
   managedstorage.dbPassword:
     type: string
     title: Database password (Managed storage only)
+    x-google-marketplace:
+      type: MASKED_FIELD
     description: |-
       The database password to use when connecting to the Cloud SQL instance. 
       If you leave this field empty, the deployment will try to connect to the instance without providing a password. 
