@@ -52,6 +52,8 @@ spec:
             value: "{{inputs.parameters.api-image}}"
           - name: docker-file
             value: backend/Dockerfile
+          - name: build-script
+            value: backend/build_api_server.sh
       - name: build-frontend-image
         template: build-image
         arguments:
@@ -101,6 +103,8 @@ spec:
       - name: docker-file
         value: Dockerfile
       - name: image-name
+      - name: build-script
+        value: ""
     outputs:
       parameters:
         - name: strict-image-name
@@ -114,6 +118,7 @@ spec:
         "--docker_path", "{{inputs.parameters.docker-path}}",
         "--docker_file", "{{inputs.parameters.docker-file}}",
         "--image_name", "{{inputs.parameters.image-name}}",
+        "--build_script", "{{inputs.parameters.build-script}}",
       ]
       env:
       - name: DOCKER_HOST
