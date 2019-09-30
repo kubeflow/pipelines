@@ -28,6 +28,7 @@ __all__ = [
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
 from ._data_passing import serialize_value, type_name_to_deserializer, type_name_to_serializer, type_to_type_name
+from ._naming import _make_name_unique_by_adding_index
 from ._structures import *
 
 import inspect
@@ -232,28 +233,44 @@ def _extract_component_interface(func) -> ComponentSpec:
             type_name = type_to_type_name[type_name]
         return type_name
 
+    input_names = set()
+    output_names = set()
     for parameter in parameters:
         parameter_annotation = parameter.annotation
         passing_style = None
+        io_name = parameter.name
         if isinstance(parameter_annotation, (InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile)):
             passing_style = type(parameter_annotation)
             parameter_annotation = parameter_annotation.type
             if parameter.default is not inspect.Parameter.empty:
                 raise ValueError('Default values for file inputs/outputs are not supported. If you need them for some reason, please create an issue and write about your usage scenario.')
-            # TODO: Fix the input names: "number_file_path" parameter should be exposed as "number" input
+            # Removing the "_path" and "_file" suffixes from the input/output names as the argument passed to the component needs to be the data itself, not local file path.
+            # Problem: When accepting file inputs (outputs), the function inside the component receives file paths (or file streams), so it's natural to call the function parameter "something_file_path" (e.g. model_file_path or number_file_path).
+            # But from the outside perspective, there are no files or paths - the actual data objects (or references to them) are passed in.
+            # It looks very strange when argument passing code looks like this: `component(number_file_path=42)`. This looks like an error since 42 is not a path. It's not even a string.
+            # It's much more natural to strip the names of file inputs and outputs of "_file" or "_path" suffixes. Then the argument passing code will look natural: "component(number=42)".
+            if isinstance(parameter.annotation, (InputPath, OutputPath)) and io_name.endswith('_path'):
+                io_name = io_name[0:-len('_path')]
+            if io_name.endswith('_file'):
+                io_name = io_name[0:-len('_file')]
         type_struct = annotation_to_type_struct(parameter_annotation)
         #TODO: Humanize the input/output names
 
         if isinstance(parameter.annotation, (OutputPath, OutputTextFile, OutputBinaryFile)):
+            io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
+            output_names.add(io_name)
             output_spec = OutputSpec(
-                name=parameter.name,
+                name=io_name,
                 type=type_struct,
             )
             output_spec._passing_style = passing_style
+            output_spec._parameter_name = parameter.name
             outputs.append(output_spec)
         else:
+            io_name = _make_name_unique_by_adding_index(io_name, input_names, '_')
+            input_names.add(io_name)
             input_spec = InputSpec(
-                name=parameter.name,
+                name=io_name,
                 type=type_struct,
             )
             if parameter.default is not inspect.Parameter.empty:
@@ -261,6 +278,7 @@ def _extract_component_interface(func) -> ComponentSpec:
                 if parameter.default is not None:
                     input_spec.default = serialize_value(parameter.default, type_struct)
             input_spec._passing_style = passing_style
+            input_spec._parameter_name = parameter.name
             inputs.append(input_spec)
 
     #Analyzing the return type annotations.
@@ -271,16 +289,21 @@ def _extract_component_interface(func) -> ComponentSpec:
             if hasattr(return_ann, '_field_types'):
                 type_struct = annotation_to_type_struct(return_ann._field_types.get(field_name, None))
 
+            output_name = _make_name_unique_by_adding_index(field_name, output_names, '_')
+            output_names.add(output_name)
             output_spec = OutputSpec(
-                name=field_name,
+                name=output_name,
                 type=type_struct,
             )
             output_spec._passing_style = None
+            output_spec._return_tuple_field_name = field_name
             outputs.append(output_spec)
     elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
+        output_name = _make_name_unique_by_adding_index(single_output_name_const, output_names, '_') # Fixes exotic, but possible collision: `def func(output_path: OutputPath()) -> str: ...`
+        output_names.add(output_name)
         type_struct = annotation_to_type_struct(signature.return_annotation)
         output_spec = OutputSpec(
-            name=single_output_name_const,
+            name=output_name,
             type=type_struct,
         )
         output_spec._passing_style = None
@@ -398,7 +421,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
         is_required = isinstance(input, OutputSpec) or not input.optional
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default=argparse.SUPPRESS)'.format(
             param_flag=param_flag,
-            param_var=input.name,
+            param_var=input._parameter_name, # Not input.name, since the inputs could have been renamed
             param_type=get_argparse_type_for_input_file(input._passing_style) or get_deserializer_and_register_definitions(input.type),
             is_required=str(is_required),
         )
