@@ -79,10 +79,6 @@ class OutputBinaryFile:
         self.type = type
 
 
-def _dummy_output_interceptor(serialized_output, _):
-    return serialized_output
-
-
 def _make_parent_dirs_and_return_path(file_path: str):
     import os
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -479,8 +475,8 @@ def get_deserializer_with_argument_interceptor(deserializer = str):
         '_output_files = _parsed_args.pop("_output_paths", [])',
     ])
 
-    output_interceptor = output_interceptor or _dummy_output_interceptor
-    output_interceptor_code = _capture_function_code_using_source_copy(output_interceptor)
+    output_interceptor_code = _capture_function_code_using_source_copy(output_interceptor) if output_interceptor else ''
+    get_output_intercept_result = '{interceptor_name}(_serialized_output, output_file)'.format(interceptor_name=output_interceptor.__name__) if output_interceptor else '_serialized_output'
 
     full_source = \
 '''\
@@ -511,8 +507,7 @@ for idx, output_file in enumerate(_output_files):
         pass
     
     _serialized_output = _output_serializers[idx](_outputs[idx])
-    
-    _output_value = {output_interceptor_name}(_serialized_output, output_file)
+    _output_value = {get_output_intercept_result}
     
     with open(output_file, 'w') as f:
         f.write(_output_value)
@@ -523,8 +518,8 @@ for idx, output_file in enumerate(_output_files):
         extra_code=extra_code,
         arg_parse_code='\n'.join(arg_parse_code_lines),
         output_serialization_code=',\n    '.join(output_serialization_expression_strings),
-        output_interceptor_name=output_interceptor.__name__,
-        output_interceptor_code=output_interceptor_code
+        output_interceptor_code=output_interceptor_code,
+        get_output_intercept_result=get_output_intercept_result
     )
 
     #Removing consecutive blank lines
