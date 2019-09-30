@@ -52,7 +52,7 @@ def _serialize_int(int_value: int) -> str:
 def _serialize_float(float_value: float) -> str:
     if isinstance(float_value, str):
         return float_value
-    if not isinstance(float_value, float):
+    if not isinstance(float_value, (float, int)):
         raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
     return str(float_value)
 
