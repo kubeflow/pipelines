@@ -28,9 +28,8 @@ confusion_matrix_op = components.load_component_from_url(
 roc_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/local/roc/component.yaml')
 
-# TODO(numerology): waiting for the fix.
-# dataproc_create_cluster_op = components.load_component_from_url(
-#     'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/create_cluster/component.yaml')
+dataproc_create_cluster_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/create_cluster/component.yaml')
 
 dataproc_delete_cluster_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/delete_cluster/component.yaml')
@@ -66,25 +65,25 @@ def delete_directory_from_gcs(dir_path):
 # The following classes should be provided by components provider.
 
 
-def dataproc_create_cluster_op(
-    project,
-    region,
-    staging,
-    cluster_name='xgb-{{workflow.name}}'
-):
-  return dsl.ContainerOp(
-      name='Dataproc - Create cluster',
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:57d9f7f1cfd458e945d297957621716062d89a49',
-      arguments=[
-        '--project', project,
-        '--region', region,
-        '--name', cluster_name,
-        '--staging', staging,
-      ],
-      file_outputs={
-        'output': '/output.txt',
-      }
-  )
+# def dataproc_create_cluster_op(
+#     project,
+#     region,
+#     staging,
+#     cluster_name='xgb-{{workflow.name}}'
+# ):
+#   return dsl.ContainerOp(
+#       name='Dataproc - Create cluster',
+#       image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:57d9f7f1cfd458e945d297957621716062d89a49',
+#       arguments=[
+#         '--project', project,
+#         '--region', region,
+#         '--name', cluster_name,
+#         '--staging', staging,
+#       ],
+#       file_outputs={
+#         'output': '/output.txt',
+#       }
+#   )
 
 
 def dataproc_analyze_op(
@@ -255,11 +254,22 @@ def xgb_train_pipeline(
         name=cluster_name
     ).apply(gcp.use_gcp_secret('user-gcp-sa'))):
 
+        # create_cluster_op = dataproc_create_cluster_op(
+        #     project=project,
+        #     region=region,
+        #     staging=output
+        # ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+
         create_cluster_op = dataproc_create_cluster_op(
-            project=project,
+            project_id=project,
             region=region,
-            staging=output
-        ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+            name=cluster_name,
+            initialization_actions=[
+              os.path.join(_PYSRC_PREFIX,
+                           'create/initialization_actions.sh'),
+            ],
+            image_version='1.2'
+        )
 
         analyze_op = dataproc_analyze_op(
             project=project,
