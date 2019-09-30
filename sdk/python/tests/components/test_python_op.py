@@ -483,6 +483,19 @@ class PythonOpTestCase(unittest.TestCase):
         ])
 
 
+    def test_handling_list_arguments_containing_pipelineparam(self):
+        '''Checks that lists containing PipelineParam can be properly serialized'''
+        def consume_list(list_param: list) -> int:
+            pass
+
+        import kfp
+        task_factory = comp.func_to_container_op(consume_list)
+        task = task_factory([1, 2, 3, kfp.dsl.PipelineParam("aaa"), 4, 5, 6])
+        full_command_line = task.command + task.arguments
+        for arg in full_command_line:
+            self.assertNotIn('PipelineParam', arg)
+
+
     def test_handling_base64_pickle_arguments(self):
         def assert_values_are_same(
             obj1: 'Base64Pickle', # noqa: F821
@@ -560,6 +573,52 @@ class PythonOpTestCase(unittest.TestCase):
 
         # TODO: Fix the input names: "number_file" parameter should be exposed as "number" input
         self.helper_test_component_using_local_call(task_factory, arguments={'number_file': "42"}, expected_output_values={'output': '42'})
+
+
+    def test_output_path(self):
+        from kfp.components import OutputPath
+        def write_to_file_path(number_file_path: OutputPath(int)):
+            with open(number_file_path, 'w') as f:
+                f.write(str(42))
+
+        task_factory = comp.func_to_container_op(write_to_file_path)
+
+        self.assertFalse(task_factory.component_spec.inputs)
+        self.assertEqual(len(task_factory.component_spec.outputs), 1)
+        self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
+
+        # TODO: Fix the output names: "number_file_path" should be exposed as "number" output
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number_file_path': '42'})
+
+
+    def test_output_text_file(self):
+        from kfp.components import OutputTextFile
+        def write_to_file_path(number_file: OutputTextFile(int)):
+            number_file.write(str(42))
+
+        task_factory = comp.func_to_container_op(write_to_file_path)
+
+        self.assertFalse(task_factory.component_spec.inputs)
+        self.assertEqual(len(task_factory.component_spec.outputs), 1)
+        self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
+
+        # TODO: Fix the output names: "number_file" should be exposed as "number" output
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number_file': '42'})
+
+
+    def test_output_binary_file(self):
+        from kfp.components import OutputBinaryFile
+        def write_to_file_path(number_file: OutputBinaryFile(int)):
+            number_file.write(b'42')
+
+        task_factory = comp.func_to_container_op(write_to_file_path)
+
+        self.assertFalse(task_factory.component_spec.inputs)
+        self.assertEqual(len(task_factory.component_spec.outputs), 1)
+        self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
+
+        # TODO: Fix the output names: "number_file" should be exposed as "number" output
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number_file': '42'})
 
 
     def test_end_to_end_python_component_pipeline_compilation(self):

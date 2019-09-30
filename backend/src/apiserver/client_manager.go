@@ -176,11 +176,24 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	db, err := gorm.Open(driverName, arg)
 	util.TerminateIfError(err)
 
+	// If pipeline_versions table is introduced into DB for the first time,
+	// it needs initialization or data backfill.
+	var tableNames []string
+	var initializePipelineVersions = true
+	db.Raw(`show tables`).Pluck("Tables_in_mlpipeline", &tableNames)
+	for _, tableName := range tableNames {
+		if tableName == "pipeline_versions" {
+			initializePipelineVersions = false
+			break
+		}
+	}
+
 	// Create table
 	response := db.AutoMigrate(
 		&model.Experiment{},
 		&model.Job{},
 		&model.Pipeline{},
+		&model.PipelineVersion{},
 		&model.ResourceReference{},
 		&model.RunDetail{},
 		&model.RunMetric{},
@@ -201,6 +214,18 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for RunID in run_metrics table. Error: %s", response.Error)
 	}
+	response = db.Model(&model.PipelineVersion{}).
+		AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
+	if response.Error != nil {
+		glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
+	}
+
+	// Data backfill for pipeline_versions if this is the first time for
+	// pipeline_versions to enter mlpipeline DB.
+	if initializePipelineVersions {
+		initPipelineVersionsFromPipelines(db)
+	}
+
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
 
@@ -287,4 +312,35 @@ func newClientManager() ClientManager {
 	clientManager.init()
 
 	return clientManager
+}
+
+// Data migration in 2 steps to introduce pipeline_versions table. This
+// migration shall be called only once when pipeline_versions table is created
+// for the first time in DB.
+func initPipelineVersionsFromPipelines(db *gorm.DB) {
+	tx := db.Begin()
+
+	// Step 1: duplicate pipelines to pipeline versions.
+	// The pipeline versions created here are not through KFP pipeine version
+	// API, and are only for the legacy pipelines that are created
+	// before pipeline version API is introduced.
+	// For those legacy pipelines, who don't have versions before, we create one
+	// implicit version for each of them. Given a legacy pipeline, the implicit
+	// version created here is assigned an ID the same as the pipeline ID. This
+	// way we don't need to move the minio file of pipeline package around,
+	// since the minio file's path is based on the pipeline ID (and now on the
+	// implicit version ID too). Meanwhile, IDs are required to be unique inside
+	// the same resource type, so pipeline and pipeline version as two different
+	// resources useing the same ID is OK.
+	// On the other hand, pipeline and its pipeline versions created after
+	// pipeline version API is introduced will have different Ids; and the minio
+	// file will be put directly into the directories for pipeline versions.
+	tx.Exec(`INSERT INTO
+	pipeline_versions (UUID, Name, CreatedAtInSec, Parameters, Status, PipelineId)
+	SELECT UUID, Name, CreatedAtInSec, Parameters, Status, UUID FROM pipelines;`)
+
+	// Step 2: modifiy pipelines table after pipeline_versions are populated.
+	tx.Exec("update pipelines set DefaultVersionId=UUID;")
+
+	tx.Commit()
 }
