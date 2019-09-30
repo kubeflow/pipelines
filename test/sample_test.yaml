@@ -64,31 +64,31 @@ spec:
                   value: "{{inputs.parameters.target-image-prefix}}"
                 - name: test-results-gcs-dir
                   value: "{{inputs.parameters.test-results-gcs-dir}}"
-                - name: test-name
+                - name: test-path
                   value: "{{item}}"
             withItems:
-              - xgboost_training_cm
-              - lightweight_component
-              - dsl_static_type_checking
-              - pipeline_transformers
-              - secret
-              - sidecar
-              - dataflow
-              - execution_order
-              - imagepullsecrets
-              - retry
-              - artifact_location
-              - preemptible_tpu_gpu
-              - volume_snapshot_ops
-              - kubeflow_tf_serving
-              - component_build
-              - loop_output
-              - loop_parameter
-              - loop_static
-              - resource_ops
-              - multiple_outputs
-              - ai_platform
-              - parameterized_tfx_oss
+              - test/sample-test/configs/xgboost_training_cm.config.yaml
+              - samples/core/lightweight_component/lightweight_component.ipynb
+              - test/sample-test/configs/dsl_static_type_checking.config.yaml
+              - samples/core/pipeline_transformers/pipeline_transformers.py
+              - samples/core/secret/secret.py
+              - test/sample-test/configs/sidecar.config.yaml
+              - test/sample-test/configs/dataflow.config.yaml
+              - samples/core/execution_order/execution_order.py
+              - test/sample-test/configs/imagepullsecrets.config.yaml
+              - test/sample-test/configs/retry.config.yaml
+              - samples/core/artifact_location/artifact_location.py
+              - test/sample-test/configs/preemptible_tpu_gpu.config.yaml
+              - test/sample-test/configs/volume_snapshot_ops.config.yaml
+              - test/sample-test/configs/kubeflow_tf_serving.config.yaml
+              - samples/core/component_build/component_build.ipynb
+              - samples/core/loop_output/loop_output.py
+              - samples/core/loop_parameter/loop_parameter.py
+              - samples/core/loop_static/loop_static.py
+              - samples/core/resource_ops/resource_ops.py
+              - test/sample-test/configs/multiple_outputs.config.yaml
+              - samples/core/ai_platform/ai_platform.ipynb
+              - test/sample-test/configs/parameterized_tfx_oss.config.yaml
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:
@@ -138,15 +138,18 @@ spec:
           - name: target-image-prefix
           - name: sample-tests-image
           - name: namespace
-          - name: test-name
+          - name: test-path
       container:
         image: "{{inputs.parameters.sample-tests-image}}"
+        command:
+          - python3
+          - /python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py
         args: [
           "sample_test", "run_test",
           "--namespace", "{{inputs.parameters.namespace}}",
           "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
           "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}",
-          "--test-name", "{{inputs.parameters.test-name}}",
+          "--test-path", "{{inputs.parameters.test-path}}",
         ]
         env:
           - name: GOOGLE_APPLICATION_CREDENTIALS

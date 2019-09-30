@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: ai_platform
-notebook_params:
+test_path: samples/core/ai_platform/ai_platform.ipynb
+arguments:
   output:
   project_id: ml-pipeline-test

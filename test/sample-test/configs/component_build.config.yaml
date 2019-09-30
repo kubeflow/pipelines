@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: component_build
-notebook_params:
+test_path: samples/core/component_build/component_build.ipynb
+arguments:
   PROJECT_NAME: ml-pipeline-test

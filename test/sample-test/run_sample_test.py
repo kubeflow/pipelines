@@ -25,7 +25,7 @@ from constants import CONFIG_DIR, DEFAULT_CONFIG, SCHEMA_CONFIG
 
 
 class PySampleChecker(object):
-  def __init__(self, testname, input, output, result, experiment_name, namespace='kubeflow'):
+  def __init__(self, test_path, config_dict, arguments, testname, input, output, result, experiment_name, namespace='kubeflow'):
     """Util class for checking python sample test running results.
 
     :param testname: test name.
@@ -35,6 +35,9 @@ class PySampleChecker(object):
     :param namespace: namespace of the deployed pipeline system. Default: kubeflow
     :param experiment_name: Name of the experiment to monitor
     """
+    self._test_path = test_path
+    self._config_dict = config_dict
+    self._arguments = arguments
     self._testname = testname
     self._experiment_name = experiment_name
     self._input = input
@@ -77,40 +80,8 @@ class PySampleChecker(object):
     ###### Create Job ######
     self._job_name = self._testname + '_sample'
     ###### Figure out arguments from associated config files. #######
-    self._test_args = {}
-    config_schema = yamale.make_schema(SCHEMA_CONFIG)
-    try:
-      with open(DEFAULT_CONFIG, 'r') as f:
-        raw_args = yaml.safe_load(f)
-      default_config = yamale.make_data(DEFAULT_CONFIG)
-      yamale.validate(config_schema, default_config)  # If fails, a ValueError will be raised.
-    except yaml.YAMLError as yamlerr:
-      raise RuntimeError('Illegal default config:{}'.format(yamlerr))
-    except OSError as ose:
-      raise FileExistsError('Default config not found:{}'.format(ose))
-    else:
-      self._test_timeout = raw_args['test_timeout']
-      self._run_pipeline = raw_args['run_pipeline']
-
-    try:
-      config_file = os.path.join(CONFIG_DIR, '%s.config.yaml' % self._testname)
-      with open(config_file, 'r') as f:
-        raw_args = yaml.safe_load(f)
-      test_config = yamale.make_data(config_file)
-      yamale.validate(config_schema, test_config)  # If fails, a ValueError will be raised.
-    except yaml.YAMLError as yamlerr:
-      print('No legit yaml config file found, use default args:{}'.format(yamlerr))
-    except OSError as ose:
-      print('Config file with the same name not found, use default args:{}'.format(ose))
-    else:
-      if 'arguments' in raw_args.keys() and raw_args['arguments']:
-        self._test_args.update(raw_args['arguments'])
-      if 'output' in self._test_args.keys():  # output is a special param that has to be specified dynamically.
-        self._test_args['output'] = self._output
-      if 'test_timeout' in raw_args.keys():
-        self._test_timeout = raw_args['test_timeout']
-      if 'run_pipeline' in raw_args.keys():
-        self._run_pipeline = raw_args['run_pipeline']
+    self._test_timeout = self._config_dict['test_timeout']
+    self._run_pipeline = self._config_dict['run_pipeline']
 
     # TODO(numerology): Special treatment for TFX::OSS sample
     if self._testname == 'parameterized_tfx_oss':
@@ -121,7 +92,7 @@ class PySampleChecker(object):
 
     # Submit for pipeline running.
     if self._run_pipeline:
-      response = self._client.run_pipeline(self._experiment_id, self._job_name, self._input, self._test_args)
+      response = self._client.run_pipeline(self._experiment_id, self._job_name, self._input, self._arguments)
       self._run_id = response.id
       utils.add_junit_test(self._test_cases, 'create pipeline run', True)
 

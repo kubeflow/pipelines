@@ -33,15 +33,24 @@ from run_sample_test import PySampleChecker
 
 class SampleTest(object):
 
-  def __init__(self, test_name, results_gcs_dir, target_image_prefix='',
+  def __init__(self, test_path, results_gcs_dir, target_image_prefix='',
                namespace='kubeflow'):
     """Launch a KFP sample_test provided its name.
 
-    :param test_name: name of the corresponding sample test.
+    :param test_path: Path of the sample code file that should be tested. Can be python file, notebook or test config YAML.
     :param results_gcs_dir: gs dir to store test result.
     :param target_image_prefix: prefix of docker image, default is empty.
     :param namespace: namespace for kfp, default is kubeflow.
     """
+
+    test_file_name = os.path.basename(test_path)
+    test_name, ext1 = os.path.splitext(test_file_name)
+    if ext1 == '.yaml':
+      test_name, ext2 = os.path.splitext(test_name)
+
+    self._test_path = test_path
+    self._config_dict = {}
+    self._arguments = {}
     self._test_name = test_name
     self._results_gcs_dir = results_gcs_dir
     # Capture the first segment after gs:// as the project name.
@@ -71,62 +80,63 @@ class SampleTest(object):
         os.path.join(self._results_gcs_dir, self._sample_test_result))
 
   def _compile(self):
-
-    os.chdir(self._work_dir)
-    print('Run the sample tests...')
-
-    # Looking for the entry point of the test.
-    list_of_files = os.listdir('.')
-    for file in list_of_files:
-      m = re.match(self._test_name + '\.[a-zA-Z]+', file)
-      if m:
-        file_name, ext_name = os.path.splitext(file)
-        if self._is_notebook is not None:
-          raise(RuntimeError('Multiple entry points found under sample: {}'.format(self._test_name)))
-        if ext_name == '.py':
-          self._is_notebook = False
-        if ext_name == '.ipynb':
-          self._is_notebook = True
-
-    if self._is_notebook is None:
-      raise(RuntimeError('No entry point found for sample: {}'.format(self._test_name)))
-
     config_schema = yamale.make_schema(SCHEMA_CONFIG)
     # Retrieve default config
     try:
       with open(DEFAULT_CONFIG, 'r') as f:
-        raw_args = yaml.safe_load(f)
+        self._config_dict = yaml.safe_load(f)
       default_config = yamale.make_data(DEFAULT_CONFIG)
       yamale.validate(config_schema, default_config)  # If fails, a ValueError will be raised.
     except yaml.YAMLError as yamlerr:
       raise RuntimeError('Illegal default config:{}'.format(yamlerr))
     except OSError as ose:
       raise FileExistsError('Default config not found:{}'.format(ose))
+
+    test_path = os.path.join(BASE_DIR, self._test_path)
+    if not os.path.exists(test_path):
+      raise RuntimeError('Test file "{}" not found.'.format(test_path))
+
+    test_file_name = os.path.basename(test_path)
+    test_name, ext1 = os.path.splitext(test_file_name)
+    if ext1 == '.yaml':
+      test_name, ext2 = os.path.splitext(test_name)
+    elif ext1 in ['.py', '.ipynb']:
+      pass
     else:
-      self._run_pipeline = raw_args['run_pipeline']
+      raise ValueError('Test file "{}" has unknown file extension.'.format(test_path))
+    self._test_name = test_name
+    
+    real_test_path = test_path
+    if ext1 == '.yaml' and ext2 == '.config':
+      config_path = os.path.join(BASE_DIR, self._test_path)
+      with open(config_path, 'r') as f:
+        config_dict = yaml.safe_load(f)
+      test_config = yamale.make_data(config_path)
+      yamale.validate(config_schema, test_config)  # If fails, a ValueError will be raised.
+
+      self._config_dict.update(config_dict) # Does not do deep merging
+      real_test_path = config_dict['test_path']
+      real_test_path = os.path.join(BASE_DIR, real_test_path)
+
+      test_name2, ext1 = os.path.splitext(os.path.basename(real_test_path)) # When test_path point to config, the test name is taken from config file name, not the file it points to
+
+      if ext1 not in ['.py', '.ipynb']:
+        raise ValueError('Test file "{}" specified in the config has unknown file extension.'.format(test_path))
+    
+    self._arguments = self._config_dict.get('arguments', {})
+    if 'output' in self._arguments:  # output is a special param that has to be specified dynamically.
+      self._arguments['output'] = self._sample_test_output
+
+    self._real_test_path = real_test_path
+    self._is_notebook = ext1 == '.ipynb'
+
+    self._run_pipeline = self._config_dict['run_pipeline']
 
     # For presubmit check, do not do any image injection as for now.
     # Notebook samples need to be papermilled first.
     if self._is_notebook:
       # Parse necessary params from config.yaml
-      nb_params = {}
-      try:
-        config_file = os.path.join(CONFIG_DIR, '%s.config.yaml' % self._test_name)
-        with open(config_file, 'r') as f:
-          raw_args = yaml.safe_load(f)
-        test_config = yamale.make_data(config_file)
-        yamale.validate(config_schema, test_config)  # If fails, a ValueError will be raised.
-      except yaml.YAMLError as yamlerr:
-        print('No legit yaml config file found, use default args:{}'.format(yamlerr))
-      except OSError as ose:
-        print('Config file with the same name not found, use default args:{}'.format(ose))
-      else:
-        if 'notebook_params' in raw_args.keys():
-          nb_params.update(raw_args['notebook_params'])
-          if 'output' in raw_args['notebook_params'].keys():  # output is a special param that has to be specified dynamically.
-            nb_params['output'] = self._sample_test_output
-        if 'run_pipeline' in raw_args.keys():
-          self._run_pipeline = raw_args['run_pipeline']
+      nb_params = self._arguments.copy()
 
       pm.execute_notebook(
           input_path='%s.ipynb' % self._test_name,
@@ -135,13 +145,13 @@ class SampleTest(object):
           prepare_only=True
       )
       # Convert to python script.
-      subprocess.call([
+      subprocess.run([
           'jupyter', 'nbconvert', '--to', 'python', '%s.ipynb' % self._test_name
-      ])
+      ], check=True)
 
     else:
-      subprocess.call(['dsl-compile', '--py', '%s.py' % self._test_name,
-                       '--output', '%s.yaml' % self._test_name])
+      subprocess.run(['dsl-compile', '--py', self._real_test_path,
+                       '--output', '%s.yaml' % self._test_name], check=True)
 
   def _injection(self):
     """Inject images for pipeline components.
@@ -161,6 +171,8 @@ class SampleTest(object):
 
     if self._is_notebook:
       nbchecker = NoteBookChecker(testname=self._test_name,
+                                  test_path='%s.py' % self._test_name,
+                                  config_dict=self._config_dict,
                                   result=self._sample_test_result,
                                   run_pipeline=self._run_pipeline,
                                   experiment_name=experiment_name,
@@ -176,6 +188,8 @@ class SampleTest(object):
         input_file = os.path.join(self._work_dir, '%s.tar.gz' % self._test_name)
 
       pysample_checker = PySampleChecker(testname=self._test_name,
+                                         test_path=self._real_test_path,
+                                         config_dict=self._config_dict,
                                          input=input_file,
                                          output=self._sample_test_output,
                                          result=self._sample_test_result,

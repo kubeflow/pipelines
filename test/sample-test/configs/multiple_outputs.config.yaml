@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: multiple_outputs
-notebook_params:
+test_path: samples/core/multiple_outputs/multiple_outputs.ipynb
+arguments:
   output:
   project_id: ml-pipeline-test

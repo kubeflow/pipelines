@@ -13,13 +13,10 @@
 # limitations under the License.
 
 # This is the schema for sample test config yaml file.
-test_name: str()
-# Parameters for python samples.
+test_path: str()
+# Arguments for samples.
 # If 'output' is specified, values will be dynamically injected
 arguments: map(required=False)
-# Parameters for notebook samples. 
-# If 'output' is specified, values will be dynamically injected
-notebook_params: map(required=False)
 # Timeout
 test_timeout: int(min=0, required=False)
 # For python samples, run_pipeline means submiting the pipeline

@@ -21,7 +21,7 @@ from kfp import Client
 
 
 class NoteBookChecker(object):
-    def __init__(self, testname, result, run_pipeline, experiment_name, namespace='kubeflow'):
+    def __init__(self, test_path, config_dict, testname, result, run_pipeline, experiment_name, namespace='kubeflow'):
         """ Util class for checking notebook sample test running results.
 
         :param testname: test name in the json xml.
@@ -30,6 +30,8 @@ class NoteBookChecker(object):
         :param namespace: where the pipeline system is deployed.
         :param experiment_name: Name of the experiment to monitor
         """
+        self._test_path = test_path
+        self._config_dict = config_dict
         self._testname = testname
         self._result = result
         self._exit_code = None
@@ -40,7 +42,7 @@ class NoteBookChecker(object):
     def run(self):
         """ Run the notebook sample as a python script. """
         self._exit_code = str(
-            subprocess.call(['ipython', '%s.py' % self._testname]))
+            subprocess.call(['ipython', self._test_path]))
 
     def check(self):
         """ Check the pipeline running results of the notebook sample. """
@@ -53,15 +55,7 @@ class NoteBookChecker(object):
                              'test script failure with exit code: '
                              + self._exit_code)
 
-        try:
-            with open(DEFAULT_CONFIG, 'r') as f:
-                raw_args = yaml.safe_load(f)
-        except yaml.YAMLError as yamlerr:
-            raise RuntimeError('Illegal default config:{}'.format(yamlerr))
-        except OSError as ose:
-            raise FileExistsError('Default config not found:{}'.format(ose))
-        else:
-            test_timeout = raw_args['test_timeout']
+        test_timeout = self._config_dict['test_timeout']
 
         if self._run_pipeline:
             experiment = self._experiment_name

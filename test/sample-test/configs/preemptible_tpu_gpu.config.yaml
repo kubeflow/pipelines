@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: preemptible_tpu_gpu
+test_path: samples/core/preemptible_tpu_gpu/preemptible_tpu_gpu.py
 run_pipeline: False

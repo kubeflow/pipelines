@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: dataflow
-notebook_params:
+test_path: samples/core/dataflow/dataflow.ipynb
+arguments:
   output:
   project: ml-pipeline-test
 run_pipeline: True
