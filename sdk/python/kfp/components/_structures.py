@@ -314,7 +314,7 @@ class ComponentSpec(ModelBase):
         from ._yaml_utils import dump_yaml
         component_yaml = dump_yaml(self.to_dict())
         with open(file_path, 'w') as f:
-            f.write_text(component_yaml)
+            f.write(component_yaml)
 
 
 class ComponentReference(ModelBase):
