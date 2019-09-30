@@ -39,9 +39,6 @@ from typing import Callable, Generic, List, TypeVar, Union
 T = TypeVar('T')
 
 
-_FEATURE_STRIP_FILE_IO_NAME_PARTS = True
-
-
 # InputPath(list) or InputPath('JsonObject')
 
 class InputPath:
@@ -247,16 +244,15 @@ def _extract_component_interface(func) -> ComponentSpec:
             parameter_annotation = parameter_annotation.type
             if parameter.default is not inspect.Parameter.empty:
                 raise ValueError('Default values for file inputs/outputs are not supported. If you need them for some reason, please create an issue and write about your usage scenario.')
-            if _FEATURE_STRIP_FILE_IO_NAME_PARTS:
-                # Removing the "_path" and "_file" suffixes from the input/output names as the argument passed to the component needs to be the data itself, not local file path.
-                # Problem: When accepting file inputs (outputs), the function inside the component receives file paths (or file streams), so it's natural to call the function parameter "something_file_path" (e.g. model_file_path or number_file_path).
-                # But from the outside perspective, there are no files or paths - the actual data objects (or references to them) are passed in.
-                # It looks very strange when argument passing code looks like this: `component(number_file_path=42)`. This looks like an error since 42 is not a path. It's not even a string.
-                # It's much more natural to strip the names of file inputs and outputs of "_file" or "_path" suffixes. Then the argument passing code will look natural: "component(number=42)".
-                if isinstance(parameter.annotation, (InputPath, OutputPath)) and io_name.endswith('_path'):
-                    io_name = io_name[0:-len('_path')]
-                if io_name.endswith('_file'):
-                    io_name = io_name[0:-len('_file')]
+            # Removing the "_path" and "_file" suffixes from the input/output names as the argument passed to the component needs to be the data itself, not local file path.
+            # Problem: When accepting file inputs (outputs), the function inside the component receives file paths (or file streams), so it's natural to call the function parameter "something_file_path" (e.g. model_file_path or number_file_path).
+            # But from the outside perspective, there are no files or paths - the actual data objects (or references to them) are passed in.
+            # It looks very strange when argument passing code looks like this: `component(number_file_path=42)`. This looks like an error since 42 is not a path. It's not even a string.
+            # It's much more natural to strip the names of file inputs and outputs of "_file" or "_path" suffixes. Then the argument passing code will look natural: "component(number=42)".
+            if isinstance(parameter.annotation, (InputPath, OutputPath)) and io_name.endswith('_path'):
+                io_name = io_name[0:-len('_path')]
+            if io_name.endswith('_file'):
+                io_name = io_name[0:-len('_file')]
         type_struct = annotation_to_type_struct(parameter_annotation)
         #TODO: Humanize the input/output names
 
