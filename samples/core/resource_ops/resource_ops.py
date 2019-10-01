@@ -20,8 +20,6 @@ This example demonstrates how to use ResourceOp to specify the value of env var.
 import json
 import kfp
 import kfp.dsl as dsl
-from kubernetes import client as k8s_client
-from string import Template
 
 
 _ENV_CONFIG = """
@@ -29,7 +27,8 @@ _ENV_CONFIG = """
     "apiVersion": "v1",
     "kind": "ConfigMap",
     "metadata": {
-        "name": "sample-env-config"
+        "name": "sample-env-config",
+        "namespace": "default"
     },
     "data": {
         "SPECIAL_LEVEL": "level",
@@ -37,6 +36,7 @@ _ENV_CONFIG = """
     }
 }    
 """
+
 
 _CONTAINER_MANIFEST = """
 {
