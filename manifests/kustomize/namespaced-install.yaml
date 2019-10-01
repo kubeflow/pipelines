@@ -522,7 +522,7 @@ data:
   config: |
     {
     namespace: kubeflow,
-    executorImage: gcr.io/ml-pipeline/argoexec:v2.3.0,
+    executorImage: gcr.io/ml-pipeline/argoexec:v2.3.0-license-compliance,
     artifactRepository:
     {
         s3: {
@@ -755,7 +755,7 @@ spec:
           value: minio
         - name: MINIO_SECRET_KEY
           value: minio123
-        image: gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z
+        image: gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance
         name: minio
         ports:
         - containerPort: 9000
@@ -1020,7 +1020,7 @@ spec:
         - --configmap
         - workflow-controller-configmap
         - --executor-image
-        - gcr.io/ml-pipeline/argoexec:v2.3.0
+        - gcr.io/ml-pipeline/argoexec:v2.3.0-license-compliance
         command:
         - workflow-controller
         env:
@@ -1029,7 +1029,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: gcr.io/ml-pipeline/workflow-controller:v2.3.0
+        image: gcr.io/ml-pipeline/workflow-controller:v2.3.0-license-compliance
         imagePullPolicy: IfNotPresent
         name: workflow-controller
         resources: {}
