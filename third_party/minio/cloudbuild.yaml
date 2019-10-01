@@ -1,0 +1,9 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/minio:$TAG_NAME', '-f', 'third_party/minio/Dockerfile', '.' ]
+  waitFor: ['-']
+timeout: 300s # 5min
+options:
+ diskSizeGb: 20
+images:
+- 'gcr.io/$PROJECT_ID/minio'
