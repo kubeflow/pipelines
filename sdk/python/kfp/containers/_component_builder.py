@@ -166,7 +166,7 @@ def _configure_logger(logger):
   logger.addHandler(error_handler)
 
 
-def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, timeout=600, namespace='kubeflow', target_component_file=None, python_version='python3'):
+def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, timeout=600, namespace=None, target_component_file=None, python_version='python3'):
   """ build_component automatically builds a container image for the component_func
   based on the base_image and pushes to the target_image.
 
@@ -177,7 +177,8 @@ def build_python_component(component_func, target_image, base_image=None, depend
     staging_gcs_path (str): GCS blob that can store temporary build files
     target_image (str): target image path
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
-    namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
+    namespace (str): the namespace within which to run the kubernetes kaniko job. If the
+    job is running on GKE and value is None the underlying functions will use the default namespace from GKE.  .
     dependency (list): a list of VersionedDependency, which includes the package name and versions, default is empty
     python_version (str): choose python2 or python3, default is python3
   Raises:
@@ -266,7 +267,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
   return task_factory_function
 
 
-def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace='kubeflow'):
+def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace=None):
   """ build_docker_image automatically builds a container image based on the specification in the dockerfile and
   pushes to the target_image.
 
@@ -275,7 +276,8 @@ def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=
     target_image (str): gcr path to push the final image
     dockerfile_path (str): local path to the dockerfile
     timeout (int): the timeout for the image build(in secs), default is 600 seconds
-    namespace (str): the namespace within which to run the kubernetes kaniko job, default is "kubeflow"
+    namespace (str): the namespace within which to run the kubernetes kaniko job. Default is None. If the
+    job is running on GKE and value is None the underlying functions will use the default namespace from GKE.  
   """
   _configure_logger(logging.getLogger())
 

@@ -97,3 +97,8 @@ var jobAPIToModelFieldMap = map[string]string{
 func (k *Job) APIToModelFieldMap() map[string]string {
 	return jobAPIToModelFieldMap
 }
+
+// GetModelName returns table name used as sort field prefix
+func (j *Job) GetModelName() string {
+	return "jobs"
+}

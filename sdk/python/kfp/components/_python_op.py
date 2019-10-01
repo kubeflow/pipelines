@@ -20,11 +20,15 @@ __all__ = [
     'InputPath',
     'InputTextFile',
     'InputBinaryFile',
+    'OutputPath',
+    'OutputTextFile',
+    'OutputBinaryFile',
 ]
 
 from ._yaml_utils import dump_yaml
 from ._components import _create_task_factory_from_component_spec
 from ._data_passing import serialize_value, type_name_to_deserializer, type_name_to_serializer, type_to_type_name
+from ._naming import _make_name_unique_by_adding_index
 from ._structures import *
 
 import inspect
@@ -58,8 +62,36 @@ class InputBinaryFile:
 #OutputFile[GcsPath[Gzipped[Text]]]
 
 
-class OutputFile(Generic[T], str):
-    pass
+class OutputPath:
+    '''When creating component from function, OutputPath should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a file with the given path instead of returning the data from the function.'''
+    def __init__(self, type=None):
+        self.type = type
+
+
+class OutputTextFile:
+    '''When creating component from function, OutputTextFile should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given text file stream (`io.TextIOWrapper`) instead of returning the data from the function.'''
+    def __init__(self, type=None):
+        self.type = type
+
+
+class OutputBinaryFile:
+    '''When creating component from function, OutputBinaryFile should be used as function parameter annotation to tell the system that the function wants to output data by writing it into a given binary file stream (`io.BytesIO`) instead of returning the data from the function.'''
+    def __init__(self, type=None):
+        self.type = type
+
+
+def _make_parent_dirs_and_return_path(file_path: str):
+    import os
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    return file_path
+
+
+def _parent_dirs_maker_that_returns_open_file(mode: str, encoding: str = None):
+    def make_parent_dirs_and_return_path(file_path: str):
+        import os
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        return open(file_path, mode=mode, encoding=encoding)
+    return make_parent_dirs_and_return_path
 
 
 #TODO: Replace this image name with another name once people decide what to replace it with.
@@ -201,26 +233,53 @@ def _extract_component_interface(func) -> ComponentSpec:
             type_name = type_to_type_name[type_name]
         return type_name
 
+    input_names = set()
+    output_names = set()
     for parameter in parameters:
         parameter_annotation = parameter.annotation
         passing_style = None
-        if isinstance(parameter_annotation, (InputPath, InputTextFile, InputBinaryFile)):
+        io_name = parameter.name
+        if isinstance(parameter_annotation, (InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile)):
             passing_style = type(parameter_annotation)
             parameter_annotation = parameter_annotation.type
-            # TODO: Fix the input names: "number_file_path" parameter should be exposed as "number" input
+            if parameter.default is not inspect.Parameter.empty:
+                raise ValueError('Default values for file inputs/outputs are not supported. If you need them for some reason, please create an issue and write about your usage scenario.')
+            # Removing the "_path" and "_file" suffixes from the input/output names as the argument passed to the component needs to be the data itself, not local file path.
+            # Problem: When accepting file inputs (outputs), the function inside the component receives file paths (or file streams), so it's natural to call the function parameter "something_file_path" (e.g. model_file_path or number_file_path).
+            # But from the outside perspective, there are no files or paths - the actual data objects (or references to them) are passed in.
+            # It looks very strange when argument passing code looks like this: `component(number_file_path=42)`. This looks like an error since 42 is not a path. It's not even a string.
+            # It's much more natural to strip the names of file inputs and outputs of "_file" or "_path" suffixes. Then the argument passing code will look natural: "component(number=42)".
+            if isinstance(parameter.annotation, (InputPath, OutputPath)) and io_name.endswith('_path'):
+                io_name = io_name[0:-len('_path')]
+            if io_name.endswith('_file'):
+                io_name = io_name[0:-len('_file')]
         type_struct = annotation_to_type_struct(parameter_annotation)
         #TODO: Humanize the input/output names
 
-        input_spec = InputSpec(
-            name=parameter.name,
-            type=type_struct,
-        )
-        if parameter.default is not inspect.Parameter.empty:
-            input_spec.optional = True
-            if parameter.default is not None:
-                input_spec.default = serialize_value(parameter.default, type_struct)
-        input_spec._passing_style = passing_style
-        inputs.append(input_spec)
+        if isinstance(parameter.annotation, (OutputPath, OutputTextFile, OutputBinaryFile)):
+            io_name = _make_name_unique_by_adding_index(io_name, output_names, '_')
+            output_names.add(io_name)
+            output_spec = OutputSpec(
+                name=io_name,
+                type=type_struct,
+            )
+            output_spec._passing_style = passing_style
+            output_spec._parameter_name = parameter.name
+            outputs.append(output_spec)
+        else:
+            io_name = _make_name_unique_by_adding_index(io_name, input_names, '_')
+            input_names.add(io_name)
+            input_spec = InputSpec(
+                name=io_name,
+                type=type_struct,
+            )
+            if parameter.default is not inspect.Parameter.empty:
+                input_spec.optional = True
+                if parameter.default is not None:
+                    input_spec.default = serialize_value(parameter.default, type_struct)
+            input_spec._passing_style = passing_style
+            input_spec._parameter_name = parameter.name
+            inputs.append(input_spec)
 
     #Analyzing the return type annotations.
     return_ann = signature.return_annotation
@@ -230,17 +289,24 @@ def _extract_component_interface(func) -> ComponentSpec:
             if hasattr(return_ann, '_field_types'):
                 type_struct = annotation_to_type_struct(return_ann._field_types.get(field_name, None))
 
+            output_name = _make_name_unique_by_adding_index(field_name, output_names, '_')
+            output_names.add(output_name)
             output_spec = OutputSpec(
-                name=field_name,
+                name=output_name,
                 type=type_struct,
             )
+            output_spec._passing_style = None
+            output_spec._return_tuple_field_name = field_name
             outputs.append(output_spec)
     elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
+        output_name = _make_name_unique_by_adding_index(single_output_name_const, output_names, '_') # Fixes exotic, but possible collision: `def func(output_path: OutputPath()) -> str: ...`
+        output_names.add(output_name)
         type_struct = annotation_to_type_struct(signature.return_annotation)
         output_spec = OutputSpec(
-            name=single_output_name_const,
+            name=output_name,
             type=type_struct,
         )
+        output_spec._passing_style = None
         outputs.append(output_spec)
 
     #Component name and description are derived from the function's name and docstribng, but can be overridden by @python_component function decorator
@@ -259,7 +325,7 @@ def _extract_component_interface(func) -> ComponentSpec:
     return component_spec
 
 
-def _func_to_component_spec(func, extra_code='', base_image : str = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
+def _func_to_component_spec(func, extra_code='', base_image : str = None, packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
     '''Takes a self-contained python function and converts it to component
 
     Args:
@@ -267,6 +333,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
         base_image: Optional. Docker image to be used as a base image for the python component. Must have python 3.5+ installed. Default is tensorflow/tensorflow:1.11.0-py3
                     Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         extra_code: Optional. Python source code that gets placed before the function code. Can be used as workaround to define types used in function signature.
+        packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
     '''
@@ -282,6 +349,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
             if isinstance(base_image, Callable):
                 base_image = base_image()
 
+    packages_to_install = packages_to_install or []
+
     component_spec = _extract_component_interface(func)
 
     arguments = []
@@ -290,6 +359,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
 
     if use_code_pickling:
         func_code = _capture_function_code_using_cloudpickle(func, modules_to_capture)
+        # pip startup is quite slow. TODO: Remove the special cloudpickle installation code in favor of the the following line once a way to speed up pip startup is discovered.
+        #packages_to_install.append('cloudpickle==1.1.1')
     else:
         func_code = _capture_function_code_using_source_copy(func)
 
@@ -304,16 +375,30 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
 
     pre_func_definitions = set()
     def get_argparse_type_for_input_file(passing_style):
+        if passing_style is None:
+            return None
+        pre_func_definitions.add(inspect.getsource(passing_style))
+
         if passing_style is InputPath:
-            pre_func_definitions.add(inspect.getsource(InputPath))
             return 'str'
         elif passing_style is InputTextFile:
-            pre_func_definitions.add(inspect.getsource(InputTextFile))
             return "argparse.FileType('rt')"
         elif passing_style is InputBinaryFile:
-            pre_func_definitions.add(inspect.getsource(InputBinaryFile))
             return "argparse.FileType('rb')"
-        return None
+        # For Output* we cannot use the build-in argparse.FileType objects since they do not create parent directories.
+        elif passing_style is OutputPath:
+            # ~= return 'str'
+            pre_func_definitions.add(inspect.getsource(_make_parent_dirs_and_return_path))
+            return _make_parent_dirs_and_return_path.__name__
+        elif passing_style is OutputTextFile:
+            # ~= return "argparse.FileType('wt')"
+            pre_func_definitions.add(inspect.getsource(_parent_dirs_maker_that_returns_open_file))
+            return _parent_dirs_maker_that_returns_open_file.__name__ + "('wt')"
+        elif passing_style is OutputBinaryFile:
+            # ~= return "argparse.FileType('wb')"
+            pre_func_definitions.add(inspect.getsource(_parent_dirs_maker_that_returns_open_file))
+            return _parent_dirs_maker_that_returns_open_file.__name__ + "('wb')"
+        raise NotImplementedError('Unexpected data passing style: "{}".'.format(str(passing_style)))
 
     def get_serializer_and_register_definitions(type_name) -> str:
         if type_name in type_name_to_serializer:
@@ -333,13 +418,15 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
             description_repr=repr(component_spec.description or ''),
         ),
     ]
+    outputs_passed_through_func_return_tuple = [output for output in (component_spec.outputs or []) if output._passing_style is None]
+    file_outputs_passed_using_func_parameters = [output for output in (component_spec.outputs or []) if output._passing_style is not None]
     arguments = []
-    for input in component_spec.inputs:
+    for input in component_spec.inputs + file_outputs_passed_using_func_parameters:
         param_flag = "--" + input.name.replace("_", "-")
-        is_required = not input.optional
+        is_required = isinstance(input, OutputSpec) or not input.optional
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type={param_type}, required={is_required}, default=argparse.SUPPRESS)'.format(
             param_flag=param_flag,
-            param_var=input.name,
+            param_var=input._parameter_name, # Not input.name, since the inputs could have been renamed
             param_type=get_argparse_type_for_input_file(input._passing_style) or get_deserializer_and_register_definitions(input.type),
             is_required=str(is_required),
         )
@@ -347,6 +434,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
 
         if input._passing_style in [InputPath, InputTextFile, InputBinaryFile]:
             arguments_for_input = [param_flag, InputPathPlaceholder(input.name)]
+        elif input._passing_style in [OutputPath, OutputTextFile, OutputBinaryFile]:
+            arguments_for_input = [param_flag, OutputPathPlaceholder(input.name)]
         else:
             arguments_for_input = [param_flag, InputValuePlaceholder(input.name)]
 
@@ -362,7 +451,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
                 )
             )
 
-    if component_spec.outputs:
+    if outputs_passed_through_func_return_tuple:
         param_flag="----output-paths"
         output_param_var="_output_paths"
         line = '_parser.add_argument("{param_flag}", dest="{param_var}", type=str, nargs={nargs})'.format(
@@ -375,11 +464,9 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
         arguments.extend(OutputPathPlaceholder(output.name) for output in component_spec.outputs)
 
     output_serialization_expression_strings = []
-    if component_spec.outputs:
-        outputs_produced_by_func_return_value = component_spec.outputs
-        for output in outputs_produced_by_func_return_value:
-            serializer_call_str = get_serializer_and_register_definitions(output.type)
-            output_serialization_expression_strings.append(serializer_call_str)
+    for output in outputs_passed_through_func_return_tuple:
+        serializer_call_str = get_serializer_and_register_definitions(output.type)
+        output_serialization_expression_strings.append(serializer_call_str)
 
     pre_func_code = '\n'.join(list(pre_func_definitions))
 
@@ -430,10 +517,15 @@ for idx, output_file in enumerate(_output_files):
     import re
     full_source = re.sub('\n\n\n+', '\n\n', full_source).strip('\n') + '\n'
 
+    package_preinstallation_command = []
+    if packages_to_install:
+        package_install_command_line = 'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location {}'.format(' '.join([repr(str(package)) for package in packages_to_install]))
+        package_preinstallation_command = ['sh', '-c', '({pip_install} || {pip_install} --user) && "$0" "$@"'.format(pip_install=package_install_command_line)]
+
     component_spec.implementation=ContainerImplementation(
         container=ContainerSpec(
             image=base_image,
-            command=['python3', '-u', '-c', full_source],
+            command=package_preinstallation_command + ['python3', '-u', '-c', full_source],
             args=arguments,
         )
     )
@@ -441,11 +533,18 @@ for idx, output_file in enumerate(_output_files):
     return component_spec
 
 
-def _func_to_component_dict(func, extra_code='', base_image: str = None, modules_to_capture: List[str] = None, use_code_pickling=False):
-    return _func_to_component_spec(func, extra_code, base_image, modules_to_capture, use_code_pickling).to_dict()
+def _func_to_component_dict(func, extra_code='', base_image: str = None, packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
+    return _func_to_component_spec(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        packages_to_install=packages_to_install,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    ).to_dict()
 
 
-def func_to_component_text(func, extra_code='', base_image: str = None, modules_to_capture: List[str] = None, use_code_pickling=False):
+def func_to_component_text(func, extra_code='', base_image: str = None, packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
     '''
     Converts a Python function to a component definition and returns its textual representation
 
@@ -462,17 +561,25 @@ def func_to_component_text(func, extra_code='', base_image: str = None, modules_
         func: The python function to convert
         base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.13.2-py3
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
+        packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
     
     Returns:
         Textual representation of a component definition
     '''
-    component_dict = _func_to_component_dict(func, extra_code, base_image, modules_to_capture, use_code_pickling)
+    component_dict = _func_to_component_dict(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        packages_to_install=packages_to_install,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    )
     return dump_yaml(component_dict)
 
 
-def func_to_component_file(func, output_component_file, base_image: str = None, extra_code='', modules_to_capture: List[str] = None, use_code_pickling=False) -> None:
+def func_to_component_file(func, output_component_file, base_image: str = None, extra_code='', packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> None:
     '''
     Converts a Python function to a component definition and writes it to a file
 
@@ -490,16 +597,24 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
         output_component_file: Write a component definition to a local file. Can be used for sharing.
         base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.13.2-py3
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
+        packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
     '''
 
-    component_yaml = func_to_component_text(func, extra_code, base_image, modules_to_capture, use_code_pickling)
+    component_yaml = func_to_component_text(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        packages_to_install=packages_to_install,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    )
     
     Path(output_component_file).write_text(component_yaml)
 
 
-def func_to_container_op(func, output_component_file=None, base_image: str = None, extra_code='', modules_to_capture: List[str] = None, use_code_pickling=False):
+def func_to_container_op(func, output_component_file=None, base_image: str = None, extra_code='', packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
     '''
     Converts a Python function to a component and returns a task (ContainerOp) factory
 
@@ -517,6 +632,7 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
         base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.13.2-py3
         output_component_file: Optional. Write a component definition to a local file. Can be used for sharing.
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
+        packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
 
@@ -525,7 +641,14 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp) that can run the original function in a container.
     '''
 
-    component_spec = _func_to_component_spec(func, extra_code, base_image, modules_to_capture, use_code_pickling)
+    component_spec = _func_to_component_spec(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        packages_to_install=packages_to_install,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    )
 
     output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:
