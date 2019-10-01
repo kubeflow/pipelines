@@ -13,45 +13,99 @@
 # limitations under the License.
 
 
-"""Note that this sample is just to show the ResourceOp's usage.
-
-It is not a good practice to put password as a pipeline argument, since it will
-be visible on KFP UI.
 """
+This example demonstrates how to use ResourceOp to specify the value of env var.
+"""
+
+import json
 import kfp
 import kfp.dsl as dsl
 from kubernetes import client as k8s_client
+from string import Template
+
+
+_ENV_CONFIG = """
+{
+    "apiVersion": "v1",
+    "kind": "ConfigMap",
+    "metadata": {
+        "name": "sample-env-config",
+        "namespace": "kubeflow"
+    },
+    "data": {
+        "SPECIAL_LEVEL": "level",
+        "SPECIAL_TYPE": "type"
+    }
+}    
+"""
+
+_CONTAINER_MANIFEST = """
+{
+    "apiVersion": "v1",
+    "kind": "Job",
+    "metadata": {
+        "generateName": "resourceop-basic-job-"
+    },
+    "spec": {
+        "containers": {
+            "name": "sample-container",
+            "image": "k8s.gcr.io/busybox",
+            "command": "[ '/bin/sh', '-c', 'env' ]",
+            "envFrom": {
+                "configMapRef": {
+                    "name": "sample-env-config"
+                }
+            }
+        }
+    }
+}
+"""
+
 
 @dsl.pipeline(
     name="ResourceOp Basic",
     description="A Basic Example on ResourceOp Usage."
 )
-def resourceop_basic(username, password):
-    secret_resource = k8s_client.V1Secret(
-        api_version="v1",
-        kind="Secret",
-        metadata=k8s_client.V1ObjectMeta(generate_name="my-secret-"),
-        type="Opaque",
-        data={"username": username, "password": password}
-    )
-    rop = dsl.ResourceOp(
-        name="create-my-secret",
-        k8s_resource=secret_resource,
-        attribute_outputs={"name": "{.metadata.name}"}
+def resourceop_basic():
+    # secret_resource = k8s_client.V1Secret(
+    #     api_version="v1",
+    #     kind="Secret",
+    #     metadata=k8s_client.V1ObjectMeta(generate_name="my-secret-"),
+    #     type="Opaque",
+    #     data={"username": username, "password": password}
+    # )
+    # rop = dsl.ResourceOp(
+    #     name="create-my-secret",
+    #     k8s_resource=secret_resource,
+    #     attribute_outputs={"name": "{.metadata.name}"}
+    # )
+    #
+    # secret = k8s_client.V1Volume(
+    #     name="my-secret",
+    #     secret=k8s_client.V1SecretVolumeSource(secret_name=rop.output)
+    # )
+    #
+    # cop = dsl.ContainerOp(
+    #     name="cop",
+    #     image="library/bash:4.4.23",
+    #     command=["sh", "-c"],
+    #     arguments=["ls /etc/secret-volume"],
+    #     pvolumes={"/etc/secret-volume": secret}
+    # )
+    env_config_map_op = dsl.ResourceOp(
+        name='environment-config',
+        k8s_resource=json.loads(_ENV_CONFIG),
+        action='create'
     )
 
-    secret = k8s_client.V1Volume(
-        name="my-secret",
-        secret=k8s_client.V1SecretVolumeSource(secret_name=rop.output)
-    )
+    print(_CONTAINER_MANIFEST)
 
-    cop = dsl.ContainerOp(
-        name="cop",
-        image="library/bash:4.4.23",
-        command=["sh", "-c"],
-        arguments=["ls /etc/secret-volume"],
-        pvolumes={"/etc/secret-volume": secret}
-    )
+    cop = dsl.ResourceOp(
+        name='test-step',
+        k8s_resource=json.loads(_CONTAINER_MANIFEST),
+        action='create'
+    ).after(env_config_map_op)
+
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(resourceop_basic, __file__ + '.zip')
+    kfp.compiler.Compiler().compile(resourceop_basic, __file__ + '.yaml')
