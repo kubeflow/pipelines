@@ -328,9 +328,11 @@ def fix_big_data_passing(workflow: dict) -> dict:
     for parameter_argument in parameter_arguments:
         input_name = parameter_argument['name']
         if (entrypoint_template_name, input_name) in inputs_consumed_as_artifacts:
-            artifact_arguments.add({
+            artifact_arguments.append({
                 'name': input_name,
-                'raw': '{{workflow.parameters.' + input_name + '}}'
+                'raw': {
+                    'data': '{{workflow.parameters.' + input_name + '}}',
+                },
             })
     if artifact_arguments:
         workflow_arguments['artifacts'] = artifact_arguments
