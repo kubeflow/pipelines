@@ -68,6 +68,10 @@ def module_func_with_deps(a: float, b: float) -> float:
     return ModuleLevelClass().class_method(a) + module_func(b)
 
 
+def dummy_in_0_out_0():
+    pass
+
+
 class PythonOpTestCase(unittest.TestCase):
     def helper_test_2_in_1_out_component_using_local_call(self, func, op, arguments=[3., 5.]):
         expected = func(arguments[0], arguments[1])
@@ -711,6 +715,16 @@ class PythonOpTestCase(unittest.TestCase):
             ],
             actual_output_names
         )
+
+
+    def test_packages_to_install_feature(self):
+        task_factory = comp.func_to_container_op(dummy_in_0_out_0, packages_to_install=['six', 'pip'])
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={})
+
+        task_factory2 = comp.func_to_container_op(dummy_in_0_out_0, packages_to_install=['bad-package-0ee7cf93f396cd5072603dec154425cd53bf1c681c7c7605c60f8faf7799b901'])
+        with self.assertRaises(Exception):
+            self.helper_test_component_using_local_call(task_factory2, arguments={}, expected_output_values={})
 
 
     def test_end_to_end_python_component_pipeline_compilation(self):
