@@ -325,7 +325,7 @@ def _extract_component_interface(func) -> ComponentSpec:
     return component_spec
 
 
-def _func_to_component_spec(func, extra_code='', base_image : str = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
+def _func_to_component_spec(func, extra_code='', base_image : str = None, packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> ComponentSpec:
     '''Takes a self-contained python function and converts it to component
 
     Args:
@@ -333,6 +333,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
         base_image: Optional. Docker image to be used as a base image for the python component. Must have python 3.5+ installed. Default is tensorflow/tensorflow:1.11.0-py3
                     Note: The image can also be specified by decorating the function with the @python_component decorator. If different base images are explicitly specified in both places, an error is raised.
         extra_code: Optional. Python source code that gets placed before the function code. Can be used as workaround to define types used in function signature.
+        packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
     '''
@@ -348,6 +349,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
             if isinstance(base_image, Callable):
                 base_image = base_image()
 
+    packages_to_install = packages_to_install or []
+
     component_spec = _extract_component_interface(func)
 
     arguments = []
@@ -356,6 +359,8 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, module
 
     if use_code_pickling:
         func_code = _capture_function_code_using_cloudpickle(func, modules_to_capture)
+        # pip startup is quite slow. TODO: Remove the special cloudpickle installation code in favor of the the following line once a way to speed up pip startup is discovered.
+        #packages_to_install.append('cloudpickle==1.1.1')
     else:
         func_code = _capture_function_code_using_source_copy(func)
 
@@ -512,10 +517,15 @@ for idx, output_file in enumerate(_output_files):
     import re
     full_source = re.sub('\n\n\n+', '\n\n', full_source).strip('\n') + '\n'
 
+    package_preinstallation_command = []
+    if packages_to_install:
+        package_install_command_line = 'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location {}'.format(' '.join([repr(str(package)) for package in packages_to_install]))
+        package_preinstallation_command = ['sh', '-c', '({pip_install} || {pip_install} --user) && "$0" "$@"'.format(pip_install=package_install_command_line)]
+
     component_spec.implementation=ContainerImplementation(
         container=ContainerSpec(
             image=base_image,
-            command=['python3', '-u', '-c', full_source],
+            command=package_preinstallation_command + ['python3', '-u', '-c', full_source],
             args=arguments,
         )
     )
@@ -523,11 +533,18 @@ for idx, output_file in enumerate(_output_files):
     return component_spec
 
 
-def _func_to_component_dict(func, extra_code='', base_image: str = None, modules_to_capture: List[str] = None, use_code_pickling=False):
-    return _func_to_component_spec(func, extra_code, base_image, modules_to_capture, use_code_pickling).to_dict()
+def _func_to_component_dict(func, extra_code='', base_image: str = None, packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
+    return _func_to_component_spec(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        packages_to_install=packages_to_install,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    ).to_dict()
 
 
-def func_to_component_text(func, extra_code='', base_image: str = None, modules_to_capture: List[str] = None, use_code_pickling=False):
+def func_to_component_text(func, extra_code='', base_image: str = None, packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
     '''
     Converts a Python function to a component definition and returns its textual representation
 
@@ -544,17 +561,25 @@ def func_to_component_text(func, extra_code='', base_image: str = None, modules_
         func: The python function to convert
         base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.13.2-py3
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
+        packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
     
     Returns:
         Textual representation of a component definition
     '''
-    component_dict = _func_to_component_dict(func, extra_code, base_image, modules_to_capture, use_code_pickling)
+    component_dict = _func_to_component_dict(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        packages_to_install=packages_to_install,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    )
     return dump_yaml(component_dict)
 
 
-def func_to_component_file(func, output_component_file, base_image: str = None, extra_code='', modules_to_capture: List[str] = None, use_code_pickling=False) -> None:
+def func_to_component_file(func, output_component_file, base_image: str = None, extra_code='', packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False) -> None:
     '''
     Converts a Python function to a component definition and writes it to a file
 
@@ -572,16 +597,24 @@ def func_to_component_file(func, output_component_file, base_image: str = None, 
         output_component_file: Write a component definition to a local file. Can be used for sharing.
         base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.13.2-py3
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
+        packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
     '''
 
-    component_yaml = func_to_component_text(func, extra_code, base_image, modules_to_capture, use_code_pickling)
+    component_yaml = func_to_component_text(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        packages_to_install=packages_to_install,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    )
     
     Path(output_component_file).write_text(component_yaml)
 
 
-def func_to_container_op(func, output_component_file=None, base_image: str = None, extra_code='', modules_to_capture: List[str] = None, use_code_pickling=False):
+def func_to_container_op(func, output_component_file=None, base_image: str = None, extra_code='', packages_to_install: List[str] = None, modules_to_capture: List[str] = None, use_code_pickling=False):
     '''
     Converts a Python function to a component and returns a task (ContainerOp) factory
 
@@ -599,6 +632,7 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
         base_image: Optional. Specify a custom Docker container image to use in the component. For lightweight components, the image needs to have python 3.5+. Default is tensorflow/tensorflow:1.13.2-py3
         output_component_file: Optional. Write a component definition to a local file. Can be used for sharing.
         extra_code: Optional. Extra code to add before the function code. Can be used as workaround to define types used in function signature.
+        packages_to_install: Optional. List of [versioned] python packages to pip install before executing the user function.
         modules_to_capture: Optional. List of module names that will be captured (instead of just referencing) during the dependency scan. By default the func.__module__ is captured. The actual algorithm: Starting with the initial function, start traversing dependencies. If the dependecy.__module__ is in the modules_to_capture list then it's captured and it's dependencies are traversed. Otherwise the dependency is only referenced instead of capturing and its dependencies are not traversed.
         use_code_pickling: Specifies whether the function code should be captured using pickling as opposed to source code manipulation. Pickling has better support for capturing dependencies, but is sensitive to version mismatch between python in component creation environment and runtime image.
 
@@ -607,7 +641,14 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
         Once called with the required arguments, the factory constructs a pipeline task instance (ContainerOp) that can run the original function in a container.
     '''
 
-    component_spec = _func_to_component_spec(func, extra_code, base_image, modules_to_capture, use_code_pickling)
+    component_spec = _func_to_component_spec(
+        func=func,
+        extra_code=extra_code,
+        base_image=base_image,
+        packages_to_install=packages_to_install,
+        modules_to_capture=modules_to_capture,
+        use_code_pickling=use_code_pickling,
+    )
 
     output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:
