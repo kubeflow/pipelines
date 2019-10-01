@@ -21,10 +21,10 @@ import inspect
 from collections import OrderedDict
 from typing import Callable
 
-import kfp.components as comp
-from kfp.components._structures import TaskSpec, ComponentSpec, TaskOutputReference, InputSpec, OutputSpec, GraphInputArgument, TaskOutputArgument, GraphImplementation, GraphSpec
-from kfp.components._naming import _make_name_unique_by_adding_index, generate_unique_name_conversion_table, _sanitize_python_function_name, _convert_to_human_name
-from kfp.components._python_op import _extract_component_interface
+from . import _components
+from ._structures import TaskSpec, ComponentSpec, OutputSpec, GraphInputArgument, TaskOutputArgument, GraphImplementation, GraphSpec
+from ._naming import _make_name_unique_by_adding_index
+from ._python_op import _extract_component_interface
 
 
 def create_graph_component_from_pipeline_func(pipeline_func: Callable, output_component_file: str, embed_component_specs: bool = False) -> None:
@@ -94,12 +94,12 @@ def create_graph_component_spec_from_pipeline_func(pipeline_func: Callable, embe
 
     try:
         #Setting the handler to fix and catch the tasks.
-        comp._components._created_task_transformation_handler.append(task_construction_handler)
+        _components._created_task_transformation_handler.append(task_construction_handler)
         
         #Calling the pipeline_func with GraphInputArgument instances as arguments 
         pipeline_func_result = pipeline_func(**pipeline_func_args)
     finally:
-        comp._components._created_task_transformation_handler.pop()
+        _components._created_task_transformation_handler.pop()
 
 
     # Getting graph outputs
