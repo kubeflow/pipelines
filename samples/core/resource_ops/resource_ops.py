@@ -22,22 +22,6 @@ import kfp
 import kfp.dsl as dsl
 
 
-_ENV_CONFIG = """
-{
-    "apiVersion": "v1",
-    "kind": "ConfigMap",
-    "metadata": {
-        "name": "sample-env-config",
-        "namespace": "default"
-    },
-    "data": {
-        "SPECIAL_LEVEL": "level",
-        "SPECIAL_TYPE": "type"
-    }
-}    
-"""
-
-
 _CONTAINER_MANIFEST = """
 {
     "apiVersion": "batch/v1",
@@ -54,12 +38,7 @@ _CONTAINER_MANIFEST = """
                 "containers": [{
                     "name": "sample-container",
                     "image": "k8s.gcr.io/busybox",
-                    "command": ["/bin/sh", "-c", "env"],
-                    "envFrom": [{
-                        "configMapRef": {
-                            "name": "sample-env-config"
-                        }
-                    }]
+                    "command": ["/bin/sh", "-c", "env"]
                 }],
                 "restartPolicy": "Never"
             }
@@ -75,19 +54,13 @@ _CONTAINER_MANIFEST = """
     description="A Basic Example on ResourceOp Usage."
 )
 def resourceop_basic():
-    # Create a ConfigMap.
-    env_config_map_op = dsl.ResourceOp(
-        name='environment-config',
-        k8s_resource=json.loads(_ENV_CONFIG),
-        action='create'
-    )
 
-    # Referring the ConfigMap in a Container.
+    # Start a container. Print out env vars.
     cop = dsl.ResourceOp(
         name='test-step',
         k8s_resource=json.loads(_CONTAINER_MANIFEST),
         action='create'
-    ).after(env_config_map_op)
+    )
 
 
 if __name__ == '__main__':
