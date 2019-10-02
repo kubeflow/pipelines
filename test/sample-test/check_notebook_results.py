@@ -34,11 +34,12 @@ class NoteBookChecker(object):
         self._exit_code = None
         self._run_pipeline = run_pipeline
         self._namespace = namespace
+        self._experiment_name = self._testname + '-test'
 
     def run(self):
         """ Run the notebook sample as a python script. """
         self._exit_code = str(
-            subprocess.call(['ipython', '%s.py' % self._testname]))
+            subprocess.call(['ipython', '%s.py' % self._testname], env={'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME': self._experiment_name}))
 
 
     def check(self):
@@ -63,7 +64,7 @@ class NoteBookChecker(object):
             test_timeout = raw_args['test_timeout']
 
         if self._run_pipeline:
-            experiment = self._testname + '-test'
+            experiment = self._experiment_name
             ###### Initialization ######
             host = 'ml-pipeline.%s.svc.cluster.local:8888' % self._namespace
             client = Client(host=host)
