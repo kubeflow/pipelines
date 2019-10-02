@@ -336,7 +336,7 @@ def _extract_component_interface(func) -> ComponentSpec:
     component_name = getattr(func, '_component_human_name', None) or _python_function_name_to_component_name(func.__name__)
     description = getattr(func, '_component_description', None) or func.__doc__
     if description:
-        description = description.strip() + '\n' #Interesting: unlike ruamel.yaml, PyYaml cannot handle trailing spaces in the last line (' \n') and switches the style to double-quoted.
+        description = description.strip()
 
     # TODO: Parse input/output descriptions from the function docstring. See:
     # https://github.com/rr-/docstring_parser
