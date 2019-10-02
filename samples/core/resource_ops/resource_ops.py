@@ -56,7 +56,7 @@ _CONTAINER_MANIFEST = """
 def resourceop_basic():
 
     # Start a container. Print out env vars.
-    cop = dsl.ResourceOp(
+    op = dsl.ResourceOp(
         name='test-step',
         k8s_resource=json.loads(_CONTAINER_MANIFEST),
         action='create'
