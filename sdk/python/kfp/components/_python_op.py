@@ -198,6 +198,8 @@ def _capture_function_code_using_source_copy(func) -> str:
     first_line = func_code_lines[0]
     indent = len(first_line) - len(first_line.lstrip())
     func_code_lines = [line[indent:] for line in func_code_lines]
+    # Stripping trailing whitespace from the lines since it triggers unreadable formatting when the text is serialized to YAML
+    func_code_lines = [line.rstrip() + '\n' for line in func_code_lines]
 
     #TODO: Add support for copying the NamedTuple subclass declaration code
     #Adding NamedTuple import if needed
