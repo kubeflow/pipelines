@@ -309,6 +309,13 @@ class ComponentSpec(ModelBase):
                             if isinstance(argument, GraphInputArgument) and argument.input_name not in self._inputs_dict:
                                 raise TypeError('Argument "{}" references non-existing input.'.format(argument))
 
+    def save(self, file_path: str):
+        '''Saves the component definition to file. It can be shared online and later loaded using the load_component function.'''
+        from ._yaml_utils import dump_yaml
+        component_yaml = dump_yaml(self.to_dict())
+        with open(file_path, 'w') as f:
+            f.write(component_yaml)
+
 
 class ComponentReference(ModelBase):
     '''Component reference. Contains information that can be used to locate and load a component by name, digest or URL'''
