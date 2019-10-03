@@ -41,7 +41,7 @@ class NoteBookChecker(object):
         import os
         env = os.environ.copy()
         env['KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'] = self._experiment_name
-        self._exit_code = subprocess.run(['ipython', '%s.py' % self._testname], env=env).returncode
+        self._exit_code = str(subprocess.run(['ipython', '%s.py' % self._testname], env=env).returncode)
 
 
     def check(self):
