@@ -125,6 +125,7 @@ def fix_big_data_passing(workflow: dict) -> dict:
     # Searching for parameter input consumers in DAG templates (.when, .withParam, etc)
     for template in dag_templates:
         template_name = template['name']
+        dag_tasks = template['dag']['tasks']
         task_name_to_template_name = {task['name']: task['template'] for task in dag_tasks}
         for task in template['dag']['tasks']:
             # We do not care about the inputs mentioned in task arguments since we will be free to switch them from parameters to artifacts
