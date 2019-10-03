@@ -652,9 +652,7 @@ def func_to_container_op(func, output_component_file=None, base_image: str = Non
 
     output_component_file = output_component_file or getattr(func, '_component_target_component_file', None)
     if output_component_file:
-        component_dict = component_spec.to_dict()
-        component_yaml = dump_yaml(component_dict)
-        Path(output_component_file).write_text(component_yaml)
+        component_spec.save(output_component_file)
         #TODO: assert ComponentSpec.from_dict(load_yaml(output_component_file)) == component_spec
 
     return _create_task_factory_from_component_spec(component_spec)
