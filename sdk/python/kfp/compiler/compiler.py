@@ -13,6 +13,7 @@
 # limitations under the License.
 import json
 from collections import defaultdict
+from deprecated import deprecated
 import inspect
 import tarfile
 import zipfile
@@ -813,6 +814,10 @@ class Compiler(object):
 
     return workflow
 
+  @deprecated(
+      version='0.1.32',
+      reason='Workflow spec is not intended to be handled by user, please '
+             'switch to _create_workflow')
   def create_workflow(self,
                       pipeline_func: Callable,
                       pipeline_name: Text=None,
