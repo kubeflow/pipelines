@@ -851,12 +851,12 @@ class Compiler(object):
     try:
       kfp.TYPE_CHECK = type_check
       workflow = self._compile(pipeline_func, pipeline_conf)
-      self.write_workflow(workflow, package_path)
+      self._write_workflow(workflow, package_path)
     finally:
       kfp.TYPE_CHECK = type_check_old_value
 
   @staticmethod
-  def write_workflow(workflow: Dict[Text, Any], package_path: Text = None):
+  def _write_workflow(workflow: Dict[Text, Any], package_path: Text = None):
     """Dump pipeline workflow into yaml spec and write out in the format specified by the user.
 
     Args:
