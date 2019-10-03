@@ -132,9 +132,9 @@ metadata:
     component: metadata-server
 data:
   {{ if .Values.managedstorage.databaseNamePrefix }}
-  mysql_database:{{ .Values.managedstorage.databaseNamePrefix }}_metadata',
+  mysql_database: '{{ .Values.managedstorage.databaseNamePrefix }}_metadata'
   {{ else }}
-  mysql_database:{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata',
+  mysql_database: '{{ .Release.Name | replace "-" "_" | replace "." "_"}}_metadata'
   {{ end }}
   mysql_host: "mysql"
   mysql_port: "3306"

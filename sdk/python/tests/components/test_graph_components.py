@@ -135,16 +135,18 @@ implementation:
     tasks:
       task 1:
         componentRef: {name: Comp 1}
-        k8sContainerOptions:
-          resources:
-            requests:
-              memory: 1024Mi
-              cpu: 200m
+        executionOptions:
+          kubernetesOptions:
+            mainContainer:
+              resources:
+                requests:
+                  memory: 1024Mi
+                  cpu: 200m
 
 '''
         struct = load_yaml(component_text)
         component_spec = ComponentSpec.from_dict(struct)
-        self.assertEqual(component_spec.implementation.graph.tasks['task 1'].k8s_container_options.resources.requests['memory'], '1024Mi')
+        self.assertEqual(component_spec.implementation.graph.tasks['task 1'].execution_options.kubernetes_options.main_container.resources.requests['memory'], '1024Mi')
 
 
     def test_handle_parsing_task_volumes_and_mounts(self):
@@ -154,20 +156,21 @@ implementation:
     tasks:
       task 1:
         componentRef: {name: Comp 1}
-        k8sContainerOptions:
-          volumeMounts:
-          - name: workdir
-            mountPath: /mnt/vol
-        k8sPodOptions:
-          spec:
-            volumes:
-            - name: workdir
-              emptyDir: {}
+        executionOptions:
+          kubernetesOptions:
+            mainContainer:
+              volumeMounts:
+              - name: workdir
+                mountPath: /mnt/vol
+            podSpec:
+              volumes:
+              - name: workdir
+                emptyDir: {}
 '''
         struct = load_yaml(component_text)
         component_spec = ComponentSpec.from_dict(struct)
-        self.assertEqual(component_spec.implementation.graph.tasks['task 1'].k8s_pod_options.spec.volumes[0].name, 'workdir')
-        self.assertTrue(component_spec.implementation.graph.tasks['task 1'].k8s_pod_options.spec.volumes[0].empty_dir is not None)
+        self.assertEqual(component_spec.implementation.graph.tasks['task 1'].execution_options.kubernetes_options.pod_spec.volumes[0].name, 'workdir')
+        self.assertIsNotNone(component_spec.implementation.graph.tasks['task 1'].execution_options.kubernetes_options.pod_spec.volumes[0].empty_dir)
     
     def test_load_graph_component(self):
         component_text = '''\
