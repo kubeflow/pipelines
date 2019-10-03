@@ -24,7 +24,6 @@ from pathlib import Path
 from typing import Callable
 from ..components._components import _create_task_factory_from_component_spec
 from ..components._python_op import _func_to_component_spec
-from ..components._yaml_utils import dump_yaml
 from ._container_builder import ContainerBuilder
 
 class VersionedDependency(object):
@@ -260,8 +259,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
   # Optionally writing the component definition to a local file for sharing
   target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)
   if target_component_file:
-    component_text = dump_yaml(component_spec.to_dict())
-    Path(target_component_file).write_text(component_text)
+    component_spec.save(target_component_file)
 
   task_factory_function = _create_task_factory_from_component_spec(component_spec)
   return task_factory_function
