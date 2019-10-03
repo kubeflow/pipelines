@@ -744,7 +744,7 @@ class Compiler(object):
     :param pipeline_name:
     :param pipeline_description:
     :param params_list: list of pipeline params to append to the pipeline.
-    :param pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options.
+    :param pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
     :return: workflow dict.
     """
     params_list = params_list or []
@@ -835,6 +835,7 @@ class Compiler(object):
       pipeline_func: pipeline functions with @dsl.pipeline decorator.
       package_path: the output workflow tar.gz file path. for example, "~/a.tar.gz"
       type_check: whether to enable the type check or not, default: False.
+      pipeline_conf: PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options. Overrides any configuration that may be set by the pipeline.
     """
     import kfp
     type_check_old_value = kfp.TYPE_CHECK
