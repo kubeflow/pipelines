@@ -1,19 +1,40 @@
 
 # Name
-Data processing by creating a cluster in Cloud Dataproc
+Component: Data processing by creating a cluster in Cloud Dataproc
 
 
 # Label
-Cloud Dataproc, cluster, GCP, Cloud Storage, KubeFlow, Pipeline
+Cloud Dataproc, Kubeflow
 
+# Facets
+<!--Make sure the asset has data for the following facets:
+Use case
+Technique
+Input data type
+ML workflow
+
+The data must map to the acceptable values for these facets, as documented on the “taxonomy” sheet of go/aihub-facets
+https://gitlab.aihub-content-external.com/aihubbot/kfp-components/commit/fe387ab46181b5d4c7425dcb8032cb43e70411c1
+--->
+Use case:
+Other
+
+Technique: 
+Other
+
+Input data type:
+Tabular
+
+ML workflow: 
+Data preparation
 
 # Summary
-A Kubeflow Pipeline component to create a cluster in Cloud Dataproc.
+A Kubeflow pipeline component to create a cluster in Cloud Dataproc.
 
 # Details
 ## Intended use
 
-Use this component at the start of a Kubeflow Pipeline to create a temporary Cloud Dataproc cluster to run Cloud Dataproc jobs as steps in the pipeline.
+Use this component at the start of a Kubeflow pipeline to create a temporary Cloud Dataproc cluster to run Cloud Dataproc jobs as steps in the pipeline.
 
 ## Runtime arguments
 
@@ -23,7 +44,7 @@ Use this component at the start of a Kubeflow Pipeline to create a temporary Clo
 | region | The Cloud Dataproc region to create the cluster in. | No | GCPRegion |  |  |
 | name | The name of the cluster. Cluster names within a project must be unique. You can reuse the names of deleted clusters. | Yes | String |  | None |
 | name_prefix | The prefix of the cluster name. | Yes | String |  | None |
-| initialization_actions | A list of Cloud Storage URIs identifying executables to execute on each node after the configuration is completed. By default, executables are run on the master and all the worker nodes. | Yes | List |  | None |
+| initialization_actions | A list of Cloud Storage URIs identifying the executables on each node after the configuration is completed. By default, executables are run on the master and all the worker nodes. | Yes | List |  | None |
 | config_bucket | The Cloud Storage bucket to use to stage the job dependencies, the configuration files, and the job driver console’s output. | Yes | GCSPath |  | None |
 | image_version | The version of the software inside the cluster. | Yes | String |  | None |
 | cluster | The full [cluster configuration](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.clusters#Cluster). | Yes | Dict |  | None |
@@ -47,8 +68,8 @@ To use the component, you  must:
     component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
     ```
 *   Grant the following types of access to the Kubeflow user service account:
-    *   Read access to the Cloud Storage buckets which contains initialization action files.
-    *   The role, `roles/dataproc.editor` on the project.
+    *   Read access to the Cloud Storage buckets which contain the initialization action files.
+    *   The role, `roles/dataproc.editor`, on the project.
 
 ## Detailed description
 
@@ -56,39 +77,35 @@ This component creates a new Dataproc cluster by using the [Dataproc create clus
 
 Follow these steps to use the component in a pipeline:
 
-1.  Install the Kubeflow Pipeline SDK:
+1.  Install the Kubeflow pipeline's SDK
+
+    ```python
+    %%capture --no-stderr
+
+    KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
+    !pip3 install $KFP_PACKAGE --upgrade
+    ```
+
+2. Load the component using the Kubeflow pipeline's SDK
 
 
+    ```python
+    import kfp.components as comp
 
-```python
-%%capture --no-stderr
-
-KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-!pip3 install $KFP_PACKAGE --upgrade
-```
-
-2. Load the component using KFP SDK
-
-
-```python
-import kfp.components as comp
-
-dataproc_create_cluster_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/create_cluster/component.yaml')
-help(dataproc_create_cluster_op)
-```
+    dataproc_create_cluster_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/create_cluster/component.yaml')
+    help(dataproc_create_cluster_op)
+    ```
 
 ### Sample
-Note: The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
+The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
 
 #### Set sample parameters
 
-
 ```python
-# Required Parameters
-PROJECT_ID = '<Please put your project ID here>'
+# Required parameters
+PROJECT_ID = '<Put your project ID here>'
 
-# Optional Parameters
+# Optional parameters
 EXPERIMENT_NAME = 'Dataproc - Create Cluster'
 ```
 
@@ -130,6 +147,7 @@ def dataproc_create_cluster_pipeline(
 
 
 ```python
+#Compile the pipeline
 pipeline_func = dataproc_create_cluster_pipeline
 pipeline_filename = pipeline_func.__name__ + '.zip'
 import kfp.compiler as compiler
@@ -140,10 +158,10 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
 
 ```python
-#Specify pipeline argument values
+#Specify values for the pipeline's arguments
 arguments = {}
 
-#Get or create an experiment and submit a pipeline run
+#Get or create an experiment
 import kfp
 client = kfp.Client()
 experiment = client.create_experiment(EXPERIMENT_NAME)
