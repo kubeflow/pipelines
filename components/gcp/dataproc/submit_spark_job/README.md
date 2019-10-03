@@ -19,12 +19,16 @@ The data must map to the acceptable values for these facets, as documented on th
 https://gitlab.aihub-content-external.com/aihubbot/kfp-components/commit/fe387ab46181b5d4c7425dcb8032cb43e70411c1
 --->
 Use case:
+Other
 
 Technique: 
+Other
 
 Input data type:
+Tabular
 
 ML workflow: 
+Data preparation
 
 
 
