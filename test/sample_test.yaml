@@ -67,7 +67,6 @@ spec:
                 - name: test-name
                   value: "{{item}}"
             withItems:
-              - tfx_cab_classification
               - xgboost_training_cm
               - lightweight_component
               - dsl_static_type_checking
@@ -77,7 +76,16 @@ spec:
               - dataflow
               - execution_order
               - imagepullsecrets
+              - retry
               - artifact_location
+              - preemptible_tpu_gpu
+              - volume_snapshot_ops
+              - kubeflow_tf_serving
+              - component_build
+              - loop_output
+              - loop_parameter
+              - loop_static
+              - resource_ops
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:

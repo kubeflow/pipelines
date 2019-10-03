@@ -27,7 +27,7 @@ import yaml
 
 from constants import PAPERMILL_ERR_MSG, BASE_DIR, TEST_DIR, SCHEMA_CONFIG, CONFIG_DIR, DEFAULT_CONFIG
 from check_notebook_results import NoteBookChecker
-from kfp.compiler._gcs_helper import GCSHelper
+from kfp.containers._gcs_helper import GCSHelper
 from run_sample_test import PySampleChecker
 
 
@@ -101,7 +101,6 @@ class SampleTest(object):
     if self._is_notebook:
       # Parse necessary params from config.yaml
       nb_params = {}
-
       try:
         config_file = os.path.join(CONFIG_DIR, '%s.config.yaml' % self._test_name)
         with open(config_file, 'r') as f:
@@ -119,6 +118,9 @@ class SampleTest(object):
             nb_params['output'] = self._sample_test_output
         if 'run_pipeline' in raw_args.keys():
           self._run_pipeline = raw_args['run_pipeline']
+
+      if self._run_pipeline:
+        nb_params['experiment_name'] = self._test_name + '-test'
 
       pm.execute_notebook(
           input_path='%s.ipynb' % self._test_name,
@@ -170,13 +172,9 @@ class ComponentTest(SampleTest):
   """ Launch a KFP sample test as component test provided its name.
 
   Currently follows the same logic as sample test for compatibility.
-  include xgboost_training_cm, tfx_cab_classification
+  include xgboost_training_cm
   """
   def __init__(self, test_name, results_gcs_dir,
-               dataflow_tft_image,
-               dataflow_predict_image,
-               dataflow_tfma_image,
-               dataflow_tfdv_image,
                dataproc_create_cluster_image,
                dataproc_delete_cluster_image,
                dataproc_analyze_image,
@@ -195,10 +193,6 @@ class ComponentTest(SampleTest):
         target_image_prefix=target_image_prefix,
         namespace=namespace
     )
-    self._dataflow_tft_image = dataflow_tft_image
-    self._dataflow_predict_image = dataflow_predict_image
-    self._dataflow_tfma_image = dataflow_tfma_image
-    self._dataflow_tfdv_image = dataflow_tfdv_image
     self._dataproc_create_cluster_image = dataproc_create_cluster_image
     self._dataproc_delete_cluster_image = dataproc_delete_cluster_image
     self._dataproc_analyze_image = dataproc_analyze_image
@@ -229,15 +223,6 @@ class ComponentTest(SampleTest):
       utils.file_injection('%s.yaml' % self._test_name,
                            '%s.yaml.tmp' % self._test_name,
                            subs)
-    elif self._test_name == 'tfx_cab_classification':
-      subs.update({
-          'gcr\.io/ml-pipeline/ml-pipeline-dataflow-tft:\w+':self._dataflow_tft_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataflow-tf-predict:\w+':self._dataflow_predict_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-dataflow-tfdv:\w+':self._dataflow_tfdv_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-dataflow-tfma:\w+':self._dataflow_tfma_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-tf-trainer:\w+':self._kubeflow_dnntrainer_image,
-          'gcr\.io/ml-pipeline/ml-pipeline/ml-pipeline-kubeflow-deployer:\w+':self._kubeflow_deployer_image,
-      })
     else:
       # Only the above two samples need injection for now.
       pass

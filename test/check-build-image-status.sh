@@ -29,7 +29,7 @@ if [ "$IMAGES_BUILDING" == true ]; then
         "SUCCESS")
           echo "Build with id ${id} has succeeded."
         ;;
-        "WORKING")
+        "WORKING" | "QUEUED")
           NEW_PENDING_BUILD_IDS+=( "$id" )
         ;;
         "FETCH_ERROR")

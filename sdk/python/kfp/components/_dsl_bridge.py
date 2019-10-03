@@ -153,6 +153,12 @@ def _create_container_op_from_resolved_task(name:str, container_image:str, comma
         file_outputs=output_paths_for_container_op,
         artifact_argument_paths=[dsl.InputArgumentPath(argument=artifact_arguments[input_name], input=input_name, path=path) for input_name, path in input_paths.items()],
     )
+    # Fixing ContainerOp output types
+    if component_spec.outputs:
+        for output in component_spec.outputs:
+            pythonic_name = output_name_to_kubernetes[output.name]
+            if pythonic_name in task.outputs:
+                task.outputs[pythonic_name].param_type = output.type
 
     component_meta = copy.copy(component_spec)
     component_meta.implementation = None

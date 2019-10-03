@@ -15,6 +15,7 @@
 import kfp
 import kfp.compiler as compiler
 import kfp.dsl as dsl
+import json
 import os
 import shutil
 import subprocess
@@ -203,6 +204,10 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, 'basic_no_decorator.yaml'), 'r') as f:
         golden = yaml.safe_load(f)
 
+      for workflow in golden, compiled_workflow:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
+
       self.assertEqual(golden, compiled_workflow)
     finally:
       shutil.rmtree(tmpdir)
@@ -225,6 +230,10 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, 'compose.yaml'), 'r') as f:
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(compose_package_path)
+
+      for workflow in golden, compiled:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
 
       self.maxDiff = None
       # Comment next line for generating golden yaml.
@@ -253,6 +262,10 @@ class TestCompiler(unittest.TestCase):
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(target_zip)
 
+      for workflow in golden, compiled:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
+
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:
@@ -271,6 +284,10 @@ class TestCompiler(unittest.TestCase):
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_zip(target_zip)
 
+      for workflow in golden, compiled:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
+
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:
@@ -287,6 +304,11 @@ class TestCompiler(unittest.TestCase):
       with open(os.path.join(test_data_dir, file_base_name + '.yaml'), 'r') as f:
         golden = yaml.safe_load(f)
       compiled = self._get_yaml_from_tar(target_tar)
+
+      for workflow in golden, compiled:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
+
       self.maxDiff = None
       self.assertEqual(golden, compiled)
     finally:
@@ -305,6 +327,10 @@ class TestCompiler(unittest.TestCase):
 
       with open(os.path.join(test_data_dir, target_yaml), 'r') as f:
         compiled = yaml.safe_load(f)
+      
+      for workflow in golden, compiled:
+        annotations = workflow['metadata']['annotations']
+        del annotations['pipelines.kubeflow.org/pipeline_spec']
 
       self.maxDiff = None
       self.assertEqual(golden, compiled)

@@ -53,10 +53,6 @@ spec:
       artifacts:
       - name: flip-2-output
         path: /tmp/output
-      parameters:
-      - name: flip-2-output
-        valueFrom:
-          path: /tmp/output
   - container:
       args:
       - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else

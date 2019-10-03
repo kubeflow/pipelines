@@ -29,22 +29,13 @@ spec:
           parameters:
           - name: flip-again-output
             value: '{{tasks.flip-again.outputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
         dependencies:
         - flip-again
         name: condition-2
         template: condition-2
         when: '"{{tasks.flip-again.outputs.parameters.flip-again-output}}" == "tails"'
-      - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
-        name: flip-again
+      - name: flip-again
         template: flip-again
-    inputs:
-      parameters:
-      - name: flip-output
     name: condition-1
     outputs:
       parameters:
@@ -57,14 +48,11 @@ spec:
           parameters:
           - name: flip-again-output
             value: '{{inputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
         name: print1
         template: print1
     inputs:
       parameters:
       - name: flip-again-output
-      - name: flip-output
     name: condition-2
   - dag:
       tasks:
@@ -72,14 +60,11 @@ spec:
           parameters:
           - name: flip-again-output
             value: '{{inputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
         name: print2
         template: print2
     inputs:
       parameters:
       - name: flip-again-output
-      - name: flip-output
     name: condition-3
   - container:
       args:
@@ -117,11 +102,7 @@ spec:
           path: /tmp/output
   - dag:
       tasks:
-      - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{tasks.flip.outputs.parameters.flip-output}}'
-        dependencies:
+      - dependencies:
         - flip
         name: condition-1
         template: condition-1
@@ -130,8 +111,6 @@ spec:
           parameters:
           - name: flip-again-output
             value: '{{tasks.condition-1.outputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{tasks.flip.outputs.parameters.flip-output}}'
         dependencies:
         - condition-1
         - flip

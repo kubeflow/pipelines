@@ -24,10 +24,6 @@
 set -xe
 
 images=(
-  "ml-pipeline-dataflow-tf-predict"
-  "ml-pipeline-dataflow-tfdv"
-  "ml-pipeline-dataflow-tft"
-  "ml-pipeline-dataflow-tfma"
   "ml-pipeline-kubeflow-deployer"
   "ml-pipeline-kubeflow-tf-trainer"
   "ml-pipeline-kubeflow-tf-trainer-gpu"

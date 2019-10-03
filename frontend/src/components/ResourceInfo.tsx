@@ -18,6 +18,7 @@ import { stylesheet } from 'typestyle';
 import { color, commonCss } from '../Css';
 import { getMetadataValue } from '../lib/Utils';
 import { Artifact, Execution } from '../generated/src/apis/metadata/metadata_store_pb';
+import { GcsLink } from './GcsLink';
 
 export const css = stylesheet({
   field: {
@@ -43,10 +44,24 @@ export const css = stylesheet({
   }
 });
 
-export interface ResourceInfoProps {
-  resource: Artifact | Execution;
+export enum ResourceType {
+  ARTIFACT = 'ARTIFACT',
+  EXECUTION = 'EXECUTION',
+}
+
+interface ArtifactProps {
+  resourceType: ResourceType.ARTIFACT;
+  resource: Artifact;
   typeName: string;
 }
+
+interface ExecutionProps {
+  resourceType: ResourceType.EXECUTION;
+  resource: Execution;
+  typeName: string;
+}
+
+export type ResourceInfoProps = ArtifactProps | ExecutionProps;
 
 export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
 
@@ -57,6 +72,17 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
     return (
       <section>
         <h1 className={commonCss.header}>Type: {this.props.typeName}</h1>
+        {(() => {
+          if (this.props.resourceType === ResourceType.ARTIFACT) {
+            return <>
+              <dt className={css.term}>URI</dt>
+              <dd className={css.value}>
+                <GcsLink gcsUri={this.props.resource.getUri()} />
+              </dd>
+            </>;
+          }
+          return null;
+        })()}
         <h2 className={commonCss.header2}>Properties</h2>
         <dl className={css.resourceInfo}>
           {propertyMap.getEntryList()
@@ -65,7 +91,7 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
             .map(k =>
               <div className={css.field} key={k[0]}>
                 <dt className={css.term}>{k[0]}</dt>
-                <dd className={css.value}>{propertyMap && getMetadataValue(propertyMap.get(k[0]))}</dd>
+                <dd className={css.value}>{propertyMap && prettyPrintJsonValue(getMetadataValue(propertyMap.get(k[0])))}</dd>
               </div>
             )
           }
@@ -76,12 +102,26 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
             <div className={css.field} key={k[0]}>
               <dt className={css.term}>{k[0]}</dt>
               <dd className={css.value}>
-                {customPropertyMap && getMetadataValue(customPropertyMap.get(k[0]))}
+                {customPropertyMap && prettyPrintJsonValue(getMetadataValue(customPropertyMap.get(k[0])))}
               </dd>
             </div>
           )}
         </dl>
       </section>
     );
+  }
+}
+
+function prettyPrintJsonValue(value: string | number): JSX.Element | number | string {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  try {
+    const jsonValue = JSON.parse(value);
+    return <pre>{JSON.stringify(jsonValue, null, 2)}</pre>;
+  } catch {
+    // not JSON, return directly
+    return value;
   }
 }

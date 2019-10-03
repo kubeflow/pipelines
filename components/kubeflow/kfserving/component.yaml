@@ -3,11 +3,13 @@ description: Serve Models using Kubeflow KFServing
 inputs:
   - {name: Action,                          type: String, default: 'create',   description: 'Action to execute on KFServing'}
   - {name: Model Name,                      type: String, default: '',         description: 'Name to give to the deployed model'}
-  - {name: Default Model URI,               type: String,                      description: 'Path of the S3 or GCS compatible directory containing default model.'}
+  - {name: Default Model URI,               type: String, default: '',         description: 'Path of the S3 or GCS compatible directory containing default model.'}
   - {name: Canary Model URI,                type: String, default: '',         description: 'Optional Path of the S3 or GCS compatible directory containing canary model.'}
   - {name: Canary Model Traffic Percentage, type: String, default: '0',        description: 'Optional Traffic to be sent to default model'}
   - {name: Namespace,                       type: String, default: 'kubeflow', description: 'Kubernetes namespace where the KFServing service is deployed.'}
   - {name: Framework,                       type: String, default: 'tensorflow', description: 'Machine Learning Framework for Model Serving.'}
+  - {name: default_custom_model_spec,       type: String, default: '{}', description: 'Custom runtime default custom model container spec.'}
+  - {name: canary_custom_model_spec,        type: String, default: '{}', description: 'Custom runtime canary custom model container spec.'}
 outputs:
   - {name: Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
 implementation:
@@ -16,12 +18,14 @@ implementation:
     command: ['python']
     args: [
       -u, kfservingdeployer.py,
-      --action,                {inputValue: Action},
-      --model-name,            {inputValue: Model Name},
-      --default-model-uri,     {inputValue: Default Model URI},
-      --canary-model-uri,      {inputValue: Canary Model URI},
-      --canary-model-traffic,  {inputValue: Canary Model Traffic Percentage},
-      --namespace,             {inputValue: Namespace},
-      --framework,             {inputValue: Framework},
-      --output_path,           {outputPath: Endpoint URI}
+      --action,                   {inputValue: Action},
+      --model-name,               {inputValue: Model Name},
+      --default-model-uri,        {inputValue: Default Model URI},
+      --canary-model-uri,         {inputValue: Canary Model URI},
+      --canary-model-traffic,     {inputValue: Canary Model Traffic Percentage},
+      --namespace,                {inputValue: Namespace},
+      --framework,                {inputValue: Framework},
+      --default-custom-model-spec,{inputValue: default_custom_model_spec},
+      --canary-custom-model-spec, {inputValue: canary_custom_model_spec},
+      --output_path,              {outputPath: Endpoint URI}
     ]

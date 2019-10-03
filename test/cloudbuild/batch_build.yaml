@@ -19,6 +19,10 @@ steps:
     args:
       ["build", "-t", "$_GCR_BASE/visualization-server", "-f", "backend/Dockerfile.visualization", "."]
     waitFor: ["-"]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      ["build", "-t", "$_GCR_BASE/inverse-proxy-agent", "-f", "proxy/Dockerfile", "."]
+    waitFor: ["-"]
 options:
   machineType: N1_HIGHCPU_8 # use a fast machine to build because there a lot of work
 images:

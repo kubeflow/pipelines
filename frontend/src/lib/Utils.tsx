@@ -291,3 +291,20 @@ export function getExpandedRow(expandedRows: Map<number, Row[]>, columns: Column
     );
   };
 }
+
+const GCS_CONSOLE_BASE = 'https://console.cloud.google.com/storage/browser/';
+const GCS_URI_PREFIX = 'gs://';
+
+/**
+ * Generates a cloud console uri from gs:// uri
+ *
+ * @param gcsUri Gcs uri that starts with gs://, like gs://bucket/path/file
+ * @returns A link user can open to visit cloud console page. Returns undefined when gcsUri is not valid.
+ */
+export function generateGcsConsoleUri(gcsUri: string): string | undefined {
+  if (!gcsUri.startsWith(GCS_URI_PREFIX)) {
+    return undefined;
+  }
+
+  return GCS_CONSOLE_BASE + gcsUri.substring(GCS_URI_PREFIX.length);
+}

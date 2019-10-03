@@ -100,7 +100,8 @@ class PySampleChecker(object):
     except OSError as ose:
       print('Config file with the same name not found, use default args:{}'.format(ose))
     else:
-      self._test_args.update(raw_args['arguments'])
+      if 'arguments' in raw_args.keys() and raw_args['arguments']:
+        self._test_args.update(raw_args['arguments'])
       if 'output' in self._test_args.keys():  # output is a special param that has to be specified dynamically.
         self._test_args['output'] = self._output
       if 'test_timeout' in raw_args.keys():

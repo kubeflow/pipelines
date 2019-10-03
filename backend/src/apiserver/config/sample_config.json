@@ -5,11 +5,6 @@
     "file":"/samples/core/xgboost_training_cm/xgboost_training_cm.py.tar.gz"
   },
   {
-    "name":"[Sample] ML - TFX - Taxi Tip Prediction Model Trainer",
-    "description":"Example pipeline that does classification with model analysis based on a public tax cab BigQuery dataset. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/core/tfx",
-    "file":"/samples/core/tfx_cab_classification/tfx_cab_classification.py.tar.gz"
-  },
-  {
     "name":"[Sample] Basic - Sequential execution",
     "description":"A pipeline with two sequential steps. For source code, refer to https://github.com/kubeflow/pipelines/blob/master/samples/core/sequential/sequential.py",
     "file":"/samples/core/sequential/sequential.py.tar.gz"

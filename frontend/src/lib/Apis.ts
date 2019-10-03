@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as Utils from './Utils';
+import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
 import { ExperimentServiceApi } from '../apis/experiment';
 import { JobServiceApi } from '../apis/job';
+import { ApiPipeline, PipelineServiceApi } from '../apis/pipeline';
 import { RunServiceApi } from '../apis/run';
-import { PipelineServiceApi, ApiPipeline } from '../apis/pipeline';
-import { StoragePath } from './WorkflowParser';
-import { VisualizationServiceApi, ApiVisualization } from '../apis/visualization';
-import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
+import { ApiVisualization, VisualizationServiceApi } from '../apis/visualization';
 import { PlotType } from '../components/viewers/Viewer';
-import { MetadataStoreServiceClient } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
+import { MetadataStoreServiceClient, ServiceError, UnaryResponse } from '../generated/src/apis/metadata/metadata_store_service_pb_service';
+import * as Utils from './Utils';
+import { StoragePath } from './WorkflowParser';
 
 const v1beta1Prefix = 'apis/v1beta1';
 
@@ -43,7 +43,8 @@ export enum ArtifactCustomProperties {
 
 /** Known Execution properties */
 export enum ExecutionProperties {
-  NAME = 'name',
+  NAME = 'name', // currently not available in api, use component_id instead
+  COMPONENT_ID = 'component_id',
   PIPELINE_NAME = 'pipeline_name',
   STATE = 'state',
 }
@@ -69,7 +70,32 @@ export interface BuildInfo {
 }
 
 let customVisualizationsAllowed: boolean;
+
+type Callback<R> = (err: ServiceError | null, res: R | null) => void;
+type MetadataApiMethod<T, R> = (request: T, callback: Callback<R>) => UnaryResponse;
+type PromiseBasedMetadataApiMethod<T, R> = (request: T) => Promise<{ response: R | null, error: ServiceError | null }>;
+
+/**
+ * Converts a callback based api method to promise based api method.
+ */
+function makePromiseApi<T, R>(apiMethod: MetadataApiMethod<T, R>): PromiseBasedMetadataApiMethod<T, R> {
+  return (request: T) => new Promise((resolve, reject) => {
+    const handler = (error: ServiceError | null, response: R | null) => {
+      // resolve both response and error to keep type information
+      resolve({ response, error });
+    };
+    apiMethod(request, handler);
+  });
+}
 const metadataServiceClient = new MetadataStoreServiceClient('');
+// TODO: add all other api methods we need here.
+const metadataServicePromiseClient = {
+  getArtifactTypes: makePromiseApi(metadataServiceClient.getArtifactTypes.bind(metadataServiceClient)),
+  getArtifactsByID: makePromiseApi(metadataServiceClient.getArtifactsByID.bind(metadataServiceClient)),
+  getEventsByArtifactIDs: makePromiseApi(metadataServiceClient.getEventsByArtifactIDs.bind(metadataServiceClient)),
+  getEventsByExecutionIDs: makePromiseApi(metadataServiceClient.getEventsByExecutionIDs.bind(metadataServiceClient)),
+  getExecutionsByID: makePromiseApi(metadataServiceClient.getExecutionsByID.bind(metadataServiceClient)),
+};
 
 export class Apis {
 
@@ -230,6 +256,12 @@ export class Apis {
 
   public static getMetadataServiceClient(): MetadataStoreServiceClient {
     return metadataServiceClient;
+  }
+
+  // It will be a lot of boilerplate to type the following method, omit it here.
+  // tslint:disable-next-line:typedef
+  public static getMetadataServicePromiseClient() {
+    return metadataServicePromiseClient;
   }
 
   private static _experimentServiceApi?: ExperimentServiceApi;
