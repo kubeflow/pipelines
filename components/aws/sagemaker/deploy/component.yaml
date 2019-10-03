@@ -79,7 +79,7 @@ outputs:
   - {name: endpoint_name,          description: 'Endpoint name'}
 implementation:
   container:
-    image: redbackthomson/aws-kubeflow-sagemaker:20190930
+    image: redbackthomson/aws-kubeflow-sagemaker:20191003
     command: ['python']
     args: [
       deploy.py,

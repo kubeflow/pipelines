@@ -27,7 +27,7 @@ outputs:
   - {name: workteam_arn, description: 'The ARN of the workteam.'}
 implementation:
   container:
-    image: redbackthomson/aws-kubeflow-sagemaker:20190930
+    image: redbackthomson/aws-kubeflow-sagemaker:20191003
     command: ['python']
     args: [
       workteam.py,
