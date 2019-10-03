@@ -1,31 +1,52 @@
 
 # Name
-Data preparation using Apache Pig on YARN with Cloud Dataproc
+Component: Data preparation using Apache Pig on YARN with Cloud Dataproc
 
-# Label
-Cloud Dataproc, GCP, Cloud Storage, YARN, Pig, Apache, Kubeflow, pipelines, components
+# Labels
+Cloud Dataproc, YARN, Apache Pig, Kubeflow
 
 
 # Summary
-A Kubeflow Pipeline component to prepare data by submitting an Apache Pig job on YARN to Cloud Dataproc.
+A Kubeflow pipeline component to prepare data by submitting an Apache Pig job on YARN to Cloud Dataproc.
 
+# Facets
+<!--Make sure the asset has data for the following facets:
+Use case
+Technique
+Input data type
+ML workflow
+
+The data must map to the acceptable values for these facets, as documented on the “taxonomy” sheet of go/aihub-facets
+https://gitlab.aihub-content-external.com/aihubbot/kfp-components/commit/fe387ab46181b5d4c7425dcb8032cb43e70411c1
+--->
+Use case:
+Other
+
+Technique: 
+Other
+
+Input data type:
+Tabular
+
+ML workflow: 
+Data preparation
 
 # Details
 ## Intended use
-Use the component to run an Apache Pig job as one preprocessing step in a Kubeflow Pipeline.
+Use this component to run an Apache Pig job as one preprocessing step in a Kubeflow pipeline.
 
 ## Runtime arguments
 | Argument | Description | Optional | Data type | Accepted values | Default |
-|----------|-------------|----------|-----------|-----------------|---------|
-| project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to. | No | GCPProjectID |  |  |
-| region | The Cloud Dataproc region to handle the request. | No | GCPRegion |  |  |
-| cluster_name | The name of the cluster to run the job. | No | String |  |  |
-| queries | The queries to execute the Pig job. Specify multiple queries in one string by separating them with semicolons. You do not need to terminate queries with semicolons. | Yes | List |  | None |
-| query_file_uri | The HCFS URI of the script that contains the Pig queries. | Yes | GCSPath |  | None |
-| script_variables | Mapping of the query’s variable names to their values (equivalent to the Pig command: SET name="value";). | Yes | Dict |  | None |
-| pig_job | The payload of a [PigJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/PigJob). | Yes | Dict |  | None |
+|:----------|:-------------|:----------|:-----------|:-----------------|:---------|
+| project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to. | No | GCPProjectID |-  |  -|
+| region | The Cloud Dataproc region that handles the request. | No | GCPRegion | - |-  |
+| cluster_name | The name of the cluster that runs the job. | No | String | - | - |
+| queries | The queries to execute the Pig job. Specify multiple queries in one string by separating them with semicolons. You do not need to terminate queries with semicolons. | Yes | List |  -| None |
+| query_file_uri | The Cloud Storage bucket path pointing to a file that contains the Pig queries. | Yes | GCSPath | - | None |
+| script_variables | Mapping of the query’s variable names to their values (equivalent to the Pig command: SET name="value";). | Yes | Dict |  -| None |
+| pig_job | The payload of a [PigJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/PigJob). | Yes | Dict | - | None |
 | job | The payload of a [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs). | Yes | Dict |  | None |
-| wait_interval | The number of seconds to pause between polling the operation. | Yes | Integer |  | 30 |
+| wait_interval | The number of seconds to pause between polling the operation. | Yes | Integer | - | 30 |
 
 ## Output
 Name | Description | Type
@@ -42,47 +63,44 @@ To use the component, you must:
     ```
     component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
     ```
-*   Grant the Kubeflow user service account the role `roles/dataproc.editor` on the project.
+*   Grant the Kubeflow user service account the role, `roles/dataproc.editor`, on the project.
 
 ## Detailed description
-This component creates a Pig job from [Dataproc submit job REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs/submit).
+This component creates a Pig job from the [Dataproc submit job REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs/submit).
 
 Follow these steps to use the component in a pipeline:
-1.  Install the Kubeflow Pipeline SDK:
+1.  Install the Kubeflow pipeline's SDK
 
 
 
-```python
-%%capture --no-stderr
+    ```python
+    %%capture --no-stderr
 
-KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-!pip3 install $KFP_PACKAGE --upgrade
-```
+    KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
+    !pip3 install $KFP_PACKAGE --upgrade
+    ```
 
-2. Load the component using KFP SDK
+2. Load the component using the Kubeflow pipeline's SDK
 
 
-```python
-import kfp.components as comp
+    ```python
+    import kfp.components as comp
 
-dataproc_submit_pig_job_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_pig_job/component.yaml')
-help(dataproc_submit_pig_job_op)
-```
+    dataproc_submit_pig_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_pig_job/component.yaml')
+    help(dataproc_submit_pig_job_op)
+    ```
 
 ### Sample
 
-Note: The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
-
+The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
 
 #### Setup a Dataproc cluster
 
 [Create a new Dataproc cluster](https://cloud.google.com/dataproc/docs/guides/create-cluster) (or reuse an existing one) before running the sample code.
 
-
 #### Prepare a Pig query
 
-Either put your Pig queries in the `queries` list, or upload your Pig queries into a file to a Cloud Storage bucket and then enter the Cloud Storage bucket’s path in `query_file_uri`. In this sample, we will use a hard coded query in the `queries` list to select data from a local `passwd` file.
+You can put your Pig queries in the `queries` list, or you can use `query_file_uri`. In this sample, we will use a hard-coded query in the `queries` list to select data from a local password file.
 
 For more details on Apache Pig, see the [Pig documentation.](http://pig.apache.org/docs/latest/)
 
@@ -90,8 +108,8 @@ For more details on Apache Pig, see the [Pig documentation.](http://pig.apache.o
 
 
 ```python
-PROJECT_ID = '<Please put your project ID here>'
-CLUSTER_NAME = '<Please put your existing cluster name here>'
+PROJECT_ID = '<Put your project ID here>'
+CLUSTER_NAME = '<Put your existing cluster name here>'
 
 REGION = 'us-central1'
 QUERY = '''
@@ -150,10 +168,10 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
 
 ```python
-#Specify pipeline argument values
+#Specify values for the pipeline's arguments
 arguments = {}
 
-#Get or create an experiment and submit a pipeline run
+#Get or create an experiment
 import kfp
 client = kfp.Client()
 experiment = client.create_experiment(EXPERIMENT_NAME)
