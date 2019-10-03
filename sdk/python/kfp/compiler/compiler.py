@@ -728,22 +728,12 @@ class Compiler(object):
       sanitized_ops[sanitized_name] = op
     pipeline.ops = sanitized_ops
 
-  def create_workflow(self,
+  def _create_workflow(self,
       pipeline_func: Callable,
       pipeline_name: Text=None,
       pipeline_description: Text=None,
       params_list: List[dsl.PipelineParam]=None) -> Dict[Text, Any]:
-    """ Create workflow spec from pipeline function and specified pipeline
-    params/metadata. Currently, the pipeline params are either specified in
-    the signature of the pipeline function or by passing a list of
-    dsl.PipelineParam. Conflict will cause ValueError.
-
-    :param pipeline_func: pipeline function where ContainerOps are invoked.
-    :param pipeline_name:
-    :param pipeline_description:
-    :param params_list: list of pipeline params to append to the pipeline.
-    :return: workflow dict.
-    """
+    """ Internal implementation of create_workflow."""
     params_list = params_list or []
     argspec = inspect.getfullargspec(pipeline_func)
 
@@ -813,6 +803,24 @@ class Compiler(object):
     workflow.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
 
     return workflow
+
+  def create_workflow(self,
+                      pipeline_func: Callable,
+                      pipeline_name: Text=None,
+                      pipeline_description: Text=None,
+                      params_list: List[dsl.PipelineParam]=None) -> Dict[Text, Any]:
+    """ Create workflow spec from pipeline function and specified pipeline
+    params/metadata. Currently, the pipeline params are either specified in
+    the signature of the pipeline function or by passing a list of
+    dsl.PipelineParam. Conflict will cause ValueError.
+
+    :param pipeline_func: pipeline function where ContainerOps are invoked.
+    :param pipeline_name:
+    :param pipeline_description:
+    :param params_list: list of pipeline params to append to the pipeline.
+    :return: workflow dict.
+    """
+    return self._create_workflow(pipeline_func, pipeline_name, pipeline_description, params_list)
 
   def _compile(self, pipeline_func):
     """Compile the given pipeline function into workflow."""
