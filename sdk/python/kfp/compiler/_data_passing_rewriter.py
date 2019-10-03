@@ -142,10 +142,10 @@ def fix_big_data_passing(workflow: dict) -> dict:
                     else:
                         raise AssertionError
                 elif placeholder_type == 'tasks':
-                    upstream_task_name = argument_placeholder_parts[1]
-                    assert argument_placeholder_parts[2] == 'outputs'
-                    assert argument_placeholder_parts[3] == 'parameters'
-                    upstream_output_name = argument_placeholder_parts[4]
+                    upstream_task_name = parts[1]
+                    assert parts[2] == 'outputs'
+                    assert parts[3] == 'parameters'
+                    upstream_output_name = parts[4]
                     upstream_template_name = task_name_to_template_name[upstream_task_name]
                     outputs_directly_consumed_as_parameters.add((upstream_template_name, upstream_output_name))
                 elif placeholder_type == 'workflow' or placeholder_type == 'pod':
