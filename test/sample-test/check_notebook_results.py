@@ -38,8 +38,7 @@ class NoteBookChecker(object):
 
     def run(self):
         """ Run the notebook sample as a python script. """
-        self._exit_code = str(
-            subprocess.call(['ipython', '%s.py' % self._testname], env={'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME': self._experiment_name}))
+        self._exit_code = subprocess.run(['ipython', '%s.py' % self._testname], env={'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME': self._experiment_name}).returncode
 
 
     def check(self):
