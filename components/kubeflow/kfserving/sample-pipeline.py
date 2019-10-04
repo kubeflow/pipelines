@@ -28,7 +28,11 @@ def kfservingPipeline(
     canary_model_uri='gs://kfserving-samples/models/tensorflow/flowers',
     canary_model_traffic_percentage='10',
     namespace='kubeflow',
-    framework='tensorflow'
+    framework='tensorflow',
+    default_custom_model_spec='{}',
+    canary_custom_model_spec='{}',
+    autoscaling_target=0,
+    kfserving_deployer_api=''
 ):
 
     # define workflow
@@ -38,7 +42,11 @@ def kfservingPipeline(
                              canary_model_uri=canary_model_uri,
                              canary_model_traffic_percentage=canary_model_traffic_percentage,
                              namespace=namespace,
-                             framework=framework)
+                             framework=framework,
+                             default_custom_model_spec=default_custom_model_spec,
+                             canary_custom_model_spec=canary_custom_model_spec,
+                             autoscaling_target=autoscaling_target,
+                             kfserving_deployer_api=kfserving_deployer_api)
 
 if __name__ == '__main__':
     import kfp.compiler as compiler
