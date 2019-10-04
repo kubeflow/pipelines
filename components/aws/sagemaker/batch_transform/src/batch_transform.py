@@ -22,9 +22,10 @@ except NameError:
   unicode = str
 
 
-def main(argv=None):
+def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Batch Transformation Job')
-  parser.add_argument('--region', type=str.strip, required=True, help='The region where the cluster launches.')
+  _utils.add_default_client_arguments(parser)
+  
   parser.add_argument('--job_name', type=str.strip, required=False, help='The name of the transform job.', default='')
   parser.add_argument('--model_name', type=str.strip, required=True, help='The name of the model that you want to use for the transform job.')
   parser.add_argument('--max_concurrent', type=_utils.str_to_int, required=False, help='The maximum number of parallel requests that can be sent to each instance in a transform job.', default='0')
@@ -51,10 +52,14 @@ def main(argv=None):
   parser.add_argument('--tags', type=_utils.str_to_json_dict, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
   parser.add_argument('--output_location_file', type=str.strip, required=True, help='File path where the program will write the Amazon S3 URI of the transform job results.')
 
+  return parser
+
+def main(argv=None):
+  parser = create_parser()
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_client(args.region)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
   logging.info('Submitting Batch Transformation request to SageMaker...')
   batch_job_name = _utils.create_transform_job(client, vars(args))
   logging.info('Batch Job request submitted. Waiting for completion...')

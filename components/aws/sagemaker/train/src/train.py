@@ -17,7 +17,8 @@ from common import _utils
 
 def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Training Job')
-  parser.add_argument('--region', type=str.strip, required=True, help='The region where the training job launches.')
+  _utils.add_default_client_arguments(parser)
+  
   parser.add_argument('--job_name', type=str.strip, required=False, help='The name of the training job.', default='')
   parser.add_argument('--role', type=str.strip, required=True, help='The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.')
   parser.add_argument('--image', type=str.strip, required=True, help='The registry path of the Docker image that contains the training algorithm.', default='')
@@ -63,7 +64,7 @@ def main(argv=None):
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_client(args.region)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
 
   logging.info('Submitting Training Job to SageMaker...')
   job_name = _utils.create_training_job(client, vars(args))
