@@ -36,7 +36,7 @@ export ZONE=<zone-where-kfp-was-installed>
 # Configure kubectl to connect with the cluster
 gcloud container clusters get-credentials "$CLUSTER" --zone "$ZONE"
 ```
-Then we can create and inject service account credential.
+Then you can create and inject service account credential.
 ```
 export PROJECT=<my-project>
 export SA_NAME=<my-account>
