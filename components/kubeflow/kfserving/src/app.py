@@ -22,7 +22,8 @@ def deploy_model_post():
                 namespace=request.json['namespace'],
                 framework=request.json['framework'],
                 default_custom_model_spec=request.json['default_custom_model_spec'],
-                canary_custom_model_spec=request.json['canary_custom_model_spec']
+                canary_custom_model_spec=request.json['canary_custom_model_spec'],
+                autoscaling_target=request.json['autoscaling_target']
                 ))
 
 
