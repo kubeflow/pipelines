@@ -61,6 +61,7 @@ def mnist_classification(region='us-west-2',
     hpo_max_num_jobs='9',
     hpo_max_parallel_jobs='3',
     max_run_time='3600',
+    endpoint_url='',
     network_isolation='True',
     traffic_encryption='False',
     train_channels='[{"ChannelName": "train", \
@@ -93,6 +94,7 @@ def mnist_classification(region='us-west-2',
 
     hpo = sagemaker_hpo_op(
         region=region,
+        endpoint_url=endpoint_url,
         image=image,
         training_input_mode=training_input_mode,
         strategy=hpo_strategy,
@@ -122,6 +124,7 @@ def mnist_classification(region='us-west-2',
 
     training = sagemaker_train_op(
         region=region,
+        endpoint_url=endpoint_url,
         image=image,
         training_input_mode=training_input_mode,
         hyperparameters=hpo.outputs['best_hyperparameters'],
@@ -142,6 +145,7 @@ def mnist_classification(region='us-west-2',
 
     create_model = sagemaker_model_op(
         region=region,
+        endpoint_url=endpoint_url,
         model_name=training.outputs['job_name'],
         image=training.outputs['training_image'],
         model_artifact_url=training.outputs['model_artifact_url'],
@@ -151,11 +155,13 @@ def mnist_classification(region='us-west-2',
 
     prediction = sagemaker_deploy_op(
         region=region,
+        endpoint_url=endpoint_url,
         model_name_1=create_model.output,
     ).apply(use_aws_secret('aws-secret', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'))
 
     batch_transform = sagemaker_batch_transform_op(
         region=region,
+        endpoint_url=endpoint_url,
         model_name=create_model.output,
         instance_type=batch_transform_instance_type,
         instance_count=instance_count,

@@ -15,9 +15,10 @@ import logging
 
 from common import _utils
 
-def main(argv=None):
+def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Ground Truth Job')
-  parser.add_argument('--region', type=str.strip, required=True, help='The region where the resources are.')
+  _utils.add_default_client_arguments(parser)
+  
   parser.add_argument('--role', type=str.strip, required=True, help='The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.')
   parser.add_argument('--job_name', type=str.strip, required=True, help='The name of the labeling job.')
   parser.add_argument('--label_attribute_name', type=str.strip, required=False, help='The attribute name to use for the label in the output manifest file. Default is the job name.', default='')
@@ -48,10 +49,14 @@ def main(argv=None):
   parser.add_argument('--workforce_task_price', type=_utils.str_to_float, required=False, help='The price that you pay for each task performed by a public worker in USD. Specify to the tenth fractions of a cent. Format as "0.000".', default=0.000)
   parser.add_argument('--tags', type=_utils.str_to_json_dict, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
 
+  return parser
+
+def main(argv=None):
+  parser = create_parser()
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_client(args.region)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
   logging.info('Submitting Ground Truth Job request to SageMaker...')
   _utils.create_labeling_job(client, vars(args))
   logging.info('Ground Truth labeling job request submitted. Waiting for completion...')
