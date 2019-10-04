@@ -840,7 +840,7 @@ class Compiler(object):
 
   def _compile(self, pipeline_func, pipeline_conf: dsl.PipelineConf = None):
     """Compile the given pipeline function into workflow."""
-    return self.create_workflow(pipeline_func=pipeline_func, pipeline_conf=pipeline_conf)
+    return self._create_workflow(pipeline_func=pipeline_func, pipeline_conf=pipeline_conf)
 
   def compile(self, pipeline_func, package_path, type_check=True, pipeline_conf: dsl.PipelineConf = None):
     """Compile the given pipeline function into workflow yaml.
