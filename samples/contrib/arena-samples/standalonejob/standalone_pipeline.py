@@ -77,19 +77,15 @@ if __name__ == '__main__':
   dropout = FLAGS.dropout
   learning_rate = FLAGS.learning_rate
   commit = FLAGS.commit
+    
+  arguments = {
+    'learning_rate': learning_rate,
+    'dropout': dropout,
+    'model_version': model_version,
+    'commit': commit,
+  }
 
-  EXPERIMENT_NAME="mnist"
-  RUN_ID="run"
   KFP_SERVICE="ml-pipeline.kubeflow.svc.cluster.local:8888"
-  import kfp.compiler as compiler
-  compiler.Compiler().compile(sample_pipeline, __file__ + '.tar.gz')
   client = kfp.Client(host=KFP_SERVICE)
-  try:
-    experiment_id = client.get_experiment(experiment_name=EXPERIMENT_NAME).id
-  except:
-    experiment_id = client.create_experiment(EXPERIMENT_NAME).id
-  run = client.run_pipeline(experiment_id, RUN_ID, __file__ + '.tar.gz',
-                            params={'learning_rate':learning_rate,
-                                     'dropout':dropout,
-                                    'model_version':model_version,
-                                    'commit':commit})
+    
+  client.create_run_from_pipeline_func(sample_pipeline, arguments=arguments)
