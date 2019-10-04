@@ -68,6 +68,10 @@ def module_func_with_deps(a: float, b: float) -> float:
     return ModuleLevelClass().class_method(a) + module_func(b)
 
 
+def dummy_in_0_out_0():
+    pass
+
+
 class PythonOpTestCase(unittest.TestCase):
     def helper_test_2_in_1_out_component_using_local_call(self, func, op, arguments=[3., 5.]):
         expected = func(arguments[0], arguments[1])
@@ -541,8 +545,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
 
-        # TODO: Fix the input names: "number_file_path" parameter should be exposed as "number" input
-        self.helper_test_component_using_local_call(task_factory, arguments={'number_file_path': "42"}, expected_output_values={'output': '42'})
+        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'output': '42'})
 
 
     def test_input_text_file(self):
@@ -556,8 +559,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
 
-        # TODO: Fix the input names: "number_file" parameter should be exposed as "number" input
-        self.helper_test_component_using_local_call(task_factory, arguments={'number_file': "42"}, expected_output_values={'output': '42'})
+        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'output': '42'})
 
 
     def test_input_binary_file(self):
@@ -571,8 +573,7 @@ class PythonOpTestCase(unittest.TestCase):
 
         self.assertEqual(task_factory.component_spec.inputs[0].type, 'Integer')
 
-        # TODO: Fix the input names: "number_file" parameter should be exposed as "number" input
-        self.helper_test_component_using_local_call(task_factory, arguments={'number_file': "42"}, expected_output_values={'output': '42'})
+        self.helper_test_component_using_local_call(task_factory, arguments={'number': "42"}, expected_output_values={'output': '42'})
 
 
     def test_output_path(self):
@@ -587,8 +588,7 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(len(task_factory.component_spec.outputs), 1)
         self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
 
-        # TODO: Fix the output names: "number_file_path" should be exposed as "number" output
-        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number_file_path': '42'})
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number': '42'})
 
 
     def test_output_text_file(self):
@@ -602,8 +602,7 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(len(task_factory.component_spec.outputs), 1)
         self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
 
-        # TODO: Fix the output names: "number_file" should be exposed as "number" output
-        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number_file': '42'})
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number': '42'})
 
 
     def test_output_binary_file(self):
@@ -617,8 +616,115 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(len(task_factory.component_spec.outputs), 1)
         self.assertEqual(task_factory.component_spec.outputs[0].type, 'Integer')
 
-        # TODO: Fix the output names: "number_file" should be exposed as "number" output
-        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number_file': '42'})
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={'number': '42'})
+
+
+    def test_file_input_name_conversion(self):
+        # Checking the input name conversion rules for file inputs:
+        # For InputPath, the "_path" suffix is removed
+        # For Input*, the "_file" suffix is removed
+
+        from kfp.components import InputPath, InputTextFile, InputBinaryFile, OutputPath, OutputTextFile, OutputBinaryFile
+        def consume_file_path(
+            number: int,
+
+            number_1a_path: str,
+            number_1b_file: str,
+            number_1c_file_path: str,
+            number_1d_path_file: str,
+
+            number_2a_path: InputPath(str),
+            number_2b_file: InputPath(str),
+            number_2c_file_path: InputPath(str),
+            number_2d_path_file: InputPath(str),
+
+            number_3a_path: InputTextFile(str),
+            number_3b_file: InputTextFile(str),
+            number_3c_file_path: InputTextFile(str),
+            number_3d_path_file: InputTextFile(str),
+
+            number_4a_path: InputBinaryFile(str),
+            number_4b_file: InputBinaryFile(str),
+            number_4c_file_path: InputBinaryFile(str),
+            number_4d_path_file: InputBinaryFile(str),
+
+            output_number_2a_path: OutputPath(str),
+            output_number_2b_file: OutputPath(str),
+            output_number_2c_file_path: OutputPath(str),
+            output_number_2d_path_file: OutputPath(str),
+
+            output_number_3a_path: OutputTextFile(str),
+            output_number_3b_file: OutputTextFile(str),
+            output_number_3c_file_path: OutputTextFile(str),
+            output_number_3d_path_file: OutputTextFile(str),
+
+            output_number_4a_path: OutputBinaryFile(str),
+            output_number_4b_file: OutputBinaryFile(str),
+            output_number_4c_file_path: OutputBinaryFile(str),
+            output_number_4d_path_file: OutputBinaryFile(str),
+        ):
+            pass
+
+        task_factory = comp.func_to_container_op(consume_file_path)
+        actual_input_names = [input.name for input in task_factory.component_spec.inputs]
+        actual_output_names = [output.name for output in task_factory.component_spec.outputs]
+
+        self.assertEqual(
+            [
+                'number',
+
+                'number_1a_path',
+                'number_1b_file',
+                'number_1c_file_path',
+                'number_1d_path_file',
+
+                'number_2a',
+                'number_2b',
+                'number_2c',
+                'number_2d_path',
+
+                'number_3a_path',
+                'number_3b',
+                'number_3c_file_path',
+                'number_3d_path',
+
+                'number_4a_path',
+                'number_4b',
+                'number_4c_file_path',
+                'number_4d_path',
+            ],
+            actual_input_names
+        )
+
+        self.assertEqual(
+            [
+                'output_number_2a',
+                'output_number_2b',
+                'output_number_2c',
+                'output_number_2d_path',
+
+                'output_number_3a_path',
+                'output_number_3b',
+                'output_number_3c_file_path',
+                'output_number_3d_path',
+
+                'output_number_4a_path',
+                'output_number_4b',
+                'output_number_4c_file_path',
+                'output_number_4d_path',
+            ],
+            actual_output_names
+        )
+
+
+    def test_packages_to_install_feature(self):
+        task_factory = comp.func_to_container_op(dummy_in_0_out_0, packages_to_install=['six', 'pip'])
+
+        self.helper_test_component_using_local_call(task_factory, arguments={}, expected_output_values={})
+
+        task_factory2 = comp.func_to_container_op(dummy_in_0_out_0, packages_to_install=['bad-package-0ee7cf93f396cd5072603dec154425cd53bf1c681c7c7605c60f8faf7799b901'])
+        with self.assertRaises(Exception):
+            self.helper_test_component_using_local_call(task_factory2, arguments={}, expected_output_values={})
 
 
     def test_end_to_end_python_component_pipeline_compilation(self):

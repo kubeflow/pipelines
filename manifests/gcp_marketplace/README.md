@@ -11,7 +11,7 @@ Kubeflow Pipelines can be installed using either of the following approaches:
 
 Get up and running with a few clicks! Install this Kubeflow Pipelines app to a
 Google Kubernetes Engine cluster using Google Cloud Marketplace. Follow the
-[on-screen instructions](https://console.cloud.google.com/marketplace/details/google-cloud-ai-platform/kubeflow-pipelines).
+[on-screen instructions](https://console.cloud.google.com/marketplace/details/google-cloud-ai-platform/kubeflow-pipelines) and [guide](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md).
 
 
 ## <a name="using-install-command-line"></a>Using the command line

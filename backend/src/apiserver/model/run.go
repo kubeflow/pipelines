@@ -81,3 +81,10 @@ var runAPIToModelFieldMap = map[string]string{
 func (r *Run) APIToModelFieldMap() map[string]string {
 	return runAPIToModelFieldMap
 }
+
+// GetModelName returns table name used as sort field prefix
+func (r *Run) GetModelName() string {
+	// TODO(jingzhang36): return run_details here, and use model name as alias
+	// and thus as prefix in sorting fields.
+	return ""
+}

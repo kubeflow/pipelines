@@ -15,9 +15,10 @@ import logging
 
 from common import _utils
 
-def main(argv=None):
+def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Hyperparameter Tuning Job')
-  parser.add_argument('--region', type=str.strip, required=True, help='The region where the cluster launches.')
+  _utils.add_default_client_arguments(parser)
+  
   parser.add_argument('--team_name', type=str.strip, required=True, help='The name of your work team.')
   parser.add_argument('--description', type=str.strip, required=True, help='A description of the work team.')
   parser.add_argument('--user_pool', type=str.strip, required=False, help='An identifier for a user pool. The user pool must be in the same region as the service that you are calling.', default='')
@@ -26,10 +27,14 @@ def main(argv=None):
   parser.add_argument('--sns_topic', type=str.strip, required=False, help='The ARN for the SNS topic to which notifications should be published.', default='')
   parser.add_argument('--tags', type=_utils.str_to_json_dict, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
 
+  return parser
+
+def main(argv=None):
+  parser = create_parser()
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_client(args.region)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
   logging.info('Submitting a create workteam request to SageMaker...')
   workteam_arn = _utils.create_workteam(client, vars(args))
 

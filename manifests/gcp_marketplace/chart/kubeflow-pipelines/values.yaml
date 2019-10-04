@@ -1,18 +1,18 @@
 images:
-  apiserver: gcr.io/ml-pipeline/api-server:0.1.27
-  argoexecutor: gcr.io/ml-pipeline/argoexec:v2.3.0
-  argoworkflowcontroller: gcr.io/ml-pipeline/workflow-controller:v2.3.0
-  cloudsqlproxy: gcr.io/cloudsql-docker/gce-proxy:1.14
-  frontend: gcr.io/ml-pipeline/frontend:0.1.27
-  metadataserver: gcr.io/tfx-oss-public/ml_metadata_store_server:0.14.0
-  minio: gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z
-  mysql: gcr.io/ml-pipeline/mysql:5.6
-  persistenceagent: gcr.io/ml-pipeline/persistenceagent:0.1.27
-  proxyagent: gcr.io/ml-pipeline/inverse-proxy-agent:0.1.27
-  scheduledworkflow: gcr.io/ml-pipeline/scheduledworkflow:0.1.27
-  viewercrd: gcr.io/ml-pipeline/viewer-crd-controller:0.1.27
-  visualizationserver: gcr.io/ml-pipeline/visualization-server:0.1.27
-  metadataenvoy: gcr.io/ml-pipeline/envoy:initial
+  apiserver: gcr.io/ml-pipeline/google/pipelines/apiserver:0.1.31
+  argoexecutor: gcr.io/ml-pipeline/google/pipelines/argoexecutor:0.1.31
+  argoworkflowcontroller: gcr.io/ml-pipeline/google/pipelines/argoworkflowcontroller:0.1.31
+  cloudsqlproxy: gcr.io/ml-pipeline/google/pipelines/cloudsqlproxy:0.1.31
+  frontend: gcr.io/ml-pipeline/google/pipelines/frontend:0.1.31
+  metadataserver: gcr.io/ml-pipeline/google/pipelines/metadataserver:0.1.31
+  minio: gcr.io/ml-pipeline/google/pipelines/minio:0.1.31
+  mysql: gcr.io/ml-pipeline/google/pipelines/mysql:0.1.31
+  persistenceagent: gcr.io/ml-pipeline/google/pipelines/persistenceagent:0.1.31
+  proxyagent: gcr.io/ml-pipeline/google/pipelines/proxyagent:0.1.31
+  scheduledworkflow: gcr.io/ml-pipeline/google/pipelines/scheduledworkflow:0.1.31
+  viewercrd: gcr.io/ml-pipeline/google/pipelines/viewercrd:0.1.31
+  visualizationserver: gcr.io/ml-pipeline/google/pipelines/visualizationserver:0.1.31
+  metadataenvoy: gcr.io/ml-pipeline/google/pipelines/metadataenvoy:0.1.31
 
 gcpSecretName: "user-gcp-sa"
 serviceAccountCredential: null

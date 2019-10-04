@@ -57,13 +57,60 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 			Error: err.Error(),
 		}
 	}
+
+	// TODO(jingzhang36): uncomment when exposing versions to API.
+	// defaultVersion, err := ToApiPipelineVersion(pipeline.DefaultVersion)
+	// if err != nil {
+	// 	return &api.Pipeline{
+	// 		Id:    pipeline.UUID,
+	// 		Error: err.Error(),
+	// 	}
+	// }
+
 	return &api.Pipeline{
 		Id:          pipeline.UUID,
 		CreatedAt:   &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
 		Name:        pipeline.Name,
 		Description: pipeline.Description,
 		Parameters:  params,
+		// DefaultVersion: defaultVersion,
 	}
+}
+
+func ToApiPipelineVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) {
+	if version == nil {
+		return nil, nil
+	}
+	params, err := toApiParameters(version.Parameters)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.PipelineVersion{
+		Id:            version.UUID,
+		Name:          version.Name,
+		CreatedAt:     &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
+		Parameters:    params,
+		CodeSourceUrl: version.CodeSourceUrl,
+		ResourceReferences: []*api.ResourceReference{
+			&api.ResourceReference{
+				Key: &api.ResourceKey{
+					Id:   version.PipelineId,
+					Type: api.ResourceType_PIPELINE,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}, nil
+}
+
+func ToApiPipelineVersions(versions []*model.PipelineVersion) ([]*api.PipelineVersion, error) {
+	apiVersions := make([]*api.PipelineVersion, 0)
+	for _, version := range versions {
+		v, _ := ToApiPipelineVersion(version)
+		apiVersions = append(apiVersions, v)
+	}
+	return apiVersions, nil
 }
 
 func ToApiPipelines(pipelines []*model.Pipeline) []*api.Pipeline {

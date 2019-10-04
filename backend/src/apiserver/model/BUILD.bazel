@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
@@ -10,10 +10,30 @@ go_library(
         "listable_model.go",
         "pipeline.go",
         "pipeline_spec.go",
+        "pipeline_version.go",
         "resource_reference.go",
         "run.go",
     ],
     importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/model",
     visibility = ["//visibility:public"],
     deps = ["//backend/src/apiserver/common:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "pipeline_version_test.go",
+    ],
+    importpath = "github.com/kubeflow/pipelines/backend/src/apiserver/model",
+    visibility = ["//visibility:public"],
+    embed = [":go_default_library"],
+    deps = [
+        "//backend/api:go_default_library",
+        "//backend/src/apiserver/filter:go_default_library",
+        "//backend/src/apiserver/list:go_default_library",
+        "@com_github_google_go_cmp//cmp:go_default_library",
+        "@com_github_google_go_cmp//cmp/cmpopts:go_default_library",
+        "@com_github_masterminds_squirrel//:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+    ],
 )

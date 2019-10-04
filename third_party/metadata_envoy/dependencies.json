@@ -1,6 +1,9 @@
 {
-  "target_path": "/third_party",
   "libraries": [
+    {
+      "library": "envoy-proxy",
+      "license_url": "https://raw.githubusercontent.com/envoyproxy/envoy/master/LICENSE"
+    },
     {
       "library": "protoc-gen-validate",
       "license_url": "https://raw.githubusercontent.com/envoyproxy/protoc-gen-validate/master/LICENSE"

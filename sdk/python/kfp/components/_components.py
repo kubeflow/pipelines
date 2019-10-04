@@ -205,8 +205,9 @@ def _create_task_factory_from_component_spec(component_spec:ComponentSpec, compo
     pythonic_name_to_input_name = {v: k for k, v in input_name_to_pythonic.items()}
 
     if component_ref is None:
-        component_ref = ComponentReference(name=component_spec.name or component_filename or _default_component_name)
-    component_ref.spec = component_spec
+        component_ref = ComponentReference(spec=component_spec, url=component_filename)
+    else:
+        component_ref.spec = component_spec
 
     def create_task_from_component_and_arguments(pythonic_arguments):
         arguments = {}
@@ -289,12 +290,15 @@ def _resolve_graph_task(graph_task: TaskSpec, graph_component_spec: ComponentSpe
 
     graph = graph_component_spec.implementation.graph
 
+    graph_input_arguments = {input.name: input.default for input in graph_component_spec.inputs if input.default is not None}
+    graph_input_arguments.update(graph_task.arguments)
+
     outputs_of_tasks = {}
     def resolve_argument(argument):
         if isinstance(argument, (str, int, float, bool)):
             return argument
         elif isinstance(argument, GraphInputArgument):
-            return graph_task.arguments[argument.input_name]
+            return graph_input_arguments[argument.input_name]
         elif isinstance(argument, TaskOutputArgument):
             upstream_task_output_ref = argument.task_output
             upstream_task_outputs = outputs_of_tasks[upstream_task_output_ref.task_id]
@@ -305,11 +309,12 @@ def _resolve_graph_task(graph_task: TaskSpec, graph_component_spec: ComponentSpe
 
     for task_id, task_spec in graph._toposorted_tasks.items(): # Cannot use graph.tasks here since they might be listed not in dependency order. Especially on python <3.6 where the dicts do not preserve ordering
         task_factory = component_store._load_component_from_ref(task_spec.component_ref)
+        # TODO: Handle the case when optional graph component input is passed to optional task component input
         task_arguments = {input_name: resolve_argument(argument) for input_name, argument in task_spec.arguments.items()}
-        task_component_spec = task_spec.component_ref.spec
+        task_component_spec = task_factory.component_spec
 
-        input_name_to_pythonic = generate_unique_name_conversion_table([input.name for input in task_component_spec.inputs], _sanitize_python_function_name)
-        output_name_to_pythonic = generate_unique_name_conversion_table([output.name for output in task_component_spec.outputs], _sanitize_python_function_name)
+        input_name_to_pythonic = generate_unique_name_conversion_table([input.name for input in task_component_spec.inputs or []], _sanitize_python_function_name)
+        output_name_to_pythonic = generate_unique_name_conversion_table([output.name for output in task_component_spec.outputs or []], _sanitize_python_function_name)
         pythonic_output_name_to_original = {pythonic_name: original_name for original_name, pythonic_name in output_name_to_pythonic.items()}
         pythonic_task_arguments = {input_name_to_pythonic[input_name]: argument for input_name, argument in task_arguments.items()}
 

@@ -103,6 +103,8 @@ implementation:
       --model_id, {inputValue: model_id},
       --version_id, {inputValue: version_id},
       --runtime_version, {inputValue: runtime_version},
+      --python_version, {inputValue: python_version},
+      --model, {inputValue: model},
       --version, {inputValue: version},
       --replace_existing_version, {inputValue: replace_existing_version},
       --set_default, {inputValue: set_default},

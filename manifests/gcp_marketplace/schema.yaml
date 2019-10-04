@@ -104,60 +104,15 @@ properties:
     title: |-
      GCP Service Account credentials used to call other GCP services.
     description: |-
-      To be able to call other GCP services from the pipeline, we need to be authenticated.
-      The associated service account should have Cloud SQL and GCS access permissions/roles at
-      minimum, as well as any permission you need for your pipelines.
-      This field is used to store the content of the service account
-      JSON file. It can be encoded using base64 instead of messing with JSON format.
-      To get the encoded credential, run
-      $ gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account] && cat application_default_credentials.json | base64
-      It is recommended to use google cloud shell, which saves you the effort of environment setup.
-      Then you can copy-paste the generated token into this field. Note: the token is without spaces/breaklines.
+      This deployment requires a service account to use for authentication when calling other GCP services. 
+      Specify the base64-encoded credentials for the service account you want to use. 
+      You can get these credentials by running the following command in a terminal window. 
+      \"$ gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account] && cat application_default_credentials.json | base64\"
+      If you are using Linux, please use \"base64 -w 0\" to disable line wrapping.
     type: string
     default: ""
     x-google-marketplace:
       type: STRING
-  managedstorage.enabled:
-    type: boolean
-    title: Use managed storage
-    description: |-
-      Use Cloud SQL and GCS for storing the data.
-      Using CloudSQL and GCS provides better reliability and performance,
-      as well as features such as data backup and usage monitoring.
-      This is the recommended option especially for production scenarios.
-      If false, the data will be stored in GCE Persistent Disk.
-    default: false
-  managedstorage.cloudsqlInstanceConnectionName:
-    type: string
-    title: CloudSQL instance connection name (Managed storage only)
-    description: |-
-      Provide a pre-created CloudSQL for MySQL instance.
-      The instance connection name can be found in the instance detail page.
-      For example myproject:us-central1:myinstance.
-      For more details on how to create a new instance, visit https://cloud.google.com/sql/docs/mysql/quickstart
-  managedstorage.dbUsername:
-    type: string
-    title: Database username (Managed storage only)
-    description: |-
-      The database username to connect to the CloudSQL instance.
-      If leaving this field empty, the deployment will use the default 'root' user account.
-      For more details about mysql username, visit https://cloud.google.com/sql/docs/mysql/users
-  managedstorage.dbPassword:
-    type: string
-    title: Database password (Managed storage only)
-    description: |-
-      The database password to connect to the CloudSQL instance.
-      If leaving this field empty, the deployment will use no password.
-  managedstorage.databaseNamePrefix:
-    type: string
-    title: Database name prefix (Managed storage only)
-    description: |-
-      The prefix of the database name. Kubeflow Pipelines will create two databases,
-      [prefix]_pipeline and [prefix]_metadata.
-      Use lowercase letters, numbers, and hyphens. Start with a letter.
-      If the prefix specified is same as an old deployment in the past,
-      the deployment will recover from an old deployment.
-      If this not specified, the app instance name will be used.
 required:
   - name
   - namespace
