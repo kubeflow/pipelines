@@ -21,6 +21,7 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import CompareTable from '../components/CompareTable';
 import CompareUtils from '../lib/CompareUtils';
 import DetailsTable from '../components/DetailsTable';
+import MinioArtifactLink from '../components/MinioArtifactLink';
 import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
@@ -200,6 +201,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
     const nodeInputOutputParams = WorkflowParser.getNodeInputOutputParams(workflow, selectedNodeId);
+    const nodeInputOutputArtifacts = WorkflowParser.getNodeInputOutputArtifacts(workflow, selectedNodeId);
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
     const visualizationCreatorConfig: VisualizationCreatorConfig = {
       allowCustomVisualizations,
@@ -263,8 +265,16 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                               <DetailsTable title='Input parameters'
                                 fields={nodeInputOutputParams[0]} />
 
+                              <DetailsTable title='Input artifacts'
+                                fields={nodeInputOutputArtifacts[0]}
+                                valueComponent={MinioArtifactLink} />
+
                               <DetailsTable title='Output parameters'
                                 fields={nodeInputOutputParams[1]} />
+
+                              <DetailsTable title='Output artifacts'
+                                fields={nodeInputOutputArtifacts[1]}
+                                valueComponent={MinioArtifactLink} />
                             </div>
                           )}
 
@@ -377,7 +387,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
                   {workflowParameters && !!workflowParameters.length && (<div>
                     <DetailsTable title='Run parameters'
-                      fields={workflowParameters.map(p => [p.name, p.value || ''])} />
+                      fields={workflowParameters.map(p => [p.name, p.value || ''] )} />
                   </div>)}
                 </div>
               )}
@@ -579,7 +589,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     this.setStateSafe({ allArtifactConfigs });
   }
 
-  private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): string[][] {
+  private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): Array<[string, string]> {
     return !workflow.status ? [] : [
       ['Status', workflow.status.phase],
       ['Description', runMetadata ? runMetadata!.description! : ''],
@@ -714,7 +724,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
       };
       generatedVisualizations.push(generatedVisualization);
       if (selectedNodeDetails) {
-        const viewerConfigs = selectedNodeDetails.viewerConfigs || []; 
+        const viewerConfigs = selectedNodeDetails.viewerConfigs || [];
         viewerConfigs.push(generatedVisualization.config);
         selectedNodeDetails.viewerConfigs = viewerConfigs;
       }

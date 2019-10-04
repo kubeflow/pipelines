@@ -22,16 +22,21 @@ import { logger } from './Utils';
 
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
+export interface KeyValue<T> extends Array<any> {
+  0?: string;
+  1?: T;
+}
+
 export class SelectedNodeInfo {
   public args: string[];
   public command: string[];
   public condition: string;
   public image: string;
-  public inputs: string[][];
+  public inputs: Array<KeyValue<string>>;
   public nodeType: nodeType;
-  public outputs: string[][];
-  public volumeMounts: string[][];
-  public resource: string[][];
+  public outputs: Array<KeyValue<string>>;
+  public volumeMounts: Array<KeyValue<string>>;
+  public resource: Array<KeyValue<string>>;
 
   constructor() {
     this.args = [];
@@ -56,7 +61,7 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
     info.args = template.container.args || [],
     info.command = template.container.command || [],
     info.image = template.container.image || '';
-    info.volumeMounts = (template.container.volumeMounts || []).map(v => [v.mountPath, v.name]);
+    info.volumeMounts = (template.container.volumeMounts || []).map(v => [v.mountPath, v.name] );
   } else {
     info.nodeType = 'resource';
     if (template.resource && template.resource.action && template.resource.manifest) {
@@ -78,7 +83,7 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
       } else if (p.valueFrom) {
         value = p.valueFrom.jqFilter || p.valueFrom.jsonPath || p.valueFrom.parameter || p.valueFrom.path || '';
       }
-      return [p.name, value];
+      return [p.name, value] ;
     });
   }
 
