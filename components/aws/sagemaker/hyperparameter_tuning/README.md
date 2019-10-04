@@ -45,6 +45,7 @@ max_wait_time | The maximum time in seconds you are willing to wait for a manage
 checkpoint_config | Dictionary of information about the output location for managed spot training checkpoint data | Yes | Yes | Dict | | {} |
 warm_start_type | Specifies the type of warm start used | Yes | No | String | IdenticalDataAndAlgorithm, TransferLearning | |
 parent_hpo_jobs | List of previously completed or stopped hyperparameter tuning jobs to be used as a starting point | Yes | Yes | String | Yes | | |
+endpoint_url | The endpoint URL for the private link VPC endpoint. | Yes | Yes | String | | |
 tags | Key-value pairs to categorize AWS resources | Yes | Yes | Dict | | {} |
 
 Notes:

@@ -120,6 +120,9 @@ inputs:
   - name: parent_hpo_jobs
     description: 'List of previously completed or stopped hyperparameter tuning jobs to be used as a starting point.'
     default: ''
+  - name: endpoint_url
+    description: 'The endpoint URL for the private link VPC endpoint.'
+    default: ''
   - name: tags
     description: 'Key-value pairs, to categorize AWS resources.'
     default: '{}'
@@ -136,11 +139,12 @@ outputs:
     description: 'The registry path of the Docker image that contains the training algorithm'
 implementation:
   container:
-    image: redbackthomson/aws-kubeflow-sagemaker:20190930
+    image: redbackthomson/aws-kubeflow-sagemaker:20191003
     command: ['python']
     args: [
       hyperparameter_tuning.py,
       --region, {inputValue: region},
+      --endpoint_url, {inputValue: endpoint_url},
       --job_name, {inputValue: job_name},
       --role, {inputValue: role},
       --image, {inputValue: image},
