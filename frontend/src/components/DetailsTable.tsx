@@ -44,8 +44,9 @@ export const css = stylesheet({
 });
 
 interface DetailsTableProps {
-  fields: string[][];
+  fields: Array<[string?, any?]>;
   title?: string;
+  valueComponent?: React.FC;
 }
 
 export default (props: DetailsTableProps) => {
@@ -53,30 +54,37 @@ export default (props: DetailsTableProps) => {
     {!!props.title && <div className={commonCss.header}>{props.title}</div>}
     <div>
       {props.fields.map((f, i) => {
-        try {
-          const parsedJson = JSON.parse(f[1]);
-          // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
-          // about rendering. Note that `typeOf null` returns 'object'
-          if (parsedJson === null || typeof parsedJson !== 'object') {
-            throw new Error('Parsed JSON was neither an array nor an object. Using default renderer');
+        const [key, value] = f;
+       
+        // only try to parse json if value is a string
+        if (typeof value === 'string') {
+          try {
+            const parsedJson = JSON.parse(value);
+            // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
+            // about rendering. Note that `typeOf null` returns 'object'
+            if (parsedJson === null || typeof parsedJson !== 'object') {
+              throw new Error('Parsed JSON was neither an array nor an object. Using default renderer');
+            }
+            return (
+              <div key={i} className={css.row}>
+                <span className={css.key}>{key}</span>
+                <Editor width='100%' height='300px' mode='json' theme='github'
+                  highlightActiveLine={true} showGutter={true} readOnly={true}
+                  value={JSON.stringify(parsedJson, null, 2) || ''} />
+              </div>
+            );
+          } catch (err) {
+            // do nothing
           }
-          return (
-            <div key={i} className={css.row}>
-              <span className={css.key}>{f[0]}</span>
-              <Editor width='100%' height='300px' mode='json' theme='github'
-                highlightActiveLine={true} showGutter={true} readOnly={true}
-                value={JSON.stringify(parsedJson, null, 2) || ''} />
-            </div>
-          );
-        } catch (err) {
-          // If the value isn't a JSON object, just display it as is
-          return (
-            <div key={i} className={css.row}>
-              <span className={css.key}>{f[0]}</span>
-              <span className={css.valueText}>{f[1]}</span>
-            </div>
-          );
         }
+        // If the value isn't a JSON object, just display it as is
+        return (
+          <div key={i} className={css.row}>
+            <span className={css.key}>{key}</span>
+            <span className={css.valueText}>{props.valueComponent && !!value ? props.valueComponent(value) : value}</span>
+          </div>
+        );
+        
       })}
     </div>
   </React.Fragment>
