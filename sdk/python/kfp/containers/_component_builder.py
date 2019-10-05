@@ -22,6 +22,9 @@ import shutil
 from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
+
+from deprecated.sphinx import deprecated
+
 from ..components._components import _create_task_factory_from_component_spec
 from ..components._python_op import _func_to_component_spec
 from ._container_builder import ContainerBuilder
@@ -265,6 +268,7 @@ def build_python_component(component_func, target_image, base_image=None, depend
   return task_factory_function
 
 
+@deprecated(version='0.1.32', reason='`build_docker_image` is deprecated. Use `kfp.containers.build_image_from_working_dir` instead.')
 def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace=None):
   """ build_docker_image automatically builds a container image based on the specification in the dockerfile and
   pushes to the target_image.

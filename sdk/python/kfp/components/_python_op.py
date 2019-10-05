@@ -15,6 +15,7 @@
 __all__ = [
     'func_to_container_op',
     'func_to_component_text',
+    'default_base_image_or_builder',
     'get_default_base_image',
     'set_default_base_image',
     'InputPath',
@@ -35,6 +36,7 @@ import inspect
 from pathlib import Path
 import typing
 from typing import Callable, Generic, List, TypeVar, Union
+from deprecated.sphinx import deprecated
 
 T = TypeVar('T')
 
@@ -95,19 +97,20 @@ def _parent_dirs_maker_that_returns_open_file(mode: str, encoding: str = None):
 
 
 #TODO: Replace this image name with another name once people decide what to replace it with.
-_default_base_image='tensorflow/tensorflow:1.13.2-py3'
+default_base_image_or_builder='tensorflow/tensorflow:1.13.2-py3'
 
-
+@deprecated(version='0.1.32', reason='Use the kfp.components.default_base_image_or_builder variable instead')
 def get_default_base_image() -> Union[str, Callable[[], str]]:
-    return _default_base_image
+    return default_base_image_or_builder
 
 
+@deprecated(version='0.1.32', reason='Use the kfp.components.default_base_image_or_builder variable instead')
 def set_default_base_image(image_or_factory: Union[str, Callable[[], str]]):
     '''set_default_base_image sets the name of the container image that will be used for component creation when base_image is not specified.
     Alternatively, the base image can also be set to a factory function that will be returning the image.
     '''
-    global _default_base_image
-    _default_base_image = image_or_factory
+    global default_base_image_or_builder
+    default_base_image_or_builder = image_or_factory
 
 
 def _python_function_name_to_component_name(name):
@@ -345,7 +348,7 @@ def _func_to_component_spec(func, extra_code='', base_image : str = None, packag
             base_image = decorator_base_image
     else:
         if base_image is None:
-            base_image = _default_base_image
+            base_image = default_base_image_or_builder
             if isinstance(base_image, Callable):
                 base_image = base_image()
 
