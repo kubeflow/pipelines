@@ -1182,7 +1182,8 @@ class ContainerOp(BaseOp):
                     self.dependent_names.extend(pvolume.dependent_names)
                 else:
                     pvolume = PipelineVolume(volume=pvolume)
-                self.pvolumes[mount_path] = pvolume.after(self)
+                pvolume = pvolume.after(self)
+                self.pvolumes[mount_path] = pvolume
                 self.add_volume(pvolume)
                 self._container.add_volume_mount(V1VolumeMount(
                     name=pvolume.name,
