@@ -21,7 +21,7 @@ const S3ArtifactLink: React.FC<S3Artifact> = (
   const linkText = `${source.toString()}://${bucket}/${key}`;
   // Opens in new window safely
   return (
-    <a href={artifactApiUri({key, bucket, source})} target={'_blank'} rel={'noreferrer noopener'}>
+    <a href={artifactApiUri({key, bucket, source})} target={'_blank'} rel={'noreferrer noopener'} title={linkText}>
       {linkText}
     </a>
   );

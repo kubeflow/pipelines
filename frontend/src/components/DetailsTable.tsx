@@ -40,9 +40,9 @@ export const css = stylesheet({
   },
   valueText: {
     maxWidth: 400,
-    whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
 });
 
