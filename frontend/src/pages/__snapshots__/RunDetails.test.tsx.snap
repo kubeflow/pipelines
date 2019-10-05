@@ -2217,7 +2217,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                     fields={Array []}
                     title="Input artifacts"
                     valueComponent={[Function]}
-                  />                  
+                  />
                   <Component
                     fields={
                       Array [
@@ -2237,7 +2237,7 @@ exports[`RunDetails switches to inputs/outputs tab in side pane 1`] = `
                     fields={Array []}
                     title="Output artifacts"
                     valueComponent={[Function]}
-                  />                  
+                  />
                 </div>
               </div>
             </div>
