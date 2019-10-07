@@ -167,11 +167,13 @@ if __name__ == "__main__":
         )
     print(model_status)
     try:
-        print(model_status['status']['url'] + ' is the knative domain header. $CLUSTER_IP:31380 is the endpoint to post predictions to the model.')
-        print('Sample test curl below: ')
-        print('curl -X GET -H "Host: ' + url.sub('', model_status['status']['url']) + '" $CLUSTER_IP:31380')
+        print(model_status['status']['url'] + ' is the knative domain header. $ISTIO_INGRESS_ENDPOINT are defined in the below commands')
+        print('Sample test commands: ')
+        print('# Note: If Istio Ingress gateway is not served with LoadBalancer, use $CLUSTER_NODE_IP:31380 as the ISTIO_INGRESS_ENDPOINT')
+        print('ISTIO_INGRESS_ENDPOINT=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath=\'{.status.loadBalancer.ingress[0].ip}\')')
+        print('curl -X GET -H "Host: ' + url.sub('', model_status['status']['url']) + '" $ISTIO_INGRESS_ENDPOINT')
     except:
-        print('Model is not ready, check the logs for more status on the Knative URL.')
+        print('Model is not ready, check the logs for the Knative URL status.')
     if not os.path.exists(os.path.dirname(output_path)):
         os.makedirs(os.path.dirname(output_path))
     with open(output_path, "w") as report:
