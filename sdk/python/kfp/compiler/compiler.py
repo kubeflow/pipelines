@@ -814,6 +814,8 @@ class Compiler(object):
 
     return workflow
 
+  # For now (0.1.31) this function is only used by TFX's KubeflowDagRunner.
+  # See https://github.com/tensorflow/tfx/blob/811e4c1cc0f7903d73d151b9d4f21f79f6013d4a/tfx/orchestration/kubeflow/kubeflow_dag_runner.py#L238
   @deprecated(
       version='0.1.32',
       reason='Workflow spec is not intended to be handled by user, please '
