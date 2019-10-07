@@ -954,3 +954,6 @@ implementation:
     workflow_dict = kfp.compiler.Compiler()._compile(some_pipeline)
     template = workflow_dict['spec']['templates'][0]
     self.assertEqual(template['metadata']['annotations']['pipelines.kubeflow.org/max_cache_staleness'], "P30D")
+
+  def test_artifact_passing_using_volume(self):
+    self._test_py_compile_yaml('artifact_passing_using_volume')
