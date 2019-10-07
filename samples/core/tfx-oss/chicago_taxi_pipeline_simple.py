@@ -52,7 +52,7 @@ _taxi_module_file_param = dsl.PipelineParam(
 
 _data_root_param = dsl.PipelineParam(
     name='data-root',
-    value='gs://ml-pipeline-playground/tfx_taxi_simple/data/data')
+    value='gs://ml-pipeline-playground/tfx_taxi_simple/data')
 
 def _create_test_pipeline(pipeline_root: Text, csv_input_location: Text,
     taxi_module_file: Text, enable_cache: bool):
@@ -85,8 +85,8 @@ def _create_test_pipeline(pipeline_root: Text, csv_input_location: Text,
       transformed_examples=transform.outputs.transformed_examples,
       schema=infer_schema.outputs.output,
       transform_output=transform.outputs.transform_output,
-      train_args=trainer_pb2.TrainArgs(num_steps=10000),
-      eval_args=trainer_pb2.EvalArgs(num_steps=5000))
+      train_args=trainer_pb2.TrainArgs(num_steps=10),
+      eval_args=trainer_pb2.EvalArgs(num_steps=5))
   model_analyzer = Evaluator(
       examples=example_gen.outputs.examples,
       model_exports=trainer.outputs.output,
