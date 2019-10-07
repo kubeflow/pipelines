@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test_name: ai_platform
+test_name: ai-platform
 notebook_params:
   output:
   PROJECT_ID: ml-pipeline-test

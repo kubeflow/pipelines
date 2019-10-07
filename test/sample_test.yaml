@@ -86,7 +86,7 @@ spec:
               - loop_parameter
               - loop_static
               - resource_ops
-              - ai_platform
+              - ai-platform
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:
