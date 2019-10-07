@@ -828,6 +828,9 @@ class Compiler(object):
     from ._data_passing_rewriter import fix_big_data_passing
     workflow = fix_big_data_passing(workflow)
 
+    if pipeline_conf and pipeline_conf.data_passing_method != None:
+      workflow = pipeline_conf.data_passing_method(workflow)
+
     import json
     workflow.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/pipeline_spec'] = json.dumps(pipeline_meta.to_dict(), sort_keys=True)
 
