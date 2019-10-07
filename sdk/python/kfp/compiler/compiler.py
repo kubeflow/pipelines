@@ -594,21 +594,6 @@ class Compiler(object):
 
     return templates
 
-  def _create_volumes(self, pipeline):
-    """Create volumes required for the templates"""
-    volumes = []
-    volume_name_set = set()
-    for op in pipeline.ops.values():
-      if op.volumes:
-        for v in op.volumes:
-          # Remove volume duplicates which have the same name
-          #TODO: check for duplicity based on the serialized volumes instead of just name.
-          if v['name'] not in volume_name_set:
-            volume_name_set.add(v['name'])
-            volumes.append(v)
-    volumes.sort(key=lambda x: x['name'])
-    return volumes
-
   def _create_pipeline_workflow(self, args, pipeline, op_transformers=None, pipeline_conf=None):
     """Create workflow for the pipeline."""
 
@@ -633,9 +618,6 @@ class Compiler(object):
       first_group = pipeline.groups[0].groups[0]
       if first_group.type == 'exit_handler':
         exit_handler = first_group.exit_op
-
-    # Volumes
-    volumes = self._create_volumes(pipeline)
 
     # The whole pipeline workflow
     pipeline_name = pipeline.name or 'Pipeline'
@@ -665,8 +647,6 @@ class Compiler(object):
 
     if exit_handler:
       workflow['spec']['onExit'] = exit_handler.name
-    if volumes:
-      workflow['spec']['volumes'] = volumes
     return workflow
 
   def _validate_exit_handler(self, pipeline):
