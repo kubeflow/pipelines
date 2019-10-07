@@ -8,6 +8,7 @@ automl_split_dataset_table_column_names_op = load_component_from_url('https://ra
 
 from typing import NamedTuple
 
+# flake8: noqa
 def retail_product_stockout_prediction_pipeline(
     gcp_project_id: str,
     gcp_region: str,
