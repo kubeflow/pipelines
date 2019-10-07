@@ -28,7 +28,6 @@ def fix_big_data_passing(workflow: dict) -> dict:
 
     workflow = copy.deepcopy(workflow)
     templates = workflow['spec']['templates']
-    volume_map = {volume['name']: volume for volume in workflow['spec'].get('volumes', [])}
 
     container_templates = [template for template in workflow['spec']['templates'] if 'container' in template]
     dag_templates = [template for template in workflow['spec']['templates'] if 'dag' in template]
@@ -157,20 +156,6 @@ def fix_big_data_passing(workflow: dict) -> dict:
 
     # Searching for parameter input consumers in container and resource templates
     for template in container_templates + resource_templates:
-        # Hack for volumes: Prior to Argo 2.3.0, it was only possible to add volumes globally on the workflow level instead of at template level.
-        # When VolumeOps were added, the generated structures became hacky since the workflow-level volumes cound now contain template-level input references.
-        # Here we virtually add volumes back to the template to analyze the input references.
-        # To properly fix this the compiler should move volumes to templates.
-        # TODO: Fix the compiler and remove this hack
-        if 'container' in template:
-            template = copy.deepcopy(template)
-            template_volumes = template.setdefault('volumes', [])
-            for volume_mount in template['container'].get('volumeMounts', []):
-                volume_name = volume_mount['name']
-                if volume_name in volume_map:
-                    template_volumes.append(volume_map[volume_name])
-        # End hack
-
         template_name = template['name']
         placeholders = extract_all_placeholders(template)
         for placeholder in placeholders:

@@ -44,6 +44,10 @@ spec:
       - name: create-volume-name
       - name: url
     name: step1-ingest
+    volumes:
+    - name: create-volume
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-name}}'
   - inputs:
       parameters:
       - name: create-volume-name
@@ -79,6 +83,10 @@ spec:
       parameters:
       - name: create-volume-name
     name: step2-gunzip
+    volumes:
+    - name: create-volume
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-name}}'
   - inputs:
       parameters:
       - name: create-volume-name
@@ -114,6 +122,10 @@ spec:
       parameters:
       - name: create-volume-name
     name: step3-copy
+    volumes:
+    - name: create-volume
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-name}}'
   - inputs:
       parameters:
       - name: create-volume-name
@@ -148,6 +160,10 @@ spec:
       parameters:
       - name: create-volume-name
     name: step4-output
+    volumes:
+    - name: create-volume
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-name}}'
   - dag:
       tasks:
       - name: create-volume
@@ -220,7 +236,3 @@ spec:
       parameters:
       - name: url
     name: volumesnapshotop-sequential
-  volumes:
-  - name: create-volume
-    persistentVolumeClaim:
-      claimName: '{{inputs.parameters.create-volume-name}}'

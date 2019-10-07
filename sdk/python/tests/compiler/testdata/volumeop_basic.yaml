@@ -26,6 +26,10 @@ spec:
       parameters:
       - name: create-pvc-name
     name: cop
+    volumes:
+    - name: create-pvc
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-pvc-name}}'
   - inputs:
       parameters:
       - name: size
@@ -66,7 +70,3 @@ spec:
       parameters:
       - name: size
     name: volumeop-basic
-  volumes:
-  - name: create-pvc
-    persistentVolumeClaim:
-      claimName: '{{inputs.parameters.create-pvc-name}}'
