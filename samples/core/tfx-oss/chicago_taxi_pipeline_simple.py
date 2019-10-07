@@ -41,6 +41,7 @@ from tfx.extensions.google_cloud_ai_platform.trainer import executor as ai_platf
 from ml_metadata.proto import metadata_store_pb2
 from tfx.orchestration.kubeflow.proto import kubeflow_pb2
 
+# Define pipeline params used for pipeline execution.
 _output_bucket_param = dsl.PipelineParam(
     name='output-bucket',
     value='gs://your-bucket')
@@ -48,6 +49,10 @@ _output_bucket_param = dsl.PipelineParam(
 _taxi_module_file_param = dsl.PipelineParam(
     name='module-file',
     value='gs://ml-pipeline-playground/tfx_taxi_simple/modules/taxi_utils.py')
+
+_data_root_param = dsl.PipelineParam(
+    name='data-root',
+    value='gs://ml-pipeline-playground/tfx_taxi_simple/data/data')
 
 def _create_test_pipeline(pipeline_root: Text, csv_input_location: Text,
     taxi_module_file: Text, enable_cache: bool):
@@ -120,13 +125,12 @@ def _get_kubeflow_metadata_config() -> kubeflow_pb2.KubeflowMetadataConfig:
 
 
 if __name__ == '__main__':
-  data_root = 'gs://ml-pipeline-playground/tfx_taxi_simple/data'
   pipeline_root = os.path.join('gs://your-bucket', 'tfx_taxi_simple')
   enable_cache = True
 
   pipeline = _create_test_pipeline(
       pipeline_root,
-      data_root,
+      str(_data_root_param),
       str(_taxi_module_file_param),
       enable_cache=enable_cache)
 
@@ -134,6 +138,6 @@ if __name__ == '__main__':
       kubeflow_metadata_config=_get_kubeflow_metadata_config())
 
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)
-  kfp_runner._params.extend([_output_bucket_param, _taxi_module_file_param])
+  kfp_runner._params.extend([_data_root_param, _taxi_module_file_param])
 
   kfp_runner.run(pipeline)
