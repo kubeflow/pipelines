@@ -77,7 +77,7 @@ matrix:
 
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
-        - python3 setup.py develop
+        - python3 -m pip install .
         - cd $TRAVIS_BUILD_DIR # Changing the current directory to the repo root for correct coverall paths
         - coverage run --source=kfp --append sdk/python/tests/dsl/main.py
         - coverage run --source=kfp --append sdk/python/tests/compiler/main.py
