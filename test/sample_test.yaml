@@ -86,6 +86,7 @@ spec:
               - loop_parameter
               - loop_static
               - resource_ops
+              - multiple_outputs
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:
