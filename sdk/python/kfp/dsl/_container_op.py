@@ -1090,6 +1090,9 @@ class ContainerOp(BaseOp):
         self.output_artifact_paths = output_artifact_paths or {}
         self.artifact_location = artifact_location
 
+        if artifact_location:
+            warnings.warn('Setting per-ContainerOp artifact_location is deprecated since SDK v0.1.32. Please configure the artifact location in the cluster configMap: https://github.com/argoproj/argo/blob/master/ARTIFACT_REPO.md#configure-the-default-artifact-repository . For short-term workaround use the pipeline-wide kfp.dsl.PipelineConf().set_artifact_location, but it can also be deprecated in future.', PendingDeprecationWarning)
+
         self._metadata = None
 
         self.outputs = {}
