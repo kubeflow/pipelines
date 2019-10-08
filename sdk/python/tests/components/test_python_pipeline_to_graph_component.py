@@ -46,6 +46,18 @@ class PythonPipelineToGraphComponentTestCase(unittest.TestCase):
         self.assertListEqual([output.name for output in graph_component.outputs], ['Pipeline output 1', 'Pipeline output 2'])
         self.assertEqual(len(graph_component.implementation.graph.tasks), 3)
 
+    def test_create_component_from_real_pipeline_retail_product_stockout_prediction(self):
+        from .test_data.retail_product_stockout_prediction_pipeline import retail_product_stockout_prediction_pipeline
+
+        graph_component = create_graph_component_spec_from_pipeline_func(retail_product_stockout_prediction_pipeline)
+
+        import yaml
+        expected_component_spec_path = str(Path(__file__).parent / 'test_data' / 'retail_product_stockout_prediction_pipeline.component.yaml')
+        with open(expected_component_spec_path) as f:
+            expected_dict = yaml.safe_load(f)
+
+        self.assertEqual(expected_dict, graph_component.to_dict())
+
 
 if __name__ == '__main__':
     unittest.main()
