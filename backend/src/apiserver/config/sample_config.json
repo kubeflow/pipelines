@@ -26,7 +26,7 @@
   },
   {
     "name":"[Sample] ML - TFX - Taxi Tip Prediction Model Trainer",
-    "description":"Example pipeline that does classification with model analysis based on a public tax cab BigQuery dataset. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/core/tfx-oss",
+    "description":"Example pipeline that does classification with model analysis based on a public tax cab BigQuery dataset. GCS permission is required. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/core/tfx-oss",
     "file":"/samples/contrib/parameterized_tfx_oss/chicago_taxi_pipeline_simple.tar.gz"
   }
 ]
