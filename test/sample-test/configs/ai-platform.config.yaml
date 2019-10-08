@@ -16,3 +16,4 @@ test_name: ai-platform
 notebook_params:
   output:
   PROJECT_ID: ml-pipeline-test
+  EXPERIMENT_NAME: ai-platform-test
