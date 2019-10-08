@@ -42,10 +42,12 @@ from ml_metadata.proto import metadata_store_pb2
 from tfx.orchestration.kubeflow.proto import kubeflow_pb2
 
 # Define pipeline params used for pipeline execution.
+# Path to the module file, should be a GCS path.
 _taxi_module_file_param = dsl.PipelineParam(
     name='module-file',
     value='gs://ml-pipeline-playground/tfx_taxi_simple/modules/taxi_utils.py')
 
+# Path to the CSV data file, under which their should be a data.csv file.
 _data_root_param = dsl.PipelineParam(
     name='data-root',
     value='gs://ml-pipeline-playground/tfx_taxi_simple/data')
@@ -121,6 +123,7 @@ def _get_kubeflow_metadata_config() -> kubeflow_pb2.KubeflowMetadataConfig:
 
 
 if __name__ == '__main__':
+  # Default value of pipeline root, should be a GCS path.
   pipeline_root = os.path.join('gs://your-bucket', 'tfx_taxi_simple')
   enable_cache = True
 
@@ -134,6 +137,7 @@ if __name__ == '__main__':
       kubeflow_metadata_config=_get_kubeflow_metadata_config())
 
   kfp_runner = kubeflow_dag_runner.KubeflowDagRunner(config=config)
+  # Make sure kfp_runner recognizes those parameters.
   kfp_runner._params.extend([_data_root_param, _taxi_module_file_param])
 
   kfp_runner.run(pipeline)
