@@ -42,10 +42,6 @@ from ml_metadata.proto import metadata_store_pb2
 from tfx.orchestration.kubeflow.proto import kubeflow_pb2
 
 # Define pipeline params used for pipeline execution.
-_output_bucket_param = dsl.PipelineParam(
-    name='output-bucket',
-    value='gs://your-bucket')
-
 _taxi_module_file_param = dsl.PipelineParam(
     name='module-file',
     value='gs://ml-pipeline-playground/tfx_taxi_simple/modules/taxi_utils.py')
