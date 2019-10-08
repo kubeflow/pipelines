@@ -81,6 +81,8 @@ echo "test env prepared"
 
 # (TODO:numerology): temporary ad hoc logic to GC ai-platform model generated in previous test runs.
 # Caveat: it assumes that each model only has one associated version.
+# Resolve race condition.
+set +e
 model_flag=0
 for model in $(gcloud ai-platform models list); do
   if [[ "${model}" = "NAME" ]] || [[ "${model}" = "DEFAULT_VERSION_NAME" ]]; then
@@ -102,6 +104,7 @@ for model in $(gcloud ai-platform models list); do
   done
   gcloud ai-platform models delete ${model} -q
 done
+set -e
 
 # We don't wait for image building here, because cluster can be deployed in
 # parallel so that we save a few minutes of test time.
