@@ -15,4 +15,5 @@
 test_name: ai_platform
 arguments:
   output:
-  PROJECT: ml-pipeline-test
+  project_id: ml-pipeline-test
+  experiment_name: ai_platform-test
