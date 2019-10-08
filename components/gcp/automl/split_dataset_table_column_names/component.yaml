@@ -1,19 +1,21 @@
+name: Automl split dataset table column names
+inputs:
+- name: dataset_path
+  type: String
+- name: target_column_name
+  type: String
+- name: table_index
+  type: Integer
+  default: '0'
+  optional: true
+outputs:
+- name: target_column_path
+  type: String
+- name: feature_column_paths
+  type: JsonArray
 implementation:
   container:
-    args:
-    - --dataset-path
-    - inputValue: dataset_path
-    - --target-column-name
-    - inputValue: target_column_name
-    - if:
-        cond:
-          isPresent: table_index
-        then:
-        - --table-index
-        - inputValue: table_index
-    - '----output-paths'
-    - outputPath: target_column_path
-    - outputPath: feature_column_paths
+    image: python:3.7
     command:
     - python3
     - -u
@@ -73,19 +75,17 @@ implementation:
               pass
           with open(output_file, 'w') as f:
               f.write(str(_outputs[idx]))
-    image: python:3.7
-inputs:
-- name: dataset_path
-  type: String
-- name: target_column_name
-  type: String
-- default: '0'
-  name: table_index
-  optional: true
-  type: Integer
-name: Automl split dataset table column names
-outputs:
-- name: target_column_path
-  type: String
-- name: feature_column_paths
-  type: JsonArray
+    args:
+    - --dataset-path
+    - inputValue: dataset_path
+    - --target-column-name
+    - inputValue: target_column_name
+    - if:
+        cond:
+          isPresent: table_index
+        then:
+        - --table-index
+        - inputValue: table_index
+    - '----output-paths'
+    - outputPath: target_column_path
+    - outputPath: feature_column_paths
