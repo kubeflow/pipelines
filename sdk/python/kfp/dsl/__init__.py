@@ -25,3 +25,6 @@ from ._volume_snapshot_op import VolumeSnapshotOp
 from ._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor
 from ._component import python_component, graph_component, component
 from ._artifact_location import ArtifactLocation
+
+EXECUTION_ID_PLACEHOLDER = '{{workflow.uid}}-{{pod.name}}'
+RUN_ID_PLACEHOLDER = '{{workflow.uid}}'
