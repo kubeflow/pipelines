@@ -79,6 +79,30 @@ echo "presubmit test starts"
 time source "${DIR}/test-prep.sh"
 echo "test env prepared"
 
+# (TODO:numerology): temporary ad hoc logic to GC ai-platform model generated in previous test runs.
+# Caveat: it assumes that each model only has one associated version.
+model_flag=0
+for model in $(gcloud ai-platform models list); do
+  if [[ "${model}" = "NAME" ]] || [[ "${model}" = "DEFAULT_VERSION_NAME" ]]; then
+    continue
+  fi
+  model_flag=$((1 - $model_flag))
+  if [[ "$model_flag" -eq 0 ]]; then
+    continue
+  fi
+  version_flag=0
+  for version in $(gcloud ai-platform versions list --model=${model}); do
+    if [[ "${version}" = "NAME" ]] || [[ "${version}" = "DEPLOYMENT_URI" ]] || [[ "${version}" = "STATE" ]]; then
+      continue
+    fi
+    version_flag=$((($version_flag + 1) % 3))
+    if [[ "$version_flag" -eq 1 ]]; then
+      gcloud ai-platform versions delete ${version} --model=${model} -q
+    fi
+  done
+  gcloud ai-platform models delete ${model} -q
+done
+
 # We don't wait for image building here, because cluster can be deployed in
 # parallel so that we save a few minutes of test time.
 time source "${DIR}/build-images.sh"
