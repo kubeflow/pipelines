@@ -286,4 +286,8 @@ def _op_to_template(op: BaseOp):
     if processed_op.display_name:
         template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/task_display_name'] = processed_op.display_name
 
+    if isinstance(op, dsl.ContainerOp) and op._metadata:
+        import json
+        template.setdefault('metadata', {}).setdefault('annotations', {})['pipelines.kubeflow.org/component_spec'] = json.dumps(op._metadata.to_dict(), sort_keys=True)
+
     return template
