@@ -1,30 +1,21 @@
+name: Automl import data from bigquery
+inputs:
+- name: dataset_path
+- name: input_uri
+  type: String
+- name: retry
+  optional: true
+- name: timeout
+  optional: true
+- name: metadata
+  type: JsonObject
+  optional: true
+outputs:
+- name: dataset_path
+  type: String
 implementation:
   container:
-    args:
-    - --dataset-path
-    - inputValue: dataset_path
-    - --input-uri
-    - inputValue: input_uri
-    - if:
-        cond:
-          isPresent: retry
-        then:
-        - --retry
-        - inputValue: retry
-    - if:
-        cond:
-          isPresent: timeout
-        then:
-        - --timeout
-        - inputValue: timeout
-    - if:
-        cond:
-          isPresent: metadata
-        then:
-        - --metadata
-        - inputValue: metadata
-    - '----output-paths'
-    - outputPath: dataset_path
+    image: python:3.7
     command:
     - python3
     - -u
@@ -90,19 +81,28 @@ implementation:
               pass
           with open(output_file, 'w') as f:
               f.write(str(_outputs[idx]))
-    image: python:3.7
-inputs:
-- name: dataset_path
-- name: input_uri
-  type: String
-- name: retry
-  optional: true
-- name: timeout
-  optional: true
-- name: metadata
-  optional: true
-  type: JsonObject
-name: Automl import data from bigquery
-outputs:
-- name: dataset_path
-  type: String
+    args:
+    - --dataset-path
+    - inputValue: dataset_path
+    - --input-uri
+    - inputValue: input_uri
+    - if:
+        cond:
+          isPresent: retry
+        then:
+        - --retry
+        - inputValue: retry
+    - if:
+        cond:
+          isPresent: timeout
+        then:
+        - --timeout
+        - inputValue: timeout
+    - if:
+        cond:
+          isPresent: metadata
+        then:
+        - --metadata
+        - inputValue: metadata
+    - '----output-paths'
+    - outputPath: dataset_path
