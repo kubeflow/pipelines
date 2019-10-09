@@ -52,6 +52,11 @@ _data_root_param = dsl.PipelineParam(
     name='data-root',
     value='gs://ml-pipeline-playground/tfx_taxi_simple/data')
 
+# Path of pipeline root, should be a GCS path.
+_pipeline_root_param = dsl.PipelineParam(
+    name='pipeline-root',
+    value=os.path.join('gs://your-bucket', 'tfx_taxi_simple'))
+
 def _create_test_pipeline(pipeline_root: Text, csv_input_location: Text,
     taxi_module_file: Text, enable_cache: bool):
   """Creates a simple Kubeflow-based Chicago Taxi TFX pipeline.
@@ -123,12 +128,11 @@ def _get_kubeflow_metadata_config() -> kubeflow_pb2.KubeflowMetadataConfig:
 
 
 if __name__ == '__main__':
-  # Default value of pipeline root, should be a GCS path.
-  pipeline_root = os.path.join('gs://your-bucket', 'tfx_taxi_simple')
+
   enable_cache = True
 
   pipeline = _create_test_pipeline(
-      pipeline_root,
+      str(_pipeline_root_param),
       str(_data_root_param),
       str(_taxi_module_file_param),
       enable_cache=enable_cache)
