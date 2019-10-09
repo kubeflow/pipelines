@@ -192,16 +192,19 @@ import pickle
 def _capture_function_code_using_source_copy(func) -> str:	
     import inspect	
 
-    #Source code can include decorators line @python_op. Remove them
     (func_code_lines, _) = inspect.getsourcelines(func)
-    while func_code_lines[0].lstrip().startswith('@'): #decorator
-        del func_code_lines[0]
 
     #Function might be defined in some indented scope (e.g. in another function).
     #We need to handle this and properly dedent the function source code
     first_line = func_code_lines[0]
     indent = len(first_line) - len(first_line.lstrip())
     func_code_lines = [line[indent:] for line in func_code_lines]
+
+    # Removing possible decorators (can be multiline) until the function definition is found
+    while func_code_lines and not func_code_lines[0].startswith('def '):
+        del func_code_lines[0]
+
+
 
     #TODO: Add support for copying the NamedTuple subclass declaration code
     #Adding NamedTuple import if needed
