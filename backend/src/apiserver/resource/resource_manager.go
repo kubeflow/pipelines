@@ -844,7 +844,6 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 		CodeSourceUrl: apiVersion.CodeSourceUrl,
 	}
 	version, err = r.pipelineStore.CreatePipelineVersion(version)
-	fmt.Printf("JING resource manager create version: %+v\n", version)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
@@ -858,8 +857,9 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 
 	// After pipeline version being created in DB and pipeline file being
 	// saved in minio server, set this pieline version to status ready.
+	version.Status = model.PipelineVersionReady
 	err = r.pipelineStore.UpdatePipelineVersionStatus(
-		version.UUID, model.PipelineVersionReady)
+		version.UUID, version.Status)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}

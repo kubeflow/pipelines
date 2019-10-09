@@ -785,3 +785,8 @@ func (s *PipelineStore) DeletePipelineVersion(versionId string) error {
 	}
 	return nil
 }
+
+// For tests from other packages who need to set UUID, which is not exported.
+func (s *PipelineStore) SetUUIDGenerator(new_uuid util.UUIDGeneratorInterface) {
+	s.uuid = new_uuid
+}
