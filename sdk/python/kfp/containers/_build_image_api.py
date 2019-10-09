@@ -26,6 +26,7 @@ import tempfile
 import requests
 
 from ..compiler._container_builder import ContainerBuilder
+from ._cache import calculate_recursive_dir_hash, try_read_value_from_cache, write_value_to_cache
 
 
 default_base_image = 'gcr.io/deeplearning-platform-release/tf-cpu.1-14'
@@ -112,8 +113,6 @@ def build_image_from_working_dir(image_name: str = None, working_dir: str = None
             with open(dst_dockerfile_path, 'w') as f:
                 f.write(dockerfile_text)
         
-        from ._cache import calculate_recursive_dir_hash, try_read_value_from_cache, write_value_to_cache
-
         cache_name = 'build_image_from_working_dir'
         cache_key = calculate_recursive_dir_hash(context_dir)
         cached_image_name = try_read_value_from_cache(cache_name, cache_key)
