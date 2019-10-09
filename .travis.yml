@@ -73,8 +73,17 @@ matrix:
         # Visualization test dependencies
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
         - pip3 install -r requirements-test.txt
+        # Latest version of TFX
+        - cd $TRAVIS_BUILD_DIR
+        - git clone https://github.com/tensorflow/tfx.git
+        - cd $TRAVIS_BUILD_DIR/tfx
+        - python3 setup.py install
       script: &1
-
+        # Test against TFX
+        - cd $TRAVIS_BUILD_DIR/tfx/tfx/orchestration/kubeflow
+        - python3 kubeflow_dag_runner_test.py
+        - cd $TRAVIS_BUILD_DIR/tfx/tfx/examples/chicago_taxi_pipeline
+        - python3 taxi_pipeline_kubeflow_test.py
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python3 setup.py develop
