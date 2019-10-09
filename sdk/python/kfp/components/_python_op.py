@@ -203,6 +203,9 @@ def _capture_function_code_using_source_copy(func) -> str:
     while func_code_lines and not func_code_lines[0].startswith('def '):
         del func_code_lines[0]
 
+    if not func_code_lines:
+        raise ValueError('Failed to dedent and clean up the source of function "{}". It is probably not properly indented.'.format(func.__name__))
+
     #TODO: Add support for copying the NamedTuple subclass declaration code
     #Adding NamedTuple import if needed
     if hasattr(inspect.signature(func).return_annotation, '_fields'): #NamedTuple
