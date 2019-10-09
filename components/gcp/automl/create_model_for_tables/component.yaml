@@ -1,41 +1,35 @@
+name: Automl create model for tables
+inputs:
+- name: gcp_project_id
+  type: String
+- name: gcp_region
+  type: String
+- name: display_name
+  type: String
+- name: dataset_id
+  type: String
+- name: target_column_path
+  type: String
+  optional: true
+- name: input_feature_column_paths
+  type: JsonArray
+  optional: true
+- name: optimization_objective
+  type: String
+  default: MAXIMIZE_AU_PRC
+  optional: true
+- name: train_budget_milli_node_hours
+  type: Integer
+  default: '1000'
+  optional: true
+outputs:
+- name: model_path
+  type: String
+- name: model_id
+  type: String
 implementation:
   container:
-    args:
-    - --gcp-project-id
-    - inputValue: gcp_project_id
-    - --gcp-region
-    - inputValue: gcp_region
-    - --display-name
-    - inputValue: display_name
-    - --dataset-id
-    - inputValue: dataset_id
-    - if:
-        cond:
-          isPresent: target_column_path
-        then:
-        - --target-column-path
-        - inputValue: target_column_path
-    - if:
-        cond:
-          isPresent: input_feature_column_paths
-        then:
-        - --input-feature-column-paths
-        - inputValue: input_feature_column_paths
-    - if:
-        cond:
-          isPresent: optimization_objective
-        then:
-        - --optimization-objective
-        - inputValue: optimization_objective
-    - if:
-        cond:
-          isPresent: train_budget_milli_node_hours
-        then:
-        - --train-budget-milli-node-hours
-        - inputValue: train_budget_milli_node_hours
-    - '----output-paths'
-    - outputPath: model_path
-    - outputPath: model_id
+    image: python:3.7
     command:
     - python3
     - -u
@@ -109,33 +103,39 @@ implementation:
               pass
           with open(output_file, 'w') as f:
               f.write(str(_outputs[idx]))
-    image: python:3.7
-inputs:
-- name: gcp_project_id
-  type: String
-- name: gcp_region
-  type: String
-- name: display_name
-  type: String
-- name: dataset_id
-  type: String
-- name: target_column_path
-  optional: true
-  type: String
-- name: input_feature_column_paths
-  optional: true
-  type: JsonArray
-- default: MAXIMIZE_AU_PRC
-  name: optimization_objective
-  optional: true
-  type: String
-- default: '1000'
-  name: train_budget_milli_node_hours
-  optional: true
-  type: Integer
-name: Automl create model for tables
-outputs:
-- name: model_path
-  type: String
-- name: model_id
-  type: String
+    args:
+    - --gcp-project-id
+    - inputValue: gcp_project_id
+    - --gcp-region
+    - inputValue: gcp_region
+    - --display-name
+    - inputValue: display_name
+    - --dataset-id
+    - inputValue: dataset_id
+    - if:
+        cond:
+          isPresent: target_column_path
+        then:
+        - --target-column-path
+        - inputValue: target_column_path
+    - if:
+        cond:
+          isPresent: input_feature_column_paths
+        then:
+        - --input-feature-column-paths
+        - inputValue: input_feature_column_paths
+    - if:
+        cond:
+          isPresent: optimization_objective
+        then:
+        - --optimization-objective
+        - inputValue: optimization_objective
+    - if:
+        cond:
+          isPresent: train_budget_milli_node_hours
+        then:
+        - --train-budget-milli-node-hours
+        - inputValue: train_budget_milli_node_hours
+    - '----output-paths'
+    - outputPath: model_path
+    - outputPath: model_id

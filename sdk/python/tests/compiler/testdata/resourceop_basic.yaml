@@ -27,6 +27,10 @@ spec:
       parameters:
       - name: create-my-secret-name
     name: cop
+    volumes:
+    - name: my-secret
+      secret:
+        secretName: '{{inputs.parameters.create-my-secret-name}}'
   - inputs:
       parameters:
       - name: password
@@ -68,7 +72,3 @@ spec:
       - name: password
       - name: username
     name: resourceop-basic
-  volumes:
-  - name: my-secret
-    secret:
-      secretName: '{{inputs.parameters.create-my-secret-name}}'

@@ -22,9 +22,11 @@ import shutil
 from collections import OrderedDict
 from pathlib import Path
 from typing import Callable
+
+from deprecated.sphinx import deprecated
+
 from ..components._components import _create_task_factory_from_component_spec
 from ..components._python_op import _func_to_component_spec
-from ..components._yaml_utils import dump_yaml
 from ._container_builder import ContainerBuilder
 
 class VersionedDependency(object):
@@ -138,9 +140,9 @@ def _generate_dockerfile(filename, base_image, python_version, requirement_filen
     if requirement_filename is not None:
       f.write('ADD ' + requirement_filename + ' /ml/requirements.txt\n')
       if python_version == 'python3':
-        f.write('RUN pip3 install -r /ml/requirements.txt\n')
+        f.write('RUN python3 -m pip install -r /ml/requirements.txt\n')
       else:
-        f.write('RUN pip install -r /ml/requirements.txt\n')
+        f.write('RUN python -m pip install -r /ml/requirements.txt\n')
     
     for src_path, dst_path in (add_files or {}).items():     
       f.write('ADD ' + src_path + ' ' + dst_path + '\n')
@@ -166,6 +168,7 @@ def _configure_logger(logger):
   logger.addHandler(error_handler)
 
 
+@deprecated(version='0.1.32', reason='`build_python_component` is deprecated. Use `kfp.containers.build_image_from_working_dir` + `kfp.components.func_to_container_op` instead.')
 def build_python_component(component_func, target_image, base_image=None, dependency=[], staging_gcs_path=None, timeout=600, namespace=None, target_component_file=None, python_version='python3'):
   """ build_component automatically builds a container image for the component_func
   based on the base_image and pushes to the target_image.
@@ -260,13 +263,13 @@ def build_python_component(component_func, target_image, base_image=None, depend
   # Optionally writing the component definition to a local file for sharing
   target_component_file = target_component_file or getattr(component_func, '_component_target_component_file', None)
   if target_component_file:
-    component_text = dump_yaml(component_spec.to_dict())
-    Path(target_component_file).write_text(component_text)
+    component_spec.save(target_component_file)
 
   task_factory_function = _create_task_factory_from_component_spec(component_spec)
   return task_factory_function
 
 
+@deprecated(version='0.1.32', reason='`build_docker_image` is deprecated. Use `kfp.containers.build_image_from_working_dir` instead.')
 def build_docker_image(staging_gcs_path, target_image, dockerfile_path, timeout=600, namespace=None):
   """ build_docker_image automatically builds a container image based on the specification in the dockerfile and
   pushes to the target_image.

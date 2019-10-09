@@ -17,26 +17,43 @@ Specify a [Kubenetes namespace](https://kubernetes.io/docs/concepts/overview/wor
 ## App instance name
 Specify an app instance name to help you identify this instance.
 
-## GCP Service Account credentials
-This deployment requires a [GCP service account](https://cloud.google.com/iam/docs/service-accounts) to use for authentication when calling other GCP services. This includes Cloud Storage and Cloud SQL if you are using managed storage, as well as other services your pipeline might need, for example Dataflow. Specify the base64-encoded credentials for the service account you want to use.
-
-You can get these credentials by running the following command in a terminal window. This command will create a new key under the service account. Please note that a single service account can only have 10 keys. 
-
-```
-$ gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account] && cat application_default_credentials.json | base64
-```
-
-Existing key also can be used.
-
-```
-cat existing_credentials.json | base64
-```
-
-If you are running this command on Linux, please use `base64 -w 0` to disable line wrapping.
-
 ## Deploy
 Click `Deploy` to start deploying Kubeflow Pipelines into the cluster you specified.
 Deployment might take few minutes, so please be patient. After deployment is complete, go to the [Pipelines Console](http://pantheon.corp.google.com/ai-platform/pipelines) to access the Kubeflow Pipelines instance.
+
+## GCP Service Account credentials
+After deployment, you can grant KFP proper permission by specifying its service account and binding
+proper role to it.
+
+Usually a functional KFP pipeline requires a [GCP service account](https://cloud.google.com/iam/docs/service-accounts) to use for 
+authentication when calling other GCP services. This includes Cloud Storage as well as other services your pipeline might need, 
+for example Dataflow, Dataproc. Specify the base64-encoded credentials for the service account you want to use.
+
+This can be done through command line using `kubectl`.
+```
+export CLUSTER=<cluster-where-kfp-was-installed>
+export ZONE=<zone-where-kfp-was-installed>
+# Configure kubectl to connect with the cluster
+gcloud container clusters get-credentials "$CLUSTER" --zone "$ZONE"
+```
+Then you can create and inject service account credential.
+```
+export PROJECT=<my-project>
+export SA_NAME=<my-account>
+# Create service account
+gcloud iam service-accounts create $SA_NAME --display-name $SA_NAME
+gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:my-account@$PROJECT.iam.gserviceaccount.com --role=roles/storage.admin
+# Also do this binding for other roles you need. For example, dataproc.admin and dataflow.admin
+gcloud iam service-accounts keys create application_default_credentials.json --iam-account $SA_NAME@$PROJECT.iam.gserviceaccount.com
+export SERVICE_ACCOUNT_TOKEN="$(cat application_default_credentials.json | base64 -w 0)"
+echo -e "apiVersion: v1\nkind: Secret\nmetadata:\n  name: \"user-gcp-sa\"\n  namespace: \"${NAMESPACE}\"\n  labels:\n    app: gcp-sa\n    app.kubernetes.io/name: \"${APP_INSTANCE_NAME}\"\ntype: Opaque\ndata:\n  application_default_credentials.json: ${SERVICE_ACCOUNT_TOKEN}\n  user-gcp-sa.json: $SERVICE_ACCOUNT_TOKEN" > secret.yaml
+kubectl apply -f secret.yaml
+# Remove secret files
+rm application_default_credentials.json test.yaml
+```
+
+Note that the above commands use `base64 -w 0` to disable line wrapping, this could be slightly different
+across platforms.
 
 ## Tips
 
