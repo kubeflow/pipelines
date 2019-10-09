@@ -13,7 +13,7 @@
 # limitations under the License.
 
 test_name: ai_platform
-arguments:
+notebook_params:
   output:
   project_id: ml-pipeline-test
   experiment_name: ai_platform-test
