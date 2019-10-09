@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -154,6 +155,7 @@ func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
 func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) ([]byte, error) {
 	// Read file into size limited byte array.
 	pipelineFileBytes, err := loadFile(fileReader, maxFileLength)
+	fmt.Printf("JING %+v: %+v\n", fileName, pipelineFileBytes)
 	if err != nil {
 		return nil, util.Wrap(err, "Error read pipeline file.")
 	}

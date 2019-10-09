@@ -1404,6 +1404,43 @@ func TestReadArtifact_NoRun_NotFound(t *testing.T) {
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 }
 
+func TestCreatePipelineVersion(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store)
+	p, err := manager.CreatePipeline(
+		"p1", "", []byte(testWorkflow.ToStringForStore()))
+	fmt.Printf("JING p %+v\n", p)
+	assert.Nil(t, err)
+
+	// store.pipelineStore.uuid =
+	// 	util.NewFakeUUIDGeneratorOrFatal(fakeUUIDOne, nil)
+	version, err := manager.CreatePipelineVersion(
+		&api.PipelineVersion{
+			Name: "p_v_1",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   "p1",
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		[]byte(testWorkflow.ToStringForStore()))
+
+	defer store.Close()
+	pipelineVersionExpected := &model.PipelineVersion{
+		UUID:           DefaultFakeUUID,
+		CreatedAtInSec: 2,
+		Name:           "p_v_1",
+		Parameters:     "[{\"name\":\"param1\"}]",
+		Status:         model.PipelineVersionReady,
+		PipelineId:     DefaultFakeUUID,
+	}
+	assert.Equal(t, pipelineVersionExpected, version)
+}
+
 const (
 	complexPipeline = `
 # Copyright 2018 Google LLC

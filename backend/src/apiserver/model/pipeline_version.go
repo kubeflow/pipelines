@@ -73,3 +73,7 @@ func (p *PipelineVersion) APIToModelFieldMap() map[string]string {
 func (p *PipelineVersion) GetModelName() string {
 	return "pipeline_versions"
 }
+
+func GetPipelineVersionTablePrimaryKeyColumn() string {
+	return "UUID"
+}
