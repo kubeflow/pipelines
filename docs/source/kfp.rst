@@ -14,3 +14,10 @@ kfp package
     kfp.client
     kfp.notebook
     kfp.extensions
+
+.. automodule:: kfp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :imported-members:
+    :exclude-members: Client

@@ -47,13 +47,10 @@ To access the credentials file, the user should provide a github access token an
 ```python
 import kfp.dsl as dsl
 import kfp.components as components
-from kfp import compiler
 import kfp
 secret_name = 'aios-creds'
 configuration_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/master/components/ibm-components/commons/config/component.yaml')
-client = kfp.Client()
-EXPERIMENT_NAME = 'create secret'
-exp = client.create_experiment(name=EXPERIMENT_NAME)
+
 @dsl.pipeline(
     name='create secret',
     description=''
@@ -67,8 +64,8 @@ def secret_pipeline(
                   url=CONFIG_FILE_URL,
                   name=secret_name
   )
-compiler.Compiler().compile(secret_pipeline,  'secret_pipeline.tar.gz')
-run = client.run_pipeline(exp.id, 'secret_pipeline', 'secret_pipeline.tar.gz')
+
+kfp.Client().create_run_from_pipeline_func(secret_pipeline, arguments={})
 ```
 
 ## Instructions

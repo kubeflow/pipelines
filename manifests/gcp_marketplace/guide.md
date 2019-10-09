@@ -17,54 +17,43 @@ Specify a [Kubenetes namespace](https://kubernetes.io/docs/concepts/overview/wor
 ## App instance name
 Specify an app instance name to help you identify this instance.
 
-## GCP Service Account credentials
-This deployment requires a [GCP service account](https://cloud.google.com/iam/docs/service-accounts) to use for authentication when calling other GCP services. This includes Cloud Storage and Cloud SQL if you are using managed storage, as well as other services your pipeline might need, for example Dataflow. Specify the base64-encoded credentials for the service account you want to use.
-
-You can get these credentials by running the following command in a terminal window. This command will create a new key under the service account. Please note that a single service account can only have 10 keys. 
-
-```
-$ gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account] && cat application_default_credentials.json | base64
-```
-
-Existing key also can be used.
-
-```
-cat existing_credentials.json | base64
-```
-
-If you are running this command on Linux, please use `base64 -w 0` to disable line wrapping.
-
-## Use managed storage
-Select this option if you want your Kubeflow Pipelines deployment to use Cloud Storage and Cloud SQL for storage. Managed storage takes care of data backup for you, so that your data will be preserved in the case that your cluster is accidentally deleted.
-
-If you don't select this option, your Kubeflow Pipelines deployment will use Kubernetes [Persisent Volume](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) and in-cluster MySQL.
-
-## Cloud SQL instance connection name
-This is a required field if you choose to use managed storage.
-Provide the instance connection name for an existing Cloud SQL for MySQL instance.
-The instance connection name can be found on the instance detail page in the Cloud SQL console. 
-The instance connection name uses the format `project:zone:instance-name`. Example: myproject:us-central1:myinstance.
-For more details on how to create a new instance, see https://cloud.google.com/sql/docs/mysql/quickstart.
-
-## Database username
-The database username to use when connecting to the Cloud SQL instance. 
-If you leave this field empty, the deployment will use the default 'root' user account to connect. 
-For more details about MySQL users, see https://cloud.google.com/sql/docs/mysql/users.
-
-## Database password
-The database password to use when connecting to the Cloud SQL instance.
-If you leave this field empty, the deployment will try to connect to the instance without providing a password.
-This will fail if a password is required for the username you provided.
-
-## Database name prefix
-The prefix of the database name. Kubeflow Pipelines will create two databases, `prefix_pipeline` and `prefix_metadata`.
-Use lowercase letters, numbers, and hyphens. The name must start with a letter.
-If you are reusing a prefix from a previous deployment, your new deployment will recover the data from that deployment.
-If the prefix is not specified, the app instance name will be used.
-
 ## Deploy
 Click `Deploy` to start deploying Kubeflow Pipelines into the cluster you specified.
 Deployment might take few minutes, so please be patient. After deployment is complete, go to the [Pipelines Console](http://pantheon.corp.google.com/ai-platform/pipelines) to access the Kubeflow Pipelines instance.
+
+## GCP Service Account credentials
+After deployment, you can grant KFP proper permission by specifying its service account and binding
+proper role to it.
+
+Usually a functional KFP pipeline requires a [GCP service account](https://cloud.google.com/iam/docs/service-accounts) to use for 
+authentication when calling other GCP services. This includes Cloud Storage as well as other services your pipeline might need, 
+for example Dataflow, Dataproc. Specify the base64-encoded credentials for the service account you want to use.
+
+This can be done through command line using `kubectl`.
+```
+export CLUSTER=<cluster-where-kfp-was-installed>
+export ZONE=<zone-where-kfp-was-installed>
+# Configure kubectl to connect with the cluster
+gcloud container clusters get-credentials "$CLUSTER" --zone "$ZONE"
+```
+Then you can create and inject service account credential.
+```
+export PROJECT=<my-project>
+export SA_NAME=<my-account>
+# Create service account
+gcloud iam service-accounts create $SA_NAME --display-name $SA_NAME
+gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:my-account@$PROJECT.iam.gserviceaccount.com --role=roles/storage.admin
+# Also do this binding for other roles you need. For example, dataproc.admin and dataflow.admin
+gcloud iam service-accounts keys create application_default_credentials.json --iam-account $SA_NAME@$PROJECT.iam.gserviceaccount.com
+export SERVICE_ACCOUNT_TOKEN="$(cat application_default_credentials.json | base64 -w 0)"
+echo -e "apiVersion: v1\nkind: Secret\nmetadata:\n  name: \"user-gcp-sa\"\n  namespace: \"${NAMESPACE}\"\n  labels:\n    app: gcp-sa\n    app.kubernetes.io/name: \"${APP_INSTANCE_NAME}\"\ntype: Opaque\ndata:\n  application_default_credentials.json: ${SERVICE_ACCOUNT_TOKEN}\n  user-gcp-sa.json: $SERVICE_ACCOUNT_TOKEN" > secret.yaml
+kubectl apply -f secret.yaml
+# Remove secret files
+rm application_default_credentials.json secret.yaml
+```
+
+Note that the above commands use `base64 -w 0` to disable line wrapping, this could be slightly different
+across platforms.
 
 ## Tips
 

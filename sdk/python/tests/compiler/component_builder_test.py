@@ -122,7 +122,7 @@ ADD main.py /ml/main.py
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python3 python3-pip python3-setuptools
 ADD requirements.txt /ml/requirements.txt
-RUN pip3 install -r /ml/requirements.txt
+RUN python3 -m pip install -r /ml/requirements.txt
 ADD main.py /ml/main.py
 '''
 
@@ -130,7 +130,7 @@ ADD main.py /ml/main.py
 FROM gcr.io/ngao-mlpipeline-testing/tensorflow:1.10.0
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q python python-pip python-setuptools
 ADD requirements.txt /ml/requirements.txt
-RUN pip install -r /ml/requirements.txt
+RUN python -m pip install -r /ml/requirements.txt
 ADD main.py /ml/main.py
 '''
     # check
