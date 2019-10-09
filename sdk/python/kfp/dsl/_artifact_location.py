@@ -14,6 +14,7 @@
 from typing import Dict, Union, Any
 
 from argo.models import V1alpha1ArtifactLocation, V1alpha1S3Artifact, V1alpha1Artifact
+from deprecated.sphinx import deprecated
 from kubernetes.client.models import V1SecretKeySelector
 
 
@@ -26,6 +27,7 @@ def _dict_to_secret(
     return value or V1SecretKeySelector(key="", optional=True)
 
 
+@deprecated(version='0.1.32', reason='ArtifactLocation is deprecated since SDK v0.1.32. Please configure the artifact location in the cluster configMap: https://github.com/argoproj/argo/blob/master/ARTIFACT_REPO.md#configure-the-default-artifact-repository .')
 class ArtifactLocation:
     """
     ArtifactLocation describes a location for a single or multiple artifacts.
