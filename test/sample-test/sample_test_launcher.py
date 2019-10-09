@@ -52,7 +52,7 @@ class SampleTest(object):
     # TODO(numerology): special treatment for new TFX::OSS sample. Current decision
     # is that we directly run its compiled version, for its compilation brings
     # complex and unstable dependencies. See
-    if test_name == 'parameterized_tfx_oss.yaml':
+    if test_name == 'parameterized_tfx_oss':
       self._is_notebook = False
       self._work_dir = os.path.join(BASE_DIR, 'samples/contrib/', self._test_name)
     else:
@@ -154,7 +154,7 @@ class SampleTest(object):
 
   def run_test(self):
     # TODO(numerology): ad hoc logic for TFX::OSS sample
-    if self._test_name != 'parameterized_tfx_oss.yaml':
+    if self._test_name != 'parameterized_tfx_oss':
       self._compile()
       self._injection()
 
@@ -167,7 +167,7 @@ class SampleTest(object):
       nbchecker.check()
     else:
       os.chdir(TEST_DIR)
-      if self._test_name != 'parameterized_tfx_oss.yaml':
+      if self._test_name != 'parameterized_tfx_oss':
         input_file = os.path.join(self._work_dir, '%s.yaml' % self._test_name)
       else:
         input_file = os.path.join(self._work_dir, '%s.tar.gz' % self._test_name)
