@@ -49,7 +49,7 @@ h5py,https://github.com/h5py/h5py/blob/master/LICENSE,BSD-3
 hdfs,https://github.com/mtth/hdfs/blob/master/LICENSE,MIT
 httplib2,https://github.com/httplib2/httplib2/blob/master/LICENSE,MIT
 idna,https://github.com/kjd/idna/blob/master/LICENSE.rst,BSD-3
-importlib_metadata,https://gitlab.com/python-devs/importlib_metadata/blob/master/LICENSE,Apache 2.0
+importlib-metadata,https://gitlab.com/python-devs/importlib_metadata/blob/master/LICENSE,Apache 2.0
 ipykernel,https://github.com/ipython/ipykernel/blob/master/COPYING.md,BSD-3
 ipython,https://github.com/ipython/ipython/blob/master/LICENSE,BSD-3
 ipython-genutils,https://github.com/ipython/ipython_genutils/blob/master/COPYING.md,BSD-3
