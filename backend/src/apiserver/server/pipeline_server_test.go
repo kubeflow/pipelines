@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -113,11 +112,9 @@ func TestCreatePipelineVersion_YAML(t *testing.T) {
 	// Close the server when test finishes
 	defer httpServer.Close()
 
-	fmt.Printf("JING 1\n")
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 
-	fmt.Printf("JING 2\n")
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
 	pipelineVersion, err := pipelineServer.CreatePipelineVersion(context.Background(), &api.CreatePipelineVersionRequest{
 		Version: &api.PipelineVersion{
@@ -131,7 +128,6 @@ func TestCreatePipelineVersion_YAML(t *testing.T) {
 				Relationship: api.Relationship_OWNER,
 			}}}})
 
-	fmt.Printf("JING 3\n")
 	assert.Nil(t, err)
 	assert.NotNil(t, pipelineVersion)
 	assert.Equal(t, "argument-parameters", pipelineVersion.Name)
