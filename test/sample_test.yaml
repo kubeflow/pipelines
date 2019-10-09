@@ -85,6 +85,7 @@ spec:
               - loop_output
               - loop_parameter
               - loop_static
+              - parameterized_tfx_oss.yaml
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:
