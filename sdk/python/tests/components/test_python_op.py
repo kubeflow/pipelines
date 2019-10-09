@@ -401,8 +401,15 @@ class PythonOpTestCase(unittest.TestCase):
         expected_description = 'Sum component description'
         expected_image = 'org/image'
 
-        @python_component(name=expected_name, description=expected_description, base_image=expected_image)
-        def add_two_numbers_decorated(a: float, b: float) -> float:
+        @python_component(
+            name=expected_name,
+            description=expected_description,
+            base_image=expected_image
+        )
+        def add_two_numbers_decorated(
+            a: float,
+            b: float,
+        ) -> float:
             '''Returns sum of two arguments'''
             return a + b
 
