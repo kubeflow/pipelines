@@ -102,7 +102,7 @@ def _create_test_pipeline(pipeline_root: Text, csv_input_location: Text,
               base_directory=os.path.join(pipeline_root, 'model_serving'))))
 
   return pipeline.Pipeline(
-      pipeline_name='chicago_taxi_pipeline_simple',
+      pipeline_name='parameterized_tfx_oss',
       pipeline_root=pipeline_root,
       components=[
         example_gen, statistics_gen, infer_schema, validate_stats, transform,
