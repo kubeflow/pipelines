@@ -86,7 +86,7 @@ matrix:
         - cd $TRAVIS_BUILD_DIR
         - git clone https://github.com/tensorflow/tfx.git
         - cd $TRAVIS_BUILD_DIR/tfx
-        - pip install --upgrade pip
+        - pip install pip,pip3 --upgrade
         - python setup.py install --user
       script: &1
         # Test against TFX
