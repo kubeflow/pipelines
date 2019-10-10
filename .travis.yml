@@ -74,6 +74,12 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
         - pip3 install -r requirements-test.txt
         # Latest version of TFX
+        - PROTOC_ZIP=protoc-3.7.1-linux-x86_64.zip
+        - pushd $TRAVIS_BUILD_DIR
+        - wget https://github.com/google/protobuf/releases/download/v3.7.1/${PROTOC_ZIP}
+        - unzip ${PROTOC_ZIP}
+        - bin/protoc --version
+        - popd
         - cd $TRAVIS_BUILD_DIR
         - git clone https://github.com/tensorflow/tfx.git
         - cd $TRAVIS_BUILD_DIR/tfx
