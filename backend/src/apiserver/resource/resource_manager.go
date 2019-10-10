@@ -882,12 +882,14 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	}
 
 	// Mark pipeline as deleting so it's not visible to user.
-	err = r.pipelineStore.UpdatePipelineVersionStatus(pipelineVersionId, model.PipelineVersionDeleting)
+	err = r.pipelineStore.UpdatePipelineVersionStatus(
+		pipelineVersionId, model.PipelineVersionDeleting)
 	if err != nil {
 		return util.Wrap(err, "Delete pipeline version failed")
 	}
 
-	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineVersionId)))
+	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(
+		fmt.Sprint(pipelineVersionId)))
 	if err != nil {
 		glog.Errorf(
 			"%v",
@@ -899,6 +901,5 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline DB entry for pipeline %v", pipelineVersionId))
 	}
 
-	// Change the default version if needed
 	return nil
 }
