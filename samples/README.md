@@ -94,7 +94,8 @@ Only the core samples are expected to be added to the sample test infrastructure
 placed under `test/sample-test/configs`. See 
 [`xgboost_training_cm.config.yaml`](https://github.com/kubeflow/pipelines/blob/master/test/sample-test/configs/xgboost_training_cm.config.yaml) 
 as an example. 
-The config yaml file will be validated according to `schema.config.yaml`. 
+The config yaml file will be validated according to `schema.config.yaml`. Note that an `experiment_name` is
+needed if the sample pipeline needs to run. 
 If no config yaml is provided, pipeline parameters will be substituted by their default values.
 3. Add your test name (in consistency with the file name and dir name) in 
 [`test/sample_test.yaml`](https://github.com/kubeflow/pipelines/blob/ecd93a50564652553260f8008c9a2d75ab907971/test/sample_test.yaml#L69)
