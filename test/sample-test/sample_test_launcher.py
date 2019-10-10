@@ -129,7 +129,9 @@ class SampleTest(object):
           self._run_pipeline = raw_args['run_pipeline']
 
       if self._run_pipeline:
-        nb_params['experiment_name'] = self._test_name + '-test'
+        if not raw_args['notebook_params']['experiment_name']:
+          raise ValueError('Experiment name is required if pipeline run is expected.')
+        nb_params['experiment_name'] = raw_args['notebook_params']['experiment_name']
 
       pm.execute_notebook(
           input_path='%s.ipynb' % self._test_name,

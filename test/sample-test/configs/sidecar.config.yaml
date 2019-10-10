@@ -13,5 +13,6 @@
 # limitations under the License.
 
 test_name: sidecar
+experiment_name: sidecar-test
 arguments:
   sleep_sec: 100

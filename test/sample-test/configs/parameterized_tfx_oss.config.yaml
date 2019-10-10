@@ -13,6 +13,7 @@
 # limitations under the License.
 
 test_name: parameterized_tfx_oss
+experiment_name: parameterized_tfx_oss-test
 arguments:
   output:
 run_pipeline: True

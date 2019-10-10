@@ -65,12 +65,6 @@ class PySampleChecker(object):
       print('Error: job not found.')
       exit(1)
 
-    ###### Create Experiment ######
-    experiment_name = self._testname + ' sample experiment'
-    response = self._client.create_experiment(experiment_name)
-    self._experiment_id = response.id
-    utils.add_junit_test(self._test_cases, 'create experiment', True)
-
     ###### Create Job ######
     self._job_name = self._testname + '_sample'
     ###### Figure out arguments from associated config files. #######
@@ -116,6 +110,15 @@ class PySampleChecker(object):
 
     # Submit for pipeline running.
     if self._run_pipeline:
+
+      ###### Create Experiment ######
+      experiment_name = raw_args['experiment_name']
+      if not experiment_name:
+        raise ValueError('Experiment name is required if pipeline run is expected.')
+      response = self._client.create_experiment(experiment_name)
+      self._experiment_id = response.id
+      utils.add_junit_test(self._test_cases, 'create experiment', True)
+
       response = self._client.run_pipeline(self._experiment_id, self._job_name, self._input, self._test_args)
       self._run_id = response.id
       utils.add_junit_test(self._test_cases, 'create pipeline run', True)
