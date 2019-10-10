@@ -14,6 +14,7 @@
 
 import os
 import tarfile
+import time
 import utils
 import yamale
 import yaml
@@ -111,7 +112,9 @@ class PySampleChecker(object):
 
     # TODO(numerology): Special treatment for TFX::OSS sample
     if self._testname == 'parameterized_tfx_oss':
-      self._test_args['pipeline-root'] = os.path.join(self._test_args['output'], 'tfx_taxi_simple')
+      self._test_args['pipeline-root'] = os.path.join(
+          self._test_args['output'],
+          'tfx_taxi_simple_' + str(int(time.time())))
       del self._test_args['output']
 
     # Submit for pipeline running.
