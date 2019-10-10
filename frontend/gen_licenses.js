@@ -47,6 +47,7 @@ const whitelist = new Map([
   ['jest-runtime', 'third_party/jest/LICENSE'],
   ['jest-snapshot', 'third_party/jest/LICENSE'],
   ['jest-util', 'third_party/jest/LICENSE'],
+  ['linear-layout-vector', 'third_party/linear-layout-vector/LICENSE'],
 ]);
 
 licenseChecker.init({
