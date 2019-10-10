@@ -65,7 +65,7 @@ matrix:
       python: "3.5"
       env:
         - TOXENV=py35
-        - PROTOC="$HOME"/protoc
+        - PROTOC="$HOME"/protoc/bin/protoc
       install: &0
         # Additional dependencies
         - pip3 install coverage coveralls jsonschema==3.0.1
@@ -78,7 +78,7 @@ matrix:
         # Latest version of TFX
         - curl -L https://github.com/google/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip -o /tmp/protoc.zip
         - unzip /tmp/protoc.zip -d "$HOME"/protoc
-        - mkdir -p "$HOME"/src && ln -s "$HOME"/protoc "$HOME"/src/protobuf
+        - chmod +x "$HOME"/protoc/bin/protoc
         - cd $TRAVIS_BUILD_DIR
         - git clone https://github.com/tensorflow/tfx.git
         - cd $TRAVIS_BUILD_DIR/tfx
