@@ -15,7 +15,6 @@
  */
 
 import * as React from 'react';
-import { List, AutoSizer, ListRowProps } from 'react-virtualized';
 import { fontsize, fonts } from '../Css';
 import { stylesheet } from 'typestyle';
 
@@ -54,6 +53,7 @@ const css = stylesheet({
     },
     backgroundColor: '#222',
     color: '#fff',
+    flex: 1,
     fontFamily: fonts.code,
     fontSize: fontsize.small,
     padding: '10px 0',
@@ -67,7 +67,7 @@ interface LogViewerProps {
 }
 
 class LogViewer extends React.Component<LogViewerProps> {
-  private _rootRef = React.createRef<List>();
+  private _rootRef = React.createRef<HTMLDivElement>();
 
   public componentDidMount(): void {
     this._scrollToEnd();
@@ -78,26 +78,28 @@ class LogViewer extends React.Component<LogViewerProps> {
   }
 
   public render(): JSX.Element {
-    return <AutoSizer>
-      {({ height, width }) => (
-        <List id='logViewer' width={width} height={height} rowCount={this.props.logLines.length}
-          rowHeight={15} className={css.root} ref={this._rootRef}
-          rowRenderer={this._rowRenderer.bind(this)} />
-      )}
-    </AutoSizer>;
+    return <div id='logViewer' className={css.root} ref={this._rootRef}>
+      {this.props.logLines.map((line, index) => {
+        return this._rowRenderer({
+          index,
+          key: `${index}`,
+        });
+      })}
+    </div>;
   }
 
   private _scrollToEnd(): void {
     const root = this._rootRef.current;
-    if (root) {
-      root.scrollToRow(this.props.logLines.length + 1);
+    if (root && root.parentElement) {
+      // scroll div to bottom
+      root.parentElement.scrollTop = root.parentElement.scrollHeight;
     }
   }
 
-  private _rowRenderer(props: ListRowProps): React.ReactNode {
-    const { style, key, index } = props;
+  private _rowRenderer(props: { index: number, key: string }): React.ReactElement<'div'> {
+    const { key, index } = props;
     return (
-      <div key={key} className={css.line} style={style}>
+      <div key={key} className={css.line}>
         <span className={css.number} style={this._getLineStyle(index)}>{index + 1}</span>
 
         <span className={css.line} style={this._getLineStyle(index)}>
