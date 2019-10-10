@@ -1,48 +1,38 @@
+name: Automl create dataset for tables
 description: |
   automl_create_dataset_for_tables creates an empty Dataset for AutoML tables
+inputs:
+- name: gcp_project_id
+  type: String
+- name: gcp_region
+  type: String
+- name: display_name
+  type: String
+- name: description
+  type: String
+  optional: true
+- name: tables_dataset_metadata
+  type: JsonObject
+  default: '{}'
+  optional: true
+- name: retry
+  optional: true
+- name: timeout
+  type: Float
+  optional: true
+- name: metadata
+  type: JsonObject
+  optional: true
+outputs:
+- name: dataset_path
+  type: String
+- name: create_time
+  type: String
+- name: dataset_id
+  type: String
 implementation:
   container:
-    args:
-    - --gcp-project-id
-    - inputValue: gcp_project_id
-    - --gcp-region
-    - inputValue: gcp_region
-    - --display-name
-    - inputValue: display_name
-    - if:
-        cond:
-          isPresent: description
-        then:
-        - --description
-        - inputValue: description
-    - if:
-        cond:
-          isPresent: tables_dataset_metadata
-        then:
-        - --tables-dataset-metadata
-        - inputValue: tables_dataset_metadata
-    - if:
-        cond:
-          isPresent: retry
-        then:
-        - --retry
-        - inputValue: retry
-    - if:
-        cond:
-          isPresent: timeout
-        then:
-        - --timeout
-        - inputValue: timeout
-    - if:
-        cond:
-          isPresent: metadata
-        then:
-        - --metadata
-        - inputValue: metadata
-    - '----output-paths'
-    - outputPath: dataset_path
-    - outputPath: create_time
-    - outputPath: dataset_id
+    image: python:3.7
     command:
     - python3
     - -u
@@ -116,34 +106,44 @@ implementation:
               pass
           with open(output_file, 'w') as f:
               f.write(str(_outputs[idx]))
-    image: python:3.7
-inputs:
-- name: gcp_project_id
-  type: String
-- name: gcp_region
-  type: String
-- name: display_name
-  type: String
-- name: description
-  optional: true
-  type: String
-- default: '{}'
-  name: tables_dataset_metadata
-  optional: true
-  type: JsonObject
-- name: retry
-  optional: true
-- name: timeout
-  optional: true
-  type: Float
-- name: metadata
-  optional: true
-  type: JsonObject
-name: Automl create dataset for tables
-outputs:
-- name: dataset_path
-  type: String
-- name: create_time
-  type: String
-- name: dataset_id
-  type: String
+    args:
+    - --gcp-project-id
+    - inputValue: gcp_project_id
+    - --gcp-region
+    - inputValue: gcp_region
+    - --display-name
+    - inputValue: display_name
+    - if:
+        cond:
+          isPresent: description
+        then:
+        - --description
+        - inputValue: description
+    - if:
+        cond:
+          isPresent: tables_dataset_metadata
+        then:
+        - --tables-dataset-metadata
+        - inputValue: tables_dataset_metadata
+    - if:
+        cond:
+          isPresent: retry
+        then:
+        - --retry
+        - inputValue: retry
+    - if:
+        cond:
+          isPresent: timeout
+        then:
+        - --timeout
+        - inputValue: timeout
+    - if:
+        cond:
+          isPresent: metadata
+        then:
+        - --metadata
+        - inputValue: metadata
+    - '----output-paths'
+    - outputPath: dataset_path
+    - outputPath: create_time
+    - outputPath: dataset_id

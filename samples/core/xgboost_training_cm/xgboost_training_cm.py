@@ -238,7 +238,7 @@ def xgb_train_pipeline(
     workers=2,
     true_label='ACTION',
 ):
-    output_template = str(output) + '/{{workflow.uid}}/data'
+    output_template = str(output) + '/' + dsl.EXECUTION_ID_PLACEHOLDER + '/data'
 
     # Current GCP pyspark/spark op do not provide outputs as return values, instead,
     # we need to use strings to pass the uri around.

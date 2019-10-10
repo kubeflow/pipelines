@@ -109,6 +109,11 @@ class PySampleChecker(object):
       if 'run_pipeline' in raw_args.keys():
         self._run_pipeline = raw_args['run_pipeline']
 
+    # TODO(numerology): Special treatment for TFX::OSS sample
+    if self._testname == 'parameterized_tfx_oss':
+      self._test_args['pipeline-root'] = os.path.join(self._test_args['output'], 'tfx_taxi_simple')
+      del self._test_args['output']
+
     # Submit for pipeline running.
     if self._run_pipeline:
       response = self._client.run_pipeline(self._experiment_id, self._job_name, self._input, self._test_args)

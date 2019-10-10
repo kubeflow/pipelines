@@ -65,8 +65,9 @@ matrix:
       python: "3.5"
       env: TOXENV=py35
       install: &0
+        - python3 -m pip install -r $TRAVIS_BUILD_DIR/sdk/python/requirements.txt
         # Additional dependencies
-        - pip3 install coverage coveralls jsonschema==3.0.1
+        - pip3 install coverage coveralls
         # Sample test infra dependencies
         - pip3 install minio
         - pip3 install junit_xml
@@ -77,7 +78,7 @@ matrix:
 
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
-        - python3 setup.py develop
+        - python3 -m pip install -e .
         - cd $TRAVIS_BUILD_DIR # Changing the current directory to the repo root for correct coverall paths
         - coverage run --source=kfp --append sdk/python/tests/dsl/main.py
         - coverage run --source=kfp --append sdk/python/tests/compiler/main.py

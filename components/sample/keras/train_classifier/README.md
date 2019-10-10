@@ -53,7 +53,7 @@ training_set_labels_gcs_path = os.path.join(input_data_gcs_dir, 'training_set_la
 gfile.Copy(training_set_features_local_path, training_set_features_gcs_path)
 gfile.Copy(training_set_labels_local_path, training_set_labels_gcs_path)
 
-output_model_uri_template = os.path.join(output_data_gcs_dir, '{{workflow.uid}}/{{pod.name}}/output_model_uri/data')
+output_model_uri_template = os.path.join(output_data_gcs_dir, kfp.dsl.EXECUTION_ID_PLACEHOLDER, 'output_model_uri', 'data')
 
 xor_model_config = requests.get(test_data_url_prefix + 'model_config.json').content
 
