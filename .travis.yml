@@ -87,6 +87,7 @@ matrix:
         - git clone https://github.com/tensorflow/tfx.git
         - cd $TRAVIS_BUILD_DIR/tfx
         #- python3 setup.py install
+        - pip3 install --upgrade pip
         - set -x
         - set -e
         - python3 setup.py bdist_wheel
