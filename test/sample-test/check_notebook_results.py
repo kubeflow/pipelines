@@ -21,28 +21,26 @@ from kfp import Client
 
 
 class NoteBookChecker(object):
-    def __init__(self, testname, result, run_pipeline, namespace='kubeflow'):
+    def __init__(self, testname, result, run_pipeline, experiment_name, namespace='kubeflow'):
         """ Util class for checking notebook sample test running results.
 
         :param testname: test name in the json xml.
         :param result: name of the file that stores the test result
         :param run_pipeline: whether to submit for a pipeline run.
         :param namespace: where the pipeline system is deployed.
+        :param experiment_name: Name of the experiment to monitor
         """
         self._testname = testname
         self._result = result
         self._exit_code = None
         self._run_pipeline = run_pipeline
         self._namespace = namespace
-        self._experiment_name = self._testname + '-test'
+        self._experiment_name = experiment_name
 
     def run(self):
         """ Run the notebook sample as a python script. """
-        import os
-        env = os.environ.copy()
-        env['KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'] = self._experiment_name
-        self._exit_code = str(subprocess.run(['ipython', '%s.py' % self._testname], env=env).returncode)
-
+        self._exit_code = str(
+            subprocess.call(['ipython', '%s.py' % self._testname]))
 
     def check(self):
         """ Check the pipeline running results of the notebook sample. """
