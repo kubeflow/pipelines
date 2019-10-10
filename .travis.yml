@@ -84,9 +84,11 @@ matrix:
         - sudo unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
         - rm -f $PROTOC_ZIP
         - cd $TRAVIS_BUILD_DIR
+        - pip --version
+        - sudo pip install --upgrade pip
+        - pip --version
         - git clone https://github.com/tensorflow/tfx.git
         - cd $TRAVIS_BUILD_DIR/tfx
-        - sudo pip install --upgrade pip
         #- pip3 install pip --upgrade
         - python setup.py install
       script: &1
