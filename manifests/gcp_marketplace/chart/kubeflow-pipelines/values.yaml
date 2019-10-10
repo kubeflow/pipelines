@@ -15,7 +15,7 @@ images:
   metadataenvoy: gcr.io/ml-pipeline/google/pipelines/metadataenvoy:0.1.31
 
 gcpSecretName: "user-gcp-sa"
-serviceAccountCredential: null
+serviceAccountCredential: ""
 
 managedstorage:
   enabled: false
