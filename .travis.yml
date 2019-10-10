@@ -97,7 +97,7 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/tfx
         #- python3 setup.py install
         - pip3 install --upgrade pip
-        - pip3 install tensorflow
+        - python3 -m pip install "tensorflow>=1.14,<2"
         - set -x
         - set -e
         - python3 setup.py bdist_wheel
