@@ -66,6 +66,8 @@ matrix:
       env:
         - TOXENV=py35
         #- PROTOC="$HOME"/protoc/bin/protoc
+      before_install:
+        - export PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python3.5/site-packages/
       install: &0
         # Additional dependencies
         - pip3 install coverage coveralls jsonschema==3.0.1
@@ -119,14 +121,16 @@ matrix:
       python: "3.6"
       env:
         - TOXENV=py35
-        - PROTOC="$HOME"/protoc
+      before_install:
+        - export PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python3.6/site-packages/
       install: *0
       script: *1
     - language: python
       python: "3.7"
       env:
         - TOXENV=py35
-        - PROTOC="$HOME"/protoc
+      before_install:
+        - export PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python3.7/site-packages/
       install: *0
       script: *1
     - name: "Lint Python code with flake8"
