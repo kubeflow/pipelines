@@ -134,7 +134,6 @@ def _get_kubeflow_metadata_config() -> kubeflow_pb2.KubeflowMetadataConfig:
 if __name__ == '__main__':
 
   enable_cache = True
-
   pipeline = _create_test_pipeline(
       pipeline_root,
       str(_data_root_param),
