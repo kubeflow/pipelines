@@ -16,6 +16,6 @@
 
 # Install protobuf binary.
 set -ex
-wget https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.tar.gz
-tar -xzvf protoc-3.7.1-linux-x86_64.tar.gz
+wget https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.zip
+tar -xzvf protoc-3.7.1-linux-x86_64.zip
 cd protoc-3.7.1-linux-x86_64 && ./configure --prefix=/usr && make && sudo make install
