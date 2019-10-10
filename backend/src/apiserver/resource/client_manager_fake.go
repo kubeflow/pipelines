@@ -26,8 +26,6 @@ import (
 const (
 	DefaultFakeUUID = "123e4567-e89b-12d3-a456-426655440000"
 	fakeUUIDOne     = "123e4567-e89b-12d3-a456-426655440001"
-	fakeUUIDTwo     = "123e4567-e89b-12d3-a456-426655440002"
-	fakeUUIDThree   = "123e4567-e89b-12d3-a456-426655440003"
 )
 
 type FakeClientManager struct {
