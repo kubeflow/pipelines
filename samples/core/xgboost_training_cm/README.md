@@ -10,9 +10,7 @@ or not.
 
 ## Requirements
 
-* Preprocessing uses Google Cloud DataProc. Therefore, you must enable the [DataProc API](https://cloud.google.com/endpoints/docs/openapi/enable-api) for the given GCP project.
-* Follow [GCP Service Account](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials) to create a service account with the following GCP permissions and a corresponding kubernetes secret. 
-** Dataproc
+Preprocessing uses Google Cloud DataProc. Therefore, you must enable the [DataProc API](https://cloud.google.com/endpoints/docs/openapi/enable-api) for the given GCP project.
 
 
 ## Compile

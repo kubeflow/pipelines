@@ -17,13 +17,6 @@ Finally, run `python setup.py install` from `tfx/tfx`. After that, running
 This pipeline requires google storage permission to run. 
 
 
-## Requirements
-
-* It uses Google Cloud DataProc. Therefore, you must enable the [Google Cloud API](https://cloud.google.com/endpoints/docs/openapi/enable-api) for the given GCP project.
-* Follow [GCP Service Account](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials) to create a service account with the following GCP permissions and a corresponding kubernetes secret. 
-** GCS
-** Dataproc
-
 ## Caveats
 
 This sample uses pipeline parameters in a TFX pipeline, which is not yet fully supported. 
