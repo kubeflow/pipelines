@@ -47,11 +47,20 @@ class SampleTest(object):
     # Capture the first segment after gs:// as the project name.
     self._bucket_name = results_gcs_dir.split('/')[2]
     self._target_image_prefix = target_image_prefix
-    self._is_notebook = None
     self._namespace = namespace
+
+    # TODO(numerology): special treatment for new TFX::OSS sample. Current decision
+    # is that we directly run its compiled version, for its compilation brings
+    # complex and unstable dependencies. See
+    if test_name == 'parameterized_tfx_oss':
+      self._is_notebook = False
+      self._work_dir = os.path.join(BASE_DIR, 'samples/contrib/', self._test_name)
+    else:
+      self._is_notebook = None
+      self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
+
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
     self._sample_test_output = self._results_gcs_dir
-    self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
 
   def _copy_result(self):
     """ Copy generated sample test result to gcs, so that Prow can pick it. """
@@ -144,8 +153,11 @@ class SampleTest(object):
     pass
 
   def run_test(self):
-    self._compile()
-    self._injection()
+    # TODO(numerology): ad hoc logic for TFX::OSS sample
+    if self._test_name != 'parameterized_tfx_oss':
+      self._compile()
+      self._injection()
+
     if self._is_notebook:
       nbchecker = NoteBookChecker(testname=self._test_name,
                                   result=self._sample_test_result,
@@ -155,10 +167,13 @@ class SampleTest(object):
       nbchecker.check()
     else:
       os.chdir(TEST_DIR)
+      if self._test_name != 'parameterized_tfx_oss':
+        input_file = os.path.join(self._work_dir, '%s.yaml' % self._test_name)
+      else:
+        input_file = os.path.join(self._work_dir, '%s.tar.gz' % self._test_name)
+
       pysample_checker = PySampleChecker(testname=self._test_name,
-                                         input=os.path.join(
-                                             self._work_dir,
-                                             '%s.yaml' % self._test_name),
+                                         input=input_file,
                                          output=self._sample_test_output,
                                          result=self._sample_test_result,
                                          namespace=self._namespace)

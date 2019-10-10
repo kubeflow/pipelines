@@ -85,8 +85,8 @@ x-google-marketplace:
     resources:
     - replicas: 3
       requests:
-        cpu: 2
-        memory: 4Gi
+        cpu: 4
+        memory: 8Gi
       affinity:
         simpleNodeAffinity:
           type: REQUIRE_ONE_NODE_PER_REPLICA
@@ -100,20 +100,8 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
-  serviceAccountCredential:
-    title: |-
-     GCP Service Account credentials used to call other GCP services.
-    description: |-
-      This deployment requires a service account to use for authentication when calling other GCP services. 
-      Specify the base64-encoded credentials for the service account you want to use. 
-      You can get these credentials by running the following command in a terminal window. 
-      \"$ gcloud iam service-accounts keys create application_default_credentials.json --iam-account [your-service-account] && cat application_default_credentials.json | base64\"
-      If you are using Linux, please use \"base64 -w 0\" to disable line wrapping.
-    type: string
-    default: ""
-    x-google-marketplace:
-      type: STRING
+
 required:
   - name
   - namespace
-  - serviceAccountCredential
+
