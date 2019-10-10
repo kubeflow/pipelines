@@ -49,6 +49,7 @@ h5py,https://github.com/h5py/h5py/blob/master/LICENSE,BSD-3
 hdfs,https://github.com/mtth/hdfs/blob/master/LICENSE,MIT
 httplib2,https://github.com/httplib2/httplib2/blob/master/LICENSE,MIT
 idna,https://github.com/kjd/idna/blob/master/LICENSE.rst,BSD-3
+importlib-metadata,https://gitlab.com/python-devs/importlib_metadata/blob/master/LICENSE,Apache 2.0
 ipykernel,https://github.com/ipython/ipykernel/blob/master/COPYING.md,BSD-3
 ipython,https://github.com/ipython/ipython/blob/master/LICENSE,BSD-3
 ipython-genutils,https://github.com/ipython/ipython_genutils/blob/master/COPYING.md,BSD-3
@@ -56,6 +57,7 @@ ipywidgets,https://github.com/jupyter-widgets/ipywidgets/blob/master/LICENSE,BSD
 itables,https://github.com/mwouts/itables/blob/master/LICENSE,MIT
 jedi,https://github.com/davidhalter/jedi/blob/master/LICENSE.txt,MIT
 joblib,https://github.com/joblib/joblib/blob/master/LICENSE.txt,BSD-3
+js-regex,https://github.com/Zac-HD/js-regex/blob/master/LICENSE,Mozilla 2.0
 jsonschema,https://github.com/Julian/jsonschema/blob/master/COPYING,MIT
 jupyter,https://github.com/jupyter/jupyter/blob/master/LICENSE,BSD-3
 jupyter-client,https://github.com/jupyter/jupyter_client/blob/master/COPYING.md,BSD-3
@@ -64,6 +66,7 @@ jupyter-core,https://github.com/jupyter/jupyter_core/blob/master/COPYING.md,BSD-
 mistune,https://github.com/lepture/mistune/blob/master/LICENSE,BSD-3
 mock,https://github.com/testing-cabal/mock/blob/master/LICENSE.txt,BSD-2
 monotonic,https://github.com/atdt/monotonic/blob/master/LICENSE,Apache 2.0
+more-itertools,https://github.com/erikrose/more-itertools/blob/master/LICENSE,MIT
 nbconvert,https://github.com/jupyter/nbconvert/blob/master/LICENSE,BSD-3
 nbformat,https://github.com/jupyter/nbformat/blob/master/COPYING.md,BSD-3
 notebook,https://github.com/jupyter/notebook/blob/master/COPYING.md,BSD-3
@@ -116,3 +119,4 @@ urllib3,https://github.com/urllib3/urllib3/blob/master/LICENSE.txt,MIT
 wcwidth,https://github.com/jquast/wcwidth/blob/master/LICENSE.txt,MIT
 webencodings,https://github.com/gsnedders/python-webencodings/blob/master/LICENSE,BSD-3
 widgetsnbextension,https://github.com/jupyter-widgets/ipywidgets/blob/master/widgetsnbextension/LICENSE,BSD-3
+zipp,https://github.com/jaraco/zipp/blob/master/LICENSE,MIT

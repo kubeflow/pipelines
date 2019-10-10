@@ -15,9 +15,10 @@ import logging
 
 from common import _utils
 
-def main(argv=None):
+def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Training Job')
-  parser.add_argument('--region', type=str.strip, required=True, help='The region where the cluster launches.')
+  _utils.add_default_client_arguments(parser)
+  
   parser.add_argument('--endpoint_config_name', type=str.strip, required=False, help='The name of the endpoint configuration.', default='')
   parser.add_argument('--variant_name_1', type=str.strip, required=False, help='The name of the production variant.', default='variant-name-1')
   parser.add_argument('--model_name_1', type=str.strip, required=True, help='The model name used for endpoint deployment.')
@@ -48,10 +49,15 @@ def main(argv=None):
 
   parser.add_argument('--endpoint_name', type=str.strip, required=False, help='The name of the endpoint.', default='')
   parser.add_argument('--endpoint_tags', type=_utils.str_to_json_dict, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
+
+  return parser
+
+def main(argv=None):
+  parser = create_parser()
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_client(args.region)
+  client = _utils.get_sagemaker_client(args.region, args.endpoint_url)
   logging.info('Submitting Endpoint request to SageMaker...')
   endpoint_name = _utils.deploy_model(client, vars(args))
   logging.info('Endpoint creation request submitted. Waiting for completion...')

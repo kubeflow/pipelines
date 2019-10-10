@@ -8,13 +8,15 @@ inputs:
   - {name: Canary Model Traffic Percentage, type: String, default: '0',        description: 'Optional Traffic to be sent to default model'}
   - {name: Namespace,                       type: String, default: 'kubeflow', description: 'Kubernetes namespace where the KFServing service is deployed.'}
   - {name: Framework,                       type: String, default: 'tensorflow', description: 'Machine Learning Framework for Model Serving.'}
-  - {name: default_custom_model_spec,       type: String, default: '{}', description: 'Custom runtime default custom model container spec.'}
-  - {name: canary_custom_model_spec,        type: String, default: '{}', description: 'Custom runtime canary custom model container spec.'}
+  - {name: Default Custom Model Spec,       type: String, default: '{}', description: 'Custom runtime default custom model container spec.'}
+  - {name: Canary Custom Model Spec,        type: String, default: '{}', description: 'Custom runtime canary custom model container spec.'}
+  - {name: Autoscaling Target,              type: String, default: '0',        description: 'Autoscaling Target Number'}
+  - {name: KFServing Endpoint,              type: String, default: '', description: 'KFServing remote deployer API endpoint'}
 outputs:
   - {name: Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
 implementation:
   container:
-    image: animeshsingh/kfserving-component
+    image: aipipeline/kfserving-component:v0.1.0
     command: ['python']
     args: [
       -u, kfservingdeployer.py,
@@ -25,7 +27,9 @@ implementation:
       --canary-model-traffic,     {inputValue: Canary Model Traffic Percentage},
       --namespace,                {inputValue: Namespace},
       --framework,                {inputValue: Framework},
-      --default-custom-model-spec,{inputValue: default_custom_model_spec},
-      --canary-custom-model-spec, {inputValue: canary_custom_model_spec},
+      --default-custom-model-spec,{inputValue: Default Custom Model Spec},
+      --canary-custom-model-spec, {inputValue: Canary Custom Model Spec},
+      --kfserving-deployer-api,   {inputValue: KFServing Endpoint},
+      --autoscaling-target,       {inputValue: Autoscaling Target},
       --output_path,              {outputPath: Endpoint URI}
     ]

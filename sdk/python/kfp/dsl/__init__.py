@@ -14,7 +14,7 @@
 
 
 from ._pipeline_param import PipelineParam, match_serialized_pipelineparam
-from ._pipeline import Pipeline, pipeline, get_pipeline_conf
+from ._pipeline import Pipeline, pipeline, get_pipeline_conf, PipelineConf
 from ._container_op import ContainerOp, InputArgumentPath, UserContainer, Sidecar
 from ._resource_op import ResourceOp
 from ._volume_op import (
@@ -25,3 +25,6 @@ from ._volume_snapshot_op import VolumeSnapshotOp
 from ._ops_group import OpsGroup, ExitHandler, Condition, ParallelFor
 from ._component import python_component, graph_component, component
 from ._artifact_location import ArtifactLocation
+
+EXECUTION_ID_PLACEHOLDER = '{{workflow.uid}}-{{pod.name}}'
+RUN_ID_PLACEHOLDER = '{{workflow.uid}}'

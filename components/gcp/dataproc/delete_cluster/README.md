@@ -1,28 +1,43 @@
 
 # Name
 
-Data preparation by deleting a cluster in Cloud Dataproc
+Component: Data preparation by deleting a cluster in Cloud Dataproc
 
 # Label
-Cloud Dataproc, cluster, GCP, Cloud Storage, Kubeflow, Pipeline
+Cloud Dataproc, Kubeflow
 
 
 # Summary
-A Kubeflow Pipeline component to delete a cluster in Cloud Dataproc.
+A Kubeflow pipeline component to delete a cluster in Cloud Dataproc.
 
 ## Intended use
-Use this component at the start of a Kubeflow Pipeline to delete a temporary Cloud Dataproc cluster 
-to run Cloud Dataproc jobs as steps in the pipeline. This component is usually used with an 
-[exit handler](https://github.com/kubeflow/pipelines/blob/master/samples/core/exit_handler/exit_handler.py) to run at the end of a pipeline.
+Use this component at the start of a Kubeflow pipeline to delete a temporary Cloud Dataproc cluster when running Cloud Dataproc jobs as steps in the pipeline. This component is usually used with an [exit handler](https://github.com/kubeflow/pipelines/blob/master/samples/core/exit_handler/exit_handler.py) to run at the end of a pipeline.
 
+# Facets
+<!--Make sure the asset has data for the following facets:
+Use case
+Technique
+Input data type
+ML workflow
+
+The data must map to the acceptable values for these facets, as documented on the “taxonomy” sheet of go/aihub-facets
+https://gitlab.aihub-content-external.com/aihubbot/kfp-components/commit/fe387ab46181b5d4c7425dcb8032cb43e70411c1
+--->
+Use case:
+
+Technique: 
+
+Input data type:
+
+ML workflow: 
 
 ## Runtime arguments
 | Argument | Description | Optional | Data type | Accepted values | Default |
-|----------|-------------|----------|-----------|-----------------|---------|
-| project_id | The Google Cloud Platform (GCP) project ID that the cluster belongs to. | No | GCPProjectID |  |  |
-| region | The Cloud Dataproc region in which to handle the request. | No | GCPRegion |  |  |
-| name | The name of the cluster to delete. | No | String |  |  |
-| wait_interval | The number of seconds to pause between polling the operation. | Yes | Integer |  | 30 |
+|:----------|:-------------|:----------|:-----------|:-----------------|:---------|
+| project_id | The Google Cloud Platform (GCP) project ID that the cluster belongs to. | No | GCPProjectID | - | -  |
+| region | The Cloud Dataproc region in which to handle the request. | No | GCPRegion | -  | -  |
+| name | The name of the cluster to delete. | No | String |  - | -  |
+| wait_interval | The number of seconds to pause between polling the operation. | Yes | Integer |  - | 30 |
 
 
 ## Cautions & requirements
@@ -33,36 +48,35 @@ To use the component, you must:
     ```
     component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
     ```
-*   Grant the Kubeflow user service account the role `roles/dataproc.editor` on the project.
+*   Grant the Kubeflow user service account the role, `roles/dataproc.editor`, on the project.
 
 ## Detailed description
 This component deletes a Dataproc cluster by using [Dataproc delete cluster REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.clusters/delete).
 
 Follow these steps to use the component in a pipeline:
-1.  Install the Kubeflow Pipeline SDK:
+1.  Install the Kubeflow pipeline's SDK:
 
 
-```python
-%%capture --no-stderr
+    ```python
+    %%capture --no-stderr
 
-KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-!pip3 install $KFP_PACKAGE --upgrade
-```
+    KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
+    !pip3 install $KFP_PACKAGE --upgrade
+    ```
 
-2. Load the component using KFP SDK
+2. Load the component using the Kubeflow pipeline's SDK:
 
 
-```python
-import kfp.components as comp
+    ```python
+    import kfp.components as comp
 
-dataproc_delete_cluster_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/delete_cluster/component.yaml')
-help(dataproc_delete_cluster_op)
-```
+    dataproc_delete_cluster_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/delete_cluster/component.yaml')
+    help(dataproc_delete_cluster_op)
+    ```
 
 ### Sample
 
-Note: The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
+The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
 
 #### Prerequisites
 
@@ -72,8 +86,8 @@ Note: The following sample code works in an IPython notebook or directly in Pyth
 
 
 ```python
-PROJECT_ID = '<Please put your project ID here>'
-CLUSTER_NAME = '<Please put your existing cluster name here>'
+PROJECT_ID = '<Put your project ID here>'
+CLUSTER_NAME = '<Put your existing cluster name here>'
 
 REGION = 'us-central1'
 EXPERIMENT_NAME = 'Dataproc - Delete Cluster'
@@ -115,10 +129,10 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
 
 ```python
-#Specify pipeline argument values
+#Specify values for the pipeline's arguments
 arguments = {}
 
-#Get or create an experiment and submit a pipeline run
+#Get or create an experiment
 import kfp
 client = kfp.Client()
 experiment = client.create_experiment(EXPERIMENT_NAME)

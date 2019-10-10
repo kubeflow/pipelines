@@ -82,6 +82,12 @@ spec:
               - volume_snapshot_ops
               - kubeflow_tf_serving
               - component_build
+              - loop_output
+              - loop_parameter
+              - loop_static
+              - resource_ops
+              - ai_platform
+              - parameterized_tfx_oss
     # Build and push image
     - name: build-image-by-dockerfile
       inputs:

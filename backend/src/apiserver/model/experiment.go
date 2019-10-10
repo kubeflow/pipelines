@@ -37,3 +37,8 @@ var experimentAPIToModelFieldMap = map[string]string{
 func (e *Experiment) APIToModelFieldMap() map[string]string {
 	return experimentAPIToModelFieldMap
 }
+
+// GetModelName returns table name used as sort field prefix
+func (e *Experiment) GetModelName() string {
+	return "experiments"
+}

@@ -105,31 +105,46 @@ inputs:
   - name: traffic_encryption
     description: 'Encrypts all communications between ML compute instances in distributed training.'
     default: 'False'
+  - name: spot_instance
+    description: 'Use managed spot training.'
+    default: 'False'
+  - name: max_wait_time
+    description: 'The maximum time in seconds you are willing to wait for a managed spot training job to complete.'
+    default: '86400'
+  - name: checkpoint_config
+    description: 'Dictionary of information about the output location for managed spot training checkpoint data.'
+    default: '{}'
   - name: warm_start_type
     description: 'Specifies either "IdenticalDataAndAlgorithm" or "TransferLearning"'
     default: ''
   - name: parent_hpo_jobs
     description: 'List of previously completed or stopped hyperparameter tuning jobs to be used as a starting point.'
     default: ''
+  - name: endpoint_url
+    description: 'The endpoint URL for the private link VPC endpoint.'
+    default: ''
   - name: tags
     description: 'Key-value pairs, to categorize AWS resources.'
     default: '{}'
 outputs:
+  - name: hpo_job_name
+    description: 'The name of the hyper parameter tuning job'
   - name: model_artifact_url
     description: 'Model artifacts url'
   - name: best_job_name
-    description: 'Best training job in the hyperparameter tuning job'
+    description: 'Best training job in the hyper parameter tuning job'
   - name: best_hyperparameters
     description: 'Tuned hyperparameters'
   - name: training_image
     description: 'The registry path of the Docker image that contains the training algorithm'
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190809-02
+    image: redbackthomson/aws-kubeflow-sagemaker:20191003
     command: ['python']
     args: [
       hyperparameter_tuning.py,
       --region, {inputValue: region},
+      --endpoint_url, {inputValue: endpoint_url},
       --job_name, {inputValue: job_name},
       --role, {inputValue: role},
       --image, {inputValue: image},
@@ -166,11 +181,15 @@ implementation:
       --vpc_subnets, {inputValue: vpc_subnets},
       --network_isolation, {inputValue: network_isolation},
       --traffic_encryption, {inputValue: traffic_encryption},
+      --spot_instance, {inputValue: spot_instance},
+      --max_wait_time, {inputValue: max_wait_time},
+      --checkpoint_config, {inputValue: checkpoint_config},
       --warm_start_type, {inputValue: warm_start_type},
       --parent_hpo_jobs, {inputValue: parent_hpo_jobs},
       --tags, {inputValue: tags}
     ]
     fileOutputs:
+      hpo_job_name: /tmp/hpo_job_name.txt
       model_artifact_url: /tmp/model_artifact_url.txt
       best_job_name: /tmp/best_job_name.txt
       best_hyperparameters: /tmp/best_hyperparameters.txt

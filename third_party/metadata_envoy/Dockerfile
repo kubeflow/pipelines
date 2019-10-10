@@ -15,18 +15,13 @@
 FROM envoyproxy/envoy:latest
 
 RUN apt-get update -y && \
-  apt-get install --no-install-recommends -y -q python python-pip python-setuptools gettext
-RUN pip install wget
+  apt-get install --no-install-recommends -y -q gettext
 
 COPY third_party/metadata_envoy/envoy.yaml /etc/envoy.yaml
 
 # Copy license files.
-ADD third_party/metadata_envoy /scratch
-RUN python /scratch/dependency_helper.py /scratch/dependencies.json
-RUN rm -rf /scratch
-
-RUN pip uninstall --yes wget
-RUN apt-get remove --yes --purge python-setuptools  python-pip python
+#RUN mkdir -p /third_party
+COPY third_party/metadata_envoy/license.txt /third_party/license.txt
 
 ENTRYPOINT ["/usr/local/bin/envoy", "-c"]
 CMD ["/etc/envoy.yaml"]
