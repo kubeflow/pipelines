@@ -63,7 +63,9 @@ matrix:
         - ./run_test.sh
     - language: python
       python: "3.5"
-      env: TOXENV=py35
+      env:
+        - TOXENV=py35
+        - PROTOC="$HOME"/protoc
       install: &0
         # Additional dependencies
         - pip3 install coverage coveralls jsonschema==3.0.1
@@ -113,12 +115,16 @@ matrix:
         - python3 -m unittest utils_tests.py
     - language: python
       python: "3.6"
-      env: TOXENV=py36
+      env:
+        - TOXENV=py35
+        - PROTOC="$HOME"/protoc
       install: *0
       script: *1
     - language: python
       python: "3.7"
-      env: TOXENV=py37
+      env:
+        - TOXENV=py35
+        - PROTOC="$HOME"/protoc
       install: *0
       script: *1
     - name: "Lint Python code with flake8"
