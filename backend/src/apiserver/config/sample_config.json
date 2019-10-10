@@ -1,7 +1,7 @@
 [
   {
     "name":"[Sample] ML - XGBoost - Training with Confusion Matrix",
-    "description":"A trainer that does end-to-end distributed training for XGBoost models. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost-spark",
+    "description":"A trainer that does end-to-end distributed training for XGBoost models. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost-spark. Note that this sample requires: 1) Enable the DataProc API: https://cloud.google.com/endpoints/docs/openapi/enable-api for the given GCP project.; 2) Follow GCP Service Account: https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials to create a service account with the Dataproc permissions and a corresponding kubernetes secret.",
     "file":"/samples/core/xgboost_training_cm/xgboost_training_cm.py.tar.gz"
   },
   {
