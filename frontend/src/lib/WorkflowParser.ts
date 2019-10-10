@@ -177,10 +177,10 @@ export default class WorkflowParser {
     const node = workflow.status.nodes[nodeId];
     const inputsOutputs: [paramList, paramList] = [[], []];
     if (node.inputs && node.inputs.parameters) {
-      inputsOutputs[0] = node.inputs.parameters.map(p => [p.name, p.value || ''] as [string?, string?]);
+      inputsOutputs[0] = node.inputs.parameters.map(p => [p.name, p.value || ''] );
     }
     if (node.outputs && node.outputs.parameters) {
-      inputsOutputs[1] = node.outputs.parameters.map(p => [p.name, p.value || ''] as [string?, string?]);
+      inputsOutputs[1] = node.outputs.parameters.map(p => [p.name, p.value || ''] );
     }
     return inputsOutputs;
   }
@@ -197,10 +197,10 @@ export default class WorkflowParser {
     const node = workflow.status.nodes[nodeId];
     const inputsArtifacts: [paramList, paramList] = [[], []];
     if (node.inputs && node.inputs.artifacts) {
-      inputsArtifacts[0] = node.inputs.artifacts.map(p => [p.name, p.s3] as [string?, S3Artifact?]);
+      inputsArtifacts[0] = node.inputs.artifacts.map(p => [p.name, p.s3] );
     }
     if (node.outputs && node.outputs.artifacts) {
-      inputsArtifacts[1] = node.outputs.artifacts.map(p => [p.name, p.s3] as [string?, S3Artifact?]);
+      inputsArtifacts[1] = node.outputs.artifacts.map(p => [p.name, p.s3] );
     }
     return inputsArtifacts;
   }  
@@ -216,7 +216,7 @@ export default class WorkflowParser {
     const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
     let volumeMounts: Array<[string?, string?]> = [];
     if (tmpl && tmpl.container && tmpl.container.volumeMounts) {
-      volumeMounts = tmpl.container.volumeMounts.map(v => [v.mountPath, v.name] as [string?, string?]);
+      volumeMounts = tmpl.container.volumeMounts.map(v => [v.mountPath, v.name] );
     }
     return volumeMounts;
   }

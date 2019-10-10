@@ -21,7 +21,7 @@ import CircularProgress from '@material-ui/core/CircularProgress';
 import CompareTable from '../components/CompareTable';
 import CompareUtils from '../lib/CompareUtils';
 import DetailsTable from '../components/DetailsTable';
-import S3ArtifactLink from '../components/S3ArtifactLink';
+import MinioArtifactLink from '../components/MinioArtifactLink';
 import Graph from '../components/Graph';
 import Hr from '../atoms/Hr';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
@@ -267,14 +267,14 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
                               <DetailsTable title='Input artifacts'
                                 fields={nodeInputOutputArtifacts[0]} 
-                                valueComponent={S3ArtifactLink} />
+                                valueComponent={MinioArtifactLink} />
 
                               <DetailsTable title='Output parameters'
                                 fields={nodeInputOutputParams[1]} />
 
                               <DetailsTable title='Output artifacts'
                                 fields={nodeInputOutputArtifacts[1]}
-                                valueComponent={S3ArtifactLink} />
+                                valueComponent={MinioArtifactLink} />
                             </div>
                           )}
 
@@ -387,7 +387,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
 
                   {workflowParameters && !!workflowParameters.length && (<div>
                     <DetailsTable title='Run parameters'
-                      fields={workflowParameters.map(p => [p.name, p.value || ''] as [string, string])} />
+                      fields={workflowParameters.map(p => [p.name, p.value || ''])} />
                   </div>)}
                 </div>
               )}

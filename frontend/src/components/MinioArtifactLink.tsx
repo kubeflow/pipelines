@@ -9,11 +9,11 @@ const artifactApiUri = ({ source, bucket, key }: StoragePath) =>
 /**
  * A component that renders an artifact link.
  */
-const S3ArtifactLink: React.FC<S3Artifact> = (
+const MinioArtifactLink: React.FC<S3Artifact> = (
   s3artifact
 ) => {
   if (!s3artifact || !s3artifact.key || !s3artifact.bucket) {
-    return <>{}</>;
+    return null;
   }
 
   const { key, bucket, endpoint } = s3artifact;
@@ -28,4 +28,4 @@ const S3ArtifactLink: React.FC<S3Artifact> = (
   
 };
 
-export default S3ArtifactLink;
+export default MinioArtifactLink;

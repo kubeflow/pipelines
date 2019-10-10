@@ -56,7 +56,7 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
     info.args = template.container.args || [],
     info.command = template.container.command || [],
     info.image = template.container.image || '';
-    info.volumeMounts = (template.container.volumeMounts || []).map(v => [v.mountPath, v.name] as [string, string]);
+    info.volumeMounts = (template.container.volumeMounts || []).map(v => [v.mountPath, v.name]);
   } else {
     info.nodeType = 'resource';
     if (template.resource && template.resource.action && template.resource.manifest) {
@@ -68,7 +68,7 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
 
   if (template.inputs) {
     info.inputs =
-      (template.inputs.parameters || []).map(p => [p.name, p.value || ''] as [string, string]);
+      (template.inputs.parameters || []).map(p => [p.name, p.value || '']);
   }
   if (template.outputs) {
     info.outputs = (template.outputs.parameters || []).map(p => {
@@ -78,7 +78,7 @@ export function _populateInfoFromTemplate(info: SelectedNodeInfo, template?: Tem
       } else if (p.valueFrom) {
         value = p.valueFrom.jqFilter || p.valueFrom.jsonPath || p.valueFrom.parameter || p.valueFrom.path || '';
       }
-      return [p.name, value] as [string, string];
+      return [p.name, value];
     });
   }
 
