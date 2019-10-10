@@ -87,7 +87,8 @@ spec:
               - loop_static
               - resource_ops
               - multiple_outputs
-              - ai_platform
+              # (TODO): temporary disabled due to permission issue.
+              # - ai_platform
               - parameterized_tfx_oss
     # Build and push image
     - name: build-image-by-dockerfile
