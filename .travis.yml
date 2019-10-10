@@ -88,6 +88,7 @@ matrix:
         - cd $TRAVIS_BUILD_DIR/tfx
         #- python3 setup.py install
         - pip3 install --upgrade pip
+        - pip3 install tensorflow
         - set -x
         - set -e
         - python3 setup.py bdist_wheel
@@ -96,11 +97,6 @@ matrix:
         - set +e
         - set +x
       script: &1
-        # Test against TFX
-        - cd $TRAVIS_BUILD_DIR/tfx/tfx/orchestration/kubeflow
-        - python3 kubeflow_dag_runner_test.py
-        - cd $TRAVIS_BUILD_DIR/tfx/tfx/examples/chicago_taxi_pipeline
-        - python3 taxi_pipeline_kubeflow_test.py
         # DSL tests
         - cd $TRAVIS_BUILD_DIR/sdk/python
         - python3 setup.py develop
@@ -109,6 +105,12 @@ matrix:
         - coverage run --source=kfp --append sdk/python/tests/compiler/main.py
         - coverage run --source=kfp --append -m unittest discover --verbose --start-dir sdk/python/tests --top-level-directory=sdk/python
         - coveralls
+
+        # Test against TFX
+        - cd $TRAVIS_BUILD_DIR/tfx/tfx/orchestration/kubeflow
+        - python3 kubeflow_dag_runner_test.py
+        - cd $TRAVIS_BUILD_DIR/tfx/tfx/examples/chicago_taxi_pipeline
+        - python3 taxi_pipeline_kubeflow_test.py
 
         # Visualization test
         - cd $TRAVIS_BUILD_DIR/backend/src/apiserver/visualization
