@@ -102,7 +102,7 @@ matrix:
         - set -e
         - python3 setup.py bdist_wheel
         - WHEEL_PATH=$(find dist -name "tfx-*.whl")
-        - pip3 install "${WHEEL_PATH}"
+        - python3 -m pip install "${WHEEL_PATH}" --upgrade
         - set +e
         - set +x
         - cd $TRAVIS_BUILD_DIR/tfx/tfx/orchestration/kubeflow
