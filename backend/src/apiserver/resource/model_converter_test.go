@@ -231,39 +231,6 @@ func TestToModelResourceReferences_ReferredExperimentNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to find the referred resource")
 }
 
-// func TestToModelPipelineVersion(t *testing.T) {
-// 	store, manager := initResourceManager()
-// 	defer store.Close()
-// 	apiPipelineVersion := &api.PipelineVersion{
-// 		Id:            "pipelineversion1",
-// 		CreatedAt:     &timestamp.Timestamp{Seconds: 1},
-// 		Parameters:    []*api.Parameter{},
-// 		CodeSourceUrl: "http://repo/11111",
-// 		ResourceReferences: []*api.ResourceReference{
-// 			&api.ResourceReference{
-// 				Key: &api.ResourceKey{
-// 					Id:   "pipeline1",
-// 					Type: api.ResourceType_PIPELINE,
-// 				},
-// 				Relationship: api.Relationship_OWNER,
-// 			},
-// 		},
-// 	}
-
-// 	convertedModelPipelineVersion, _ := manager.ToModelPipelineVersion(
-// 		apiPipelineVersion)
-
-// 	expectedModelPipelineVersion := &model.PipelineVersion{
-// 		UUID:           "pipelineversion1",
-// 		CreatedAtInSec: 1,
-// 		Parameters:     "",
-// 		PipelineId:     "pipeline1",
-// 		CodeSourceUrl:  "http://repo/11111",
-// 	}
-
-// 	assert.Equal(t, convertedModelPipelineVersion, expectedModelPipelineVersion)
-// }
-
 func TestToModelPipelineVersion(t *testing.T) {
 	store, manager := initResourceManager()
 	defer store.Close()

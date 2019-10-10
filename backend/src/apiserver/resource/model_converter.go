@@ -111,28 +111,6 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	}, nil
 }
 
-// func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (*model.PipelineVersion, error) {
-// 	paramStr, err := toModelParameters(version.Parameters)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	for _, resourceReference := range version.ResourceReferences {
-// 		if resourceReference.Key.Type == api.ResourceType_PIPELINE {
-// 			return &model.PipelineVersion{
-// 				UUID:          string(version.Id),
-// 				Name:          version.Name,
-// 				Parameters:    paramStr,
-// 				PipelineId:    resourceReference.Key.Id,
-// 				CodeSourceUrl: version.CodeSourceUrl,
-// 			}, nil
-// 		}
-// 	}
-
-// 	return nil, util.NewInvalidInputError("Please specify a valid pipeline Id")
-
-// }
-
 func (r *ResourceManager) ToModelPipelineVersion(version *api.PipelineVersion) (*model.PipelineVersion, error) {
 	paramStr, err := toModelParameters(version.Parameters)
 	if err != nil {
