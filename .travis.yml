@@ -63,8 +63,7 @@ matrix:
         - ./run_test.sh
     - language: python
       python: "3.5"
-      env:
-        - TOXENV=py35
+      env: TOXENV=py35
       before_install:
         - export PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python3.5/site-packages/
       install: &0
@@ -129,16 +128,14 @@ matrix:
         - python3 -m unittest utils_tests.py
     - language: python
       python: "3.6"
-      env:
-        - TOXENV=py36
+      env: TOXENV=py36
       before_install:
         - export PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python3.6/site-packages/
       install: *0
       script: *1
     - language: python
       python: "3.7"
-      env:
-        - TOXENV=py37
+      env: TOXENV=py37
       before_install:
         - export PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python3.7/site-packages/
       install: *0
