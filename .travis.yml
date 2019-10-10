@@ -87,10 +87,11 @@ matrix:
         - pip --version
         - sudo pip install --upgrade pip
         - pip install setuptools --upgrade
+        - sudo pip3 install --upgrade pip
         - git clone https://github.com/tensorflow/tfx.git
         - cd $TRAVIS_BUILD_DIR/tfx
         #- pip3 install pip --upgrade
-        - python setup.py install
+        - python3 setup.py install
       script: &1
         # Test against TFX
         - cd $TRAVIS_BUILD_DIR/tfx/tfx/orchestration/kubeflow
