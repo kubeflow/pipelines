@@ -16,6 +16,7 @@ Finally, run `python setup.py install` from `tfx/tfx`. After that, running
 `chicago_taxi_pipeline_simple.py` compiles the TFX pipeline into KFP pipeline package.
 This pipeline requires google storage permission to run. 
 
+
 ## Caveats
 
 This sample uses pipeline parameters in a TFX pipeline, which is not yet fully supported. 
