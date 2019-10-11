@@ -65,27 +65,6 @@ def delete_directory_from_gcs(dir_path):
 # The following classes should be provided by components provider.
 
 
-# def dataproc_create_cluster_op(
-#     project,
-#     region,
-#     staging,
-#     cluster_name='xgb-{{workflow.name}}'
-# ):
-#   return dsl.ContainerOp(
-#       name='Dataproc - Create cluster',
-#       image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:57d9f7f1cfd458e945d297957621716062d89a49',
-#       arguments=[
-#         '--project', project,
-#         '--region', region,
-#         '--name', cluster_name,
-#         '--staging', staging,
-#       ],
-#       file_outputs={
-#         'output': '/output.txt',
-#       }
-#   )
-
-
 def dataproc_analyze_op(
     project,
     region,
