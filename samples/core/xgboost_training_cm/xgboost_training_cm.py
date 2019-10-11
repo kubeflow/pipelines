@@ -108,7 +108,7 @@ def dataproc_analyze_op(
       cluster_name=cluster_name,
       main_python_file_uri=os.path.join(_PYSRC_PREFIX, 'analyze/analyze_run.py'),
       args=['--output', str(output), '--train', str(train_data), '--schema', str(schema)]
-  ).set_display_name('Analyzer')
+  )
 
 
 def dataproc_transform_op(
@@ -154,7 +154,7 @@ def dataproc_transform_op(
         str(train_data),
         '--eval',
         str(eval_data)
-      ]).set_display_name('Transformer')
+      ])
 
 
 def dataproc_train_op(
@@ -191,7 +191,7 @@ def dataproc_train_op(
         str(train_data),
         str(eval_data),
         str(output)
-      ])).set_display_name('Trainer')
+      ]))
 
 
 def dataproc_predict_op(
@@ -217,7 +217,7 @@ def dataproc_predict_op(
         str(analysis),
         str(target),
         str(output)
-      ])).set_display_name('Predictor')
+      ]))
 
 # =======================================================================
 
@@ -278,7 +278,7 @@ def xgb_train_pipeline(
             schema=schema,
             train_data=train_data,
             output=output_template
-        ).after(create_cluster_op).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        ).after(create_cluster_op).apply(gcp.use_gcp_secret('user-gcp-sa')).set_display_name('Analyzer')
 
         transform_op = dataproc_transform_op(
             project=project,
@@ -289,7 +289,7 @@ def xgb_train_pipeline(
             target=target,
             analysis=analyze_output,
             output=output_template
-        ).after(analyze_op).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        ).after(analyze_op).apply(gcp.use_gcp_secret('user-gcp-sa')).set_display_name('Transformer')
 
         train_op = dataproc_train_op(
             project=project,
@@ -302,7 +302,7 @@ def xgb_train_pipeline(
             workers=workers,
             rounds=rounds,
             output=train_output
-        ).after(transform_op).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        ).after(transform_op).apply(gcp.use_gcp_secret('user-gcp-sa')).set_display_name('Trainer')
 
         predict_op = dataproc_predict_op(
             project=project,
@@ -313,7 +313,7 @@ def xgb_train_pipeline(
             target=target,
             analysis=analyze_output,
             output=predict_output
-        ).after(train_op).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        ).after(train_op).apply(gcp.use_gcp_secret('user-gcp-sa')).set_display_name('Predictor')
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')
