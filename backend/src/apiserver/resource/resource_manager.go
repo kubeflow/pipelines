@@ -893,12 +893,21 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	if err != nil {
 		glog.Errorf(
 			"%v",
-			errors.Wrapf(err, "Failed to delete pipeline file for pipeline version %v", pipelineVersionId))
-		return nil
+			errors.Wrapf(
+				err,
+				"Failed to delete pipeline file for pipeline version %v",
+				pipelineVersionId))
+		return util.Wrap(err, "Delete pipeline version failed")
 	}
 	err = r.pipelineStore.DeletePipelineVersion(pipelineVersionId)
 	if err != nil {
-		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline DB entry for pipeline %v", pipelineVersionId))
+		glog.Errorf(
+			"%v",
+			errors.Wrapf(
+				err,
+				"Failed to delete pipeline DB entry for pipeline %v",
+				pipelineVersionId))
+		return util.Wrap(err, "Delete pipeline version failed")
 	}
 
 	return nil
