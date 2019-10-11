@@ -1957,3 +1957,91 @@ func TestCreatePipelineVersion_StorePipelineVersionMetadataError(t *testing.T) {
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "database is closed")
 }
+
+func TestDeletePipelineVersion(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create a pipeline.
+	_, err := manager.CreatePipeline(
+		"pipeline",
+		"",
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	assert.Nil(t, err)
+
+	// Create a version under the above pipeline.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(
+		fakeUUIDOne, nil))
+	_, err = manager.CreatePipelineVersion(
+		&api.PipelineVersion{
+			Name: "pipeline_version",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   DefaultFakeUUID,
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+
+	// Delete the above pipeline_version.
+	err = manager.DeletePipelineVersion(fakeUUIDOne)
+	assert.Nil(t, err)
+
+	// Verify the version doesn't exist.
+	_, err = manager.GetPipelineVersion(fakeUUIDOne)
+	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestDeletePipelineVersion_FileError(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store)
+
+	// Create a pipeline.
+	_, err := manager.CreatePipeline(
+		"pipeline",
+		"",
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	assert.Nil(t, err)
+
+	// Create a version under the above pipeline.
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(
+		fakeUUIDOne, nil))
+	_, err = manager.CreatePipelineVersion(
+		&api.PipelineVersion{
+			Name: "pipeline_version",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   DefaultFakeUUID,
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+
+	// Switch to a bad object store
+	manager.objectStore = &FakeBadObjectStore{}
+
+	// Delete the above pipeline_version.
+	err = manager.DeletePipelineVersion(fakeUUIDOne)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "bad object store")
+
+	// Verify the version in deleting status.
+	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(
+		fakeUUIDOne, model.PipelineVersionDeleting)
+	assert.Nil(t, err)
+	assert.NotNil(t, version)
+}
