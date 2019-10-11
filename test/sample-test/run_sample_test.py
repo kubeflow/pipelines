@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 import os
 import tarfile
 import time
@@ -114,7 +115,7 @@ class PySampleChecker(object):
     if self._testname == 'parameterized_tfx_oss':
       self._test_args['pipeline-root'] = os.path.join(
           self._test_args['output'],
-          'tfx_taxi_simple_' + str(int(time.time())))
+          'tfx_taxi_simple_' + kfp.dsl.RUN_ID_PLACEHOLDER)
       del self._test_args['output']
 
     # Submit for pipeline running.
