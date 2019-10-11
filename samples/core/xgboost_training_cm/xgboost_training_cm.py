@@ -22,11 +22,7 @@ from kfp import gcp
 import os
 import subprocess
 
-# TODO(numerology): add those back once UI metadata is enabled in this sample.
-confusion_matrix_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/local/confusion_matrix/component.yaml')
-roc_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/local/roc/component.yaml')
+# TODO(numerology): add ROC and CM back once UI metadata is enabled in this sample.
 
 dataproc_create_cluster_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/677fbaa281125fd604b81eab2488513efee7b600/components/gcp/dataproc/create_cluster/component.yaml')
@@ -207,7 +203,7 @@ def dataproc_predict_op(
 def xgb_train_pipeline(
     output='gs://guideline_example_bucket',
     project='ml-pipeline-dogfood',
-    cluster_name='xgb-{{workflow.name}}',
+    cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER,
     region='us-central1',
     train_data='gs://ml-pipeline-playground/sfpd/train.csv',
     eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
@@ -215,7 +211,6 @@ def xgb_train_pipeline(
     target='resolution',
     rounds=5,
     workers=2,
-    true_label='ACTION',
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
 
@@ -231,14 +226,7 @@ def xgb_train_pipeline(
         project_id=project,
         region=region,
         name=cluster_name
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))):
-
-        # create_cluster_op = dataproc_create_cluster_op(
-        #     project=project,
-        #     region=region,
-        #     staging=output
-        # ).apply(gcp.use_gcp_secret('user-gcp-sa'))
-
+    )):
         create_cluster_op = dataproc_create_cluster_op(
             project_id=project,
             region=region,
@@ -248,7 +236,7 @@ def xgb_train_pipeline(
                            'create/initialization_actions.sh'),
             ],
             image_version='1.2'
-        ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+        )
 
         analyze_op = dataproc_analyze_op(
             project=project,
@@ -257,7 +245,7 @@ def xgb_train_pipeline(
             schema=schema,
             train_data=train_data,
             output=output_template
-        ).after(create_cluster_op).apply(gcp.use_gcp_secret('user-gcp-sa')).set_display_name('Analyzer')
+        ).after(create_cluster_op).set_display_name('Analyzer')
 
         transform_op = dataproc_transform_op(
             project=project,
@@ -268,7 +256,7 @@ def xgb_train_pipeline(
             target=target,
             analysis=analyze_output,
             output=output_template
-        ).after(analyze_op).apply(gcp.use_gcp_secret('user-gcp-sa')).set_display_name('Transformer')
+        ).after(analyze_op).set_display_name('Transformer')
 
         train_op = dataproc_train_op(
             project=project,
@@ -281,7 +269,7 @@ def xgb_train_pipeline(
             workers=workers,
             rounds=rounds,
             output=train_output
-        ).after(transform_op).apply(gcp.use_gcp_secret('user-gcp-sa')).set_display_name('Trainer')
+        ).after(transform_op).set_display_name('Trainer')
 
         predict_op = dataproc_predict_op(
             project=project,
@@ -292,7 +280,9 @@ def xgb_train_pipeline(
             target=target,
             analysis=analyze_output,
             output=predict_output
-        ).after(train_op).apply(gcp.use_gcp_secret('user-gcp-sa')).set_display_name('Predictor')
+        ).after(train_op).set_display_name('Predictor')
+
+    dsl.get_pipeline_conf().add_op_transformer(gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')
