@@ -201,8 +201,8 @@ def dataproc_predict_op(
     description='A trainer that does end-to-end distributed training for XGBoost models.'
 )
 def xgb_train_pipeline(
-    output='gs://guideline_example_bucket',
-    project='ml-pipeline-dogfood',
+    output='gs://your-gcs-bucket',
+    project='your-gcp-project',
     cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER,
     region='us-central1',
     train_data='gs://ml-pipeline-playground/sfpd/train.csv',
@@ -285,4 +285,4 @@ def xgb_train_pipeline(
     dsl.get_pipeline_conf().add_op_transformer(gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.zip')
