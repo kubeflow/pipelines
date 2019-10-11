@@ -32,4 +32,7 @@ pipeline parameterization using their [RuntimeParameter](https://github.com/tens
 * This approach only works for string-typed quantities. For example, you cannot parameterize 
 `num_steps` of `Trainer` in this way.
 * Name of parameters should be unique.
-* By default pipeline root is always parameterized.
+* By default pipeline root is always parameterized with the name `pipeline-root`.
+* If the parameter is referenced at multiple places, the user should
+make sure that it is correctly converted to the string-formatted placeholder by
+calling `str(your_param)`.
