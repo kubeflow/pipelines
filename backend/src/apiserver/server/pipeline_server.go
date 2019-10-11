@@ -165,19 +165,28 @@ func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *api.Ge
 }
 
 func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.ListPipelineVersionsRequest) (*api.ListPipelineVersionsResponse, error) {
-	opts, err := validatedListOptions(&model.PipelineVersion{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
+	opts, err := validatedListOptions(
+		&model.PipelineVersion{},
+		request.PageToken,
+		int(request.PageSize),
+		request.SortBy,
+		request.Filter)
 
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
-	pipelineVersions, total_size, nextPageToken, err := s.resourceManager.ListPipelineVersions(request.ResourceKey.Id, opts)
+	pipelineVersions, total_size, nextPageToken, err :=
+		s.resourceManager.ListPipelineVersions(request.ResourceKey.Id, opts)
 	if err != nil {
 		return nil, util.Wrap(err, "List pipeline versions failed.")
 	}
 	apiPipelineVersions, _ := ToApiPipelineVersions(pipelineVersions)
 
-	return &api.ListPipelineVersionsResponse{Versions: apiPipelineVersions, NextPageToken: nextPageToken, TotalSize: int32(total_size)}, nil
+	return &api.ListPipelineVersionsResponse{
+		Versions:      apiPipelineVersions,
+		NextPageToken: nextPageToken,
+		TotalSize:     int32(total_size)}, nil
 }
 
 func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *api.DeletePipelineVersionRequest) (*empty.Empty, error) {
