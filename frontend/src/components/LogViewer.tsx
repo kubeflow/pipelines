@@ -18,6 +18,7 @@ import * as React from 'react';
 import { List, AutoSizer, ListRowProps } from 'react-virtualized';
 import { fontsize, fonts } from '../Css';
 import { stylesheet } from 'typestyle';
+import { OverscanIndicesGetter } from 'react-virtualized/dist/es/Grid';
 
 const css = stylesheet({
   a: {
@@ -47,11 +48,6 @@ const css = stylesheet({
     userSelect: 'none',
   },
   root: {
-    $nest: {
-      '& .ReactVirtualized__Grid__innerScrollContainer': {
-        overflow: 'auto !important',
-      },
-    },
     backgroundColor: '#222',
     color: '#fff',
     fontFamily: fonts.code,
@@ -65,6 +61,30 @@ interface LogViewerProps {
   classes?: string;
   logLines: string[];
 }
+
+// Use the same amount of overscan above and below visible rows.
+//
+// Why:
+// * Default behavior is that when we scroll to one direction, content off
+// screen on the other direction is unmounted from browser immediately. This
+// caused a bug when selecting lines + scrolling.
+// * With new behavior implemented below: we are now overscanning on both
+// directions disregard of which direction user is scrolling to, we can ensure
+// lines not exceeding maximum overscanRowCount lines off screen are still
+// selectable.
+const overscanOnBothDirections: OverscanIndicesGetter = ({
+  direction,          // One of "horizontal" or "vertical"
+  cellCount,          // Number of rows or columns in the current axis
+  scrollDirection,    // 1 (forwards) or -1 (backwards)
+  overscanCellsCount, // Maximum number of cells to over-render in either direction
+  startIndex,         // Begin of range of visible cells
+  stopIndex           // End of range of visible cells
+}) => {
+  return ({
+    overscanStartIndex: Math.max(0, startIndex - overscanCellsCount),
+    overscanStopIndex: Math.min(cellCount - 1, stopIndex + overscanCellsCount)
+  });
+};
 
 class LogViewer extends React.Component<LogViewerProps> {
   private _rootRef = React.createRef<List>();
@@ -80,9 +100,14 @@ class LogViewer extends React.Component<LogViewerProps> {
   public render(): JSX.Element {
     return <AutoSizer>
       {({ height, width }) => (
-        <List id='logViewer' width={width} height={height} rowCount={this.props.logLines.length}
+        <List
+          id='logViewer'
+          width={width} height={height} rowCount={this.props.logLines.length}
           rowHeight={15} className={css.root} ref={this._rootRef}
-          rowRenderer={this._rowRenderer.bind(this)} />
+          overscanIndicesGetter={overscanOnBothDirections}
+          overscanRowCount={1000 /* make this large, so selecting maximum 1000 lines is supported */}
+          rowRenderer={this._rowRenderer.bind(this)}
+        />
       )}
     </AutoSizer>;
   }
