@@ -29,7 +29,7 @@ roc_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/local/roc/component.yaml')
 
 dataproc_create_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/create_cluster/component.yaml')
+    'https://raw.githubusercontent.com/kubeflow/pipelines/677fbaa281125fd604b81eab2488513efee7b600/components/gcp/dataproc/create_cluster/component.yaml')
 
 dataproc_delete_cluster_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/delete_cluster/component.yaml')
