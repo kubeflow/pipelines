@@ -1,7 +1,7 @@
 [
   {
     "name":"[Sample] ML - XGBoost - Training with Confusion Matrix",
-    "description":"A trainer that does end-to-end distributed training for XGBoost models. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost-spark",
+    "description":"A trainer that does end-to-end distributed training for XGBoost models. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/core/xgboost_training_cm",
     "file":"/samples/core/xgboost_training_cm/xgboost_training_cm.py.tar.gz"
   },
   {
@@ -26,7 +26,7 @@
   },
   {
     "name":"[Sample] ML - TFX - Taxi Tip Prediction Model Trainer",
-    "description":"Example pipeline that does classification with model analysis based on a public tax cab BigQuery dataset. GCS permission is required. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/core/tfx-oss",
+    "description":"Example pipeline that does classification with model analysis based on a public tax cab BigQuery dataset. GCS permission is required. For guideline of setting up permission after deployment, please see https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials. For source code, refer to https://github.com/kubeflow/pipelines/tree/master/samples/contrib/parameterized_tfx_oss",
     "file":"/samples/contrib/parameterized_tfx_oss/parameterized_tfx_oss.tar.gz"
   }
 ]
