@@ -86,16 +86,42 @@ const overscanOnBothDirections: OverscanIndicesGetter = ({
   });
 };
 
-class LogViewer extends React.Component<LogViewerProps> {
+interface LogViewerState {
+  followNewLogs: boolean
+}
+
+class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
   private _rootRef = React.createRef<List>();
 
+  state = {
+    followNewLogs: true,
+  };
+
   public componentDidMount(): void {
-    this._scrollToEnd();
+    // Wait until the next frame to scroll to bottom, because doms haven't been
+    // rendered when running this.
+    setTimeout(() => {
+      this._scrollToEnd();
+    })
   }
 
   public componentDidUpdate(): void {
-    this._scrollToEnd();
+    if (this.state.followNewLogs) {
+      this._scrollToEnd();
+    }
   }
+
+  private handleScroll = (
+    info: { clientHeight: number; scrollHeight: number; scrollTop: number }
+  ) => {
+    const offsetTolerance = 20; // pixels
+    const isScrolledToBottom = info.scrollHeight - info.scrollTop - info.clientHeight <= offsetTolerance;
+    if (isScrolledToBottom !== this.state.followNewLogs) {
+      this.setState({
+        followNewLogs: isScrolledToBottom,
+      });
+    }
+  };
 
   public render(): JSX.Element {
     return <AutoSizer>
@@ -107,6 +133,7 @@ class LogViewer extends React.Component<LogViewerProps> {
           overscanIndicesGetter={overscanOnBothDirections}
           overscanRowCount={1000 /* make this large, so selecting maximum 1000 lines is supported */}
           rowRenderer={this._rowRenderer.bind(this)}
+          onScroll={this.handleScroll}
         />
       )}
     </AutoSizer>;
