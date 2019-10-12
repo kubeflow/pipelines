@@ -38,10 +38,12 @@ import { classes, stylesheet } from 'typestyle';
 import Editor from '../components/Editor';
 import { color, commonCss, padding, fontsize, fonts, zIndex } from '../Css';
 import { logger, formatDateString } from '../lib/Utils';
+import Linkify from 'react-linkify';
 import 'brace';
 import 'brace/ext/language_tools';
 import 'brace/mode/yaml';
 import 'brace/theme/github';
+import { openLinkInNewWindowDecorator } from 'src/components/LinkifyDecorators';
 
 interface PipelineDetailsState {
   graph?: dagre.graphlib.Graph;
@@ -90,6 +92,7 @@ export const css = stylesheet({
   summaryCard: {
     bottom: 20,
     left: 20,
+    overflowWrap: 'break-word', // avoids long url exceeding summary card border
     padding: 10,
     position: 'absolute',
     width: summaryCardWidth,
@@ -184,7 +187,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                     <div className={css.summaryKey}>Uploaded on</div>
                     <div>{formatDateString(pipeline.created_at)}</div>
                     <div className={css.summaryKey}>Description</div>
-                    <div>{pipeline.description}</div>
+                    <Linkify componentDecorator={openLinkInNewWindowDecorator}>{pipeline.description}</Linkify>
                   </Paper>
                 )}
 
