@@ -233,12 +233,15 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	// Get workflow from either of the two places:
 	// (1) pipeline spec, which might be pipeline ID or an argo workflow
 	// (2) resource references, which contains the pipeline version ID
+	fmt.Printf("JING test GetPipelineSpec: %+v", apiRun.GetPipelineSpec())
+	fmt.Printf("JING test GetPipelineSpec.GetParameters: %+v", apiRun.GetPipelineSpec().GetParameters())
 	var workflowSpecManifestBytes []byte
 	workflowSpecManifestBytes, err :=
 		r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
 	if err != nil {
 		workflowSpecManifestBytes, err =
-			r.getWorkflowSpecBytesFromPipelineVersion(apiRun.ResourceReferences)
+			r.getWorkflowSpecBytesFromPipelineVersion(
+				apiRun.GetResourceReferences())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
 		}
@@ -261,6 +264,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 
+	fmt.Printf("JING a\n")
 	workflow.SetServiceAccount(r.getDefaultSA())
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
@@ -272,6 +276,7 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
 	}
 
+	fmt.Printf("JING b\n")
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
 	// TODO: Change the compiler to stop auto-adding those two atrifacts to all tasks.
@@ -284,13 +289,14 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Create argo workflow CRD resource
+	fmt.Printf("JING c\n")
 	newWorkflow, err := r.workflowClient.Create(workflow.Get())
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
 	}
 
 	// Add a reference to the default experiment if run does not already have a containing experiment
-	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.ResourceReferences)
+	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
 	if err != nil {
 		return nil, err
 	}
@@ -299,10 +305,13 @@ func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
 	}
 
 	// Store run metadata into database
+	fmt.Printf("JING d\n")
+	fmt.Printf("JING apirun %+v\n", apiRun)
 	runDetail, err := r.ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(workflowSpecManifestBytes))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert run model")
 	}
+	fmt.Printf("JING model run %+v\n", runDetail)
 
 	// Assign the create at time.
 	runDetail.CreatedAtInSec = r.time.Now().Unix()
