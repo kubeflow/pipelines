@@ -92,7 +92,6 @@ export const css = stylesheet({
   summaryCard: {
     bottom: 20,
     left: 20,
-    overflowWrap: 'break-word', // avoids long url exceeding summary card border
     padding: 10,
     position: 'absolute',
     width: summaryCardWidth,
