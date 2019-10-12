@@ -230,10 +230,18 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 }
 
 func (r *ResourceManager) CreateRun(apiRun *api.Run) (*model.RunDetail, error) {
-	// Get workflow from pipeline spec, which might be pipeline ID or an argo workflow
-	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
+	// Get workflow from either of the two places:
+	// (1) pipeline spec, which might be pipeline ID or an argo workflow
+	// (2) resource references, which contains the pipeline version ID
+	var workflowSpecManifestBytes []byte
+	workflowSpecManifestBytes, err :=
+		r.getWorkflowSpecBytes(apiRun.GetPipelineSpec())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to fetch workflow spec.")
+		workflowSpecManifestBytes, err =
+			r.getWorkflowSpecBytesFromPipelineVersion(apiRun.ResourceReferences)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
+		}
 	}
 	uuid, err := r.uuid.NewRandom()
 	if err != nil {
@@ -702,6 +710,27 @@ func (r *ResourceManager) getWorkflowSpecBytes(spec *api.PipelineSpec) ([]byte, 
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
 }
 
+func (r *ResourceManager) getWorkflowSpecBytesFromPipelineVersion(references []*api.ResourceReference) ([]byte, error) {
+	var pipelineVersionId = ""
+	for _, reference := range references {
+		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION &&
+			reference.Relationship == api.Relationship_CREATOR {
+			pipelineVersionId = reference.Key.Id
+		}
+	}
+	if len(pipelineVersionId) == 0 {
+		return nil, util.NewInvalidInputError("No pipeline version.")
+	}
+	var workflow util.Workflow
+	err := r.objectStore.GetFromYamlFile(
+		&workflow, storage.CreatePipelinePath(pipelineVersionId))
+	if err != nil {
+		return nil, util.Wrap(err, "Get pipeline YAML failed.")
+	}
+
+	return []byte(workflow.ToStringForStore()), nil
+}
+
 // Used to initialize the Experiment database with a default to be used for runs
 func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	// First check that we don't already have a default experiment ID in the DB.
@@ -893,21 +922,12 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	if err != nil {
 		glog.Errorf(
 			"%v",
-			errors.Wrapf(
-				err,
-				"Failed to delete pipeline file for pipeline version %v",
-				pipelineVersionId))
-		return util.Wrap(err, "Delete pipeline version failed")
+			errors.Wrapf(err, "Failed to delete pipeline file for pipeline version %v", pipelineVersionId))
+		return nil
 	}
 	err = r.pipelineStore.DeletePipelineVersion(pipelineVersionId)
 	if err != nil {
-		glog.Errorf(
-			"%v",
-			errors.Wrapf(
-				err,
-				"Failed to delete pipeline DB entry for pipeline %v",
-				pipelineVersionId))
-		return util.Wrap(err, "Delete pipeline version failed")
+		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline DB entry for pipeline %v", pipelineVersionId))
 	}
 
 	return nil

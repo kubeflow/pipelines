@@ -127,8 +127,13 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
 	}
 
-	if err := ValidatePipelineSpec(s.resourceManager, run.PipelineSpec); err != nil {
-		return util.Wrap(err, "The pipeline spec is invalid.")
+	err := ValidatePipelineSpec(s.resourceManager, run.PipelineSpec)
+	if err != nil {
+		if _, err = VerifyPipelineVersionReferenceAsCreator(
+			s.resourceManager, run.ResourceReferences); err != nil {
+			return util.Wrap(err, "No pipeline version in resource reference.")
+		}
+		return util.Wrap(err, "Pipeline spec is invalid.")
 	}
 	return nil
 }
