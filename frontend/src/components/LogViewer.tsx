@@ -119,7 +119,7 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
           width={width} height={height} rowCount={this.props.logLines.length}
           rowHeight={15} className={css.root} ref={this._rootRef}
           overscanIndicesGetter={overscanOnBothDirections}
-          overscanRowCount={1000 /* make this large, so selecting maximum 1000 lines is supported */}
+          overscanRowCount={400 /* make this large, so selecting maximum 400 lines is supported */}
           rowRenderer={this._rowRenderer.bind(this)}
           onScroll={this.handleScroll}
         />
@@ -148,56 +148,60 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
 
   private _rowRenderer(props: ListRowProps): React.ReactNode {
     const { style, key, index } = props;
+    const line = this.props.logLines[index];
     return (
       <div key={key} className={css.line} style={style}>
-        <span className={css.number} style={this._getLineStyle(index)}>{index + 1}</span>
-
-        <span className={css.line} style={this._getLineStyle(index)}>
-          {this._parseLine(this.props.logLines[index]).map((piece, p) => (
-            <span key={p}>{piece}</span>
-          ))}
-        </span>
+        <MemoedLogLine index={index} line={line} />
       </div>
     );
   }
+}
 
-  private _getLineStyle(index: number): React.CSSProperties {
-    const line = this.props.logLines[index];
-    const lineLowerCase = line.toLowerCase();
-    if (lineLowerCase.indexOf('error') > -1 || lineLowerCase.indexOf('fail') > -1) {
-      return {
-        backgroundColor: '#700000',
-        color: 'white',
-      };
-    } else if (lineLowerCase.indexOf('warn') > -1) {
-      return {
-        backgroundColor: '#545400',
-        color: 'white',
-      };
-    } else {
-      return {};
-    }
+const LogLine: React.FC<{ index: number, line: string }> = ({ index, line }) =>
+  <>
+    <span className={css.number} style={getLineStyle(line)}>{index + 1}</span>
+    <span className={css.line} style={getLineStyle(line)}>
+      {parseLine(line).map((piece, p) => (<span key={p}>{piece}</span>))}
+    </span>
+  </>;
+// improve performance when rerendering, because we render a lot of logs
+const MemoedLogLine = React.memo(LogLine);
+
+function getLineStyle(line: string): React.CSSProperties {
+  const lineLowerCase = line.toLowerCase();
+  if (lineLowerCase.indexOf('error') > -1 || lineLowerCase.indexOf('fail') > -1) {
+    return {
+      backgroundColor: '#700000',
+      color: 'white',
+    };
+  } else if (lineLowerCase.indexOf('warn') > -1) {
+    return {
+      backgroundColor: '#545400',
+      color: 'white',
+    };
+  } else {
+    return {};
   }
+}
 
-  private _parseLine(line: string): React.ReactNode[] {
-    // Linkify URLs starting with http:// or https://
-    const urlPattern = /(\b(https?):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
-    let lastMatch = 0;
-    let match = urlPattern.exec(line);
-    const nodes = [];
-    while (match) {
-      // Append all text before URL match
-      nodes.push(<span>{line.substr(lastMatch, match.index)}</span>);
-      // Append URL via an anchor element
-      nodes.push(<a href={match[0]} target='_blank' className={css.a}>{match[0]}</a>);
+function parseLine(line: string): React.ReactNode[] {
+  // Linkify URLs starting with http:// or https://
+  const urlPattern = /(\b(https?):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
+  let lastMatch = 0;
+  let match = urlPattern.exec(line);
+  const nodes = [];
+  while (match) {
+    // Append all text before URL match
+    nodes.push(<span>{line.substr(lastMatch, match.index)}</span>);
+    // Append URL via an anchor element
+    nodes.push(<a href={match[0]} target='_blank' className={css.a}>{match[0]}</a>);
 
-      lastMatch = match.index + match[0].length;
-      match = urlPattern.exec(line);
-    }
-    // Append all text after final URL
-    nodes.push(<span>{line.substr(lastMatch)}</span>);
-    return nodes;
+    lastMatch = match.index + match[0].length;
+    match = urlPattern.exec(line);
   }
+  // Append all text after final URL
+  nodes.push(<span>{line.substr(lastMatch)}</span>);
+  return nodes;
 }
 
 export default LogViewer;
