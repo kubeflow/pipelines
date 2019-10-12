@@ -9,6 +9,10 @@ const css = stylesheet({
   }
 });
 
+function preventEventBubbling(e: React.MouseEvent): void {
+  e.stopPropagation();
+}
+
 /** react-linkify decorator that let links default to open in new window. */
 export const openLinkInNewWindowDecorator =
   (decoratedHref: string, decoratedText: string, key: number): React.ReactNode =>
@@ -18,6 +22,7 @@ export const openLinkInNewWindowDecorator =
       rel='noreferrer noopener'
       target='_blank'
       className={css.link}
+      onClick={preventEventBubbling}
     >
       {decoratedText}
     </a>;
