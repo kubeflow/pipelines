@@ -87,22 +87,22 @@ const overscanOnBothDirections: OverscanIndicesGetter = ({
 };
 
 interface LogViewerState {
-  followNewLogs: boolean
+  followNewLogs: boolean;
 }
 
 class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
-  private _rootRef = React.createRef<List>();
-
-  state = {
+  public state = {
     followNewLogs: true,
   };
+
+  private _rootRef = React.createRef<List>();
 
   public componentDidMount(): void {
     // Wait until the next frame to scroll to bottom, because doms haven't been
     // rendered when running this.
     setTimeout(() => {
       this._scrollToEnd();
-    })
+    });
   }
 
   public componentDidUpdate(): void {
@@ -110,18 +110,6 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
       this._scrollToEnd();
     }
   }
-
-  private handleScroll = (
-    info: { clientHeight: number; scrollHeight: number; scrollTop: number }
-  ) => {
-    const offsetTolerance = 20; // pixels
-    const isScrolledToBottom = info.scrollHeight - info.scrollTop - info.clientHeight <= offsetTolerance;
-    if (isScrolledToBottom !== this.state.followNewLogs) {
-      this.setState({
-        followNewLogs: isScrolledToBottom,
-      });
-    }
-  };
 
   public render(): JSX.Element {
     return <AutoSizer>
@@ -138,6 +126,18 @@ class LogViewer extends React.Component<LogViewerProps, LogViewerState> {
       )}
     </AutoSizer>;
   }
+
+  private handleScroll = (
+    info: { clientHeight: number; scrollHeight: number; scrollTop: number }
+  ) => {
+    const offsetTolerance = 20; // pixels
+    const isScrolledToBottom = info.scrollHeight - info.scrollTop - info.clientHeight <= offsetTolerance;
+    if (isScrolledToBottom !== this.state.followNewLogs) {
+      this.setState({
+        followNewLogs: isScrolledToBottom,
+      });
+    }
+  };
 
   private _scrollToEnd(): void {
     const root = this._rootRef.current;
