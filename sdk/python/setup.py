@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import re
 from setuptools import setup
 
 NAME = 'kfp'
-VERSION = '0.1.31'
+#VERSION = .... Change the version in kfp/__init__.py
 
 REQUIRES = [
     'urllib3>=1.15,<1.25',  #Fixing the version conflict with the "requests" package
@@ -38,9 +40,24 @@ REQUIRES = [
     'Deprecated',
 ]
 
+def find_version(*file_path_parts):
+    here = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(here, *file_path_parts), 'r') as fp:
+        version_file_text = fp.read()
+
+    version_match = re.search(
+        r"^__version__ = ['\"]([^'\"]*)['\"]",
+        version_file_text,
+        re.M,
+    )
+    if version_match:
+        return version_match.group(1)
+
+    raise RuntimeError("Unable to find version string.")
+
 setup(
     name=NAME,
-    version=VERSION,
+    version=find_version("kfp", "__init__.py"),
     description='KubeFlow Pipelines SDK',
     author='google',
     install_requires=REQUIRES,
