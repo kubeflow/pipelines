@@ -25,6 +25,7 @@ import yaml
 from datetime import datetime
 from typing import Mapping, Callable
 
+import kfp
 import kfp_server_api
 
 from kfp.compiler import compiler
@@ -318,7 +319,7 @@ class Client(object):
       IPython.display.display(IPython.display.HTML(html))
     return response.run
 
-  def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None):
+  def create_run_from_pipeline_func(self, pipeline_func: Callable, arguments: Mapping[str, str], run_name=None, experiment_name=None, pipeline_conf: kfp.dsl.PipelineConf = None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
 
@@ -333,7 +334,7 @@ class Client(object):
     run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     try:
       (_, pipeline_package_path) = tempfile.mkstemp(suffix='.zip')
-      compiler.Compiler().compile(pipeline_func, pipeline_package_path)
+      compiler.Compiler().compile(pipeline_func, pipeline_package_path, pipeline_conf=pipeline_conf)
       return self.create_run_from_pipeline_package(pipeline_package_path, arguments, run_name, experiment_name)
     finally:
       os.remove(pipeline_package_path)
@@ -357,7 +358,7 @@ class Client(object):
 
       def wait_for_run_completion(self, timeout=None):
         timeout = timeout or datetime.datetime.max - datetime.datetime.min
-        return self._client.wait_for_run_completion(timeout)
+        return self._client.wait_for_run_completion(self.run_id, timeout)
 
       def __str__(self):
         return '<RunPipelineResult(run_id={})>'.format(self.run_id)

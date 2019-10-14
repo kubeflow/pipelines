@@ -21,7 +21,8 @@
     "strictBindCallApply": true,
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
-    "noUnusedLocals": true
+    "noUnusedLocals": true,
+    "skipLibCheck": true
   },
   "exclude": [
     "__mocks__",

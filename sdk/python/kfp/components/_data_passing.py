@@ -35,6 +35,36 @@ Converter = NamedTuple('Converter', [
 ])
 
 
+def _serialize_str(str_value: str) -> str:
+    if not isinstance(str_value, str):
+        raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+    return str_value
+
+
+def _serialize_int(int_value: int) -> str:
+    if isinstance(int_value, str):
+        return int_value
+    if not isinstance(int_value, int):
+        raise TypeError('Value "{}" has type "{}" instead of int.'.format(str(int_value), str(type(int_value))))
+    return str(int_value)
+
+
+def _serialize_float(float_value: float) -> str:
+    if isinstance(float_value, str):
+        return float_value
+    if not isinstance(float_value, (float, int)):
+        raise TypeError('Value "{}" has type "{}" instead of float.'.format(str(float_value), str(type(float_value))))
+    return str(float_value)
+
+
+def _serialize_bool(bool_value: bool) -> str:
+    if isinstance(bool_value, str):
+        return bool_value
+    if not isinstance(bool_value, bool):
+        raise TypeError('Value "{}" has type "{}" instead of bool.'.format(str(bool_value), str(type(bool_value))))
+    return str(bool_value)
+
+
 def _deserialize_bool(s) -> bool:
     from distutils.util import strtobool
     return strtobool(s) == 1
@@ -75,10 +105,10 @@ _deserialize_base64_pickle_code = _deserialize_base64_pickle.__name__
 
 
 _converters = [
-    Converter([str], ['String', 'str'], str, 'str', None),
-    Converter([int], ['Integer', 'int'], str, 'int', None),
-    Converter([float], ['Float', 'float'], str, 'float', None),
-    Converter([bool], ['Boolean', 'bool'], str, _bool_deserializer_code, _bool_deserializer_definitions),
+    Converter([str], ['String', 'str'], _serialize_str, 'str', None),
+    Converter([int], ['Integer', 'int'], _serialize_int, 'int', None),
+    Converter([float], ['Float', 'float'], _serialize_float, 'float', None),
+    Converter([bool], ['Boolean', 'bool'], _serialize_bool, _bool_deserializer_code, _bool_deserializer_definitions),
     Converter([list], ['JsonArray', 'List', 'list'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
     Converter([dict], ['JsonObject', 'Dictionary', 'Dict', 'dict'], _serialize_json, 'json.loads', 'import json'), # ! JSON map keys are always strings. Python converts all keys to strings without warnings
     Converter([], ['Json'], _serialize_json, 'json.loads', 'import json'),

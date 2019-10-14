@@ -13,45 +13,55 @@
 # limitations under the License.
 
 
-"""Note that this sample is just to show the ResourceOp's usage.
-
-It is not a good practice to put password as a pipeline argument, since it will
-be visible on KFP UI.
 """
+This example demonstrates how to use ResourceOp to specify the value of env var.
+"""
+
+import json
 import kfp
 import kfp.dsl as dsl
-from kubernetes import client as k8s_client
+
+
+_CONTAINER_MANIFEST = """
+{
+    "apiVersion": "batch/v1",
+    "kind": "Job",
+    "metadata": {
+        "generateName": "resourceop-basic-job-"
+    },
+    "spec": {
+        "template": {
+            "metadata": {
+                "name": "resource-basic"
+            },
+            "spec": {
+                "containers": [{
+                    "name": "sample-container",
+                    "image": "k8s.gcr.io/busybox",
+                    "command": ["/usr/bin/env"]
+                }],
+                "restartPolicy": "Never"
+            }
+        },
+        "backoffLimit": 4      
+    }
+}
+"""
+
 
 @dsl.pipeline(
     name="ResourceOp Basic",
     description="A Basic Example on ResourceOp Usage."
 )
-def resourceop_basic(username, password):
-    secret_resource = k8s_client.V1Secret(
-        api_version="v1",
-        kind="Secret",
-        metadata=k8s_client.V1ObjectMeta(generate_name="my-secret-"),
-        type="Opaque",
-        data={"username": username, "password": password}
-    )
-    rop = dsl.ResourceOp(
-        name="create-my-secret",
-        k8s_resource=secret_resource,
-        attribute_outputs={"name": "{.metadata.name}"}
+def resourceop_basic():
+
+    # Start a container. Print out env vars.
+    op = dsl.ResourceOp(
+        name='test-step',
+        k8s_resource=json.loads(_CONTAINER_MANIFEST),
+        action='create'
     )
 
-    secret = k8s_client.V1Volume(
-        name="my-secret",
-        secret=k8s_client.V1SecretVolumeSource(secret_name=rop.output)
-    )
-
-    cop = dsl.ContainerOp(
-        name="cop",
-        image="library/bash:4.4.23",
-        command=["sh", "-c"],
-        arguments=["ls /etc/secret-volume"],
-        pvolumes={"/etc/secret-volume": secret}
-    )
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(resourceop_basic, __file__ + '.zip')

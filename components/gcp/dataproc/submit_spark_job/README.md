@@ -1,23 +1,46 @@
 
 # Name
 
-Data preparation using Spark on YARN with Cloud Dataproc
+Component: Data preparation using Spark on YARN with Cloud Dataproc
 
 
-# Label
+# Labels
 
-Cloud Dataproc, GCP, Cloud Storage, Spark, Kubeflow, pipelines, components, YARN
+ Spark, Kubeflow,YARN
+ 
+ # Facets
+<!--Make sure the asset has data for the following facets:
+Use case
+Technique
+Input data type
+ML workflow
+
+The data must map to the acceptable values for these facets, as documented on the “taxonomy” sheet of go/aihub-facets
+https://gitlab.aihub-content-external.com/aihubbot/kfp-components/commit/fe387ab46181b5d4c7425dcb8032cb43e70411c1
+--->
+Use case:
+Other
+
+Technique: 
+Other
+
+Input data type:
+Tabular
+
+ML workflow: 
+Data preparation
+
 
 
 # Summary
 
-A Kubeflow Pipeline component to prepare data by submitting a Spark job on YARN to Cloud Dataproc.
+A Kubeflow pipeline component to prepare data by submitting a Spark job on YARN to Cloud Dataproc.
 
 # Details
 
 ## Intended use
 
-Use the component to run an Apache Spark job as one preprocessing step in a Kubeflow Pipeline.
+Use the component to run an Apache Spark job as one preprocessing step in a Kubeflow pipeline.
 
 ## Runtime arguments
 Argument | Description  | Optional | Data type | Accepted values | Default |
@@ -41,11 +64,9 @@ job_id | The ID of the created job. | String
 
 To use the component, you must:
 
-
-
 *   Set up a GCP project by following this [guide](https://cloud.google.com/dataproc/docs/guides/setup-project).
 *   [Create a new cluster](https://cloud.google.com/dataproc/docs/guides/create-cluster).
-*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
+*   Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts), in a Kubeflow cluster. For example:
 
     ```
     component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
@@ -57,32 +78,32 @@ To use the component, you must:
 
 ## Detailed description
 
-This component creates a Spark job from [Dataproc submit job REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs/submit).
+This component creates a Spark job from the [Dataproc submit job REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs/submit).
 
 Follow these steps to use the component in a pipeline:
 
 
 
-1.  Install the Kubeflow Pipeline SDK:
+1.  Install the Kubeflow Pipeline's SDK:
 
 
-```python
-%%capture --no-stderr
+    ```python
+    %%capture --no-stderr
 
-KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-!pip3 install $KFP_PACKAGE --upgrade
-```
+    KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
+    !pip3 install $KFP_PACKAGE --upgrade
+    ```
 
-2. Load the component using KFP SDK
+2. Load the component using the Kubeflow Pipeline's SDK
 
 
-```python
-import kfp.components as comp
+    ```python
+    import kfp.components as comp
 
-dataproc_submit_spark_job_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_spark_job/component.yaml')
-help(dataproc_submit_spark_job_op)
-```
+    dataproc_submit_spark_job_op = comp.load_component_from_url(
+        'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_spark_job/component.yaml')
+    help(dataproc_submit_spark_job_op)
+    ```
 
 ### Sample
 Note: The following sample code works in an IPython notebook or directly in Python code.
@@ -104,8 +125,8 @@ To package a self-contained Spark application, follow these [instructions](https
 
 
 ```python
-PROJECT_ID = '<Please put your project ID here>'
-CLUSTER_NAME = '<Please put your existing cluster name here>'
+PROJECT_ID = '<Put your project ID here>'
+CLUSTER_NAME = '<Put your existing cluster name here>'
 REGION = 'us-central1'
 SPARK_FILE_URI = 'file:///usr/lib/spark/examples/jars/spark-examples.jar'
 MAIN_CLASS = 'org.apache.spark.examples.SparkPi'
@@ -152,6 +173,7 @@ def dataproc_submit_spark_job_pipeline(
 
 
 ```python
+#Compile the pipeline
 pipeline_func = dataproc_submit_spark_job_pipeline
 pipeline_filename = pipeline_func.__name__ + '.zip'
 import kfp.compiler as compiler
@@ -162,10 +184,10 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
 
 ```python
-#Specify pipeline argument values
+#Specify values for the pipeline's arguments
 arguments = {}
 
-#Get or create an experiment and submit a pipeline run
+#Get or create an experiment
 import kfp
 client = kfp.Client()
 experiment = client.create_experiment(EXPERIMENT_NAME)

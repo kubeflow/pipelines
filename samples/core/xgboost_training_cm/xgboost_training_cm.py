@@ -212,7 +212,7 @@ def xgb_train_pipeline(
     workers=2,
     true_label='ACTION',
 ):
-    output_template = str(output) + '/{{workflow.uid}}/{{pod.name}}/data'
+    output_template = str(output) + '/' + dsl.EXECUTION_ID_PLACEHOLDER + '/data'
 
     delete_cluster_op = dataproc_delete_cluster_op(
         project,

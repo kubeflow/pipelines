@@ -41,6 +41,7 @@ def dump_yaml(data):
                 yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
                 data.items())
         OrderedDumper.add_representer(OrderedDict, _dict_representer)
+        OrderedDumper.add_representer(dict, _dict_representer)
 
         #Hack to force the code (multi-line string) to be output using the '|' style.
         def represent_str_or_text(self, data):

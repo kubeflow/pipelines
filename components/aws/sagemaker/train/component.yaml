@@ -82,20 +82,33 @@ inputs:
   - name: traffic_encryption
     description: 'Encrypts all communications between ML compute instances in distributed training.'
     default: 'False'
+  - name: spot_instance
+    description: 'Use managed spot training.'
+    default: 'False'
+  - name: max_wait_time
+    description: 'The maximum time in seconds you are willing to wait for a managed spot training job to complete.'
+    default: '86400'
+  - name: checkpoint_config
+    description: 'Dictionary of information about the output location for managed spot training checkpoint data.'
+    default: '{}'
+  - name: endpoint_url
+    description: 'The endpoint URL for the private link VPC endpoint.'
+    default: ''
   - name: tags
     description: 'Key-value pairs, to categorize AWS resources.'
     default: '{}'
 outputs:
   - {name: model_artifact_url,    description: 'Model artifacts url'}
   - {name: job_name,              description: 'Training job name'}
-  - {name: training_image,         description: 'The registry path of the Docker image that contains the training algorithm'}
+  - {name: training_image,        description: 'The registry path of the Docker image that contains the training algorithm'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190809-02
+    image: redbackthomson/aws-kubeflow-sagemaker:20191003
     command: ['python']
     args: [
       train.py,
       --region, {inputValue: region},
+      --endpoint_url, {inputValue: endpoint_url},
       --job_name, {inputValue: job_name},
       --role, {inputValue: role},
       --image, {inputValue: image},
@@ -123,6 +136,9 @@ implementation:
       --vpc_subnets, {inputValue: vpc_subnets},
       --network_isolation, {inputValue: network_isolation},
       --traffic_encryption, {inputValue: traffic_encryption},
+      --spot_instance, {inputValue: spot_instance},
+      --max_wait_time, {inputValue: max_wait_time},
+      --checkpoint_config, {inputValue: checkpoint_config},
       --tags, {inputValue: tags}
     ]
     fileOutputs:

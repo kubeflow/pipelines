@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 import os
 import tarfile
+import time
 import utils
 import yamale
 import yaml
@@ -108,6 +110,13 @@ class PySampleChecker(object):
         self._test_timeout = raw_args['test_timeout']
       if 'run_pipeline' in raw_args.keys():
         self._run_pipeline = raw_args['run_pipeline']
+
+    # TODO(numerology): Special treatment for TFX::OSS sample
+    if self._testname == 'parameterized_tfx_oss':
+      self._test_args['pipeline-root'] = os.path.join(
+          self._test_args['output'],
+          'tfx_taxi_simple_' + kfp.dsl.RUN_ID_PLACEHOLDER)
+      del self._test_args['output']
 
     # Submit for pipeline running.
     if self._run_pipeline:
