@@ -309,7 +309,6 @@ func parseResourceReferences(resourceRefString sql.NullString) ([]*model.Resourc
 }
 
 func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
-	fmt.Printf("JING 1\n")
 	if r.StorageState == "" {
 		r.StorageState = api.Run_STORAGESTATE_AVAILABLE.String()
 	} else if r.StorageState != api.Run_STORAGESTATE_AVAILABLE.String() &&
@@ -344,7 +343,6 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 	}
 
 	// Use a transaction to make sure both run and its resource references are stored.
-	fmt.Printf("JING 2\n")
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create run.")
@@ -354,20 +352,17 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to store run %v to table", r.Name)
 	}
-	fmt.Printf("JING 3\n")
 
 	err = s.resourceReferenceStore.CreateResourceReferences(tx, r.ResourceReferences)
 	if err != nil {
 		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to store resource references to table for run %v ", r.Name)
 	}
-	fmt.Printf("JING 4\n")
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "Failed to store run %v and its resource references to table", r.Name)
 	}
-	fmt.Printf("JING 5\n")
 	return r, nil
 }
 

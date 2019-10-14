@@ -22,8 +22,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-
-	"fmt"
 )
 
 func (r *ResourceManager) ToModelRunMetric(metric *api.RunMetric, runUUID string) *model.RunMetric {
@@ -39,18 +37,15 @@ func (r *ResourceManager) ToModelRunMetric(metric *api.RunMetric, runUUID string
 // The input run might not contain workflowSpecManifest, but instead a pipeline ID.
 // The caller would retrieve workflowSpecManifest and pass in.
 func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, workflowSpecManifest string) (*model.RunDetail, error) {
-	fmt.Printf("JING +\n")
 	params, err := toModelParameters(run.GetPipelineSpec().GetParameters())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to parse the parameter.")
 	}
-	fmt.Printf("JING ++\n")
 	resourceReferences, err := r.toModelResourceReferences(
 		runId, common.Run, run.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
-	fmt.Printf("JING +++\n")
 	var pipelineName string
 	if run.GetPipelineSpec().GetPipelineId() != "" {
 		pipelineName, err = r.getResourceName(

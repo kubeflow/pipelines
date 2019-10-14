@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"fmt"
+
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -260,7 +260,6 @@ func VerifyPipelineVersionReferenceAsCreator(resourceManager *resource.ResourceM
 		return nil, util.NewInvalidInputError(
 			"Please specify a pipeline version in Run's resource references")
 	}
-	fmt.Printf("JING util version id %+v\n", pipelineVersionId)
 
 	// Verify pipeline version exists
 	if _, err := resourceManager.GetPipelineVersion(pipelineVersionId); err != nil {
