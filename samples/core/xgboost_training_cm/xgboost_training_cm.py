@@ -38,7 +38,7 @@ dataproc_submit_spark_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_spark_job/component.yaml'
 )
 
-_PYSRC_PREFIX = 'gs://kfp-gcp-dataproc-example/src' # Common path to python src.
+_PYSRC_PREFIX = 'gs://ml-pipeline-playground/dataproc-example' # Common path to python src.
 
 _XGBOOST_PKG = 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar'
 
@@ -81,7 +81,7 @@ def dataproc_analyze_op(
       project_id=project,
       region=region,
       cluster_name=cluster_name,
-      main_python_file_uri=os.path.join(_PYSRC_PREFIX, 'analyze/analyze_run.py'),
+      main_python_file_uri=os.path.join(_PYSRC_PREFIX, 'analyze_run.py'),
       args=['--output', str(output), '--train', str(train_data), '--schema', str(schema)]
   )
 
@@ -117,7 +117,7 @@ def dataproc_transform_op(
       region=region,
       cluster_name=cluster_name,
       main_python_file_uri=os.path.join(_PYSRC_PREFIX,
-                                        'transform/transform_run.py'),
+                                        'transform_run.py'),
       args=[
         '--output',
         str(output),
@@ -209,7 +209,7 @@ def xgb_train_pipeline(
     eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
     schema='gs://ml-pipeline-playground/sfpd/schema.json',
     target='resolution',
-    rounds=5,
+    rounds=200,
     workers=2,
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
@@ -233,7 +233,7 @@ def xgb_train_pipeline(
             name=cluster_name,
             initialization_actions=[
               os.path.join(_PYSRC_PREFIX,
-                           'create/initialization_actions.sh'),
+                           'initialization_actions.sh'),
             ],
             image_version='1.2'
         )
@@ -282,7 +282,8 @@ def xgb_train_pipeline(
             output=predict_output
         ).after(train_op).set_display_name('Predictor')
 
-    dsl.get_pipeline_conf().add_op_transformer(gcp.use_gcp_secret('user-gcp-sa'))
+    dsl.get_pipeline_conf().add_op_transformer(
+        gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
     kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.zip')
