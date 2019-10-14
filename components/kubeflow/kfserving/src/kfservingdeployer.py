@@ -42,7 +42,7 @@ def EndpointSpec(framework, storage_uri):
     elif framework == 'sklearn':
         return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(sklearn=V1alpha2SKLearnSpec(storage_uri=storage_uri)))
     elif framework == 'xgboost':
-        return VV1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(xgboost=V1alpha2XGBoostSpec(storage_uri=storage_uri)))
+        return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(xgboost=V1alpha2XGBoostSpec(storage_uri=storage_uri)))
     elif framework == 'onnx':
         return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(onnx=V1alpha2ONNXSpec(storage_uri=storage_uri)))
     elif framework == 'tensorrt':
