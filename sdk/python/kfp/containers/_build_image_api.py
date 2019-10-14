@@ -25,6 +25,7 @@ import tempfile
 
 import requests
 
+from ._cache import calculate_recursive_dir_hash, try_read_value_from_cache, write_value_to_cache
 from ._container_builder import ContainerBuilder
 
 
@@ -113,11 +114,20 @@ def build_image_from_working_dir(image_name: str = None, working_dir: str = None
             dockerfile_text = _generate_dockerfile_text(context_dir, dst_dockerfile_path, base_image)
             with open(dst_dockerfile_path, 'w') as f:
                 f.write(dockerfile_text)
+        
+        cache_name = 'build_image_from_working_dir'
+        cache_key = calculate_recursive_dir_hash(context_dir)
+        cached_image_name = try_read_value_from_cache(cache_name, cache_key)
+        if cached_image_name:
+            return cached_image_name
 
         if builder is None:
             builder = _get_default_image_builder()
-        return builder.build(
+        image_name = builder.build(
             local_dir=context_dir,
             target_image=image_name,
             timeout=timeout,
         )
+        if image_name:
+            write_value_to_cache(cache_name, cache_key, image_name)
+        return image_name

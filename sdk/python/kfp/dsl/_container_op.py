@@ -1099,9 +1099,10 @@ class ContainerOp(BaseOp):
                 for name in file_outputs.keys()
             }
 
-        self.output = None
         if len(self.outputs) == 1:
             self.output = list(self.outputs.values())[0]
+        else:
+            self.output = _MultipleOutputsError()
 
         self.pvolumes = {}
         self.add_pvolumes(pvolumes)
@@ -1163,7 +1164,6 @@ class ContainerOp(BaseOp):
                         output_type = output_meta.type
                 self.outputs[output].param_type = output_type
 
-            self.output = None
             if len(self.outputs) == 1:
                 self.output = list(self.outputs.values())[0]
 
@@ -1199,3 +1199,15 @@ class ContainerOp(BaseOp):
 # proxy old ContainerOp properties to ContainerOp.container
 # with PendingDeprecationWarning.
 ContainerOp = _proxy_container_op_props(ContainerOp)
+
+
+class _MultipleOutputsError:
+    @staticmethod
+    def raise_error():
+        raise RuntimeError('This task has multiple outputs. Use `task.outputs[<output name>]` dictionary to refer to the one you need.')
+
+    def __getattribute__(self, name):
+        _MultipleOutputsError.raise_error()
+
+    def __str__(self):
+        _MultipleOutputsError.raise_error()
