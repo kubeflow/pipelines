@@ -34,7 +34,7 @@ from kfserving import V1alpha2CustomSpec
 from kfserving import V1alpha2InferenceServiceSpec
 from kfserving import V1alpha2InferenceService
 
-def EndpointSpec(framework, model_uri):
+def EndpointSpec(framework, storage_uri):
     if framework == 'tensorflow':
         return V1alpha2EndpointSpec(predictor=V1alpha2PredictorSpec(tensorflow=V1alpha2TensorflowSpec(storage_uri=storage_uri)))
     elif framework == 'pytorch':
