@@ -28,10 +28,10 @@ database.
 2. `npm start` to start a webpack dev server, it is configured to proxy api requests to localhost:3001. The following step will start a proxy that handles api requests proxied to localhost:3001.
 
 #### Special step that depend on what you want to do
-| What to develop?        | Who handles API requests? | Script to run                    | Extra notes                                                        |
-|-------------------------|---------------------------|----------------------------------|--------------------------------------------------------------------|
-| Client UI               | standalone deployment     | `npm run start:proxy-standalone` |                                                                    |
-| Client UI + Node server | standalone deployment     | `npm run start:proxies`          | You need to rerun the script every time you edit node server code. |
+| What to develop?        | Who handles API requests? | Script to run                                                  | Extra notes                                                        |
+|-------------------------|---------------------------|----------------------------------------------------------------|--------------------------------------------------------------------|
+| Client UI               | standalone deployment     | `NAMESPACE=kubeflow npm run start:proxy-standalone`            |                                                                    |
+| Client UI + Node server | standalone deployment     | `NAMESPACE=kubeflow npm run start:proxy-standalone-and-server` | You need to rerun the script every time you edit node server code. |
 
 TODO: figure out and document how to use a Kubeflow deployment to develop UI.
 
