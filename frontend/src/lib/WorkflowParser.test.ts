@@ -337,7 +337,7 @@ describe('WorkflowParser', () => {
   });
 
   describe('getNodeInputOutputParams', () => {
-    const emptyParams = {inputParams: [], outputParams: []}
+    const emptyParams = {inputParams: [], outputParams: []};
     it('handles undefined workflow', () => {
       expect(WorkflowParser.getNodeInputOutputParams(undefined as any, '')).toEqual(emptyParams);
     });
@@ -534,7 +534,7 @@ describe('WorkflowParser', () => {
   });
 
   describe('getNodeInputOutputArtifacts', () => {
-    const emptyArtifacts = {inputArtifacts: [], outputArtifacts: []}
+    const emptyArtifacts = {inputArtifacts: [], outputArtifacts: []};
     const s3 = {
       accessKeySecret: {key: 'accesskey', optional: false, name: 'minio'},
       bucket: 'foo',
@@ -625,7 +625,7 @@ describe('WorkflowParser', () => {
               inputs: {
                 artifacts: [{
                   name: 'input art1',
-                  s3: {...s3, key: "in1"}
+                  s3: {...s3, key: 'in1'}
                 }]
               }
             },
@@ -702,22 +702,22 @@ describe('WorkflowParser', () => {
               inputs: {
                 artifacts: [{
                   name: 'input art1',
-                  s3: {...s3, key: "in1"}
+                  s3: {...s3, key: 'in1'}
                 }, {
                   name: 'input art2',
-                  s3: {...s3, key: "in2"}
+                  s3: {...s3, key: 'in2'}
                 }, {
                   name: 'input art3',
-                  s3: {...s3, key: "in3"}
+                  s3: {...s3, key: 'in3'}
                 }],
               },
               outputs: {
                 artifacts: [{
                   name: 'output art1',
-                  s3: {...s3, key: "out1"}
+                  s3: {...s3, key: 'out1'}
                 }, {
                   name: 'output art2',
-                  s3: {...s3, key: "out2"}
+                  s3: {...s3, key: 'out2'}
                 }],
               },
             }
@@ -726,13 +726,13 @@ describe('WorkflowParser', () => {
       };
       expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node1')).toEqual({
         inputArtifacts: [
-          ['input art1', {...s3, key: "in1"}],
-          ['input art2', {...s3, key: "in2"}],
-          ['input art3', {...s3, key: "in3"}],
+          ['input art1', {...s3, key: 'in1'}],
+          ['input art2', {...s3, key: 'in2'}],
+          ['input art3', {...s3, key: 'in3'}],
         ],
         outputArtifacts: [
-          ['output art1', {...s3, key: "out1"}],
-          ['output art2', {...s3, key: "out2"}],
+          ['output art1', {...s3, key: 'out1'}],
+          ['output art2', {...s3, key: 'out2'}],
         ],
       });
     });
