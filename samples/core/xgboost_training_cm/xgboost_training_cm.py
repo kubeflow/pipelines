@@ -23,6 +23,9 @@ import os
 import subprocess
 
 # TODO(numerology): add ROC and CM back once UI metadata is enabled in this sample.
+confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/local/confusion_matrix/component.yaml')
+
+roc_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/local/roc/component.yaml')
 
 dataproc_create_cluster_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/677fbaa281125fd604b81eab2488513efee7b600/components/gcp/dataproc/create_cluster/component.yaml')
@@ -211,6 +214,7 @@ def xgb_train_pipeline(
     target='resolution',
     rounds=200,
     workers=2,
+    true_label='ACTION',
 ):
     output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
 
@@ -281,6 +285,18 @@ def xgb_train_pipeline(
             analysis=analyze_output,
             output=predict_output
         ).after(train_op).set_display_name('Predictor')
+
+        cm_op = confusion_matrix_op(
+            predictions=os.path.join(predict_output, 'part-*.csv'),
+            output=output_template
+        ).after(predict_op)
+
+        roc_task = roc_op(
+            predictions_dir=os.path.join(predict_output, 'part-*.csv'),
+            true_class=true_label,
+            true_score_column=true_label,
+            output_dir=output_template
+        ).after(predict_op)
 
     dsl.get_pipeline_conf().add_op_transformer(
         gcp.use_gcp_secret('user-gcp-sa'))
