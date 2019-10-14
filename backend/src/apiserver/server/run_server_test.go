@@ -112,6 +112,18 @@ func TestValidateCreateRunRequest(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestValidateCreateRunRequest_WithPipelineVersionReference(t *testing.T) {
+	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	server := NewRunServer(manager)
+	run := &api.Run{
+		Name:               "123",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+}
+
 func TestValidateCreateRunRequest_EmptyName(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
@@ -144,7 +156,7 @@ func TestValidateCreateRunRequest_NoExperiment(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestValidateCreateRunRequest_EmptyPipelineSpec(t *testing.T) {
+func TestValidateCreateRunRequest_EmptyPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager)
@@ -154,7 +166,8 @@ func TestValidateCreateRunRequest_EmptyPipelineSpec(t *testing.T) {
 	}
 	err := server.validateCreateRunRequest(&api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a pipeline ID or workflow manifest")
+	assert.Contains(
+		t, err.Error(), "Neither pipeline spec nor pipeline version is valid")
 }
 
 func TestValidateCreateRunRequest_TooMuchParameters(t *testing.T) {

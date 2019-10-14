@@ -78,17 +78,19 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 }
 
 func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, workflowSpecManifest string) (*model.Job, error) {
-	params, err := toModelParameters(job.PipelineSpec.Parameters)
+	params, err := toModelParameters(job.GetPipelineSpec().GetParameters())
 	if err != nil {
 		return nil, util.Wrap(err, "Error parsing the input job.")
 	}
-	resourceReferences, err := r.toModelResourceReferences(string(swf.UID), common.Job, job.ResourceReferences)
+	resourceReferences, err := r.toModelResourceReferences(
+		string(swf.UID), common.Job, job.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Error to convert resource references.")
 	}
 	var pipelineName string
-	if job.PipelineSpec.GetPipelineId() != "" {
-		pipelineName, err = r.getResourceName(common.Pipeline, job.PipelineSpec.GetPipelineId())
+	if job.GetPipelineSpec().GetPipelineId() != "" {
+		pipelineName, err = r.getResourceName(
+			common.Pipeline, job.GetPipelineSpec().GetPipelineId())
 		if err != nil {
 			return nil, util.Wrap(err, "Error getting the pipeline name")
 		}
@@ -105,7 +107,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		MaxConcurrency:     job.MaxConcurrency,
 		ResourceReferences: resourceReferences,
 		PipelineSpec: model.PipelineSpec{
-			PipelineId:           job.PipelineSpec.GetPipelineId(),
+			PipelineId:           job.GetPipelineSpec().GetPipelineId(),
 			PipelineName:         pipelineName,
 			WorkflowSpecManifest: workflowSpecManifest,
 			Parameters:           params,
