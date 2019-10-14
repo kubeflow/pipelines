@@ -583,7 +583,7 @@ describe('WorkflowParser', () => {
             node1: {
               inputs: {
                 artifacts: [{
-                  name: 'input artq1',
+                  name: 'input art1',
                   s3
                 }]
               }
