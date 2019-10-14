@@ -14,5 +14,4 @@
 
 test_name: component_build
 notebook_params:
-  experiment_name: component_build-test
   PROJECT_NAME: ml-pipeline-test
