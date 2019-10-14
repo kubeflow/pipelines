@@ -29,3 +29,5 @@ exports[`MinioArtifactLink handles s3 artifact 1`] = `
   s3://foo/bar
 </a>
 `;
+
+exports[`MinioArtifactLink handles undefined artifact 1`] = `null`;

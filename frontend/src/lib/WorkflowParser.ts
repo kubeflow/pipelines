@@ -169,41 +169,43 @@ export default class WorkflowParser {
   // Makes sure the workflow object contains the node and returns its
   // inputs/outputs if any, while looking out for any missing link in the chain to
   // the node's inputs/outputs.
-  public static getNodeInputOutputParams(workflow?: Workflow, nodeId?: string): [Array<KeyValue<string>>, Array<KeyValue<string>>] {
+  public static getNodeInputOutputParams(workflow?: Workflow, nodeId?: string): Record<'inputParams' | 'outputParams', Array<KeyValue<string>>> {
     type ParamList = Array<KeyValue<string>>;
+    let inputParams: ParamList = [];
+    let outputParams: ParamList = [];
     if (!nodeId || !workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
-      return [[], []];
+      return {inputParams, outputParams};
     }
 
-    const node = workflow.status.nodes[nodeId];
-    const inputsOutputs: [ParamList, ParamList] = [[], []];
-    if (node.inputs && node.inputs.parameters) {
-      inputsOutputs[0] = node.inputs.parameters.map(p => [p.name, p.value || '']);
+    const {inputs, outputs} = workflow.status.nodes[nodeId];
+    if (!!inputs && !!inputs.parameters) {
+      inputParams = inputs.parameters.map(p => [p.name, p.value || '']);
     }
-    if (node.outputs && node.outputs.parameters) {
-      inputsOutputs[1] = node.outputs.parameters.map(p => [p.name, p.value || '']);
+    if (!!outputs && !!outputs.parameters) {
+      outputParams = outputs.parameters.map(p => [p.name, p.value || '']);
     }
-    return inputsOutputs;
+    return {inputParams, outputParams};
   }
 
   // Makes sure the workflow object contains the node and returns its
   // inputs/outputs artifacts if any, while looking out for any missing link in the chain to
   // the node's inputs/outputs.
-  public static getNodeInputOutputArtifacts(workflow?: Workflow, nodeId?: string): [Array<KeyValue<S3Artifact>>, Array<KeyValue<S3Artifact>>] {
+  public static getNodeInputOutputArtifacts(workflow?: Workflow, nodeId?: string): Record<'inputArtifacts' | 'outputArtifacts', Array<KeyValue<S3Artifact>>> {
     type ParamList = Array<KeyValue<S3Artifact>>;
+    let inputArtifacts: ParamList = [];
+    let outputArtifacts: ParamList = [];
     if (!nodeId || !workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
-      return [[], []];
+      return {inputArtifacts, outputArtifacts};
     }
 
-    const node = workflow.status.nodes[nodeId];
-    const inputsArtifacts: [ParamList, ParamList] = [[], []];
-    if (node.inputs && node.inputs.artifacts) {
-      inputsArtifacts[0] = node.inputs.artifacts.map(p => [p.name, p.s3]);
+    const {inputs, outputs} = workflow.status.nodes[nodeId];
+    if (!!inputs && !!inputs.artifacts) {
+      inputArtifacts = inputs.artifacts.map(({name, s3}) => [name, s3]);
     }
-    if (node.outputs && node.outputs.artifacts) {
-      inputsArtifacts[1] = node.outputs.artifacts.map(p => [p.name, p.s3]);
+    if (!!outputs && !!outputs.artifacts) {
+      outputArtifacts = outputs.artifacts.map(({name, s3}) => [name, s3]);
     }
-    return inputsArtifacts;
+    return {inputArtifacts, outputArtifacts};
   }
 
   // Makes sure the workflow object contains the node and returns its

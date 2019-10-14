@@ -200,8 +200,8 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     const selectedNodeId = selectedNodeDetails ? selectedNodeDetails.id : '';
 
     const workflowParameters = WorkflowParser.getParameters(workflow);
-    const nodeInputOutputParams = WorkflowParser.getNodeInputOutputParams(workflow, selectedNodeId);
-    const nodeInputOutputArtifacts = WorkflowParser.getNodeInputOutputArtifacts(workflow, selectedNodeId);
+    const {inputParams, outputParams} = WorkflowParser.getNodeInputOutputParams(workflow, selectedNodeId);
+    const {inputArtifacts, outputArtifacts} = WorkflowParser.getNodeInputOutputArtifacts(workflow, selectedNodeId);
     const hasMetrics = runMetadata && runMetadata.metrics && runMetadata.metrics.length > 0;
     const visualizationCreatorConfig: VisualizationCreatorConfig = {
       allowCustomVisualizations,
@@ -263,17 +263,17 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
                           {sidepanelSelectedTab === SidePaneTab.INPUT_OUTPUT && (
                             <div className={padding(20)}>
                               <DetailsTable title='Input parameters'
-                                fields={nodeInputOutputParams[0]} />
+                                fields={inputParams} />
 
                               <DetailsTable title='Input artifacts'
-                                fields={nodeInputOutputArtifacts[0]}
+                                fields={inputArtifacts}
                                 valueComponent={MinioArtifactLink} />
 
                               <DetailsTable title='Output parameters'
-                                fields={nodeInputOutputParams[1]} />
+                                fields={outputParams} />
 
                               <DetailsTable title='Output artifacts'
-                                fields={nodeInputOutputArtifacts[1]}
+                                fields={outputArtifacts}
                                 valueComponent={MinioArtifactLink} />
                             </div>
                           )}

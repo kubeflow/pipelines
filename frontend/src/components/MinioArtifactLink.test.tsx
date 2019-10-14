@@ -18,6 +18,10 @@ import MinioArtifactLink from './MinioArtifactLink';
 
 describe('MinioArtifactLink', () => {
 
+  it('handles undefined artifact', () => {
+    expect(MinioArtifactLink(undefined as any)).toMatchSnapshot();
+  });
+
   it('handles null artifact', () => {
         expect(MinioArtifactLink(null as any)).toMatchSnapshot();
   });
