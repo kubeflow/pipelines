@@ -37,6 +37,7 @@ import { ApiRun, RunStorageState } from '../apis/run';
 import { Apis } from '../lib/Apis';
 import { NodePhase, hasFinished } from '../lib/StatusUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
+import { KeyValue } from '../lib/StaticGraphParser';
 import { Page } from './Page';
 import { RoutePage, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
@@ -589,7 +590,7 @@ class RunDetails extends Page<RunDetailsProps, RunDetailsState> {
     this.setStateSafe({ allArtifactConfigs });
   }
 
-  private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): Array<[string, string]> {
+  private _getDetailsFields(workflow: Workflow, runMetadata?: ApiRun): Array<KeyValue<string>> {
     return !workflow.status ? [] : [
       ['Status', workflow.status.phase],
       ['Description', runMetadata ? runMetadata!.description! : ''],

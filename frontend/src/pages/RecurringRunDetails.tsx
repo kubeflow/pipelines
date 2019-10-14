@@ -66,9 +66,9 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
 
   public render(): JSX.Element {
     const { run } = this.state;
-    let runDetails: Array<[string, string]> = [];
+    let runDetails: Array<KeyValue<string>> = [];
     let inputParameters: Array<KeyValue<string>> = [];
-    let triggerDetails: Array<[string, string]> = [];
+    let triggerDetails: Array<KeyValue<string>> = [];
     if (run && run.pipeline_spec) {
       runDetails = [
         ['Description', run.description!],
