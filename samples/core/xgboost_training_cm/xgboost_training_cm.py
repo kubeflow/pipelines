@@ -288,7 +288,7 @@ def xgb_train_pipeline(
 
         cm_op = confusion_matrix_op(
             predictions=os.path.join(predict_output, 'part-*.csv'),
-            output=output_template
+            output_dir=output_template
         ).after(predict_op)
 
         roc_task = roc_op(
