@@ -170,18 +170,18 @@ export default class WorkflowParser {
   // inputs/outputs if any, while looking out for any missing link in the chain to
   // the node's inputs/outputs.
   public static getNodeInputOutputParams(workflow?: Workflow, nodeId?: string): [Array<KeyValue<string>>, Array<KeyValue<string>>] {
-    type paramList = Array<KeyValue<string>>;
+    type ParamList = Array<KeyValue<string>>;
     if (!nodeId || !workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
       return [[], []];
     }
 
     const node = workflow.status.nodes[nodeId];
-    const inputsOutputs: [paramList, paramList] = [[], []];
+    const inputsOutputs: [ParamList, ParamList] = [[], []];
     if (node.inputs && node.inputs.parameters) {
-      inputsOutputs[0] = node.inputs.parameters.map(p => [p.name, p.value || ''] );
+      inputsOutputs[0] = node.inputs.parameters.map(p => [p.name, p.value || '']);
     }
     if (node.outputs && node.outputs.parameters) {
-      inputsOutputs[1] = node.outputs.parameters.map(p => [p.name, p.value || ''] );
+      inputsOutputs[1] = node.outputs.parameters.map(p => [p.name, p.value || '']);
     }
     return inputsOutputs;
   }
@@ -190,18 +190,18 @@ export default class WorkflowParser {
   // inputs/outputs artifacts if any, while looking out for any missing link in the chain to
   // the node's inputs/outputs.
   public static getNodeInputOutputArtifacts(workflow?: Workflow, nodeId?: string): [Array<KeyValue<S3Artifact>>, Array<KeyValue<S3Artifact>>] {
-    type paramList = Array<KeyValue<S3Artifact>>;
+    type ParamList = Array<KeyValue<S3Artifact>>;
     if (!nodeId || !workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
       return [[], []];
     }
 
     const node = workflow.status.nodes[nodeId];
-    const inputsArtifacts: [paramList, paramList] = [[], []];
+    const inputsArtifacts: [ParamList, ParamList] = [[], []];
     if (node.inputs && node.inputs.artifacts) {
-      inputsArtifacts[0] = node.inputs.artifacts.map(p => [p.name, p.s3] );
+      inputsArtifacts[0] = node.inputs.artifacts.map(p => [p.name, p.s3]);
     }
     if (node.outputs && node.outputs.artifacts) {
-      inputsArtifacts[1] = node.outputs.artifacts.map(p => [p.name, p.s3] );
+      inputsArtifacts[1] = node.outputs.artifacts.map(p => [p.name, p.s3]);
     }
     return inputsArtifacts;
   }
@@ -217,7 +217,7 @@ export default class WorkflowParser {
     const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
     let volumeMounts: Array<KeyValue<string>> = [];
     if (tmpl && tmpl.container && tmpl.container.volumeMounts) {
-      volumeMounts = tmpl.container.volumeMounts.map(v => [v.mountPath, v.name] );
+      volumeMounts = tmpl.container.volumeMounts.map(v => [v.mountPath, v.name]);
     }
     return volumeMounts;
   }

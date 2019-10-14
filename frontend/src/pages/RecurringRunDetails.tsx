@@ -74,7 +74,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
         ['Description', run.description!],
         ['Created at', formatDateString(run.created_at)],
       ];
-      inputParameters = (run.pipeline_spec.parameters || []).map(p => [p.name || '', p.value || ''] );
+      inputParameters = (run.pipeline_spec.parameters || []).map(p => [p.name || '', p.value || '']);
       if (run.trigger) {
         triggerDetails = [
           ['Enabled', enabledDisplayString(run.trigger, run.enabled!)],
