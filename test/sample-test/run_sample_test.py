@@ -147,7 +147,6 @@ class PySampleChecker(object):
         exit(1)
 
       ###### Validate the results for specific test cases ######
-      #TODO: Add result check for tfx-cab-classification after launch.
       if self._testname == 'xgboost_training_cm':
         # For xgboost sample, check its confusion matrix.
         cm_tar_path = './confusion_matrix.tar.gz'
