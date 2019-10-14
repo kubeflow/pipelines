@@ -49,7 +49,7 @@
     "mock:server": "node server/dist/server.js build",
     "postinstall": "cd ./server && npm i && cd ../mock-backend && npm i && cd ../src/generated/src/apis/metadata && npm i",
     "start:proxy-standalone": "./start-proxy-standalone.sh",
-    "start:proxies": "./start-proxies.sh",
+    "start:proxy-standalone-and-server": "./start-proxy-standalone-and-server.sh",
     "start": "react-scripts-ts start",
     "test": "react-scripts-ts test --env=jsdom",
     "test:coverage": "npm test -- --env=jsdom --coverage",
