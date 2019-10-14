@@ -263,7 +263,10 @@ func VerifyPipelineVersionReferenceAsCreator(resourceManager *resource.ResourceM
 
 	// Verify pipeline version exists
 	if _, err := resourceManager.GetPipelineVersion(pipelineVersionId); err != nil {
-		return nil, util.Wrap(err, "Please specify a  valid pipeline version in Run's resource references.")
+		return nil, util.Wrap(
+			err,
+			`Please specify a  valid pipeline version in Run's resource
+			references.`)
 	}
 
 	return &pipelineVersionId, nil

@@ -87,7 +87,13 @@ func (s *JobServer) validateCreateJobRequest(request *api.CreateJobRequest) erro
 	job := request.Job
 
 	if err := ValidatePipelineSpec(s.resourceManager, job.PipelineSpec); err != nil {
-		return util.Wrap(err, "The pipeline spec is invalid.")
+		if _, errResourceReference := VerifyPipelineVersionReferenceAsCreator(
+			s.resourceManager, job.ResourceReferences); errResourceReference != nil {
+			return util.Wrap(
+				err,
+				"Neither pipeline spec nor pipeline version is valid."+
+					errResourceReference.Error())
+		}
 	}
 
 	if job.MaxConcurrency > 10 || job.MaxConcurrency < 1 {

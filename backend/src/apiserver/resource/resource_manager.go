@@ -450,11 +450,21 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 }
 
 func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
-	// Get workflow from pipeline spec, which might be pipeline ID or an argo workflow
-	workflowSpecManifestBytes, err := r.getWorkflowSpecBytes(apiJob.GetPipelineSpec())
+	// Get workflow from either of the two places:
+	// (1) pipeline spec, which might be pipeline ID or an argo workflow
+	// (2) resource references, which contains the pipeline version ID
+	var workflowSpecManifestBytes []byte
+	workflowSpecManifestBytes, err :=
+		r.getWorkflowSpecBytes(apiJob.GetPipelineSpec())
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to fetch workflow spec.")
+		workflowSpecManifestBytes, err =
+			r.getWorkflowSpecBytesFromPipelineVersion(
+				apiJob.GetResourceReferences())
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to fetch workflow spec.")
+		}
 	}
+
 	var workflow util.Workflow
 	err = json.Unmarshal(workflowSpecManifestBytes, &workflow)
 	if err != nil {
@@ -463,7 +473,8 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	}
 
 	// Verify no additional parameter provided
-	err = workflow.VerifyParameters(toParametersMap(apiJob.PipelineSpec.Parameters))
+	err = workflow.VerifyParameters(
+		toParametersMap(apiJob.GetPipelineSpec().GetParameters()))
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
@@ -482,8 +493,9 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 			MaxConcurrency: &apiJob.MaxConcurrency,
 			Trigger:        *toCRDTrigger(apiJob.Trigger),
 			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: toCRDParameter(apiJob.PipelineSpec.Parameters),
-				Spec:       workflow.Spec,
+				Parameters: toCRDParameter(
+					apiJob.GetPipelineSpec().GetParameters()),
+				Spec: workflow.Spec,
 			},
 		},
 	}
@@ -493,12 +505,12 @@ func (r *ResourceManager) CreateJob(apiJob *api.Job) (*model.Job, error) {
 	}
 
 	// Add a reference to the default experiment if run does not already have a containing experiment
-	ref, err := r.getDefaultExperimentIfNoExperiment(apiJob.ResourceReferences)
+	ref, err := r.getDefaultExperimentIfNoExperiment(apiJob.GetResourceReferences())
 	if err != nil {
 		return nil, err
 	}
 	if ref != nil {
-		apiJob.ResourceReferences = append(apiJob.ResourceReferences, ref)
+		apiJob.ResourceReferences = append(apiJob.GetResourceReferences(), ref)
 	}
 
 	job, err := r.ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(workflowSpecManifestBytes))
