@@ -70,6 +70,15 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 	return ToApiPipeline(pipeline), nil
 }
 
+func (s *PipelineServer) GetPipelineVersionTemplate(ctx context.Context, request *api.GetPipelineVersionTemplateRequest) (*api.GetTemplateResponse, error) {
+	template, err := s.resourceManager.GetPipelineVersionTemplate(request.VersionId)
+	if err != nil {
+		return nil, util.Wrap(err, "Get pipeline version template failed.")
+	}
+
+	return &api.GetTemplateResponse{Template: string(template)}, nil
+}
+
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
 	opts, err := validatedListOptions(&model.Pipeline{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
 

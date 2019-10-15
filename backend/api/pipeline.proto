@@ -105,9 +105,15 @@ service PipelineService {
     };
   }
 
+  rpc GetPipelineVersionTemplate(GetPipelineVersionTemplateRequest) returns (GetTemplateResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipeline_versions/{version_id}/templates"
+    };
+  }
+
   rpc ListPipelineVersions(ListPipelineVersionsRequest) returns (ListPipelineVersionsResponse) {
     option (google.api.http) = {
-      get: "/apis/v1beta1/pipeline_versions/"
+      get: "/apis/v1beta1/pipeline_versions"
     };
   }
 
@@ -237,7 +243,7 @@ message Pipeline {
   // version is used as default. (In the future, if desired by customers, we
   // can allow them to set default version.)
   // TODO(jingzhang36): expose this in API pipeline definition with FE changes.
-  // PipelineVersion default_version = 8;
+  PipelineVersion default_version = 8;
 }
 
 message PipelineVersion {
