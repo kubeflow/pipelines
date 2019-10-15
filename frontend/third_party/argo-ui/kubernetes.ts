@@ -18,7 +18,6 @@ export type Volume = any;
 export type EnvFromSource = any;
 export type EnvVarSource = any;
 export type ResourceRequirements = any;
-export type VolumeMount = any;
 export type Probe = any;
 export type Lifecycle = any;
 export type TerminationMessagePolicy = any;
@@ -26,6 +25,12 @@ export type PullPolicy = any;
 export type SecurityContext = any;
 export type PersistentVolumeClaim = any;
 export type Affinity = any;
+
+
+export interface VolumeMount {
+  name: string;
+  mountPath?: string;
+}
 
 export interface ListMeta {
   _continue?: string;

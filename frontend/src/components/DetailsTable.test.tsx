@@ -106,4 +106,10 @@ describe('DetailsTable', () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it('does render values with the provided valueComponent', () => {
+    const valueComponent: React.FC<any> = ({key}) => <a>{key}</a>;
+    const tree = shallow(<DetailsTable fields={[['key', {key: 'foobar'} as any ]]} valueComponent={valueComponent} />);
+    expect(tree).toMatchSnapshot();
+  });
+
 });
