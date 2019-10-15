@@ -14,13 +14,16 @@ parser.add_argument(
     'File path of a golang dependency list file, one line has a dependency name',
 )
 parser.add_argument(
-    'output_file',
+    '-o',
+    '--output',
+    dest='output_file',
     nargs='?',
     default='repo.txt',
     help='Output file with one line per resolved github repo',
 )
 parser.add_argument(
-    'manual_dep_repo_mapping_file',
+    '--manual-dep-repo-mapping',
+    dest='manual_dep_repo_mapping_file',
     nargs='?',
     default='dep_repo.manual.csv',
     help=
@@ -35,6 +38,9 @@ gopkg_base = 'gopkg.in/'
 
 
 def github_link_to_repo(repo):
+    '''
+    Removes extra sub folder in github url.
+    '''
     if len(repo.split('/')) > 2:
         print('repo {} has subfolder'.format(repo), file=sys.stderr)
         repo = '/'.join(repo.split('/')[:2])
@@ -44,6 +50,10 @@ def github_link_to_repo(repo):
 
 
 def get_github_repo(url):
+    '''
+    Tries to resolve github repo from a github url.
+    Returns org/repo format github repo string.
+    '''
     if url.startswith(protocol):
         url = url[len(protocol):]
     if not url.startswith(github_base):
@@ -65,7 +75,6 @@ def fetch_github_uri_from_godoc(url):
     the github url there. If the link there isn't a github url, it throws an
     exception.
     '''
-
     full_url = protocol + godoc_base + url
     print('fetching godoc {}'.format(full_url), file=sys.stderr)
     response = requests.get(full_url)
@@ -111,6 +120,12 @@ def fetch_gopkg_uri(url):
 
 
 def get_github_repo_for_dep(dep):
+    '''
+    Tries to resolve github repo by three ways:
+    1. fetch gopkg website
+    2. parse from github url
+    3. fetch godoc website
+    '''
     print('Fetching github uri for {}'.format(dep), file=sys.stderr)
     repo = None
     if dep.startswith(gopkg_base):
@@ -140,6 +155,7 @@ def main():
         except:
             print('ignore manual_dep_repo_mapping_file', file=sys.stderr)
         deps = [line.strip() for line in dep_file]
+        dep_succeeded = []
         # Dependencies that we couldn't resolve their github repos.
         dep_failed = []
         for dep in deps:
@@ -154,6 +170,7 @@ def main():
                     # Try to resolve if not found
                     repo = get_github_repo_for_dep(dep)
                 print(repo, file=output_file)
+                dep_succeeded.append(dep)
             except Exception as e:
                 print('[failed]', e, file=sys.stderr)
                 traceback.print_exc(file=sys.stderr)
@@ -163,6 +180,10 @@ def main():
                   file=sys.stderr)
             for dep in dep_failed:
                 print(dep, file=sys.stderr)
+        print(
+            'Successfully resolved github repo for {} dependencies and saved to {}'
+            .format(len(dep_succeeded), args.output_file),
+            file=sys.stderr)
 
 
 if __name__ == '__main__':
