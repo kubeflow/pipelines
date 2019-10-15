@@ -18,7 +18,8 @@ NAME = 'kfp-license-tools'
 VERSION = '0.0.1'
 
 REQUIRES = [
-    'urllib3>=1.15,<1.25',
+    'bs4',
+    'requests',
 ]
 
 setup(name=NAME,
@@ -31,6 +32,7 @@ setup(name=NAME,
       ],
       python_requires='>=3.5.3',
       entry_points={
-          'console_scripts':
-          ['dsl-compile = kfp.compiler.main:main', 'kfp=kfp.__main__:main']
+          'console_scripts': [
+              'get-github-repo = get_github_repo:main',
+          ]
       })

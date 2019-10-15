@@ -23,7 +23,10 @@ library. Thus, we need these tools to automate this task.
     with all of its dependencies and transitive dependencies. All the name fields in this file is what we need.
     * minio uses [official go modules](https://blog.golang.org/using-go-modules), there's a [go.mod file](https://github.com/minio/minio/blob/master/go.mod) describing its direct dependencies. Run command `go list -m all` to get final versions that will be used in a build for all direct and indirect dependencies, [reference](https://github.com/golang/go/wiki/Modules#daily-workflow). Parse its output to make a file we need.
 
-1. Run `get-github-repo` to resolve github repos of golang imports (Not all imports can be figured out by my script, needs manual help for <2% of libraries)
+1. Run `get-github-repo` to resolve github repos of golang imports. Not all
+imports can be figured out by my script, needs manual help for <2% of libraries.
+
+    For a library we cannot resolve, manually put it in `dep-repo-mapping.manual.csv`, so the tool knows how to find its github repo the next time.
 1. Run `get-github-license-info` to crawl github license info of these libraries. (Not all repos have github recognizable license, needs manual help for <2% of libraries)
 1. Edit github license info file. Manually check the license file for all repos with a license categorized as "Other" by github. Figure out their true license names.
 1. Run `get-github-license-content` to crawl full text license files for all dependencies and concat them into one file.
