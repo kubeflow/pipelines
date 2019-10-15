@@ -45,15 +45,12 @@ gcloud iam service-accounts create $SA_NAME --display-name $SA_NAME
 gcloud projects add-iam-policy-binding $PROJECT --member=serviceAccount:my-account@$PROJECT.iam.gserviceaccount.com --role=roles/storage.admin
 # Also do this binding for other roles you need. For example, dataproc.admin and dataflow.admin
 gcloud iam service-accounts keys create application_default_credentials.json --iam-account $SA_NAME@$PROJECT.iam.gserviceaccount.com
-export SERVICE_ACCOUNT_TOKEN="$(cat application_default_credentials.json | base64 -w 0)"
-echo -e "apiVersion: v1\nkind: Secret\nmetadata:\n  name: \"user-gcp-sa\"\n  namespace: \"${NAMESPACE}\"\n  labels:\n    app: gcp-sa\n    app.kubernetes.io/name: \"${APP_INSTANCE_NAME}\"\ntype: Opaque\ndata:\n  application_default_credentials.json: ${SERVICE_ACCOUNT_TOKEN}\n  user-gcp-sa.json: $SERVICE_ACCOUNT_TOKEN" > secret.yaml
-kubectl apply -f secret.yaml
-# Remove secret files
-rm application_default_credentials.json secret.yaml
+# Remove existing SA and apply new SA
+kubectl delete secret user-gcp-sa -n ${NAMESPACE}
+kubectl create secret -n ${NAMESPACE} generic user-gcp-sa --from-file=user-gcp-sa.json=application_default_credentials.json
+# Remove secret file
+rm application_default_credentials.json
 ```
-
-Note that the above commands use `base64 -w 0` to disable line wrapping, this could be slightly different
-across platforms. For example, if you are using MacOS, do not include `-w 0` option in `export SERVICE_ACCOUNT_TOKEN="$(cat application_default_credentials.json | base64 -w 0)"`
 
 ## Tips
 
