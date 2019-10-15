@@ -53,9 +53,7 @@ _data_root_param = dsl.PipelineParam(
     value='gs://ml-pipeline-playground/tfx_taxi_simple/data')
 
 # Path of pipeline root, should be a GCS path.
-_pipeline_root_param = dsl.PipelineParam(
-    name='pipeline-root',
-    value=os.path.join('gs://your-bucket', 'tfx_taxi_simple'))
+pipeline_root = os.path.join('gs://your-bucket', 'tfx_taxi_simple')
 
 def _create_test_pipeline(pipeline_root: Text, csv_input_location: Text,
     taxi_module_file: Text, enable_cache: bool):
@@ -99,12 +97,18 @@ def _create_test_pipeline(pipeline_root: Text, csv_input_location: Text,
       ]))
   model_validator = ModelValidator(
       examples=example_gen.outputs.examples, model=trainer.outputs.output)
+
+  # Hack: ensuring push_destination can be correctly parameterized and interpreted.
+  # pipeline root will be specified as a dsl.PipelineParam with the name
+  # pipeline-root, see:
+  # https://github.com/tensorflow/tfx/blob/1c670e92143c7856f67a866f721b8a9368ede385/tfx/orchestration/kubeflow/kubeflow_dag_runner.py#L226
+  _pipeline_root_param = dsl.PipelineParam(name='pipeline-root')
   pusher = Pusher(
       model_export=trainer.outputs.output,
       model_blessing=model_validator.outputs.blessing,
       push_destination=pusher_pb2.PushDestination(
           filesystem=pusher_pb2.PushDestination.Filesystem(
-              base_directory=os.path.join(pipeline_root, 'model_serving'))))
+              base_directory=os.path.join(str(_pipeline_root_param), 'model_serving'))))
 
   return pipeline.Pipeline(
       pipeline_name='parameterized_tfx_oss',
@@ -130,9 +134,8 @@ def _get_kubeflow_metadata_config() -> kubeflow_pb2.KubeflowMetadataConfig:
 if __name__ == '__main__':
 
   enable_cache = True
-
   pipeline = _create_test_pipeline(
-      str(_pipeline_root_param),
+      pipeline_root,
       str(_data_root_param),
       str(_taxi_module_file_param),
       enable_cache=enable_cache)

@@ -215,6 +215,30 @@ exports[`DetailsTable does render arrays as JSON 2`] = `
 </Fragment>
 `;
 
+exports[`DetailsTable does render values with the provided valueComponent 1`] = `
+<Fragment>
+  <div>
+    <div
+      className="row"
+      key="0"
+    >
+      <span
+        className="key"
+      >
+        key
+      </span>
+      <span
+        className="valueText"
+      >
+        <a>
+          foobar
+        </a>
+      </span>
+    </div>
+  </div>
+</Fragment>
+`;
+
 exports[`DetailsTable shows a row with a title 1`] = `
 <Fragment>
   <div

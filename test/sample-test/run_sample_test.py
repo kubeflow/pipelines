@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 import os
 import tarfile
+import time
 import utils
 import yamale
 import yaml
@@ -23,7 +25,7 @@ from constants import CONFIG_DIR, DEFAULT_CONFIG, SCHEMA_CONFIG
 
 
 class PySampleChecker(object):
-  def __init__(self, testname, input, output, result, namespace='kubeflow'):
+  def __init__(self, testname, input, output, result, experiment_name, namespace='kubeflow'):
     """Util class for checking python sample test running results.
 
     :param testname: test name.
@@ -31,8 +33,10 @@ class PySampleChecker(object):
     :param output: The path of the test output.
     :param result: The path of the test result that will be exported.
     :param namespace: namespace of the deployed pipeline system. Default: kubeflow
+    :param experiment_name: Name of the experiment to monitor
     """
     self._testname = testname
+    self._experiment_name = experiment_name
     self._input = input
     self._output = output
     self._result = result
@@ -64,6 +68,11 @@ class PySampleChecker(object):
       utils.write_junit_xml(self._test_name, self._result, self._test_cases)
       print('Error: job not found.')
       exit(1)
+
+    ###### Create Experiment ######
+    response = self._client.create_experiment(self._experiment_name)
+    self._experiment_id = response.id
+    utils.add_junit_test(self._test_cases, 'create experiment', True)
 
     ###### Create Job ######
     self._job_name = self._testname + '_sample'
@@ -105,20 +114,13 @@ class PySampleChecker(object):
 
     # TODO(numerology): Special treatment for TFX::OSS sample
     if self._testname == 'parameterized_tfx_oss':
-      self._test_args['pipeline-root'] = os.path.join(self._test_args['output'], 'tfx_taxi_simple')
+      self._test_args['pipeline-root'] = os.path.join(
+          self._test_args['output'],
+          'tfx_taxi_simple_' + kfp.dsl.RUN_ID_PLACEHOLDER)
       del self._test_args['output']
 
     # Submit for pipeline running.
     if self._run_pipeline:
-
-      ###### Create Experiment ######
-      experiment_name = raw_args['experiment_name']
-      if not experiment_name:
-        raise ValueError('Experiment name is required if pipeline run is expected.')
-      response = self._client.create_experiment(experiment_name)
-      self._experiment_id = response.id
-      utils.add_junit_test(self._test_cases, 'create experiment', True)
-
       response = self._client.run_pipeline(self._experiment_id, self._job_name, self._input, self._test_args)
       self._run_id = response.id
       utils.add_junit_test(self._test_cases, 'create pipeline run', True)

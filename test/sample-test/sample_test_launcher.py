@@ -128,11 +128,6 @@ class SampleTest(object):
         if 'run_pipeline' in raw_args.keys():
           self._run_pipeline = raw_args['run_pipeline']
 
-      if self._run_pipeline:
-        if not raw_args['notebook_params']['experiment_name']:
-          raise ValueError('Experiment name is required if pipeline run is expected.')
-        nb_params['experiment_name'] = raw_args['notebook_params']['experiment_name']
-
       pm.execute_notebook(
           input_path='%s.ipynb' % self._test_name,
           output_path='%s.ipynb' % self._test_name,
@@ -160,10 +155,16 @@ class SampleTest(object):
       self._compile()
       self._injection()
 
+    # Overriding the experiment name of pipeline runs
+    experiment_name = self._test_name + '-test'
+    os.environ['KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'] = experiment_name
+
     if self._is_notebook:
       nbchecker = NoteBookChecker(testname=self._test_name,
                                   result=self._sample_test_result,
-                                  run_pipeline=self._run_pipeline)
+                                  run_pipeline=self._run_pipeline,
+                                  experiment_name=experiment_name,
+      )
       nbchecker.run()
       os.chdir(TEST_DIR)
       nbchecker.check()
@@ -178,7 +179,9 @@ class SampleTest(object):
                                          input=input_file,
                                          output=self._sample_test_output,
                                          result=self._sample_test_result,
-                                         namespace=self._namespace)
+                                         namespace=self._namespace,
+                                         experiment_name=experiment_name,
+      )
       pysample_checker.run()
       pysample_checker.check()
 

@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MinioArtifactLink handles empty artifact 1`] = `null`;
+
+exports[`MinioArtifactLink handles invalid artifact: no bucket 1`] = `null`;
+
+exports[`MinioArtifactLink handles invalid artifact: no key 1`] = `null`;
+
+exports[`MinioArtifactLink handles minio artifact 1`] = `
+<a
+  href="artifacts/get?source=minio&bucket=foo&key=bar"
+  rel="noreferrer noopener"
+  target="_blank"
+  title="minio://foo/bar"
+>
+  minio://foo/bar
+</a>
+`;
+
+exports[`MinioArtifactLink handles null artifact 1`] = `null`;
+
+exports[`MinioArtifactLink handles s3 artifact 1`] = `
+<a
+  href="artifacts/get?source=s3&bucket=foo&key=bar"
+  rel="noreferrer noopener"
+  target="_blank"
+  title="s3://foo/bar"
+>
+  s3://foo/bar
+</a>
+`;
+
+exports[`MinioArtifactLink handles undefined artifact 1`] = `null`;

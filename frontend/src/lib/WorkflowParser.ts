@@ -17,11 +17,12 @@
 import * as dagre from 'dagre';
 import IconWithTooltip from '../atoms/IconWithTooltip';
 import MoreIcon from '@material-ui/icons/MoreHoriz';
-import { Workflow, NodeStatus, Parameter } from '../../third_party/argo-ui/argo_template';
+import { Workflow, NodeStatus, Parameter, S3Artifact } from '../../third_party/argo-ui/argo_template';
 import { statusToIcon } from '../pages/Status';
 import { color } from '../Css';
 import { Constants } from './Constants';
 import { NodePhase, statusToBgColor, hasFinished } from './StatusUtils';
+import { KeyValue } from './StaticGraphParser';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -168,33 +169,55 @@ export default class WorkflowParser {
   // Makes sure the workflow object contains the node and returns its
   // inputs/outputs if any, while looking out for any missing link in the chain to
   // the node's inputs/outputs.
-  public static getNodeInputOutputParams(workflow?: Workflow, nodeId?: string): [string[][], string[][]] {
-    type paramList = string[][];
+  public static getNodeInputOutputParams(workflow?: Workflow, nodeId?: string): Record<'inputParams' | 'outputParams', Array<KeyValue<string>>> {
+    type ParamList = Array<KeyValue<string>>;
+    let inputParams: ParamList = [];
+    let outputParams: ParamList = [];
     if (!nodeId || !workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
-      return [[], []];
+      return {inputParams, outputParams};
     }
 
-    const node = workflow.status.nodes[nodeId];
-    const inputsOutputs: [paramList, paramList] = [[], []];
-    if (node.inputs && node.inputs.parameters) {
-      inputsOutputs[0] = node.inputs.parameters.map(p => [p.name, p.value || '']);
+    const {inputs, outputs} = workflow.status.nodes[nodeId];
+    if (!!inputs && !!inputs.parameters) {
+      inputParams = inputs.parameters.map(p => [p.name, p.value || '']);
     }
-    if (node.outputs && node.outputs.parameters) {
-      inputsOutputs[1] = node.outputs.parameters.map(p => [p.name, p.value || '']);
+    if (!!outputs && !!outputs.parameters) {
+      outputParams = outputs.parameters.map(p => [p.name, p.value || '']);
     }
-    return inputsOutputs;
+    return {inputParams, outputParams};
+  }
+
+  // Makes sure the workflow object contains the node and returns its
+  // inputs/outputs artifacts if any, while looking out for any missing link in the chain to
+  // the node's inputs/outputs.
+  public static getNodeInputOutputArtifacts(workflow?: Workflow, nodeId?: string): Record<'inputArtifacts' | 'outputArtifacts', Array<KeyValue<S3Artifact>>> {
+    type ParamList = Array<KeyValue<S3Artifact>>;
+    let inputArtifacts: ParamList = [];
+    let outputArtifacts: ParamList = [];
+    if (!nodeId || !workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId]) {
+      return {inputArtifacts, outputArtifacts};
+    }
+
+    const {inputs, outputs} = workflow.status.nodes[nodeId];
+    if (!!inputs && !!inputs.artifacts) {
+      inputArtifacts = inputs.artifacts.map(({name, s3}) => [name, s3]);
+    }
+    if (!!outputs && !!outputs.artifacts) {
+      outputArtifacts = outputs.artifacts.map(({name, s3}) => [name, s3]);
+    }
+    return {inputArtifacts, outputArtifacts};
   }
 
   // Makes sure the workflow object contains the node and returns its
   // volume mounts if any.
-  public static getNodeVolumeMounts(workflow: Workflow, nodeId: string): string[][] {
+  public static getNodeVolumeMounts(workflow: Workflow, nodeId: string): Array<KeyValue<string>> {
     if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId] || !workflow.spec || !workflow.spec.templates) {
       return [];
     }
 
     const node = workflow.status.nodes[nodeId];
     const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
-    let volumeMounts: string[][] = [];
+    let volumeMounts: Array<KeyValue<string>> = [];
     if (tmpl && tmpl.container && tmpl.container.volumeMounts) {
       volumeMounts = tmpl.container.volumeMounts.map(v => [v.mountPath, v.name]);
     }
@@ -203,14 +226,14 @@ export default class WorkflowParser {
 
   // Makes sure the workflow object contains the node and returns its
   // action and manifest.
-  public static getNodeManifest(workflow: Workflow, nodeId: string): string[][] {
+  public static getNodeManifest(workflow: Workflow, nodeId: string): Array<KeyValue<string>> {
     if (!workflow || !workflow.status || !workflow.status.nodes || !workflow.status.nodes[nodeId] || !workflow.spec || !workflow.spec.templates) {
       return [];
     }
 
     const node = workflow.status.nodes[nodeId];
     const tmpl = workflow.spec.templates.find(t => !!t && !!t.name && t.name === node.templateName);
-    let manifest: string[][] = [];
+    let manifest: Array<KeyValue<string>> = [];
     if (tmpl && tmpl.resource && tmpl.resource.action && tmpl.resource.manifest) {
       manifest = [[tmpl.resource.action, tmpl.resource.manifest]];
     }

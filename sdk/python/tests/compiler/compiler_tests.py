@@ -683,6 +683,28 @@ implementation:
       if container:
         self.assertEqual(template['retryStrategy']['limit'], 5)
 
+  def test_container_op_output_error_when_no_or_multiple_outputs(self):
+
+    def no_outputs_pipeline():
+      no_outputs_op = dsl.ContainerOp(name='dummy', image='dummy')
+      dsl.ContainerOp(name='dummy', image='dummy', arguments=[no_outputs_op.output])
+
+    def one_output_pipeline():
+      one_output_op = dsl.ContainerOp(name='dummy', image='dummy', file_outputs={'out1': 'path1'})
+      dsl.ContainerOp(name='dummy', image='dummy', arguments=[one_output_op.output])
+
+    def two_outputs_pipeline():
+      two_outputs_op = dsl.ContainerOp(name='dummy', image='dummy', file_outputs={'out1': 'path1', 'out2': 'path2'})
+      dsl.ContainerOp(name='dummy', image='dummy', arguments=[two_outputs_op.output])
+
+    with self.assertRaises(RuntimeError):
+      compiler.Compiler()._compile(no_outputs_pipeline)
+
+    compiler.Compiler()._compile(one_output_pipeline)
+
+    with self.assertRaises(RuntimeError):
+      compiler.Compiler()._compile(two_outputs_pipeline)
+
   def test_withitem_basic(self):
     self._test_py_compile_yaml('withitem_basic')
 

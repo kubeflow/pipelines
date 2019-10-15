@@ -13,10 +13,10 @@ inputs:
   - {name: Autoscaling Target,              type: String, default: '0',        description: 'Autoscaling Target Number'}
   - {name: KFServing Endpoint,              type: String, default: '', description: 'KFServing remote deployer API endpoint'}
 outputs:
-  - {name: Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
+  - {name: Service Endpoint URI, type: String,                      description: 'URI of the deployed prediction service..'}
 implementation:
   container:
-    image: aipipeline/kfserving-component:v0.1.0
+    image: aipipeline/kfserving-component:v0.2.1
     command: ['python']
     args: [
       -u, kfservingdeployer.py,
@@ -29,7 +29,7 @@ implementation:
       --framework,                {inputValue: Framework},
       --default-custom-model-spec,{inputValue: Default Custom Model Spec},
       --canary-custom-model-spec, {inputValue: Canary Custom Model Spec},
-      --kfserving-deployer-api,   {inputValue: KFServing Endpoint},
+      --kfserving-endpoint,       {inputValue: KFServing Endpoint},
       --autoscaling-target,       {inputValue: Autoscaling Target},
-      --output_path,              {outputPath: Endpoint URI}
+      --output_path,              {outputPath: Service Endpoint URI}
     ]
