@@ -195,14 +195,7 @@ class ComponentTest(SampleTest):
   include xgboost_training_cm
   """
   def __init__(self, test_name, results_gcs_dir,
-               dataproc_create_cluster_image,
-               dataproc_delete_cluster_image,
-               dataproc_analyze_image,
-               dataproc_transform_image,
-               dataproc_train_image,
-               dataproc_predict_image,
-               kubeflow_dnntrainer_image,
-               kubeflow_deployer_image,
+               dataproc_gcp_image,
                local_confusionmatrix_image,
                local_roc_image,
                target_image_prefix='',
@@ -213,16 +206,9 @@ class ComponentTest(SampleTest):
         target_image_prefix=target_image_prefix,
         namespace=namespace
     )
-    self._dataproc_create_cluster_image = dataproc_create_cluster_image
-    self._dataproc_delete_cluster_image = dataproc_delete_cluster_image
-    self._dataproc_analyze_image = dataproc_analyze_image
-    self._dataproc_transform_image = dataproc_transform_image
-    self._dataproc_train_image = dataproc_train_image
-    self._dataproc_predict_image = dataproc_predict_image
-    self._kubeflow_dnntrainer_image = kubeflow_dnntrainer_image
-    self._kubeflow_deployer_image = kubeflow_deployer_image
     self._local_confusionmatrix_image = local_confusionmatrix_image
     self._local_roc_image = local_roc_image
+    self._dataproc_gcp_image = dataproc_gcp_image
 
   def _injection(self):
     """Sample-specific image injection into yaml file."""
@@ -232,12 +218,7 @@ class ComponentTest(SampleTest):
     }
     if self._test_name == 'xgboost_training_cm':
       subs.update({
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\w+':self._dataproc_create_cluster_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\w+':self._dataproc_delete_cluster_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-analyze:\w+':self._dataproc_analyze_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-transform:\w+':self._dataproc_transform_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-train:\w+':self._dataproc_train_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-predict:\w+':self._dataproc_predict_image,
+          'gcr\.io/ml-pipeline/ml-pipeline-gcp:\w+':self._dataproc_gcp_image
       })
 
       utils.file_injection('%s.yaml' % self._test_name,

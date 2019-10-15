@@ -153,20 +153,20 @@ class PySampleChecker(object):
 
       ###### Validate the results for specific test cases ######
       #TODO: Add result check for tfx-cab-classification after launch.
-      if self._testname == 'xgboost_training_cm':
-        # For xgboost sample, check its confusion matrix.
-        cm_tar_path = './confusion_matrix.tar.gz'
-        utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
-                                    'mlpipeline-ui-metadata')
-        with tarfile.open(cm_tar_path) as tar_handle:
-          file_handles = tar_handle.getmembers()
-          assert len(file_handles) == 1
-
-          with tar_handle.extractfile(file_handles[0]) as f:
-            cm_data = f.read()
-            utils.add_junit_test(self._test_cases, 'confusion matrix format',
-                                 (len(cm_data) > 0),
-                                 'the confusion matrix file is empty')
+      # if self._testname == 'xgboost_training_cm':
+      #   # For xgboost sample, check its confusion matrix.
+      #   cm_tar_path = './confusion_matrix.tar.gz'
+      #   utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
+      #                               'mlpipeline-ui-metadata')
+      #   with tarfile.open(cm_tar_path) as tar_handle:
+      #     file_handles = tar_handle.getmembers()
+      #     assert len(file_handles) == 1
+      #
+      #     with tar_handle.extractfile(file_handles[0]) as f:
+      #       cm_data = f.read()
+      #       utils.add_junit_test(self._test_cases, 'confusion matrix format',
+      #                            (len(cm_data) > 0),
+      #                            'the confusion matrix file is empty')
 
     ###### Delete Job ######
     #TODO: add deletion when the backend API offers the interface.
