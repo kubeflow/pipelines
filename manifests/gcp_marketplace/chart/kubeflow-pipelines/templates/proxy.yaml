@@ -61,6 +61,6 @@ spec:
           env:
           - name: NAMESPACE
             value: {{ .Release.Namespace }}
-          - name: INSTANCE_NAME
+          - name: K8S_APP_NAME
             value: {{ .Release.Name }}
       serviceAccountName: proxy-agent-runner
