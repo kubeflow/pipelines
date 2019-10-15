@@ -20,9 +20,10 @@ library. Thus, we need these tools to automate this task.
 
     Example ways to get it:
     * argo uses gopkg for package management. It has a [Gopkg.lock file](https://github.com/argoproj/argo/blob/master/Gopkg.lock)
-    with all of its dependencies and transitive dependencies. All the name fields in this file is what we need.
+    with all of its dependencies and transitive dependencies. All the name fields in this file is what we need. You can run `parse-toml-dep` to parse it.
     * minio uses [official go modules](https://blog.golang.org/using-go-modules), there's a [go.mod file](https://github.com/minio/minio/blob/master/go.mod) describing its direct dependencies. Run command `go list -m all` to get final versions that will be used in a build for all direct and indirect dependencies, [reference](https://github.com/golang/go/wiki/Modules#daily-workflow). Parse its output to make a file we need.
 
+    Reminder: don't forget to put the library itself into `dep.txt`.
 1. Run `get-github-repo` to resolve github repos of golang imports. Not all
 imports can be figured out by my script, needs manual help for <2% of libraries.
 
@@ -34,7 +35,13 @@ imports can be figured out by my script, needs manual help for <2% of libraries.
     Defaults to read repos from `repo.txt` and writes to `license-info.csv`. You
     need to configure github personal access token because it sends a lot of
     requests to github. Follow instructions in `get-github-license-info -h`.
+
+    For repos that fails to fetch license, it's usually because their github repo
+    doesn't have a github understandable license file. Check its readme and
+    update correct info into `license-info.csv`. (Usually, use its README file which mentions license.)
 1. Edit license info file. Manually check the license file for all repos with a license categorized as "Other" by github. Figure out their true license names.
-1. Run `get-github-license-content` to crawl full text license files for all dependencies and concat them into one file.
-1. Manually maintain a list of dependencies that requires source code.
-1. Build the above into an image and push it to gcr.io/ml-pipeline/xxx-image
+1. Run `concatenate-license` to crawl full text license files for all dependencies and concat them into one file.
+
+    Defaults to read license info from `license-info.csv`. Writes to `license.txt`.
+    Put `license.txt` to `third_party/library/license.txt` where it is read when building docker images.
+1. Manually update a list of dependencies that requires source code, put it into `third_party/library/repo-MPL.txt`.

@@ -1,3 +1,4 @@
+github.com/argoproj/argo
 cloud.google.com/go
 contrib.go.opencensus.io/exporter/ocagent
 github.com/Azure/go-autorest

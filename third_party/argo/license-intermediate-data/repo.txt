@@ -1,3 +1,4 @@
+argoproj/argo
 GoogleCloudPlatform/gcloud-golang
 census-ecosystem/opencensus-go-exporter-ocagent
 Azure/go-autorest
@@ -96,3 +97,4 @@ kubernetes/klog
 kubernetes/kube-openapi
 kubernetes/utils
 kubernetes-sigs/yaml
+upper/db

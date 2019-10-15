@@ -1,3 +1,4 @@
+argoproj/argo,https://github.com/argoproj/argo/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/argoproj/argo/master/LICENSE
 GoogleCloudPlatform/gcloud-golang,https://github.com/googleapis/google-cloud-go/blob/master/LICENSE,Other,https://raw.githubusercontent.com/googleapis/google-cloud-go/master/LICENSE
 census-ecosystem/opencensus-go-exporter-ocagent,https://github.com/census-ecosystem/opencensus-go-exporter-ocagent/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/census-ecosystem/opencensus-go-exporter-ocagent/master/LICENSE
 Azure/go-autorest,https://github.com/Azure/go-autorest/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/Azure/go-autorest/master/LICENSE

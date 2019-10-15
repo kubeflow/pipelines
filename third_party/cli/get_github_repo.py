@@ -170,6 +170,7 @@ def main():
         except:
             print('ignore manual_dep_repo_mapping_file', file=sys.stderr)
         deps = [line.strip() for line in dep_file]
+        repo_seen = set()
         dep_succeeded = []
         # Dependencies that we couldn't resolve their github repos.
         dep_failed = []
@@ -184,7 +185,12 @@ def main():
                 else:
                     # Try to resolve if not found
                     repo = get_github_repo_for_dep(dep)
-                print(repo, file=output_file)
+                if repo in repo_seen:
+                    print('repo {} is seen more than once'.format(repo),
+                          file=sys.stderr)
+                else:
+                    repo_seen.add(repo)
+                    print(repo, file=output_file)
                 dep_succeeded.append(dep)
             except Exception as e:
                 print('[failed]', e, file=sys.stderr)

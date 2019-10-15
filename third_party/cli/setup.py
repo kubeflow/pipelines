@@ -20,6 +20,7 @@ VERSION = '0.0.1'
 REQUIRES = [
     'bs4',
     'requests',
+    'toml',
 ]
 
 setup(name=NAME,
@@ -35,5 +36,7 @@ setup(name=NAME,
           'console_scripts': [
               'get-github-repo = get_github_repo:main',
               'get-github-license-info = get_github_license_info:main',
+              'concatenate-license = concatenate_license:main',
+              'parse-toml-dep = parse_toml_dep:main',
           ]
       })
