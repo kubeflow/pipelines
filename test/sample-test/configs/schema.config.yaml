@@ -14,7 +14,6 @@
 
 # This is the schema for sample test config yaml file.
 test_name: str()
-experiment_name: str(required=False)
 arguments: map(required=False)
 notebook_params: map(required=False)
 test_timeout: int(min=0, required=False)
