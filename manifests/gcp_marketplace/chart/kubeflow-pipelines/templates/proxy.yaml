@@ -58,4 +58,9 @@ spec:
         - image: {{ .Values.images.proxyagent }}
           imagePullPolicy: IfNotPresent
           name: proxy-agent
-      serviceAccountName: proxy-agent-runner 
+          env:
+          - name: NAMESPACE
+            value: {{ .Release.Namespace }}
+          - name: INSTANCE_NAME
+            value: {{ .Release.Name }}
+      serviceAccountName: proxy-agent-runner

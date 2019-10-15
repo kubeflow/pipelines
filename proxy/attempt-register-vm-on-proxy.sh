@@ -35,6 +35,12 @@ function run-proxy-agent {
         --health-check-unhealthy-threshold=${HEALTH_CHECK_UNHEALTHY_THRESHOLD}
 }
 
+NAMESPACE="${NAMESPACE:-default}"
+
+echo "Setting up inverse proxy..."
+echo "Env NAMESPACE is ${NAMESPACE}"
+echo "Env K8S_APP_NAME is ${K8S_APP_NAME}"
+
 # Check if the cluster already have proxy agent installed by checking ConfigMap.
 if kubectl get configmap inverse-proxy-config; then
   # If ConfigMap already exist, reuse the existing endpoint (a.k.a BACKEND_ID) and same ProxyUrl.
@@ -73,8 +79,13 @@ echo "Backend id: ${BACKEND_ID}"
 
 # Store the registration information in a ConfigMap
 kubectl create configmap inverse-proxy-config \
+        --namespace=${NAMESPACE}
         --from-literal=ProxyUrl=${PROXY_URL} \
         --from-literal=BackendId=${BACKEND_ID} \
         --from-literal=Hostname=${HOSTNAME}
+
+if [ ! -z "${K8S_APP_NAME}" ]; then
+    kubectl label configmap inverse-proxy-config app.kubernetes.io/name=${K8S_APP_NAME}
+fi
 
 run-proxy-agent
