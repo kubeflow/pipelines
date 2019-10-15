@@ -53,7 +53,7 @@ rm application_default_credentials.json secret.yaml
 ```
 
 Note that the above commands use `base64 -w 0` to disable line wrapping, this could be slightly different
-across platforms.
+across platforms. For example, if you are using MacOS, do not include `-w 0` option in `export SERVICE_ACCOUNT_TOKEN="$(cat application_default_credentials.json | base64 -w 0)"`
 
 ## Tips
 
