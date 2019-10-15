@@ -1765,14 +1765,13 @@ func TestCreatePipelineVersion(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline before versions.
-	_, err := manager.CreatePipeline(
-		"p", "", []byte(testWorkflow.ToStringForStore()))
+	_, err := manager.CreatePipeline("p", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 
 	// Create a version under the above pipeline.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(fakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	version, err := manager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: "p_v",
@@ -1791,7 +1790,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 
 	defer store.Close()
 	pipelineVersionExpected := &model.PipelineVersion{
-		UUID:           fakeUUIDOne,
+		UUID:           FakeUUIDOne,
 		CreatedAtInSec: 2,
 		Name:           "p_v",
 		Parameters:     "[{\"name\":\"param1\"}]",
@@ -1807,16 +1806,13 @@ func TestCreatePipelineVersion_ComplexPipelineVersion(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline.
-	createdPipeline, err := manager.CreatePipeline(
-		"pipeline",
-		"",
-		[]byte(strings.TrimSpace(complexPipeline)))
+	createdPipeline, err := manager.CreatePipeline("pipeline", "", []byte(strings.TrimSpace(complexPipeline)))
 	assert.Nil(t, err)
 
 	// Create a version under the above pipeline.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(fakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	version, err := manager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: "pipeline_version",
@@ -1846,10 +1842,7 @@ func TestCreatePipelineVersion_CreatePipelineVersionFileError(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline.
-	_, err := manager.CreatePipeline(
-		"pipeline",
-		"",
-		[]byte(strings.TrimSpace(complexPipeline)))
+	_, err := manager.CreatePipeline("pipeline", "", []byte(strings.TrimSpace(complexPipeline)))
 	assert.Nil(t, err)
 
 	// Switch to a bad object store
@@ -1858,8 +1851,7 @@ func TestCreatePipelineVersion_CreatePipelineVersionFileError(t *testing.T) {
 	// Create a version under the above pipeline.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(
-		fakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: "pipeline_version",
@@ -1878,9 +1870,7 @@ func TestCreatePipelineVersion_CreatePipelineVersionFileError(t *testing.T) {
 	assert.Contains(t, err.Error(), "bad object store")
 
 	// Verify the pipeline version in DB is in status PipelineVersionCreating.
-	version, err :=
-		manager.pipelineStore.GetPipelineVersionWithStatus(
-			fakeUUIDOne, model.PipelineVersionCreating)
+	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(FakeUUIDOne, model.PipelineVersionCreating)
 	assert.Nil(t, err)
 	assert.NotNil(t, version)
 }
@@ -1891,15 +1881,13 @@ func TestCreatePipelineVersion_GetParametersError(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline.
-	_, err := manager.CreatePipeline(
-		"pipeline", "", []byte(testWorkflow.ToStringForStore()))
+	_, err := manager.CreatePipeline("pipeline", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
 
 	// Create a version under the above pipeline.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(
-		fakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: "pipeline_version",
@@ -1914,8 +1902,7 @@ func TestCreatePipelineVersion_GetParametersError(t *testing.T) {
 			},
 		},
 		[]byte("I am invalid yaml"))
-	assert.Equal(
-		t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to parse the parameter")
 }
 
@@ -1939,7 +1926,7 @@ func TestCreatePipelineVersion_StorePipelineVersionMetadataError(t *testing.T) {
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(
-		fakeUUIDOne, nil))
+		FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: "pipeline_version",
@@ -1964,17 +1951,13 @@ func TestDeletePipelineVersion(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline.
-	_, err := manager.CreatePipeline(
-		"pipeline",
-		"",
-		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	_, err := manager.CreatePipeline("pipeline", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Nil(t, err)
 
 	// Create a version under the above pipeline.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(
-		fakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: "pipeline_version",
@@ -1991,11 +1974,11 @@ func TestDeletePipelineVersion(t *testing.T) {
 		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 
 	// Delete the above pipeline_version.
-	err = manager.DeletePipelineVersion(fakeUUIDOne)
+	err = manager.DeletePipelineVersion(FakeUUIDOne)
 	assert.Nil(t, err)
 
 	// Verify the version doesn't exist.
-	_, err = manager.GetPipelineVersion(fakeUUIDOne)
+	_, err = manager.GetPipelineVersion(FakeUUIDOne)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -2005,17 +1988,13 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 	manager := NewResourceManager(store)
 
 	// Create a pipeline.
-	_, err := manager.CreatePipeline(
-		"pipeline",
-		"",
-		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	_, err := manager.CreatePipeline("pipeline", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
 	assert.Nil(t, err)
 
 	// Create a version under the above pipeline.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(
-		fakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: "pipeline_version",
@@ -2035,12 +2014,11 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 	manager.objectStore = &FakeBadObjectStore{}
 
 	// Delete the above pipeline_version.
-	err = manager.DeletePipelineVersion(fakeUUIDOne)
+	err = manager.DeletePipelineVersion(FakeUUIDOne)
 	assert.NotNil(t, err)
 
 	// Verify the version in deleting status.
-	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(
-		fakeUUIDOne, model.PipelineVersionDeleting)
+	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(FakeUUIDOne, model.PipelineVersionDeleting)
 	assert.Nil(t, err)
 	assert.NotNil(t, version)
 }

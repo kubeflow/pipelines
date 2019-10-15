@@ -107,7 +107,7 @@ service PipelineService {
 
   rpc ListPipelineVersions(ListPipelineVersionsRequest) returns (ListPipelineVersionsResponse) {
     option (google.api.http) = {
-      get: "/apis/v1beta1/pipeline_versions/pipeline/{resource_key.id}"
+      get: "/apis/v1beta1/pipeline_versions"
     };
   }
 

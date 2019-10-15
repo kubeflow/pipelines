@@ -222,8 +222,7 @@ func (s *PipelineStore) GetPipelineWithStatus(id string, status model.PipelineSt
 		Select(pipelineColumns...).
 		From("pipelines").
 		LeftJoin("pipeline_versions on pipelines.DefaultVersionId = pipeline_versions.UUID").
-		Where(sq.Eq{"pipelines.uuid": id}).
-		Where(sq.Eq{"pipelines.Status": status}).
+		Where(sq.And{sq.Eq{"pipelines.uuid": id}, sq.Eq{"pipelines.Status": status}}).
 		Limit(1).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get pipeline: %v", err.Error())
@@ -468,7 +467,7 @@ func (s *PipelineStore) CreatePipelineVersion(v *model.PipelineVersion) (*model.
 				"Parameters":     newPipelineVersion.Parameters,
 				"PipelineId":     newPipelineVersion.PipelineId,
 				"Status":         string(newPipelineVersion.Status),
-				"CodeSourceUrl":  ""}).
+				"CodeSourceUrl":  newPipelineVersion.CodeSourceUrl}).
 		ToSql()
 	if versionErr != nil {
 		return nil, util.NewInternalServerError(
@@ -546,8 +545,7 @@ func (s *PipelineStore) GetPipelineVersionWithStatus(versionId string, status mo
 	sql, args, err := sq.
 		Select(pipelineVersionColumns...).
 		From("pipeline_versions").
-		Where(sq.Eq{"UUID": versionId}).
-		Where(sq.Eq{"Status": status}).
+		Where(sq.And{sq.Eq{"UUID": versionId}, sq.Eq{"Status": status}}).
 		Limit(1).
 		ToSql()
 	if err != nil {
@@ -607,8 +605,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Optio
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 		return sqlBuilder.
 			From("pipeline_versions").
-			Where(sq.Eq{"PipelineId": pipelineId}).
-			Where(sq.Eq{"status": model.PipelineVersionReady})
+			Where(sq.And{sq.Eq{"PipelineId": pipelineId}, sq.Eq{"status": model.PipelineVersionReady}})
 	}
 
 	// SQL for pipeline version list

@@ -152,12 +152,10 @@ func TestCreatePipelineVersion_InvalidYAML(t *testing.T) {
 	// Close the server when test finishes
 	defer httpServer.Close()
 
-	clientManager := resource.NewFakeClientManagerOrFatal(
-		util.NewFakeTimeForEpoch())
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 
-	pipelineServer := PipelineServer{
-		resourceManager: resourceManager, httpClient: httpServer.Client()}
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
 	_, err := pipelineServer.CreatePipelineVersion(
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
@@ -183,12 +181,10 @@ func TestCreatePipelineVersion_Tarball(t *testing.T) {
 	// Close the server when test finishes
 	defer httpServer.Close()
 
-	clientManager := resource.NewFakeClientManagerOrFatal(
-		util.NewFakeTimeForEpoch())
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 
-	pipelineServer := PipelineServer{
-		resourceManager: resourceManager, httpClient: httpServer.Client()}
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
 	pipelineVersion, err := pipelineServer.CreatePipelineVersion(
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
@@ -208,15 +204,13 @@ func TestCreatePipelineVersion_Tarball(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, pipelineVersion)
 	assert.Equal(t, "argument-parameters", pipelineVersion.Name)
-	newPipelineVersion, err := resourceManager.GetPipelineVersion(
-		pipelineVersion.Id)
+	newPipelineVersion, err := resourceManager.GetPipelineVersion(pipelineVersion.Id)
 	assert.Nil(t, err)
 	assert.NotNil(t, newPipelineVersion)
 	var params []api.Parameter
 	err = json.Unmarshal([]byte(newPipelineVersion.Parameters), &params)
 	assert.Nil(t, err)
-	assert.Equal(t, []api.Parameter{
-		{Name: "param1", Value: "hello"}, {Name: "param2"}}, params)
+	assert.Equal(t, []api.Parameter{{Name: "param1", Value: "hello"}, {Name: "param2"}}, params)
 }
 
 func TestCreatePipelineVersion_InvalidURL(t *testing.T) {
@@ -225,26 +219,23 @@ func TestCreatePipelineVersion_InvalidURL(t *testing.T) {
 	// Close the server when test finishes
 	defer httpServer.Close()
 
-	clientManager := resource.NewFakeClientManagerOrFatal(
-		util.NewFakeTimeForEpoch())
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 
-	pipelineServer := PipelineServer{
-		resourceManager: resourceManager, httpClient: httpServer.Client()}
-	_, err := pipelineServer.CreatePipelineVersion(
-		context.Background(), &api.CreatePipelineVersionRequest{
-			Version: &api.PipelineVersion{
-				PackageUrl: &api.Url{
-					PipelineUrl: httpServer.URL + "/invalid-workflow.yaml"},
-				Name: "argument-parameters",
-				ResourceReferences: []*api.ResourceReference{
-					&api.ResourceReference{
-						Key: &api.ResourceKey{
-							Id:   "pipeline",
-							Type: api.ResourceType_PIPELINE,
-						},
-						Relationship: api.Relationship_OWNER,
-					}}}})
+	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client()}
+	_, err := pipelineServer.CreatePipelineVersion(context.Background(), &api.CreatePipelineVersionRequest{
+		Version: &api.PipelineVersion{
+			PackageUrl: &api.Url{
+				PipelineUrl: httpServer.URL + "/invalid-workflow.yaml"},
+			Name: "argument-parameters",
+			ResourceReferences: []*api.ResourceReference{
+				&api.ResourceReference{
+					Key: &api.ResourceKey{
+						Id:   "pipeline",
+						Type: api.ResourceType_PIPELINE,
+					},
+					Relationship: api.Relationship_OWNER,
+				}}}})
 
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
