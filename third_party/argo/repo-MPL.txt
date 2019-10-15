@@ -1,0 +1,3 @@
+go-sql-driver/mysql
+hashicorp/go-uuid
+hashicorp/golang-lru

@@ -10,7 +10,7 @@ To provision your own Watson Machine Learning services and cloud object store, f
 
 To create a machine learning service, go to [IBM Cloud](https://console.bluemix.net), login with IBM account id first. From the `Catalog` page, click on `AI` tab on the left side to go to this [page](https://console.bluemix.net/catalog/?category=ai). Then click on the [`Machine Learning`](https://console.bluemix.net/catalog/services/machine-learning) link and follow the instructions to create the service.
 
-Once the service is created, from service's `Dashboard`, follow the instruction to generate `service credentials`. Refer to IBM Cloud [documents](https://console.bluemix.net/docs/) for help if needed. Collect the `url`, `username`, `password` and `instance_id` info from the service credentials as these will be required to access the service.
+Once the service is created, from service's `Dashboard`, follow the instruction to generate `service credentials`. Refer to IBM Cloud [documents](https://console.bluemix.net/docs/) for help if needed. Collect the `url`, `apikey`, and `instance_id` info from the service credentials as these will be required to access the service.
 
 * A cloud object store
 

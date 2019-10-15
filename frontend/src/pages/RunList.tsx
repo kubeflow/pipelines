@@ -17,7 +17,7 @@
 import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
 import Metric from '../components/Metric';
-import RunUtils, { MetricMetadata } from '../../src/lib/RunUtils';
+import RunUtils, { MetricMetadata, ExperimentInfo } from '../../src/lib/RunUtils';
 import { ApiRun, ApiResourceType, ApiRunMetric, RunStorageState, ApiRunDetail } from '../../src/apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
@@ -29,16 +29,11 @@ import { commonCss, color } from '../Css';
 import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
 import { statusToIcon } from './Status';
 
-interface ExperimentInfo {
-  displayName?: string;
-  id: string;
-}
-
 interface PipelineInfo {
   displayName?: string;
   id?: string;
   runId?: string;
-  showLink: boolean;
+  usePlaceholder: boolean;
 }
 
 interface RecurringRunInfo {
@@ -191,17 +186,17 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
   public _pipelineCustomRenderer: React.FC<CustomRendererProps<PipelineInfo>> = (props: CustomRendererProps<PipelineInfo>) => {
     // If the getPipeline call failed or a run has no pipeline, we display a placeholder.
-    if (!props.value || (!props.value.showLink && !props.value.id)) {
+    if (!props.value || (!props.value.usePlaceholder && !props.value.id)) {
       return <div>-</div>;
     }
     const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: props.id });
-    const url = props.value.showLink ?
+    const url = props.value.usePlaceholder ?
       RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') + search :
       RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId, props.value.id || '');
     return (
       <Link className={commonCss.link} onClick={(e) => e.stopPropagation()}
         to={url}>
-        {props.value.showLink ? '[View pipeline]' : props.value.displayName}
+        {props.value.usePlaceholder ? '[View pipeline]' : props.value.displayName}
       </Link>
     );
   }
@@ -357,15 +352,23 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   private async _getAndSetPipelineNames(displayRun: DisplayRun): Promise<void> {
     const pipelineId = RunUtils.getPipelineId(displayRun.run);
     if (pipelineId) {
-      try {
-        const pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
-        displayRun.pipeline = { displayName: pipeline.name || '', id: pipelineId, showLink: false };
-      } catch (err) {
-        // This could be an API exception, or a JSON parse exception.
-        displayRun.error = 'Failed to get associated pipeline: ' + await errorToMessage(err);
+      let pipelineName = RunUtils.getPipelineName(displayRun.run);
+      if (!pipelineName) {
+        try {
+          const pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
+          pipelineName = pipeline.name || '';
+        } catch (err) {
+          displayRun.error = 'Failed to get associated pipeline: ' + await errorToMessage(err);
+          return;
+        }
       }
-    } else if (!!RunUtils.getPipelineSpec(displayRun.run)) {
-      displayRun.pipeline = { showLink: true };
+      displayRun.pipeline = {
+        displayName: pipelineName,
+        id: pipelineId,
+        usePlaceholder: false
+      };
+    } else if (!!RunUtils.getWorkflowManifest(displayRun.run)) {
+      displayRun.pipeline = { usePlaceholder: true };
     }
   }
 
@@ -378,13 +381,20 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   private async _getAndSetExperimentNames(displayRun: DisplayRun): Promise<void> {
     const experimentId = RunUtils.getFirstExperimentReferenceId(displayRun.run);
     if (experimentId) {
-      try {
-        const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
-        displayRun.experiment = { displayName: experiment.name || '', id: experimentId };
-      } catch (err) {
-        // This could be an API exception, or a JSON parse exception.
-        displayRun.error = 'Failed to get associated experiment: ' + await errorToMessage(err);
+      let experimentName = RunUtils.getFirstExperimentReferenceName(displayRun.run);
+      if (!experimentName) {
+        try {
+          const experiment = await Apis.experimentServiceApi.getExperiment(experimentId);
+          experimentName = experiment.name || '';
+        } catch (err) {
+          displayRun.error = 'Failed to get associated experiment: ' + await errorToMessage(err);
+          return;
+        }
       }
+      displayRun.experiment = {
+        displayName: experimentName,
+        id: experimentId
+      };
     }
   }
 }

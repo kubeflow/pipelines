@@ -23,7 +23,8 @@ def pipelineparams_pipeline(tag: str = 'latest', sleep_ms: int = 10):
     echo = dsl.Sidecar(
         name='echo',
         image='hashicorp/http-echo:%s' % tag,
-        args=['-text="hello world"'])
+        args=['-text="hello world"'],
+    )
 
     op1 = dsl.ContainerOp(
         name='download',

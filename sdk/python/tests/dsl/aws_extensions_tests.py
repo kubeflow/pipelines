@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl import Pipeline, ContainerOp
+from kfp.dsl import ContainerOp
 from kfp.aws import use_aws_secret
 import unittest
 import inspect

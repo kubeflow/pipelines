@@ -582,6 +582,10 @@ export default (app: express.Application) => {
     }, 300);
   });
 
+  app.get('/visualizations/allowed', (req, res) => {
+    res.send(true);
+  });
+
   app.all(v1beta1Prefix + '*', (req, res) => {
     res.status(404).send('Bad request endpoint.');
   });

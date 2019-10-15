@@ -181,7 +181,7 @@ Try the REST endpoint in [Google OAuth 2.0 Playgound](https://developers.google.
 
 ### GCloud command
 ```bash
-gcloud ml-engine predict --model {}  \
+gcloud ai-platform predict --model {}  \
                    --version {} \
                    --json-instances instances.json
 ```

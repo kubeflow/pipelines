@@ -6,6 +6,14 @@ metadata:
   name: ml-pipeline
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - delete
+- apiGroups:
   - argoproj.io
   resources:
   - workflows

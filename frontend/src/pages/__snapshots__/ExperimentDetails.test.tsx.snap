@@ -81,8 +81,49 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
     </div>
     <Toolbar
       actions={
-        Array [
-          Object {
+        Object {
+          "archive": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one resource to archive",
+            "id": "archiveBtn",
+            "title": "Archive",
+            "tooltip": "Archive",
+          },
+          "cloneRun": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select a run to clone",
+            "id": "cloneBtn",
+            "style": Object {
+              "minWidth": 100,
+            },
+            "title": "Clone run",
+            "tooltip": "Create a copy from this runs initial state",
+          },
+          "compare": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select multiple runs to compare",
+            "id": "compareBtn",
+            "style": Object {
+              "minWidth": 125,
+            },
+            "title": "Compare runs",
+            "tooltip": "Compare up to 10 selected runs",
+          },
+          "newRecurringRun": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "createNewRecurringRunBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 195,
+            },
+            "title": "Create recurring run",
+            "tooltip": "Create a new recurring run",
+          },
+          "newRun": Object {
             "action": [Function],
             "icon": [Function],
             "id": "createNewRunBtn",
@@ -94,48 +135,7 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             "title": "Create run",
             "tooltip": "Create a new run",
           },
-          Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRecurringRunBtn",
-            "outlined": true,
-            "style": Object {
-              "minWidth": 195,
-            },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
-            "id": "compareBtn",
-            "style": Object {
-              "minWidth": 125,
-            },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select a run to clone",
-            "id": "cloneBtn",
-            "style": Object {
-              "minWidth": 100,
-            },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
-            "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive",
-          },
-        ]
+        }
       }
       breadcrumbs={Array []}
       pageTitle="Runs"
@@ -163,14 +163,14 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
       storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
+          "actions": Object {
+            "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
               "title": "Refresh",
               "tooltip": "Refresh the list",
             },
-          ],
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -196,14 +196,14 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
+                "actions": Object {
+                  "refresh": Object {
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
                     "tooltip": "Refresh the list",
                   },
-                ],
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -215,14 +215,14 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
             ],
             Array [
               Object {
-                "actions": Array [
-                  Object {
+                "actions": Object {
+                  "refresh": Object {
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
                     "tooltip": "Refresh the list",
                   },
-                ],
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -264,14 +264,14 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
           }
           toolbarProps={
             Object {
-              "actions": Array [
-                Object {
+              "actions": Object {
+                "refresh": Object {
                   "action": [Function],
                   "id": "refreshBtn",
                   "title": "Refresh",
                   "tooltip": "Refresh the list",
                 },
-              ],
+              },
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -297,14 +297,14 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [
-                      Object {
+                    "actions": Object {
+                      "refresh": Object {
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
                         "tooltip": "Refresh the list",
                       },
-                    ],
+                    },
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -316,14 +316,14 @@ exports[`ExperimentDetails fetches this experiment's recurring runs 1`] = `
                 ],
                 Array [
                   Object {
-                    "actions": Array [
-                      Object {
+                    "actions": Object {
+                      "refresh": Object {
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
                         "tooltip": "Refresh the list",
                       },
-                    ],
+                    },
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -447,8 +447,49 @@ exports[`ExperimentDetails removes all description text after second newline and
     </div>
     <Toolbar
       actions={
-        Array [
-          Object {
+        Object {
+          "archive": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one resource to archive",
+            "id": "archiveBtn",
+            "title": "Archive",
+            "tooltip": "Archive",
+          },
+          "cloneRun": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select a run to clone",
+            "id": "cloneBtn",
+            "style": Object {
+              "minWidth": 100,
+            },
+            "title": "Clone run",
+            "tooltip": "Create a copy from this runs initial state",
+          },
+          "compare": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select multiple runs to compare",
+            "id": "compareBtn",
+            "style": Object {
+              "minWidth": 125,
+            },
+            "title": "Compare runs",
+            "tooltip": "Compare up to 10 selected runs",
+          },
+          "newRecurringRun": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "createNewRecurringRunBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 195,
+            },
+            "title": "Create recurring run",
+            "tooltip": "Create a new recurring run",
+          },
+          "newRun": Object {
             "action": [Function],
             "icon": [Function],
             "id": "createNewRunBtn",
@@ -460,48 +501,7 @@ exports[`ExperimentDetails removes all description text after second newline and
             "title": "Create run",
             "tooltip": "Create a new run",
           },
-          Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRecurringRunBtn",
-            "outlined": true,
-            "style": Object {
-              "minWidth": 195,
-            },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
-            "id": "compareBtn",
-            "style": Object {
-              "minWidth": 125,
-            },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select a run to clone",
-            "id": "cloneBtn",
-            "style": Object {
-              "minWidth": 100,
-            },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
-            "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive",
-          },
-        ]
+        }
       }
       breadcrumbs={Array []}
       pageTitle="Runs"
@@ -529,14 +529,14 @@ exports[`ExperimentDetails removes all description text after second newline and
       storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
+          "actions": Object {
+            "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
               "title": "Refresh",
               "tooltip": "Refresh the list",
             },
-          ],
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -562,14 +562,14 @@ exports[`ExperimentDetails removes all description text after second newline and
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
+                "actions": Object {
+                  "refresh": Object {
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
                     "tooltip": "Refresh the list",
                   },
-                ],
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -581,14 +581,14 @@ exports[`ExperimentDetails removes all description text after second newline and
             ],
             Array [
               Object {
-                "actions": Array [
-                  Object {
+                "actions": Object {
+                  "refresh": Object {
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
                     "tooltip": "Refresh the list",
                   },
-                ],
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -630,14 +630,14 @@ exports[`ExperimentDetails removes all description text after second newline and
           }
           toolbarProps={
             Object {
-              "actions": Array [
-                Object {
+              "actions": Object {
+                "refresh": Object {
                   "action": [Function],
                   "id": "refreshBtn",
                   "title": "Refresh",
                   "tooltip": "Refresh the list",
                 },
-              ],
+              },
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -663,14 +663,14 @@ exports[`ExperimentDetails removes all description text after second newline and
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [
-                      Object {
+                    "actions": Object {
+                      "refresh": Object {
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
                         "tooltip": "Refresh the list",
                       },
-                    ],
+                    },
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -682,14 +682,14 @@ exports[`ExperimentDetails removes all description text after second newline and
                 ],
                 Array [
                   Object {
-                    "actions": Array [
-                      Object {
+                    "actions": Object {
+                      "refresh": Object {
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
                         "tooltip": "Refresh the list",
                       },
-                    ],
+                    },
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -800,8 +800,49 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
     </div>
     <Toolbar
       actions={
-        Array [
-          Object {
+        Object {
+          "archive": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one resource to archive",
+            "id": "archiveBtn",
+            "title": "Archive",
+            "tooltip": "Archive",
+          },
+          "cloneRun": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select a run to clone",
+            "id": "cloneBtn",
+            "style": Object {
+              "minWidth": 100,
+            },
+            "title": "Clone run",
+            "tooltip": "Create a copy from this runs initial state",
+          },
+          "compare": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select multiple runs to compare",
+            "id": "compareBtn",
+            "style": Object {
+              "minWidth": 125,
+            },
+            "title": "Compare runs",
+            "tooltip": "Compare up to 10 selected runs",
+          },
+          "newRecurringRun": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "createNewRecurringRunBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 195,
+            },
+            "title": "Create recurring run",
+            "tooltip": "Create a new recurring run",
+          },
+          "newRun": Object {
             "action": [Function],
             "icon": [Function],
             "id": "createNewRunBtn",
@@ -813,48 +854,7 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             "title": "Create run",
             "tooltip": "Create a new run",
           },
-          Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRecurringRunBtn",
-            "outlined": true,
-            "style": Object {
-              "minWidth": 195,
-            },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
-            "id": "compareBtn",
-            "style": Object {
-              "minWidth": 125,
-            },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select a run to clone",
-            "id": "cloneBtn",
-            "style": Object {
-              "minWidth": 100,
-            },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
-            "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive",
-          },
-        ]
+        }
       }
       breadcrumbs={Array []}
       pageTitle="Runs"
@@ -882,14 +882,14 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
       storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
+          "actions": Object {
+            "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
               "title": "Refresh",
               "tooltip": "Refresh the list",
             },
-          ],
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -915,14 +915,14 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
+                "actions": Object {
+                  "refresh": Object {
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
                     "tooltip": "Refresh the list",
                   },
-                ],
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -934,14 +934,14 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
             ],
             Array [
               Object {
-                "actions": Array [
-                  Object {
+                "actions": Object {
+                  "refresh": Object {
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
                     "tooltip": "Refresh the list",
                   },
-                ],
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -983,14 +983,14 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
           }
           toolbarProps={
             Object {
-              "actions": Array [
-                Object {
+              "actions": Object {
+                "refresh": Object {
                   "action": [Function],
                   "id": "refreshBtn",
                   "title": "Refresh",
                   "tooltip": "Refresh the list",
                 },
-              ],
+              },
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -1016,14 +1016,14 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [
-                      Object {
+                    "actions": Object {
+                      "refresh": Object {
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
                         "tooltip": "Refresh the list",
                       },
-                    ],
+                    },
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1035,14 +1035,14 @@ exports[`ExperimentDetails renders a page with no runs or recurring runs 1`] = `
                 ],
                 Array [
                   Object {
-                    "actions": Array [
-                      Object {
+                    "actions": Object {
+                      "refresh": Object {
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
                         "tooltip": "Refresh the list",
                       },
-                    ],
+                    },
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1151,8 +1151,49 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
     </div>
     <Toolbar
       actions={
-        Array [
-          Object {
+        Object {
+          "archive": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select at least one resource to archive",
+            "id": "archiveBtn",
+            "title": "Archive",
+            "tooltip": "Archive",
+          },
+          "cloneRun": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select a run to clone",
+            "id": "cloneBtn",
+            "style": Object {
+              "minWidth": 100,
+            },
+            "title": "Clone run",
+            "tooltip": "Create a copy from this runs initial state",
+          },
+          "compare": Object {
+            "action": [Function],
+            "disabled": true,
+            "disabledTitle": "Select multiple runs to compare",
+            "id": "compareBtn",
+            "style": Object {
+              "minWidth": 125,
+            },
+            "title": "Compare runs",
+            "tooltip": "Compare up to 10 selected runs",
+          },
+          "newRecurringRun": Object {
+            "action": [Function],
+            "icon": [Function],
+            "id": "createNewRecurringRunBtn",
+            "outlined": true,
+            "style": Object {
+              "minWidth": 195,
+            },
+            "title": "Create recurring run",
+            "tooltip": "Create a new recurring run",
+          },
+          "newRun": Object {
             "action": [Function],
             "icon": [Function],
             "id": "createNewRunBtn",
@@ -1164,48 +1205,7 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             "title": "Create run",
             "tooltip": "Create a new run",
           },
-          Object {
-            "action": [Function],
-            "icon": [Function],
-            "id": "createNewRecurringRunBtn",
-            "outlined": true,
-            "style": Object {
-              "minWidth": 195,
-            },
-            "title": "Create recurring run",
-            "tooltip": "Create a new recurring run",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select multiple runs to compare",
-            "id": "compareBtn",
-            "style": Object {
-              "minWidth": 125,
-            },
-            "title": "Compare runs",
-            "tooltip": "Compare up to 10 selected runs",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select a run to clone",
-            "id": "cloneBtn",
-            "style": Object {
-              "minWidth": 100,
-            },
-            "title": "Clone run",
-            "tooltip": "Create a copy from this runs initial state",
-          },
-          Object {
-            "action": [Function],
-            "disabled": true,
-            "disabledTitle": "Select at least one resource to archive",
-            "id": "archiveBtn",
-            "title": "Archive",
-            "tooltip": "Archive",
-          },
-        ]
+        }
       }
       breadcrumbs={Array []}
       pageTitle="Runs"
@@ -1233,14 +1233,14 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
       storageState="STORAGESTATE_AVAILABLE"
       toolbarProps={
         Object {
-          "actions": Array [
-            Object {
+          "actions": Object {
+            "refresh": Object {
               "action": [Function],
               "id": "refreshBtn",
               "title": "Refresh",
               "tooltip": "Refresh the list",
             },
-          ],
+          },
           "breadcrumbs": Array [
             Object {
               "displayName": "Experiments",
@@ -1266,14 +1266,14 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           "calls": Array [
             Array [
               Object {
-                "actions": Array [
-                  Object {
+                "actions": Object {
+                  "refresh": Object {
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
                     "tooltip": "Refresh the list",
                   },
-                ],
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -1285,14 +1285,14 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
             ],
             Array [
               Object {
-                "actions": Array [
-                  Object {
+                "actions": Object {
+                  "refresh": Object {
                     "action": [Function],
                     "id": "refreshBtn",
                     "title": "Refresh",
                     "tooltip": "Refresh the list",
                   },
-                ],
+                },
                 "breadcrumbs": Array [
                   Object {
                     "displayName": "Experiments",
@@ -1334,14 +1334,14 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
           }
           toolbarProps={
             Object {
-              "actions": Array [
-                Object {
+              "actions": Object {
+                "refresh": Object {
                   "action": [Function],
                   "id": "refreshBtn",
                   "title": "Refresh",
                   "tooltip": "Refresh the list",
                 },
-              ],
+              },
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -1367,14 +1367,14 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [
-                      Object {
+                    "actions": Object {
+                      "refresh": Object {
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
                         "tooltip": "Refresh the list",
                       },
-                    ],
+                    },
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1386,14 +1386,14 @@ exports[`ExperimentDetails uses an empty string if the experiment has no descrip
                 ],
                 Array [
                   Object {
-                    "actions": Array [
-                      Object {
+                    "actions": Object {
+                      "refresh": Object {
                         "action": [Function],
                         "id": "refreshBtn",
                         "title": "Refresh",
                         "tooltip": "Refresh the list",
                       },
-                    ],
+                    },
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",

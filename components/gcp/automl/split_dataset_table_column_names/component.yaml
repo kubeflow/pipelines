@@ -1,0 +1,91 @@
+name: Automl split dataset table column names
+inputs:
+- name: dataset_path
+  type: String
+- name: target_column_name
+  type: String
+- name: table_index
+  type: Integer
+  default: '0'
+  optional: true
+outputs:
+- name: target_column_path
+  type: String
+- name: feature_column_paths
+  type: JsonArray
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      from typing import NamedTuple
+
+      def automl_split_dataset_table_column_names(
+          dataset_path: str,
+          target_column_name: str,
+          table_index: int = 0,
+      ) -> NamedTuple('Outputs', [('target_column_path', str), ('feature_column_paths', list)]):
+          import sys
+          import subprocess
+          subprocess.run([sys.executable, '-m', 'pip', 'install', 'google-cloud-automl==0.4.0', '--quiet', '--no-warn-script-location'], env={'PIP_DISABLE_PIP_VERSION_CHECK': '1'}, check=True)
+
+          from google.cloud import automl
+          client = automl.AutoMlClient()
+          list_table_specs_response = client.list_table_specs(dataset_path)
+          table_specs = [s for s in list_table_specs_response]
+          print('table_specs=')
+          print(table_specs)
+          table_spec_name = table_specs[table_index].name
+
+          list_column_specs_response = client.list_column_specs(table_spec_name)
+          column_specs = [s for s in list_column_specs_response]
+          print('column_specs=')
+          print(column_specs)
+
+          target_column_spec = [s for s in column_specs if s.display_name == target_column_name][0]
+          feature_column_specs = [s for s in column_specs if s.display_name != target_column_name]
+          feature_column_names = [s.name for s in feature_column_specs]
+
+          import json
+          return (target_column_spec.name, json.dumps(feature_column_names))
+
+      import argparse
+      _missing_arg = object()
+      _parser = argparse.ArgumentParser(prog='Automl split dataset table column names', description='')
+      _parser.add_argument("--dataset-path", dest="dataset_path", type=str, required=True, default=_missing_arg)
+      _parser.add_argument("--target-column-name", dest="target_column_name", type=str, required=True, default=_missing_arg)
+      _parser.add_argument("--table-index", dest="table_index", type=int, required=False, default=_missing_arg)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
+      _parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = automl_split_dataset_table_column_names(**_parsed_args)
+
+      if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+          _outputs = [_outputs]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(str(_outputs[idx]))
+    args:
+    - --dataset-path
+    - inputValue: dataset_path
+    - --target-column-name
+    - inputValue: target_column_name
+    - if:
+        cond:
+          isPresent: table_index
+        then:
+        - --table-index
+        - inputValue: table_index
+    - '----output-paths'
+    - outputPath: target_column_path
+    - outputPath: feature_column_paths

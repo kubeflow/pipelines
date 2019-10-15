@@ -1,0 +1,10 @@
+spec:
+  templates:
+    - container:
+        image: gcr.io/ml-pipeline/LOCAL_CONFUSION_MATRIX_IMAGE
+    - container:
+        image: gcr.io/ml-pipeline/DATAPROC_ANALYZE_IMAGE
+    - container:
+        image: gcr.io/ml-pipeline/DATAPROC_CREATE_IMAGE
+    - container:
+        image: gcr.io/ml-pipeline/DATAPROC_DELETE_IMAGE

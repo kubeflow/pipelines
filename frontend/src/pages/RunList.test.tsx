@@ -310,7 +310,16 @@ describe('RunList', () => {
   });
 
   it('shows pipeline name', async () => {
-    mockNRuns(1, { run: { pipeline_spec: { pipeline_id: 'test-pipeline-id' } } });
+    mockNRuns(1, { run: { pipeline_spec: { pipeline_id: 'test-pipeline-id', pipeline_name: 'pipeline name' } } });
+    const props = generateProps();
+    tree = shallow(<RunList {...props} />);
+    await (tree.instance() as RunListTest)._loadRuns({});
+    expect(props.onError).not.toHaveBeenCalled();
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('retrieves pipeline from backend to display name if not in spec', async () => {
+    mockNRuns(1, { run: { pipeline_spec: { pipeline_id: 'test-pipeline-id' /* no pipeline_name */ } } });
     getPipelineSpy.mockImplementationOnce(() => ({ name: 'test pipeline' }));
     const props = generateProps();
     tree = shallow(<RunList {...props} />);
@@ -372,19 +381,19 @@ describe('RunList', () => {
   });
 
   it('renders pipeline name as link to its details page', () => {
-    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', id: 'pipeline-id', showLink: false }, id: 'run-id' })).toMatchSnapshot();
+    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', id: 'pipeline-id', usePlaceholder: false }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('handles no pipeline id given', () => {
-    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', showLink: false }, id: 'run-id' })).toMatchSnapshot();
+    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', usePlaceholder: false }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('shows "View pipeline" button if pipeline is embedded in run', () => {
-    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', id: 'pipeline-id', showLink: true }, id: 'run-id' })).toMatchSnapshot();
+    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', id: 'pipeline-id', usePlaceholder: true }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('handles no pipeline name', () => {
-    expect(getMountedInstance()._pipelineCustomRenderer({ value: { /* no displayName */ showLink: true }, id: 'run-id' })).toMatchSnapshot();
+    expect(getMountedInstance()._pipelineCustomRenderer({ value: { /* no displayName */ usePlaceholder: true }, id: 'run-id' })).toMatchSnapshot();
   });
 
   it('renders pipeline name as link to its details page', () => {

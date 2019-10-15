@@ -18,10 +18,14 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"github.com/fsnotify/fsnotify"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"fmt"
@@ -34,10 +38,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-
-	_ "ml_metadata/metadata_store/mlmetadata"
-	_ "ml_metadata/proto/metadata_store_go_proto"
-	_ "ml_metadata/proto/metadata_store_service_go_proto"
 )
 
 var (
@@ -83,7 +83,13 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager))
 	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager))
 	api.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
-	api.RegisterVisualizationServiceServer(s, server.NewVisualizationServer(resourceManager))
+	api.RegisterVisualizationServiceServer(
+		s,
+		server.NewVisualizationServer(
+			resourceManager,
+			common.GetStringConfig(visualizationServiceHost),
+			common.GetStringConfig(visualizationServicePort),
+		))
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -118,7 +124,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	pipelineUploadServer := server.NewPipelineUploadServer(resourceManager)
 	topMux.HandleFunc("/apis/v1beta1/pipelines/upload", pipelineUploadServer.UploadPipeline)
 	topMux.HandleFunc("/apis/v1beta1/healthz", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, `{"commit_sha":"`+getStringConfig("COMMIT_SHA")+`"}`)
+		io.WriteString(w, `{"commit_sha":"`+common.GetStringConfig("COMMIT_SHA")+`"}`)
 	})
 
 	topMux.Handle("/apis/", mux)
@@ -191,4 +197,26 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 	}
 	glog.Info("All samples are loaded.")
 	return nil
+}
+
+func initConfig() {
+	// Import environment variable, support nested vars e.g. OBJECTSTORECONFIG_ACCESSKEY
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	viper.AutomaticEnv()
+
+	// Set configuration file name. The format is auto detected in this case.
+	viper.SetConfigName("config")
+	viper.AddConfigPath(*configPath)
+	err := viper.ReadInConfig()
+	if err != nil {
+		glog.Fatalf("Fatal error config file: %s", err)
+	}
+
+	// Watch for configuration change
+	viper.WatchConfig()
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		// Read in config again
+		viper.ReadInConfig()
+	})
 }

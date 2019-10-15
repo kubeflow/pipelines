@@ -47,7 +47,7 @@ def pipeline(name : str = None, description : str = None):
     if _pipeline_decorator_handler:
       return _pipeline_decorator_handler(func) or func
     else:
-      return func 
+      return func
 
   return _pipeline
 
@@ -88,7 +88,7 @@ class PipelineConf():
       seconds: number of seconds for the workflow to be garbage collected after it is finished.
     """
     self.ttl_seconds_after_finished = seconds
-    return self   
+    return self
 
   def set_artifact_location(self, artifact_location):
     """Configures the pipeline level artifact location.
@@ -243,8 +243,6 @@ class Pipeline():
     Args:
       metadata (ComponentMeta): component metadata
     '''
-    if not isinstance(metadata, PipelineMeta):
-      raise ValueError('_set_medata is expecting PipelineMeta.')
     self._metadata = metadata
 
 

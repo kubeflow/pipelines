@@ -120,7 +120,7 @@ class NewRun extends Page<{}, NewRunState> {
 
   public getInitialToolbarState(): ToolbarProps {
     return {
-      actions: [],
+      actions: {},
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'Start a new run',
     };
@@ -324,7 +324,14 @@ class NewRun extends Page<{}, NewRunState> {
             }}>
               {isFirstRunInExperiment ? 'Skip this step' : 'Cancel'}
             </Button>
-            <div style={{ color: 'red' }}>{errorMessage}</div>
+            <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+              {errorMessage}
+            </div>
+            {this._areParametersMissing() &&
+              <div id='missing-parameters-message' style={{ color: 'orange' }}>
+                Some parameters are missing values
+              </div>
+            }
           </div>
         </div>
       </div>
@@ -489,7 +496,7 @@ class NewRun extends Page<{}, NewRunState> {
 
     try {
       runWithEmbeddedPipeline = await Apis.runServiceApi.getRun(embeddedPipelineRunId);
-      embeddedPipelineSpec = RunUtils.getPipelineSpec(runWithEmbeddedPipeline.run);
+      embeddedPipelineSpec = RunUtils.getWorkflowManifest(runWithEmbeddedPipeline.run);
     } catch (err) {
       await this.showPageError(
         `Error: failed to retrieve the specified run: ${embeddedPipelineRunId}.`, err);
@@ -538,7 +545,7 @@ class NewRun extends Page<{}, NewRunState> {
     const referencePipelineId = RunUtils.getPipelineId(originalRun);
     // This corresponds to a run where the pipeline has not been uploaded, such as runs started from
     // the CLI or notebooks
-    const embeddedPipelineSpec = RunUtils.getPipelineSpec(originalRun);
+    const embeddedPipelineSpec = RunUtils.getWorkflowManifest(originalRun);
     if (referencePipelineId) {
       try {
         pipeline = await Apis.pipelineServiceApi.getPipeline(referencePipelineId);
@@ -712,6 +719,15 @@ class NewRun extends Page<{}, NewRunState> {
     } catch (err) {
       this.setStateSafe({ errorMessage: err.message });
     }
+  }
+
+  private _areParametersMissing(): boolean {
+    const { pipeline } = this.state;
+    if (pipeline && Array.isArray(pipeline.parameters) && pipeline.parameters.length > 0) {
+      const missingParameters = pipeline.parameters.filter(parameter => !parameter.value);
+      return missingParameters.length !== 0;
+    }
+    return false;
   }
 }
 

@@ -42,9 +42,9 @@ sudo apt-get install -y kubectl
 
 # Install ksonnet
 export KS_VER=0.13.1
-wget https://github.com/ksonnet/ksonnet/releases/download/v${KS_VER}/ks_${KS_VER}_linux_amd64.tar.gz -O ksonnet.tar.gz
+wget --no-verbose https://github.com/ksonnet/ksonnet/releases/download/v${KS_VER}/ks_${KS_VER}_linux_amd64.tar.gz -O ksonnet.tar.gz
 mkdir -p ksonnet
-tar -xvf ksonnet.tar.gz -C ksonnet --strip-components=1
+tar -xf ksonnet.tar.gz -C ksonnet --strip-components=1
 sudo cp ksonnet/ks /usr/local/bin
 rm -fr ksonnet
 rm ksonnet.tar.gz

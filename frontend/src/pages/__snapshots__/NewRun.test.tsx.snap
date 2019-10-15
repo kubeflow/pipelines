@@ -79,7 +79,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -105,7 +105,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -117,7 +117,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -205,7 +205,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -231,7 +231,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -243,7 +243,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -376,6 +376,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -488,7 +489,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -514,7 +515,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -526,7 +527,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -618,7 +619,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -644,7 +645,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -656,7 +657,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -793,6 +794,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
         Skip this step
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -905,7 +907,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -931,7 +933,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -943,7 +945,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1040,7 +1042,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -1066,7 +1068,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1078,7 +1080,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1231,6 +1233,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -1343,7 +1346,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -1369,7 +1372,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1381,7 +1384,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1474,7 +1477,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -1500,7 +1503,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1512,7 +1515,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1650,6 +1653,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -1762,7 +1766,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -1788,7 +1792,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1800,7 +1804,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1888,7 +1892,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -1914,7 +1918,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -1926,7 +1930,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -2059,6 +2063,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -2171,7 +2176,7 @@ exports[`NewRun renders the new run page 1`] = `
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -2197,7 +2202,7 @@ exports[`NewRun renders the new run page 1`] = `
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -2209,7 +2214,7 @@ exports[`NewRun renders the new run page 1`] = `
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -2301,7 +2306,7 @@ exports[`NewRun renders the new run page 1`] = `
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -2327,7 +2332,7 @@ exports[`NewRun renders the new run page 1`] = `
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -2339,7 +2344,7 @@ exports[`NewRun renders the new run page 1`] = `
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -2476,6 +2481,7 @@ exports[`NewRun renders the new run page 1`] = `
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -2588,7 +2594,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -2614,7 +2620,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -2626,7 +2632,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -2714,7 +2720,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -2740,7 +2746,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -2752,7 +2758,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -2896,6 +2902,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -2994,7 +3001,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -3031,7 +3038,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -3043,7 +3050,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -3137,7 +3144,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -3174,7 +3181,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -3186,7 +3193,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -3300,6 +3307,7 @@ exports[`NewRun starting a new run copies pipeline from run in the start API cal
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -3416,7 +3424,7 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -3453,7 +3461,7 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -3465,7 +3473,7 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -3559,7 +3567,7 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -3596,7 +3604,7 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -3608,7 +3616,7 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -3752,6 +3760,7 @@ exports[`NewRun starting a new run updates the parameters in state on handlePara
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -3862,7 +3871,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -3888,7 +3897,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -3900,7 +3909,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -3992,7 +4001,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -4018,7 +4027,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -4030,7 +4039,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -4167,6 +4176,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -4279,7 +4289,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -4305,7 +4315,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -4317,7 +4327,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -4409,7 +4419,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -4435,7 +4445,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -4447,7 +4457,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -4595,6 +4605,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -4707,7 +4718,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -4733,7 +4744,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -4745,7 +4756,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -4837,7 +4848,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -4863,7 +4874,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -4875,7 +4886,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -5012,6 +5023,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",
@@ -5124,7 +5136,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           title="Choose a pipeline"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -5150,7 +5162,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -5162,7 +5174,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -5254,7 +5266,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
           title="Choose an experiment"
           toolbarProps={
             Object {
-              "actions": Array [],
+              "actions": Object {},
               "breadcrumbs": Array [
                 Object {
                   "displayName": "Experiments",
@@ -5280,7 +5292,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
               "calls": Array [
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -5292,7 +5304,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
                 ],
                 Array [
                   Object {
-                    "actions": Array [],
+                    "actions": Object {},
                     "breadcrumbs": Array [
                       Object {
                         "displayName": "Experiments",
@@ -5429,6 +5441,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
         Cancel
       </WithStyles(Button)>
       <div
+        className=""
         style={
           Object {
             "color": "red",

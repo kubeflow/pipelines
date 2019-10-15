@@ -14,6 +14,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A pipeline with volume.",
+      "name": "Volume"}'
   generateName: volume-
 spec:
   arguments:
@@ -39,16 +42,16 @@ spec:
     name: download
     outputs:
       artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+      - name: download-downloaded
+        path: /tmp/results.txt
       parameters:
       - name: download-downloaded
         valueFrom:
           path: /tmp/results.txt
+    volumes:
+    - name: gcp-credentials
+      secret:
+        secretName: user-gcp-sa
   - container:
       args:
       - echo {{inputs.parameters.download-downloaded}}
@@ -60,14 +63,6 @@ spec:
       parameters:
       - name: download-downloaded
     name: echo
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
   - dag:
       tasks:
       - name: download
@@ -81,7 +76,3 @@ spec:
         name: echo
         template: echo
     name: volume
-  volumes:
-  - name: gcp-credentials
-    secret:
-      secretName: user-gcp-sa

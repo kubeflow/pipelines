@@ -17,7 +17,7 @@
 import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
-import Toolbar, { ToolbarActionConfig } from '../components/Toolbar';
+import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
 import { ApiJob, ApiResourceType } from '../apis/job';
 import { Apis, JobSortKeys, ListRequest } from '../lib/Apis';
 import { DialogProps, RoutePage, RouteParams } from '../components/Router';
@@ -37,7 +37,7 @@ interface RecurringRunListState {
   busyIds: Set<string>;
   runs: ApiJob[];
   selectedIds: string[];
-  toolbarActions: ToolbarActionConfig[];
+  toolbarActionMap: ToolbarActionMap;
 }
 
 class RecurringRunsManager extends React.Component<RecurringRunListProps, RecurringRunListState> {
@@ -50,12 +50,12 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       busyIds: new Set(),
       runs: [],
       selectedIds: [],
-      toolbarActions: [],
+      toolbarActionMap: {},
     };
   }
 
   public render(): JSX.Element {
-    const { runs, selectedIds, toolbarActions } = this.state;
+    const { runs, selectedIds, toolbarActionMap: toolbarActions } = this.state;
 
     const columns: Column[] = [
       {

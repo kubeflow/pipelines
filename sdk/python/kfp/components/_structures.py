@@ -65,12 +65,14 @@ from .structures.kubernetes import v1
 PrimitiveTypes = Union[str, int, float, bool]
 PrimitiveTypesIncludingNone = Optional[PrimitiveTypes]
 
+TypeSpecType = Union[str, Dict, List]
+
 
 class InputSpec(ModelBase):
     '''Describes the component input specification'''
     def __init__(self,
         name: str,
-        type: Optional[Union[str, Dict, List]] = None,
+        type: Optional[TypeSpecType] = None,
         description: Optional[str] = None,
         default: Optional[PrimitiveTypes] = None,
         optional: Optional[bool] = False,
@@ -82,7 +84,7 @@ class OutputSpec(ModelBase):
     '''Describes the component output specification'''
     def __init__(self,
         name: str,
-        type: Optional[Union[str, Dict, List]] = None,
+        type: Optional[TypeSpecType] = None,
         description: Optional[str] = None,
     ):
         super().__init__(locals())
@@ -307,6 +309,13 @@ class ComponentSpec(ModelBase):
                             if isinstance(argument, GraphInputArgument) and argument.input_name not in self._inputs_dict:
                                 raise TypeError('Argument "{}" references non-existing input.'.format(argument))
 
+    def save(self, file_path: str):
+        '''Saves the component definition to file. It can be shared online and later loaded using the load_component function.'''
+        from ._yaml_utils import dump_yaml
+        component_yaml = dump_yaml(self.to_dict())
+        with open(file_path, 'w') as f:
+            f.write(component_yaml)
+
 
 class ComponentReference(ModelBase):
     '''Component reference. Contains information that can be used to locate and load a component by name, digest or URL'''
@@ -315,12 +324,13 @@ class ComponentReference(ModelBase):
         digest: Optional[str] = None,
         tag: Optional[str] = None,
         url: Optional[str] = None,
+        spec: Optional[ComponentSpec] = None,
     ):
         super().__init__(locals())
         self._post_init()
     
     def _post_init(self) -> None:
-        if not any([self.name, self.digest, self.tag, self.url]):
+        if not any([self.name, self.digest, self.tag, self.url, self.spec]):
             raise TypeError('Need at least one argument.')
 
 
@@ -344,10 +354,25 @@ class TaskOutputReference(ModelBase):
     }
 
     def __init__(self,
-        task_id: str,
         output_name: str,
+        task_id: Optional[str] = None,      # Used for linking to the upstream task in serialized component file.
+        task: Optional['TaskSpec'] = None,  # Used for linking to the upstream task in runtime since Task does not have an ID until inserted into a graph.
+        type: Optional[TypeSpecType] = None,    # Can be used to override the reference data type
     ):
         super().__init__(locals())
+        if self.task_id is None and self.task is None:
+            raise TypeError('task_id and task cannot be None at the same time.')
+
+    def with_type(self, type_spec: TypeSpecType) -> 'TaskOutputReference':
+        return TaskOutputReference(
+            output_name=self.output_name,
+            task_id=self.task_id,
+            task=self.task,
+            type=type_spec,
+        )
+
+    def without_type(self) -> 'TaskOutputReference':
+        return self.with_type(None)
 
 
 class TaskOutputArgument(ModelBase): #Has additional constructor for convenience
@@ -371,6 +396,13 @@ class TaskOutputArgument(ModelBase): #Has additional constructor for convenience
             output_name=output_name,
         ))
 
+    def with_type(self, type_spec: TypeSpecType) -> 'TaskOutputArgument':
+        return TaskOutputArgument(
+            task_output=self.task_output.with_type(type_spec),
+        )
+
+    def without_type(self) -> 'TaskOutputArgument':
+        return self.with_type(None)
 
 ArgumentType = Union[PrimitiveTypes, GraphInputArgument, TaskOutputArgument]
 
@@ -464,24 +496,76 @@ class OrPredicate(ModelBase):
         super().__init__(locals())
 
 
+class RetryStrategySpec(ModelBase):
+    _serialized_names = {
+        'max_retries': 'maxRetries',
+    }
+
+    def __init__(self,
+        max_retries: int,
+    ):
+        super().__init__(locals())
+
+
+class KubernetesExecutionOptionsSpec(ModelBase):
+    _serialized_names = {
+        'main_container': 'mainContainer',
+        'pod_spec': 'podSpec',
+    }
+
+    def __init__(self,
+        metadata: Optional[v1.ObjectMetaArgoSubset] = None,
+        main_container: Optional[v1.Container] = None,
+        pod_spec: Optional[v1.PodSpecArgoSubset] = None,
+    ):
+        super().__init__(locals())
+
+
+class ExecutionOptionsSpec(ModelBase):
+    _serialized_names = {
+        'retry_strategy': 'retryStrategy',
+        'kubernetes_options': 'kubernetesOptions',
+    }
+
+    def __init__(self,
+        retry_strategy: Optional[RetryStrategySpec] = None,
+        kubernetes_options: Optional[KubernetesExecutionOptionsSpec] = None,
+    ):
+        super().__init__(locals())
+
+
 class TaskSpec(ModelBase):
     '''Task specification. Task is a "configured" component - a component supplied with arguments and other applied configuration changes.'''
     _serialized_names = {
         'component_ref': 'componentRef',
         'is_enabled': 'isEnabled',
-        'k8s_container_options': 'k8sContainerOptions',
-        'k8s_pod_options': 'k8sPodOptions',
+        'execution_options': 'executionOptions'
     }
 
     def __init__(self,
         component_ref: ComponentReference,
         arguments: Optional[Mapping[str, ArgumentType]] = None,
         is_enabled: Optional[PredicateType] = None,
-        k8s_container_options: Optional[v1.Container] = None,
-        k8s_pod_options: Optional[v1.PodArgoSubset] = None,
+        execution_options: Optional[ExecutionOptionsSpec] = None,
     ):
         super().__init__(locals())
         #TODO: If component_ref is resolved to component spec, then check that the arguments correspond to the inputs
+
+    def _init_outputs(self):
+        #Adding output references to the task
+        if self.component_ref.spec is None:
+            return
+        task_outputs = OrderedDict()
+        for output in self.component_ref.spec.outputs or []:
+            task_output_ref = TaskOutputReference(
+                output_name=output.name,
+                task=self,
+                type=output.type, # TODO: Resolve type expressions. E.g. type: {TypeOf: Input 1}
+            )
+            task_output_arg = TaskOutputArgument(task_output=task_output_ref)
+            task_outputs[output.name] = task_output_arg
+
+        self.outputs = task_outputs
 
 
 class GraphSpec(ModelBase):

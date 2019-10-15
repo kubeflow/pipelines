@@ -19,21 +19,24 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	log "github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"time"
 )
 
 // WorkflowSaver provides a function to persist a workflow to a database.
 type WorkflowSaver struct {
-	client          client.WorkflowClientInterface
-	pipelineClient  client.PipelineClientInterface
-	metricsReporter *MetricsReporter
+	client                        client.WorkflowClientInterface
+	pipelineClient                client.PipelineClientInterface
+	metricsReporter               *MetricsReporter
+	ttlSecondsAfterWorkflowFinish int64
 }
 
 func NewWorkflowSaver(client client.WorkflowClientInterface,
-	pipelineClient client.PipelineClientInterface) *WorkflowSaver {
+		pipelineClient client.PipelineClientInterface, ttlSecondsAfterWorkflowFinish int64) *WorkflowSaver {
 	return &WorkflowSaver{
-		client:          client,
-		pipelineClient:  pipelineClient,
-		metricsReporter: NewMetricsReporter(pipelineClient),
+		client:                        client,
+		pipelineClient:                pipelineClient,
+		metricsReporter:               NewMetricsReporter(pipelineClient),
+		ttlSecondsAfterWorkflowFinish: ttlSecondsAfterWorkflowFinish,
 	}
 }
 
@@ -53,7 +56,12 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 			"Workflow (%s): transient failure: %v", key, err)
 
 	}
-
+	if wf.PersistedFinalState() && time.Now().Unix()-wf.FinishedAt() < s.ttlSecondsAfterWorkflowFinish {
+		// Skip persisting the workflow if the workflow is finished
+		// and the workflow hasn't being passing the TTL
+		log.Infof("Skip syncing Workflow (%v): workflow marked as persisted.", name)
+		return nil
+	}
 	// Save this Workflow to the database.
 	err = s.pipelineClient.ReportWorkflow(wf)
 	retry := util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT)

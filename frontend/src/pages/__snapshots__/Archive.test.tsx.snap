@@ -18,8 +18,14 @@ exports[`Archive renders archived runs 1`] = `
     storageState="STORAGESTATE_ARCHIVED"
     toolbarProps={
       Object {
-        "actions": Array [
-          Object {
+        "actions": Object {
+          "refresh": Object {
+            "action": [Function],
+            "id": "refreshBtn",
+            "title": "Refresh",
+            "tooltip": "Refresh the list",
+          },
+          "restore": Object {
             "action": [Function],
             "disabled": true,
             "disabledTitle": "Select at least one resource to restore",
@@ -27,13 +33,7 @@ exports[`Archive renders archived runs 1`] = `
             "title": "Restore",
             "tooltip": "Restore",
           },
-          Object {
-            "action": [Function],
-            "id": "refreshBtn",
-            "title": "Refresh",
-            "tooltip": "Refresh the list",
-          },
-        ],
+        },
         "breadcrumbs": Array [],
         "pageTitle": "Archive",
       }
@@ -54,8 +54,14 @@ exports[`Archive renders archived runs 1`] = `
         "calls": Array [
           Array [
             Object {
-              "actions": Array [
-                Object {
+              "actions": Object {
+                "refresh": Object {
+                  "action": [Function],
+                  "id": "refreshBtn",
+                  "title": "Refresh",
+                  "tooltip": "Refresh the list",
+                },
+                "restore": Object {
                   "action": [Function],
                   "disabled": true,
                   "disabledTitle": "Select at least one resource to restore",
@@ -63,13 +69,7 @@ exports[`Archive renders archived runs 1`] = `
                   "title": "Restore",
                   "tooltip": "Restore",
                 },
-                Object {
-                  "action": [Function],
-                  "id": "refreshBtn",
-                  "title": "Refresh",
-                  "tooltip": "Refresh the list",
-                },
-              ],
+              },
               "breadcrumbs": Array [],
               "pageTitle": "Archive",
             },

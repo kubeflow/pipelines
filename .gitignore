@@ -32,7 +32,7 @@ frontend/test/ui/visual-regression/screenshots/screen
 # IDE
 .idea/
 .ijwb/
-ml.iml
+*.iml
 
 # Merge files
 *.orig
@@ -51,3 +51,13 @@ bazel-*
 
 # VSCode
 .vscode
+
+# test yaml
+sdk/python/tests/compiler/pipeline.yaml
+sdk/python/tests/compiler/testdata/testpackage/pipeline.yaml
+
+# Test temporary files
+_artifacts
+
+# Generated Python SDK documentation
+docs/_build

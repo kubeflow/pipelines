@@ -183,7 +183,7 @@ export interface ApiJob {
      */
     error?: string;
     /**
-     * 
+     * Input. Whether the job is enabled or not.
      * @type {boolean}
      * @memberof ApiJob
      */
@@ -197,7 +197,7 @@ export interface ApiJob {
  */
 export interface ApiListJobsResponse {
     /**
-     * 
+     * A list of jobs returned.
      * @type {Array&lt;ApiJob&gt;}
      * @memberof ApiListJobsResponse
      */
@@ -275,6 +275,12 @@ export interface ApiPipelineSpec {
      */
     pipeline_id?: string;
     /**
+     * Optional output field. The name of the pipeline. Not empty if the pipeline id is not empty.
+     * @type {string}
+     * @memberof ApiPipelineSpec
+     */
+    pipeline_name?: string;
+    /**
      * Optional input field. The marshalled raw argo JSON workflow. This will be deprecated when pipeline_manifest is in use.
      * @type {string}
      * @memberof ApiPipelineSpec
@@ -338,6 +344,12 @@ export interface ApiResourceReference {
      */
     key?: ApiResourceKey;
     /**
+     * The name of the resource that referred to.
+     * @type {string}
+     * @memberof ApiResourceReference
+     */
+    name?: string;
+    /**
      * Required field. The relationship from referred resource to the object.
      * @type {ApiRelationship}
      * @memberof ApiResourceReference
@@ -383,7 +395,7 @@ export interface ApiStatus {
 }
 
 /**
- * 
+ * Trigger defines what starts a pipeline run.
  * @export
  * @interface ApiTrigger
  */
@@ -420,7 +432,7 @@ export enum JobMode {
  */
 export interface ProtobufAny {
     /**
-     * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
+     * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
      * @type {string}
      * @memberof ProtobufAny
      */
@@ -442,7 +454,7 @@ export const JobServiceApiFetchParamCreator = function (configuration?: Configur
     return {
         /**
          * 
-         * @param {ApiJob} body 
+         * @param {ApiJob} body The job to be created
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -481,7 +493,7 @@ export const JobServiceApiFetchParamCreator = function (configuration?: Configur
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be deleted
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -517,7 +529,7 @@ export const JobServiceApiFetchParamCreator = function (configuration?: Configur
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be disabled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -553,7 +565,7 @@ export const JobServiceApiFetchParamCreator = function (configuration?: Configur
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be enabled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -589,7 +601,7 @@ export const JobServiceApiFetchParamCreator = function (configuration?: Configur
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be retrieved
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -694,7 +706,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     return {
         /**
          * 
-         * @param {ApiJob} body 
+         * @param {ApiJob} body The job to be created
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -712,7 +724,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be deleted
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -730,7 +742,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be disabled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -748,7 +760,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be enabled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -766,7 +778,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be retrieved
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -816,7 +828,7 @@ export const JobServiceApiFactory = function (configuration?: Configuration, fet
     return {
         /**
          * 
-         * @param {ApiJob} body 
+         * @param {ApiJob} body The job to be created
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -825,7 +837,7 @@ export const JobServiceApiFactory = function (configuration?: Configuration, fet
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be deleted
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -834,7 +846,7 @@ export const JobServiceApiFactory = function (configuration?: Configuration, fet
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be disabled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -843,7 +855,7 @@ export const JobServiceApiFactory = function (configuration?: Configuration, fet
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be enabled
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -852,7 +864,7 @@ export const JobServiceApiFactory = function (configuration?: Configuration, fet
         },
         /**
          * 
-         * @param {string} id 
+         * @param {string} id The ID of the job to be retrieved
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -885,7 +897,7 @@ export const JobServiceApiFactory = function (configuration?: Configuration, fet
 export class JobServiceApi extends BaseAPI {
     /**
      * 
-     * @param {} body 
+     * @param {} body The job to be created
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof JobServiceApi
@@ -896,7 +908,7 @@ export class JobServiceApi extends BaseAPI {
 
     /**
      * 
-     * @param {} id 
+     * @param {} id The ID of the job to be deleted
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof JobServiceApi
@@ -907,7 +919,7 @@ export class JobServiceApi extends BaseAPI {
 
     /**
      * 
-     * @param {} id 
+     * @param {} id The ID of the job to be disabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof JobServiceApi
@@ -918,7 +930,7 @@ export class JobServiceApi extends BaseAPI {
 
     /**
      * 
-     * @param {} id 
+     * @param {} id The ID of the job to be enabled
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof JobServiceApi
@@ -929,7 +941,7 @@ export class JobServiceApi extends BaseAPI {
 
     /**
      * 
-     * @param {} id 
+     * @param {} id The ID of the job to be retrieved
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof JobServiceApi

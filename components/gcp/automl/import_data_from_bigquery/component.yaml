@@ -1,0 +1,108 @@
+name: Automl import data from bigquery
+inputs:
+- name: dataset_path
+- name: input_uri
+  type: String
+- name: retry
+  optional: true
+- name: timeout
+  optional: true
+- name: metadata
+  type: JsonObject
+  optional: true
+outputs:
+- name: dataset_path
+  type: String
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - python3
+    - -u
+    - -c
+    - |
+      from typing import NamedTuple
+
+      def automl_import_data_from_bigquery(
+          dataset_path,
+          input_uri: str,
+          retry=None, #=google.api_core.gapic_v1.method.DEFAULT,
+          timeout=None, #=google.api_core.gapic_v1.method.DEFAULT,
+          metadata: dict = None,
+      ) -> NamedTuple('Outputs', [('dataset_path', str)]):
+          import sys
+          import subprocess
+          subprocess.run([sys.executable, '-m', 'pip', 'install', 'google-cloud-automl==0.4.0', '--quiet', '--no-warn-script-location'], env={'PIP_DISABLE_PIP_VERSION_CHECK': '1'}, check=True)
+
+          import google
+          from google.cloud import automl
+          client = automl.AutoMlClient()
+          input_config = {
+              'bigquery_source': {
+                  'input_uri': input_uri,
+              },
+          }
+          response = client.import_data(
+              dataset_path,
+              input_config,
+              retry or google.api_core.gapic_v1.method.DEFAULT,
+              timeout or google.api_core.gapic_v1.method.DEFAULT,
+              metadata,
+          )
+          result = response.result()
+          print(result)
+          metadata = response.metadata
+          print(metadata)
+          return (dataset_path)
+
+      import json
+      import argparse
+      _missing_arg = object()
+      _parser = argparse.ArgumentParser(prog='Automl import data from bigquery', description='')
+      _parser.add_argument("--dataset-path", dest="dataset_path", type=str, required=True, default=_missing_arg)
+      _parser.add_argument("--input-uri", dest="input_uri", type=str, required=True, default=_missing_arg)
+      _parser.add_argument("--retry", dest="retry", type=str, required=False, default=_missing_arg)
+      _parser.add_argument("--timeout", dest="timeout", type=str, required=False, default=_missing_arg)
+      _parser.add_argument("--metadata", dest="metadata", type=json.loads, required=False, default=_missing_arg)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = {k: v for k, v in vars(_parser.parse_args()).items() if v is not _missing_arg}
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = automl_import_data_from_bigquery(**_parsed_args)
+
+      if not hasattr(_outputs, '__getitem__') or isinstance(_outputs, str):
+          _outputs = [_outputs]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(str(_outputs[idx]))
+    args:
+    - --dataset-path
+    - inputValue: dataset_path
+    - --input-uri
+    - inputValue: input_uri
+    - if:
+        cond:
+          isPresent: retry
+        then:
+        - --retry
+        - inputValue: retry
+    - if:
+        cond:
+          isPresent: timeout
+        then:
+        - --timeout
+        - inputValue: timeout
+    - if:
+        cond:
+          isPresent: metadata
+        then:
+        - --metadata
+        - inputValue: metadata
+    - '----output-paths'
+    - outputPath: dataset_path

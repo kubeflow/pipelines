@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import Buttons from '../lib/Buttons';
+import Buttons, { ButtonKeys } from '../lib/Buttons';
 import DetailsTable from '../components/DetailsTable';
 import RunUtils from '../lib/RunUtils';
 import { ApiExperiment } from '../apis/experiment';
@@ -46,18 +46,18 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [
-        buttons.cloneRecurringRun(() => this.state.run ? [this.state.run.id!] : [], true),
-        buttons.refresh(this.refresh.bind(this)),
-        buttons.enableRecurringRun(() => this.state.run ? this.state.run.id! : ''),
-        buttons.disableRecurringRun(() => this.state.run ? this.state.run.id! : ''),
-        buttons.delete(
+      actions: buttons
+        .cloneRecurringRun(() => this.state.run ? [this.state.run.id!] : [], true)
+        .refresh(this.refresh.bind(this))
+        .enableRecurringRun(() => this.state.run ? this.state.run.id! : '')
+        .disableRecurringRun(() => this.state.run ? this.state.run.id! : '')
+        .delete(
           () => this.state.run ? [this.state.run!.id!] : [],
           'recurring run config',
           this._deleteCallback.bind(this),
           true, /* useCurrentResource */
-        ),
-      ],
+        )
+        .getToolbarActionMap(),
       breadcrumbs: [],
       pageTitle: '',
     };
@@ -170,9 +170,9 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     }
     const pageTitle = run ? run.name! : runId;
 
-    const toolbarActions = [...this.props.toolbarProps.actions];
-    toolbarActions[2].disabled = !!run.enabled;
-    toolbarActions[3].disabled = !run.enabled;
+    const toolbarActions = this.props.toolbarProps.actions;
+    toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled = !!run.enabled;
+    toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled = !run.enabled;
 
     this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 

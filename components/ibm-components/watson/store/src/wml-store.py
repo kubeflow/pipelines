@@ -9,7 +9,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 # define the function to store the model
 
 def getSecret(secret):
@@ -23,19 +23,17 @@ def store(wml_model_name, run_uid):
 
     # retrieve credentials
     wml_url = getSecret("/app/secrets/wml_url")
-    wml_username = getSecret("/app/secrets/wml_username")
-    wml_password = getSecret("/app/secrets/wml_password")
     wml_instance_id = getSecret("/app/secrets/wml_instance_id")
-    
+    wml_apikey = getSecret("/app/secrets/wml_apikey")
+
     # set up the WML client
     wml_credentials = {
                        "url": wml_url,
-                       "username": wml_username,
-                       "password": wml_password,
-                       "instance_id": wml_instance_id
+                       "instance_id": wml_instance_id,
+                       "apikey": wml_apikey
                       }
     client = WatsonMachineLearningAPIClient( wml_credentials )
-        
+
     # store the model
     stored_model_name    = wml_model_name
     stored_model_details = client.repository.store_model( run_uid, stored_model_name )

@@ -14,7 +14,6 @@
 
 import importlib
 import unittest
-from nbformat.v4 import new_code_cell
 from nbformat.v4 import new_notebook
 import snapshottest
 
@@ -24,40 +23,56 @@ exporter = importlib.import_module("exporter")
 class TestExporterMethods(snapshottest.TestCase):
 
     def setUp(self):
+        self.maxDiff = None
         self.exporter = exporter.Exporter(100, exporter.TemplateType.BASIC)
 
     def test_create_cell_from_args_with_no_args(self):
-        self.maxDiff = None
-        args = "{}"
-        cell = self.exporter.create_cell_from_args(args)
+        args = {}
+        cell = exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
     def test_create_cell_from_args_with_one_arg(self):
-        self.maxDiff = None
-        args = '{"source": "gs://ml-pipeline/data.csv"}'
-        cell = self.exporter.create_cell_from_args(args)
+        args = {"source": "gs://ml-pipeline/data.csv"}
+        cell = exporter.create_cell_from_args(args)
         self.assertMatchSnapshot(cell.source)
 
+    # Test generates html to avoid issues with Python 3.5 where dict objects
+    # do not retain order upon object creation. Due to this, we test that the
+    # provided arguments exist and equal the provided value.
     def test_create_cell_from_args_with_multiple_args(self):
-        self.maxDiff = None
-        args = (
-            '{"source": "gs://ml-pipeline/data.csv", '
-            "\"target_lambda\": \"lambda x: (x['target'] > x['fare'] * 0.2)\"}"
-        )
-        cell = self.exporter.create_cell_from_args(args)
-        self.assertMatchSnapshot(cell.source)
+        nb = new_notebook()
+        args = {
+            "source": "gs://ml-pipeline/data.csv",
+            "target_lambda": "lambda x: (x['target'] > x['fare'] * 0.2)"
+        }
+        code = [
+            "print(variables.get('source'))",
+            "print(variables.get('target_lambda'))"
+        ]
+        nb.cells.append(exporter.create_cell_from_args(args))
+        nb.cells.append(exporter.create_cell_from_custom_code(code))
+        html = self.exporter.generate_html_from_notebook(nb)
+        self.assertMatchSnapshot(html)
 
     def test_create_cell_from_file(self):
-        self.maxDiff = None
-        cell = self.exporter.create_cell_from_file("tfdv.py")
+        cell = exporter.create_cell_from_file("types/test.py")
         self.assertMatchSnapshot(cell.source)
 
-    def test_generate_html_from_notebook(self):
-        self.maxDiff = None
+    def test_create_cell_from_custom_code(self):
+        code = [
+            "x = 2",
+            "print(x)"
+        ]
+        cell = exporter.create_cell_from_custom_code(code)
+        self.assertMatchSnapshot(cell.source)
+
+    # Tests to ensure output is generated for custom visualizations.
+    def test_generate_custom_visualization_html_from_notebook(self):
         nb = new_notebook()
-        args = '{"x": 2}'
-        nb.cells.append(self.exporter.create_cell_from_args(args))
-        nb.cells.append(new_code_cell("print(x)"))
+        args = {"x": 2}
+        code = ["print(variables.get('x'))"]
+        nb.cells.append(exporter.create_cell_from_args(args))
+        nb.cells.append(exporter.create_cell_from_custom_code(code))
         html = self.exporter.generate_html_from_notebook(nb)
         self.assertMatchSnapshot(html)
 

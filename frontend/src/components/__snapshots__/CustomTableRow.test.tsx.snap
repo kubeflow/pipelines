@@ -1,0 +1,64 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CustomTable displays warning icon with tooltip if row has error 1`] = `
+<Fragment>
+  <div
+    className="cell"
+    key="0"
+    style={
+      Object {
+        "width": "50%",
+      }
+    }
+  >
+    <WithStyles(Tooltip)
+      title="dummy error"
+    >
+      <pure(WarningRoundedIcon)
+        className="icon"
+      />
+    </WithStyles(Tooltip)>
+    cell1
+  </div>
+  <div
+    className="cell"
+    key="1"
+    style={
+      Object {
+        "width": "50%",
+      }
+    }
+  >
+    cell2
+  </div>
+</Fragment>
+`;
+
+exports[`CustomTable renders some rows using a custom renderer 1`] = `
+<Fragment>
+  <div
+    className="cell"
+    key="0"
+    style={
+      Object {
+        "width": "50%",
+      }
+    }
+  >
+    <span>
+      this is custom output
+    </span>
+  </div>
+  <div
+    className="cell"
+    key="1"
+    style={
+      Object {
+        "width": "50%",
+      }
+    }
+  >
+    cell2
+  </div>
+</Fragment>
+`;

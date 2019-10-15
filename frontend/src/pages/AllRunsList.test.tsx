@@ -20,6 +20,7 @@ import { PageProps } from './Page';
 import { RoutePage } from '../components/Router';
 import { RunStorageState } from '../apis/run';
 import { shallow, ShallowWrapper } from 'enzyme';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('AllRunsList', () => {
   const updateBannerSpy = jest.fn();
@@ -67,17 +68,17 @@ describe('AllRunsList', () => {
 
   it('only enables clone button when exactly one run is selected', () => {
     shallowMountComponent();
-    const archiveBtn = _toolbarProps.actions.find((a: any) => a.title === 'Clone run');
-    expect(archiveBtn.disabled).toBeTruthy();
+    const cloneBtn = _toolbarProps.actions[ButtonKeys.CLONE_RUN];
+    expect(cloneBtn.disabled).toBeTruthy();
     tree.find('RunList').simulate('selectionChange', ['run1']);
-    expect(archiveBtn.disabled).toBeFalsy();
+    expect(cloneBtn.disabled).toBeFalsy();
     tree.find('RunList').simulate('selectionChange', ['run1', 'run2']);
-    expect(archiveBtn.disabled).toBeTruthy();
+    expect(cloneBtn.disabled).toBeTruthy();
   });
 
   it('enables archive button when at least one run is selected', () => {
     shallowMountComponent();
-    const archiveBtn = _toolbarProps.actions.find((a: any) => a.title === 'Archive');
+    const archiveBtn = _toolbarProps.actions[ButtonKeys.ARCHIVE];
     expect(archiveBtn.disabled).toBeTruthy();
     tree.find('RunList').simulate('selectionChange', ['run1']);
     expect(archiveBtn.disabled).toBeFalsy();
@@ -89,21 +90,21 @@ describe('AllRunsList', () => {
     shallowMountComponent();
     const spy = jest.fn();
     (tree.instance() as any)._runlistRef = { current: { refresh: spy } };
-    _toolbarProps.actions.find((a: any) => a.title === 'Refresh').action();
+    _toolbarProps.actions[ButtonKeys.REFRESH].action();
     expect(spy).toHaveBeenLastCalledWith();
   });
 
   it('navigates to new run page when clone is clicked', () => {
     shallowMountComponent();
     tree.find('RunList').simulate('selectionChange', ['run1']);
-    _toolbarProps.actions.find((a: any) => a.title === 'Clone run').action();
+    _toolbarProps.actions[ButtonKeys.CLONE_RUN].action();
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_RUN + '?cloneFromRun=run1');
   });
 
   it('navigates to compare page when compare button is clicked', () => {
     shallowMountComponent();
     tree.find('RunList').simulate('selectionChange', ['run1', 'run2', 'run3']);
-    _toolbarProps.actions.find((a: any) => a.title === 'Compare runs').action();
+    _toolbarProps.actions[ButtonKeys.COMPARE].action();
     expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.COMPARE + '?runlist=run1,run2,run3');
   });
 

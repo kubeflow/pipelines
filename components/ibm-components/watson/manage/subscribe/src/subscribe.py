@@ -35,8 +35,6 @@ if __name__ == "__main__":
     problem_type = args.problem_type
 
     wml_url = get_secret_creds("/app/secrets/wml_url")
-    wml_username = get_secret_creds("/app/secrets/wml_username")
-    wml_password = get_secret_creds("/app/secrets/wml_password")
     wml_instance_id = get_secret_creds("/app/secrets/wml_instance_id")
     wml_apikey = get_secret_creds("/app/secrets/wml_apikey")
     aios_guid = get_secret_creds("/app/secrets/aios_guid")
@@ -52,8 +50,6 @@ if __name__ == "__main__":
 
     WML_CREDENTIALS = {
                        "url": wml_url,
-                       "username": wml_username,
-                       "password": wml_password,
                        "instance_id": wml_instance_id,
                        "apikey": wml_apikey
                       }

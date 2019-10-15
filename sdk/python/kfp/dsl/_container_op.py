@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import collections
 import re
 import warnings
 from typing import Any, Dict, List, TypeVar, Union, Callable, Optional, Sequence
 
 from argo.models import V1alpha1ArtifactLocation
-from kubernetes.client import V1Toleration
+from kubernetes.client import V1Toleration, V1Affinity
 from kubernetes.client.models import (
     V1Container, V1EnvVar, V1EnvFromSource, V1SecurityContext, V1Probe,
     V1ResourceRequirements, V1VolumeDevice, V1VolumeMount, V1ContainerPort,
@@ -25,7 +25,7 @@ from kubernetes.client.models import (
 )
 
 from . import _pipeline_param
-from ._metadata import ComponentMeta
+from ..components._structures import ComponentSpec
 
 # generics
 T = TypeVar('T')
@@ -721,12 +721,16 @@ class BaseOp(object):
         self.node_selector = {}
         self.volumes = []
         self.tolerations = []
+        self.affinity = {}
         self.pod_annotations = {}
         self.pod_labels = {}
         self.num_retries = 0
         self.timeout = 0
         self.init_containers = init_containers or []
         self.sidecars = sidecars or []
+
+        # used to mark this op with loop arguments
+        self.loop_args = None
 
         # attributes specific to `BaseOp`
         self._inputs = []
@@ -744,10 +748,7 @@ class BaseOp(object):
             self._inputs = []
             # TODO replace with proper k8s obj?
             for key in self.attrs_with_pipelineparams:
-                self._inputs += [
-                    param for param in _pipeline_param.
-                    extract_pipelineparams_from_any(getattr(self, key))
-                ]
+                self._inputs += _pipeline_param.extract_pipelineparams_from_any(getattr(self, key))
             # keep only unique
             self._inputs = list(set(self._inputs))
         return self._inputs
@@ -793,11 +794,27 @@ class BaseOp(object):
         """Add K8s tolerations
 
         Args:
-          volume: Kubernetes toleration
+          tolerations: Kubernetes toleration
           For detailed spec, check toleration definition
           https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_toleration.py
         """
         self.tolerations.append(tolerations)
+        return self
+
+    def add_affinity(self, affinity: V1Affinity):
+        """Add K8s Affinity
+        Args:
+          affinity: Kubernetes affinity
+          For detailed spec, check affinity definition
+          https://github.com/kubernetes-client/python/blob/master/kubernetes/client/models/v1_affinity.py
+          example: V1Affinity(
+                    node_affinity=V1NodeAffinity(
+                        required_during_scheduling_ignored_during_execution=V1NodeSelector(
+                            node_selector_terms=[V1NodeSelectorTerm(
+                                match_expressions=[V1NodeSelectorRequirement(
+                                    key='beta.kubernetes.io/instance-type', operator='In', values=['p2.xlarge'])])])))
+        """
+        self.affinity = affinity
         return self
 
     def add_node_selector_constraint(self, label_name, value):
@@ -883,7 +900,14 @@ class BaseOp(object):
         return str({self.__class__.__name__: self.__dict__})
 
 
-from ._pipeline_volume import PipelineVolume #The import is here to prevent circular reference problems.
+from ._pipeline_volume import PipelineVolume  # The import is here to prevent circular reference problems.
+
+
+class InputArgumentPath:
+    def __init__(self, argument, input=None, path=None):
+        self.argument = argument
+        self.input = input
+        self.path = path
 
 
 class ContainerOp(BaseOp):
@@ -935,20 +959,22 @@ class ContainerOp(BaseOp):
     # Excludes `file_outputs` and `outputs` as they are handled separately
     # in the compilation process to generate the DAGs and task io parameters.
 
-    def __init__(self,
-                 name: str,
-                 image: str,
-                 command: StringOrStringList = None,
-                 arguments: StringOrStringList = None,
-                 init_containers: List[UserContainer] = None,
-                 sidecars: List[Sidecar] = None,
-                 container_kwargs: Dict = None,
-                 file_outputs: Dict[str, str] = None,
-                 output_artifact_paths : Dict[str, str]=None,
-                 artifact_location: V1alpha1ArtifactLocation=None,
-                 is_exit_handler=False,
-                 pvolumes: Dict[str, V1Volume] = None,
-        ):
+    def __init__(
+      self,
+      name: str,
+      image: str,
+      command: StringOrStringList = None,
+      arguments: StringOrStringList = None,
+      init_containers: List[UserContainer] = None,
+      sidecars: List[Sidecar] = None,
+      container_kwargs: Dict = None,
+      artifact_argument_paths: List[InputArgumentPath] = None,
+      file_outputs: Dict[str, str] = None,
+      output_artifact_paths: Dict[str, str]=None,
+      artifact_location: V1alpha1ArtifactLocation=None,
+      is_exit_handler=False,
+      pvolumes: Dict[str, V1Volume] = None,
+    ):
         """Create a new instance of ContainerOp.
 
         Args:
@@ -966,6 +992,10 @@ class ContainerOp(BaseOp):
                     together with the `main` container.
           container_kwargs: the dict of additional keyword arguments to pass to the
                             op's `Container` definition.
+          artifact_argument_paths: Optional. Maps input artifact arguments (values or references) to the local file paths where they'll be placed.
+              At pipeline run time, the value of the artifact argument is saved to a local file with specified path.
+              This parameter is only needed when the input file paths are hard-coded in the program.
+              Otherwise it's better to pass input artifact placement paths by including artifact arguments in the command-line using the InputArgumentPath class instances.
           file_outputs: Maps output labels to local file paths. At pipeline run time,
               the value of a PipelineParam is saved to its corresponding local file. It's
               one way for outside world to receive outputs of the container.
@@ -983,7 +1013,30 @@ class ContainerOp(BaseOp):
         """
 
         super().__init__(name=name, init_containers=init_containers, sidecars=sidecars, is_exit_handler=is_exit_handler)
-        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location'] #Copying the BaseOp class variable!
+        self.attrs_with_pipelineparams = BaseOp.attrs_with_pipelineparams + ['_container', 'artifact_location', 'artifact_arguments'] #Copying the BaseOp class variable!
+
+        input_artifact_paths = {}
+        artifact_arguments = {}
+        file_outputs = dict(file_outputs or {}) # Making a copy
+        output_artifact_paths = dict(output_artifact_paths or {}) # Making a copy
+
+        def resolve_artifact_argument(artarg):
+            from ..components._components import _generate_input_file_name
+            if not isinstance(artarg, InputArgumentPath):
+                return artarg
+            input_name = getattr(artarg.input, 'name', artarg.input) or ('input-' + str(len(artifact_arguments)))
+            input_path = artarg.path or _generate_input_file_name(input_name)
+            input_artifact_paths[input_name] = input_path
+            artifact_arguments[input_name] = str(artarg.argument)
+            return input_path
+
+        for artarg in artifact_argument_paths or []:
+            resolve_artifact_argument(artarg)
+
+        if isinstance(command, Sequence) and not isinstance(command, str):
+            command = list(map(resolve_artifact_argument, command))
+        if isinstance(arguments, Sequence) and not isinstance(arguments, str):
+            arguments = list(map(resolve_artifact_argument, arguments))
 
         # convert to list if not a list
         command = as_string_list(command)
@@ -1022,7 +1075,17 @@ class ContainerOp(BaseOp):
                 # only proxy public callables
                 setattr(self, attr_to_proxy, _proxy(attr_to_proxy))
 
+        # Special handling for the mlpipeline-ui-metadata and mlpipeline-metrics outputs that should always be saved as artifacts
+        # TODO: Remove when outputs are always saved as artifacts
+        for output_name, path in dict(file_outputs).items():
+            normalized_output_name = re.sub('[^a-zA-Z0-9]', '-', output_name.lower())
+            if normalized_output_name in ['mlpipeline-ui-metadata', 'mlpipeline-metrics']:
+                output_artifact_paths[normalized_output_name] = path
+                del file_outputs[output_name]
+
         # attributes specific to `ContainerOp`
+        self.input_artifact_paths = input_artifact_paths
+        self.artifact_arguments = artifact_arguments
         self.file_outputs = file_outputs
         self.output_artifact_paths = output_artifact_paths or {}
         self.artifact_location = artifact_location
@@ -1036,12 +1099,14 @@ class ContainerOp(BaseOp):
                 for name in file_outputs.keys()
             }
 
-        self.output = None
         if len(self.outputs) == 1:
             self.output = list(self.outputs.values())[0]
+        else:
+            self.output = _MultipleOutputsError()
 
         self.pvolumes = {}
         self.add_pvolumes(pvolumes)
+
 
     @property
     def command(self):
@@ -1084,10 +1149,10 @@ class ContainerOp(BaseOp):
         '''_set_metadata passes the containerop the metadata information
         and configures the right output
         Args:
-          metadata (ComponentMeta): component metadata
+          metadata (ComponentSpec): component metadata
         '''
-        if not isinstance(metadata, ComponentMeta):
-            raise ValueError('_set_medata is expecting ComponentMeta.')
+        if not isinstance(metadata, ComponentSpec):
+            raise ValueError('_set_metadata is expecting ComponentSpec.')
 
         self._metadata = metadata
 
@@ -1096,10 +1161,9 @@ class ContainerOp(BaseOp):
                 output_type = self.outputs[output].param_type
                 for output_meta in self._metadata.outputs:
                     if output_meta.name == output:
-                        output_type = output_meta.param_type
+                        output_type = output_meta.type
                 self.outputs[output].param_type = output_type
 
-            self.output = None
             if len(self.outputs) == 1:
                 self.output = list(self.outputs.values())[0]
 
@@ -1118,7 +1182,8 @@ class ContainerOp(BaseOp):
                     self.dependent_names.extend(pvolume.dependent_names)
                 else:
                     pvolume = PipelineVolume(volume=pvolume)
-                self.pvolumes[mount_path] = pvolume.after(self)
+                pvolume = pvolume.after(self)
+                self.pvolumes[mount_path] = pvolume
                 self.add_volume(pvolume)
                 self._container.add_volume_mount(V1VolumeMount(
                     name=pvolume.name,
@@ -1134,3 +1199,15 @@ class ContainerOp(BaseOp):
 # proxy old ContainerOp properties to ContainerOp.container
 # with PendingDeprecationWarning.
 ContainerOp = _proxy_container_op_props(ContainerOp)
+
+
+class _MultipleOutputsError:
+    @staticmethod
+    def raise_error():
+        raise RuntimeError('This task has multiple outputs. Use `task.outputs[<output name>]` dictionary to refer to the one you need.')
+
+    def __getattribute__(self, name):
+        _MultipleOutputsError.raise_error()
+
+    def __str__(self):
+        _MultipleOutputsError.raise_error()

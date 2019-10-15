@@ -1,6 +1,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "A Basic Example on VolumeOp
+      Usage.", "inputs": [{"name": "size"}], "name": "VolumeOp Basic"}'
   generateName: volumeop-basic-
 spec:
   arguments:
@@ -23,14 +26,10 @@ spec:
       parameters:
       - name: create-pvc-name
     name: cop
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+    volumes:
+    - name: create-pvc
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-pvc-name}}'
   - inputs:
       parameters:
       - name: size
@@ -71,7 +70,3 @@ spec:
       parameters:
       - name: size
     name: volumeop-basic
-  volumes:
-  - name: create-pvc
-    persistentVolumeClaim:
-      claimName: '{{inputs.parameters.create-pvc-name}}'

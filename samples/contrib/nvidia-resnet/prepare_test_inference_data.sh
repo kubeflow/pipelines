@@ -15,6 +15,6 @@
 
 IMAGES_URL=https://storage.googleapis.com/nvidia-kubeflow-demo/test_images.tar.gz
 
-wget -O images.tar.gz $IMAGES_URL
+wget --no-verbose -O images.tar.gz $IMAGES_URL
 tar -zxvf images.tar.gz -C components/webapp/src/static
 rm images.tar.gz

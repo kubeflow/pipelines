@@ -1,6 +1,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "The fourth example of
+      the design doc.", "inputs": [{"name": "url"}], "name": "VolumeSnapshotOp Sequential"}'
   generateName: volumesnapshotop-sequential-
 spec:
   arguments:
@@ -41,14 +44,10 @@ spec:
       - name: create-volume-name
       - name: url
     name: step1-ingest
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+    volumes:
+    - name: create-volume
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-name}}'
   - inputs:
       parameters:
       - name: create-volume-name
@@ -84,14 +83,10 @@ spec:
       parameters:
       - name: create-volume-name
     name: step2-gunzip
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+    volumes:
+    - name: create-volume
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-name}}'
   - inputs:
       parameters:
       - name: create-volume-name
@@ -127,14 +122,10 @@ spec:
       parameters:
       - name: create-volume-name
     name: step3-copy
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+    volumes:
+    - name: create-volume
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-name}}'
   - inputs:
       parameters:
       - name: create-volume-name
@@ -169,14 +160,10 @@ spec:
       parameters:
       - name: create-volume-name
     name: step4-output
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        optional: true
-      - name: mlpipeline-metrics
-        path: /mlpipeline-metrics.json
-        optional: true
+    volumes:
+    - name: create-volume
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-name}}'
   - dag:
       tasks:
       - name: create-volume
@@ -249,7 +236,3 @@ spec:
       parameters:
       - name: url
     name: volumesnapshotop-sequential
-  volumes:
-  - name: create-volume
-    persistentVolumeClaim:
-      claimName: '{{inputs.parameters.create-volume-name}}'

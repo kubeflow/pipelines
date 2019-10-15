@@ -55,9 +55,11 @@ outputs:
   - name: output_gcs_path
     description: 'The path to the Cloud Storage bucket containing the query output in CSV format.'
     type: GCSPath
+  - name: MLPipeline UI metadata
+    type: UI metadata
 implementation:
   container:
-    image: gcr.io/ml-pipeline/ml-pipeline-gcp:fe639f41661d8e17fcda64ff8242127620b80ba0
+    image: gcr.io/ml-pipeline/ml-pipeline-gcp:57d9f7f1cfd458e945d297957621716062d89a49
     args: [
       kfp_component.google.bigquery, query,
       --query, {inputValue: query},
@@ -72,3 +74,4 @@ implementation:
       KFP_POD_NAME: "{{pod.name}}"
     fileOutputs:
       output_gcs_path: /tmp/kfp/output/bigquery/query-output-path.txt
+      MLPipeline UI metadata: /mlpipeline-ui-metadata.json

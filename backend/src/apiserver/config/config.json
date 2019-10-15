@@ -1,12 +1,14 @@
 {
   "DBConfig": {
     "DriverName": "mysql",
-    "DataSourceName": ""
+    "DataSourceName": "",
+    "DBName": "mlpipeline"
   },
   "ObjectStoreConfig":{
     "AccessKey": "minio",
     "SecretAccessKey": "minio123",
     "BucketName": "mlpipeline"
   },
-  "InitConnectionTimeout": "6m"
+  "InitConnectionTimeout": "6m",
+  "DefaultPipelineRunnerServiceAccount": "pipeline-runner"
 }

@@ -1,15 +1,26 @@
 FROM l.gcr.io/google/bazel:0.24.0 as builder
 
 RUN apt-get update && \
-  apt-get install -y cmake clang musl-dev openssl ca-certificates
+  apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
-COPY WORKSPACE WORKSPACE
-COPY backend/src backend/src
-COPY backend/api backend/api
+COPY . .
 
-RUN bazel build -c opt --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver:apiserver
+ARG google_application_credentials
+ARG use_remote_build=false
 
+# RUN bazel build -c opt --action_env=PATH --define=grpc_no_ares=true backend/src/apiserver:apiserver
+RUN if [ "$use_remote_build" = "true" ]; then \
+    echo "Using remote build execution ..." && \
+    printf "%s" "$google_application_credentials"  > /credentials.json && \
+    bazel --bazelrc=tools/bazel_builder/bazelrc \
+      build -c opt backend/src/apiserver:apiserver --config=remote \
+      --google_credentials=/credentials.json; \
+  else \
+    echo "Using local build execution..." && \
+    bazel --bazelrc=tools/bazel_builder/bazelrc \
+      build -c opt backend/src/apiserver:apiserver; \
+  fi
 
 # Compile
 FROM python:3.5 as compiler
@@ -29,9 +40,9 @@ COPY ./samples .
 #I think it's better to just use a shell loop though.
 #RUN  for pipeline in $(find . -maxdepth 2 -name '*.py' -type f); do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 #The "for" loop breaks on all whitespace, so we either need to override IFS or use the "read" command instead.
-RUN  find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
+RUN  set -e; find core -maxdepth 2 -name '*.py' -type f | while read pipeline; do dsl-compile --py "$pipeline" --output "$pipeline.tar.gz"; done
 
-FROM scratch
+FROM debian:stretch
 
 ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=${COMMIT_SHA}
@@ -45,10 +56,10 @@ COPY backend/src/apiserver/config/ /config
 COPY --from=compiler /samples/ /samples/
 
 # Adding CA certificate so API server can download pipeline through URL
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+RUN apt-get update && apt-get install -y ca-certificates
 
 # Expose apiserver port
 EXPOSE 8888
 
 # Start the apiserver
-CMD apiserver --config=/config --sampleconfig=/config/sample_config.json -alsologtostderr=true
+CMD apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true

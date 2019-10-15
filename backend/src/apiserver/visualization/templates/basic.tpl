@@ -64,19 +64,24 @@ unknown type  {{ cell.type }}
 {%- endblock execute_result %}
 
 {% block stream_stdout -%}
+  {% if not cell['metadata'].get('hide_logging', True) %}
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
 {{- output.text | ansi2html -}}
 </pre>
 </div>
+  {% endif %}
 {%- endblock stream_stdout %}
 
+
 {% block stream_stderr -%}
+  {% if not cell['metadata'].get('hide_logging', True) %}
 <div class="output_subarea output_stream output_stderr output_text">
 <pre>
 {{- output.text | ansi2html -}}
 </pre>
 </div>
+  {% endif %}
 {%- endblock stream_stderr %}
 
 {% block data_svg scoped -%}

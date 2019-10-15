@@ -86,11 +86,11 @@ class Compare extends Page<{}, CompareState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
-      actions: [
-        buttons.expandSections(() => this.setState({ collapseSections: {} })),
-        buttons.collapseSections(this._collapseAllSections.bind(this)),
-        buttons.refresh(this.refresh.bind(this)),
-      ],
+      actions: buttons
+        .expandSections(() => this.setState({ collapseSections: {} }))
+        .collapseSections(this._collapseAllSections.bind(this))
+        .refresh(this.refresh.bind(this))
+        .getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'Compare runs',
     };

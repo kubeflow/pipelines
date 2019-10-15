@@ -120,8 +120,11 @@ export default class WorkflowParser {
     Object.keys(workflowNodes)
       .forEach((nodeId) => {
         if (workflowNodes[nodeId].children) {
-          workflowNodes[nodeId].children.forEach((childNodeId) =>
-            g.setEdge(nodeId, childNodeId));
+          workflowNodes[nodeId].children.forEach((childNodeId) => {
+            if (workflowNodes[childNodeId]) {
+              g.setEdge(nodeId, childNodeId);
+            }
+          });
         }
       });
 
@@ -130,6 +133,7 @@ export default class WorkflowParser {
       .forEach((nodeId) => {
         // Many nodes have the Argo root node as a boundaryID, and we can discard these.
         if (workflowNodes[nodeId].boundaryID &&
+          workflowNodes[workflowNodes[nodeId].boundaryID] &&
           (!g.inEdges(nodeId) || !g.inEdges(nodeId)!.length) &&
           workflowNodes[nodeId].boundaryID !== workflowName) {
           // BoundaryIDs point from children to parents.

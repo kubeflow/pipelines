@@ -30,9 +30,11 @@ func TestCreateRun(t *testing.T) {
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: util.StringPointer("world")}}
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	expectedRunDetail := api.RunDetail{
 		Run: &api.Run{
-			Id:           "workflow1",
+			Id:           "123e4567-e89b-12d3-a456-426655440000",
 			Name:         "123",
 			StorageState: api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
@@ -44,8 +46,8 @@ func TestCreateRun(t *testing.T) {
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{
-					Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
-					Relationship: api.Relationship_OWNER,
+					Key:  &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+					Name: "123", Relationship: api.Relationship_OWNER,
 				},
 			},
 		},
@@ -72,7 +74,7 @@ func TestListRun(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRun := &api.Run{
-		Id:           "workflow1",
+		Id:           "123e4567-e89b-12d3-a456-426655440000",
 		Name:         "123",
 		StorageState: api.Run_STORAGESTATE_AVAILABLE,
 		CreatedAt:    &timestamp.Timestamp{Seconds: 2},
@@ -84,31 +86,14 @@ func TestListRun(t *testing.T) {
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{
-				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
-				Relationship: api.Relationship_OWNER,
+				Key:  &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+				Name: "123", Relationship: api.Relationship_OWNER,
 			},
 		},
 	}
 	listRunsResponse, err := server.ListRuns(nil, &api.ListRunsRequest{})
+	assert.Equal(t, 1, len(listRunsResponse.Runs))
 	assert.Equal(t, expectedRun, listRunsResponse.Runs[0])
-
-	run2 := &api.Run{
-		Name: "456",
-		PipelineSpec: &api.PipelineSpec{
-			WorkflowManifest: testWorkflow2.ToStringForStore(),
-			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
-		},
-		ResourceReferences: []*api.ResourceReference{
-			{
-				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
-				Relationship: api.Relationship_OWNER,
-			},
-		},
-	}
-	_, err = server.CreateRun(nil, &api.CreateRunRequest{Run: run2})
-	assert.Nil(t, err)
-	listRunsResponse, err = server.ListRuns(nil, &api.ListRunsRequest{})
-	assert.Equal(t, 2, len(listRunsResponse.Runs))
 }
 
 func TestValidateCreateRunRequest(t *testing.T) {

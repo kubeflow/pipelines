@@ -27,7 +27,7 @@ ims['Fruit'] = [label[0] for label in all_labels if (label[2] == '/m/02xwb' and 
 ims['Fruit'].remove('02a54f6864478101') # This image contains personal information, let's remove it from our dataset.
 num_classes = len(ims)
 
-# If running the short version of the demo, reduce each class count 40 times.
+# If running the short version of the demo, reduce each class count 50 times.
 for key in ims.keys():
     ims[key] = set(ims[key][:int(len(ims[key]) / 50)])
 

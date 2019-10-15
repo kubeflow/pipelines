@@ -70,6 +70,7 @@ def _create_component_spec_from_airflow_op(
     variables_output_names = variables_to_output or []
     xcoms_output_names = xcoms_to_output or []
     modules_to_capture = modules_to_capture or [op_class.__module__]
+    modules_to_capture.append(_run_airflow_op.__module__)
 
     output_names = []
     if result_output_name is not None:

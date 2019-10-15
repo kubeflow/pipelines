@@ -1,6 +1,8 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Test adding pod env", "name": "Test adding pod env"}'
   generateName: test-adding-pod-env-
 spec:
   arguments:
@@ -28,14 +30,6 @@ spec:
       labels:
         add-pod-env: 'true'
     name: echo
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        optional: true
-        path: /mlpipeline-ui-metadata.json
-      - name: mlpipeline-metrics
-        optional: true
-        path: /mlpipeline-metrics.json
   - dag:
       tasks:
       - name: echo

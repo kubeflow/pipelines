@@ -20,6 +20,7 @@ usage()
 {
     echo "usage: deploy.sh
     [--platform             the deployment platform. Valid values are: [gcp, minikube]. Default is gcp.]
+    [--project              the gcp project. Default is ml-pipeline-test. Only used when platform is gcp.]
     [--workflow_file        the file name of the argo workflow to run]
     [--test_result_bucket   the gcs bucket that argo workflow store the result to. Default is ml-pipeline-test
     [--test_result_folder   the gcs folder that argo workflow store the result to. Always a relative directory to gs://<gs_bucket>/[PULL_SHA]]
@@ -30,7 +31,6 @@ usage()
 PLATFORM=gcp
 PROJECT=ml-pipeline-test
 TEST_RESULT_BUCKET=ml-pipeline-test
-GCR_IMAGE_BASE_DIR=gcr.io/ml-pipeline-test/${PULL_PULL_SHA}
 TIMEOUT_SECONDS=1800
 NAMESPACE=kubeflow
 
@@ -38,6 +38,9 @@ while [ "$1" != "" ]; do
     case $1 in
              --platform )             shift
                                       PLATFORM=$1
+                                      ;;
+             --project )              shift
+                                      PROJECT=$1
                                       ;;
              --workflow_file )        shift
                                       WORKFLOW_FILE=$1
@@ -60,41 +63,44 @@ while [ "$1" != "" ]; do
     shift
 done
 
+# PULL_PULL_SHA is empty whne Pros/Tide tests the batches.
+# PULL_BASE_SHA cannot be used here as it still points to master tip in that case.
+PULL_PULL_SHA="${PULL_PULL_SHA:-$(git rev-parse HEAD)}"
+
 # Variables
+GCR_IMAGE_BASE_DIR=gcr.io/${PROJECT}/${PULL_PULL_SHA}
 TEST_RESULTS_GCS_DIR=gs://${TEST_RESULT_BUCKET}/${PULL_PULL_SHA}/${TEST_RESULT_FOLDER}
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
-echo "presubmit test starts"
-source "${DIR}/test-prep.sh"
+# Configure `time` command output format.
+TIMEFORMAT="[test-timing] It took %lR."
 
-# Deploy Kubeflow
-source "${DIR}/deploy-kubeflow.sh"
+echo "presubmit test starts"
+time source "${DIR}/test-prep.sh"
+echo "test env prepared"
+
+# We don't wait for image building here, because cluster can be deployed in
+# parallel so that we save a few minutes of test time.
+time source "${DIR}/build-images.sh"
+echo "KFP images cloudbuild jobs submitted"
+
+time COMMIT_SHA=$PULL_PULL_SHA source "${DIR}/deploy-cluster.sh"
+echo "cluster deployed"
+
+time source "${DIR}/check-build-image-status.sh"
+echo "KFP images built"
 
 # Install Argo CLI and test-runner service account
-source "${DIR}/install-argo.sh"
+time source "${DIR}/install-argo.sh"
+echo "argo installed"
 
-# Build Images
-echo "submitting argo workflow to build docker images for commit ${PULL_PULL_SHA}..."
-ARGO_WORKFLOW=`argo submit ${DIR}/build_image.yaml \
--p image-build-context-gcs-uri="$remote_code_archive_uri" \
--p api-image="${GCR_IMAGE_BASE_DIR}/api-server" \
--p frontend-image="${GCR_IMAGE_BASE_DIR}/frontend" \
--p scheduledworkflow-image="${GCR_IMAGE_BASE_DIR}/scheduledworkflow" \
--p persistenceagent-image="${GCR_IMAGE_BASE_DIR}/persistenceagent" \
--n ${NAMESPACE} \
---serviceaccount test-runner \
--o name
-`
-echo "build docker images workflow submitted successfully"
-source "${DIR}/check-argo-status.sh"
-echo "build docker images workflow completed"
-
-# Deploy the pipeline
-source ${DIR}/deploy-pipeline.sh --gcr_image_base_dir ${GCR_IMAGE_BASE_DIR}
+time source "${DIR}/deploy-pipeline-lite.sh"
+echo "KFP lite deployed"
 
 echo "submitting argo workflow to run tests for commit ${PULL_PULL_SHA}..."
 ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 -p image-build-context-gcs-uri="$remote_code_archive_uri" \
+${IMAGE_BUILDER_ARG} \
 -p target-image-prefix="${GCR_IMAGE_BASE_DIR}/" \
 -p test-results-gcs-dir="${TEST_RESULTS_GCS_DIR}" \
 -p cluster-type="${CLUSTER_TYPE}" \
@@ -102,7 +108,6 @@ ARGO_WORKFLOW=`argo submit ${DIR}/${WORKFLOW_FILE} \
 --serviceaccount test-runner \
 -o name
 `
-
 echo "test workflow submitted successfully"
-source "${DIR}/check-argo-status.sh"
+time source "${DIR}/check-argo-status.sh"
 echo "test workflow completed"

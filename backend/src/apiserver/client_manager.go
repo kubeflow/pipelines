@@ -17,38 +17,38 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
-	"strconv"
 	"time"
 
 	workflowclient "github.com/argoproj/argo/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/metadata"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
-	minio "github.com/minio/minio-go"
-
-	"ml_metadata/metadata_store/mlmetadata"
-	mlpb "ml_metadata/proto/metadata_store_go_proto"
+	"github.com/minio/minio-go"
 )
 
 const (
-	minioServiceHost      = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort      = "MINIO_SERVICE_SERVICE_PORT"
-	mysqlServiceHost      = "MYSQL_SERVICE_HOST"
-	mysqlUser             = "DBConfig.User"
-	mysqlPassword         = "DBConfig.Password"
-	mysqlServicePort      = "MYSQL_SERVICE_PORT"
+	minioServiceHost = "MINIO_SERVICE_SERVICE_HOST"
+	minioServicePort = "MINIO_SERVICE_SERVICE_PORT"
+	mysqlServiceHost = "DBConfig.Host"
+	mysqlServicePort = "DBConfig.Port"
+	mysqlUser        = "DBConfig.User"
+	mysqlPassword    = "DBConfig.Password"
+	mysqlDBName      = "DBConfig.DBName"
+
+	visualizationServiceHost = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST"
+	visualizationServicePort = "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT"
 
 	podNamespace          = "POD_NAMESPACE"
-	dbName                = "mlpipeline"
 	initConnectionTimeout = "InitConnectionTimeout"
 )
 
@@ -65,10 +65,9 @@ type ClientManager struct {
 	objectStore            storage.ObjectStoreInterface
 	wfClient               workflowclient.WorkflowInterface
 	swfClient              scheduledworkflowclient.ScheduledWorkflowInterface
+	podClient              v1.PodInterface
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
-
-	MetadataStore *mlmetadata.Store
 }
 
 func (c *ClientManager) ExperimentStore() storage.ExperimentStoreInterface {
@@ -111,6 +110,10 @@ func (c *ClientManager) ScheduledWorkflow() scheduledworkflowclient.ScheduledWor
 	return c.swfClient
 }
 
+func (c *ClientManager) PodClient() v1.PodInterface {
+	return c.podClient
+}
+
 func (c *ClientManager) Time() util.TimeInterface {
 	return c.time
 }
@@ -120,9 +123,8 @@ func (c *ClientManager) UUID() util.UUIDGeneratorInterface {
 }
 
 func (c *ClientManager) init() {
-	glog.Infof("Initializing client manager")
-
-	db := initDBClient(getDurationConfig(initConnectionTimeout))
+	glog.Info("Initializing client manager")
+	db := initDBClient(common.GetDurationConfig(initConnectionTimeout))
 
 	// time
 	c.time = util.NewRealTime()
@@ -137,16 +139,18 @@ func (c *ClientManager) init() {
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
-	c.objectStore = initMinioClient(getDurationConfig(initConnectionTimeout))
+	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
 
 	c.wfClient = client.CreateWorkflowClientOrFatal(
-		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
 
 	c.swfClient = client.CreateScheduledWorkflowClientOrFatal(
-		getStringConfig(podNamespace), getDurationConfig(initConnectionTimeout))
+		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
 
-	metadataStore := initMetadataStore()
-	runStore := storage.NewRunStore(db, c.time, metadataStore)
+	c.podClient = client.CreatePodClientOrFatal(
+		common.GetStringConfig(podNamespace), common.GetDurationConfig(initConnectionTimeout))
+
+	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
 
 	glog.Infof("Client manager initialized successfully")
@@ -156,33 +160,8 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func initMetadataStore() *metadata.Store {
-	port, err := strconv.Atoi(getStringConfig(mysqlServicePort))
-	if err != nil {
-		glog.Fatalf("Failed to parse valid MySQL service port from %q: %v", getStringConfig(mysqlServicePort), err)
-	}
-
-	cfg := &mlpb.ConnectionConfig{
-		Config: &mlpb.ConnectionConfig_Mysql{
-			&mlpb.MySQLDatabaseConfig{
-				Host:     proto.String(getStringConfig(mysqlServiceHost)),
-				Port:     proto.Uint32(uint32(port)),
-				Database: proto.String("mlmetadata"),
-				User:     proto.String(getStringConfigWithDefault(mysqlUser, "root")),
-				Password: proto.String(getStringConfigWithDefault(mysqlPassword, "")),
-			},
-		},
-	}
-
-	mlmdStore, err := mlmetadata.NewStore(cfg)
-	if err != nil {
-		glog.Fatalf("Failed to create ML Metadata store: %v", err)
-	}
-	return metadata.NewStore(mlmdStore)
-}
-
 func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
-	driverName := getStringConfig("DBConfig.DriverName")
+	driverName := common.GetStringConfig("DBConfig.DriverName")
 	var arg string
 
 	switch driverName {
@@ -197,11 +176,24 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	db, err := gorm.Open(driverName, arg)
 	util.TerminateIfError(err)
 
+	// If pipeline_versions table is introduced into DB for the first time,
+	// it needs initialization or data backfill.
+	var tableNames []string
+	var initializePipelineVersions = true
+	db.Raw(`show tables`).Pluck("Tables_in_mlpipeline", &tableNames)
+	for _, tableName := range tableNames {
+		if tableName == "pipeline_versions" {
+			initializePipelineVersions = false
+			break
+		}
+	}
+
 	// Create table
 	response := db.AutoMigrate(
 		&model.Experiment{},
 		&model.Job{},
 		&model.Pipeline{},
+		&model.PipelineVersion{},
 		&model.ResourceReference{},
 		&model.RunDetail{},
 		&model.RunMetric{},
@@ -211,11 +203,29 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	if response.Error != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
+
+	response = db.Model(&model.ResourceReference{}).ModifyColumn("Payload", "longtext")
+	if response.Error != nil {
+		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response.Error)
+	}
+
 	response = db.Model(&model.RunMetric{}).
 		AddForeignKey("RunUUID", "run_details(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
 	if response.Error != nil {
 		glog.Fatalf("Failed to create a foreign key for RunID in run_metrics table. Error: %s", response.Error)
 	}
+	response = db.Model(&model.PipelineVersion{}).
+		AddForeignKey("PipelineId", "pipelines(UUID)", "CASCADE" /* onDelete */, "CASCADE" /* update */)
+	if response.Error != nil {
+		glog.Fatalf("Failed to create a foreign key for PipelineId in pipeline_versions table. Error: %s", response.Error)
+	}
+
+	// Data backfill for pipeline_versions if this is the first time for
+	// pipeline_versions to enter mlpipeline DB.
+	if initializePipelineVersions {
+		initPipelineVersionsFromPipelines(db)
+	}
+
 	return storage.NewDB(db.DB(), storage.NewMySQLDialect())
 }
 
@@ -223,10 +233,10 @@ func initDBClient(initConnectionTimeout time.Duration) *storage.DB {
 // Format would be something like root@tcp(ip:port)/dbname?charset=utf8&loc=Local&parseTime=True
 func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	mysqlConfig := client.CreateMySQLConfig(
-		getStringConfigWithDefault(mysqlUser, "root"),
-		getStringConfigWithDefault(mysqlPassword, ""),
-		getStringConfig(mysqlServiceHost),
-		getStringConfig(mysqlServicePort),
+		common.GetStringConfigWithDefault(mysqlUser, "root"),
+		common.GetStringConfigWithDefault(mysqlPassword, ""),
+		common.GetStringConfigWithDefault(mysqlServiceHost, "mysql"),
+		common.GetStringConfigWithDefault(mysqlServicePort, "3306"),
 		"")
 
 	var db *sql.DB
@@ -246,6 +256,7 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 	util.TerminateIfError(err)
 
 	// Create database if not exist
+	dbName := common.GetStringConfig(mysqlDBName)
 	operation = func() error {
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
 		if err != nil {
@@ -264,14 +275,14 @@ func initMysql(driverName string, initConnectionTimeout time.Duration) string {
 
 func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
 	// Create minio client.
-	minioServiceHost := getStringConfigWithDefault(
+	minioServiceHost := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
-	minioServicePort := getStringConfigWithDefault(
+	minioServicePort := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
-	accessKey := getStringConfig("ObjectStoreConfig.AccessKey")
-	secretKey := getStringConfig("ObjectStoreConfig.SecretAccessKey")
-	bucketName := getStringConfig("ObjectStoreConfig.BucketName")
-	disableMultipart := getBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", false)
+	accessKey := common.GetStringConfig("ObjectStoreConfig.AccessKey")
+	secretKey := common.GetStringConfig("ObjectStoreConfig.SecretAccessKey")
+	bucketName := common.GetStringConfig("ObjectStoreConfig.BucketName")
+	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
 		secretKey, initConnectionTimeout)
@@ -301,4 +312,35 @@ func newClientManager() ClientManager {
 	clientManager.init()
 
 	return clientManager
+}
+
+// Data migration in 2 steps to introduce pipeline_versions table. This
+// migration shall be called only once when pipeline_versions table is created
+// for the first time in DB.
+func initPipelineVersionsFromPipelines(db *gorm.DB) {
+	tx := db.Begin()
+
+	// Step 1: duplicate pipelines to pipeline versions.
+	// The pipeline versions created here are not through KFP pipeine version
+	// API, and are only for the legacy pipelines that are created
+	// before pipeline version API is introduced.
+	// For those legacy pipelines, who don't have versions before, we create one
+	// implicit version for each of them. Given a legacy pipeline, the implicit
+	// version created here is assigned an ID the same as the pipeline ID. This
+	// way we don't need to move the minio file of pipeline package around,
+	// since the minio file's path is based on the pipeline ID (and now on the
+	// implicit version ID too). Meanwhile, IDs are required to be unique inside
+	// the same resource type, so pipeline and pipeline version as two different
+	// resources useing the same ID is OK.
+	// On the other hand, pipeline and its pipeline versions created after
+	// pipeline version API is introduced will have different Ids; and the minio
+	// file will be put directly into the directories for pipeline versions.
+	tx.Exec(`INSERT INTO
+	pipeline_versions (UUID, Name, CreatedAtInSec, Parameters, Status, PipelineId)
+	SELECT UUID, Name, CreatedAtInSec, Parameters, Status, UUID FROM pipelines;`)
+
+	// Step 2: modifiy pipelines table after pipeline_versions are populated.
+	tx.Exec("update pipelines set DefaultVersionId=UUID;")
+
+	tx.Commit()
 }

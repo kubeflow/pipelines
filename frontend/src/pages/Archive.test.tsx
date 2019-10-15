@@ -20,6 +20,7 @@ import TestUtils from '../TestUtils';
 import { PageProps } from './Page';
 import { RunStorageState } from '../apis/run';
 import { ShallowWrapper, shallow } from 'enzyme';
+import { ButtonKeys } from '../lib/Buttons';
 
 describe('Archive', () => {
   const updateBannerSpy = jest.fn();
@@ -55,20 +56,20 @@ describe('Archive', () => {
     tree = shallow(<Archive {...generateProps()} />);
     TestUtils.flushPromises();
     tree.update();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore').disabled).toBeTruthy();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled).toBeTruthy();
     tree.find('RunList').simulate('selectionChange', ['run1']);
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore').disabled).toBeFalsy();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled).toBeFalsy();
     tree.find('RunList').simulate('selectionChange', ['run1', 'run2']);
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore').disabled).toBeFalsy();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled).toBeFalsy();
     tree.find('RunList').simulate('selectionChange', []);
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, 'Restore').disabled).toBeTruthy();
+    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled).toBeTruthy();
   });
 
   it('refreshes the run list when refresh button is clicked', async () => {
     tree = shallow(<Archive {...generateProps()} />);
     const spy = jest.fn();
     (tree.instance() as any)._runlistRef = { current: { refresh: spy } };
-    await TestUtils.getToolbarButton(updateToolbarSpy, 'Refresh').action();
+    await TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.REFRESH).action();
     expect(spy).toHaveBeenLastCalledWith();
   });
 

@@ -10,8 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import datetime
+import os
 import argparse
 from time import gmtime, strftime
 import time
@@ -19,7 +18,6 @@ import string
 import random
 import json
 import yaml
-from urlparse import urlparse
 
 import boto3
 from botocore.exceptions import ClientError
@@ -51,15 +49,21 @@ built_in_algos = {
     'xgboost': 'xgboost'
 }
 
-def get_client(region=None):
-    """Builds a client to the AWS SageMaker API."""
-    client = boto3.client('sagemaker', region_name=region)
-    return client
+# Get current directory to open templates
+__cwd__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
+def add_default_client_arguments(parser):
+    parser.add_argument('--region', type=str.strip, required=True, help='The region where the training job launches.')
+    parser.add_argument('--endpoint_url', type=str.strip, required=False, help='The URL to use when communicating with the Sagemaker service.')
+
+def get_sagemaker_client(region, endpoint_url=None):
+    """Builds a client to the AWS SageMaker API."""
+    client = boto3.client('sagemaker', region_name=region, endpoint_url=endpoint_url)
+    return client
 
 def create_training_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_training_job
-    with open('/app/common/train.template.yaml', 'r') as f:
+    with open(os.path.join(__cwd__, 'train.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
 
     job_name = args['job_name'] if args['job_name'] else 'TrainingJob-' + strftime("%Y%m%d%H%M%S", gmtime()) + '-' + id_generator()
@@ -80,7 +84,7 @@ def create_training_job_request(args):
         request['AlgorithmSpecification']['TrainingImage'] = args['image']
         request['AlgorithmSpecification'].pop('AlgorithmName')
     else:
-        # TODO: determine if users can make custom algorithm resources that have the same name as built-in algorithm names
+        # TODO: Adjust this implementation to account for custom algorithm resources names that are the same as built-in algorithm names
         algo_name = args['algorithm_name'].lower().strip()
         if algo_name in built_in_algos.keys():
             request['AlgorithmSpecification']['TrainingImage'] = get_image_uri(args['region'], built_in_algos[algo_name])
@@ -94,7 +98,7 @@ def create_training_job_request(args):
         else:
             request['AlgorithmSpecification']['AlgorithmName'] = args['algorithm_name']
             request['AlgorithmSpecification'].pop('TrainingImage')
-
+    
     ### Update metric definitions
     if args['metric_definitions']:
         for key, val in args['metric_definitions'].items():
@@ -114,12 +118,12 @@ def create_training_job_request(args):
         request['InputDataConfig'] = args['channels']
         # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
         #   Source: Input data configuration description in the SageMaker create training job form
-        for i in range(1, len(args['channels'] + 1)):
+        for i in range(1, len(args['channels']) + 1):
             if args['data_location_' + str(i)]:
                 request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
         logging.error("Must specify at least one input channel.")
-        raise Exception('Could not make job request')
+        raise Exception('Could not create job request')
 
     request['OutputDataConfig']['S3OutputPath'] = args['model_artifact_path']
     request['OutputDataConfig']['KmsKeyId'] = args['output_encryption_key']
@@ -137,6 +141,8 @@ def create_training_job_request(args):
 
     if args['max_run_time']:
         request['StoppingCondition']['MaxRuntimeInSeconds'] = args['max_run_time']
+
+    enable_spot_instance_support(request, args)
 
     ### Update tags
     for key, val in args['tags'].items():
@@ -195,7 +201,7 @@ def get_image_from_job(client, job_name):
 
 def create_model(client, args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_model
-    with open('/app/common/model.template.yaml', 'r') as f:
+    with open(os.path.join(__cwd__, 'model.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
 
     request['ModelName'] = args['model_name']
@@ -256,7 +262,7 @@ def deploy_model(client, args):
 
 def create_endpoint_config(client, args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_endpoint_config
-    with open('/app/common/endpoint_config.template.yaml', 'r') as f:
+    with open(os.path.join(__cwd__, 'endpoint_config.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
 
     endpoint_config_name = args['endpoint_config_name'] if args['endpoint_config_name'] else 'EndpointConfig' + args['model_name_1'][args['model_name_1'].index('-'):]
@@ -347,7 +353,7 @@ def wait_for_endpoint_creation(client, endpoint_name):
 
 def create_transform_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_transform_job
-    with open('/app/common/transform.template.yaml', 'r') as f:
+    with open(os.path.join(__cwd__, 'transform.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
 
     job_name = args['job_name'] if args['job_name'] else 'BatchTransform' + args['model_name'][args['model_name'].index('-'):]
@@ -412,7 +418,7 @@ def create_transform_job(client, args):
       client.create_transform_job(**request)
       batch_job_name = request['TransformJobName']
       logging.info("Created Transform Job with name: " + batch_job_name)
-      logging.info("Transform job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/jobs/{}"
+      logging.info("Transform job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/transform-jobs/{}"
         .format(args['region'], args['region'], batch_job_name))
       logging.info("CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/TransformJobs;prefix={};streamFilter=typeLogStreamPrefix"
         .format(args['region'], args['region'], batch_job_name))
@@ -437,20 +443,9 @@ def wait_for_transform_job(client, batch_job_name):
     time.sleep(30)
 
 
-def print_tranformation_job_result(output_location):
-  ### Fetch the transform output
-  bucket = urlparse(output_location).netloc
-  output_key = "{}/valid_data.csv.out".format(urlparse(output_location).path.lstrip('/'))
-  s3_client = boto3.client('s3')
-  s3_client.download_file(bucket, output_key, 'valid-result')
-  with open('valid-result') as f:
-    results = f.readlines()
-  logging.info("Sample transform result: {}".format(results[0]))
-
-
 def create_hyperparameter_tuning_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_hyper_parameter_tuning_job
-    with open('/app/common/hpo.template.yaml', 'r') as f:
+    with open(os.path.join(__cwd__, 'hpo.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
 
     ### Create a hyperparameter tuning job
@@ -514,9 +509,9 @@ def create_hyperparameter_tuning_job_request(args):
         request['TrainingJobDefinition']['InputDataConfig'] = args['channels']
         # Max number of input channels/data locations is 20, but currently only 8 data location parameters are exposed separately.
         #   Source: Input data configuration description in the SageMaker create hyperparameter tuning job form
-        for i in range(1, len(args['channels'] + 1):
+        for i in range(1, len(args['channels']) + 1):
             if args['data_location_' + str(i)]:
-                request['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
+                request['TrainingJobDefinition']['InputDataConfig'][i-1]['DataSource']['S3DataSource']['S3Uri'] = args['data_location_' + str(i)]
     else:
         logging.error("Must specify at least one input channel.")
         raise Exception('Could not make job request')
@@ -553,6 +548,8 @@ def create_hyperparameter_tuning_job_request(args):
                 logging.error("Must specify at least one parent hyperparameter tuning job")
             raise Exception('Could not make job request')
         request.pop('WarmStartConfig')
+
+    enable_spot_instance_support(request['TrainingJobDefinition'], args)
 
     ### Update tags
     for key, val in args['tags'].items():
@@ -606,7 +603,7 @@ def get_best_training_job_and_hyperparameters(client, hpo_job_name):
 def create_workteam(client, args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_workteam
     """Create a workteam"""
-    with open('/app/common/workteam.template.yaml', 'r') as f:
+    with open(os.path.join(__cwd__, 'workteam.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
 
     request['WorkteamName'] = args['team_name']
@@ -634,7 +631,7 @@ def create_workteam(client, args):
 
 def create_labeling_job_request(args):
     ### Documentation: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_labeling_job
-    with open('/app/common/gt.template.yaml', 'r') as f:
+    with open(os.path.join(__cwd__, 'gt.template.yaml'), 'r') as f:
         request = yaml.safe_load(f)
 
     # Mapping are extracted from ARNs listed in https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sagemaker.html#SageMaker.Client.create_labeling_job
@@ -806,6 +803,25 @@ def get_labeling_job_outputs(client, labeling_job_name, auto_labeling):
     else:
         active_learning_model_arn = ''
     return output_manifest, active_learning_model_arn
+
+def enable_spot_instance_support(training_job_config, args):
+    if args['spot_instance']:
+        training_job_config['EnableManagedSpotTraining'] = args['spot_instance']
+        if args['max_wait_time'] >= training_job_config['StoppingCondition']['MaxRuntimeInSeconds']:
+            training_job_config['StoppingCondition']['MaxWaitTimeInSeconds'] = args['max_wait_time']
+        else:
+            logging.error("Max wait time must be greater than or equal to max run time.")
+            raise Exception('Could not create job request.')
+        
+        if args['checkpoint_config'] and 'S3Uri' in args['checkpoint_config']:
+            training_job_config['CheckpointConfig'] = args['checkpoint_config']
+        else:
+            logging.error("EnableManagedSpotTraining requires checkpoint config with an S3 uri.")
+            raise Exception('Could not create job request.')
+    else:
+        # Remove any artifacts that require spot instance support
+        del training_job_config['StoppingCondition']['MaxWaitTimeInSeconds']
+        del training_job_config['CheckpointConfig']
 
 
 def id_generator(size=4, chars=string.ascii_uppercase + string.digits):

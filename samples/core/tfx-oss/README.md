@@ -18,44 +18,37 @@ conda create -n tfx-kfp pip python=3.5.3
 then activate the environment.
 
 
-Install TensorFlow, TFX and Kubeflow Pipelines SDK
+Install TFX and Kubeflow Pipelines SDK
 ```
-pip install tensorflow --upgrade
-pip install tfx
-pip install kfp --upgrade
-```
-
-Clone TFX github repo
-```
-git clone https://github.com/tensorflow/tfx
+pip3 install 'tfx==0.14.0' --upgrade
+pip3 install 'kfp>=0.1.31' --upgrade
 ```
 
 Upload the utility code to your storage bucket. You can modify this code if needed for a different dataset.
 ```
-gsutil cp tfx/tfx/examples/chicago_taxi_pipeline/taxi_utils.py gs://my-bucket/<path>/
+gsutil cp utils/taxi_utils.py gs://my-bucket/<path>/
 ```
 
 If gsutil does not work, try `tensorflow.gfile`:
 ```
 from tensorflow import gfile
-gfile.Copy('tfx/tfx/examples/chicago_taxi_pipeline/taxi_utils.py', 'gs://<my bucket>/<path>/taxi_utils.py')
+gfile.Copy('utils/taxi_utils.py', 'gs://<my bucket>/<path>/taxi_utils.py')
 ```
 
 ## Configure the TFX Pipeline
 
-Modify the pipeline configuration file at 
+Modify the pipeline configurations at
 ```
-tfx/tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
+TFX Example.ipynb
 ```
-Configure 
+Configure
 - Set `_input_bucket` to the GCS directory where you've copied taxi_utils.py. I.e. gs://<my bucket>/<path>/
 - Set `_output_bucket` to the GCS directory where you've want the results to be written
 - Set GCP project ID (replace my-gcp-project). Note that it should be project ID, not project name.
 - The original BigQuery dataset has 100M rows, which can take time to process. Modify the selection criteria (% of records) to run a sample test. 
 
 ## Compile and run the pipeline
-```
-python tfx/tfx/examples/chicago_taxi_pipeline/taxi_pipeline_kubeflow.py
-```
-This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz 
-Upload this file to the Pipelines Cluster and crate a run.
+Run the notebook.
+
+This will generate a file named chicago_taxi_pipeline_kubeflow.tar.gz
+Upload this file to the Pipelines Cluster and create a run.

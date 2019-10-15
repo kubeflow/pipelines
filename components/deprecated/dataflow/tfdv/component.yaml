@@ -1,0 +1,34 @@
+name: TFX - Data Validation
+description: |
+  Runs Tensorflow Data Validation. https://www.tensorflow.org/tfx/data_validation/get_started
+  Tensorflow Data Validation (TFDV) can analyze training and serving data to:
+  * compute descriptive statistics,
+  * infer a schema,
+  * detect data anomalies.
+inputs:
+- {name: Inference data,    type: GCSPath,  description: GCS path of the CSV file from which to infer the schema.} # type: {GCSPath: {data_type: CSV}}
+- {name: Validation data,   type: GCSPath,  description: GCS path of the CSV file whose contents should be validated.} # type: {GCSPath: {data_type: CSV}}
+- {name: Column names,      type: GCSPath, description: GCS json file containing a list of column names.} # type: {GCSPath: {data_type: JSON}}
+- {name: Key columns,       type: String,                       description: Comma separated list of columns to treat as keys.}
+- {name: GCP project,       type: GCPProjectID, default: '',      description: The GCP project to run the dataflow job.}
+- {name: Run mode,          type: String,     default: local,   description: Whether to run the job locally or in Cloud Dataflow. Valid values are "local" and "cloud". }
+- {name: Validation output, type: GCSPath, description: GCS or local directory.} # type: {GCSPath: {path_type: Directory}}
+outputs:
+- {name: Schema,            type: GCSPath, description: GCS path of the inferred schema JSON.} # type: {GCSPath: {data_type: TFDV schema JSON}}
+- {name: Validation result, type: String,                       description: Indicates whether anomalies were detected or not.}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/ml-pipeline-dataflow-tfdv:57d9f7f1cfd458e945d297957621716062d89a49
+    command: [python2, /ml/validate.py]
+    args: [
+      --csv-data-for-inference, {inputValue: Inference data},
+      --csv-data-to-validate,   {inputValue: Validation data},
+      --column-names,           {inputValue: Column names},
+      --key-columns,            {inputValue: Key columns},
+      --project,                {inputValue: GCP project},
+      --mode,                   {inputValue: Run mode},
+      --output,                 {inputValue: Validation output},
+    ]
+    fileOutputs:
+      Schema: /schema.txt
+      Validation result: /output_validation_result.txt
