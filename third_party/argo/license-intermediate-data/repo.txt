@@ -96,4 +96,3 @@ kubernetes/klog
 kubernetes/kube-openapi
 kubernetes/utils
 kubernetes-sigs/yaml
-upper/db

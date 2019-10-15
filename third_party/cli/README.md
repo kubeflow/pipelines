@@ -27,8 +27,14 @@ library. Thus, we need these tools to automate this task.
 imports can be figured out by my script, needs manual help for <2% of libraries.
 
     For a library we cannot resolve, manually put it in `dep-repo-mapping.manual.csv`, so the tool knows how to find its github repo the next time.
+
+    Defaults to read dependencies from `dep.txt` and writes to `repo.txt`.
 1. Run `get-github-license-info` to crawl github license info of these libraries. (Not all repos have github recognizable license, needs manual help for <2% of libraries)
-1. Edit github license info file. Manually check the license file for all repos with a license categorized as "Other" by github. Figure out their true license names.
+
+    Defaults to read repos from `repo.txt` and writes to `license-info.csv`. You
+    need to configure github personal access token because it sends a lot of
+    requests to github. Follow instructions in `get-github-license-info -h`.
+1. Edit license info file. Manually check the license file for all repos with a license categorized as "Other" by github. Figure out their true license names.
 1. Run `get-github-license-content` to crawl full text license files for all dependencies and concat them into one file.
 1. Manually maintain a list of dependencies that requires source code.
 1. Build the above into an image and push it to gcr.io/ml-pipeline/xxx-image

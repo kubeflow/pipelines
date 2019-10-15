@@ -11,7 +11,7 @@ parser.add_argument(
     nargs='?',
     default='dep.txt',
     help=
-    'File path of a golang dependency list file, one line has a dependency name',
+    'File path of a golang dependency list file, one line has a dependency name. (default: %(default)s)',
 )
 parser.add_argument(
     '-o',
@@ -19,7 +19,8 @@ parser.add_argument(
     dest='output_file',
     nargs='?',
     default='repo.txt',
-    help='Output file with one line per resolved github repo',
+    help=
+    'Output file with one line per resolved github repo. Format: org/repo. (default: %(default)s)',
 )
 parser.add_argument(
     '--manual-dep-repo-mapping',
@@ -27,7 +28,7 @@ parser.add_argument(
     nargs='?',
     default='dep_repo.manual.csv',
     help=
-    'Optional dependency to repo mapping maintained manually for dependencies we cannot automatically resolve. Format: each line has dependency import name and its github repo separated by comma. Like, "upper.io/db.v3,upper/db". Note: github/upper/db is the repo'
+    'Optional dependency to repo mapping maintained manually for dependencies we cannot automatically resolve. Format: each line has dependency import name and its github repo separated by comma. Like, "upper.io/db.v3,upper/db". Note: github/upper/db is the repo. (default: %(default)s)'
 )
 args = parser.parse_args()
 
@@ -175,15 +176,16 @@ def main():
                 print('[failed]', e, file=sys.stderr)
                 traceback.print_exc(file=sys.stderr)
                 dep_failed.append(dep)
+        print()
+        print(
+            'Successfully resolved github repo for {} dependencies and saved to {}. Failed to resolve {} dependencies.'
+            .format(len(dep_succeeded), args.output_file, len(dep_failed)),
+            file=sys.stderr)
         if len(dep_failed) > 0:
             print('We failed to resolve the following dependencies:',
                   file=sys.stderr)
             for dep in dep_failed:
                 print(dep, file=sys.stderr)
-        print(
-            'Successfully resolved github repo for {} dependencies and saved to {}'
-            .format(len(dep_succeeded), args.output_file),
-            file=sys.stderr)
 
 
 if __name__ == '__main__':

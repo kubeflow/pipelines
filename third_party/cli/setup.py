@@ -34,5 +34,6 @@ setup(name=NAME,
       entry_points={
           'console_scripts': [
               'get-github-repo = get_github_repo:main',
+              'get-github-license-info = get_github_license_info:main',
           ]
       })
