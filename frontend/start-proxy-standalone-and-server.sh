@@ -46,6 +46,6 @@ popd
 # localhost:9090 port forwards to metadata_envoy pod.
 
 echo "Starting to port forward backend apis..."
-kubectl port-forward -n kubeflow $METADATA_ENVOY_POD 9090:9090 &
-kubectl port-forward -n kubeflow $PIPELINE_API_POD 3002:8888 &
+kubectl port-forward -n $NAMESPACE $METADATA_ENVOY_POD 9090:9090 &
+kubectl port-forward -n $NAMESPACE $PIPELINE_API_POD 3002:8888 &
 ML_PIPELINE_SERVICE_PORT=3002 npm run mock:server 3001

@@ -16,4 +16,3 @@ test_name: kubeflow_tf_serving
 notebook_params:
   output:
   project: ml-pipeline-test
-  experiment_name: kubeflow_tf_serving-test
