@@ -63,6 +63,9 @@ inputs:
   - name: resource_encryption_key
     description: 'The AWS KMS key that Amazon SageMaker uses to encrypt data on the storage volume attached to the ML compute instance that hosts the endpoint.'
     default: ''
+  - name: endpoint_url
+    description: 'The endpoint URL for the private link VPC endpoint.'
+    default: ''
   - name: endpoint_config_tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
@@ -76,11 +79,12 @@ outputs:
   - {name: endpoint_name,          description: 'Endpoint name'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190809-02
+    image: redbackthomson/aws-kubeflow-sagemaker:20191003
     command: ['python']
     args: [
       deploy.py,
       --region, {inputValue: region},
+      --endpoint_url, {inputValue: endpoint_url},
       --endpoint_config_name, {inputValue: endpoint_config_name},
       --variant_name_1,{inputValue: variant_name_1},
       --model_name_1, {inputValue: model_name_1},

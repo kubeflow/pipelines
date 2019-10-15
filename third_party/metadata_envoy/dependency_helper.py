@@ -22,16 +22,7 @@ file.
 import json
 import os
 import sys
-from urlparse import urlparse
-import wget
-
-
-def _create_local_directory(path):
-  try:
-    os.mkdir(path)
-  except OSError as err:
-    print("OS error: {}".format(err))
-    sys.exit(1)
+import requests
 
 def copy_third_party_licenses(dependency_spec):
   if not os.path.isfile(dependency_spec):
@@ -40,16 +31,12 @@ def copy_third_party_licenses(dependency_spec):
 
   with open(dependency_spec, 'r') as f:
     dependencies = json.load(f)
-    if not dependencies['target_path']:
-      print("Invalid dependency spec. 'target_path' expected")
-
-    _create_local_directory(dependencies['target_path'])
-
-    for dependency in dependencies['libraries']:
-      license_dest = '{}/{}'.format(dependencies['target_path'], dependency['library'])
-      license_url = dependency['license_url']
-      _create_local_directory(license_dest)
-      wget.download(license_url, '{}/{}'.format(license_dest, os.path.split(urlparse(license_url).path)[-1]))
+    with open('license.txt', 'w') as l:
+      for dependency in dependencies['libraries']:
+        print('Downloading License for library : {}'.format(dependency['library']))
+        l.write('Library: {}\n\n'.format(dependency['library']))
+        l.write(requests.get(dependency['license_url']).text.encode("utf-8"))
+        l.write('\n\n')
 
 if __name__ == '__main__':
   if len(sys.argv) < 2:

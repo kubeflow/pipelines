@@ -26,6 +26,7 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { Breadcrumb, ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { KeyValue } from '../lib/StaticGraphParser';
 import { formatDateString, enabledDisplayString, errorToMessage } from '../lib/Utils';
 import { triggerDisplayString } from '../lib/TriggerUtils';
 
@@ -65,9 +66,9 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
 
   public render(): JSX.Element {
     const { run } = this.state;
-    let runDetails: string[][] = [];
-    let inputParameters: string[][] = [];
-    let triggerDetails: string[][] = [];
+    let runDetails: Array<KeyValue<string>> = [];
+    let inputParameters: Array<KeyValue<string>> = [];
+    let triggerDetails: Array<KeyValue<string>> = [];
     if (run && run.pipeline_spec) {
       runDetails = [
         ['Description', run.description!],

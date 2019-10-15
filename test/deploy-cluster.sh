@@ -48,7 +48,7 @@ else
   SHOULD_CLEANUP_CLUSTER=true
   # "storage-rw" is needed to allow VMs to push to gcr.io
   # reference: https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam
-  SCOPE_ARG="--scopes=storage-rw"
+  SCOPE_ARG="--scopes=storage-rw,cloud-platform"
   # Machine type and cluster size is the same as kubeflow deployment to
   # easily compare performance. We can reduce usage later.
   NODE_POOL_CONFIG_ARG="--num-nodes=2 --machine-type=n1-standard-8 \
