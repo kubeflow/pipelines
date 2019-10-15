@@ -1,30 +1,48 @@
 
 # Name
-Data preparation using SparkSQL  on YARN with Cloud Dataproc
+Component: Data preparation using SparkSQL on YARN with Cloud Dataproc
 
 # Label
-Cloud Dataproc, GCP, Cloud Storage, YARN, SparkSQL, Kubeflow, pipelines, components 
+Cloud Dataproc, YARN, SparkSQL, Kubeflow
 
 # Summary
-A Kubeflow Pipeline component to prepare data by submitting a SparkSql job on YARN to Cloud Dataproc.
+A Kubeflow pipeline component to prepare data by submitting a SparkSql job on YARN to Cloud Dataproc.
+
+# Facets
+<!--Make sure the asset has data for the following facets:
+Use case
+Technique
+Input data type
+ML workflow
+
+The data must map to the acceptable values for these facets, as documented on the “taxonomy” sheet of go/aihub-facets
+https://gitlab.aihub-content-external.com/aihubbot/kfp-components/commit/fe387ab46181b5d4c7425dcb8032cb43e70411c1
+--->
+Use case:
+
+Technique: 
+
+Input data type:
+
+ML workflow: 
 
 # Details
 
 ## Intended use
-Use the component to run an Apache SparkSql job as one preprocessing step in a Kubeflow Pipeline.
+Use the component to run an Apache SparkSql job as one preprocessing step in a Kubeflow pipeline.
 
 ## Runtime arguments
 Argument| Description | Optional | Data type| Accepted values| Default |
 :--- | :---------- | :--- | :------- | :------ | :------
-project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to. | No| GCPProjectID |   | |
-region | The Cloud Dataproc region to handle the request. | No | GCPRegion|
-cluster_name | The name of the cluster to run the job. | No | String| | |
-queries | The queries to execute the SparkSQL job. Specify multiple queries in one string by separating them with semicolons. You do not need to terminate queries with semicolons. | Yes | List |  | None | 
-query_file_uri | The HCFS URI of the script that contains the SparkSQL queries.| Yes | GCSPath |  | None |
-script_variables | Mapping of the query’s variable names to their values (equivalent to the SparkSQL command: SET name="value";).| Yes| Dict | | None |
-sparksql_job | The payload of a [SparkSqlJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/SparkSqlJob). | Yes | Dict |  | None |
-job | The payload of a [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs). | Yes | Dict |  | None |
-wait_interval | The number of seconds to pause between polling the operation. | Yes |Integer |  | 30 |
+project_id | The ID of the Google Cloud Platform (GCP) project that the cluster belongs to. | No| GCPProjectID | -  | -|
+region | The Cloud Dataproc region to handle the request. | No | GCPRegion|-|-
+cluster_name | The name of the cluster to run the job. | No | String| -| -|
+queries | The queries to execute the SparkSQL job. Specify multiple queries in one string by separating them with semicolons. You do not need to terminate queries with semicolons. | Yes | List | - | None | 
+query_file_uri | The Hadoop Compatible Filesystem (HCFS) URI of the script that contains the SparkSQL queries. The SparkSQL queries are listed in a CSV file that is stored in a Cloud Storage bucket.| Yes | GCSPath | - | None |
+script_variables | Mapping of the query’s variable names to their values (equivalent to the SparkSQL command: SET name="value";).| Yes| Dict |- | None |
+sparksql_job | The payload of a [SparkSql job](https://cloud.google.com/dataproc/docs/reference/rest/v1/SparkSqlJob). | Yes | Dict | - | None |
+job | The payload of a [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs). | Yes | Dict | - | None |
+wait_interval | The number of seconds to pause between polling the operation. | Yes |Integer | - | 30 |
 
 ## Output
 Name | Description | Type
@@ -36,54 +54,50 @@ To use the component, you must:
 * Set up a GCP project by following this [guide](https://cloud.google.com/dataproc/docs/guides/setup-project).
 * [Create a new cluster](https://cloud.google.com/dataproc/docs/guides/create-cluster).
 * Run the component under a secret [Kubeflow user service account](https://www.kubeflow.org/docs/started/getting-started-gke/#gcp-service-accounts) in a Kubeflow cluster. For example:
-```
-component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
-```
-* Grant the Kubeflow user service account the role `roles/dataproc.editor` on the project.
+    ```
+    component_op(...).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    ```
+* Grant the Kubeflow user service account the role, `roles/dataproc.editor`, on the project.
 
 ## Detailed Description
-This component creates a Pig job from [Dataproc submit job REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs/submit).
+This component creates a SparkSql job from the [Dataproc submit job REST API](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs/submit).
 
 Follow these steps to use the component in a pipeline:
-1. Install the Kubeflow Pipeline SDK:
+1. Install the Kubeflow pipeline's SDK:
 
+    ```python
+    %%capture --no-stderr
 
-```python
-%%capture --no-stderr
+    KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
+    !pip3 install $KFP_PACKAGE --upgrade
+    ```
 
-KFP_PACKAGE = 'https://storage.googleapis.com/ml-pipeline/release/0.1.14/kfp.tar.gz'
-!pip3 install $KFP_PACKAGE --upgrade
-```
+2. Load the component using the Kubeflow pipeline's SDK:
 
-2. Load the component using KFP SDK
+    ```python
+    import kfp.components as comp
 
-
-```python
-import kfp.components as comp
-
-dataproc_submit_sparksql_job_op = comp.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_sparksql_job/component.yaml')
-help(dataproc_submit_sparksql_job_op)
-```
+    dataproc_submit_sparksql_job_op = comp.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_sparksql_job/component.yaml')
+    help(dataproc_submit_sparksql_job_op)
+    ```
 
 ### Sample
 
-Note: The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
+The following sample code works in an IPython notebook or directly in Python code. See the sample code below to learn how to execute the template.
 
 #### Setup a Dataproc cluster
 [Create a new Dataproc cluster](https://cloud.google.com/dataproc/docs/guides/create-cluster) (or reuse an existing one) before running the sample code.
 
 #### Prepare a SparkSQL job
-Either put your SparkSQL queries in the `queires` list, or upload your SparkSQL queries into a file to a Cloud Storage bucket and then enter the Cloud Storage bucket’s path in `query_file_uri`. In this sample, we will use a hard coded query in the `queries` list to select data from a public CSV file from Cloud Storage.
+You can put your SparkSQL queries in the `queries` list, or you can use `query_file_uri`. In this sample, we will use a hard coded query in the `queries` list to select data from a public CSV file in Cloud Storage.
 
-For more details about Spark SQL, see [Spark SQL, DataFrames and Datasets Guide](https://spark.apache.org/docs/latest/sql-programming-guide.html)
+For more details about Spark SQL, see [Spark SQL, DataFrames and Datasets Guide](https://spark.apache.org/docs/latest/sql-programming-guide.html).
 
 #### Set sample parameters
 
-
 ```python
-PROJECT_ID = '<Please put your project ID here>'
-CLUSTER_NAME = '<Please put your existing cluster name here>'
+PROJECT_ID = '<Put your project ID here>'
+CLUSTER_NAME = '<Put your existing cluster name here>'
 REGION = 'us-central1'
 QUERY = '''
 DROP TABLE IF EXISTS natality_csv;
@@ -107,7 +121,6 @@ EXPERIMENT_NAME = 'Dataproc - Submit SparkSQL Job'
 ```
 
 #### Example pipeline that uses the component
-
 
 ```python
 import kfp.dsl as dsl
@@ -143,7 +156,6 @@ def dataproc_submit_sparksql_job_pipeline(
 
 #### Compile the pipeline
 
-
 ```python
 pipeline_func = dataproc_submit_sparksql_job_pipeline
 pipeline_filename = pipeline_func.__name__ + '.zip'
@@ -153,12 +165,11 @@ compiler.Compiler().compile(pipeline_func, pipeline_filename)
 
 #### Submit the pipeline for execution
 
-
 ```python
-#Specify pipeline argument values
+#Specify values for the pipeline's arguments
 arguments = {}
 
-#Get or create an experiment and submit a pipeline run
+#Get or create an experiment 
 import kfp
 client = kfp.Client()
 experiment = client.create_experiment(EXPERIMENT_NAME)

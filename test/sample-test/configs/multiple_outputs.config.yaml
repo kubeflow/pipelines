@@ -16,4 +16,3 @@ test_name: multiple_outputs
 notebook_params:
   output:
   project_id: ml-pipeline-test
-  experiment_name: multiple_outputs-test
