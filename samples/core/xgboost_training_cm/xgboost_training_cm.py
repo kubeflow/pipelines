@@ -34,11 +34,13 @@ def dataproc_delete_cluster_op(
 ):
   return dsl.ContainerOp(
       name='Dataproc - Delete cluster',
-      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:57d9f7f1cfd458e945d297957621716062d89a49',
+      image='gcr.io/ml-pipeline/ml-pipeline-gcp:57d9f7f1cfd458e945d297957621716062d89a49',
       arguments=[
-        '--project', project,
+        'kfp_component.google.dataproc', 'delete_cluster',
+        '--project_id', project,
         '--region', region,
         '--name', cluster_name,
+        '--wait_interval', '30'
       ],
       is_exit_handler=True
   )
