@@ -14,56 +14,51 @@
 # limitations under the License.
 
 
-
+import json
 import kfp
 from kfp import components
 from kfp import dsl
 from kfp import gcp
+import os
+import subprocess
 
-confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/local/confusion_matrix/component.yaml')
-roc_op =              components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/local/roc/component.yaml')
+# TODO(numerology): add ROC and CM back once UI metadata is enabled in this sample.
+
+dataproc_create_cluster_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/677fbaa281125fd604b81eab2488513efee7b600/components/gcp/dataproc/create_cluster/component.yaml')
+
+dataproc_delete_cluster_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/delete_cluster/component.yaml')
+
+dataproc_submit_pyspark_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_pyspark_job/component.yaml'
+)
+
+dataproc_submit_spark_op = components.load_component_from_url(
+    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_spark_job/component.yaml'
+)
+
+_PYSRC_PREFIX = 'gs://ml-pipeline-playground/dataproc-example' # Common path to python src.
+
+_XGBOOST_PKG = 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar'
+
+_TRAINER_MAIN_CLS = 'ml.dmlc.xgboost4j.scala.example.spark.XGBoostTrainer'
+
+_PREDICTOR_MAIN_CLS = 'ml.dmlc.xgboost4j.scala.example.spark.XGBoostPredictor'
+
+
+def delete_directory_from_gcs(dir_path):
+  """Delete a GCS dir recursively. Ignore errors."""
+  try:
+    subprocess.call(['gsutil', '-m', 'rm', '-r', dir_path])
+  except:
+    pass
+
 
 # ! Please do not forget to enable the Dataproc API in your cluster https://console.developers.google.com/apis/api/dataproc.googleapis.com/overview
 
 # ================================================================
 # The following classes should be provided by components provider.
-
-def dataproc_create_cluster_op(
-    project,
-    region,
-    staging,
-    cluster_name='xgb-{{workflow.name}}'
-):
-    return dsl.ContainerOp(
-        name='Dataproc - Create cluster',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:57d9f7f1cfd458e945d297957621716062d89a49',
-        arguments=[
-            '--project', project,
-            '--region', region,
-            '--name', cluster_name,
-            '--staging', staging,
-        ],
-        file_outputs={
-            'output': '/output.txt',
-        }
-    )
-
-
-def dataproc_delete_cluster_op(
-    project,
-    region,
-    cluster_name='xgb-{{workflow.name}}'
-):
-    return dsl.ContainerOp(
-        name='Dataproc - Delete cluster',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:57d9f7f1cfd458e945d297957621716062d89a49',
-        arguments=[
-            '--project', project,
-            '--region', region,
-            '--name', cluster_name,
-        ],
-        is_exit_handler=True
-    )
 
 
 def dataproc_analyze_op(
@@ -72,23 +67,23 @@ def dataproc_analyze_op(
     cluster_name,
     schema,
     train_data,
-    output
-):
-    return dsl.ContainerOp(
-        name='Dataproc - Analyze',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-analyze:57d9f7f1cfd458e945d297957621716062d89a49',
-        arguments=[
-            '--project', project,
-            '--region', region,
-            '--cluster', cluster_name,
-            '--schema', schema,
-            '--train', train_data,
-            '--output', output,
-        ],
-        file_outputs={
-            'output': '/output.txt',
-        }
-    )
+    output):
+  """Submit dataproc analyze as a pyspark job.
+
+  :param project: GCP project ID.
+  :param region: Which zone to run this analyze.
+  :param cluster_name: Name of the cluster.
+  :param schema: GCS path to the schema.
+  :param train_data: GCS path to the training data.
+  :param output: GCS path to store the output.
+  """
+  return dataproc_submit_pyspark_op(
+      project_id=project,
+      region=region,
+      cluster_name=cluster_name,
+      main_python_file_uri=os.path.join(_PYSRC_PREFIX, 'analyze_run.py'),
+      args=['--output', str(output), '--train', str(train_data), '--schema', str(schema)]
+  )
 
 
 def dataproc_transform_op(
@@ -101,24 +96,40 @@ def dataproc_transform_op(
     analysis,
     output
 ):
-    return dsl.ContainerOp(
-        name='Dataproc - Transform',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-transform:57d9f7f1cfd458e945d297957621716062d89a49',
-        arguments=[
-            '--project', project,
-            '--region', region,
-            '--cluster', cluster_name,
-            '--train', train_data,
-            '--eval', eval_data,
-            '--analysis', analysis,
-            '--target', target,
-            '--output', output,
-        ],
-        file_outputs={
-            'train': '/output_train.txt',
-            'eval': '/output_eval.txt',
-        }
-    )
+  """Submit dataproc transform as a pyspark job.
+
+  :param project: GCP project ID.
+  :param region: Which zone to run this analyze.
+  :param cluster_name: Name of the cluster.
+  :param train_data: GCS path to the training data.
+  :param eval_data: GCS path of the eval csv file.
+  :param target: Target column name.
+  :param analysis: GCS path of the analysis results
+  :param output: GCS path to use for output.
+  """
+
+  # Remove existing [output]/train and [output]/eval if they exist.
+  delete_directory_from_gcs(os.path.join(output, 'train'))
+  delete_directory_from_gcs(os.path.join(output, 'eval'))
+
+  return dataproc_submit_pyspark_op(
+      project_id=project,
+      region=region,
+      cluster_name=cluster_name,
+      main_python_file_uri=os.path.join(_PYSRC_PREFIX,
+                                        'transform_run.py'),
+      args=[
+        '--output',
+        str(output),
+        '--analysis',
+        str(analysis),
+        '--target',
+        str(target),
+        '--train',
+        str(train_data),
+        '--eval',
+        str(eval_data)
+      ])
 
 
 def dataproc_train_op(
@@ -134,32 +145,28 @@ def dataproc_train_op(
     output,
     is_classification=True
 ):
-    if is_classification:
-      config='gs://ml-pipeline-playground/trainconfcla.json'
-    else:
-      config='gs://ml-pipeline-playground/trainconfreg.json'
 
-    return dsl.ContainerOp(
-        name='Dataproc - Train XGBoost model',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-train:57d9f7f1cfd458e945d297957621716062d89a49',
-        arguments=[
-            '--project', project,
-            '--region', region,
-            '--cluster', cluster_name,
-            '--train', train_data,
-            '--eval', eval_data,
-            '--analysis', analysis,
-            '--target', target,
-            '--package', 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar',
-            '--workers', workers,
-            '--rounds', rounds,
-            '--conf', config,
-            '--output', output,
-        ],
-        file_outputs={
-            'output': '/output.txt',
-        }
-    )
+  if is_classification:
+    config='gs://ml-pipeline-playground/trainconfcla.json'
+  else:
+    config='gs://ml-pipeline-playground/trainconfreg.json'
+
+  return dataproc_submit_spark_op(
+      project_id=project,
+      region=region,
+      cluster_name=cluster_name,
+      main_class=_TRAINER_MAIN_CLS,
+      spark_job=json.dumps({ 'jarFileUris': [_XGBOOST_PKG]}),
+      args=json.dumps([
+        str(config),
+        str(rounds),
+        str(workers),
+        str(analysis),
+        str(target),
+        str(train_data),
+        str(eval_data),
+        str(output)
+      ]))
 
 
 def dataproc_predict_op(
@@ -172,27 +179,20 @@ def dataproc_predict_op(
     analysis,
     output
 ):
-    return dsl.ContainerOp(
-        name='Dataproc - Predict with XGBoost model',
-        image='gcr.io/ml-pipeline/ml-pipeline-dataproc-predict:57d9f7f1cfd458e945d297957621716062d89a49',
-        arguments=[
-            '--project', project,
-            '--region', region,
-            '--cluster', cluster_name,
-            '--predict', data,
-            '--analysis', analysis,
-            '--target', target,
-            '--package', 'gs://ml-pipeline-playground/xgboost4j-example-0.8-SNAPSHOT-jar-with-dependencies.jar',
-            '--model', model,
-            '--output', output,
-        ],
-        file_outputs={
-            'output': '/output.txt',
-        },
-        output_artifact_paths={
-            'mlpipeline-ui-metadata': '/mlpipeline-ui-metadata.json',
-        },
-    )
+
+  return dataproc_submit_spark_op(
+      project_id=project,
+      region=region,
+      cluster_name=cluster_name,
+      main_class=_PREDICTOR_MAIN_CLS,
+      spark_job=json.dumps({ 'jarFileUris': [_XGBOOST_PKG]}),
+      args=json.dumps([
+        str(model),
+        str(data),
+        str(analysis),
+        str(target),
+        str(output)
+      ]))
 
 # =======================================================================
 
@@ -201,8 +201,9 @@ def dataproc_predict_op(
     description='A trainer that does end-to-end distributed training for XGBoost models.'
 )
 def xgb_train_pipeline(
-    output,
-    project,
+    output='gs://your-gcs-bucket',
+    project='your-gcp-project',
+    cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER,
     region='us-central1',
     train_data='gs://ml-pipeline-playground/sfpd/train.csv',
     eval_data='gs://ml-pipeline-playground/sfpd/eval.csv',
@@ -210,77 +211,79 @@ def xgb_train_pipeline(
     target='resolution',
     rounds=200,
     workers=2,
-    true_label='ACTION',
 ):
-    output_template = str(output) + '/' + dsl.EXECUTION_ID_PLACEHOLDER + '/data'
+    output_template = str(output) + '/' + dsl.RUN_ID_PLACEHOLDER + '/data'
 
-    delete_cluster_op = dataproc_delete_cluster_op(
-        project,
-        region
-    ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    # Current GCP pyspark/spark op do not provide outputs as return values, instead,
+    # we need to use strings to pass the uri around.
+    analyze_output = output_template
+    transform_output_train = os.path.join(output_template, 'train', 'part-*')
+    transform_output_eval = os.path.join(output_template, 'eval', 'part-*')
+    train_output = os.path.join(output_template, 'train_output')
+    predict_output = os.path.join(output_template, 'predict_output')
 
-    with dsl.ExitHandler(exit_op=delete_cluster_op):
+    with dsl.ExitHandler(exit_op=dataproc_delete_cluster_op(
+        project_id=project,
+        region=region,
+        name=cluster_name
+    )):
         create_cluster_op = dataproc_create_cluster_op(
-            project,
-            region,
-            output
-        ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+            project_id=project,
+            region=region,
+            name=cluster_name,
+            initialization_actions=[
+              os.path.join(_PYSRC_PREFIX,
+                           'initialization_actions.sh'),
+            ],
+            image_version='1.2'
+        )
 
         analyze_op = dataproc_analyze_op(
-            project,
-            region,
-            create_cluster_op.output,
-            schema,
-            train_data,
-            output_template
-        ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+            project=project,
+            region=region,
+            cluster_name=cluster_name,
+            schema=schema,
+            train_data=train_data,
+            output=output_template
+        ).after(create_cluster_op).set_display_name('Analyzer')
 
         transform_op = dataproc_transform_op(
-            project,
-            region,
-            create_cluster_op.output,
-            train_data,
-            eval_data,
-            target,
-            analyze_op.output,
-            output_template
-        ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+            project=project,
+            region=region,
+            cluster_name=cluster_name,
+            train_data=train_data,
+            eval_data=eval_data,
+            target=target,
+            analysis=analyze_output,
+            output=output_template
+        ).after(analyze_op).set_display_name('Transformer')
 
         train_op = dataproc_train_op(
-            project,
-            region,
-            create_cluster_op.output,
-            transform_op.outputs['train'],
-            transform_op.outputs['eval'],
-            target,
-            analyze_op.output,
-            workers,
-            rounds,
-            output_template
-        ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+            project=project,
+            region=region,
+            cluster_name=cluster_name,
+            train_data=transform_output_train,
+            eval_data=transform_output_eval,
+            target=target,
+            analysis=analyze_output,
+            workers=workers,
+            rounds=rounds,
+            output=train_output
+        ).after(transform_op).set_display_name('Trainer')
 
         predict_op = dataproc_predict_op(
-            project,
-            region,
-            create_cluster_op.output,
-            transform_op.outputs['eval'],
-            train_op.output,
-            target,
-            analyze_op.output,
-            output_template
-        ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+            project=project,
+            region=region,
+            cluster_name=cluster_name,
+            data=transform_output_eval,
+            model=train_output,
+            target=target,
+            analysis=analyze_output,
+            output=predict_output
+        ).after(train_op).set_display_name('Predictor')
 
-        confusion_matrix_task = confusion_matrix_op(
-            predict_op.output,
-            output_template
-        ).apply(gcp.use_gcp_secret('user-gcp-sa'))
-
-        roc_task = roc_op(
-            predictions_dir=predict_op.output,
-            true_class=true_label,
-            true_score_column=true_label,
-            output_dir=output_template
-        ).apply(gcp.use_gcp_secret('user-gcp-sa'))
+    dsl.get_pipeline_conf().add_op_transformer(
+        gcp.use_gcp_secret('user-gcp-sa'))
 
 if __name__ == '__main__':
-    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.yaml')
+    kfp.compiler.Compiler().compile(xgb_train_pipeline, __file__ + '.zip')

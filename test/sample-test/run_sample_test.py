@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import kfp
 import os
 import tarfile
+import time
 import utils
 import yamale
 import yaml
@@ -23,7 +25,7 @@ from constants import CONFIG_DIR, DEFAULT_CONFIG, SCHEMA_CONFIG
 
 
 class PySampleChecker(object):
-  def __init__(self, testname, input, output, result, namespace='kubeflow'):
+  def __init__(self, testname, input, output, result, experiment_name, namespace='kubeflow'):
     """Util class for checking python sample test running results.
 
     :param testname: test name.
@@ -31,8 +33,10 @@ class PySampleChecker(object):
     :param output: The path of the test output.
     :param result: The path of the test result that will be exported.
     :param namespace: namespace of the deployed pipeline system. Default: kubeflow
+    :param experiment_name: Name of the experiment to monitor
     """
     self._testname = testname
+    self._experiment_name = experiment_name
     self._input = input
     self._output = output
     self._result = result
@@ -66,8 +70,7 @@ class PySampleChecker(object):
       exit(1)
 
     ###### Create Experiment ######
-    experiment_name = self._testname + ' sample experiment'
-    response = self._client.create_experiment(experiment_name)
+    response = self._client.create_experiment(self._experiment_name)
     self._experiment_id = response.id
     utils.add_junit_test(self._test_cases, 'create experiment', True)
 
@@ -111,7 +114,9 @@ class PySampleChecker(object):
 
     # TODO(numerology): Special treatment for TFX::OSS sample
     if self._testname == 'parameterized_tfx_oss':
-      self._test_args['pipeline-root'] = os.path.join(self._test_args['output'], 'tfx_taxi_simple')
+      self._test_args['pipeline-root'] = os.path.join(
+          self._test_args['output'],
+          'tfx_taxi_simple_' + kfp.dsl.RUN_ID_PLACEHOLDER)
       del self._test_args['output']
 
     # Submit for pipeline running.
@@ -148,20 +153,20 @@ class PySampleChecker(object):
 
       ###### Validate the results for specific test cases ######
       #TODO: Add result check for tfx-cab-classification after launch.
-      if self._testname == 'xgboost_training_cm':
-        # For xgboost sample, check its confusion matrix.
-        cm_tar_path = './confusion_matrix.tar.gz'
-        utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
-                                    'mlpipeline-ui-metadata')
-        with tarfile.open(cm_tar_path) as tar_handle:
-          file_handles = tar_handle.getmembers()
-          assert len(file_handles) == 1
-
-          with tar_handle.extractfile(file_handles[0]) as f:
-            cm_data = f.read()
-            utils.add_junit_test(self._test_cases, 'confusion matrix format',
-                                 (len(cm_data) > 0),
-                                 'the confusion matrix file is empty')
+      # if self._testname == 'xgboost_training_cm':
+      #   # For xgboost sample, check its confusion matrix.
+      #   cm_tar_path = './confusion_matrix.tar.gz'
+      #   utils.get_artifact_in_minio(workflow_json, 'confusion-matrix', cm_tar_path,
+      #                               'mlpipeline-ui-metadata')
+      #   with tarfile.open(cm_tar_path) as tar_handle:
+      #     file_handles = tar_handle.getmembers()
+      #     assert len(file_handles) == 1
+      #
+      #     with tar_handle.extractfile(file_handles[0]) as f:
+      #       cm_data = f.read()
+      #       utils.add_junit_test(self._test_cases, 'confusion matrix format',
+      #                            (len(cm_data) > 0),
+      #                            'the confusion matrix file is empty')
 
     ###### Delete Job ######
     #TODO: add deletion when the backend API offers the interface.
