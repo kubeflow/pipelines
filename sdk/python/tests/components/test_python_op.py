@@ -17,7 +17,7 @@ import tempfile
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Sequence
 
 import kfp
 import kfp.components as comp
@@ -122,9 +122,11 @@ class PythonOpTestCase(unittest.TestCase):
         # ! This function cannot be used when component has output types that use custom serialization since it will compare non-serialized function outputs with serialized component outputs.
         # Evaluating the function to get the expected output values
         expected_output_values_list = func(**arguments)
+        if not isinstance(expected_output_values_list, Sequence) or isinstance(expected_output_values_list, str):
+            expected_output_values_list = [str(expected_output_values_list)]
         expected_output_values_list = [str(value) for value in expected_output_values_list]
 
-        output_names = [output.name for output in op.outputs]
+        output_names = [output.name for output in op.component_spec.outputs]
         from kfp.components._naming import generate_unique_name_conversion_table, _sanitize_python_function_name
         output_name_to_pythonic = generate_unique_name_conversion_table(output_names, _sanitize_python_function_name)
         pythonic_output_names = [output_name_to_pythonic[name] for name in output_names]
@@ -401,8 +403,15 @@ class PythonOpTestCase(unittest.TestCase):
         expected_description = 'Sum component description'
         expected_image = 'org/image'
 
-        @python_component(name=expected_name, description=expected_description, base_image=expected_image)
-        def add_two_numbers_decorated(a: float, b: float) -> float:
+        @python_component(
+            name=expected_name,
+            description=expected_description,
+            base_image=expected_image
+        )
+        def add_two_numbers_decorated(
+            a: float,
+            b: float,
+        ) -> float:
             '''Returns sum of two arguments'''
             return a + b
 
@@ -411,6 +420,11 @@ class PythonOpTestCase(unittest.TestCase):
         self.assertEqual(component_spec.name, expected_name)
         self.assertEqual(component_spec.description.strip(), expected_description.strip())
         self.assertEqual(component_spec.implementation.container.image, expected_image)
+
+        func = add_two_numbers_decorated
+        op = comp.func_to_container_op(func)
+
+        self.helper_test_component_against_func_using_local_call(func, op, arguments={'a': 3, 'b': 5.0})
 
     def test_saving_default_values(self):
         from typing import NamedTuple
