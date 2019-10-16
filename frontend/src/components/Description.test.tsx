@@ -59,7 +59,7 @@ describe('Description', () => {
       const tree = mount(<Descriptoin description={description} />).getDOMNode();
       expect(tree).toMatchSnapshot();
     });
-  })
+  });
 
   describe('When in inline mode', () => {
     it('renders paragraphs separated by space', () => {
