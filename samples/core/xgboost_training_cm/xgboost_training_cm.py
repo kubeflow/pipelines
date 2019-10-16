@@ -225,14 +225,11 @@ def xgb_train_pipeline(
     train_output = os.path.join(output_template, 'train_output')
     predict_output = os.path.join(output_template, 'predict_output')
 
-    #TODO(numerology): Quick fix for the race condition by manually setting this field.
-    _delete_cluster_op = dataproc_delete_cluster_op(
+    with dsl.ExitHandler(exit_op=dataproc_delete_cluster_op(
         project_id=project,
         region=region,
-        name=cluster_name)
-    _delete_cluster_op.is_exit_handler = True
-
-    with dsl.ExitHandler(exit_op=_delete_cluster_op):
+        name=cluster_name
+    )):
         _create_cluster_op = dataproc_create_cluster_op(
             project_id=project,
             region=region,
