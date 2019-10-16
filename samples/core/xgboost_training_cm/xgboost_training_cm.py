@@ -27,8 +27,21 @@ import subprocess
 dataproc_create_cluster_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/677fbaa281125fd604b81eab2488513efee7b600/components/gcp/dataproc/create_cluster/component.yaml')
 
-dataproc_delete_cluster_op = components.load_component_from_url(
-    'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/delete_cluster/component.yaml')
+def dataproc_delete_cluster_op(
+    project,
+    region,
+    cluster_name='xgb-%s' % dsl.RUN_ID_PLACEHOLDER
+):
+  return dsl.ContainerOp(
+      name='Dataproc - Delete cluster',
+      image='gcr.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:57d9f7f1cfd458e945d297957621716062d89a49',
+      arguments=[
+        '--project', project,
+        '--region', region,
+        '--name', cluster_name,
+      ],
+      is_exit_handler=True
+  )
 
 dataproc_submit_pyspark_op = components.load_component_from_url(
     'https://raw.githubusercontent.com/kubeflow/pipelines/e598176c02f45371336ccaa819409e8ec83743df/components/gcp/dataproc/submit_pyspark_job/component.yaml'
@@ -223,9 +236,9 @@ def xgb_train_pipeline(
     predict_output = os.path.join(output_template, 'predict_output')
 
     with dsl.ExitHandler(exit_op=dataproc_delete_cluster_op(
-        project_id=project,
+        project=project,
         region=region,
-        name=cluster_name
+        cluster_name=cluster_name
     )):
         create_cluster_op = dataproc_create_cluster_op(
             project_id=project,
