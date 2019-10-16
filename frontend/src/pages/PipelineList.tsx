@@ -27,8 +27,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { formatDateString, errorToMessage } from '../lib/Utils';
-import Linkify from 'react-linkify';
-import { openLinkInNewWindowDecorator } from 'src/components/LinkifyDecorators';
+import { Descriptoin } from '../components/Description';
 
 interface PipelineListState {
   pipelines: ApiPipeline[];
@@ -37,9 +36,7 @@ interface PipelineListState {
 }
 
 const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props: CustomRendererProps<string>) => {
-  return (
-    <Linkify componentDecorator={openLinkInNewWindowDecorator}>{props.value}</Linkify>
-  );
+  return <Descriptoin description={props.value || ''} forceInline={true} />;
 };
 
 class PipelineList extends Page<{}, PipelineListState> {
