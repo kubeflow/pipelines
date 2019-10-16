@@ -232,6 +232,10 @@ class Pipeline():
     """Remove the current OpsGroup from the stack."""
     del self.groups[-1]
 
+  def remove_op_from_groups(self, op):
+    for group in self.groups:
+      group.remove_op_recursive(op)
+
   def get_next_group_id(self):
     """Get next id for a new group. """
 
