@@ -79,6 +79,7 @@
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.15.1",
     "enzyme-to-json": "^3.3.4",
+    "prettier": "^1.18.2",
     "react-router-test-context": "^0.1.0",
     "react-test-renderer": "^16.5.2",
     "swagger-ts-client": "^0.9.6",
