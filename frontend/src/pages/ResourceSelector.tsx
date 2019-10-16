@@ -53,7 +53,10 @@ interface ResourceSelectorState {
   toolbarActionMap: ToolbarActionMap;
 }
 
-class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSelectorState> {
+class ResourceSelector extends React.Component<
+  ResourceSelectorProps,
+  ResourceSelectorState
+> {
   protected _isMounted = true;
 
   constructor(props: any) {
@@ -69,15 +72,28 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
 
   public render(): JSX.Element {
     const { rows, selectedIds, toolbarActionMap: toolbarActions } = this.state;
-    const { columns, title, filterLabel, emptyMessage, initialSortColumn } = this.props;
+    const {
+      columns,
+      title,
+      filterLabel,
+      emptyMessage,
+      initialSortColumn,
+    } = this.props;
 
     return (
       <React.Fragment>
         <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle={title} />
-        <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
-          updateSelection={this._selectionChanged.bind(this)} filterLabel={filterLabel}
-          initialSortColumn={initialSortColumn} reload={this._load.bind(this)}
-          emptyMessage={emptyMessage} />
+        <CustomTable
+          columns={columns}
+          rows={rows}
+          selectedIds={selectedIds}
+          useRadioButtons={true}
+          updateSelection={this._selectionChanged.bind(this)}
+          filterLabel={filterLabel}
+          initialSortColumn={initialSortColumn}
+          reload={this._load.bind(this)}
+          emptyMessage={emptyMessage}
+        />
       </React.Fragment>
     );
   }
@@ -86,7 +102,10 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
     this._isMounted = false;
   }
 
-  protected setStateSafe(newState: Partial<ResourceSelectorState>, cb?: () => void): void {
+  protected setStateSafe(
+    newState: Partial<ResourceSelectorState>,
+    cb?: () => void,
+  ): void {
     if (this._isMounted) {
       this.setState(newState as any, cb);
     }
@@ -94,7 +113,10 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
 
   protected _selectionChanged(selectedIds: string[]): void {
     if (!Array.isArray(selectedIds) || selectedIds.length !== 1) {
-      logger.error(`${selectedIds.length} resources were selected somehow`, selectedIds);
+      logger.error(
+        `${selectedIds.length} resources were selected somehow`,
+        selectedIds,
+      );
       return;
     }
     const selected = this.state.resources.find(r => r.id === selectedIds[0]);
@@ -110,12 +132,16 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
   protected async _load(request: ListRequest): Promise<string> {
     let nextPageToken = '';
     try {
-      const response =
-        await this.props.listApi(request.pageToken, request.pageSize, request.sortBy, request.filter);
+      const response = await this.props.listApi(
+        request.pageToken,
+        request.pageSize,
+        request.sortBy,
+        request.filter,
+      );
 
       this.setStateSafe({
         resources: response.resources,
-        rows: this._resourcesToRow(response.resources)
+        rows: this._resourcesToRow(response.resources),
       });
 
       nextPageToken = response.nextPageToken;
@@ -132,17 +158,15 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
   }
 
   protected _resourcesToRow(resources: BaseResource[]): Row[] {
-    return resources.map((r) => ({
-      error: (r as any).error,
-      id: r.id!,
-      otherFields: [
-        r.name,
-        r.description,
-        formatDateString(r.created_at),
-      ],
-    } as Row));
+    return resources.map(
+      r =>
+        ({
+          error: (r as any).error,
+          id: r.id!,
+          otherFields: [r.name, r.description, formatDateString(r.created_at)],
+        } as Row),
+    );
   }
 }
 
 export default ResourceSelector;
-

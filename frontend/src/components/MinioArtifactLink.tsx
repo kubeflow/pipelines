@@ -9,23 +9,26 @@ const artifactApiUri = ({ source, bucket, key }: StoragePath) =>
 /**
  * A component that renders an artifact link.
  */
-const MinioArtifactLink: React.FC<S3Artifact> = (
-  s3artifact
-) => {
+const MinioArtifactLink: React.FC<S3Artifact> = s3artifact => {
   if (!s3artifact || !s3artifact.key || !s3artifact.bucket) {
     return null;
   }
 
   const { key, bucket, endpoint } = s3artifact;
-  const source = endpoint === 's3.amazonaws.com' ? StorageService.S3 : StorageService.MINIO;
+  const source =
+    endpoint === 's3.amazonaws.com' ? StorageService.S3 : StorageService.MINIO;
   const linkText = `${source.toString()}://${bucket}/${key}`;
   // Opens in new window safely
   return (
-    <a href={artifactApiUri({key, bucket, source})} target={'_blank'} rel={'noreferrer noopener'} title={linkText}>
+    <a
+      href={artifactApiUri({ key, bucket, source })}
+      target={'_blank'}
+      rel={'noreferrer noopener'}
+      title={linkText}
+    >
       {linkText}
     </a>
   );
-
 };
 
 export default MinioArtifactLink;

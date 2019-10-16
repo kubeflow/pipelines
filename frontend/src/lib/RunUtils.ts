@@ -15,7 +15,13 @@
  */
 
 import { ApiJob } from '../apis/job';
-import { ApiRun, ApiResourceType, ApiResourceReference, ApiRunDetail, ApiPipelineRuntime } from '../apis/run';
+import {
+  ApiRun,
+  ApiResourceType,
+  ApiResourceReference,
+  ApiRunDetail,
+  ApiPipelineRuntime,
+} from '../apis/run';
 import { orderBy } from 'lodash';
 import { ApiParameter } from 'src/apis/pipeline';
 import { Workflow } from 'third_party/argo-ui/argo_template';
@@ -38,7 +44,9 @@ function getParametersFromRun(run: ApiRunDetail): ApiParameter[] {
   return getParametersFromRuntime(run.pipeline_runtime);
 }
 
-function getParametersFromRuntime(runtime?: ApiPipelineRuntime): ApiParameter[] {
+function getParametersFromRuntime(
+  runtime?: ApiPipelineRuntime,
+): ApiParameter[] {
   if (!runtime) {
     return [];
   }
@@ -61,26 +69,37 @@ function getPipelineName(run?: ApiRun | ApiJob): string | null {
 }
 
 function getWorkflowManifest(run?: ApiRun | ApiJob): string | null {
-  return (run && run.pipeline_spec && run.pipeline_spec.workflow_manifest) || null;
+  return (
+    (run && run.pipeline_spec && run.pipeline_spec.workflow_manifest) || null
+  );
 }
 
-function getFirstExperimentReference(run?: ApiRun | ApiJob): ApiResourceReference | null {
+function getFirstExperimentReference(
+  run?: ApiRun | ApiJob,
+): ApiResourceReference | null {
   return getAllExperimentReferences(run)[0] || null;
 }
 
 function getFirstExperimentReferenceId(run?: ApiRun | ApiJob): string | null {
   const reference = getFirstExperimentReference(run);
-  return reference && reference.key && reference.key.id || null;
+  return (reference && reference.key && reference.key.id) || null;
 }
 
 function getFirstExperimentReferenceName(run?: ApiRun | ApiJob): string | null {
   const reference = getFirstExperimentReference(run);
-  return reference && reference.name || null;
+  return (reference && reference.name) || null;
 }
 
-function getAllExperimentReferences(run?: ApiRun | ApiJob): ApiResourceReference[] {
-  return (run && run.resource_references || [])
-    .filter((ref) => ref.key && ref.key.type && ref.key.type === ApiResourceType.EXPERIMENT || false);
+function getAllExperimentReferences(
+  run?: ApiRun | ApiJob,
+): ApiResourceReference[] {
+  return ((run && run.resource_references) || []).filter(
+    ref =>
+      (ref.key &&
+        ref.key.type &&
+        ref.key.type === ApiResourceType.EXPERIMENT) ||
+      false,
+  );
 }
 
 /**
@@ -93,8 +112,12 @@ function runsToMetricMetadataMap(runs: ApiRun[]): Map<string, MetricMetadata> {
     if (!run || !run.metrics) {
       return metricMetadatas;
     }
-    run.metrics.forEach((metric) => {
-      if (!metric.name || metric.number_value === undefined || isNaN(metric.number_value)) {
+    run.metrics.forEach(metric => {
+      if (
+        !metric.name ||
+        metric.number_value === undefined ||
+        isNaN(metric.number_value)
+      ) {
         return;
       }
 
@@ -109,8 +132,14 @@ function runsToMetricMetadataMap(runs: ApiRun[]): Map<string, MetricMetadata> {
         metricMetadatas.set(metricMetadata.name, metricMetadata);
       }
       metricMetadata.count++;
-      metricMetadata.minValue = Math.min(metricMetadata.minValue, metric.number_value);
-      metricMetadata.maxValue = Math.max(metricMetadata.maxValue, metric.number_value);
+      metricMetadata.minValue = Math.min(
+        metricMetadata.minValue,
+        metric.number_value,
+      );
+      metricMetadata.maxValue = Math.max(
+        metricMetadata.maxValue,
+        metric.number_value,
+      );
     });
     return metricMetadatas;
   }, new Map<string, MetricMetadata>());

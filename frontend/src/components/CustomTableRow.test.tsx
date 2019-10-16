@@ -43,8 +43,10 @@ describe('CustomTable', () => {
   };
 
   it('renders some rows using a custom renderer', async () => {
-    columns[0].customRenderer = () => (<span>this is custom output</span>) as any;
-    const tree = shallow(<CustomTableRow {...props} row={row} columns={columns} />);
+    columns[0].customRenderer = () => <span>this is custom output</span> as any;
+    const tree = shallow(
+      <CustomTableRow {...props} row={row} columns={columns} />,
+    );
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
     columns[0].customRenderer = undefined;
@@ -52,7 +54,9 @@ describe('CustomTable', () => {
 
   it('displays warning icon with tooltip if row has error', async () => {
     row.error = 'dummy error';
-    const tree = shallow(<CustomTableRow {...props} row={row} columns={columns} />);
+    const tree = shallow(
+      <CustomTableRow {...props} row={row} columns={columns} />,
+    );
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
     row.error = undefined;

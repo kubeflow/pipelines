@@ -31,7 +31,7 @@ export interface PlotMetadata {
   header?: string[];
   labels?: string[];
   predicted_col?: string;
-  schema?: Array<{ type: string, name: string }>;
+  schema?: Array<{ type: string; name: string }>;
   source: string;
   storage?: 'gcs' | 'inline';
   target_col?: string;
@@ -43,19 +43,23 @@ export interface OutputMetadata {
 }
 
 export class OutputArtifactLoader {
-
   public static async load(outputPath: StoragePath): Promise<ViewerConfig[]> {
     let plotMetadataList: PlotMetadata[] = [];
     try {
       const metadataFile = await Apis.readFile(outputPath);
       if (metadataFile) {
         try {
-          plotMetadataList = (JSON.parse(metadataFile) as OutputMetadata).outputs;
+          plotMetadataList = (JSON.parse(metadataFile) as OutputMetadata)
+            .outputs;
           if (plotMetadataList === undefined) {
-            throw new Error('"outputs" field required by not found on metadata file');
+            throw new Error(
+              '"outputs" field required by not found on metadata file',
+            );
           }
         } catch (e) {
-          logger.error(`Could not parse metadata file at: ${outputPath.key}. Error: ${e}`);
+          logger.error(
+            `Could not parse metadata file at: ${outputPath.key}. Error: ${e}`,
+          );
           return [];
         }
       }
@@ -68,29 +72,31 @@ export class OutputArtifactLoader {
     const configs: Array<ViewerConfig | null> = await Promise.all(
       plotMetadataList.map(async metadata => {
         switch (metadata.type) {
-          case (PlotType.CONFUSION_MATRIX):
+          case PlotType.CONFUSION_MATRIX:
             return await this.buildConfusionMatrixConfig(metadata);
-          case (PlotType.MARKDOWN):
+          case PlotType.MARKDOWN:
             return await this.buildMarkdownViewerConfig(metadata);
-          case (PlotType.TABLE):
+          case PlotType.TABLE:
             return await this.buildPagedTableConfig(metadata);
-          case (PlotType.TENSORBOARD):
+          case PlotType.TENSORBOARD:
             return await this.buildTensorboardConfig(metadata);
-          case (PlotType.WEB_APP):
+          case PlotType.WEB_APP:
             return await this.buildHtmlViewerConfig(metadata);
-          case (PlotType.ROC):
+          case PlotType.ROC:
             return await this.buildRocCurveConfig(metadata);
           default:
             logger.error('Unknown plot type: ' + metadata.type);
             return null;
         }
-      })
+      }),
     );
 
     return configs.filter(c => !!c) as ViewerConfig[];
   }
 
-  public static async buildConfusionMatrixConfig(metadata: PlotMetadata): Promise<ConfusionMatrixConfig> {
+  public static async buildConfusionMatrixConfig(
+    metadata: PlotMetadata,
+  ): Promise<ConfusionMatrixConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -101,7 +107,9 @@ export class OutputArtifactLoader {
       throw new Error('Malformed metadata, property "schema" missing.');
     }
     if (!Array.isArray(metadata.schema)) {
-      throw new Error('"schema" must be an array of {"name": string, "type": string} objects');
+      throw new Error(
+        '"schema" must be an array of {"name": string, "type": string} objects',
+      );
     }
 
     const path = WorkflowParser.parseStoragePath(metadata.source);
@@ -109,25 +117,31 @@ export class OutputArtifactLoader {
     const labels = metadata.labels;
     const labelIndex: { [label: string]: number } = {};
     let index = 0;
-    labels.forEach((l) => {
+    labels.forEach(l => {
       labelIndex[l] = index++;
     });
 
     if (labels.length ** 2 !== csvRows.length) {
       throw new Error(
-        `Data dimensions ${csvRows.length} do not match the number of labels passed ${labels.length}`);
+        `Data dimensions ${csvRows.length} do not match the number of labels passed ${labels.length}`,
+      );
     }
 
-    const data = Array.from(Array(labels.length), () => new Array(labels.length));
+    const data = Array.from(
+      Array(labels.length),
+      () => new Array(labels.length),
+    );
     csvRows.forEach(([target, predicted, count]) => {
       const i = labelIndex[target.trim()];
       const j = labelIndex[predicted.trim()];
       data[i][j] = Number.parseInt(count, 10);
     });
 
-    const columnNames = metadata.schema.map((r) => {
+    const columnNames = metadata.schema.map(r => {
       if (!r.name) {
-        throw new Error('Each item in the "schema" array must contain a "name" field');
+        throw new Error(
+          'Each item in the "schema" array must contain a "name" field',
+        );
       }
       return r.name;
     });
@@ -141,7 +155,9 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildPagedTableConfig(metadata: PlotMetadata): Promise<PagedTableConfig> {
+  public static async buildPagedTableConfig(
+    metadata: PlotMetadata,
+  ): Promise<PagedTableConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -157,7 +173,9 @@ export class OutputArtifactLoader {
     switch (metadata.format) {
       case 'csv':
         const path = WorkflowParser.parseStoragePath(metadata.source);
-        data = csvParseRows((await Apis.readFile(path)).trim()).map(r => r.map(c => c.trim()));
+        data = csvParseRows((await Apis.readFile(path)).trim()).map(r =>
+          r.map(c => c.trim()),
+        );
         break;
       default:
         throw new Error('Unsupported table format: ' + metadata.format);
@@ -170,7 +188,9 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildTensorboardConfig(metadata: PlotMetadata): Promise<TensorboardViewerConfig> {
+  public static async buildTensorboardConfig(
+    metadata: PlotMetadata,
+  ): Promise<TensorboardViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -181,7 +201,9 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildHtmlViewerConfig(metadata: PlotMetadata): Promise<HTMLViewerConfig> {
+  public static async buildHtmlViewerConfig(
+    metadata: PlotMetadata,
+  ): Promise<HTMLViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -194,7 +216,9 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildMarkdownViewerConfig(metadata: PlotMetadata): Promise<MarkdownViewerConfig> {
+  public static async buildMarkdownViewerConfig(
+    metadata: PlotMetadata,
+  ): Promise<MarkdownViewerConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -212,7 +236,9 @@ export class OutputArtifactLoader {
     };
   }
 
-  public static async buildRocCurveConfig(metadata: PlotMetadata): Promise<ROCCurveConfig> {
+  public static async buildRocCurveConfig(
+    metadata: PlotMetadata,
+  ): Promise<ROCCurveConfig> {
     if (!metadata.source) {
       throw new Error('Malformed metadata, property "source" is required.');
     }
@@ -220,7 +246,9 @@ export class OutputArtifactLoader {
       throw new Error('Malformed metadata, property "schema" is required.');
     }
     if (!Array.isArray(metadata.schema)) {
-      throw new Error('Malformed schema, must be an array of {"name": string, "type": string}');
+      throw new Error(
+        'Malformed schema, must be an array of {"name": string, "type": string}',
+      );
     }
 
     const path = WorkflowParser.parseStoragePath(metadata.source);
@@ -228,15 +256,23 @@ export class OutputArtifactLoader {
 
     const fprIndex = metadata.schema.findIndex(field => field.name === 'fpr');
     if (fprIndex === -1) {
-      throw new Error('Malformed schema, expected to find a column named "fpr"');
+      throw new Error(
+        'Malformed schema, expected to find a column named "fpr"',
+      );
     }
     const tprIndex = metadata.schema.findIndex(field => field.name === 'tpr');
     if (tprIndex === -1) {
-      throw new Error('Malformed schema, expected to find a column named "tpr"');
+      throw new Error(
+        'Malformed schema, expected to find a column named "tpr"',
+      );
     }
-    const thresholdIndex = metadata.schema.findIndex(field => field.name.startsWith('threshold'));
+    const thresholdIndex = metadata.schema.findIndex(field =>
+      field.name.startsWith('threshold'),
+    );
     if (thresholdIndex === -1) {
-      throw new Error('Malformed schema, expected to find a column named "threshold"');
+      throw new Error(
+        'Malformed schema, expected to find a column named "threshold"',
+      );
     }
 
     const dataset = stringData.map(row => ({

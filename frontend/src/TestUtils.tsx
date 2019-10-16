@@ -28,7 +28,9 @@ export default class TestUtils {
    * Mounts the given component with a fake router and returns the mounted tree
    */
   // tslint:disable-next-line:variable-name
-  public static mountWithRouter(component: React.ReactElement<any>): ReactWrapper {
+  public static mountWithRouter(
+    component: React.ReactElement<any>,
+  ): ReactWrapper {
     const childContextTypes = {
       router: object,
     };
@@ -50,7 +52,10 @@ export default class TestUtils {
    * Adds a one-time mock implementation to the provided spy that mimics an error
    * network response
    */
-  public static makeErrorResponseOnce(spy: jest.MockInstance<{}>, message: string): void {
+  public static makeErrorResponseOnce(
+    spy: jest.MockInstance<{}>,
+    message: string,
+  ): void {
     spy.mockImplementationOnce(() => {
       throw {
         text: () => Promise.resolve(message),
@@ -64,11 +69,16 @@ export default class TestUtils {
    * to be set after component initialization.
    */
   // tslint:disable-next-line:variable-name
-  public static generatePageProps(PageElement: new (_: PageProps) => Page<any, any>,
-    location: Location, matchValue: match,
-    historyPushSpy: jest.SpyInstance | null, updateBannerSpy: jest.SpyInstance | null,
-    updateDialogSpy: jest.SpyInstance | null, updateToolbarSpy: jest.SpyInstance | null,
-    updateSnackbarSpy: jest.SpyInstance | null): PageProps {
+  public static generatePageProps(
+    PageElement: new (_: PageProps) => Page<any, any>,
+    location: Location,
+    matchValue: match,
+    historyPushSpy: jest.SpyInstance | null,
+    updateBannerSpy: jest.SpyInstance | null,
+    updateDialogSpy: jest.SpyInstance | null,
+    updateToolbarSpy: jest.SpyInstance | null,
+    updateSnackbarSpy: jest.SpyInstance | null,
+  ): PageProps {
     const pageProps = {
       history: { push: historyPushSpy } as any,
       location: location as any,
@@ -79,7 +89,9 @@ export default class TestUtils {
       updateSnackbar: updateSnackbarSpy as any,
       updateToolbar: updateToolbarSpy as any,
     } as PageProps;
-    pageProps.toolbarProps = new PageElement(pageProps).getInitialToolbarState();
+    pageProps.toolbarProps = new PageElement(
+      pageProps,
+    ).getInitialToolbarState();
     // The toolbar spy gets called in the getInitialToolbarState method, reset it
     // in order to simplify tests
     if (updateToolbarSpy) {
@@ -88,7 +100,10 @@ export default class TestUtils {
     return pageProps;
   }
 
-  public static getToolbarButton(updateToolbarSpy: jest.SpyInstance, buttonKey: string): ToolbarActionConfig {
+  public static getToolbarButton(
+    updateToolbarSpy: jest.SpyInstance,
+    buttonKey: string,
+  ): ToolbarActionConfig {
     const lastCallIdx = updateToolbarSpy.mock.calls.length - 1;
     const lastCall = updateToolbarSpy.mock.calls[lastCallIdx][0];
     return lastCall.actions[buttonKey];

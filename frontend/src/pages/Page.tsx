@@ -57,11 +57,16 @@ export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
     this.props.updateBanner({});
   }
 
-  public async showPageError(message: string, error?: Error, mode?: 'error' | 'warning'): Promise<void> {
+  public async showPageError(
+    message: string,
+    error?: Error,
+    mode?: 'error' | 'warning',
+  ): Promise<void> {
     const errorMessage = await errorToMessage(error);
     this.props.updateBanner({
       additionalInfo: errorMessage ? errorMessage : undefined,
-      message: message + (errorMessage ? ' Click Details for more information.' : ''),
+      message:
+        message + (errorMessage ? ' Click Details for more information.' : ''),
       mode: mode || 'error',
       refresh: this.refresh.bind(this),
     });

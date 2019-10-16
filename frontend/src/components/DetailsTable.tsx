@@ -49,7 +49,7 @@ export const css = stylesheet({
 });
 
 interface DetailsTableProps {
-  fields: Array<KeyValue<string|S3Artifact>>;
+  fields: Array<KeyValue<string | S3Artifact>>;
   title?: string;
   valueComponent?: React.FC<S3Artifact>;
 }
@@ -59,45 +59,56 @@ function isString(x: any): x is string {
 }
 
 export default (props: DetailsTableProps) => {
-  return (<React.Fragment>
-    {!!props.title && <div className={commonCss.header}>{props.title}</div>}
-    <div>
-      {props.fields.map((f, i) => {
-        const [key, value] = f;
+  return (
+    <React.Fragment>
+      {!!props.title && <div className={commonCss.header}>{props.title}</div>}
+      <div>
+        {props.fields.map((f, i) => {
+          const [key, value] = f;
 
-        // only try to parse json if value is a string
-        if (isString(value)) {
-          try {
-            const parsedJson = JSON.parse(value);
-            // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
-            // about rendering. Note that `typeOf null` returns 'object'
-            if (parsedJson === null || typeof parsedJson !== 'object') {
-              throw new Error('Parsed JSON was neither an array nor an object. Using default renderer');
+          // only try to parse json if value is a string
+          if (isString(value)) {
+            try {
+              const parsedJson = JSON.parse(value);
+              // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
+              // about rendering. Note that `typeOf null` returns 'object'
+              if (parsedJson === null || typeof parsedJson !== 'object') {
+                throw new Error(
+                  'Parsed JSON was neither an array nor an object. Using default renderer',
+                );
+              }
+              return (
+                <div key={i} className={css.row}>
+                  <span className={css.key}>{key}</span>
+                  <Editor
+                    width='100%'
+                    height='300px'
+                    mode='json'
+                    theme='github'
+                    highlightActiveLine={true}
+                    showGutter={true}
+                    readOnly={true}
+                    value={JSON.stringify(parsedJson, null, 2) || ''}
+                  />
+                </div>
+              );
+            } catch (err) {
+              // do nothing
             }
-            return (
-              <div key={i} className={css.row}>
-                <span className={css.key}>{key}</span>
-                <Editor width='100%' height='300px' mode='json' theme='github'
-                  highlightActiveLine={true} showGutter={true} readOnly={true}
-                  value={JSON.stringify(parsedJson, null, 2) || ''} />
-              </div>
-            );
-          } catch (err) {
-            // do nothing
           }
-        }
-        // If the value isn't a JSON object, just display it as is
-        return (
-          <div key={i} className={css.row}>
-            <span className={css.key}>{key}</span>
-            <span className={css.valueText}>
-              {props.valueComponent && !!value && !isString(value) ? props.valueComponent(value) : value}
-            </span>
-          </div>
-        );
-
-      })}
-    </div>
-  </React.Fragment>
+          // If the value isn't a JSON object, just display it as is
+          return (
+            <div key={i} className={css.row}>
+              <span className={css.key}>{key}</span>
+              <span className={css.valueText}>
+                {props.valueComponent && !!value && !isString(value)
+                  ? props.valueComponent(value)
+                  : value}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </React.Fragment>
   );
 };

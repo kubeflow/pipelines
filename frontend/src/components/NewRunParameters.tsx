@@ -39,11 +39,18 @@ class NewRunParameters extends React.Component<NewRunParametersProps> {
         <div>{titleMessage}</div>
         {!!initialParams.length && (
           <div>
-            {initialParams.map((param, i) =>
-              <TextField id={`newRunPipelineParam${i}`} key={i} variant='outlined'
-                label={param.name} value={param.value || ''}
-                onChange={(ev) => handleParamChange(i, ev.target.value || '')}
-                style={{ maxWidth: 600 }} className={commonCss.textField}/>)}
+            {initialParams.map((param, i) => (
+              <TextField
+                id={`newRunPipelineParam${i}`}
+                key={i}
+                variant='outlined'
+                label={param.name}
+                value={param.value || ''}
+                onChange={ev => handleParamChange(i, ev.target.value || '')}
+                style={{ maxWidth: 600 }}
+                className={commonCss.textField}
+              />
+            ))}
           </div>
         )}
       </div>

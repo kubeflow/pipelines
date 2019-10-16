@@ -18,7 +18,9 @@ import * as React from 'react';
 import TestUtils from '../TestUtils';
 import { ListRequest, Apis } from '../lib/Apis';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
-import RecurringRunsManager, { RecurringRunListProps } from './RecurringRunsManager';
+import RecurringRunsManager, {
+  RecurringRunListProps,
+} from './RecurringRunsManager';
 import { ApiJob, ApiResourceType } from '../apis/job';
 
 describe('RecurringRunsManager', () => {
@@ -40,21 +42,25 @@ describe('RecurringRunsManager', () => {
   const disableJobSpy = jest.spyOn(Apis.jobServiceApi, 'disableJob');
   jest.spyOn(console, 'error').mockImplementation();
 
-  const JOBS: ApiJob[] = [{
-    created_at: new Date(2018, 10, 9, 8, 7, 6),
-    enabled: true,
-    id: 'job1',
-    name: 'test recurring run name',
-  }, {
-    created_at: new Date(2018, 10, 9, 8, 7, 6),
-    enabled: false,
-    id: 'job2',
-    name: 'test recurring run name2',
-  }, {
-    created_at: new Date(2018, 10, 9, 8, 7, 6),
-    id: 'job3',
-    name: 'test recurring run name3',
-  }];
+  const JOBS: ApiJob[] = [
+    {
+      created_at: new Date(2018, 10, 9, 8, 7, 6),
+      enabled: true,
+      id: 'job1',
+      name: 'test recurring run name',
+    },
+    {
+      created_at: new Date(2018, 10, 9, 8, 7, 6),
+      enabled: false,
+      id: 'job2',
+      name: 'test recurring run name2',
+    },
+    {
+      created_at: new Date(2018, 10, 9, 8, 7, 6),
+      id: 'job3',
+      name: 'test recurring run name3',
+    },
+  ];
 
   function generateProps(): RecurringRunListProps {
     return {
@@ -88,7 +94,8 @@ describe('RecurringRunsManager', () => {
       undefined,
       ApiResourceType.EXPERIMENT,
       'test-experiment',
-      undefined);
+      undefined,
+    );
     expect(tree.state('runs')).toEqual(JOBS);
     expect(tree).toMatchSnapshot();
   });
@@ -99,23 +106,31 @@ describe('RecurringRunsManager', () => {
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     await (tree.instance() as TestRecurringRunsManager)._loadRuns({});
     expect(listJobsSpy).toHaveBeenCalledTimes(1);
-    expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      content: 'List recurring run configs request failed with:\nwoops!',
-      title: 'Error retrieving recurring run configs',
-    }));
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content: 'List recurring run configs request failed with:\nwoops!',
+        title: 'Error retrieving recurring run configs',
+      }),
+    );
     expect(tree.state('runs')).toEqual([]);
   });
 
   it('calls API to enable run', async () => {
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
-    await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', true);
+    await (tree.instance() as TestRecurringRunsManager)._setEnabledState(
+      'test-run',
+      true,
+    );
     expect(enableJobSpy).toHaveBeenCalledTimes(1);
     expect(enableJobSpy).toHaveBeenLastCalledWith('test-run');
   });
 
   it('calls API to disable run', async () => {
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
-    await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', false);
+    await (tree.instance() as TestRecurringRunsManager)._setEnabledState(
+      'test-run',
+      false,
+    );
     expect(disableJobSpy).toHaveBeenCalledTimes(1);
     expect(disableJobSpy).toHaveBeenLastCalledWith('test-run');
   });
@@ -123,32 +138,53 @@ describe('RecurringRunsManager', () => {
   it('shows error if enable API call fails', async () => {
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     TestUtils.makeErrorResponseOnce(enableJobSpy, 'cannot enable');
-    await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', true);
+    await (tree.instance() as TestRecurringRunsManager)._setEnabledState(
+      'test-run',
+      true,
+    );
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
-    expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      content: 'Error changing enabled state of recurring run:\ncannot enable',
-      title: 'Error',
-    }));
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content:
+          'Error changing enabled state of recurring run:\ncannot enable',
+        title: 'Error',
+      }),
+    );
   });
 
   it('shows error if disable API call fails', async () => {
     tree = shallow(<TestRecurringRunsManager {...generateProps()} />);
     TestUtils.makeErrorResponseOnce(disableJobSpy, 'cannot disable');
-    await (tree.instance() as TestRecurringRunsManager)._setEnabledState('test-run', false);
+    await (tree.instance() as TestRecurringRunsManager)._setEnabledState(
+      'test-run',
+      false,
+    );
     expect(updateDialogSpy).toHaveBeenCalledTimes(1);
-    expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      content: 'Error changing enabled state of recurring run:\ncannot disable',
-      title: 'Error',
-    }));
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content:
+          'Error changing enabled state of recurring run:\ncannot disable',
+        title: 'Error',
+      }),
+    );
   });
 
   it('renders run name as link to its details page', () => {
-    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
-    expect((tree.instance() as RecurringRunsManager)._nameCustomRenderer({ value: 'test-run', id: 'run-id' })).toMatchSnapshot();
+    tree = TestUtils.mountWithRouter(
+      <RecurringRunsManager {...generateProps()} />,
+    );
+    expect(
+      (tree.instance() as RecurringRunsManager)._nameCustomRenderer({
+        value: 'test-run',
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('renders a disable button if the run is enabled, clicking the button calls disable API', async () => {
-    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(
+      <RecurringRunsManager {...generateProps()} />,
+    );
     await TestUtils.flushPromises();
     tree.update();
 
@@ -162,7 +198,9 @@ describe('RecurringRunsManager', () => {
   });
 
   it('renders an enable button if the run is disabled, clicking the button calls enable API', async () => {
-    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(
+      <RecurringRunsManager {...generateProps()} />,
+    );
     await TestUtils.flushPromises();
     tree.update();
 
@@ -175,8 +213,10 @@ describe('RecurringRunsManager', () => {
     expect(enableJobSpy).toHaveBeenLastCalledWith(JOBS[1].id);
   });
 
-  it('renders an enable button if the run\'s enabled field is undefined, clicking the button calls enable API', async () => {
-    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+  it("renders an enable button if the run's enabled field is undefined, clicking the button calls enable API", async () => {
+    tree = TestUtils.mountWithRouter(
+      <RecurringRunsManager {...generateProps()} />,
+    );
     await TestUtils.flushPromises();
     tree.update();
 
@@ -190,7 +230,9 @@ describe('RecurringRunsManager', () => {
   });
 
   it('reloads the list of runs after enable/disabling', async () => {
-    tree = TestUtils.mountWithRouter(<RecurringRunsManager {...generateProps()} />);
+    tree = TestUtils.mountWithRouter(
+      <RecurringRunsManager {...generateProps()} />,
+    );
     await TestUtils.flushPromises();
     tree.update();
 

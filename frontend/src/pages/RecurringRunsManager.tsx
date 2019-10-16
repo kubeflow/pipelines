@@ -16,7 +16,11 @@
 
 import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
-import CustomTable, { Column, Row, CustomRendererProps } from '../components/CustomTable';
+import CustomTable, {
+  Column,
+  Row,
+  CustomRendererProps,
+} from '../components/CustomTable';
 import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
 import { ApiJob, ApiResourceType } from '../apis/job';
 import { Apis, JobSortKeys, ListRequest } from '../lib/Apis';
@@ -40,7 +44,10 @@ interface RecurringRunListState {
   toolbarActionMap: ToolbarActionMap;
 }
 
-class RecurringRunsManager extends React.Component<RecurringRunListProps, RecurringRunListState> {
+class RecurringRunsManager extends React.Component<
+  RecurringRunListProps,
+  RecurringRunListState
+> {
   private _tableRef = React.createRef<CustomTable>();
 
   constructor(props: any) {
@@ -72,22 +79,31 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       return {
         error: r.error,
         id: r.id!,
-        otherFields: [
-          r.name,
-          formatDateString(r.created_at),
-          r.enabled,
-        ],
+        otherFields: [r.name, formatDateString(r.created_at), r.enabled],
       };
     });
 
-    return (<React.Fragment>
-      <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle='Recurring runs' />
-      <CustomTable columns={columns} rows={rows} ref={this._tableRef} selectedIds={selectedIds}
-        updateSelection={ids => this.setState({ selectedIds: ids })}
-        initialSortColumn={JobSortKeys.CREATED_AT} reload={this._loadRuns.bind(this)}
-        filterLabel='Filter recurring runs' disableSelection={true}
-        emptyMessage={'No recurring runs found in this experiment.'}/>
-    </React.Fragment>);
+    return (
+      <React.Fragment>
+        <Toolbar
+          actions={toolbarActions}
+          breadcrumbs={[]}
+          pageTitle='Recurring runs'
+        />
+        <CustomTable
+          columns={columns}
+          rows={rows}
+          ref={this._tableRef}
+          selectedIds={selectedIds}
+          updateSelection={ids => this.setState({ selectedIds: ids })}
+          initialSortColumn={JobSortKeys.CREATED_AT}
+          reload={this._loadRuns.bind(this)}
+          filterLabel='Filter recurring runs'
+          disableSelection={true}
+          emptyMessage={'No recurring runs found in this experiment.'}
+        />
+      </React.Fragment>
+    );
   }
 
   public async refresh(): Promise<void> {
@@ -96,27 +112,42 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     }
   }
 
-  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (props: CustomRendererProps<string>) => {
-    return <Link className={commonCss.link}
-      to={RoutePage.RECURRING_RUN.replace(':' + RouteParams.runId, props.id)}>{props.value}</Link>;
-  }
+  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
+    props: CustomRendererProps<string>,
+  ) => {
+    return (
+      <Link
+        className={commonCss.link}
+        to={RoutePage.RECURRING_RUN.replace(':' + RouteParams.runId, props.id)}
+      >
+        {props.value}
+      </Link>
+    );
+  };
 
-  public _enabledCustomRenderer: React.FC<CustomRendererProps<boolean>> = (props: CustomRendererProps<boolean>) => {
+  public _enabledCustomRenderer: React.FC<CustomRendererProps<boolean>> = (
+    props: CustomRendererProps<boolean>,
+  ) => {
     const isBusy = this.state.busyIds.has(props.id);
-    return <BusyButton outlined={props.value} title={props.value === true ? 'Enabled' : 'Disabled'}
-      busy={isBusy} onClick={() => {
-        let busyIds = this.state.busyIds;
-        busyIds.add(props.id);
-        this.setState({ busyIds }, async () => {
-          await this._setEnabledState(props.id, !props.value);
-          busyIds = this.state.busyIds;
-          busyIds.delete(props.id);
-          this.setState({ busyIds });
-          await this.refresh();
-        });
-      }} />;
-  }
-
+    return (
+      <BusyButton
+        outlined={props.value}
+        title={props.value === true ? 'Enabled' : 'Disabled'}
+        busy={isBusy}
+        onClick={() => {
+          let busyIds = this.state.busyIds;
+          busyIds.add(props.id);
+          this.setState({ busyIds }, async () => {
+            await this._setEnabledState(props.id, !props.value);
+            busyIds = this.state.busyIds;
+            busyIds.delete(props.id);
+            this.setState({ busyIds });
+            await this.refresh();
+          });
+        }}
+      />
+    );
+  };
 
   protected async _loadRuns(request: ListRequest): Promise<string> {
     let runs: ApiJob[] = [];
@@ -136,7 +167,8 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       const errorMessage = await errorToMessage(err);
       this.props.updateDialog({
         buttons: [{ text: 'Dismiss' }],
-        content: 'List recurring run configs request failed with:\n' + errorMessage,
+        content:
+          'List recurring run configs request failed with:\n' + errorMessage,
         title: 'Error retrieving recurring run configs',
       });
       logger.error('Could not get list of recurring runs', errorMessage);
@@ -146,17 +178,26 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     return nextPageToken;
   }
 
-  protected async _setEnabledState(id: string, enabled: boolean): Promise<void> {
+  protected async _setEnabledState(
+    id: string,
+    enabled: boolean,
+  ): Promise<void> {
     try {
-      await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
+      await (enabled
+        ? Apis.jobServiceApi.enableJob(id)
+        : Apis.jobServiceApi.disableJob(id));
     } catch (err) {
       const errorMessage = await errorToMessage(err);
       this.props.updateDialog({
         buttons: [{ text: 'Dismiss' }],
-        content: 'Error changing enabled state of recurring run:\n' + errorMessage,
+        content:
+          'Error changing enabled state of recurring run:\n' + errorMessage,
         title: 'Error',
       });
-      logger.error('Error changing enabled state of recurring run', errorMessage);
+      logger.error(
+        'Error changing enabled state of recurring run',
+        errorMessage,
+      );
     }
   }
 }

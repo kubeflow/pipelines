@@ -31,7 +31,15 @@ import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
-import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
+import {
+  fonts,
+  fontsize,
+  dimension,
+  commonCss,
+  color,
+  padding,
+  zIndex,
+} from '../Css';
 import { logger } from '../lib/Utils';
 import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { debounce } from 'lodash';
@@ -110,7 +118,8 @@ export const css = stylesheet({
   },
   expandedContainer: {
     borderRadius: 10,
-    boxShadow: '0 1px 2px 0 rgba(60,64,67,0.30), 0 1px 3px 1px rgba(60,64,67,0.15)',
+    boxShadow:
+      '0 1px 2px 0 rgba(60,64,67,0.30), 0 1px 3px 1px rgba(60,64,67,0.15)',
     margin: '16px 2px',
   },
   expandedRow: {
@@ -203,11 +212,16 @@ interface CustomTableState {
   tokenList: string[];
 }
 
-export default class CustomTable extends React.Component<CustomTableProps, CustomTableState> {
+export default class CustomTable extends React.Component<
+  CustomTableProps,
+  CustomTableState
+> {
   private _isMounted = true;
 
-  private _debouncedFilterRequest =
-    debounce((filterString: string) => this._requestFilter(filterString), 300);
+  private _debouncedFilterRequest = debounce(
+    (filterString: string) => this._requestFilter(filterString),
+    300,
+  );
 
   constructor(props: CustomTableProps) {
     super(props);
@@ -219,7 +233,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,
-      sortBy: props.initialSortColumn ||
+      sortBy:
+        props.initialSortColumn ||
         (props.columns.length ? props.columns[0].sortKey || '' : ''),
       sortOrder: props.initialSortOrder || 'desc',
       tokenList: [''],
@@ -231,8 +246,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       // This should be impossible to reach
       return;
     }
-    const selectedIds =
-      (event.target as CheckboxProps).checked ? this.props.rows.map((v) => v.id) : [];
+    const selectedIds = (event.target as CheckboxProps).checked
+      ? this.props.rows.map(v => v.id)
+      : [];
     if (this.props.updateSelection) {
       this.props.updateSelection(selectedIds);
     }
@@ -249,9 +265,12 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     } else {
       const selectedIds = this.props.selectedIds || [];
       const selectedIndex = selectedIds.indexOf(id);
-      newSelected = selectedIndex === -1 ?
-        selectedIds.concat(id) :
-        selectedIds.slice(0, selectedIndex).concat(selectedIds.slice(selectedIndex + 1));
+      newSelected =
+        selectedIndex === -1
+          ? selectedIds.concat(id)
+          : selectedIds
+              .slice(0, selectedIndex)
+              .concat(selectedIds.slice(selectedIndex + 1));
     }
 
     if (this.props.updateSelection) {
@@ -262,7 +281,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   public isSelected(id: string): boolean {
-    return !!this.props.selectedIds && this.props.selectedIds.indexOf(id) !== -1;
+    return (
+      !!this.props.selectedIds && this.props.selectedIds.indexOf(id) !== -1
+    );
   }
 
   public componentDidMount(): void {
@@ -277,18 +298,28 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   public render(): JSX.Element {
     const { filterString, pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
-    const totalFlex = this.props.columns.reduce((total, c) => total += (c.flex || 1), 0);
-    const widths = this.props.columns.map(c => (c.flex || 1) / totalFlex * 100);
+    const totalFlex = this.props.columns.reduce(
+      (total, c) => (total += c.flex || 1),
+      0,
+    );
+    const widths = this.props.columns.map(
+      c => ((c.flex || 1) / totalFlex) * 100,
+    );
 
     return (
       <div className={commonCss.pageOverflowHidden}>
-
         {/* Filter/Search bar */}
         {!this.props.noFilterBox && (
           <div>
-            <Input id='tableFilterBox' label={this.props.filterLabel || 'Filter'} height={48} maxWidth={'100%'}
-              className={css.filterBox} InputLabelProps={{ classes: { root: css.noMargin } }}
-              onChange={this.handleFilterChange} value={filterString}
+            <Input
+              id='tableFilterBox'
+              label={this.props.filterLabel || 'Filter'}
+              height={48}
+              maxWidth={'100%'}
+              className={css.filterBox}
+              InputLabelProps={{ classes: { root: css.noMargin } }}
+              onChange={this.handleFilterChange}
+              value={filterString}
               variant='outlined'
               InputProps={{
                 classes: {
@@ -297,40 +328,75 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 },
                 startAdornment: (
                   <InputAdornment position='end'>
-                    <FilterIcon style={{ color: color.lowContrast, paddingRight: 16 }} />
+                    <FilterIcon
+                      style={{ color: color.lowContrast, paddingRight: 16 }}
+                    />
                   </InputAdornment>
-                )
-              }} />
+                ),
+              }}
+            />
           </div>
         )}
 
         {/* Header */}
-        <div className={classes(
-          css.header, (this.props.disableSelection || this.props.useRadioButtons) && padding(20, 'l'))}>
-          {(this.props.disableSelection !== true && this.props.useRadioButtons !== true) && (
-            <div className={classes(css.columnName, css.cell, css.selectionToggle)}>
-              <Checkbox indeterminate={!!numSelected && numSelected < this.props.rows.length}
-                color='primary' checked={!!numSelected && numSelected === this.props.rows.length}
-                onChange={this.handleSelectAllClick.bind(this)} />
-            </div>
+        <div
+          className={classes(
+            css.header,
+            (this.props.disableSelection || this.props.useRadioButtons) &&
+              padding(20, 'l'),
           )}
+        >
+          {this.props.disableSelection !== true &&
+            this.props.useRadioButtons !== true && (
+              <div
+                className={classes(
+                  css.columnName,
+                  css.cell,
+                  css.selectionToggle,
+                )}
+              >
+                <Checkbox
+                  indeterminate={
+                    !!numSelected && numSelected < this.props.rows.length
+                  }
+                  color='primary'
+                  checked={
+                    !!numSelected && numSelected === this.props.rows.length
+                  }
+                  onChange={this.handleSelectAllClick.bind(this)}
+                />
+              </div>
+            )}
           {/* Shift cells to account for expand button */}
           {!!this.props.getExpandComponent && (
             <Separator orientation='horizontal' units={40} />
           )}
           {this.props.columns.map((col, i) => {
             const isColumnSortable = !!this.props.columns[i].sortKey;
-            const isCurrentSortColumn = sortBy === this.props.columns[i].sortKey;
+            const isCurrentSortColumn =
+              sortBy === this.props.columns[i].sortKey;
             return (
-              <div key={i} style={{ width: widths[i] + '%' }}
-                className={css.columnName}>
+              <div
+                key={i}
+                style={{ width: widths[i] + '%' }}
+                className={css.columnName}
+              >
                 {this.props.disableSorting === true && <div>{col.label}</div>}
                 {!this.props.disableSorting && (
-                  <Tooltip title={isColumnSortable ? 'Sort' : 'Cannot sort by this column'}
-                    enterDelay={300}>
-                    <TableSortLabel active={isCurrentSortColumn} className={commonCss.ellipsis}
+                  <Tooltip
+                    title={
+                      isColumnSortable ? 'Sort' : 'Cannot sort by this column'
+                    }
+                    enterDelay={300}
+                  >
+                    <TableSortLabel
+                      active={isCurrentSortColumn}
+                      className={commonCss.ellipsis}
                       direction={isColumnSortable ? sortOrder : undefined}
-                      onClick={() => this._requestSort(this.props.columns[i].sortKey)}>
+                      onClick={() =>
+                        this._requestSort(this.props.columns[i].sortKey)
+                      }
+                    >
                       {col.label}
                     </TableSortLabel>
                   </Tooltip>
@@ -343,64 +409,100 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {/* Body */}
         <div className={commonCss.scrollContainer} style={{ minHeight: 60 }}>
           {/* Busy experience */}
-          {this.state.isBusy && (<React.Fragment>
-            <div className={commonCss.busyOverlay} />
-            <CircularProgress size={25} className={commonCss.absoluteCenter}
-              style={{ zIndex: zIndex.BUSY_OVERLAY }} />
-          </React.Fragment>)}
+          {this.state.isBusy && (
+            <React.Fragment>
+              <div className={commonCss.busyOverlay} />
+              <CircularProgress
+                size={25}
+                className={commonCss.absoluteCenter}
+                style={{ zIndex: zIndex.BUSY_OVERLAY }}
+              />
+            </React.Fragment>
+          )}
 
           {/* Empty experience */}
-          {this.props.rows.length === 0 && !!this.props.emptyMessage && !this.state.isBusy && (
-            <div className={css.emptyMessage}>{this.props.emptyMessage}</div>
-          )}
+          {this.props.rows.length === 0 &&
+            !!this.props.emptyMessage &&
+            !this.state.isBusy && (
+              <div className={css.emptyMessage}>{this.props.emptyMessage}</div>
+            )}
           {this.props.rows.map((row, i) => {
             if (row.otherFields.length !== this.props.columns.length) {
-              logger.error('Rows must have the same number of cells defined in columns');
+              logger.error(
+                'Rows must have the same number of cells defined in columns',
+              );
               return null;
             }
-            return (<div className={classes(css.expandableContainer,
-              row.expandState === ExpandState.EXPANDED && css.expandedContainer)} key={i}>
-              <div role='checkbox' tabIndex={-1} className={
-                classes(
-                  'tableRow',
-                  css.row,
-                  this.props.disableSelection === true && padding(20, 'l'),
-                  this.isSelected(row.id) && css.selected,
-                  row.expandState === ExpandState.EXPANDED && css.expandedRow
+            return (
+              <div
+                className={classes(
+                  css.expandableContainer,
+                  row.expandState === ExpandState.EXPANDED &&
+                    css.expandedContainer,
                 )}
-                onClick={e => this.handleClick(e, row.id)}>
-                {/* Expansion toggle button */}
-                {((this.props.disableSelection !== true || !!this.props.getExpandComponent) && row.expandState !== ExpandState.NONE) && (
-                  <div className={classes(css.cell, css.selectionToggle)}>
-                    {/* If using checkboxes */}
-                    {(this.props.disableSelection !== true && this.props.useRadioButtons !== true) && (
-                      <Checkbox color='primary' checked={this.isSelected(row.id)} />)}
-                    {/* If using radio buttons */}
-                    {(this.props.disableSelection !== true && this.props.useRadioButtons) && (
-                      <Radio color='primary' checked={this.isSelected(row.id)} />)}
-                    {!!this.props.getExpandComponent && (
-                      <IconButton className={classes(css.expandButton,
-                        row.expandState === ExpandState.EXPANDED && css.expandButtonExpanded)}
-                        onClick={(e) => this._expandButtonToggled(e, i)}>
-                        <ArrowRight />
-                      </IconButton>
+                key={i}
+              >
+                <div
+                  role='checkbox'
+                  tabIndex={-1}
+                  className={classes(
+                    'tableRow',
+                    css.row,
+                    this.props.disableSelection === true && padding(20, 'l'),
+                    this.isSelected(row.id) && css.selected,
+                    row.expandState === ExpandState.EXPANDED && css.expandedRow,
+                  )}
+                  onClick={e => this.handleClick(e, row.id)}
+                >
+                  {/* Expansion toggle button */}
+                  {(this.props.disableSelection !== true ||
+                    !!this.props.getExpandComponent) &&
+                    row.expandState !== ExpandState.NONE && (
+                      <div className={classes(css.cell, css.selectionToggle)}>
+                        {/* If using checkboxes */}
+                        {this.props.disableSelection !== true &&
+                          this.props.useRadioButtons !== true && (
+                            <Checkbox
+                              color='primary'
+                              checked={this.isSelected(row.id)}
+                            />
+                          )}
+                        {/* If using radio buttons */}
+                        {this.props.disableSelection !== true &&
+                          this.props.useRadioButtons && (
+                            <Radio
+                              color='primary'
+                              checked={this.isSelected(row.id)}
+                            />
+                          )}
+                        {!!this.props.getExpandComponent && (
+                          <IconButton
+                            className={classes(
+                              css.expandButton,
+                              row.expandState === ExpandState.EXPANDED &&
+                                css.expandButtonExpanded,
+                            )}
+                            onClick={e => this._expandButtonToggled(e, i)}
+                          >
+                            <ArrowRight />
+                          </IconButton>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
 
-                {/* Placeholder for non-expandable rows */}
-                {row.expandState === ExpandState.NONE && (
-                  <div className={css.expandButtonPlaceholder} />
-                )}
+                  {/* Placeholder for non-expandable rows */}
+                  {row.expandState === ExpandState.NONE && (
+                    <div className={css.expandButtonPlaceholder} />
+                  )}
 
-                {<CustomTableRow row={row} columns={this.props.columns} />}
-              </div>
-              {row.expandState === ExpandState.EXPANDED && this.props.getExpandComponent && (
-                <div>
-                  {this.props.getExpandComponent(i)}
+                  {<CustomTableRow row={row} columns={this.props.columns} />}
                 </div>
-              )}
-            </div>);
+                {row.expandState === ExpandState.EXPANDED &&
+                  this.props.getExpandComponent && (
+                    <div>{this.props.getExpandComponent(i)}</div>
+                  )}
+              </div>
+            );
           })}
         </div>
 
@@ -408,20 +510,32 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {!this.props.disablePaging && (
           <div className={css.footer}>
             <span className={padding(10, 'r')}>Rows per page:</span>
-            <TextField select={true} variant='standard' className={css.rowsPerPage}
+            <TextField
+              select={true}
+              variant='standard'
+              className={css.rowsPerPage}
               classes={{ root: css.verticalAlignInitial }}
-              InputProps={{ disableUnderline: true }} onChange={this._requestRowsPerPage.bind(this)}
-              value={pageSize}>
+              InputProps={{ disableUnderline: true }}
+              onChange={this._requestRowsPerPage.bind(this)}
+              value={pageSize}
+            >
               {[10, 20, 50, 100].map((size, i) => (
-                <MenuItem key={i} value={size}>{size}</MenuItem>
+                <MenuItem key={i} value={size}>
+                  {size}
+                </MenuItem>
               ))}
             </TextField>
 
-            <IconButton onClick={() => this._pageChanged(-1)} disabled={!this.state.currentPage}>
+            <IconButton
+              onClick={() => this._pageChanged(-1)}
+              disabled={!this.state.currentPage}
+            >
               <ChevronLeft />
             </IconButton>
-            <IconButton onClick={() => this._pageChanged(1)}
-              disabled={this.state.currentPage >= this.state.maxPageIndex}>
+            <IconButton
+              onClick={() => this._pageChanged(1)}
+              disabled={this.state.currentPage >= this.state.maxPageIndex}
+            >
               <ChevronRight />
             </IconButton>
           </div>
@@ -432,13 +546,16 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   public async reload(loadRequest?: ListRequest): Promise<string> {
     // Override the current state with incoming request
-    const request: ListRequest = Object.assign({
-      filter: this.state.filterStringEncoded,
-      orderAscending: this.state.sortOrder === 'asc',
-      pageSize: this.state.pageSize,
-      pageToken: this.state.tokenList[this.state.currentPage],
-      sortBy: this.state.sortBy,
-    }, loadRequest);
+    const request: ListRequest = Object.assign(
+      {
+        filter: this.state.filterStringEncoded,
+        orderAscending: this.state.sortOrder === 'asc',
+        pageSize: this.state.pageSize,
+        pageToken: this.state.tokenList[this.state.currentPage],
+        sortBy: this.state.sortBy,
+      },
+      loadRequest,
+    );
 
     let result = '';
     try {
@@ -466,30 +583,37 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     // Set state here so that the UI will be updated even if the actual filter request is debounced
     this.setStateSafe(
       { filterString: value } as any,
-      async () => await this._debouncedFilterRequest(value as string)
+      async () => await this._debouncedFilterRequest(value as string),
     );
-  }
+  };
 
   // Exposed for testing
   protected async _requestFilter(filterString?: string): Promise<void> {
-    const filterStringEncoded = filterString ? this._createAndEncodeFilter(filterString) : '';
+    const filterStringEncoded = filterString
+      ? this._createAndEncodeFilter(filterString)
+      : '';
     this.setStateSafe({ filterStringEncoded });
     this._resetToFirstPage(await this.reload({ filter: filterStringEncoded }));
   }
 
   private _createAndEncodeFilter(filterString: string): string {
     const filter: ApiFilter = {
-      predicates: [{
-        // TODO: remove this hardcoding once more sophisticated filtering is supported
-        key: 'name',
-        op: PredicateOp.ISSUBSTRING,
-        string_value: filterString,
-      }],
+      predicates: [
+        {
+          // TODO: remove this hardcoding once more sophisticated filtering is supported
+          key: 'name',
+          op: PredicateOp.ISSUBSTRING,
+          string_value: filterString,
+        },
+      ],
     };
     return encodeURIComponent(JSON.stringify(filter));
   }
 
-  private setStateSafe(newState: Partial<CustomTableState>, cb?: () => void): void {
+  private setStateSafe(
+    newState: Partial<CustomTableState>,
+    cb?: () => void,
+  ): void {
     if (this._isMounted) {
       this.setState(newState as any, cb);
     }
@@ -501,11 +625,18 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       // invert the sort order it if it's the same column
       const sortOrder =
         this.state.sortBy === sortBy
-          ? (this.state.sortOrder === 'asc' ? 'desc' : 'asc')
+          ? this.state.sortOrder === 'asc'
+            ? 'desc'
+            : 'asc'
           : 'asc';
       this.setStateSafe({ sortOrder, sortBy }, async () => {
         this._resetToFirstPage(
-          await this.reload({ pageToken: '', orderAscending: sortOrder === 'asc', sortBy }));
+          await this.reload({
+            pageToken: '',
+            orderAscending: sortOrder === 'asc',
+            sortBy,
+          }),
+        );
       });
     }
   }

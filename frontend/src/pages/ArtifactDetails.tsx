@@ -21,7 +21,11 @@ import { RoutePage, RouteParams } from '../components/Router';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { CircularProgress } from '@material-ui/core';
-import { titleCase, getResourceProperty, serviceErrorToString } from '../lib/Utils';
+import {
+  titleCase,
+  getResourceProperty,
+  serviceErrorToString,
+} from '../lib/Utils';
 import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { Artifact } from '../generated/src/apis/metadata/metadata_store_pb';
 import { Apis, ArtifactProperties } from '../lib/Apis';
@@ -64,12 +68,14 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     }
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-        {<ResourceInfo
-          resourceType={ResourceType.ARTIFACT}
-          typeName={this.properTypeName}
-          resource={this.state.artifact}
-        />}
-      </div >
+        {
+          <ResourceInfo
+            resourceType={ResourceType.ARTIFACT}
+            typeName={this.properTypeName}
+            resource={this.state.artifact}
+          />
+        }
+      </div>
     );
   }
 
@@ -77,7 +83,7 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-      pageTitle: `${this.properTypeName} ${this.id} details`
+      pageTitle: `${this.properTypeName} ${this.id} details`,
     };
   }
 
@@ -88,34 +94,45 @@ export default class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   private async load(): Promise<void> {
     const getArtifactsRequest = new GetArtifactsByIDRequest();
     getArtifactsRequest.setArtifactIdsList([this.id]);
-    Apis.getMetadataServiceClient().getArtifactsByID(getArtifactsRequest, (err, res) => {
-      if (err) {
-        this.showPageError(serviceErrorToString(err));
-        return;
-      }
+    Apis.getMetadataServiceClient().getArtifactsByID(
+      getArtifactsRequest,
+      (err, res) => {
+        if (err) {
+          this.showPageError(serviceErrorToString(err));
+          return;
+        }
 
-      if (!res || !res.getArtifactsList().length) {
-        this.showPageError(`No ${this.fullTypeName} identified by id: ${this.id}`);
-        return;
-      }
+        if (!res || !res.getArtifactsList().length) {
+          this.showPageError(
+            `No ${this.fullTypeName} identified by id: ${this.id}`,
+          );
+          return;
+        }
 
-      if (res.getArtifactsList().length > 1) {
-        this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
-        return;
-      }
+        if (res.getArtifactsList().length > 1) {
+          this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
+          return;
+        }
 
-      const artifact = res.getArtifactsList()[0];
+        const artifact = res.getArtifactsList()[0];
 
-      const artifactName = getResourceProperty(artifact, ArtifactProperties.NAME);
-      let title = artifactName ? artifactName.toString() : '';
-      const version = getResourceProperty(artifact, ArtifactProperties.VERSION);
-      if (version) {
-        title += ` (version: ${version})`;
-      }
-      this.props.updateToolbar({
-        pageTitle: title
-      });
-      this.setState({ artifact });
-    });
+        const artifactName = getResourceProperty(
+          artifact,
+          ArtifactProperties.NAME,
+        );
+        let title = artifactName ? artifactName.toString() : '';
+        const version = getResourceProperty(
+          artifact,
+          ArtifactProperties.VERSION,
+        );
+        if (version) {
+          title += ` (version: ${version})`;
+        }
+        this.props.updateToolbar({
+          pageTitle: title,
+        });
+        this.setState({ artifact });
+      },
+    );
   }
 }

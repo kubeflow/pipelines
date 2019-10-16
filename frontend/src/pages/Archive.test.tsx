@@ -29,8 +29,16 @@ describe('Archive', () => {
   let tree: ShallowWrapper;
 
   function generateProps(): PageProps {
-    return TestUtils.generatePageProps(Archive, {} as any, {} as any, historyPushSpy,
-      updateBannerSpy, null, updateToolbarSpy, null);
+    return TestUtils.generatePageProps(
+      Archive,
+      {} as any,
+      {} as any,
+      historyPushSpy,
+      updateBannerSpy,
+      null,
+      updateToolbarSpy,
+      null,
+    );
   }
 
   beforeEach(() => {
@@ -56,25 +64,38 @@ describe('Archive', () => {
     tree = shallow(<Archive {...generateProps()} />);
     TestUtils.flushPromises();
     tree.update();
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled).toBeTruthy();
+    expect(
+      TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled,
+    ).toBeTruthy();
     tree.find('RunList').simulate('selectionChange', ['run1']);
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled).toBeFalsy();
+    expect(
+      TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled,
+    ).toBeFalsy();
     tree.find('RunList').simulate('selectionChange', ['run1', 'run2']);
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled).toBeFalsy();
+    expect(
+      TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled,
+    ).toBeFalsy();
     tree.find('RunList').simulate('selectionChange', []);
-    expect(TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled).toBeTruthy();
+    expect(
+      TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.RESTORE).disabled,
+    ).toBeTruthy();
   });
 
   it('refreshes the run list when refresh button is clicked', async () => {
     tree = shallow(<Archive {...generateProps()} />);
     const spy = jest.fn();
     (tree.instance() as any)._runlistRef = { current: { refresh: spy } };
-    await TestUtils.getToolbarButton(updateToolbarSpy, ButtonKeys.REFRESH).action();
+    await TestUtils.getToolbarButton(
+      updateToolbarSpy,
+      ButtonKeys.REFRESH,
+    ).action();
     expect(spy).toHaveBeenLastCalledWith();
   });
 
   it('shows a list of available runs', () => {
     tree = shallow(<Archive {...generateProps()} />);
-    expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.ARCHIVED.toString());
+    expect(tree.find('RunList').prop('storageState')).toBe(
+      RunStorageState.ARCHIVED.toString(),
+    );
   });
 });

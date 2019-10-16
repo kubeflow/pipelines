@@ -20,7 +20,14 @@ import RunList, { RunListProps } from './RunList';
 import TestUtils from '../TestUtils';
 import produce from 'immer';
 import { ApiFilter, PredicateOp } from '../apis/filter';
-import { ApiRun, ApiRunDetail, ApiResourceType, ApiRunMetric, RunMetricFormat, RunStorageState } from '../apis/run';
+import {
+  ApiRun,
+  ApiRunDetail,
+  ApiResourceType,
+  ApiRunMetric,
+  RunMetricFormat,
+  RunStorageState,
+} from '../apis/run';
 import { Apis, RunSortKeys, ListRequest } from '../lib/Apis';
 import { MetricMetadata } from '../lib/RunUtils';
 import { NodePhase } from '../lib/StatusUtils';
@@ -40,7 +47,10 @@ describe('RunList', () => {
   const listRunsSpy = jest.spyOn(Apis.runServiceApi, 'listRuns');
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
   const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
-  const getExperimentSpy = jest.spyOn(Apis.experimentServiceApi, 'getExperiment');
+  const getExperimentSpy = jest.spyOn(
+    Apis.experimentServiceApi,
+    'getExperiment',
+  );
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
   // test enviroments
   const formatDateStringSpy = jest.spyOn(Utils, 'formatDateString');
@@ -55,29 +65,32 @@ describe('RunList', () => {
   }
 
   function mockNRuns(n: number, runTemplate: Partial<ApiRunDetail>): void {
-    getRunSpy.mockImplementation(id => Promise.resolve(
-      produce(runTemplate, draft => {
-        draft.run = draft.run || {};
-        draft.run.id = id;
-        draft.run.name = 'run with id: ' + id;
-      })
-    ));
+    getRunSpy.mockImplementation(id =>
+      Promise.resolve(
+        produce(runTemplate, draft => {
+          draft.run = draft.run || {};
+          draft.run.id = id;
+          draft.run.name = 'run with id: ' + id;
+        }),
+      ),
+    );
 
-    listRunsSpy.mockImplementation(() => Promise.resolve({
-      runs: range(1, n + 1).map(i => {
-        if (runTemplate.run) {
-          return produce(runTemplate.run as Partial<ApiRun>, draft => {
-            draft.id = 'testrun' + i;
-            draft.name = 'run with id: testrun' + i;
-          });
-        }
-        return {
-          id: 'testrun' + i,
-          name: 'run with id: testrun' + i,
-        } as ApiRun;
-      }
-      )
-    }));
+    listRunsSpy.mockImplementation(() =>
+      Promise.resolve({
+        runs: range(1, n + 1).map(i => {
+          if (runTemplate.run) {
+            return produce(runTemplate.run as Partial<ApiRun>, draft => {
+              draft.id = 'testrun' + i;
+              draft.name = 'run with id: testrun' + i;
+            });
+          }
+          return {
+            id: 'testrun' + i,
+            name: 'run with id: testrun' + i,
+          } as ApiRun;
+        }),
+      }),
+    );
 
     getPipelineSpy.mockImplementation(() => ({ name: 'some pipeline' }));
     getExperimentSpy.mockImplementation(() => ({ name: 'some experiment' }));
@@ -131,13 +144,23 @@ describe('RunList', () => {
       tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({});
       expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
-        undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
-          predicates: [{
-            key: 'storage_state',
-            op: PredicateOp.NOTEQUALS,
-            string_value: RunStorageState.ARCHIVED.toString(),
-          }]
-        } as ApiFilter)));
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        encodeURIComponent(
+          JSON.stringify({
+            predicates: [
+              {
+                key: 'storage_state',
+                op: PredicateOp.NOTEQUALS,
+                string_value: RunStorageState.ARCHIVED.toString(),
+              },
+            ],
+          } as ApiFilter),
+        ),
+      );
     });
 
     it('loads runs whose storage state is ARCHIVED when storage state equals ARCHIVED', async () => {
@@ -147,13 +170,23 @@ describe('RunList', () => {
       tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({});
       expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
-        undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
-          predicates: [{
-            key: 'storage_state',
-            op: PredicateOp.EQUALS,
-            string_value: RunStorageState.ARCHIVED.toString(),
-          }]
-        } as ApiFilter)));
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        encodeURIComponent(
+          JSON.stringify({
+            predicates: [
+              {
+                key: 'storage_state',
+                op: PredicateOp.EQUALS,
+                string_value: RunStorageState.ARCHIVED.toString(),
+              },
+            ],
+          } as ApiFilter),
+        ),
+      );
     });
 
     it('augments request filter with storage state predicates', async () => {
@@ -162,22 +195,35 @@ describe('RunList', () => {
       props.storageState = RunStorageState.ARCHIVED;
       tree = shallow(<RunList {...props} />);
       await (tree.instance() as RunListTest)._loadRuns({
-        filter: encodeURIComponent(JSON.stringify({
-          predicates: [{ key: 'k', op: 'op', string_value: 'val' }]
-        }))
+        filter: encodeURIComponent(
+          JSON.stringify({
+            predicates: [{ key: 'k', op: 'op', string_value: 'val' }],
+          }),
+        ),
       });
       expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
-        undefined, undefined, undefined, undefined, undefined, encodeURIComponent(JSON.stringify({
-          predicates: [{
-            key: 'k',
-            op: 'op',
-            string_value: 'val',
-          }, {
-            key: 'storage_state',
-            op: PredicateOp.EQUALS,
-            string_value: RunStorageState.ARCHIVED.toString(),
-          }]
-        } as ApiFilter)));
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        encodeURIComponent(
+          JSON.stringify({
+            predicates: [
+              {
+                key: 'k',
+                op: 'op',
+                string_value: 'val',
+              },
+              {
+                key: 'storage_state',
+                op: PredicateOp.EQUALS,
+                string_value: RunStorageState.ARCHIVED.toString(),
+              },
+            ],
+          } as ApiFilter),
+        ),
+      );
     });
   });
 
@@ -186,7 +232,14 @@ describe('RunList', () => {
     const props = generateProps();
     tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
-    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(undefined, undefined, undefined, undefined, undefined, undefined);
+    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });
@@ -198,7 +251,14 @@ describe('RunList', () => {
     await (tree.instance() as RunList).refresh();
     tree.update();
     expect(Apis.runServiceApi.listRuns).toHaveBeenCalledTimes(2);
-    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith('', 10, RunSortKeys.CREATED_AT + ' desc', undefined, undefined, '');
+    expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
+      '',
+      10,
+      RunSortKeys.CREATED_AT + ' desc',
+      undefined,
+      undefined,
+      '',
+    );
     expect(props.onError).not.toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });
@@ -213,15 +273,23 @@ describe('RunList', () => {
   });
 
   it('calls error callback when loading runs fails', async () => {
-    TestUtils.makeErrorResponseOnce(jest.spyOn(Apis.runServiceApi, 'listRuns'), 'bad stuff happened');
+    TestUtils.makeErrorResponseOnce(
+      jest.spyOn(Apis.runServiceApi, 'listRuns'),
+      'bad stuff happened',
+    );
     const props = generateProps();
     tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
-    expect(props.onError).toHaveBeenLastCalledWith('Error: failed to fetch runs.', new Error('bad stuff happened'));
+    expect(props.onError).toHaveBeenLastCalledWith(
+      'Error: failed to fetch runs.',
+      new Error('bad stuff happened'),
+    );
   });
 
   it('displays error in run row if pipeline could not be fetched', async () => {
-    mockNRuns(1, { run: { pipeline_spec: { pipeline_id: 'test-pipeline-id' } } });
+    mockNRuns(1, {
+      run: { pipeline_spec: { pipeline_id: 'test-pipeline-id' } },
+    });
     TestUtils.makeErrorResponseOnce(getPipelineSpy, 'bad stuff happened');
     const props = generateProps();
     tree = shallow(<RunList {...props} />);
@@ -232,10 +300,12 @@ describe('RunList', () => {
   it('displays error in run row if experiment could not be fetched', async () => {
     mockNRuns(1, {
       run: {
-        resource_references: [{
-          key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT }
-        }]
-      }
+        resource_references: [
+          {
+            key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT },
+          },
+        ],
+      },
     });
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'bad stuff happened');
     const props = generateProps();
@@ -245,7 +315,10 @@ describe('RunList', () => {
   });
 
   it('displays error in run row if it failed to parse (run list mask)', async () => {
-    TestUtils.makeErrorResponseOnce(jest.spyOn(Apis.runServiceApi, 'getRun'), 'bad stuff happened');
+    TestUtils.makeErrorResponseOnce(
+      jest.spyOn(Apis.runServiceApi, 'getRun'),
+      'bad stuff happened',
+    );
     const props = generateProps();
     props.runIdListMask = ['testrun1', 'testrun2'];
     tree = shallow(<RunList {...props} />);
@@ -276,7 +349,13 @@ describe('RunList', () => {
     await (tree.instance() as RunListTest)._loadRuns({});
     expect(props.onError).not.toHaveBeenCalled();
     expect(Apis.runServiceApi.listRuns).toHaveBeenLastCalledWith(
-      undefined, undefined, undefined, ApiResourceType.EXPERIMENT.toString(), 'experiment1', undefined);
+      undefined,
+      undefined,
+      undefined,
+      ApiResourceType.EXPERIMENT.toString(),
+      'experiment1',
+      undefined,
+    );
   });
 
   it('loads given list of runs only', async () => {
@@ -300,7 +379,7 @@ describe('RunList', () => {
           { name: 'metric2', number_value: 10 },
         ],
         status: 'Succeeded',
-      }
+      },
     });
     const props = generateProps();
     tree = shallow(<RunList {...props} />);
@@ -310,7 +389,14 @@ describe('RunList', () => {
   });
 
   it('shows pipeline name', async () => {
-    mockNRuns(1, { run: { pipeline_spec: { pipeline_id: 'test-pipeline-id', pipeline_name: 'pipeline name' } } });
+    mockNRuns(1, {
+      run: {
+        pipeline_spec: {
+          pipeline_id: 'test-pipeline-id',
+          pipeline_name: 'pipeline name',
+        },
+      },
+    });
     const props = generateProps();
     tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
@@ -319,7 +405,13 @@ describe('RunList', () => {
   });
 
   it('retrieves pipeline from backend to display name if not in spec', async () => {
-    mockNRuns(1, { run: { pipeline_spec: { pipeline_id: 'test-pipeline-id' /* no pipeline_name */ } } });
+    mockNRuns(1, {
+      run: {
+        pipeline_spec: {
+          pipeline_id: 'test-pipeline-id' /* no pipeline_name */,
+        },
+      },
+    });
     getPipelineSpy.mockImplementationOnce(() => ({ name: 'test pipeline' }));
     const props = generateProps();
     tree = shallow(<RunList {...props} />);
@@ -331,10 +423,12 @@ describe('RunList', () => {
   it('shows link to recurring run config', async () => {
     mockNRuns(1, {
       run: {
-        resource_references: [{
-          key: { id: 'test-recurring-run-id', type: ApiResourceType.JOB }
-        }]
-      }
+        resource_references: [
+          {
+            key: { id: 'test-recurring-run-id', type: ApiResourceType.JOB },
+          },
+        ],
+      },
     });
     const props = generateProps();
     tree = shallow(<RunList {...props} />);
@@ -346,12 +440,16 @@ describe('RunList', () => {
   it('shows experiment name', async () => {
     mockNRuns(1, {
       run: {
-        resource_references: [{
-          key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT }
-        }]
-      }
+        resource_references: [
+          {
+            key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT },
+          },
+        ],
+      },
     });
-    getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
+    getExperimentSpy.mockImplementationOnce(() => ({
+      name: 'test experiment',
+    }));
     const props = generateProps();
     tree = shallow(<RunList {...props} />);
     await (tree.instance() as RunListTest)._loadRuns({});
@@ -362,12 +460,16 @@ describe('RunList', () => {
   it('hides experiment name if instructed', async () => {
     mockNRuns(1, {
       run: {
-        resource_references: [{
-          key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT }
-        }]
-      }
+        resource_references: [
+          {
+            key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT },
+          },
+        ],
+      },
     });
-    getExperimentSpy.mockImplementationOnce(() => ({ name: 'test experiment' }));
+    getExperimentSpy.mockImplementationOnce(() => ({
+      name: 'test experiment',
+    }));
     const props = generateProps();
     props.hideExperimentColumn = true;
     tree = shallow(<RunList {...props} />);
@@ -377,72 +479,147 @@ describe('RunList', () => {
   });
 
   it('renders run name as link to its details page', () => {
-    expect(getMountedInstance()._nameCustomRenderer({ value: 'test run', id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getMountedInstance()._nameCustomRenderer({
+        value: 'test run',
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('renders pipeline name as link to its details page', () => {
-    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', id: 'pipeline-id', usePlaceholder: false }, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getMountedInstance()._pipelineCustomRenderer({
+        value: {
+          displayName: 'test pipeline',
+          id: 'pipeline-id',
+          usePlaceholder: false,
+        },
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('handles no pipeline id given', () => {
-    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', usePlaceholder: false }, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getMountedInstance()._pipelineCustomRenderer({
+        value: { displayName: 'test pipeline', usePlaceholder: false },
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('shows "View pipeline" button if pipeline is embedded in run', () => {
-    expect(getMountedInstance()._pipelineCustomRenderer({ value: { displayName: 'test pipeline', id: 'pipeline-id', usePlaceholder: true }, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getMountedInstance()._pipelineCustomRenderer({
+        value: {
+          displayName: 'test pipeline',
+          id: 'pipeline-id',
+          usePlaceholder: true,
+        },
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('handles no pipeline name', () => {
-    expect(getMountedInstance()._pipelineCustomRenderer({ value: { /* no displayName */ usePlaceholder: true }, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getMountedInstance()._pipelineCustomRenderer({
+        value: { /* no displayName */ usePlaceholder: true },
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('renders pipeline name as link to its details page', () => {
-    expect(getMountedInstance()._recurringRunCustomRenderer({ value: { id: 'recurring-run-id', }, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getMountedInstance()._recurringRunCustomRenderer({
+        value: { id: 'recurring-run-id' },
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('renders experiment name as link to its details page', () => {
-    expect(getMountedInstance()._experimentCustomRenderer({ value: { displayName: 'test experiment', id: 'experiment-id' }, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getMountedInstance()._experimentCustomRenderer({
+        value: { displayName: 'test experiment', id: 'experiment-id' },
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('renders no experiment name', () => {
-    expect(getMountedInstance()._experimentCustomRenderer({ value: { /* no displayName */ id: 'experiment-id' }, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getMountedInstance()._experimentCustomRenderer({
+        value: { /* no displayName */ id: 'experiment-id' },
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('renders status as icon', () => {
-    expect(getShallowInstance()._statusCustomRenderer({ value: NodePhase.SUCCEEDED, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getShallowInstance()._statusCustomRenderer({
+        value: NodePhase.SUCCEEDED,
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('renders metric buffer', () => {
-    expect(getShallowInstance()._metricBufferCustomRenderer({ value: {}, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getShallowInstance()._metricBufferCustomRenderer({
+        value: {},
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('renders an empty metric when there is no metric', () => {
-    expect(getShallowInstance()._metricCustomRenderer({ value: undefined, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getShallowInstance()._metricCustomRenderer({
+        value: undefined,
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('renders an empty metric when metric is empty', () => {
-    expect(getShallowInstance()._metricCustomRenderer({ value: {}, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getShallowInstance()._metricCustomRenderer({ value: {}, id: 'run-id' }),
+    ).toMatchSnapshot();
   });
 
   it('renders an empty metric when metric value is empty', () => {
-    expect(getShallowInstance()._metricCustomRenderer({ value: { metric: {} }, id: 'run-id' })).toMatchSnapshot();
+    expect(
+      getShallowInstance()._metricCustomRenderer({
+        value: { metric: {} },
+        id: 'run-id',
+      }),
+    ).toMatchSnapshot();
   });
 
   it('renders percentage metric', () => {
-    expect(getShallowInstance()._metricCustomRenderer({
-      id: 'run-id',
-      value: { metric: { number_value: 0.3, format: RunMetricFormat.PERCENTAGE } },
-    })).toMatchSnapshot();
+    expect(
+      getShallowInstance()._metricCustomRenderer({
+        id: 'run-id',
+        value: {
+          metric: { number_value: 0.3, format: RunMetricFormat.PERCENTAGE },
+        },
+      }),
+    ).toMatchSnapshot();
   });
 
   it('renders raw metric', () => {
-    expect(getShallowInstance()._metricCustomRenderer({
-      id: 'run-id',
-      value: {
-        metadata: { count: 1, maxValue: 100, minValue: 10 } as MetricMetadata,
-        metric: { number_value: 55 } as ApiRunMetric,
-      },
-    })).toMatchSnapshot();
+    expect(
+      getShallowInstance()._metricCustomRenderer({
+        id: 'run-id',
+        value: {
+          metadata: { count: 1, maxValue: 100, minValue: 10 } as MetricMetadata,
+          metric: { number_value: 55 } as ApiRunMetric,
+        },
+      }),
+    ).toMatchSnapshot();
   });
-
 });

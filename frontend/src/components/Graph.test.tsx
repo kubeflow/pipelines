@@ -34,7 +34,12 @@ const testIcon = (
   </Tooltip>
 );
 
-const newNode = (label: string, isPlaceHolder?: boolean, color?: string, icon?: JSX.Element) => ({
+const newNode = (
+  label: string,
+  isPlaceHolder?: boolean,
+  color?: string,
+  icon?: JSX.Element,
+) => ({
   bgColor: color,
   height: 10,
   icon: icon || testIcon,
@@ -127,7 +132,10 @@ describe('Graph', () => {
     graph.setEdge('node2', 'node1');
     const spy = jest.fn();
     const tree = shallow(<Graph graph={graph} onClick={spy} />);
-    tree.find('.node').at(0).simulate('click');
+    tree
+      .find('.node')
+      .at(0)
+      .simulate('click');
     expect(spy).toHaveBeenCalledWith('node1');
   });
 
@@ -136,7 +144,9 @@ describe('Graph', () => {
     graph.setNode('node1', newNode('node1'));
     graph.setNode('node2', newNode('node2'));
     graph.setEdge('node1', 'node2');
-    expect(shallow(<Graph graph={graph} selectedNodeId='node1' />)).toMatchSnapshot();
+    expect(
+      shallow(<Graph graph={graph} selectedNodeId='node1' />),
+    ).toMatchSnapshot();
   });
 
   it('gracefully renders a graph with a selected node id that does not exist', () => {
@@ -144,6 +154,8 @@ describe('Graph', () => {
     graph.setNode('node1', newNode('node1'));
     graph.setNode('node2', newNode('node2'));
     graph.setEdge('node1', 'node2');
-    expect(shallow(<Graph graph={graph} selectedNodeId='node3' />)).toMatchSnapshot();
+    expect(
+      shallow(<Graph graph={graph} selectedNodeId='node3' />),
+    ).toMatchSnapshot();
   });
 });

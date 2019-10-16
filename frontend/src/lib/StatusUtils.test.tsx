@@ -14,53 +14,90 @@
  * limitations under the License.
  */
 
-import { NodePhase, hasFinished, statusBgColors, statusToBgColor, checkIfTerminated } from './StatusUtils';
+import {
+  NodePhase,
+  hasFinished,
+  statusBgColors,
+  statusToBgColor,
+  checkIfTerminated,
+} from './StatusUtils';
 
 describe('StatusUtils', () => {
-
   describe('hasFinished', () => {
-    [NodePhase.ERROR, NodePhase.FAILED, NodePhase.SUCCEEDED, NodePhase.SKIPPED, NodePhase.TERMINATED].forEach(status => {
+    [
+      NodePhase.ERROR,
+      NodePhase.FAILED,
+      NodePhase.SUCCEEDED,
+      NodePhase.SKIPPED,
+      NodePhase.TERMINATED,
+    ].forEach(status => {
       it(`returns \'true\' if status is: ${status}`, () => {
         expect(hasFinished(status)).toBe(true);
       });
     });
 
-    [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN, NodePhase.TERMINATING].forEach(status => {
+    [
+      NodePhase.PENDING,
+      NodePhase.RUNNING,
+      NodePhase.UNKNOWN,
+      NodePhase.TERMINATING,
+    ].forEach(status => {
       it(`returns \'false\' if status is: ${status}`, () => {
         expect(hasFinished(status)).toBe(false);
       });
     });
 
-    it('returns \'false\' if status is undefined', () => {
+    it("returns 'false' if status is undefined", () => {
       expect(hasFinished(undefined)).toBe(false);
     });
 
-    it('returns \'false\' if status is invalid', () => {
+    it("returns 'false' if status is invalid", () => {
       expect(hasFinished('bad phase' as any)).toBe(false);
     });
   });
 
   describe('statusToBgColor', () => {
     it('handles an invalid phase', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
-      expect(statusToBgColor('bad phase' as any)).toEqual(statusBgColors.notStarted);
-      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
+      const consoleSpy = jest
+        .spyOn(console, 'log')
+        .mockImplementationOnce(() => null);
+      expect(statusToBgColor('bad phase' as any)).toEqual(
+        statusBgColors.notStarted,
+      );
+      expect(consoleSpy).toHaveBeenLastCalledWith(
+        'Unknown node phase:',
+        'bad phase',
+      );
     });
 
-    it('handles an \'Unknown\' phase', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
-      expect(statusToBgColor(NodePhase.UNKNOWN)).toEqual(statusBgColors.notStarted);
-      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'Unknown');
+    it("handles an 'Unknown' phase", () => {
+      const consoleSpy = jest
+        .spyOn(console, 'log')
+        .mockImplementationOnce(() => null);
+      expect(statusToBgColor(NodePhase.UNKNOWN)).toEqual(
+        statusBgColors.notStarted,
+      );
+      expect(consoleSpy).toHaveBeenLastCalledWith(
+        'Unknown node phase:',
+        'Unknown',
+      );
     });
 
-    it('returns color \'not started\' if status is undefined', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
+    it("returns color 'not started' if status is undefined", () => {
+      const consoleSpy = jest
+        .spyOn(console, 'log')
+        .mockImplementationOnce(() => null);
       expect(statusToBgColor(undefined)).toEqual(statusBgColors.notStarted);
-      expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
+      expect(consoleSpy).toHaveBeenLastCalledWith(
+        'Unknown node phase:',
+        undefined,
+      );
     });
 
-    it('returns color \'not started\' if status is \'Pending\'', () => {
-      expect(statusToBgColor(NodePhase.PENDING)).toEqual(statusBgColors.notStarted);
+    it("returns color 'not started' if status is 'Pending'", () => {
+      expect(statusToBgColor(NodePhase.PENDING)).toEqual(
+        statusBgColors.notStarted,
+      );
     });
 
     [NodePhase.ERROR, NodePhase.FAILED].forEach(status => {
@@ -77,18 +114,24 @@ describe('StatusUtils', () => {
 
     [NodePhase.SKIPPED, NodePhase.TERMINATED].forEach(status => {
       it(`returns color \'terminated or skipped\' if status is: ${status}`, () => {
-        expect(statusToBgColor(status)).toEqual(statusBgColors.terminatedOrSkipped);
+        expect(statusToBgColor(status)).toEqual(
+          statusBgColors.terminatedOrSkipped,
+        );
       });
     });
 
-    it('returns color \'succeeded\' if status is \'Succeeded\'', () => {
-      expect(statusToBgColor(NodePhase.SUCCEEDED)).toEqual(statusBgColors.succeeded);
+    it("returns color 'succeeded' if status is 'Succeeded'", () => {
+      expect(statusToBgColor(NodePhase.SUCCEEDED)).toEqual(
+        statusBgColors.succeeded,
+      );
     });
   });
 
   describe('checkIfTerminated', () => {
-    it('returns status \'terminated\' if status is \'failed\' and error message is \'terminated\'', () => {
-      expect(checkIfTerminated(NodePhase.FAILED, 'terminated')).toEqual(NodePhase.TERMINATED);
+    it("returns status 'terminated' if status is 'failed' and error message is 'terminated'", () => {
+      expect(checkIfTerminated(NodePhase.FAILED, 'terminated')).toEqual(
+        NodePhase.TERMINATED,
+      );
     });
 
     [
@@ -98,23 +141,25 @@ describe('StatusUtils', () => {
       NodePhase.PENDING,
       NodePhase.RUNNING,
       NodePhase.TERMINATING,
-      NodePhase.UNKNOWN
+      NodePhase.UNKNOWN,
     ].forEach(status => {
       it(`returns the original status, even if message is 'terminated', if status is: ${status}`, () => {
         expect(checkIfTerminated(status, 'terminated')).toEqual(status);
       });
     });
 
-    it('returns \'failed\' if status is \'failed\' and no error message is provided', () => {
+    it("returns 'failed' if status is 'failed' and no error message is provided", () => {
       expect(checkIfTerminated(NodePhase.FAILED)).toEqual(NodePhase.FAILED);
     });
 
-    it('returns \'failed\' if status is \'failed\' and empty error message is provided', () => {
+    it("returns 'failed' if status is 'failed' and empty error message is provided", () => {
       expect(checkIfTerminated(NodePhase.FAILED, '')).toEqual(NodePhase.FAILED);
     });
 
-    it('returns \'failed\' if status is \'failed\' and arbitrary error message is provided', () => {
-      expect(checkIfTerminated(NodePhase.FAILED, 'some random error')).toEqual(NodePhase.FAILED);
+    it("returns 'failed' if status is 'failed' and arbitrary error message is provided", () => {
+      expect(checkIfTerminated(NodePhase.FAILED, 'some random error')).toEqual(
+        NodePhase.FAILED,
+      );
     });
   });
 });

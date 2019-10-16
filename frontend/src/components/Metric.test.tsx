@@ -48,17 +48,27 @@ describe('Metric', () => {
   });
 
   it('renders a metric when metric has value and percentage format', () => {
-    tree = shallow(<Metric metric={{ format: RunMetricFormat.PERCENTAGE, number_value: 0.54 }} />);
+    tree = shallow(
+      <Metric
+        metric={{ format: RunMetricFormat.PERCENTAGE, number_value: 0.54 }}
+      />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
   it('renders an empty metric when metric has no metadata and unspecified format', () => {
-    tree = shallow(<Metric metric={{ format: RunMetricFormat.UNSPECIFIED, number_value: 0.54 }} />);
+    tree = shallow(
+      <Metric
+        metric={{ format: RunMetricFormat.UNSPECIFIED, number_value: 0.54 }}
+      />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
   it('renders an empty metric when metric has no metadata and raw format', () => {
-    tree = shallow(<Metric metric={{ format: RunMetricFormat.RAW, number_value: 0.54 }} />);
+    tree = shallow(
+      <Metric metric={{ format: RunMetricFormat.RAW, number_value: 0.54 }} />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
@@ -67,7 +77,8 @@ describe('Metric', () => {
       <Metric
         metadata={{ name: 'some metric', count: 1, maxValue: 0, minValue: 0 }}
         metric={{ format: RunMetricFormat.RAW, number_value: 0.54 }}
-      />);
+      />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
@@ -77,7 +88,8 @@ describe('Metric', () => {
       <Metric
         metadata={{ name: 'some metric', count: 1, maxValue: 1, minValue: 0 }}
         metric={{ format: RunMetricFormat.RAW, number_value: 0.54 }}
-      />);
+      />,
+    );
     expect(consoleSpy).toHaveBeenCalledTimes(0);
     expect(tree).toMatchSnapshot();
   });
@@ -88,7 +100,8 @@ describe('Metric', () => {
       <Metric
         metadata={{ name: 'some metric', count: 1, maxValue: 1, minValue: 0 }}
         metric={{ format: RunMetricFormat.RAW, number_value: -0.54 }}
-      />);
+      />,
+    );
     expect(consoleSpy).toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });
@@ -99,7 +112,8 @@ describe('Metric', () => {
       <Metric
         metadata={{ name: 'some metric', count: 1, maxValue: 1, minValue: 0 }}
         metric={{ format: RunMetricFormat.RAW, number_value: 2 }}
-      />);
+      />,
+    );
     expect(consoleSpy).toHaveBeenCalled();
     expect(tree).toMatchSnapshot();
   });

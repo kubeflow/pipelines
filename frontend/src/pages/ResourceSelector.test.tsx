@@ -15,7 +15,10 @@
  */
 
 import * as React from 'react';
-import ResourceSelector, { ResourceSelectorProps, BaseResource } from './ResourceSelector';
+import ResourceSelector, {
+  ResourceSelectorProps,
+  BaseResource,
+} from './ResourceSelector';
 import TestUtils from '../TestUtils';
 import { ListRequest } from '../lib/Apis';
 import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
@@ -47,12 +50,13 @@ describe('ResourceSelector', () => {
       description: 'test-1 description',
       id: 'some-id-1',
       name: 'test-1 name',
-    }, {
+    },
+    {
       created_at: new Date(2018, 10, 9, 8, 7, 6),
       description: 'test-2 description',
       id: 'some-2-id',
       name: 'test-2 name',
-    }
+    },
   ];
 
   const selectorColumns = [
@@ -82,8 +86,10 @@ describe('ResourceSelector', () => {
 
   beforeEach(() => {
     listResourceSpy.mockReset();
-    listResourceSpy.mockImplementation(
-      () => ({ resources: RESOURCES, nextPageToken: 'test-next-page-token' }));
+    listResourceSpy.mockImplementation(() => ({
+      resources: RESOURCES,
+      nextPageToken: 'test-next-page-token',
+    }));
     updateDialogSpy.mockReset();
     selectionChangedCbSpy.mockReset();
   });
@@ -99,7 +105,12 @@ describe('ResourceSelector', () => {
     await (tree.instance() as TestResourceSelector)._load({});
 
     expect(listResourceSpy).toHaveBeenCalledTimes(1);
-    expect(listResourceSpy).toHaveBeenLastCalledWith(undefined, undefined, undefined, undefined);
+    expect(listResourceSpy).toHaveBeenLastCalledWith(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
     expect(tree.state('resources')).toEqual(RESOURCES);
     expect(tree).toMatchSnapshot();
   });
@@ -112,22 +123,23 @@ describe('ResourceSelector', () => {
         description: 'a description',
         id: 'an-id',
         name: 'a name',
-      }
+      },
     ];
-    listResourceSpy.mockImplementationOnce(() => ({ resources, nextPageToken: '' }));
+    listResourceSpy.mockImplementationOnce(() => ({
+      resources,
+      nextPageToken: '',
+    }));
     props.listApi = listResourceSpy as any;
 
     tree = shallow(<TestResourceSelector {...props} />);
     await (tree.instance() as TestResourceSelector)._load({});
 
-    expect(tree.state('rows')).toEqual([{
-      id: 'an-id',
-      otherFields: [
-        'a name',
-        'a description',
-        '2/2/2018, 3:04:05 AM',
-      ],
-    }]);
+    expect(tree.state('rows')).toEqual([
+      {
+        id: 'an-id',
+        otherFields: ['a name', 'a description', '2/2/2018, 3:04:05 AM'],
+      },
+    ]);
   });
 
   it('shows error dialog if listing fails', async () => {
@@ -138,10 +150,12 @@ describe('ResourceSelector', () => {
     await (tree.instance() as TestResourceSelector)._load({});
 
     expect(listResourceSpy).toHaveBeenCalledTimes(1);
-    expect(updateDialogSpy).toHaveBeenLastCalledWith(expect.objectContaining({
-      content: 'List request failed with:\nwoops!',
-      title: 'Error retrieving resources',
-    }));
+    expect(updateDialogSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        content: 'List request failed with:\nwoops!',
+        title: 'Error retrieving resources',
+      }),
+    );
     expect(tree.state('resources')).toEqual([]);
   });
 
@@ -150,7 +164,9 @@ describe('ResourceSelector', () => {
     await (tree.instance() as TestResourceSelector)._load({});
 
     expect(tree.state('selectedIds')).toEqual([]);
-    (tree.instance() as TestResourceSelector)._selectionChanged([RESOURCES[1].id!]);
+    (tree.instance() as TestResourceSelector)._selectionChanged([
+      RESOURCES[1].id!,
+    ]);
     expect(selectionChangedCbSpy).toHaveBeenLastCalledWith(RESOURCES[1]);
     expect(tree.state('selectedIds')).toEqual([RESOURCES[1].id]);
   });
@@ -162,12 +178,17 @@ describe('ResourceSelector', () => {
 
     expect(tree.state('selectedIds')).toEqual([]);
 
-    (tree.instance() as TestResourceSelector)._selectionChanged([RESOURCES[0].id!, RESOURCES[1].id!]);
+    (tree.instance() as TestResourceSelector)._selectionChanged([
+      RESOURCES[0].id!,
+      RESOURCES[1].id!,
+    ]);
 
     expect(selectionChangedCbSpy).not.toHaveBeenCalled();
     expect(tree.state('selectedIds')).toEqual([]);
     expect(consoleSpy).toHaveBeenLastCalledWith(
-      '2 resources were selected somehow', [RESOURCES[0].id, RESOURCES[1].id]);
+      '2 resources were selected somehow',
+      [RESOURCES[0].id, RESOURCES[1].id],
+    );
   });
 
   it('logs error if selected resource ID is not found in list', async () => {
@@ -177,11 +198,14 @@ describe('ResourceSelector', () => {
 
     expect(tree.state('selectedIds')).toEqual([]);
 
-    (tree.instance() as TestResourceSelector)._selectionChanged(['id-not-in-list']);
+    (tree.instance() as TestResourceSelector)._selectionChanged([
+      'id-not-in-list',
+    ]);
 
     expect(selectionChangedCbSpy).not.toHaveBeenCalled();
     expect(tree.state('selectedIds')).toEqual([]);
     expect(consoleSpy).toHaveBeenLastCalledWith(
-      'Somehow no resource was found with ID: id-not-in-list');
+      'Somehow no resource was found with ID: id-not-in-list',
+    );
   });
 });

@@ -48,7 +48,6 @@ const css = stylesheet({
 });
 
 class NewExperiment extends Page<{}, NewExperimentState> {
-
   private _experimentNameRef = React.createRef<HTMLInputElement>();
 
   constructor(props: any) {
@@ -65,36 +64,63 @@ class NewExperiment extends Page<{}, NewExperimentState> {
   public getInitialToolbarState(): ToolbarProps {
     return {
       actions: {},
-      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      breadcrumbs: [
+        { displayName: 'Experiments', href: RoutePage.EXPERIMENTS },
+      ],
       pageTitle: 'New experiment',
     };
   }
 
   public render(): JSX.Element {
-    const { description, experimentName, isbeingCreated, validationError } = this.state;
+    const {
+      description,
+      experimentName,
+      isbeingCreated,
+      validationError,
+    } = this.state;
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
-
         <div className={classes(commonCss.scrollContainer, padding(20, 'lr'))}>
           <div className={commonCss.header}>Experiment details</div>
           {/* TODO: this description needs work. */}
           <div className={css.explanation}>
-            Think of an Experiment as a space that contains the history of all pipelines and their
-            associated runs
+            Think of an Experiment as a space that contains the history of all
+            pipelines and their associated runs
           </div>
 
-          <Input id='experimentName' label='Experiment name' inputRef={this._experimentNameRef}
-            required={true} onChange={this.handleChange('experimentName')} value={experimentName}
-            autoFocus={true} variant='outlined' />
-          <Input id='experimentDescription' label='Description (optional)' multiline={true}
-            onChange={this.handleChange('description')} value={description} variant='outlined' />
+          <Input
+            id='experimentName'
+            label='Experiment name'
+            inputRef={this._experimentNameRef}
+            required={true}
+            onChange={this.handleChange('experimentName')}
+            value={experimentName}
+            autoFocus={true}
+            variant='outlined'
+          />
+          <Input
+            id='experimentDescription'
+            label='Description (optional)'
+            multiline={true}
+            onChange={this.handleChange('description')}
+            value={description}
+            variant='outlined'
+          />
 
           <div className={commonCss.flex}>
-            <BusyButton id='createExperimentBtn' disabled={!!validationError} busy={isbeingCreated}
-              className={commonCss.buttonAction} title={'Next'}
-              onClick={this._create.bind(this)} />
-            <Button id='cancelNewExperimentBtn' onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}>
+            <BusyButton
+              id='createExperimentBtn'
+              disabled={!!validationError}
+              busy={isbeingCreated}
+              className={commonCss.buttonAction}
+              title={'Next'}
+              onClick={this._create.bind(this)}
+            />
+            <Button
+              id='cancelNewExperimentBtn'
+              onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}
+            >
               Cancel
             </Button>
             <div className={css.errorMessage}>{validationError}</div>
@@ -121,7 +147,7 @@ class NewExperiment extends Page<{}, NewExperimentState> {
   public handleChange = (name: string) => (event: any) => {
     const value = (event.target as TextFieldProps).value;
     this.setState({ [name]: value } as any, this._validate.bind(this));
-  }
+  };
 
   private _create(): void {
     const newExperiment: ApiExperiment = {
@@ -131,7 +157,9 @@ class NewExperiment extends Page<{}, NewExperimentState> {
 
     this.setState({ isbeingCreated: true }, async () => {
       try {
-        const response = await Apis.experimentServiceApi.createExperiment(newExperiment);
+        const response = await Apis.experimentServiceApi.createExperiment(
+          newExperiment,
+        );
         let searchString = '';
         if (this.state.pipelineId) {
           searchString = new URLParser(this.props).build({

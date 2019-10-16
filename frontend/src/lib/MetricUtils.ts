@@ -16,7 +16,10 @@
 
 import { ApiRunMetric, RunMetricFormat } from '../apis/run';
 
-function getMetricDisplayString(metric?: ApiRunMetric, decimalPlaces = 3): string {
+function getMetricDisplayString(
+  metric?: ApiRunMetric,
+  decimalPlaces = 3,
+): string {
   if (!metric || metric.number_value === undefined) {
     return '';
   }

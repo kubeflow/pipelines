@@ -53,7 +53,9 @@ describe('URLParser', () => {
     location.search = '?searchkey=searchvalue';
 
     new URLParser(routerProps).set('searchkey2' as any, 'searchvalue2');
-    expect(history.location.search).toEqual('?searchkey=searchvalue&searchkey2=searchvalue2');
+    expect(history.location.search).toEqual(
+      '?searchkey=searchvalue&searchkey2=searchvalue2',
+    );
   });
 
   it('removes the query string param when setting it to empty value', () => {
@@ -109,8 +111,9 @@ describe('URLParser', () => {
   });
 
   it('can build a search string', () => {
-    expect(new URLParser(routerProps).build({ key1: 'value1', key2: 'value2' }))
-      .toEqual('?key1=value1&key2=value2');
+    expect(
+      new URLParser(routerProps).build({ key1: 'value1', key2: 'value2' }),
+    ).toEqual('?key1=value1&key2=value2');
   });
 
   it('returns empty query string when given an empty object or no object', () => {

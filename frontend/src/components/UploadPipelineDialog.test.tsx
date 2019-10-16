@@ -60,23 +60,46 @@ describe('UploadPipelineDialog', () => {
     const spy = jest.fn();
     tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     tree.find('#cancelUploadBtn').simulate('click');
-    expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, '');
+    expect(spy).toHaveBeenCalledWith(
+      false,
+      '',
+      null,
+      '',
+      ImportMethod.LOCAL,
+      '',
+    );
   });
 
   it('calls close callback with null and empty string when dialog is closed', () => {
     const spy = jest.fn();
     tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     tree.find('WithStyles(Dialog)').simulate('close');
-    expect(spy).toHaveBeenCalledWith(false, '', null, '', ImportMethod.LOCAL, '');
+    expect(spy).toHaveBeenCalledWith(
+      false,
+      '',
+      null,
+      '',
+      ImportMethod.LOCAL,
+      '',
+    );
   });
 
   it('calls close callback with file name, file object, and description when confirmed', () => {
     const spy = jest.fn();
     tree = shallow(<UploadPipelineDialog open={false} onClose={spy} />);
     (tree.instance() as any)._dropzoneRef = { current: { open: () => null } };
-    (tree.instance() as UploadPipelineDialog).handleChange('uploadPipelineName')({ target: { value: 'test name' } });
+    (tree.instance() as UploadPipelineDialog).handleChange(
+      'uploadPipelineName',
+    )({ target: { value: 'test name' } });
     tree.find('#confirmUploadBtn').simulate('click');
-    expect(spy).toHaveBeenLastCalledWith(true, 'test name', null, '', ImportMethod.LOCAL, '');
+    expect(spy).toHaveBeenLastCalledWith(
+      true,
+      'test name',
+      null,
+      '',
+      ImportMethod.LOCAL,
+      '',
+    );
   });
 
   it('trims file extension for pipeline name suggestion', () => {
@@ -84,7 +107,10 @@ describe('UploadPipelineDialog', () => {
     const file = { name: 'test_upload_file.tar.gz' };
     tree.find('#dropZone').simulate('drop', [file]);
     expect(tree.state()).toHaveProperty('dropzoneActive', false);
-    expect(tree.state()).toHaveProperty('uploadPipelineName', 'test_upload_file');
+    expect(tree.state()).toHaveProperty(
+      'uploadPipelineName',
+      'test_upload_file',
+    );
   });
 
   it('sets the import method based on which radio button is toggled', () => {

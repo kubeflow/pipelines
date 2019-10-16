@@ -29,20 +29,41 @@ describe('Input', () => {
 
   it('does not try to call the onSwitch handler if it is not defined', () => {
     const tree = shallow(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} />);
-    tree.find(buttonSelector).at(1).simulate('click');
+    tree
+      .find(buttonSelector)
+      .at(1)
+      .simulate('click');
   });
 
   it('calls the onSwitch function if an unselected button is clicked', () => {
     const switchHandler = jest.fn();
-    const tree = shallow(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} onSwitch={switchHandler} />);
-    tree.find(buttonSelector).at(1).simulate('click');
+    const tree = shallow(
+      <MD2Tabs
+        tabs={['tab1', 'tab2']}
+        selectedTab={0}
+        onSwitch={switchHandler}
+      />,
+    );
+    tree
+      .find(buttonSelector)
+      .at(1)
+      .simulate('click');
     expect(switchHandler).toHaveBeenCalled();
   });
 
   it('does not the onSwitch function if the already selected button is clicked', () => {
     const switchHandler = jest.fn();
-    const tree = shallow(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={1} onSwitch={switchHandler} />);
-    tree.find(buttonSelector).at(1).simulate('click');
+    const tree = shallow(
+      <MD2Tabs
+        tabs={['tab1', 'tab2']}
+        selectedTab={1}
+        onSwitch={switchHandler}
+      />,
+    );
+    tree
+      .find(buttonSelector)
+      .at(1)
+      .simulate('click');
     expect(switchHandler).not.toHaveBeenCalled();
   });
 
@@ -56,7 +77,9 @@ describe('Input', () => {
   it('recalculates indicator styles when props are updated', () => {
     const spy = jest.fn();
     jest.useFakeTimers();
-    jest.spyOn(MD2Tabs.prototype as any, '_updateIndicator').mockImplementationOnce(spy);
+    jest
+      .spyOn(MD2Tabs.prototype as any, '_updateIndicator')
+      .mockImplementationOnce(spy);
     const tree = mount(<MD2Tabs tabs={['tab1', 'tab2']} selectedTab={0} />);
     tree.instance().componentDidUpdate!({}, {});
     jest.runAllTimers();

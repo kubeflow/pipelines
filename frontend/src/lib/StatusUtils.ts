@@ -55,34 +55,40 @@ export function hasFinished(status?: NodePhase): boolean {
   }
 }
 
-export function statusToBgColor(status?: NodePhase, nodeMessage?: string): string {
+export function statusToBgColor(
+  status?: NodePhase,
+  nodeMessage?: string,
+): string {
   status = checkIfTerminated(status, nodeMessage);
   switch (status) {
     case NodePhase.ERROR:
-      // fall through
+    // fall through
     case NodePhase.FAILED:
       return statusBgColors.error;
     case NodePhase.PENDING:
       return statusBgColors.notStarted;
     case NodePhase.TERMINATING:
-      // fall through
+    // fall through
     case NodePhase.RUNNING:
       return statusBgColors.running;
     case NodePhase.SUCCEEDED:
       return statusBgColors.succeeded;
     case NodePhase.SKIPPED:
-      // fall through
+    // fall through
     case NodePhase.TERMINATED:
       return statusBgColors.terminatedOrSkipped;
     case NodePhase.UNKNOWN:
-      // fall through
+    // fall through
     default:
       logger.verbose('Unknown node phase:', status);
       return statusBgColors.notStarted;
   }
 }
 
-export function checkIfTerminated(status?: NodePhase, nodeMessage?: string): NodePhase | undefined {
+export function checkIfTerminated(
+  status?: NodePhase,
+  nodeMessage?: string,
+): NodePhase | undefined {
   // Argo considers terminated runs as having "Failed", so we have to examine the failure message to
   // determine why the run failed.
   if (status === NodePhase.FAILED && nodeMessage === 'terminated') {
@@ -90,4 +96,3 @@ export function checkIfTerminated(status?: NodePhase, nodeMessage?: string): Nod
   }
   return status;
 }
-

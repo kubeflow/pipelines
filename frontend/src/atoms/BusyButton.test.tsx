@@ -26,22 +26,30 @@ describe('BusyButton', () => {
   });
 
   it('renders with a title and icon', () => {
-    const tree = create(<BusyButton title='test busy button' icon={TestIcon} />);
+    const tree = create(
+      <BusyButton title='test busy button' icon={TestIcon} />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
   it('renders with a title and icon, and busy', () => {
-    const tree = create(<BusyButton title='test busy button' icon={TestIcon} busy={true} />);
+    const tree = create(
+      <BusyButton title='test busy button' icon={TestIcon} busy={true} />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
   it('renders disabled', () => {
-    const tree = create(<BusyButton title='test busy button' icon={TestIcon} disabled={true} />);
+    const tree = create(
+      <BusyButton title='test busy button' icon={TestIcon} disabled={true} />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
   it('renders a primary outlined buton', () => {
-    const tree = create(<BusyButton title='test busy button' outlined={true} />);
+    const tree = create(
+      <BusyButton title='test busy button' outlined={true} />,
+    );
     expect(tree).toMatchSnapshot();
   });
 });

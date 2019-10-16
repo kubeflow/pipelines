@@ -25,7 +25,9 @@ import { ButtonKeys } from '../lib/Buttons';
 describe('AllRunsList', () => {
   const updateBannerSpy = jest.fn();
   let _toolbarProps: any = {};
-  const updateToolbarSpy = jest.fn(toolbarProps => _toolbarProps = toolbarProps);
+  const updateToolbarSpy = jest.fn(
+    toolbarProps => (_toolbarProps = toolbarProps),
+  );
   const historyPushSpy = jest.fn();
   const props: PageProps = {
     history: { push: historyPushSpy } as any,
@@ -98,14 +100,18 @@ describe('AllRunsList', () => {
     shallowMountComponent();
     tree.find('RunList').simulate('selectionChange', ['run1']);
     _toolbarProps.actions[ButtonKeys.CLONE_RUN].action();
-    expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_RUN + '?cloneFromRun=run1');
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.NEW_RUN + '?cloneFromRun=run1',
+    );
   });
 
   it('navigates to compare page when compare button is clicked', () => {
     shallowMountComponent();
     tree.find('RunList').simulate('selectionChange', ['run1', 'run2', 'run3']);
     _toolbarProps.actions[ButtonKeys.COMPARE].action();
-    expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.COMPARE + '?runlist=run1,run2,run3');
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.COMPARE + '?runlist=run1,run2,run3',
+    );
   });
 
   it('shows thrown error in error banner', () => {
@@ -121,6 +127,8 @@ describe('AllRunsList', () => {
 
   it('shows a list of available runs', () => {
     shallowMountComponent();
-    expect(tree.find('RunList').prop('storageState')).toBe(RunStorageState.AVAILABLE.toString());
+    expect(tree.find('RunList').prop('storageState')).toBe(
+      RunStorageState.AVAILABLE.toString(),
+    );
   });
 });

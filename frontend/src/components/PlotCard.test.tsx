@@ -21,31 +21,41 @@ import { ViewerConfig, PlotType } from './viewers/Viewer';
 
 describe('PlotCard', () => {
   it('handles no configs', () => {
-    expect(shallow(<PlotCard title='' configs={[]} maxDimension={100} />)).toMatchSnapshot();
+    expect(
+      shallow(<PlotCard title='' configs={[]} maxDimension={100} />),
+    ).toMatchSnapshot();
   });
 
   const config: ViewerConfig = { type: PlotType.CONFUSION_MATRIX };
 
   it('renders on confusion matrix viewer card', () => {
-    const tree = shallow(<PlotCard title='test title' configs={[config]} maxDimension={100} />);
+    const tree = shallow(
+      <PlotCard title='test title' configs={[config]} maxDimension={100} />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
   it('pops out a full screen view of the viewer', () => {
-    const tree = shallow(<PlotCard title='' configs={[config]} maxDimension={100} />);
+    const tree = shallow(
+      <PlotCard title='' configs={[config]} maxDimension={100} />,
+    );
     tree.find('.popOutButton').simulate('click');
     expect(tree).toMatchSnapshot();
   });
 
   it('close button closes full screen dialog', () => {
-    const tree = shallow(<PlotCard title='' configs={[config]} maxDimension={100} />);
+    const tree = shallow(
+      <PlotCard title='' configs={[config]} maxDimension={100} />,
+    );
     tree.find('.popOutButton').simulate('click');
     tree.find('.fullscreenCloseButton').simulate('click');
     expect(tree).toMatchSnapshot();
   });
 
   it('clicking outside full screen dialog closes it', () => {
-    const tree = shallow(<PlotCard title='' configs={[config]} maxDimension={100} />);
+    const tree = shallow(
+      <PlotCard title='' configs={[config]} maxDimension={100} />,
+    );
     tree.find('.popOutButton').simulate('click');
     tree.find('WithStyles(Dialog)').simulate('close');
     expect(tree).toMatchSnapshot();

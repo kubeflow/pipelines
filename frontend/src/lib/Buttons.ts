@@ -51,7 +51,11 @@ export default class Buttons {
   private _refresh: () => void;
   private _urlParser: URLParser;
 
-  constructor(pageProps: PageProps, refresh: () => void, map?: ToolbarActionMap) {
+  constructor(
+    pageProps: PageProps,
+    refresh: () => void,
+    map?: ToolbarActionMap,
+  ) {
     this._props = pageProps;
     this._refresh = refresh;
     this._urlParser = new URLParser(pageProps);
@@ -62,12 +66,18 @@ export default class Buttons {
     return this._map;
   }
 
-  public archive(getSelectedIds: () => string[], useCurrentResource: boolean,
-    callback: (selectedIds: string[], success: boolean) => void): Buttons {
+  public archive(
+    getSelectedIds: () => string[],
+    useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): Buttons {
     this._map[ButtonKeys.ARCHIVE] = {
-      action: () => this._archive(getSelectedIds(), useCurrentResource, callback),
+      action: () =>
+        this._archive(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
+      disabledTitle: useCurrentResource
+        ? undefined
+        : 'Select at least one resource to archive',
       id: 'archiveBtn',
       title: 'Archive',
       tooltip: 'Archive',
@@ -75,7 +85,10 @@ export default class Buttons {
     return this;
   }
 
-  public cloneRun(getSelectedIds: () => string[], useCurrentResource: boolean): Buttons {
+  public cloneRun(
+    getSelectedIds: () => string[],
+    useCurrentResource: boolean,
+  ): Buttons {
     this._map[ButtonKeys.CLONE_RUN] = {
       action: () => this._cloneRun(getSelectedIds()),
       disabled: !useCurrentResource,
@@ -83,29 +96,40 @@ export default class Buttons {
       id: 'cloneBtn',
       style: { minWidth: 100 },
       title: 'Clone run',
-      tooltip: 'Create a copy from this run\s initial state',
+      tooltip: 'Create a copy from this runs initial state',
     };
     return this;
   }
 
-  public cloneRecurringRun(getSelectedIds: () => string[], useCurrentResource: boolean): Buttons {
+  public cloneRecurringRun(
+    getSelectedIds: () => string[],
+    useCurrentResource: boolean,
+  ): Buttons {
     this._map[ButtonKeys.CLONE_RECURRING_RUN] = {
       action: () => this._cloneRun(getSelectedIds(), true),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select a recurring run to clone',
+      disabledTitle: useCurrentResource
+        ? undefined
+        : 'Select a recurring run to clone',
       id: 'cloneBtn',
       title: 'Clone recurring run',
-      tooltip: 'Create a copy from this run\s initial state',
+      tooltip: 'Create a copy from this runs initial state',
     };
     return this;
   }
 
-  public retryRun(getSelectedIds: () => string[], useCurrentResource: boolean,
-                  callback: (selectedIds: string[], success: boolean) => void): Buttons {
+  public retryRun(
+    getSelectedIds: () => string[],
+    useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): Buttons {
     this._map[ButtonKeys.RETRY] = {
-      action: () => this._retryRun(getSelectedIds(), useCurrentResource, callback),
+      action: () =>
+        this._retryRun(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to retry',
+      disabledTitle: useCurrentResource
+        ? undefined
+        : 'Select at least one resource to retry',
       id: 'retryBtn',
       title: 'Retry',
       tooltip: 'Retry',
@@ -137,14 +161,25 @@ export default class Buttons {
     return this;
   }
 
-  public delete(getSelectedIds: () => string[], resourceName: 'pipeline' | 'recurring run config',
-    callback: (selectedIds: string[], success: boolean) => void, useCurrentResource: boolean): Buttons {
+  public delete(
+    getSelectedIds: () => string[],
+    resourceName: 'pipeline' | 'recurring run config',
+    callback: (selectedIds: string[], success: boolean) => void,
+    useCurrentResource: boolean,
+  ): Buttons {
     this._map[ButtonKeys.DELETE_RUN] = {
-      action: () => resourceName === 'pipeline' ?
-        this._deletePipeline(getSelectedIds(), useCurrentResource, callback) :
-        this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, callback),
+      action: () =>
+        resourceName === 'pipeline'
+          ? this._deletePipeline(getSelectedIds(), useCurrentResource, callback)
+          : this._deleteRecurringRun(
+              getSelectedIds()[0],
+              useCurrentResource,
+              callback,
+            ),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : `Select at least one ${resourceName} to delete`,
+      disabledTitle: useCurrentResource
+        ? undefined
+        : `Select at least one ${resourceName} to delete`,
       id: 'deleteBtn',
       title: 'Delete',
       tooltip: 'Delete',
@@ -159,7 +194,7 @@ export default class Buttons {
       disabledTitle: 'Run schedule already disabled',
       id: 'disableBtn',
       title: 'Disable',
-      tooltip: 'Disable the run\'s trigger',
+      tooltip: "Disable the run's trigger",
     };
     return this;
   }
@@ -171,7 +206,7 @@ export default class Buttons {
       disabledTitle: 'Run schedule already enabled',
       id: 'enableBtn',
       title: 'Enable',
-      tooltip: 'Enable the run\'s trigger',
+      tooltip: "Enable the run's trigger",
     };
     return this;
   }
@@ -189,7 +224,8 @@ export default class Buttons {
 
   public newExperiment(getPipelineId?: () => string): Buttons {
     this._map[ButtonKeys.NEW_EXPERIMENT] = {
-      action: () => this._createNewExperiment(getPipelineId ? getPipelineId() : ''),
+      action: () =>
+        this._createNewExperiment(getPipelineId ? getPipelineId() : ''),
       icon: AddIcon,
       id: 'newExperimentBtn',
       outlined: true,
@@ -202,7 +238,11 @@ export default class Buttons {
 
   public newRun(getExperimentId?: () => string): Buttons {
     this._map[ButtonKeys.NEW_RUN] = {
-      action: () => this._createNewRun(false, getExperimentId ? getExperimentId() : undefined),
+      action: () =>
+        this._createNewRun(
+          false,
+          getExperimentId ? getExperimentId() : undefined,
+        ),
       icon: AddIcon,
       id: 'createNewRunBtn',
       outlined: true,
@@ -251,12 +291,18 @@ export default class Buttons {
     return this;
   }
 
-  public restore(getSelectedIds: () => string[], useCurrentResource: boolean,
-    callback: (selectedIds: string[], success: boolean) => void): Buttons {
+  public restore(
+    getSelectedIds: () => string[],
+    useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): Buttons {
     this._map[ButtonKeys.RESTORE] = {
-      action: () => this._restore(getSelectedIds(), useCurrentResource, callback),
+      action: () =>
+        this._restore(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
+      disabledTitle: useCurrentResource
+        ? undefined
+        : 'Select at least one resource to restore',
       id: 'restoreBtn',
       title: 'Restore',
       tooltip: 'Restore',
@@ -264,12 +310,18 @@ export default class Buttons {
     return this;
   }
 
-  public terminateRun(getSelectedIds: () => string[], useCurrentResource: boolean,
-    callback: (selectedIds: string[], success: boolean) => void): Buttons {
+  public terminateRun(
+    getSelectedIds: () => string[],
+    useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): Buttons {
     this._map[ButtonKeys.TERMINATE_RUN] = {
-      action: () => this._terminateRun(getSelectedIds(), useCurrentResource, callback),
+      action: () =>
+        this._terminateRun(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select at least one run to terminate',
+      disabledTitle: useCurrentResource
+        ? undefined
+        : 'Select at least one run to terminate',
       id: 'terminateRunBtn',
       title: 'Terminate',
       tooltip: 'Terminate execution of a run',
@@ -297,7 +349,7 @@ export default class Buttons {
       if (isRecurring) {
         searchTerms = {
           [QUERY_PARAMS.cloneFromRecurringRun]: runId || '',
-          [QUERY_PARAMS.isRecurring]: '1'
+          [QUERY_PARAMS.isRecurring]: '1',
         };
       } else {
         searchTerms = { [QUERY_PARAMS.cloneFromRun]: runId || '' };
@@ -307,27 +359,39 @@ export default class Buttons {
     }
   }
 
-  private _retryRun(selectedIds: string[], useCurrent: boolean,
-                    callback: (selectedIds: string[], success: boolean) => void): void {
+  private _retryRun(
+    selectedIds: string[],
+    useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
     this._dialogActionHandler(
-        selectedIds,
-        'Retry this run?',
-        useCurrent,
-        id => Apis.runServiceApi.retryRun(id),
-        callback,
-        'Retry',
-        'run'
+      selectedIds,
+      'Retry this run?',
+      useCurrent,
+      id => Apis.runServiceApi.retryRun(id),
+      callback,
+      'Retry',
+      'run',
     );
   }
 
-  private _archive(selectedIds: string[], useCurrent: boolean,
-    callback: (selectedIds: string[], success: boolean) => void): void {
+  private _archive(
+    selectedIds: string[],
+    useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Run${s(selectedIds)} will be moved to the Archive section, where you can still view ` +
-      `${selectedIds.length === 1 ? 'its' : 'their'} details. Please note that the run will not ` +
-      `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
-      `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      `Run${s(
+        selectedIds,
+      )} will be moved to the Archive section, where you can still view ` +
+        `${
+          selectedIds.length === 1 ? 'its' : 'their'
+        } details. Please note that the run will not ` +
+        `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
+        `run${s(selectedIds)} to ${
+          selectedIds.length === 1 ? 'its' : 'their'
+        } original location.`,
       useCurrent,
       id => Apis.runServiceApi.archiveRun(id),
       callback,
@@ -336,11 +400,16 @@ export default class Buttons {
     );
   }
 
-  private _restore(selectedIds: string[], useCurrent: boolean,
-    callback: (selectedIds: string[], success: boolean) => void): void {
+  private _restore(
+    selectedIds: string[],
+    useCurrent: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to restore ${selectedIds.length === 1 ? 'this run to its' : 'these runs to their'} original location?`,
+      `Do you want to restore ${
+        selectedIds.length === 1 ? 'this run to its' : 'these runs to their'
+      } original location?`,
       useCurrent,
       id => Apis.runServiceApi.unarchiveRun(id),
       callback,
@@ -349,11 +418,16 @@ export default class Buttons {
     );
   }
 
-  private _deletePipeline(selectedIds: string[], useCurrentResource: boolean,
-    callback: (selectedIds: string[], success: boolean) => void): void {
+  private _deletePipeline(
+    selectedIds: string[],
+    useCurrentResource: boolean,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to delete ${selectedIds.length === 1 ? 'this Pipeline' : 'these Pipelines'}? This action cannot be undone.`,
+      `Do you want to delete ${
+        selectedIds.length === 1 ? 'this Pipeline' : 'these Pipelines'
+      }? This action cannot be undone.`,
       useCurrentResource,
       id => Apis.pipelineServiceApi.deletePipeline(id),
       callback,
@@ -362,8 +436,11 @@ export default class Buttons {
     );
   }
 
-  private _deleteRecurringRun(id: string, useCurrentResource: boolean,
-    callback: (_: string[], success: boolean) => void): void {
+  private _deleteRecurringRun(
+    id: string,
+    useCurrentResource: boolean,
+    callback: (_: string[], success: boolean) => void,
+  ): void {
     this._dialogActionHandler(
       [id],
       'Do you want to delete this recurring run config? This action cannot be undone.',
@@ -375,12 +452,15 @@ export default class Buttons {
     );
   }
 
-  private _terminateRun(ids: string[], useCurrentResource: boolean,
-    callback: (_: string[], success: boolean) => void): void {
+  private _terminateRun(
+    ids: string[],
+    useCurrentResource: boolean,
+    callback: (_: string[], success: boolean) => void,
+  ): void {
     this._dialogActionHandler(
       ids,
-      'Do you want to terminate this run? This action cannot be undone. This will terminate any'
-      + ' running pods, but they will not be deleted.',
+      'Do you want to terminate this run? This action cannot be undone. This will terminate any' +
+        ' running pods, but they will not be deleted.',
       useCurrentResource,
       id => Apis.runServiceApi.terminateRun(id),
       callback,
@@ -389,47 +469,77 @@ export default class Buttons {
     );
   }
 
-  private _dialogActionHandler(selectedIds: string[], content: string, useCurrentResource: boolean,
-    api: (id: string) => Promise<void>, callback: (selectedIds: string[], success: boolean) => void,
-    actionName: string, resourceName: string): void {
-
+  private _dialogActionHandler(
+    selectedIds: string[],
+    content: string,
+    useCurrentResource: boolean,
+    api: (id: string) => Promise<void>,
+    callback: (selectedIds: string[], success: boolean) => void,
+    actionName: string,
+    resourceName: string,
+  ): void {
     const dialogClosedHandler = (confirmed: boolean) =>
-      this._dialogClosed(confirmed, selectedIds, actionName, resourceName, useCurrentResource, api, callback);
+      this._dialogClosed(
+        confirmed,
+        selectedIds,
+        actionName,
+        resourceName,
+        useCurrentResource,
+        api,
+        callback,
+      );
 
     this._props.updateDialog({
-      buttons: [{
-        onClick: async () => await dialogClosedHandler(false),
-        text: 'Cancel',
-      }, {
-        onClick: async () => await dialogClosedHandler(true),
-        text: actionName,
-      }],
+      buttons: [
+        {
+          onClick: async () => await dialogClosedHandler(false),
+          text: 'Cancel',
+        },
+        {
+          onClick: async () => await dialogClosedHandler(true),
+          text: actionName,
+        },
+      ],
       content,
       onClose: async () => await dialogClosedHandler(false),
-      title: `${actionName} ${useCurrentResource ? 'this' : selectedIds.length} ${resourceName}${useCurrentResource ? '' : s(selectedIds.length)}?`,
+      title: `${actionName} ${
+        useCurrentResource ? 'this' : selectedIds.length
+      } ${resourceName}${useCurrentResource ? '' : s(selectedIds.length)}?`,
     });
   }
 
-  private async _dialogClosed(confirmed: boolean, selectedIds: string[], actionName: string,
-    resourceName: string, useCurrentResource: boolean, api: (id: string) => Promise<void>,
-    callback: (selectedIds: string[], success: boolean) => void): Promise<void> {
+  private async _dialogClosed(
+    confirmed: boolean,
+    selectedIds: string[],
+    actionName: string,
+    resourceName: string,
+    useCurrentResource: boolean,
+    api: (id: string) => Promise<void>,
+    callback: (selectedIds: string[], success: boolean) => void,
+  ): Promise<void> {
     if (confirmed) {
       const unsuccessfulIds: string[] = [];
       const errorMessages: string[] = [];
-      await Promise.all(selectedIds.map(async (id) => {
-        try {
-          await api(id);
-        } catch (err) {
-          unsuccessfulIds.push(id);
-          const errorMessage = await errorToMessage(err);
-          errorMessages.push(`Failed to ${actionName.toLowerCase()} ${resourceName}: ${id} with error: "${errorMessage}"`);
-        }
-      }));
+      await Promise.all(
+        selectedIds.map(async id => {
+          try {
+            await api(id);
+          } catch (err) {
+            unsuccessfulIds.push(id);
+            const errorMessage = await errorToMessage(err);
+            errorMessages.push(
+              `Failed to ${actionName.toLowerCase()} ${resourceName}: ${id} with error: "${errorMessage}"`,
+            );
+          }
+        }),
+      );
 
       const successfulOps = selectedIds.length - unsuccessfulIds.length;
       if (useCurrentResource || successfulOps > 0) {
         this._props.updateSnackbar({
-          message: `${actionName} succeeded for ${useCurrentResource ? 'this' : successfulOps} ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
+          message: `${actionName} succeeded for ${
+            useCurrentResource ? 'this' : successfulOps
+          } ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
           open: true,
         });
         if (!useCurrentResource) {
@@ -441,7 +551,9 @@ export default class Buttons {
         this._props.updateDialog({
           buttons: [{ text: 'Dismiss' }],
           content: errorMessages.join('\n\n'),
-          title: `Failed to ${actionName.toLowerCase()} ${useCurrentResource ? '' : unsuccessfulIds.length + ' '}${resourceName}${useCurrentResource ? '' : s(unsuccessfulIds)}`,
+          title: `Failed to ${actionName.toLowerCase()} ${
+            useCurrentResource ? '' : unsuccessfulIds.length + ' '
+          }${resourceName}${useCurrentResource ? '' : s(unsuccessfulIds)}`,
         });
       }
 
@@ -452,22 +564,29 @@ export default class Buttons {
     const indices = selectedIds;
     if (indices.length > 1 && indices.length <= 10) {
       const runIds = selectedIds.join(',');
-      const searchString = this._urlParser.build({ [QUERY_PARAMS.runlist]: runIds });
+      const searchString = this._urlParser.build({
+        [QUERY_PARAMS.runlist]: runIds,
+      });
       this._props.history.push(RoutePage.COMPARE + searchString);
     }
   }
 
   private _createNewExperiment(pipelineId: string): void {
-    const searchString = pipelineId ? this._urlParser.build({
-      [QUERY_PARAMS.pipelineId]: pipelineId
-    }) : '';
+    const searchString = pipelineId
+      ? this._urlParser.build({
+          [QUERY_PARAMS.pipelineId]: pipelineId,
+        })
+      : '';
     this._props.history.push(RoutePage.NEW_EXPERIMENT + searchString);
   }
 
   private _createNewRun(isRecurring: boolean, experimentId?: string): void {
-    const searchString = this._urlParser.build(Object.assign(
-      { [QUERY_PARAMS.experimentId]: experimentId || '' },
-      isRecurring ? { [QUERY_PARAMS.isRecurring]: '1' } : {}));
+    const searchString = this._urlParser.build(
+      Object.assign(
+        { [QUERY_PARAMS.experimentId]: experimentId || '' },
+        isRecurring ? { [QUERY_PARAMS.isRecurring]: '1' } : {},
+      ),
+    );
     this._props.history.push(RoutePage.NEW_RUN + searchString);
   }
 
@@ -476,29 +595,36 @@ export default class Buttons {
     const fromRunId = this._urlParser.get(QUERY_PARAMS.fromRunId);
 
     if (fromRunId) {
-      searchString = this._urlParser.build(Object.assign(
-        { [QUERY_PARAMS.fromRunId]: fromRunId }
-      ));
+      searchString = this._urlParser.build(
+        Object.assign({ [QUERY_PARAMS.fromRunId]: fromRunId }),
+      );
     } else {
-      searchString = this._urlParser.build(Object.assign(
-        { [QUERY_PARAMS.pipelineId]: pipelineId || '' }
-      ));
+      searchString = this._urlParser.build(
+        Object.assign({ [QUERY_PARAMS.pipelineId]: pipelineId || '' }),
+      );
     }
 
     this._props.history.push(RoutePage.NEW_RUN + searchString);
   }
 
-  private async _setRecurringRunEnabledState(id: string, enabled: boolean): Promise<void> {
+  private async _setRecurringRunEnabledState(
+    id: string,
+    enabled: boolean,
+  ): Promise<void> {
     if (id) {
       const toolbarActions = this._props.toolbarProps.actions;
 
       // TODO(rileyjbauer): make sure this is working as expected
-      const buttonKey = enabled ? ButtonKeys.ENABLE_RECURRING_RUN : ButtonKeys.DISABLE_RECURRING_RUN;
+      const buttonKey = enabled
+        ? ButtonKeys.ENABLE_RECURRING_RUN
+        : ButtonKeys.DISABLE_RECURRING_RUN;
 
       toolbarActions[buttonKey].busy = true;
       this._props.updateToolbar({ actions: toolbarActions });
       try {
-        await (enabled ? Apis.jobServiceApi.enableJob(id) : Apis.jobServiceApi.disableJob(id));
+        await (enabled
+          ? Apis.jobServiceApi.enableJob(id)
+          : Apis.jobServiceApi.disableJob(id));
         this._refresh();
       } catch (err) {
         const errorMessage = await errorToMessage(err);
@@ -513,5 +639,4 @@ export default class Buttons {
       }
     }
   }
-
 }
