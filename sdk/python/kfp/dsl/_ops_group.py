@@ -93,6 +93,11 @@ class OpsGroup(object):
     self.dependencies.append(dependency)
     return self
 
+  def remove_op_recursive(self, op):
+    if self.ops and op in self.ops:
+      self.ops.remove(op)
+    for sub_group in self.groups or []:
+      sub_group.remove_op_recursive(op)
 
 class ExitHandler(OpsGroup):
   """Represents an exit handler that is invoked upon exiting a group of ops.
@@ -117,6 +122,12 @@ class ExitHandler(OpsGroup):
     super(ExitHandler, self).__init__('exit_handler')
     if exit_op.dependent_names:
       raise ValueError('exit_op cannot depend on any other ops.')
+
+    # Removing exit_op form any group
+    _pipeline.Pipeline.get_default_pipeline().remove_op_from_groups(exit_op)
+
+    # Setting is_exit_handler since the compiler might be using this attribute. TODO: Check that it's needed
+    exit_op.is_exit_handler = True
 
     self.exit_op = exit_op
 
