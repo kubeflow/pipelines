@@ -125,10 +125,10 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 		len(request.Version.PackageUrl.PipelineUrl) == 0 {
 		return nil, util.NewInvalidInputError("Pipeline URL is empty. Please specify a valid URL.")
 	}
+	pipelineUrl := request.Version.PackageUrl.PipelineUrl
 	if _, err := url.ParseRequestURI(request.Version.PackageUrl.PipelineUrl); err != nil {
 		return nil, util.NewInvalidInputError("Invalid Pipeline URL %v. Please specify a valid URL", request.Version.PackageUrl.PipelineUrl)
 	}
-	pipelineUrl := request.Version.PackageUrl.PipelineUrl
 	resp, err := s.httpClient.Get(pipelineUrl)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return nil, util.NewInternalServerError(err, "Failed to download the pipeline from %v. Please double check the URL is valid and can be accessed by the pipeline system.", pipelineUrl)
