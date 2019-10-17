@@ -62,7 +62,7 @@ func NewPersistenceAgent(
 	swfWorker := worker.NewPersistenceWorker(time, swfregister.Kind, swfInformer.Informer(), true,
 		worker.NewScheduledWorkflowSaver(swfClient, pipelineClient))
 
-	workflowWorker := worker.NewPersistenceWorker(time, workflowregister.Kind,
+	workflowWorker := worker.NewPersistenceWorker(time, workflowregister.WorkflowKind,
 		workflowInformer.Informer(), true,
 		worker.NewWorkflowSaver(workflowClient, pipelineClient, ttlSecondsAfterWorkflowFinish))
 
