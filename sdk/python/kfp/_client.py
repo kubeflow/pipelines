@@ -20,8 +20,9 @@ import os
 import re
 import tarfile
 import tempfile
-import zipfile
+import warnings
 import yaml
+import zipfile
 from datetime import datetime
 from typing import Mapping, Callable
 
@@ -144,6 +145,8 @@ class Client(object):
 
   def _is_iap_host(self, host, client_id):
     if host and client_id:
+      if re.match(r'\S+.endpoints.\S+.cloud.goog/{0,1}$', host):
+        warnings.warn('Suffix /pipeline is not ignorable for IAP host.')
       return re.match(r'\S+.endpoints.\S+.cloud.goog/pipeline', host)
     return False
 
