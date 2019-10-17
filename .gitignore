@@ -46,6 +46,9 @@ frontend/test/ui/visual-regression/screenshots/screen
 # go vendor
 vendor
 
+# Go module cache
+backend/pkg/mod/cache
+
 # Bazel output artifacts
 bazel-*
 
