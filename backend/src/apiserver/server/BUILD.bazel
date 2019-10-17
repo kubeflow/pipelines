@@ -27,7 +27,6 @@ go_library(
         "//backend/src/common/util:go_default_library",
         "//backend/src/crd/pkg/apis/scheduledworkflow/v1beta1:go_default_library",
         "@com_github_argoproj_argo//pkg/apis/workflow/v1alpha1:go_default_library",
-        "@com_github_cenkalti_backoff//:go_default_library",
         "@com_github_golang_glog//:go_default_library",
         "@com_github_golang_protobuf//jsonpb:go_default_library_gen",
         "@com_github_robfig_cron//:go_default_library",

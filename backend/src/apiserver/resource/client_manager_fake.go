@@ -25,6 +25,7 @@ import (
 
 const (
 	DefaultFakeUUID = "123e4567-e89b-12d3-a456-426655440000"
+	FakeUUIDOne     = "123e4567-e89b-12d3-a456-426655440001"
 )
 
 type FakeClientManager struct {
@@ -45,7 +46,7 @@ type FakeClientManager struct {
 }
 
 func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterface) (
-		*FakeClientManager, error) {
+	*FakeClientManager, error) {
 
 	if time == nil {
 		glog.Fatalf("The time parameter must not be null.") // Must never happen
