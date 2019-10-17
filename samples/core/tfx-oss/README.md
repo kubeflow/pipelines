@@ -20,8 +20,8 @@ then activate the environment.
 
 Install TFX and Kubeflow Pipelines SDK
 ```
-pip3 install tfx==0.13.0 --upgrade
-pip3 install kfp --upgrade
+pip3 install 'tfx==0.14.0' --upgrade
+pip3 install 'kfp>=0.1.31' --upgrade
 ```
 
 Upload the utility code to your storage bucket. You can modify this code if needed for a different dataset.
@@ -37,11 +37,11 @@ gfile.Copy('utils/taxi_utils.py', 'gs://<my bucket>/<path>/taxi_utils.py')
 
 ## Configure the TFX Pipeline
 
-Modify the pipeline configurations at 
+Modify the pipeline configurations at
 ```
 TFX Example.ipynb
 ```
-Configure 
+Configure
 - Set `_input_bucket` to the GCS directory where you've copied taxi_utils.py. I.e. gs://<my bucket>/<path>/
 - Set `_output_bucket` to the GCS directory where you've want the results to be written
 - Set GCP project ID (replace my-gcp-project). Note that it should be project ID, not project name.

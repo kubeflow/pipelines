@@ -20,9 +20,10 @@ __all__ = [
 from typing import Mapping, Callable
 
 from . import Client
+from . import dsl
 
 
-def run_pipeline_func_on_cluster(pipeline_func: Callable, arguments: Mapping[str, str], run_name : str = None, experiment_name : str = None, kfp_client : Client = None):
+def run_pipeline_func_on_cluster(pipeline_func: Callable, arguments: Mapping[str, str], run_name : str = None, experiment_name : str = None, kfp_client : Client = None, pipeline_conf: dsl.PipelineConf = None):
     '''Runs pipeline on KFP-enabled Kubernetes cluster.
     This command compiles the pipeline function, creates or gets an experiment and submits the pipeline for execution.
 
@@ -32,6 +33,7 @@ def run_pipeline_func_on_cluster(pipeline_func: Callable, arguments: Mapping[str
       run_name: Optional. Name of the run to be shown in the UI.
       experiment_name: Optional. Name of the experiment to add the run to.
       kfp_client: Optional. An instance of kfp.Client configured for the desired KFP cluster.
+      pipeline_conf: Optional. kfp.dsl.PipelineConf instance. Can specify op transforms, image pull secrets and other pipeline-level configuration options.ta
     '''
     kfp_client = kfp_client or Client()
-    return kfp_client.create_run_from_pipeline_func(pipeline_func, arguments, run_name, experiment_name)
+    return kfp_client.create_run_from_pipeline_func(pipeline_func, arguments, run_name, experiment_name, pipeline_conf)

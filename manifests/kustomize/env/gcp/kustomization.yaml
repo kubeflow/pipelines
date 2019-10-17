@@ -16,7 +16,7 @@ images:
   - name: gcr.io/cloudsql-docker/gce-proxy
     newTag: "1.14"
   - name: gcr.io/ml-pipeline/minio
-    newTag: RELEASE.2019-08-14T20-37-41Z
+    newTag: RELEASE.2019-08-14T20-37-41Z-license-compliance
 
 secretGenerator:
   - name: user-gcp-sa

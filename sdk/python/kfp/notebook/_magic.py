@@ -15,9 +15,12 @@
 
 import os
 import tempfile
+
+from deprecated.sphinx import deprecated
+
 from ..compiler import build_docker_image
 
-
+@deprecated(version='0.1.32', reason='The %%docker magic is deprecated. Use `kfp.containers.build_image_from_working_dir` instead.')
 def docker(line, cell):
   """cell magic for %%docker"""
 

@@ -39,6 +39,7 @@ time_limit | The maximum run time in seconds per training job | No | Int | [30, 
 task_availibility | The length of time that a task remains available for labeling by human workers | Yes | Int | Public workforce: [1, 43200], other: [1, 864000] | |
 max_concurrent_tasks | The maximum number of data objects that can be labeled by human workers at the same time | Yes | Int | [1, 1000] | |
 workforce_task_price | The price that you pay for each task performed by a public worker in USD; Specify to the tenth fractions of a cent; Format as "0.000" | Yes | Float | 0.000 |
+endpoint_url | The endpoint URL for the private link VPC endpoint. | Yes | String | | |
 tags | Key-value pairs to categorize AWS resources | Yes | Dict | | {} |
 
 ## Outputs
