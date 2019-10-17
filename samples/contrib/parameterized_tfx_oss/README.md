@@ -14,8 +14,11 @@ then point the version tag in `tfx/version.py` to TFX's latest nightly build ima
 `0.15.0dev` (e.g., `0.15.0dev20191007`, list of image available can be found [here](https://hub.docker.com/r/tensorflow/tfx/tags)).
 Finally, run `python setup.py install` from `tfx/tfx`. After that, running 
 `chicago_taxi_pipeline_simple.py` compiles the TFX pipeline into KFP pipeline package.
-This pipeline requires google storage permission to run. 
 
+## Permission
+This pipeline requires google storage permission to run. 
+If KFP was deployed through K8S marketplace, please follow instructions in [the guideline](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials)
+to make sure the service account has `storage.admin` role.
 
 ## Caveats
 
