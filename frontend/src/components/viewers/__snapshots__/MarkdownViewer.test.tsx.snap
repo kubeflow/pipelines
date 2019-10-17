@@ -6,20 +6,20 @@ exports[`MarkdownViewer renders some basic markdown 1`] = `
 <div
   class="markdown-viewer"
 >
-  <h1>
-    Title
-  </h1>
-  
-
-  <p>
-    <a
-      href="http://example.com"
+  <div>
+    <h1
+      id="title"
     >
-      some link here
-    </a>
-  </p>
-  
-
+      Title
+    </h1>
+    <p>
+      <a
+        href="http://example.com"
+      >
+        some link here
+      </a>
+    </p>
+  </div>
 </div>
 `;
 
@@ -31,10 +31,7 @@ exports[`MarkdownViewer sanitizes the markdown to remove XSS 1`] = `
     <code>
         lower[click me](javascript&#x3a;...)lower
   upper[click me](javascript&#X3a;...)upper
-
     </code>
   </pre>
-  
-
 </div>
 `;
