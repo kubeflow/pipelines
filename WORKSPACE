@@ -151,14 +151,14 @@ http_archive(
 
 go_repository(
     name = "co_honnef_go_tools",
+    commit = "ea95bdfd59fc",
     importpath = "honnef.co/go/tools",
-    tag = "v0.0.1-2019.2.2",
 )
 
 go_repository(
     name = "com_github_argoproj_argo",
     importpath = "github.com/argoproj/argo",
-    tag = "v2.3.0",
+    tag = "v2.4.1",
 )
 
 go_repository(
@@ -524,7 +524,7 @@ go_repository(
 go_repository(
     name = "com_github_minio_minio_go",
     importpath = "github.com/minio/minio-go",
-    tag = "v6.0.5",
+    tag = "v6.0.14",
 )
 
 go_repository(
@@ -782,7 +782,7 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_crypto",
-    commit = "4def268fd1a4",
+    commit = "9756ffdc2472",
     importpath = "golang.org/x/crypto",
 )
 
@@ -795,7 +795,7 @@ go_repository(
 go_repository(
     name = "org_golang_x_net",
     build_file_proto_mode = "disable_global",
-    commit = "74dc4d7220e7",
+    commit = "ba9fcec4b297",
     importpath = "golang.org/x/net",
 )
 
@@ -813,7 +813,7 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_sys",
-    commit = "fde4db37ae7a",
+    commit = "c7b8b68b1456",
     importpath = "golang.org/x/sys",
 )
 
@@ -831,7 +831,7 @@ go_repository(
 
 go_repository(
     name = "org_golang_x_tools",
-    commit = "922a4ee32d1a",
+    commit = "f4d897724609",
     importpath = "golang.org/x/tools",
 )
 
@@ -915,7 +915,7 @@ go_repository(
 
 go_repository(
     name = "com_github_google_pprof",
-    commit = "34ac40c74b70",
+    commit = "54271f7e092f",
     importpath = "github.com/google/pprof",
 )
 
@@ -1006,7 +1006,7 @@ go_repository(
 go_repository(
     name = "com_github_kr_pty",
     importpath = "github.com/kr/pty",
-    tag = "v1.1.8",
+    tag = "v1.1.1",
 )
 
 go_repository(
@@ -1048,24 +1048,24 @@ go_repository(
 go_repository(
     name = "org_golang_google_api",
     importpath = "google.golang.org/api",
-    tag = "v0.8.0",
+    tag = "v0.9.0",
 )
 
 go_repository(
     name = "org_golang_x_exp",
-    commit = "ec7cb31e5a56",
+    commit = "efd6b22b2522",
     importpath = "golang.org/x/exp",
 )
 
 go_repository(
     name = "org_golang_x_image",
-    commit = "cff245a6509b",
+    commit = "0694c2d4d067",
     importpath = "golang.org/x/image",
 )
 
 go_repository(
     name = "org_golang_x_mobile",
-    commit = "e8b3e6111d02",
+    commit = "d3739f865fa6",
     importpath = "golang.org/x/mobile",
 )
 
@@ -1079,4 +1079,16 @@ go_repository(
     name = "org_golang_x_xerrors",
     commit = "a985d3407aa7",
     importpath = "golang.org/x/xerrors",
+)
+
+go_repository(
+    name = "io_k8s_sigs_testing_frameworks",
+    importpath = "sigs.k8s.io/testing_frameworks",
+    tag = "v0.1.1",
+)
+
+go_repository(
+    name = "io_k8s_sigs_yaml",
+    importpath = "sigs.k8s.io/yaml",
+    tag = "v1.1.0",
 )

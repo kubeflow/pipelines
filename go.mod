@@ -4,7 +4,7 @@ require (
 	cloud.google.com/go v0.44.3 // indirect
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
-	github.com/argoproj/argo v2.3.0+incompatible
+	github.com/argoproj/argo v2.4.1+incompatible
 	github.com/cenkalti/backoff v2.0.0+incompatible
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
 	github.com/docker/spdystream v0.0.0-20170912183627-bc6354cbbc29 // indirect
@@ -91,3 +91,5 @@ require (
 	sigs.k8s.io/controller-runtime v0.0.0-20181121180216-5558165425ef
 	sigs.k8s.io/testing_frameworks v0.1.1 // indirect
 )
+
+go 1.13

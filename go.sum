@@ -17,8 +17,8 @@ github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 h1:d+Bc7a5rLufV
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
 github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f h1:HR5nRmUQgXrwqZOwZ2DAc/aCi3Bu3xENpspW935vxu0=
 github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f/go.mod h1:f3HiCrHjHBdcm6E83vGaXh1KomZMA2P6aeo3hKx/wg0=
-github.com/argoproj/argo v2.3.0+incompatible h1:L1OYZ86Q7NK19ahdl/eJOq78Mlf52wUKGmp7VDNQVz8=
-github.com/argoproj/argo v2.3.0+incompatible/go.mod h1:KJ0MB+tuhtAklR4jkPM10mIZXfRA0peTYJ1sLUnFLVU=
+github.com/argoproj/argo v2.4.1+incompatible h1:kUh0sgFZjZZ42xMxF7tRiZGz43VxQSRkcyfkZxIjdd8=
+github.com/argoproj/argo v2.4.1+incompatible/go.mod h1:KJ0MB+tuhtAklR4jkPM10mIZXfRA0peTYJ1sLUnFLVU=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf h1:eg0MeVzsP1G42dRafH3vf+al2vQIJU0YHX+1Tw87oco=
 github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
@@ -383,3 +383,5 @@ sigs.k8s.io/controller-runtime v0.0.0-20181121180216-5558165425ef h1:3cR5xS/Oii/
 sigs.k8s.io/controller-runtime v0.0.0-20181121180216-5558165425ef/go.mod h1:HFAYoOh6XMV+jKF1UjFwrknPbowfyHEHHRdJMf2jMX8=
 sigs.k8s.io/testing_frameworks v0.1.1 h1:cP2l8fkA3O9vekpy5Ks8mmA0NW/F7yBdXf8brkWhVrs=
 sigs.k8s.io/testing_frameworks v0.1.1/go.mod h1:VVBKrHmJ6Ekkfz284YKhQePcdycOzNH9qL6ht1zEr/U=
+sigs.k8s.io/yaml v1.1.0 h1:4A07+ZFc2wgJwo8YNlQpr1rVlgUDlxXHhPJciaPY5gs=
+sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=

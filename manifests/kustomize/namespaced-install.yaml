@@ -522,7 +522,7 @@ data:
   config: |
     {
     namespace: kubeflow,
-    executorImage: gcr.io/ml-pipeline/argoexec:v2.3.0-license-compliance,
+    executorImage: gcr.io/ml-pipeline/argoexec:v2.4.1-license-compliance,
     artifactRepository:
     {
         s3: {
@@ -1020,7 +1020,7 @@ spec:
         - --configmap
         - workflow-controller-configmap
         - --executor-image
-        - gcr.io/ml-pipeline/argoexec:v2.3.0-license-compliance
+        - gcr.io/ml-pipeline/argoexec:v2.4.1-license-compliance
         command:
         - workflow-controller
         env:
@@ -1029,7 +1029,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: gcr.io/ml-pipeline/workflow-controller:v2.3.0-license-compliance
+        image: gcr.io/ml-pipeline/workflow-controller:v2.4.1-license-compliance
         imagePullPolicy: IfNotPresent
         name: workflow-controller
         resources: {}
