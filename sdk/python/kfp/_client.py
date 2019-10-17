@@ -64,6 +64,8 @@ def _add_generated_apis(target_struct, api_module, api_client):
 
 KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
 KF_PIPELINES_UI_ENDPOINT_ENV = 'KF_PIPELINES_UI_ENDPOINT'
+KF_PIPELINES_DEFAULT_EXPERIMENT_NAME = 'KF_PIPELINES_DEFAULT_EXPERIMENT_NAME'
+KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME = 'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
@@ -358,14 +360,19 @@ class Client(object):
 
       def wait_for_run_completion(self, timeout=None):
         timeout = timeout or datetime.datetime.max - datetime.datetime.min
-        return self._client.wait_for_run_completion(timeout)
+        return self._client.wait_for_run_completion(self.run_id, timeout)
 
       def __str__(self):
         return '<RunPipelineResult(run_id={})>'.format(self.run_id)
 
     #TODO: Check arguments against the pipeline function
     pipeline_name = os.path.basename(pipeline_file)
-    experiment_name = experiment_name or 'Default'
+    experiment_name = experiment_name or os.environ.get(KF_PIPELINES_DEFAULT_EXPERIMENT_NAME, None)
+    overridden_experiment_name = os.environ.get(KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME, experiment_name)
+    if overridden_experiment_name != experiment_name:
+      import warnings
+      warnings.warn('Changing experiment name from "{}" to "{}".'.format(experiment_name, overridden_experiment_name))
+    experiment_name = overridden_experiment_name or 'Default'
     run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     experiment = self.create_experiment(name=experiment_name)
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)

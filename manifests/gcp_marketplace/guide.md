@@ -49,7 +49,7 @@ export SERVICE_ACCOUNT_TOKEN="$(cat application_default_credentials.json | base6
 echo -e "apiVersion: v1\nkind: Secret\nmetadata:\n  name: \"user-gcp-sa\"\n  namespace: \"${NAMESPACE}\"\n  labels:\n    app: gcp-sa\n    app.kubernetes.io/name: \"${APP_INSTANCE_NAME}\"\ntype: Opaque\ndata:\n  application_default_credentials.json: ${SERVICE_ACCOUNT_TOKEN}\n  user-gcp-sa.json: $SERVICE_ACCOUNT_TOKEN" > secret.yaml
 kubectl apply -f secret.yaml
 # Remove secret files
-rm application_default_credentials.json test.yaml
+rm application_default_credentials.json secret.yaml
 ```
 
 Note that the above commands use `base64 -w 0` to disable line wrapping, this could be slightly different

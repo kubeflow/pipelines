@@ -21,25 +21,26 @@ from kfp import Client
 
 
 class NoteBookChecker(object):
-    def __init__(self, testname, result, run_pipeline, namespace='kubeflow'):
+    def __init__(self, testname, result, run_pipeline, experiment_name, namespace='kubeflow'):
         """ Util class for checking notebook sample test running results.
 
         :param testname: test name in the json xml.
         :param result: name of the file that stores the test result
         :param run_pipeline: whether to submit for a pipeline run.
         :param namespace: where the pipeline system is deployed.
+        :param experiment_name: Name of the experiment to monitor
         """
         self._testname = testname
         self._result = result
         self._exit_code = None
         self._run_pipeline = run_pipeline
         self._namespace = namespace
+        self._experiment_name = experiment_name
 
     def run(self):
         """ Run the notebook sample as a python script. """
         self._exit_code = str(
             subprocess.call(['ipython', '%s.py' % self._testname]))
-
 
     def check(self):
         """ Check the pipeline running results of the notebook sample. """
@@ -63,7 +64,7 @@ class NoteBookChecker(object):
             test_timeout = raw_args['test_timeout']
 
         if self._run_pipeline:
-            experiment = self._testname + '-test'
+            experiment = self._experiment_name
             ###### Initialization ######
             host = 'ml-pipeline.%s.svc.cluster.local:8888' % self._namespace
             client = Client(host=host)

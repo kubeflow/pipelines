@@ -190,26 +190,29 @@ import pickle
 
 
 def _capture_function_code_using_source_copy(func) -> str:	
-    import inspect	
+    import textwrap
 
-    #Source code can include decorators line @python_op. Remove them
-    (func_code_lines, _) = inspect.getsourcelines(func)
-    while func_code_lines[0].lstrip().startswith('@'): #decorator
-        del func_code_lines[0]
+    func_code = inspect.getsource(func)
 
     #Function might be defined in some indented scope (e.g. in another function).
     #We need to handle this and properly dedent the function source code
-    first_line = func_code_lines[0]
-    indent = len(first_line) - len(first_line.lstrip())
-    func_code_lines = [line[indent:] for line in func_code_lines]
+    func_code = textwrap.dedent(func_code)
+    func_code_lines = func_code.split('\n')
+
+    # Removing possible decorators (can be multiline) until the function definition is found
+    while func_code_lines and not func_code_lines[0].startswith('def '):
+        del func_code_lines[0]
+
+    if not func_code_lines:
+        raise ValueError('Failed to dedent and clean up the source of function "{}". It is probably not properly indented.'.format(func.__name__))
 
     #TODO: Add support for copying the NamedTuple subclass declaration code
     #Adding NamedTuple import if needed
     if hasattr(inspect.signature(func).return_annotation, '_fields'): #NamedTuple
-        func_code_lines.insert(0, '\n')
-        func_code_lines.insert(0, 'from typing import NamedTuple\n')
+        func_code_lines.insert(0, '')
+        func_code_lines.insert(0, 'from typing import NamedTuple')
 
-    return ''.join(func_code_lines) #Lines retain their \n endings
+    return '\n'.join(func_code_lines)
 
 
 def _extract_component_interface(func) -> ComponentSpec:
