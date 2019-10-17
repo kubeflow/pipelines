@@ -68,9 +68,18 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
 
 - For vscode, install the plugin "Prettier - Code formatter" and it will pick
   this project's config automatically.
+  Recommend setting the following for vscode to autoformat + organize import on save.
+  ```
+  "[typescript]": {
+      "editor.codeActionsOnSave": {
+          "source.organizeImports": true,
+      },
+      "editor.formatOnSave": true,
+  },
+  ```
 - For others, refer to https://prettier.io/docs/en/editors.html
 
 ### Escape hatch
 
 If there's some code that you don't want being formatted by prettier, follow
-guide [here](https://prettier.io/docs/en/ignore.html).
+guide [here](https://prettier.io/docs/en/ignore.html). (Most likely you don't need this.)
