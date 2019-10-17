@@ -13,6 +13,8 @@ or not.
 ## Requirements
 
 Preprocessing uses Google Cloud DataProc. Therefore, you must enable the [DataProc API](https://cloud.google.com/endpoints/docs/openapi/enable-api) for the given GCP project.
+If KFP was deployed through K8S marketplace, please follow instructions in [the guideline](https://github.com/kubeflow/pipelines/blob/master/manifests/gcp_marketplace/guide.md#gcp-service-account-credentials)
+to make sure the service account used has the role `storage.admin` and `dataproc.admin`.
 
 
 ## Compile
