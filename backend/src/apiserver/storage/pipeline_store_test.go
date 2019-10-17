@@ -526,10 +526,11 @@ func TestCreatePipelineVersion(t *testing.T) {
 	// Create a version under the above pipeline.
 	pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(fakeUUIDTwo, nil)
 	pipelineVersion := &model.PipelineVersion{
-		Name:       "pipeline_version_1",
-		Parameters: `[{"Name": "param1"}]`,
-		PipelineId: fakeUUID,
-		Status:     model.PipelineVersionCreating,
+		Name:          "pipeline_version_1",
+		Parameters:    `[{"Name": "param1"}]`,
+		PipelineId:    fakeUUID,
+		Status:        model.PipelineVersionCreating,
+		CodeSourceUrl: "code_source_url",
 	}
 	pipelineVersionCreated, err := pipelineStore.CreatePipelineVersion(
 		pipelineVersion)
@@ -542,6 +543,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 		Parameters:     `[{"Name": "param1"}]`,
 		Status:         model.PipelineVersionCreating,
 		PipelineId:     fakeUUID,
+		CodeSourceUrl:  "code_source_url",
 	}
 	assert.Nil(t, err)
 	assert.Equal(

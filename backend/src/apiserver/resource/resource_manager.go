@@ -858,7 +858,7 @@ func (r *ResourceManager) getDefaultSA() string {
 }
 
 func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte) (*model.PipelineVersion, error) {
-	// Extract the parameter from the pipeline
+	// Extract the parameters from the pipeline
 	params, err := util.GetParameters(pipelineFile)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
@@ -867,14 +867,12 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	// Extract pipeline id
 	var pipelineId = ""
 	for _, resourceReference := range apiVersion.ResourceReferences {
-		if resourceReference.Key.Type == api.ResourceType_PIPELINE &&
-			resourceReference.Relationship == api.Relationship_OWNER {
+		if resourceReference.Key.Type == api.ResourceType_PIPELINE && resourceReference.Relationship == api.Relationship_OWNER {
 			pipelineId = resourceReference.Key.Id
 		}
 	}
 	if len(pipelineId) == 0 {
-		return nil, util.Wrap(
-			err, "Create pipeline version failed due to missing pipeline id")
+		return nil, util.Wrap(err, "Create pipeline version failed due to missing pipeline id")
 	}
 
 	// Construct model.PipelineVersion
@@ -891,8 +889,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	}
 
 	// Store the pipeline file
-	err = r.objectStore.AddFile(
-		pipelineFile, storage.CreatePipelinePath(fmt.Sprint(version.UUID)))
+	err = r.objectStore.AddFile(pipelineFile, storage.CreatePipelinePath(fmt.Sprint(version.UUID)))
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
@@ -900,8 +897,7 @@ func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion,
 	// After pipeline version being created in DB and pipeline file being
 	// saved in minio server, set this pieline version to status ready.
 	version.Status = model.PipelineVersionReady
-	err = r.pipelineStore.UpdatePipelineVersionStatus(
-		version.UUID, version.Status)
+	err = r.pipelineStore.UpdatePipelineVersionStatus(version.UUID, version.Status)
 	if err != nil {
 		return nil, util.Wrap(err, "Create pipeline version failed")
 	}
@@ -938,31 +934,19 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	}
 
 	// Mark pipeline as deleting so it's not visible to user.
-	err = r.pipelineStore.UpdatePipelineVersionStatus(
-		pipelineVersionId, model.PipelineVersionDeleting)
+	err = r.pipelineStore.UpdatePipelineVersionStatus(pipelineVersionId, model.PipelineVersionDeleting)
 	if err != nil {
 		return util.Wrap(err, "Delete pipeline version failed")
 	}
 
-	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(
-		fmt.Sprint(pipelineVersionId)))
+	err = r.objectStore.DeleteFile(storage.CreatePipelinePath(fmt.Sprint(pipelineVersionId)))
 	if err != nil {
-		glog.Errorf(
-			"%v",
-			errors.Wrapf(
-				err,
-				"Failed to delete pipeline file for pipeline version %v",
-				pipelineVersionId))
+		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline version %v", pipelineVersionId))
 		return util.Wrap(err, "Delete pipeline version failed")
 	}
 	err = r.pipelineStore.DeletePipelineVersion(pipelineVersionId)
 	if err != nil {
-		glog.Errorf(
-			"%v",
-			errors.Wrapf(
-				err,
-				"Failed to delete pipeline DB entry for pipeline %v",
-				pipelineVersionId))
+		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline DB entry for pipeline %v", pipelineVersionId))
 		return util.Wrap(err, "Delete pipeline version failed")
 	}
 
