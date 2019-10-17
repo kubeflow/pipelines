@@ -18,7 +18,6 @@ import { QUERY_PARAMS } from '../components/Router';
 import { RouteComponentProps } from 'react-router';
 
 export class URLParser {
-
   private _paramMap: URLSearchParams;
   private _routeProps: RouteComponentProps;
 
@@ -57,7 +56,12 @@ export class URLParser {
   // TODO: create interface for this param.
   public build(searchTerms?: { [param: string]: string }): string {
     const obj = searchTerms || {};
-    return '?' + Object.keys(obj).map(k => k + '=' + obj[k]).join('&');
+    return (
+      '?' +
+      Object.keys(obj)
+        .map(k => k + '=' + obj[k])
+        .join('&')
+    );
   }
 
   private _update(replace = true): void {

@@ -55,24 +55,30 @@ describe('StaticGraphParser', () => {
                   dependencies: ['flip-task'],
                   name: 'condition-2-task',
                   template: 'condition-2',
-                  when: '{{inputs.parameters.flip-output}} == tails'
+                  when: '{{inputs.parameters.flip-output}} == tails',
                 },
-              ]
+              ],
             },
             name: 'pipeline-flip-coin',
           },
           // DAG representing execution if result is 'heads'
-          { dag: { tasks: [{ name: 'heads-task', template: 'heads' }] }, name: 'condition-1' },
+          {
+            dag: { tasks: [{ name: 'heads-task', template: 'heads' }] },
+            name: 'condition-1',
+          },
           // DAG representing execution if result is 'tails'
-          { dag: { tasks: [{ name: 'tails-task', template: 'tails' }] }, name: 'condition-2' },
+          {
+            dag: { tasks: [{ name: 'tails-task', template: 'tails' }] },
+            name: 'condition-2',
+          },
           // Container that flips the coin and outputs the result
           { container: {}, name: 'flip' },
           // Container that is run if result is 'heads'
           { container: {}, name: 'heads' },
           // Container that is run if result is 'tails'
           { container: {}, name: 'tails' },
-        ]
-      }
+        ],
+      },
     };
   }
 
@@ -95,7 +101,7 @@ describe('StaticGraphParser', () => {
                   name: 'create-snapshot-task',
                   template: 'create-snapshot',
                 },
-              ]
+              ],
             },
             name: 'template-1',
           },
@@ -117,8 +123,8 @@ describe('StaticGraphParser', () => {
               manifest: 'apiVersion: snapshot.storage.k8s.io/v1alpha1\nkind: VolumeSnapshot',
             },
           },
-        ]
-      }
+        ],
+      },
     };
   }
 
@@ -139,7 +145,7 @@ describe('StaticGraphParser', () => {
       const g = createGraph(workflow);
       expect(g.edgeCount()).toEqual(0);
       const expectedNodes = ['/task-1', 'on-exit'];
-      expectedNodes.forEach((nodeId) => expect(g.nodes()).toContain(nodeId));
+      expectedNodes.forEach(nodeId => expect(g.nodes()).toContain(nodeId));
       expect(g.nodeCount()).toEqual(expectedNodes.length);
       // Prefix 'onExit - ' is added to exit-handler nodes
       expect(g.node('on-exit').label).toEqual('onExit - ' + 'on-exit');
@@ -147,7 +153,10 @@ describe('StaticGraphParser', () => {
 
     it('adds and connects nodes based on listed dependencies', () => {
       const workflow = newWorkflow();
-      workflow.spec.templates[0].dag.tasks.push({ name: 'task-2', dependencies: ['task-1'] });
+      workflow.spec.templates[0].dag.tasks.push({
+        name: 'task-2',
+        dependencies: ['task-1'],
+      });
       const g = createGraph(workflow);
       expect(g.nodeCount()).toEqual(2);
       expect(g.edges()).toEqual([{ v: '/task-1', w: '/task-2' }]);
@@ -166,7 +175,7 @@ describe('StaticGraphParser', () => {
               tasks: [
                 { name: 'task-2-1', template: 'container-2-1' },
                 { name: 'task-2-2', template: 'dag-3' },
-              ]
+              ],
             },
             name: 'dag-2',
           },
@@ -189,11 +198,11 @@ describe('StaticGraphParser', () => {
         '/task-1-1/task-2-2',
         '/task-1-1/task-2-2/task-3-1',
       ];
-      expectedNodes.forEach((nodeId) => expect(g.nodes()).toContain(nodeId));
+      expectedNodes.forEach(nodeId => expect(g.nodes()).toContain(nodeId));
       expect(g.nodeCount()).toEqual(expectedNodes.length);
     });
 
-    it('uses task\'s template as node label', () => {
+    it("uses task's template as node label", () => {
       const g = createGraph(nestedWorkflow);
       expect(g.edgeCount()).toEqual(3);
       const expectedNodes = [
@@ -202,7 +211,9 @@ describe('StaticGraphParser', () => {
         { id: '/task-1-1/task-2-2', label: 'dag-3' },
         { id: '/task-1-1/task-2-2/task-3-1', label: 'container-3-1' },
       ];
-      expectedNodes.forEach((idAndLabel) => expect(g.node(idAndLabel.id).label).toEqual(idAndLabel.label));
+      expectedNodes.forEach(idAndLabel =>
+        expect(g.node(idAndLabel.id).label).toEqual(idAndLabel.label),
+      );
       expect(g.nodeCount()).toEqual(expectedNodes.length);
     });
 
@@ -215,14 +226,14 @@ describe('StaticGraphParser', () => {
         { v: '/condition-1-task', w: '/condition-1-task/heads-task' },
         { v: '/condition-2-task', w: '/condition-2-task/tails-task' },
       ];
-      expectedEdges.forEach((edge) => expect(g.edges()).toContainEqual(edge));
+      expectedEdges.forEach(edge => expect(g.edges()).toContainEqual(edge));
       expect(g.edgeCount()).toEqual(expectedEdges.length);
       expect(g.nodeCount()).toEqual(5);
     });
 
     it('finds conditionals and colors them', () => {
       const g = createGraph(newConditionalWorkflow());
-      g.nodes().forEach((nodeName) => {
+      g.nodes().forEach(nodeName => {
         const node = g.node(nodeName);
         if (nodeName === '/condition-1-task' || nodeName === '/condition-2-task') {
           expect(node.bgColor).toEqual('cornsilk');
@@ -234,7 +245,7 @@ describe('StaticGraphParser', () => {
 
     it('includes the conditional itself in the info of conditional nodes', () => {
       const g = createGraph(newConditionalWorkflow());
-      g.nodes().forEach((nodeName) => {
+      g.nodes().forEach(nodeName => {
         const node = g.node(nodeName);
         if (nodeName.startsWith('condition-1')) {
           expect(node.info.condition).toEqual('{{inputs.parameters.flip-output}} == heads');
@@ -244,14 +255,18 @@ describe('StaticGraphParser', () => {
       });
     });
 
-    it('includes the resource\'s action and manifest itself in the info of resource nodes', () => {
+    it("includes the resource's action and manifest itself in the info of resource nodes", () => {
       const g = createGraph(newResourceCreatingWorkflow());
-      g.nodes().forEach((nodeName) => {
+      g.nodes().forEach(nodeName => {
         const node = g.node(nodeName);
         if (nodeName.startsWith('create-pvc')) {
-          expect(node.info.resource).toEqual([['create', 'apiVersion: v1\nkind: PersistentVolumeClaim']]);
+          expect(node.info.resource).toEqual([
+            ['create', 'apiVersion: v1\nkind: PersistentVolumeClaim'],
+          ]);
         } else if (nodeName.startsWith('create-snapshot')) {
-          expect(node.info.resource).toEqual([['create', 'apiVersion: snapshot.storage.k8s.io\nkind: VolumeSnapshot']]);
+          expect(node.info.resource).toEqual([
+            ['create', 'apiVersion: snapshot.storage.k8s.io\nkind: VolumeSnapshot'],
+          ]);
         }
       });
     });
@@ -260,7 +275,7 @@ describe('StaticGraphParser', () => {
       const simpleWorkflow = {
         spec: {
           entrypoint: 'template-1',
-          templates: [ { container: {}, name: 'template-1', }, ],
+          templates: [{ container: {}, name: 'template-1' }],
         },
       } as any;
       const g = createGraph(simpleWorkflow);
@@ -279,7 +294,9 @@ describe('StaticGraphParser', () => {
           entrypoint: 'entrypoint-dag',
           templates: [
             {
-              dag: { tasks: [{ name: 'exit-handler-dag', template: 'exit-handler-dag' }] },
+              dag: {
+                tasks: [{ name: 'exit-handler-dag', template: 'exit-handler-dag' }],
+              },
               name: 'entrypoint-dag',
             },
             {
@@ -324,13 +341,13 @@ describe('StaticGraphParser', () => {
       } as any;
       const g = createGraph(workflow);
       const expectedNodes = ['/start', '/start/recurse'];
-      expectedNodes.forEach((node) => expect(g.nodes()).toContain(node));
+      expectedNodes.forEach(node => expect(g.nodes()).toContain(node));
       expect(g.nodeCount()).toEqual(expectedNodes.length);
       const expectedEdges = [
         { v: '/start', w: '/start/recurse' },
         { v: '/start/recurse', w: '/start' },
       ];
-      expectedEdges.forEach((edge) => expect(g.edges()).toContainEqual(edge));
+      expectedEdges.forEach(edge => expect(g.edges()).toContainEqual(edge));
       expect(g.edgeCount()).toEqual(expectedEdges.length);
     });
 
@@ -354,20 +371,20 @@ describe('StaticGraphParser', () => {
             },
             {
               container: {},
-              name: 'exit'
+              name: 'exit',
             },
           ],
         },
       } as any;
       const g = createGraph(workflow);
       const expectedNodes = ['exit', '/start', '/start/recurse'];
-      expectedNodes.forEach((node) => expect(g.nodes()).toContain(node));
+      expectedNodes.forEach(node => expect(g.nodes()).toContain(node));
       expect(g.nodeCount()).toEqual(expectedNodes.length);
       const expectedEdges = [
         { v: '/start', w: '/start/recurse' },
         { v: '/start/recurse', w: '/start' },
       ];
-      expectedEdges.forEach((edge) => expect(g.edges()).toContainEqual(edge));
+      expectedEdges.forEach(edge => expect(g.edges()).toContainEqual(edge));
       expect(g.edgeCount()).toEqual(expectedEdges.length);
     });
 
@@ -381,26 +398,32 @@ describe('StaticGraphParser', () => {
               name: 'entrypoint-dag',
             },
             {
-              dag: { tasks: [
-                { name: 'recurse-1', template: 'recurse-1' },
-                { name: 'leaf-1', template: 'leaf-1' },
-              ] },
+              dag: {
+                tasks: [
+                  { name: 'recurse-1', template: 'recurse-1' },
+                  { name: 'leaf-1', template: 'leaf-1' },
+                ],
+              },
               name: 'start',
             },
             {
-              dag: { tasks: [
-                { name: 'start', template: 'start' },
-                { name: 'recurse-2', template: 'recurse-2' },
-                { name: 'leaf-2', template: 'leaf-2' },
-              ] },
+              dag: {
+                tasks: [
+                  { name: 'start', template: 'start' },
+                  { name: 'recurse-2', template: 'recurse-2' },
+                  { name: 'leaf-2', template: 'leaf-2' },
+                ],
+              },
               name: 'recurse-1',
             },
             {
-              dag: { tasks: [
-                { name: 'start', template: 'start' },
-                { name: 'leaf-3', template: 'leaf-3' },
-                { name: 'leaf-4', template: 'leaf-4' },
-              ] },
+              dag: {
+                tasks: [
+                  { name: 'start', template: 'start' },
+                  { name: 'leaf-3', template: 'leaf-3' },
+                  { name: 'leaf-4', template: 'leaf-4' },
+                ],
+              },
               name: 'recurse-2',
             },
             { container: {}, name: 'leaf-1' },
@@ -420,7 +443,7 @@ describe('StaticGraphParser', () => {
         '/start/recurse-1/recurse-2/leaf-3',
         '/start/recurse-1/recurse-2/leaf-4',
       ];
-      expectedNodes.forEach((node) => expect(g.nodes()).toContain(node));
+      expectedNodes.forEach(node => expect(g.nodes()).toContain(node));
       expect(g.nodeCount()).toEqual(expectedNodes.length);
       const expectedEdges = [
         { v: '/start', w: '/start/recurse-1' },
@@ -429,10 +452,16 @@ describe('StaticGraphParser', () => {
         { v: '/start/recurse-1', w: '/start/recurse-1/recurse-2' },
         { v: '/start/recurse-1', w: '/start/recurse-1/leaf-2' },
         { v: '/start/recurse-1/recurse-2', w: '/start' },
-        { v: '/start/recurse-1/recurse-2', w: '/start/recurse-1/recurse-2/leaf-3' },
-        { v: '/start/recurse-1/recurse-2', w: '/start/recurse-1/recurse-2/leaf-4' },
+        {
+          v: '/start/recurse-1/recurse-2',
+          w: '/start/recurse-1/recurse-2/leaf-3',
+        },
+        {
+          v: '/start/recurse-1/recurse-2',
+          w: '/start/recurse-1/recurse-2/leaf-4',
+        },
       ];
-      expectedEdges.forEach((edge) => expect(g.edges()).toContainEqual(edge));
+      expectedEdges.forEach(edge => expect(g.edges()).toContainEqual(edge));
       expect(g.edgeCount()).toEqual(expectedEdges.length);
     });
   });
@@ -446,7 +475,9 @@ describe('StaticGraphParser', () => {
 
     it('returns default SelectedNodeInfo if template has no container', () => {
       const defaultSelectedNodeInfo = new SelectedNodeInfo();
-      const nodeInfo = _populateInfoFromTemplate(defaultSelectedNodeInfo, { name: 'template' } as any);
+      const nodeInfo = _populateInfoFromTemplate(defaultSelectedNodeInfo, {
+        name: 'template',
+      } as any);
       expect(nodeInfo).toEqual(defaultSelectedNodeInfo);
     });
 
@@ -468,7 +499,6 @@ describe('StaticGraphParser', () => {
       expect(nodeInfo.image).toEqual('');
       expect(nodeInfo.volumeMounts).toEqual([]);
     });
-
 
     it('returns nodeInfo containing container args', () => {
       const template = {
@@ -499,7 +529,7 @@ describe('StaticGraphParser', () => {
     it('returns nodeInfo containing container image', () => {
       const template = {
         container: {
-          image: 'some-image'
+          image: 'some-image',
         },
         dag: [],
         name: 'template-1',
@@ -512,7 +542,7 @@ describe('StaticGraphParser', () => {
     it('returns nodeInfo containing container volumeMounts', () => {
       const template = {
         container: {
-          volumeMounts: [{'mountPath': '/some/path', 'name': 'some-vol'}]
+          volumeMounts: [{ mountPath: '/some/path', name: 'some-vol' }],
         },
         dag: [],
         name: 'template-1',
@@ -542,7 +572,7 @@ describe('StaticGraphParser', () => {
         name: 'template-1',
         resource: {
           action: 'create',
-          manifest: 'manifest'
+          manifest: 'manifest',
         },
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
@@ -569,7 +599,7 @@ describe('StaticGraphParser', () => {
         container: {},
         dag: [],
         inputs: {
-          parameters: [{ name: 'param1', value: 'val1' }, { name: 'param2', value: 'val2' }]
+          parameters: [{ name: 'param1', value: 'val1' }, { name: 'param2', value: 'val2' }],
         },
         name: 'template-1',
       } as any;
@@ -583,7 +613,7 @@ describe('StaticGraphParser', () => {
         container: {},
         dag: [],
         inputs: {
-          parameters: [{ name: 'param1' }, { name: 'param2' }]
+          parameters: [{ name: 'param1' }, { name: 'param2' }],
         },
         name: 'template-1',
       } as any;
@@ -622,10 +652,7 @@ describe('StaticGraphParser', () => {
         container: {},
         name: 'template-1',
         outputs: {
-          parameters: [
-            { name: 'param1' },
-            { name: 'param2' },
-          ],
+          parameters: [{ name: 'param1' }, { name: 'param2' }],
         },
       } as any;
       const nodeInfo = _populateInfoFromTemplate(new SelectedNodeInfo(), template);
@@ -651,7 +678,7 @@ describe('StaticGraphParser', () => {
       const template = {
         dag: [],
         inputs: {
-          parameters: [{ name: 'param1', value: 'val1' }, { name: 'param2', value: 'val2' }]
+          parameters: [{ name: 'param1', value: 'val1' }, { name: 'param2', value: 'val2' }],
         },
         name: 'template-1',
         resource: {},
@@ -665,7 +692,7 @@ describe('StaticGraphParser', () => {
       const template = {
         dag: [],
         inputs: {
-          parameters: [{ name: 'param1' }, { name: 'param2' }]
+          parameters: [{ name: 'param1' }, { name: 'param2' }],
         },
         name: 'template-1',
         resource: {},
@@ -704,10 +731,7 @@ describe('StaticGraphParser', () => {
       const template = {
         name: 'template-1',
         outputs: {
-          parameters: [
-            { name: 'param1' },
-            { name: 'param2' },
-          ],
+          parameters: [{ name: 'param1' }, { name: 'param2' }],
         },
         resource: {},
       } as any;
@@ -715,7 +739,5 @@ describe('StaticGraphParser', () => {
       expect(nodeInfo.nodeType).toEqual('resource');
       expect(nodeInfo.outputs).toEqual([['param1', ''], ['param2', '']]);
     });
-
   });
 });
-

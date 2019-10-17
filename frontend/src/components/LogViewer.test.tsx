@@ -38,7 +38,8 @@ describe('LogViewer', () => {
   });
 
   it('renders one long line without breaking', () => {
-    const line = `Lorem Ipsum is simply dummy text of the printing and typesetting` +
+    const line =
+      `Lorem Ipsum is simply dummy text of the printing and typesetting` +
       `industry. Lorem Ipsum has been the industry's standard dummy text ever` +
       `since the 1500s, when an unknown printer took a galley of type and` +
       `scrambled it to make a type specimen book. It has survived not only five` +
@@ -110,25 +111,33 @@ describe('LogViewer', () => {
   });
 
   it('renders a row with error', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with error', 'line2'] });
+    const logViewer = new LogViewer({
+      logLines: ['line1 with error', 'line2'],
+    });
     const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
     expect(tree).toMatchSnapshot();
   });
 
   it('renders a row with upper case error', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with ERROR', 'line2'] });
+    const logViewer = new LogViewer({
+      logLines: ['line1 with ERROR', 'line2'],
+    });
     const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
     expect(tree).toMatchSnapshot();
   });
 
   it('renders a row with error word as substring', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with errorWord', 'line2'] });
+    const logViewer = new LogViewer({
+      logLines: ['line1 with errorWord', 'line2'],
+    });
     const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
     expect(tree).toMatchSnapshot();
   });
 
   it('renders a row with warning', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with warning', 'line2'] });
+    const logViewer = new LogViewer({
+      logLines: ['line1 with warning', 'line2'],
+    });
     const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
     expect(tree).toMatchSnapshot();
   });
@@ -140,13 +149,17 @@ describe('LogViewer', () => {
   });
 
   it('renders a row with upper case warning', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with WARNING', 'line2'] });
+    const logViewer = new LogViewer({
+      logLines: ['line1 with WARNING', 'line2'],
+    });
     const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
     expect(tree).toMatchSnapshot();
   });
 
   it('renders a row with warning word as substring', () => {
-    const logViewer = new LogViewer({ logLines: ['line1 with warning:something', 'line2'] });
+    const logViewer = new LogViewer({
+      logLines: ['line1 with warning:something', 'line2'],
+    });
     const tree = mount((logViewer as any)._rowRenderer({ index: 0 })).getDOMNode();
     expect(tree).toMatchSnapshot();
   });

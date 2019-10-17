@@ -74,10 +74,17 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
     return (
       <React.Fragment>
         <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle={title} />
-        <CustomTable columns={columns} rows={rows} selectedIds={selectedIds} useRadioButtons={true}
-          updateSelection={this._selectionChanged.bind(this)} filterLabel={filterLabel}
-          initialSortColumn={initialSortColumn} reload={this._load.bind(this)}
-          emptyMessage={emptyMessage} />
+        <CustomTable
+          columns={columns}
+          rows={rows}
+          selectedIds={selectedIds}
+          useRadioButtons={true}
+          updateSelection={this._selectionChanged.bind(this)}
+          filterLabel={filterLabel}
+          initialSortColumn={initialSortColumn}
+          reload={this._load.bind(this)}
+          emptyMessage={emptyMessage}
+        />
       </React.Fragment>
     );
   }
@@ -110,12 +117,16 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
   protected async _load(request: ListRequest): Promise<string> {
     let nextPageToken = '';
     try {
-      const response =
-        await this.props.listApi(request.pageToken, request.pageSize, request.sortBy, request.filter);
+      const response = await this.props.listApi(
+        request.pageToken,
+        request.pageSize,
+        request.sortBy,
+        request.filter,
+      );
 
       this.setStateSafe({
         resources: response.resources,
-        rows: this._resourcesToRow(response.resources)
+        rows: this._resourcesToRow(response.resources),
       });
 
       nextPageToken = response.nextPageToken;
@@ -132,17 +143,15 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
   }
 
   protected _resourcesToRow(resources: BaseResource[]): Row[] {
-    return resources.map((r) => ({
-      error: (r as any).error,
-      id: r.id!,
-      otherFields: [
-        r.name,
-        r.description,
-        formatDateString(r.created_at),
-      ],
-    } as Row));
+    return resources.map(
+      r =>
+        ({
+          error: (r as any).error,
+          id: r.id!,
+          otherFields: [r.name, r.description, formatDateString(r.created_at)],
+        } as Row),
+    );
   }
 }
 
 export default ResourceSelector;
-

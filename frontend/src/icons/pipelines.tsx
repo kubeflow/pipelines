@@ -16,14 +16,22 @@
 
 import * as React from 'react';
 
-export default class PipelinesIcon extends React.Component<{color: string}> {
+export default class PipelinesIcon extends React.Component<{ color: string }> {
   public render(): JSX.Element {
     return (
-      <svg width='20px' height='20px' viewBox='0 0 20 20' version='1.1' xmlns='http://www.w3.org/2000/svg' xmlnsXlink='http://www.w3.org/1999/xlink'>
+      <svg
+        width='20px'
+        height='20px'
+        viewBox='0 0 20 20'
+        version='1.1'
+        xmlns='http://www.w3.org/2000/svg'
+        xmlnsXlink='http://www.w3.org/1999/xlink'
+      >
         <g id='Symbols' stroke='none' strokeWidth='1' fill='none' fillRule='evenodd'>
           <g transform='translate(-2.000000, -4.000000)'>
             <polygon id='Shape' points='0 0 24 0 24 24 0 24' />
-            <path d='M12.7244079,9.74960425 L17.4807112,9.74960425 C17.7675226,9.74960425
+            <path
+              d='M12.7244079,9.74960425 L17.4807112,9.74960425 C17.7675226,9.74960425
                       18,9.51894323 18,9.23437272 L18,4.51523153 C18,4.23066102 17.7675226,4
                       17.4807112,4 L12.7244079,4 C12.4375965,4 12.2051191,4.23066102
                       12.2051191,4.51523153 L12.2051191,6.06125154 L9.98218019,6.06125154
@@ -42,11 +50,12 @@ export default class PipelinesIcon extends React.Component<{color: string}> {
                       L10.80211,16.3658822 L10.80211,7.68829848 L12.2051191,7.68829848
                       L12.2051191,9.23437272 C12.2051191,9.51894323 12.4375965,9.74960425
                       12.7244079,9.74960425 Z'
-                  id='Path'
-                  fill={this.props.color} />
+              id='Path'
+              fill={this.props.color}
+            />
           </g>
         </g>
-    </svg>
+      </svg>
     );
   }
 }

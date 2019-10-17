@@ -36,8 +36,12 @@ describe('DetailsTable', () => {
   });
 
   it('shows key and value for large values', () => {
-    const tree = shallow(<DetailsTable fields={[
-      ['key', `Lorem Ipsum is simply dummy text of the printing and typesetting
+    const tree = shallow(
+      <DetailsTable
+        fields={[
+          [
+            'key',
+            `Lorem Ipsum is simply dummy text of the printing and typesetting
       industry. Lorem Ipsum has been the industry's standard dummy text ever
       since the 1500s, when an unknown printer took a galley of type and
       scrambled it to make a type specimen book. It has survived not only five
@@ -45,8 +49,11 @@ describe('DetailsTable', () => {
       essentially unchanged. It was popularised in the 1960s with the release
       of Letraset sheets containing Lorem Ipsum passages, and more recently
       with desktop publishing software like Aldus PageMaker including versions
-      of Lorem Ipsum.`]
-    ]} />);
+      of Lorem Ipsum.`,
+          ],
+        ]}
+      />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
@@ -56,7 +63,9 @@ describe('DetailsTable', () => {
   });
 
   it('shows key and JSON value in row', () => {
-    const tree = shallow(<DetailsTable fields={[['key', JSON.stringify([{ jsonKey: 'jsonValue' }])]]} />);
+    const tree = shallow(
+      <DetailsTable fields={[['key', JSON.stringify([{ jsonKey: 'jsonValue' }])]]} />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
@@ -86,30 +95,32 @@ describe('DetailsTable', () => {
   });
 
   it('does not render booleans as JSON', () => {
-    const tree = shallow(<DetailsTable fields={[
-      ['key1', 'true'],
-      ['key2', 'false']
-    ]} />);
+    const tree = shallow(<DetailsTable fields={[['key1', 'true'], ['key2', 'false']]} />);
     expect(tree).toMatchSnapshot();
   });
 
   it('shows keys and values for multiple rows', () => {
-    const tree = shallow(<DetailsTable fields={[
-      ['key1', 'value1'],
-      ['key2', JSON.stringify([{ jsonKey: 'jsonValue2' }])],
-      ['key3', 'value3'],
-      ['key4', 'value4'],
-      ['key5', JSON.stringify({ jsonKey: { nestedJsonKey: 'jsonValue' } })],
-      ['key6', 'value6'],
-      ['key6', 'value7'],
-    ]} />);
+    const tree = shallow(
+      <DetailsTable
+        fields={[
+          ['key1', 'value1'],
+          ['key2', JSON.stringify([{ jsonKey: 'jsonValue2' }])],
+          ['key3', 'value3'],
+          ['key4', 'value4'],
+          ['key5', JSON.stringify({ jsonKey: { nestedJsonKey: 'jsonValue' } })],
+          ['key6', 'value6'],
+          ['key6', 'value7'],
+        ]}
+      />,
+    );
     expect(tree).toMatchSnapshot();
   });
 
   it('does render values with the provided valueComponent', () => {
-    const valueComponent: React.FC<any> = ({key}) => <a>{key}</a>;
-    const tree = shallow(<DetailsTable fields={[['key', {key: 'foobar'} as any ]]} valueComponent={valueComponent} />);
+    const valueComponent: React.FC<any> = ({ key }) => <a>{key}</a>;
+    const tree = shallow(
+      <DetailsTable fields={[['key', { key: 'foobar' } as any]]} valueComponent={valueComponent} />,
+    );
     expect(tree).toMatchSnapshot();
   });
-
 });

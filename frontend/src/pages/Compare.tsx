@@ -67,7 +67,6 @@ const paramsSectionName = 'Parameters';
 const metricsSectionName = 'Metrics';
 
 class Compare extends Page<{}, CompareState> {
-
   constructor(props: any) {
     super(props);
 
@@ -103,85 +102,107 @@ class Compare extends Page<{}, CompareState> {
     const runIds = queryParamRunIds ? queryParamRunIds.split(',') : [];
 
     const runsPerViewerType = (viewerType: PlotType) => {
-      return viewersMap.get(viewerType) ? viewersMap
-        .get(viewerType)!
-        .filter(el => selectedIds.indexOf(el.runId) > -1) : [];
+      return viewersMap.get(viewerType)
+        ? viewersMap.get(viewerType)!.filter(el => selectedIds.indexOf(el.runId) > -1)
+        : [];
     };
 
-    return (<div className={classes(commonCss.page, padding(20, 'lrt'))}>
+    return (
+      <div className={classes(commonCss.page, padding(20, 'lrt'))}>
+        {/* Overview section */}
+        <CollapseButton
+          sectionName={overviewSectionName}
+          collapseSections={collapseSections}
+          compareSetState={this.setStateSafe.bind(this)}
+        />
+        {!collapseSections[overviewSectionName] && (
+          <div className={commonCss.noShrink}>
+            <RunList
+              onError={this.showPageError.bind(this)}
+              {...this.props}
+              selectedIds={selectedIds}
+              runIdListMask={runIds}
+              disablePaging={true}
+              onSelectionChange={this._selectionChanged.bind(this)}
+            />
+          </div>
+        )}
 
-      {/* Overview section */}
-      <CollapseButton sectionName={overviewSectionName} collapseSections={collapseSections}
-        compareSetState={this.setStateSafe.bind(this)} />
-      {!collapseSections[overviewSectionName] && (
-        <div className={commonCss.noShrink}>
-          <RunList onError={this.showPageError.bind(this)} {...this.props}
-            selectedIds={selectedIds} runIdListMask={runIds} disablePaging={true}
-            onSelectionChange={this._selectionChanged.bind(this)} />
-        </div>
-      )}
+        <Separator orientation='vertical' />
 
-      <Separator orientation='vertical' />
+        {/* Parameters section */}
+        <CollapseButton
+          sectionName={paramsSectionName}
+          collapseSections={collapseSections}
+          compareSetState={this.setStateSafe.bind(this)}
+        />
+        {!collapseSections[paramsSectionName] && (
+          <div className={classes(commonCss.noShrink, css.outputsRow)}>
+            <Separator orientation='vertical' />
+            <CompareTable {...this.state.paramsCompareProps} />
+            <Hr />
+          </div>
+        )}
 
-      {/* Parameters section */}
-      <CollapseButton sectionName={paramsSectionName} collapseSections={collapseSections}
-        compareSetState={this.setStateSafe.bind(this)} />
-      {!collapseSections[paramsSectionName] && (
-        <div className={classes(commonCss.noShrink, css.outputsRow)}>
-          <Separator orientation='vertical' />
-          <CompareTable {...this.state.paramsCompareProps} />
-          <Hr />
-        </div>
-      )}
+        {/* Metrics section */}
+        <CollapseButton
+          sectionName={metricsSectionName}
+          collapseSections={collapseSections}
+          compareSetState={this.setStateSafe.bind(this)}
+        />
+        {!collapseSections[metricsSectionName] && (
+          <div className={classes(commonCss.noShrink, css.outputsRow)}>
+            <Separator orientation='vertical' />
+            <CompareTable {...this.state.metricsCompareProps} />
+            <Hr />
+          </div>
+        )}
 
-      {/* Metrics section */}
-      <CollapseButton sectionName={metricsSectionName} collapseSections={collapseSections}
-        compareSetState={this.setStateSafe.bind(this)} />
-      {!collapseSections[metricsSectionName] && (
-        <div className={classes(commonCss.noShrink, css.outputsRow)}>
-          <Separator orientation='vertical' />
-          <CompareTable {...this.state.metricsCompareProps} />
-          <Hr />
-        </div>
-      )}
+        <Separator orientation='vertical' />
 
-      <Separator orientation='vertical' />
-
-      {Array.from(viewersMap.keys()).map((viewerType, i) =>
-        !!runsPerViewerType(viewerType).length && (
-          <div key={i}>
-            <CollapseButton collapseSections={collapseSections}
-              compareSetState={this.setStateSafe.bind(this)}
-              sectionName={componentMap[viewerType].prototype.getDisplayName()} />
-            {!collapseSections[componentMap[viewerType].prototype.getDisplayName()] && (
-              <React.Fragment>
-                <div className={classes(commonCss.flex, css.outputsRow)}>
-                  {/* If the component allows aggregation, add one more card for
+        {Array.from(viewersMap.keys()).map(
+          (viewerType, i) =>
+            !!runsPerViewerType(viewerType).length && (
+              <div key={i}>
+                <CollapseButton
+                  collapseSections={collapseSections}
+                  compareSetState={this.setStateSafe.bind(this)}
+                  sectionName={componentMap[viewerType].prototype.getDisplayName()}
+                />
+                {!collapseSections[componentMap[viewerType].prototype.getDisplayName()] && (
+                  <React.Fragment>
+                    <div className={classes(commonCss.flex, css.outputsRow)}>
+                      {/* If the component allows aggregation, add one more card for
                 its aggregated view. Only do this if there is more than one
                 output, filtering out any unselected runs. */}
-                  {(componentMap[viewerType].prototype.isAggregatable() && (
-                    runsPerViewerType(viewerType).length > 1) && (
-                      <PlotCard configs={
-                        runsPerViewerType(viewerType).map(t => t.config)} maxDimension={400}
-                        title='Aggregated view' />
-                    )
-                  )}
+                      {componentMap[viewerType].prototype.isAggregatable() &&
+                        runsPerViewerType(viewerType).length > 1 && (
+                          <PlotCard
+                            configs={runsPerViewerType(viewerType).map(t => t.config)}
+                            maxDimension={400}
+                            title='Aggregated view'
+                          />
+                        )}
 
-                  {runsPerViewerType(viewerType).map((taggedConfig, c) => (
-                    <PlotCard key={c} configs={[taggedConfig.config]} title={taggedConfig.runName}
-                      maxDimension={400} />
-                  ))}
-                  <Separator />
-
-                </div>
-                <Hr />
-              </React.Fragment>
-            )}
-            <Separator orientation='vertical' />
-          </div>
-        )
-      )}
-    </div>);
+                      {runsPerViewerType(viewerType).map((taggedConfig, c) => (
+                        <PlotCard
+                          key={c}
+                          configs={[taggedConfig.config]}
+                          title={taggedConfig.runName}
+                          maxDimension={400}
+                        />
+                      ))}
+                      <Separator />
+                    </div>
+                    <Hr />
+                  </React.Fragment>
+                )}
+                <Separator orientation='vertical' />
+              </div>
+            ),
+        )}
+      </div>
+    );
   }
 
   public async refresh(): Promise<void> {
@@ -202,21 +223,24 @@ class Compare extends Page<{}, CompareState> {
     const failingRuns: string[] = [];
     let lastError: Error | null = null;
 
-    await Promise.all(runIds.map(async id => {
-      try {
-        const run = await Apis.runServiceApi.getRun(id);
-        runs.push(run);
-        workflowObjects.push(JSON.parse(run.pipeline_runtime!.workflow_manifest || '{}'));
-      } catch (err) {
-        failingRuns.push(id);
-        lastError = err;
-      }
-    }));
+    await Promise.all(
+      runIds.map(async id => {
+        try {
+          const run = await Apis.runServiceApi.getRun(id);
+          runs.push(run);
+          workflowObjects.push(JSON.parse(run.pipeline_runtime!.workflow_manifest || '{}'));
+        } catch (err) {
+          failingRuns.push(id);
+          lastError = err;
+        }
+      }),
+    );
 
     if (lastError) {
       await this.showPageError(`Error: failed loading ${failingRuns.length} runs.`, lastError);
       logger.error(
-        `Failed loading ${failingRuns.length} runs, last failed with the error: ${lastError}`);
+        `Failed loading ${failingRuns.length} runs, last failed with the error: ${lastError}`,
+      );
       return;
     }
 
@@ -229,27 +253,30 @@ class Compare extends Page<{}, CompareState> {
     this._loadParameters(selectedIds);
     this._loadMetrics(selectedIds);
 
-    const outputPathsList = workflowObjects.map(
-      workflow => WorkflowParser.loadAllOutputPaths(workflow));
+    const outputPathsList = workflowObjects.map(workflow =>
+      WorkflowParser.loadAllOutputPaths(workflow),
+    );
 
     // Maps a viewer type (ROC, table.. etc) to a list of all viewer instances
     // of that type, each tagged with its parent run id
     const viewersMap = new Map<PlotType, TaggedViewerConfig[]>();
 
-    await Promise.all(outputPathsList.map(async (pathList, i) => {
-      for (const path of pathList) {
-        const configs = await OutputArtifactLoader.load(path);
-        configs.map(config => {
-          const currentList: TaggedViewerConfig[] = viewersMap.get(config.type) || [];
-          currentList.push({
-            config,
-            runId: runs[i].run!.id!,
-            runName: runs[i].run!.name!,
+    await Promise.all(
+      outputPathsList.map(async (pathList, i) => {
+        for (const path of pathList) {
+          const configs = await OutputArtifactLoader.load(path);
+          configs.map(config => {
+            const currentList: TaggedViewerConfig[] = viewersMap.get(config.type) || [];
+            currentList.push({
+              config,
+              runId: runs[i].run!.id!,
+              runName: runs[i].run!.name!,
+            });
+            viewersMap.set(config.type, currentList);
           });
-          viewersMap.set(config.type, currentList);
-        });
-      }
-    }));
+        }
+      }),
+    );
 
     // For each output artifact type, list all artifact instances in all runs
     this.setStateSafe({ viewersMap });

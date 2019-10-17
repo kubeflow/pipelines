@@ -20,7 +20,7 @@ import SideNav, { css } from './SideNav';
 import TestUtils from '../TestUtils';
 import { Apis } from '../lib/Apis';
 import { LocalStorage } from '../lib/LocalStorage';
-import { ReactWrapper, ShallowWrapper, shallow, } from 'enzyme';
+import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { RoutePage } from './Router';
 import { RouterProps } from 'react-router';
 
@@ -48,7 +48,7 @@ describe('SideNav', () => {
       apiServerCommitHash: 'd3c4add0a95e930c70a330466d0923827784eb9a',
       apiServerReady: true,
       buildDate: 'Wed Jan 9 19:40:24 UTC 2019',
-      frontendCommitHash: '8efb2fcff9f666ba5b101647e909dc9c6889cecb'
+      frontendCommitHash: '8efb2fcff9f666ba5b101647e909dc9c6889cecb',
     }));
     checkHubSpy.mockImplementation(() => ({ ok: true }));
 
@@ -229,9 +229,9 @@ describe('SideNav', () => {
       apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
       apiServerReady: true,
       buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
-      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98'
+      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
     };
-    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+    buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
     tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
     await TestUtils.flushPromises();
@@ -239,7 +239,8 @@ describe('SideNav', () => {
 
     expect(tree.state('displayBuildInfo')).toEqual({
       commitHash: buildInfo.apiServerCommitHash.substring(0, 7),
-      commitUrl: 'https://www.github.com/kubeflow/pipelines/commit/' + buildInfo.apiServerCommitHash,
+      commitUrl:
+        'https://www.github.com/kubeflow/pipelines/commit/' + buildInfo.apiServerCommitHash,
       date: new Date(buildInfo.buildDate).toLocaleDateString(),
     });
   });
@@ -249,16 +250,18 @@ describe('SideNav', () => {
       apiServerReady: true,
       // No apiServerCommitHash
       buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
-      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98'
+      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
     };
-    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+    buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
     tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
     await TestUtils.flushPromises();
 
-    expect(tree.state('displayBuildInfo')).toEqual(expect.objectContaining({
-      commitHash: buildInfo.frontendCommitHash.substring(0, 7),
-    }));
+    expect(tree.state('displayBuildInfo')).toEqual(
+      expect.objectContaining({
+        commitHash: buildInfo.frontendCommitHash.substring(0, 7),
+      }),
+    );
   });
 
   it('uses the frontend commit hash for the link URL if the api server hash is not returned', async () => {
@@ -266,33 +269,38 @@ describe('SideNav', () => {
       apiServerReady: true,
       // No apiServerCommitHash
       buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
-      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98'
+      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
     };
-    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+    buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
     tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
     await TestUtils.flushPromises();
 
-    expect(tree.state('displayBuildInfo')).toEqual(expect.objectContaining({
-      commitUrl: 'https://www.github.com/kubeflow/pipelines/commit/' + buildInfo.frontendCommitHash,
-    }));
+    expect(tree.state('displayBuildInfo')).toEqual(
+      expect.objectContaining({
+        commitUrl:
+          'https://www.github.com/kubeflow/pipelines/commit/' + buildInfo.frontendCommitHash,
+      }),
+    );
   });
 
-  it('displays \'unknown\' if the frontend and api server commit hashes are not returned', async () => {
+  it("displays 'unknown' if the frontend and api server commit hashes are not returned", async () => {
     const buildInfo = {
       apiServerReady: true,
       // No apiServerCommitHash
       buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
       // No frontendCommitHash
     };
-    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+    buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
     tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
     await TestUtils.flushPromises();
 
-    expect(tree.state('displayBuildInfo')).toEqual(expect.objectContaining({
-      commitHash: 'unknown',
-    }));
+    expect(tree.state('displayBuildInfo')).toEqual(
+      expect.objectContaining({
+        commitHash: 'unknown',
+      }),
+    );
   });
 
   it('links to the github repo root if the frontend and api server commit hashes are not returned', async () => {
@@ -302,31 +310,35 @@ describe('SideNav', () => {
       buildDate: 'Tue Oct 23 14:23:53 UTC 2018',
       // No frontendCommitHash
     };
-    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+    buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
     tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
     await TestUtils.flushPromises();
 
-    expect(tree.state('displayBuildInfo')).toEqual(expect.objectContaining({
-      commitUrl: 'https://www.github.com/kubeflow/pipelines',
-    }));
+    expect(tree.state('displayBuildInfo')).toEqual(
+      expect.objectContaining({
+        commitUrl: 'https://www.github.com/kubeflow/pipelines',
+      }),
+    );
   });
 
-  it('displays \'unknown\' if the date is not returned', async () => {
+  it("displays 'unknown' if the date is not returned", async () => {
     const buildInfo = {
       apiServerCommitHash: '0a7b9e38f2b9bcdef4bbf3234d971e1635b50cd5',
       apiServerReady: true,
       // No buildDate
-      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98'
+      frontendCommitHash: '302e93ce99099173f387c7e0635476fe1b69ea98',
     };
-    buildInfoSpy.mockImplementationOnce(() => (buildInfo));
+    buildInfoSpy.mockImplementationOnce(() => buildInfo);
 
     tree = shallow(<SideNav page={RoutePage.PIPELINES} {...routerProps} />);
     await TestUtils.flushPromises();
 
-    expect(tree.state('displayBuildInfo')).toEqual(expect.objectContaining({
-      date: 'unknown',
-    }));
+    expect(tree.state('displayBuildInfo')).toEqual(
+      expect.objectContaining({
+        date: 'unknown',
+      }),
+    );
   });
 
   it('logs an error if the call getBuildInfo fails', async () => {
