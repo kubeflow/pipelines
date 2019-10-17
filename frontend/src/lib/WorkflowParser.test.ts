@@ -337,37 +337,38 @@ describe('WorkflowParser', () => {
   });
 
   describe('getNodeInputOutputParams', () => {
+    const emptyParams = {inputParams: [], outputParams: []};
     it('handles undefined workflow', () => {
-      expect(WorkflowParser.getNodeInputOutputParams(undefined as any, '')).toEqual([[], []]);
+      expect(WorkflowParser.getNodeInputOutputParams(undefined as any, '')).toEqual(emptyParams);
     });
 
     it('handles empty workflow, without status', () => {
-      expect(WorkflowParser.getNodeInputOutputParams({} as any, '')).toEqual([[], []]);
+      expect(WorkflowParser.getNodeInputOutputParams({} as any, '')).toEqual(emptyParams);
     });
 
     it('handles workflow without nodes', () => {
       const workflow = { status: {} };
-      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, '')).toEqual([[], []]);
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, '')).toEqual(emptyParams);
     });
 
     it('handles node not existing in graph', () => {
       const workflow = { status: { nodes: { node1: {} } } };
-      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node2')).toEqual([[], []]);
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node2')).toEqual(emptyParams);
     });
 
     it('handles an empty node', () => {
       const workflow = { status: { nodes: { node1: {} } } };
-      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual([[], []]);
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual(emptyParams);
     });
 
     it('handles a node with inputs but no parameters', () => {
       const workflow = { status: { nodes: { node1: { inputs: {} } } } };
-      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual([[], []]);
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual(emptyParams);
     });
 
     it('handles a node with inputs and empty parameters', () => {
       const workflow = { status: { nodes: { node1: { inputs: { parameters: [] } } } } };
-      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual([[], []]);
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual(emptyParams);
     });
 
     it('handles a node with one input parameter', () => {
@@ -385,11 +386,10 @@ describe('WorkflowParser', () => {
           }
         }
       };
-      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual([
-        [
-          ['input param1', 'input param1 value']
-        ], []
-      ]);
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual({
+        inputParams: [['input param1', 'input param1 value']],
+        outputParams: [],
+      });
     });
 
     it('handles a node with one input parameter that has no value', () => {
@@ -406,11 +406,10 @@ describe('WorkflowParser', () => {
           }
         }
       };
-      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual([
-        [
-          ['input param1', '']
-        ], []
-      ]);
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual({
+        inputParams: [['input param1', '']],
+        outputParams: [],
+      });
     });
 
     it('handles a node with one input parameter that is not the first node', () => {
@@ -436,11 +435,10 @@ describe('WorkflowParser', () => {
           }
         }
       };
-      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node2')).toEqual([
-        [
-          ['node2 input param1', 'node2 input param1 value']
-        ], []
-      ]);
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node2')).toEqual({
+        inputParams: [['node2 input param1', 'node2 input param1 value']],
+        outputParams: [],
+      });
     });
 
     it('handles a node with one output parameter', () => {
@@ -458,12 +456,10 @@ describe('WorkflowParser', () => {
           }
         }
       };
-      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual([
-        [],
-        [
-          ['output param1', 'output param1 value']
-        ],
-      ]);
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual({
+        inputParams: [],
+        outputParams: [['output param1', 'output param1 value']],
+      });
     });
 
     it('handles a node with one input and one output parameter', () => {
@@ -487,14 +483,10 @@ describe('WorkflowParser', () => {
           }
         }
       };
-      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual([
-        [
-          ['input param1', 'input param1 value']
-        ],
-        [
-          ['output param1', 'output param1 value']
-        ],
-      ]);
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual({
+        inputParams: [['input param1', 'input param1 value']],
+        outputParams: [['output param1', 'output param1 value']],
+      });
     });
 
     it('handles a node with multiple input and output parameter', () => {
@@ -527,17 +519,222 @@ describe('WorkflowParser', () => {
           }
         }
       };
-      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual([
-        [
+      expect(WorkflowParser.getNodeInputOutputParams(workflow as any, 'node1')).toEqual({
+        inputParams: [
           ['input param1', 'input param1 value'],
           ['input param2', 'input param2 value'],
           ['input param3', 'input param3 value'],
         ],
-        [
+        outputParams: [
           ['output param1', 'output param1 value'],
           ['output param2', 'output param2 value'],
         ],
-      ]);
+      });
+    });
+  });
+
+  describe('getNodeInputOutputArtifacts', () => {
+    const emptyArtifacts = {inputArtifacts: [], outputArtifacts: []};
+    const s3 = {
+      accessKeySecret: {key: 'accesskey', optional: false, name: 'minio'},
+      bucket: 'foo',
+      endpoint: 'minio.kubeflow',
+      key: 'bar',
+      secretKeySecret: {key: 'secretkey', optional: false, name: 'minio'},
+    };
+
+    it('handles undefined workflow', () => {
+      expect(WorkflowParser.getNodeInputOutputArtifacts(undefined as any, '')).toEqual(emptyArtifacts);
+    });
+
+    it('handles empty workflow, without status', () => {
+      expect(WorkflowParser.getNodeInputOutputArtifacts({} as any, '')).toEqual(emptyArtifacts);
+    });
+
+    it('handles workflow without nodes', () => {
+      const workflow = { status: {} };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, '')).toEqual(emptyArtifacts);
+    });
+
+    it('handles node not existing in graph', () => {
+      const workflow = { status: { nodes: { node1: {} } } };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node2')).toEqual(emptyArtifacts);
+    });
+
+    it('handles an empty node', () => {
+      const workflow = { status: { nodes: { node1: {} } } };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node1')).toEqual(emptyArtifacts);
+    });
+
+    it('handles a node with inputs but no artifact', () => {
+      const workflow = { status: { nodes: { node1: { inputs: {} } } } };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node1')).toEqual(emptyArtifacts);
+    });
+
+    it('handles a node with inputs and empty artifact', () => {
+      const workflow = { status: { nodes: { node1: { inputs: { artifacts: [] } } } } };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node1')).toEqual(emptyArtifacts);
+    });
+
+    it('handles a node with one input artifact', () => {
+      const workflow = {
+        status: {
+          nodes: {
+            node1: {
+              inputs: {
+                artifacts: [{
+                  name: 'input art1',
+                  s3
+                }]
+              }
+            }
+          }
+        }
+      };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node1')).toEqual({
+        inputArtifacts: [['input art1', s3]],
+        outputArtifacts: [],
+      });
+    });
+
+    it('handles a node with one input artifact that has no s3 artifact config', () => {
+      const workflow = {
+        status: {
+          nodes: {
+            node1: {
+              inputs: {
+                artifacts: [{
+                  name: 'input art1',
+                }]
+              }
+            }
+          }
+        }
+      };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node1')).toEqual({
+        inputArtifacts: [['input art1', undefined]],
+        outputArtifacts: [],
+      });
+    });
+
+    it('handles a node with one input artifact that is not the first node', () => {
+      const workflow = {
+        status: {
+          nodes: {
+            node1: {
+              inputs: {
+                artifacts: [{
+                  name: 'input art1',
+                  s3: {...s3, key: 'in1'}
+                }]
+              }
+            },
+            node2: {
+              inputs: {
+                artifacts: [{
+                  name: 'node2 input art1',
+                  s3
+                }]
+              }
+            }
+          }
+        }
+      };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node2')).toEqual({
+        inputArtifacts: [['node2 input art1', s3]],
+        outputArtifacts: [],
+      });
+    });
+
+    it('handles a node with one output artifact', () => {
+      const workflow = {
+        status: {
+          nodes: {
+            node1: {
+              outputs: {
+                artifacts: [{
+                  name: 'output art1',
+                  s3
+                }]
+              }
+            }
+          }
+        }
+      };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node1')).toEqual({
+        inputArtifacts: [],
+        outputArtifacts: [['output art1', s3]],
+      });
+    });
+
+    it('handles a node with one input and one output artifacts', () => {
+      const workflow = {
+        status: {
+          nodes: {
+            node1: {
+              inputs: {
+                artifacts: [{
+                  name: 'input art1',
+                  s3: {...s3, key: 'in1'}
+                }]
+              },
+              outputs: {
+                artifacts: [{
+                  name: 'output art1',
+                  s3: {...s3, key: 'out1'}
+                }]
+              },
+            }
+          }
+        }
+      };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node1')).toEqual({
+        inputArtifacts: [['input art1', {...s3, key: 'in1'}]],
+        outputArtifacts: [['output art1', {...s3, key: 'out1'}]],
+      });
+    });
+
+    it('handles a node with multiple input and output artifacts', () => {
+      const workflow = {
+        status: {
+          nodes: {
+            node1: {
+              inputs: {
+                artifacts: [{
+                  name: 'input art1',
+                  s3: {...s3, key: 'in1'}
+                }, {
+                  name: 'input art2',
+                  s3: {...s3, key: 'in2'}
+                }, {
+                  name: 'input art3',
+                  s3: {...s3, key: 'in3'}
+                }],
+              },
+              outputs: {
+                artifacts: [{
+                  name: 'output art1',
+                  s3: {...s3, key: 'out1'}
+                }, {
+                  name: 'output art2',
+                  s3: {...s3, key: 'out2'}
+                }],
+              },
+            }
+          }
+        }
+      };
+      expect(WorkflowParser.getNodeInputOutputArtifacts(workflow as any, 'node1')).toEqual({
+        inputArtifacts: [
+          ['input art1', {...s3, key: 'in1'}],
+          ['input art2', {...s3, key: 'in2'}],
+          ['input art3', {...s3, key: 'in3'}],
+        ],
+        outputArtifacts: [
+          ['output art1', {...s3, key: 'out1'}],
+          ['output art2', {...s3, key: 'out2'}],
+        ],
+      });
     });
   });
 

@@ -690,7 +690,7 @@ class Compiler(object):
         param.name = K8sHelper.sanitize_k8s_name(param.name)
         if param.op_name:
           param.op_name = K8sHelper.sanitize_k8s_name(param.op_name)
-      if op.output is not None:
+      if op.output is not None and not isinstance(op.output, dsl._container_op._MultipleOutputsError):
         op.output.name = K8sHelper.sanitize_k8s_name(op.output.name)
         op.output.op_name = K8sHelper.sanitize_k8s_name(op.output.op_name)
       if op.dependent_names:

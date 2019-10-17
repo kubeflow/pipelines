@@ -22,16 +22,21 @@ import { logger } from './Utils';
 
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
+export interface KeyValue<T> extends Array<any> {
+  0?: string;
+  1?: T;
+}
+
 export class SelectedNodeInfo {
   public args: string[];
   public command: string[];
   public condition: string;
   public image: string;
-  public inputs: string[][];
+  public inputs: Array<KeyValue<string>>;
   public nodeType: nodeType;
-  public outputs: string[][];
-  public volumeMounts: string[][];
-  public resource: string[][];
+  public outputs: Array<KeyValue<string>>;
+  public volumeMounts: Array<KeyValue<string>>;
+  public resource: Array<KeyValue<string>>;
 
   constructor() {
     this.args = [];
