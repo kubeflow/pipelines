@@ -141,9 +141,9 @@ spec:
           - name: test-path
       container:
         image: "{{inputs.parameters.sample-tests-image}}"
-        command:
-          - python3
-          - /python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py
+        #command:
+        #  - python3
+        #  - /python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py
         args: [
           "sample_test", "run_test",
           "--namespace", "{{inputs.parameters.namespace}}",
