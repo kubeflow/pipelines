@@ -105,9 +105,6 @@ In this sample, we run a wordcount sample code in a Kubeflow pipeline. The outpu
 ```python
 !gsutil cat gs://ml-pipeline-playground/samples/dataflow/wc/wc.py
 ```
-  
- #### A minimalist word-counting workflow that counts words in Shakespeare 
-This is the first in a series of successively more detailed word count examples. Next, see the wordcount pipeline, then the wordcount_debugging pipeline, for more detailed examples that introduce additional concepts. <!--where should the user find this examples, can we give a link to these?-->
     
 Concepts:
     
