@@ -45,12 +45,11 @@ def _add_generated_apis(target_struct, api_module, api_client):
       import re
       return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
-  for api_name in dir(api_module.api):
-      if not api_name.endswith('ServiceApi'): # E.g. kfp_server_api.api.RunServiceApi
+  for api_name in dir(api_module):
+      if not api_name.endswith('ServiceApi'):
           continue
 
-      api_name = api_name[0:-len('ServiceApi')] # E.g. Job, Run or PipelineUpload
-      short_api_name = camel_case_to_snake_case(api_name) + 's'
+      short_api_name = camel_case_to_snake_case(api_name[0:-len('ServiceApi')]) + 's'
       api_struct = Struct()
       setattr(target_struct, short_api_name, api_struct)
       service_api = getattr(api_module.api, api_name)
@@ -61,8 +60,11 @@ def _add_generated_apis(target_struct, api_module, api_client):
 
           bound_member = getattr(initialized_service_api, member_name)
           setattr(api_struct, member_name, bound_member)
-
-      api_struct.models = getattr(api_module.models, 'api_' + api_name.lower()) # E.g. kfp_server_api.models.api_job which contains ApiJob, ApiPipelineSpec etc
+  models_struct = Struct()
+  for member_name in dir(api_module.models):
+      if not member_name[0].islower():
+          setattr(models_struct, member_name, getattr(api_module.models, member_name))
+  target_struct.api_models = models_struct
 
 
 KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
