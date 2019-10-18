@@ -1,5 +1,6 @@
 {
   "extends": ["tslint:recommended", "tslint-react", "tslint-config-prettier"],
+  "defaultSeverity": "warn",
   "linterOptions": {
     "exclude": [
       "config/**/*.js",
@@ -7,8 +8,10 @@
       "src/apis/**/*.ts",
       "coverage/lcov-report/*.js",
       "backstop_data/**/*.js",
-      "../frontend/src/api/*.ts"
-    ]
+      "generated/**",
+      "src/api/*.ts"
+    ],
+    "format": "verbose"
   },
   "rules": {
     "interface-name": [true, "never-prefix"],
@@ -18,6 +21,7 @@
     "ordered-imports": false,
     "semicolon": [true, "always", "ignore-bound-class-methods"],
     "typedef": [true, "call-signature"],
+    "no-unused-variable": true,
     "variable-name": [
       true,
       "check-format",
