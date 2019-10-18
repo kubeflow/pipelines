@@ -3,7 +3,10 @@
 The `xgboost_training_cm.py` pipeline creates XGBoost models on structured data in CSV format. Both classification and regression are supported.
 
 The pipeline starts by creating an Google DataProc cluster, and then running analysis, transformation, distributed training and 
-prediction in the created cluster. Finally, a delete cluster operation runs to destroy the cluster it creates
+prediction in the created cluster. 
+Then a single node confusion-matrix and ROC aggregator is used (for classification case) to	
+provide the confusion matrix data, and ROC data to the front end, respectively.
+Finally, a delete cluster operation runs to destroy the cluster it creates
 in the beginning. The delete cluster operation is used as an exit handler, meaning it will run regardless of whether the pipeline fails
 or not.
 
@@ -44,4 +47,12 @@ Delete Cluster:
   [source code](https://github.com/kubeflow/pipelines/blob/master/components/gcp/container/component_sdk/python/kfp_component/google/dataproc/_delete_cluster.py) 
 
 The container file is located [here](https://github.com/kubeflow/pipelines/tree/master/components/gcp/container) 
+
+For visualization, we use confusion matrix and ROC.
+Confusion Matrix:	
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix/src),
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/confusion_matrix)
+and ROC: 
+  [source code](https://github.com/kubeflow/pipelines/tree/master/components/local/roc/src), 
+  [container](https://github.com/kubeflow/pipelines/tree/master/components/local/roc)
 

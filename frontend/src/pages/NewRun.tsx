@@ -17,6 +17,7 @@
 import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
+import Buttons from '../lib/Buttons';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -43,6 +44,7 @@ import { Workflow } from '../../../frontend/third_party/argo-ui/argo_template';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, color } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
+import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
 
 interface NewRunState {
   description: string;
@@ -71,6 +73,7 @@ interface NewRunState {
   unconfirmedSelectedExperiment?: ApiExperiment;
   unconfirmedSelectedPipeline?: ApiPipeline;
   useWorkflowFromRun: boolean;
+  uploadDialogOpen: boolean;
   usePipelineFromRunLabel: string;
 }
 
@@ -113,6 +116,7 @@ class NewRun extends Page<{}, NewRunState> {
       pipelineName: '',
       pipelineSelectorOpen: false,
       runName: '',
+      uploadDialogOpen: false,      
       usePipelineFromRunLabel: 'Using pipeline from cloned run',
       useWorkflowFromRun: false,
     };
@@ -152,6 +156,8 @@ class NewRun extends Page<{}, NewRunState> {
       ? RoutePage.PIPELINE_DETAILS.replace(':' + RouteParams.pipelineId + '?', '') +
         urlParser.build({ [QUERY_PARAMS.fromRunId]: originalRunId })
       : '';
+
+    const buttons = new Buttons(this.props, this.refresh.bind(this));
 
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
@@ -202,7 +208,9 @@ class NewRun extends Page<{}, NewRunState> {
                 emptyMessage='No pipelines found. Upload a pipeline and then try again.'
                 initialSortColumn={PipelineSortKeys.CREATED_AT}
                 selectionChanged={(selectedPipeline: ApiPipeline) =>
-                  this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline })} />
+                  this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline })}
+                toolbarActionMap={buttons.upload(() =>
+                  this.setStateSafe({ pipelineSelectorOpen: false, uploadDialogOpen: true })).getToolbarActionMap()} />
             </DialogContent>
             <DialogActions>
               <Button id='cancelPipelineSelectionBtn' onClick={() => this._pipelineSelectorClosed(false)} color='secondary'>
@@ -214,6 +222,9 @@ class NewRun extends Page<{}, NewRunState> {
               </Button>
             </DialogActions>
           </Dialog>
+
+          <UploadPipelineDialog open={this.state.uploadDialogOpen}
+            onClose={this._uploadDialogClosed.bind(this)} />
 
           {/* Experiment selector dialog */}
           <Dialog open={experimentSelectorOpen}
@@ -488,6 +499,35 @@ class NewRun extends Page<{}, NewRunState> {
     const { parameters } = this.state;
     parameters[index].value = value;
     this.setStateSafe({ parameters });
+  }
+
+  private async _uploadDialogClosed(confirmed: boolean, name: string, file: File | null, url: string,
+    method: ImportMethod, description?: string): Promise<boolean> {
+
+    if (!confirmed
+      || (method === ImportMethod.LOCAL && !file)
+      || (method === ImportMethod.URL && !url)) {
+      this.setStateSafe({ pipelineSelectorOpen: true, uploadDialogOpen: false });
+      return false;
+    }
+
+    try {
+      const uploadedPipeline =
+        method === ImportMethod.LOCAL
+          ? await Apis.uploadPipeline(name, file!)
+          : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url } });
+      this.setStateSafe({
+        pipeline: uploadedPipeline,
+        pipelineName: (uploadedPipeline && uploadedPipeline.name) || '',
+        pipelineSelectorOpen: false,
+        uploadDialogOpen: false,
+      }, () => this._validate());
+      return true;
+    } catch (err) {
+      const errorMessage = await errorToMessage(err);
+      this.showErrorDialog('Failed to upload pipeline', errorMessage);
+      return false;
+    }
   }
 
   private async _prepareFormFromEmbeddedPipeline(embeddedPipelineRunId: string): Promise<void> {

@@ -16,8 +16,8 @@
     "grpc-web": "^1.0.0",
     "http-proxy-middleware": "^0.19.0",
     "immer": "^1.7.4",
-    "js-yaml": "^3.12.0",
-    "lodash": ">=4.17.11",
+    "js-yaml": "^3.13.1",
+    "lodash": "^4.17.15",
     "markdown-it": "^8.4.2",
     "portable-fetch": "^3.0.0",
     "re-resizable": "^4.9.0",
@@ -79,13 +79,15 @@
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.15.1",
     "enzyme-to-json": "^3.3.4",
+    "prettier": "^1.18.2",
     "react-router-test-context": "^0.1.0",
     "react-test-renderer": "^16.5.2",
     "swagger-ts-client": "^0.9.6",
     "ts-node": "^7.0.1",
     "ts-node-dev": "^1.0.0-pre.30",
+    "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.3.1",
-    "webpack-bundle-analyzer": "^3.0.2"
+    "webpack-bundle-analyzer": "^3.6.0"
   },
   "homepage": "./",
   "jest": {

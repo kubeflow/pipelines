@@ -107,12 +107,6 @@ service PipelineService {
     // };
   }
 
-  rpc GetPipelineVersionTemplate(GetPipelineVersionTemplateRequest) returns (GetTemplateResponse) {
-    option (google.api.http) = {
-      get: "/apis/v1beta1/pipeline_versions/{version_id}/templates"
-    };
-  }
-
   rpc ListPipelineVersions(ListPipelineVersionsRequest) returns (ListPipelineVersionsResponse) {
     // TODO(jingzhang36): uncomment when exposing this API method.
     // option (google.api.http) = {

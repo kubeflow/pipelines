@@ -909,20 +909,6 @@ func (r *ResourceManager) GetPipelineVersion(versionId string) (*model.PipelineV
 	return r.pipelineStore.GetPipelineVersion(versionId)
 }
 
-func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, error) {
-	_, err := r.pipelineStore.GetPipelineVersion(versionId)
-	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed")
-	}
-
-	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(versionId)))
-	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed")
-	}
-
-	return template, nil
-}
-
 func (r *ResourceManager) ListPipelineVersions(pipelineId string, opts *list.Options) (pipelines []*model.PipelineVersion, total_size int, nextPageToken string, err error) {
 	return r.pipelineStore.ListPipelineVersions(pipelineId, opts)
 }
