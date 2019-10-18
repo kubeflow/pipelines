@@ -8,7 +8,8 @@
       "src/apis/**/*.ts",
       "coverage/lcov-report/*.js",
       "backstop_data/**/*.js",
-      "../frontend/src/api/*.ts"
+      "generated/**",
+      "src/api/*.ts"
     ],
     "format": "verbose"
   },
