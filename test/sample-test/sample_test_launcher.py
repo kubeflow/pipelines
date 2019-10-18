@@ -47,11 +47,20 @@ class SampleTest(object):
     # Capture the first segment after gs:// as the project name.
     self._bucket_name = results_gcs_dir.split('/')[2]
     self._target_image_prefix = target_image_prefix
-    self._is_notebook = None
     self._namespace = namespace
+
+    # TODO(numerology): special treatment for new TFX::OSS sample. Current decision
+    # is that we directly run its compiled version, for its compilation brings
+    # complex and unstable dependencies. See
+    if test_name == 'parameterized_tfx_oss':
+      self._is_notebook = False
+      self._work_dir = os.path.join(BASE_DIR, 'samples/contrib/', self._test_name)
+    else:
+      self._is_notebook = None
+      self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
+
     self._sample_test_result = 'junit_Sample%sOutput.xml' % self._test_name
     self._sample_test_output = self._results_gcs_dir
-    self._work_dir = os.path.join(BASE_DIR, 'samples/core/', self._test_name)
 
   def _copy_result(self):
     """ Copy generated sample test result to gcs, so that Prow can pick it. """
@@ -119,9 +128,6 @@ class SampleTest(object):
         if 'run_pipeline' in raw_args.keys():
           self._run_pipeline = raw_args['run_pipeline']
 
-      if self._run_pipeline:
-        nb_params['experiment_name'] = self._test_name + '-test'
-
       pm.execute_notebook(
           input_path='%s.ipynb' % self._test_name,
           output_path='%s.ipynb' % self._test_name,
@@ -144,24 +150,38 @@ class SampleTest(object):
     pass
 
   def run_test(self):
-    self._compile()
-    self._injection()
+    # TODO(numerology): ad hoc logic for TFX::OSS sample
+    if self._test_name != 'parameterized_tfx_oss':
+      self._compile()
+      self._injection()
+
+    # Overriding the experiment name of pipeline runs
+    experiment_name = self._test_name + '-test'
+    os.environ['KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'] = experiment_name
+
     if self._is_notebook:
       nbchecker = NoteBookChecker(testname=self._test_name,
                                   result=self._sample_test_result,
-                                  run_pipeline=self._run_pipeline)
+                                  run_pipeline=self._run_pipeline,
+                                  experiment_name=experiment_name,
+      )
       nbchecker.run()
       os.chdir(TEST_DIR)
       nbchecker.check()
     else:
       os.chdir(TEST_DIR)
+      if self._test_name != 'parameterized_tfx_oss':
+        input_file = os.path.join(self._work_dir, '%s.yaml' % self._test_name)
+      else:
+        input_file = os.path.join(self._work_dir, '%s.tar.gz' % self._test_name)
+
       pysample_checker = PySampleChecker(testname=self._test_name,
-                                         input=os.path.join(
-                                             self._work_dir,
-                                             '%s.yaml' % self._test_name),
+                                         input=input_file,
                                          output=self._sample_test_output,
                                          result=self._sample_test_result,
-                                         namespace=self._namespace)
+                                         namespace=self._namespace,
+                                         experiment_name=experiment_name,
+      )
       pysample_checker.run()
       pysample_checker.check()
 
@@ -175,14 +195,7 @@ class ComponentTest(SampleTest):
   include xgboost_training_cm
   """
   def __init__(self, test_name, results_gcs_dir,
-               dataproc_create_cluster_image,
-               dataproc_delete_cluster_image,
-               dataproc_analyze_image,
-               dataproc_transform_image,
-               dataproc_train_image,
-               dataproc_predict_image,
-               kubeflow_dnntrainer_image,
-               kubeflow_deployer_image,
+               dataproc_gcp_image,
                local_confusionmatrix_image,
                local_roc_image,
                target_image_prefix='',
@@ -193,16 +206,9 @@ class ComponentTest(SampleTest):
         target_image_prefix=target_image_prefix,
         namespace=namespace
     )
-    self._dataproc_create_cluster_image = dataproc_create_cluster_image
-    self._dataproc_delete_cluster_image = dataproc_delete_cluster_image
-    self._dataproc_analyze_image = dataproc_analyze_image
-    self._dataproc_transform_image = dataproc_transform_image
-    self._dataproc_train_image = dataproc_train_image
-    self._dataproc_predict_image = dataproc_predict_image
-    self._kubeflow_dnntrainer_image = kubeflow_dnntrainer_image
-    self._kubeflow_deployer_image = kubeflow_deployer_image
     self._local_confusionmatrix_image = local_confusionmatrix_image
     self._local_roc_image = local_roc_image
+    self._dataproc_gcp_image = dataproc_gcp_image
 
   def _injection(self):
     """Sample-specific image injection into yaml file."""
@@ -212,12 +218,7 @@ class ComponentTest(SampleTest):
     }
     if self._test_name == 'xgboost_training_cm':
       subs.update({
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-create-cluster:\w+':self._dataproc_create_cluster_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-delete-cluster:\w+':self._dataproc_delete_cluster_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-analyze:\w+':self._dataproc_analyze_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-transform:\w+':self._dataproc_transform_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-train:\w+':self._dataproc_train_image,
-          'gcr\.io/ml-pipeline/ml-pipeline-dataproc-predict:\w+':self._dataproc_predict_image,
+          'gcr\.io/ml-pipeline/ml-pipeline-gcp:\w+':self._dataproc_gcp_image
       })
 
       utils.file_injection('%s.yaml' % self._test_name,

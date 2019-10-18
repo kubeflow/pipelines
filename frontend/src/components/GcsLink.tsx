@@ -9,7 +9,11 @@ export const GcsLink: React.FC<{ gcsUri?: string }> = ({ gcsUri }) => {
   const gcsConsoleUri = gcsUri ? generateGcsConsoleUri(gcsUri) : undefined;
   if (gcsConsoleUri) {
     // Opens in new window safely
-    return <a href={gcsConsoleUri} target={'_blank'} rel={'noreferrer noopener'}>{gcsUri}</a>;
+    return (
+      <a href={gcsConsoleUri} target={'_blank'} rel={'noreferrer noopener'}>
+        {gcsUri}
+      </a>
+    );
   } else {
     return <>{gcsUri}</>;
   }

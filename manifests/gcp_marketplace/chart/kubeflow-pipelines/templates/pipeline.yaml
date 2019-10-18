@@ -624,11 +624,7 @@ spec:
             # Following environment variables are only needed when using Cloud SQL and GCS.
             {{ if .Values.managedstorage.enabled }}
             - name: OBJECTSTORECONFIG_BUCKETNAME
-              {{ if .Values.managedstorage.databaseNamePrefix }}
-              value: '{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Values.managedstorage.databaseNamePrefix | replace ":" "-" | trunc 50 }}'
-              {{ else }}
-              value: '{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Release.Name | replace ":" "-" | trunc 50 }}'
-              {{ end }}
+              value: '{{ tpl .Values.managedstorage.gcsBucketName . }}'
             - name: DBCONFIG_DBNAME
               {{ if .Values.managedstorage.databaseNamePrefix }}
               value: '{{ .Values.managedstorage.databaseNamePrefix }}_pipeline'

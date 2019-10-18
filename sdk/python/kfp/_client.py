@@ -20,8 +20,9 @@ import os
 import re
 import tarfile
 import tempfile
-import zipfile
+import warnings
 import yaml
+import zipfile
 from datetime import datetime
 from typing import Mapping, Callable
 
@@ -64,6 +65,8 @@ def _add_generated_apis(target_struct, api_module, api_client):
 
 KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
 KF_PIPELINES_UI_ENDPOINT_ENV = 'KF_PIPELINES_UI_ENDPOINT'
+KF_PIPELINES_DEFAULT_EXPERIMENT_NAME = 'KF_PIPELINES_DEFAULT_EXPERIMENT_NAME'
+KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME = 'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'
 
 class Client(object):
   """ API Client for KubeFlow Pipeline.
@@ -142,12 +145,14 @@ class Client(object):
 
   def _is_iap_host(self, host, client_id):
     if host and client_id:
-      return re.match(r'\S+.endpoints.\S+.cloud.goog', host)
+      if re.match(r'\S+.endpoints.\S+.cloud.goog/{0,1}$', host):
+        warnings.warn('Suffix /pipeline is not ignorable for IAP host.')
+      return re.match(r'\S+.endpoints.\S+.cloud.goog/pipeline', host)
     return False
 
   def _is_inverse_proxy_host(self, host):
     if host:
-      return re.match(r'\S+dot-datalab-vm\S+.googleusercontent.com', host)
+      return re.match(r'\S+dot-datalab-vm\S+.googleusercontent.com/{0,1}$', host)
     return False
 
   def _is_ipython(self):
@@ -358,14 +363,19 @@ class Client(object):
 
       def wait_for_run_completion(self, timeout=None):
         timeout = timeout or datetime.datetime.max - datetime.datetime.min
-        return self._client.wait_for_run_completion(timeout)
+        return self._client.wait_for_run_completion(self.run_id, timeout)
 
       def __str__(self):
         return '<RunPipelineResult(run_id={})>'.format(self.run_id)
 
     #TODO: Check arguments against the pipeline function
     pipeline_name = os.path.basename(pipeline_file)
-    experiment_name = experiment_name or 'Default'
+    experiment_name = experiment_name or os.environ.get(KF_PIPELINES_DEFAULT_EXPERIMENT_NAME, None)
+    overridden_experiment_name = os.environ.get(KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME, experiment_name)
+    if overridden_experiment_name != experiment_name:
+      import warnings
+      warnings.warn('Changing experiment name from "{}" to "{}".'.format(experiment_name, overridden_experiment_name))
+    experiment_name = overridden_experiment_name or 'Default'
     run_name = run_name or pipeline_name + ' ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     experiment = self.create_experiment(name=experiment_name)
     run_info = self.run_pipeline(experiment.id, run_name, pipeline_file, arguments)

@@ -15,11 +15,17 @@ images:
   metadataenvoy: gcr.io/ml-pipeline/google/pipelines/metadataenvoy:0.1.31
 
 gcpSecretName: "user-gcp-sa"
-serviceAccountCredential: null
+serviceAccountCredential: ""
 
 managedstorage:
   enabled: false
   cloudsqlInstanceConnectionName: null
+  # gcsBucketName should be determined by cloudsqlInstanceConnectionName to make
+  # sure user is always using a valid pair of connection name + gcs bucket name.
+  #
+  # gcsBucketName is used in two places, so I wrote a template string here that
+  # can be evaluated in each place.
+  gcsBucketName: '{{ if .Values.managedstorage.databaseNamePrefix }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Values.managedstorage.databaseNamePrefix | replace ":" "-" | trunc 50 }}{{ else }}{{ printf "%s-%s" .Values.managedstorage.cloudsqlInstanceConnectionName .Release.Name | replace ":" "-" | trunc 50 }}{{ end }}'
   databaseNamePrefix: null
   dbUsername: 'root'
   dbPassword: ''
