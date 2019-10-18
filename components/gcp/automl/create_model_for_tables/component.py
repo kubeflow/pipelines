@@ -35,13 +35,13 @@ def automl_create_model_for_tables(
     location_path = client.location_path(gcp_project_id, gcp_region)
     model_dict = {
         'display_name': display_name,
-        'dataset_id': dataset_id, 
+        'dataset_id': dataset_id,
         'tables_model_metadata': {
             'target_column_spec': automl.types.ColumnSpec(name=target_column_path),
             'input_feature_column_specs': [automl.types.ColumnSpec(name=path) for path in input_feature_column_paths] if input_feature_column_paths else None,
             'optimization_objective': optimization_objective,
             'train_budget_milli_node_hours': train_budget_milli_node_hours,
-        },  
+        },
     }
 
     create_model_response = client.create_model(location_path, model_dict)

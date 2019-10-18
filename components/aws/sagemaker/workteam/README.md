@@ -17,6 +17,7 @@ user_pool | An identifier for a user pool, which must be in the same region as t
 user_groups | An identifier for user groups separated by commas | No | String | | |
 client_id | An identifier for an application client, which you must create using Amazon Cognito | No | String | | |
 sns_topic | The AWS KMS key that Amazon SageMaker uses to encrypt the model artifacts | Yes | String | | |
+endpoint_url | The endpoint URL for the private link VPC endpoint. | Yes | Yes | String | | |
 tags | Key-value pairs to categorize AWS resources | Yes | Dict | | {} |
 
 Notes:

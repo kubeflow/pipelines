@@ -23,6 +23,10 @@ spec:
       parameters:
       - name: create-volume-name
     name: cop
+    volumes:
+    - name: create-volume
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-name}}'
   - name: create-volume
     outputs:
       parameters:
@@ -53,7 +57,3 @@ spec:
       - name: create-volume
         template: create-volume
     name: param-substitutions
-  volumes:
-  - name: create-volume
-    persistentVolumeClaim:
-      claimName: '{{inputs.parameters.create-volume-name}}'

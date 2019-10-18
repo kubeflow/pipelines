@@ -48,6 +48,10 @@ spec:
       - name: download-downloaded
         valueFrom:
           path: /tmp/results.txt
+    volumes:
+    - name: gcp-credentials
+      secret:
+        secretName: user-gcp-sa
   - container:
       args:
       - echo {{inputs.parameters.download-downloaded}}
@@ -72,7 +76,3 @@ spec:
         name: echo
         template: echo
     name: volume
-  volumes:
-  - name: gcp-credentials
-    secret:
-      secretName: user-gcp-sa

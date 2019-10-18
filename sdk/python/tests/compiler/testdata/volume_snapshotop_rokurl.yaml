@@ -133,6 +133,10 @@ spec:
       parameters:
       - name: create-volume-1-name
     name: step1-concat
+    volumes:
+    - name: create-volume-1
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-1-name}}'
   - container:
       command:
       - gunzip
@@ -146,6 +150,10 @@ spec:
       parameters:
       - name: create-volume-2-name
     name: step2-gunzip
+    volumes:
+    - name: create-volume-2
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-2-name}}'
   - container:
       command:
       - cat
@@ -158,6 +166,10 @@ spec:
       parameters:
       - name: create-volume-3-name
     name: step3-output
+    volumes:
+    - name: create-volume-3
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-3-name}}'
   - dag:
       tasks:
       - arguments:
@@ -232,13 +244,3 @@ spec:
       parameters:
       - name: rok-url
     name: volumesnapshotop-rokurl
-  volumes:
-  - name: create-volume-1
-    persistentVolumeClaim:
-      claimName: '{{inputs.parameters.create-volume-1-name}}'
-  - name: create-volume-2
-    persistentVolumeClaim:
-      claimName: '{{inputs.parameters.create-volume-2-name}}'
-  - name: create-volume-3
-    persistentVolumeClaim:
-      claimName: '{{inputs.parameters.create-volume-3-name}}'

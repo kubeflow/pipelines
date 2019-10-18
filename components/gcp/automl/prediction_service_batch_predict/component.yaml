@@ -1,59 +1,35 @@
+name: Automl prediction service batch predict
+inputs:
+- name: model_path
+- name: gcs_input_uris
+  type: String
+  optional: true
+- name: gcs_output_uri_prefix
+  type: String
+  optional: true
+- name: bq_input_uri
+  type: String
+  optional: true
+- name: bq_output_uri
+  type: String
+  optional: true
+- name: params
+  optional: true
+- name: retry
+  optional: true
+- name: timeout
+  optional: true
+- name: metadata
+  type: JsonObject
+  optional: true
+outputs:
+- name: gcs_output_directory
+  type: String
+- name: bigquery_output_dataset
+  type: String
 implementation:
   container:
-    args:
-    - --model-path
-    - inputValue: model_path
-    - if:
-        cond:
-          isPresent: gcs_input_uris
-        then:
-        - --gcs-input-uris
-        - inputValue: gcs_input_uris
-    - if:
-        cond:
-          isPresent: gcs_output_uri_prefix
-        then:
-        - --gcs-output-uri-prefix
-        - inputValue: gcs_output_uri_prefix
-    - if:
-        cond:
-          isPresent: bq_input_uri
-        then:
-        - --bq-input-uri
-        - inputValue: bq_input_uri
-    - if:
-        cond:
-          isPresent: bq_output_uri
-        then:
-        - --bq-output-uri
-        - inputValue: bq_output_uri
-    - if:
-        cond:
-          isPresent: params
-        then:
-        - --params
-        - inputValue: params
-    - if:
-        cond:
-          isPresent: retry
-        then:
-        - --retry
-        - inputValue: retry
-    - if:
-        cond:
-          isPresent: timeout
-        then:
-        - --timeout
-        - inputValue: timeout
-    - if:
-        cond:
-          isPresent: metadata
-        then:
-        - --metadata
-        - inputValue: metadata
-    - '----output-paths'
-    - outputPath: gcs_output_directory
-    - outputPath: bigquery_output_dataset
+    image: python:3.7
     command:
     - python3
     - -u
@@ -139,33 +115,57 @@ implementation:
               pass
           with open(output_file, 'w') as f:
               f.write(str(_outputs[idx]))
-    image: python:3.7
-inputs:
-- name: model_path
-- name: gcs_input_uris
-  optional: true
-  type: String
-- name: gcs_output_uri_prefix
-  optional: true
-  type: String
-- name: bq_input_uri
-  optional: true
-  type: String
-- name: bq_output_uri
-  optional: true
-  type: String
-- name: params
-  optional: true
-- name: retry
-  optional: true
-- name: timeout
-  optional: true
-- name: metadata
-  optional: true
-  type: JsonObject
-name: Automl prediction service batch predict
-outputs:
-- name: gcs_output_directory
-  type: String
-- name: bigquery_output_dataset
-  type: String
+    args:
+    - --model-path
+    - inputValue: model_path
+    - if:
+        cond:
+          isPresent: gcs_input_uris
+        then:
+        - --gcs-input-uris
+        - inputValue: gcs_input_uris
+    - if:
+        cond:
+          isPresent: gcs_output_uri_prefix
+        then:
+        - --gcs-output-uri-prefix
+        - inputValue: gcs_output_uri_prefix
+    - if:
+        cond:
+          isPresent: bq_input_uri
+        then:
+        - --bq-input-uri
+        - inputValue: bq_input_uri
+    - if:
+        cond:
+          isPresent: bq_output_uri
+        then:
+        - --bq-output-uri
+        - inputValue: bq_output_uri
+    - if:
+        cond:
+          isPresent: params
+        then:
+        - --params
+        - inputValue: params
+    - if:
+        cond:
+          isPresent: retry
+        then:
+        - --retry
+        - inputValue: retry
+    - if:
+        cond:
+          isPresent: timeout
+        then:
+        - --timeout
+        - inputValue: timeout
+    - if:
+        cond:
+          isPresent: metadata
+        then:
+        - --metadata
+        - inputValue: metadata
+    - '----output-paths'
+    - outputPath: gcs_output_directory
+    - outputPath: bigquery_output_dataset

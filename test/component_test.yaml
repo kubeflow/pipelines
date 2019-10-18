@@ -64,22 +64,8 @@ spec:
             value: "{{inputs.parameters.test-results-gcs-dir}}"
           - name: target-image-prefix
             value: "{{inputs.parameters.target-image-prefix}}"
-          - name: dataproc-create-cluster-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-create-cluster:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-delete-cluster-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-delete-cluster:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-analyze-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-analyze:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-transform-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-transform:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-train-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-train:{{inputs.parameters.commit-sha}}"
-          - name: dataproc-predict-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-dataproc-predict:{{inputs.parameters.commit-sha}}"
-          - name: kubeflow-dnntrainer-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-kubeflow-tf-trainer:{{inputs.parameters.commit-sha}}"
-          - name: kubeflow-deployer-image
-            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-kubeflow-deployer:{{inputs.parameters.commit-sha}}"
+          - name: gcp-image
+            value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-gcp:{{inputs.parameters.commit-sha}}"
           - name: local-confusionmatrix-image
             value: "{{inputs.parameters.component-image-prefix}}ml-pipeline-local-confusion-matrix:{{inputs.parameters.commit-sha}}"
           - name: local-roc-image
@@ -138,14 +124,7 @@ spec:
       parameters:
       - name: test-results-gcs-dir
       - name: target-image-prefix
-      - name: dataproc-create-cluster-image
-      - name: dataproc-delete-cluster-image
-      - name: dataproc-analyze-image
-      - name: dataproc-transform-image
-      - name: dataproc-train-image
-      - name: dataproc-predict-image
-      - name: kubeflow-dnntrainer-image
-      - name: kubeflow-deployer-image
+      - name: gcp-image
       - name: local-confusionmatrix-image
       - name: local-roc-image
       - name: sample-tests-image
@@ -157,14 +136,7 @@ spec:
         "component_test", "run_test",
         "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
         "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}",
-        "--dataproc-create-cluster-image","{{inputs.parameters.dataproc-create-cluster-image}}",
-        "--dataproc-delete-cluster-image","{{inputs.parameters.dataproc-delete-cluster-image}}",
-        "--dataproc-analyze-image","{{inputs.parameters.dataproc-analyze-image}}",
-        "--dataproc-transform-image","{{inputs.parameters.dataproc-transform-image}}",
-        "--dataproc-train-image","{{inputs.parameters.dataproc-train-image}}",
-        "--dataproc-predict-image","{{inputs.parameters.dataproc-predict-image}}",
-        "--kubeflow-dnntrainer-image","{{inputs.parameters.kubeflow-dnntrainer-image}}",
-        "--kubeflow-deployer-image","{{inputs.parameters.kubeflow-deployer-image}}",
+        "--gcp-image", "{{inputs.parameters.gcp-image}}",
         "--local-confusionmatrix-image", "{{inputs.parameters.local-confusionmatrix-image}}",
         "--local-roc-image", "{{inputs.parameters.local-roc-image}}",
         "--namespace", "{{inputs.parameters.namespace}}",

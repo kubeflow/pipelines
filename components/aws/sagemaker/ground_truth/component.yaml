@@ -77,6 +77,9 @@ inputs:
   - name: workforce_task_price
     description: 'The price that you pay for each task performed by a public worker in USD. Specify to the tenth fractions of a cent. Format as "0.000".'
     default: '0.000'
+  - name: endpoint_url
+    description: 'The endpoint URL for the private link VPC endpoint.'
+    default: ''
   - name: tags
     description: 'Key-value pairs to categorize AWS resources.'
     default: '{}'
@@ -85,11 +88,12 @@ outputs:
   - {name: active_learning_model_arn, description: 'The ARN for the most recent Amazon SageMaker model trained as part of automated data labeling.'}
 implementation:
   container:
-    image: carowang/kubeflow-pipeline-aws-sm:20190809-02
+    image: redbackthomson/aws-kubeflow-sagemaker:20191003
     command: ['python']
     args: [
       ground_truth.py,
       --region, {inputValue: region},
+      --endpoint_url, {inputValue: endpoint_url},
       --role, {inputValue: role},
       --job_name, {inputValue: job_name},
       --label_attribute_name, {inputValue: label_attribute_name},

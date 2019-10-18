@@ -17,7 +17,7 @@ import unittest
 from kubernetes.client.models import V1EnvVar, V1VolumeMount
 
 import kfp
-from kfp.dsl import ContainerOp, UserContainer, Sidecar
+from kfp.dsl import ContainerOp, UserContainer, Sidecar, PipelineVolume
 
 
 class TestContainerOp(unittest.TestCase):
@@ -89,3 +89,12 @@ class TestContainerOp(unittest.TestCase):
       op.add_volume_mount(V1VolumeMount(
         mount_path='/secret/gcp-credentials',
         name='gcp-credentials'))
+
+
+  def test_add_pvolumes(self):
+    pvolume = PipelineVolume(pvc='test')
+    op = ContainerOp(name='op1', image='image', pvolumes={'/mnt': pvolume})
+
+    self.assertEqual(pvolume.dependent_names, [])
+    self.assertEqual(op.pvolume.dependent_names, [op.name])
+    self.assertEqual(op.volumes[0].dependent_names, [op.name])

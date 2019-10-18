@@ -28,7 +28,6 @@ def fix_big_data_passing(workflow: dict) -> dict:
 
     workflow = copy.deepcopy(workflow)
     templates = workflow['spec']['templates']
-    volume_map = {volume['name']: volume for volume in workflow['spec'].get('volumes', [])}
 
     container_templates = [template for template in workflow['spec']['templates'] if 'container' in template]
     dag_templates = [template for template in workflow['spec']['templates'] if 'dag' in template]
@@ -125,6 +124,7 @@ def fix_big_data_passing(workflow: dict) -> dict:
     # Searching for parameter input consumers in DAG templates (.when, .withParam, etc)
     for template in dag_templates:
         template_name = template['name']
+        dag_tasks = template['dag']['tasks']
         task_name_to_template_name = {task['name']: task['template'] for task in dag_tasks}
         for task in template['dag']['tasks']:
             # We do not care about the inputs mentioned in task arguments since we will be free to switch them from parameters to artifacts
@@ -142,10 +142,10 @@ def fix_big_data_passing(workflow: dict) -> dict:
                     else:
                         raise AssertionError
                 elif placeholder_type == 'tasks':
-                    upstream_task_name = argument_placeholder_parts[1]
-                    assert argument_placeholder_parts[2] == 'outputs'
-                    assert argument_placeholder_parts[3] == 'parameters'
-                    upstream_output_name = argument_placeholder_parts[4]
+                    upstream_task_name = parts[1]
+                    assert parts[2] == 'outputs'
+                    assert parts[3] == 'parameters'
+                    upstream_output_name = parts[4]
                     upstream_template_name = task_name_to_template_name[upstream_task_name]
                     outputs_directly_consumed_as_parameters.add((upstream_template_name, upstream_output_name))
                 elif placeholder_type == 'workflow' or placeholder_type == 'pod':
@@ -157,20 +157,6 @@ def fix_big_data_passing(workflow: dict) -> dict:
 
     # Searching for parameter input consumers in container and resource templates
     for template in container_templates + resource_templates:
-        # Hack for volumes: Prior to Argo 2.3.0, it was only possible to add volumes globally on the workflow level instead of at template level.
-        # When VolumeOps were added, the generated structures became hacky since the workflow-level volumes cound now contain template-level input references.
-        # Here we virtually add volumes back to the template to analyze the input references.
-        # To properly fix this the compiler should move volumes to templates.
-        # TODO: Fix the compiler and remove this hack
-        if 'container' in template:
-            template = copy.deepcopy(template)
-            template_volumes = template.setdefault('volumes', [])
-            for volume_mount in template['container'].get('volumeMounts', []):
-                volume_name = volume_mount['name']
-                if volume_name in volume_map:
-                    template_volumes.append(volume_map[volume_name])
-        # End hack
-
         template_name = template['name']
         placeholders = extract_all_placeholders(template)
         for placeholder in placeholders:
@@ -328,9 +314,11 @@ def fix_big_data_passing(workflow: dict) -> dict:
     for parameter_argument in parameter_arguments:
         input_name = parameter_argument['name']
         if (entrypoint_template_name, input_name) in inputs_consumed_as_artifacts:
-            artifact_arguments.add({
+            artifact_arguments.append({
                 'name': input_name,
-                'raw': '{{workflow.parameters.' + input_name + '}}'
+                'raw': {
+                    'data': '{{workflow.parameters.' + input_name + '}}',
+                },
             })
     if artifact_arguments:
         workflow_arguments['artifacts'] = artifact_arguments

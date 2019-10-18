@@ -40,8 +40,12 @@ vpc_security_group_ids | The VPC security group IDs, in the form sg-xxxxxxxx | Y
 vpc_subnets | The ID of the subnets in the VPC to which you want to connect your hpo job | Yes | Yes | String | | |
 network_isolation | Isolates the training container if true | Yes | No | Boolean | False, True | True |
 traffic_encryption | Encrypts all communications between ML compute instances in distributed training if true | Yes | No | Boolean | False, True | False |
+spot_instance | Use managed spot training if true | Yes | No | Boolean | False, True | False |
+max_wait_time | The maximum time in seconds you are willing to wait for a managed spot training job to complete | Yes | Yes | Int | ≤ 432000 (5 days) | 86400 (1 day) |
+checkpoint_config | Dictionary of information about the output location for managed spot training checkpoint data | Yes | Yes | Dict | | {} |
 warm_start_type | Specifies the type of warm start used | Yes | No | String | IdenticalDataAndAlgorithm, TransferLearning | |
 parent_hpo_jobs | List of previously completed or stopped hyperparameter tuning jobs to be used as a starting point | Yes | Yes | String | Yes | | |
+endpoint_url | The endpoint URL for the private link VPC endpoint. | Yes | Yes | String | | |
 tags | Key-value pairs to categorize AWS resources | Yes | Yes | Dict | | {} |
 
 Notes:
@@ -53,6 +57,7 @@ Notes:
 ## Outputs
 Name | Description
 :--- | :----------
+hpo_job_name | The name of the hyper parameter tuning job
 model_artifact_url | URL where model artifacts were stored
 best_job_name | Best hyperparameter tuning training job name
 best_hyperparameters | Tuned hyperparameters

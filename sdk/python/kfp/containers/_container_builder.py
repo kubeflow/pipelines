@@ -64,15 +64,17 @@ class ContainerBuilder(object):
     self._gcs_staging = gcs_staging
     self._gcs_staging_checked = False
     self._default_image_name = gcr_image_tag
-
-    # Configure the namespace
     self._namespace = namespace
-    if namespace is None:
+
+  def _get_namespace(self):
+    if self._namespace is None:
+      # Configure the namespace
       if os.path.exists(SERVICEACCOUNT_NAMESPACE):
         with open(SERVICEACCOUNT_NAMESPACE, 'r') as f:
           self._namespace = f.read()
       else:
         self._namespace = 'kubeflow'
+    return self._namespace
 
   def _get_staging_location(self):
     if self._gcs_staging_checked:
@@ -114,7 +116,7 @@ class ContainerBuilder(object):
         'apiVersion': 'v1',
         'metadata': {
             'generateName': 'kaniko-',
-            'namespace': self._namespace,
+            'namespace': self._get_namespace(),
             'annotations': {
                 'sidecar.istio.io/inject': 'false'
             },
@@ -181,7 +183,7 @@ class ContainerBuilder(object):
                                                docker_filename=docker_filename,
                                                target_image=target_image)
       logging.info('Start a kaniko job for build.')
-      from ._k8s_helper import K8sHelper
+      from ..compiler._k8s_helper import K8sHelper
       k8s_helper = K8sHelper()
       result_pod_obj = k8s_helper.run_job(kaniko_spec, timeout)
       logging.info('Kaniko job complete.')

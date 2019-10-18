@@ -17,7 +17,7 @@ from ..dsl._container_op import BaseOp, ContainerOp
 def add_pod_env(op: BaseOp) -> BaseOp:
     """Adds pod environment info to ContainerOp.
     """
-    if isinstance(op, ContainerOp) and op.pod_labels and op.pod_labels['add-pod-env'] == 'true':
+    if isinstance(op, ContainerOp) and op.pod_labels and 'add-pod-env' in op.pod_labels and op.pod_labels['add-pod-env'] == 'true':
         from kubernetes import client as k8s_client
         op.container.add_env_variable(
             k8s_client.V1EnvVar(

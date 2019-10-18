@@ -16,12 +16,13 @@ import json
 
 from common import _utils
 
-def main(argv=None):
+def create_parser():
   parser = argparse.ArgumentParser(description='SageMaker Hyperparameter Tuning Job')
-  parser.add_argument('--region', type=str.strip, required=True, help='The region where the cluster launches.')
+  _utils.add_default_client_arguments(parser)
+  
   parser.add_argument('--job_name', type=str.strip, required=False, help='The name of the tuning job. Must be unique within the same AWS account and AWS region.')
   parser.add_argument('--role', type=str.strip, required=True, help='The Amazon Resource Name (ARN) that Amazon SageMaker assumes to perform tasks on your behalf.')
-  parser.add_argument('--image', type=str.strip, required=False, help='The registry path of the Docker image that contains the training algorithm.', default='')
+  parser.add_argument('--image', type=str.strip, required=True, help='The registry path of the Docker image that contains the training algorithm.', default='')
   parser.add_argument('--algorithm_name', type=str.strip, required=False, help='The name of the resource algorithm to use for the hyperparameter tuning job.', default='')
   parser.add_argument('--training_input_mode', choices=['File', 'Pipe'], type=str.strip, required=False, help='The input mode that the algorithm supports. File or Pipe.', default='File')
   parser.add_argument('--metric_definitions', type=_utils.str_to_json_dict, required=False, help='The dictionary of name-regex pairs specify the metrics that the algorithm emits.', default='{}')
@@ -59,12 +60,23 @@ def main(argv=None):
   parser.add_argument('--traffic_encryption', type=_utils.str_to_bool, required=False, help='Encrypts all communications between ML compute instances in distributed training.', default=False)
   parser.add_argument('--warm_start_type', choices=['IdenticalDataAndAlgorithm', 'TransferLearning', ''], type=str.strip, required=False, help='Specifies either "IdenticalDataAndAlgorithm" or "TransferLearning"')
   parser.add_argument('--parent_hpo_jobs', type=str.strip, required=False, help='List of previously completed or stopped hyperparameter tuning jobs to be used as a starting point.', default='')
+
+  ### Start spot instance support
+  parser.add_argument('--spot_instance', type=_utils.str_to_bool, required=False, help='Use managed spot training.', default=False)
+  parser.add_argument('--max_wait_time', type=_utils.str_to_int, required=False, help='The maximum time in seconds you are willing to wait for a managed spot training job to complete.', default=86400)
+  parser.add_argument('--checkpoint_config', type=_utils.str_to_json_dict, required=False, help='Dictionary of information about the output location for managed spot training checkpoint data.', default='{}')
+  ### End spot instance support
+
   parser.add_argument('--tags', type=_utils.str_to_json_dict, required=False, help='An array of key-value pairs, to categorize AWS resources.', default='{}')
 
+  return parser
+
+def main(argv=None):
+  parser = create_parser()
   args = parser.parse_args()
 
   logging.getLogger().setLevel(logging.INFO)
-  client = _utils.get_client(args.region)
+  client = _utils.get_sagemaker_client(args.region)
   logging.info('Submitting HyperParameter Tuning Job request to SageMaker...')
   hpo_job_name = _utils.create_hyperparameter_tuning_job(client, vars(args))
   logging.info('HyperParameter Tuning Job request submitted. Waiting for completion...')
@@ -75,6 +87,8 @@ def main(argv=None):
 
   logging.info('HyperParameter Tuning Job completed.')
 
+  with open('/tmp/hpo_job_name.txt', 'w') as f:
+    f.write(hpo_job_name)
   with open('/tmp/best_job_name.txt', 'w') as f:
     f.write(best_job)
   with open('/tmp/best_hyperparameters.txt', 'w') as f:

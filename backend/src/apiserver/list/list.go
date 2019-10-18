@@ -51,6 +51,8 @@ type token struct {
 	KeyFieldValue interface{}
 	// IsDesc is true if the sorting order should be descending.
 	IsDesc bool
+	// ModelName is the table where ***FieldName belongs to.
+	ModelName string
 	// Filter represents the filtering that should be applied in the query.
 	Filter *filter.Filter
 }
@@ -125,7 +127,9 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filterProto *api
 		return nil, err
 	}
 
-	token := &token{KeyFieldName: listable.PrimaryKeyColumnName()}
+	token := &token{
+		KeyFieldName: listable.PrimaryKeyColumnName(),
+		ModelName:    listable.GetModelName()}
 
 	// Ignore the case of the letter. Split query string by space.
 	queryList := strings.Fields(strings.ToLower(sortBy))
@@ -177,15 +181,23 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBu
 // containing these.
 func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	// If next row's value is specified, set those values in the clause.
+	var modelNamePrefix string
+	if len(o.ModelName) == 0 {
+		modelNamePrefix = ""
+	} else {
+		modelNamePrefix = o.ModelName + "."
+	}
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Lt{o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.LtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{sq.Lt{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{sq.Eq{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.LtOrEq{modelNamePrefix + o.KeyFieldName: o.KeyFieldValue}}})
 		} else {
 			sqlBuilder = sqlBuilder.
-				Where(sq.Or{sq.Gt{o.SortByFieldName: o.SortByFieldValue},
-					sq.And{sq.Eq{o.SortByFieldName: o.SortByFieldValue}, sq.GtOrEq{o.KeyFieldName: o.KeyFieldValue}}})
+				Where(sq.Or{sq.Gt{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.And{sq.Eq{modelNamePrefix + o.SortByFieldName: o.SortByFieldValue},
+						sq.GtOrEq{modelNamePrefix + o.KeyFieldName: o.KeyFieldValue}}})
 		}
 	}
 
@@ -194,8 +206,8 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 		order = "DESC"
 	}
 	sqlBuilder = sqlBuilder.
-		OrderBy(fmt.Sprintf("%v %v", o.SortByFieldName, order)).
-		OrderBy(fmt.Sprintf("%v %v", o.KeyFieldName, order))
+		OrderBy(fmt.Sprintf("%v %v", modelNamePrefix+o.SortByFieldName, order)).
+		OrderBy(fmt.Sprintf("%v %v", modelNamePrefix+o.KeyFieldName, order))
 
 	return sqlBuilder
 }
@@ -258,6 +270,8 @@ type Listable interface {
 	// APIToModelFieldMap returns a map from field names in the API representation
 	// of the model to its corresponding field name in the model itself.
 	APIToModelFieldMap() map[string]string
+	// GetModelName returns table name used as sort field prefix.
+	GetModelName() string
 }
 
 // NextPageToken returns a string that can be used to fetch the subsequent set
@@ -292,6 +306,7 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 		KeyFieldValue:    keyField.Interface(),
 		IsDesc:           o.IsDesc,
 		Filter:           o.Filter,
+		ModelName:        o.ModelName,
 	}, nil
 }
 
