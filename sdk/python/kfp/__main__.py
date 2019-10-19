@@ -17,7 +17,10 @@ from .cli.cli import main
 # TODO(hongyes): add more commands:
 # kfp compile (migrate from dsl-compile)
 # kfp experiment (manage experiments)
-# kfp pipeline (manage pipelines)
+
+# TODO: kfp pipeline delete
+# Calling client._pipelines_api.delete_pipeline(id=pipeline_id) throws
+# exception: module 'kfp_server_api.models' has no attribute 'ERRORUNKNOWN'
 
 if __name__ == '__main__':
     main()

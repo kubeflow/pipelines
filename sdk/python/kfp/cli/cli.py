@@ -13,8 +13,11 @@
 # limitations under the License.
 
 import click
+import logging
+import sys
 from .._client import Client
 from .run import run
+from .pipeline import pipeline
 
 @click.group()
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
@@ -27,5 +30,11 @@ def cli(ctx, endpoint, iap_client_id, namespace):
     ctx.obj['namespace']= namespace
 
 def main():
+    logging.basicConfig(format='%(message)s', level=logging.INFO)
     cli.add_command(run)
-    cli(obj={}, auto_envvar_prefix='KFP')
+    cli.add_command(pipeline)
+    try:
+        cli(obj={}, auto_envvar_prefix='KFP')
+    except Exception as e:
+        logging.error(e)
+        sys.exit(1)
