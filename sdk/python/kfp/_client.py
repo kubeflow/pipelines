@@ -365,8 +365,8 @@ class Client(object):
         timeout = timeout or datetime.datetime.max - datetime.datetime.min
         return self._client.wait_for_run_completion(self.run_id, timeout)
 
-      def __str__(self):
-        return '<RunPipelineResult(run_id={})>'.format(self.run_id)
+      def __repr__(self):
+        return 'RunPipelineResult(run_id={})'.format(self.run_id)
 
     #TODO: Check arguments against the pipeline function
     pipeline_name = os.path.basename(pipeline_file)
