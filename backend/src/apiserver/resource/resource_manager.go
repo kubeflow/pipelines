@@ -938,3 +938,18 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 
 	return nil
 }
+
+func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, error) {
+	// Verify pipeline version exist
+	_, err := r.pipelineStore.GetPipelineVersion(versionId)
+	if err != nil {
+		return nil, util.Wrap(err, "Get pipeline version template failed")
+	}
+
+	template, err := r.objectStore.GetFile(storage.CreatePipelinePath(fmt.Sprint(versionId)))
+	if err != nil {
+		return nil, util.Wrap(err, "Get pipeline version template failed")
+	}
+
+	return template, nil
+}
