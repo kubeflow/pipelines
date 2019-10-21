@@ -9,6 +9,7 @@ PyJWT>=1.6.4
 cryptography>=2.4.2
 google-auth>=1.6.1
 requests_toolbelt>=0.8.0
+cloudpickle==1.1.1
 kfp-server-api >= 0.1.18, < 0.1.19
 argo-models == 2.2.1a
 jsonschema >= 3.0.1
