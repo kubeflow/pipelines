@@ -89,6 +89,9 @@ export const css = stylesheet({
     fontWeight: 'bold',
     letterSpacing: 0.25,
     marginRight: 20,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
   emptyMessage: {
     padding: 20,
@@ -316,14 +319,15 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
         {/* Header */}
         <div className={classes(css.header, this.props.disableSelection && padding(20, 'l'))}>
-          <HeaderRowSelectionSection
-            disableSelection={this.props.disableSelection}
-            useRadioButtons={this.props.useRadioButtons}
-            showExpandButton={!!this.props.getExpandComponent}
-            isSelected={!!numSelected && numSelected === this.props.rows.length}
-            indeterminate={!!numSelected && numSelected < this.props.rows.length}
-            onSelectAll={this.handleSelectAllClick.bind(this)}
-          />
+          {// Called as function to avoid breaking shallow rendering tests.
+          HeaderRowSelectionSection({
+            disableSelection: this.props.disableSelection,
+            useRadioButtons: this.props.useRadioButtons,
+            showExpandButton: !!this.props.getExpandComponent,
+            isSelected: !!numSelected && numSelected === this.props.rows.length,
+            indeterminate: !!numSelected && numSelected < this.props.rows.length,
+            onSelectAll: this.handleSelectAllClick.bind(this),
+          })}
           {this.props.columns.map((col, i) => {
             const isColumnSortable = !!this.props.columns[i].sortKey;
             const isCurrentSortColumn = sortBy === this.props.columns[i].sortKey;
@@ -331,8 +335,12 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               <div
                 key={i}
                 style={{ width: widths[i] + '%' }}
-                className={classes(css.columnName, css.cell)}
-                title={col.label}
+                className={css.columnName}
+                title={
+                  // Browser shows an info popup on hover.
+                  // It helps when there's not enough space for full text.
+                  col.label
+                }
               >
                 {this.props.disableSorting === true && col.label}
                 {!this.props.disableSorting && (
@@ -398,14 +406,15 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   )}
                   onClick={e => this.handleClick(e, row.id)}
                 >
-                  <BodyRowSelectionSection
-                    disableSelection={this.props.disableSelection}
-                    useRadioButtons={this.props.useRadioButtons}
-                    showExpandButton={!!this.props.getExpandComponent}
-                    isSelected={this.isSelected(row.id)}
-                    expandState={row.expandState}
-                    onExpand={e => this._expandButtonToggled(e, i)}
-                  />
+                  {// Called as function to avoid breaking shallow rendering tests.
+                  BodyRowSelectionSection({
+                    disableSelection: this.props.disableSelection,
+                    useRadioButtons: this.props.useRadioButtons,
+                    showExpandButton: !!this.props.getExpandComponent,
+                    isSelected: this.isSelected(row.id),
+                    expandState: row.expandState,
+                    onExpand: e => this._expandButtonToggled(e, i),
+                  })}
                   <CustomTableRow row={row} columns={this.props.columns} />
                 </div>
                 {row.expandState === ExpandState.EXPANDED && this.props.getExpandComponent && (
