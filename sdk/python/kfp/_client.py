@@ -365,8 +365,8 @@ class Client(object):
         timeout = timeout or datetime.datetime.max - datetime.datetime.min
         return self._client.wait_for_run_completion(self.run_id, timeout)
 
-      def __str__(self):
-        return '<RunPipelineResult(run_id={})>'.format(self.run_id)
+      def __repr__(self):
+        return 'RunPipelineResult(run_id={})'.format(self.run_id)
 
     #TODO: Check arguments against the pipeline function
     pipeline_name = os.path.basename(pipeline_file)
@@ -455,3 +455,14 @@ class Client(object):
       html = 'Pipeline link <a href=%s/#/pipelines/details/%s>here</a>' % (self._get_url_prefix(), response.id)
       IPython.display.display(IPython.display.HTML(html))
     return response
+
+  def get_pipeline(self, pipeline_id):
+    """Get pipeline details.
+    Args:
+      id of the pipeline.
+    Returns:
+      A response object including details of a pipeline.
+    Throws:
+      Exception if pipeline is not found.
+    """
+    return self._pipelines_api.get_pipeline(id=pipeline_id)
