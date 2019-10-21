@@ -322,11 +322,11 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
           {// Called as function to avoid breaking shallow rendering tests.
           HeaderRowSelectionSection({
             disableSelection: this.props.disableSelection,
-            useRadioButtons: this.props.useRadioButtons,
-            showExpandButton: !!this.props.getExpandComponent,
-            isSelected: !!numSelected && numSelected === this.props.rows.length,
             indeterminate: !!numSelected && numSelected < this.props.rows.length,
+            isSelected: !!numSelected && numSelected === this.props.rows.length,
             onSelectAll: this.handleSelectAllClick.bind(this),
+            showExpandButton: !!this.props.getExpandComponent,
+            useRadioButtons: this.props.useRadioButtons,
           })}
           {this.props.columns.map((col, i) => {
             const isColumnSortable = !!this.props.columns[i].sortKey;
@@ -409,11 +409,11 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   {// Called as function to avoid breaking shallow rendering tests.
                   BodyRowSelectionSection({
                     disableSelection: this.props.disableSelection,
-                    useRadioButtons: this.props.useRadioButtons,
-                    showExpandButton: !!this.props.getExpandComponent,
-                    isSelected: this.isSelected(row.id),
                     expandState: row.expandState,
+                    isSelected: this.isSelected(row.id),
                     onExpand: e => this._expandButtonToggled(e, i),
+                    showExpandButton: !!this.props.getExpandComponent,
+                    useRadioButtons: this.props.useRadioButtons,
                   })}
                   <CustomTableRow row={row} columns={this.props.columns} />
                 </div>
@@ -600,9 +600,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
 interface SelectionSectionCommonProps {
   disableSelection?: boolean;
-  useRadioButtons?: boolean;
-  showExpandButton: boolean;
   isSelected: boolean;
+  showExpandButton: boolean;
+  useRadioButtons?: boolean;
 }
 
 interface HeaderRowSelectionSectionProps extends SelectionSectionCommonProps {
@@ -611,11 +611,11 @@ interface HeaderRowSelectionSectionProps extends SelectionSectionCommonProps {
 }
 const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
   disableSelection,
-  useRadioButtons,
-  showExpandButton,
-  isSelected,
   indeterminate,
+  isSelected,
   onSelectAll,
+  showExpandButton,
+  useRadioButtons,
 }) => {
   const nonEmpty = disableSelection !== true || showExpandButton;
   if (!nonEmpty) {
@@ -649,11 +649,11 @@ interface BodyRowSelectionSectionProps extends SelectionSectionCommonProps {
 }
 const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
   disableSelection,
-  useRadioButtons,
-  showExpandButton,
-  isSelected,
   expandState,
+  isSelected,
   onExpand,
+  showExpandButton,
+  useRadioButtons,
 }) => (
   <>
     {/* Expansion toggle button */}
