@@ -315,24 +315,15 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         )}
 
         {/* Header */}
-        <div
-          className={classes(
-            css.header,
-            (this.props.disableSelection || this.props.useRadioButtons) && padding(20, 'l'),
-          )}
-        >
-          {this.props.disableSelection !== true && this.props.useRadioButtons !== true && (
-            <div className={classes(css.columnName, css.cell, css.selectionToggle)}>
-              <Checkbox
-                indeterminate={!!numSelected && numSelected < this.props.rows.length}
-                color='primary'
-                checked={!!numSelected && numSelected === this.props.rows.length}
-                onChange={this.handleSelectAllClick.bind(this)}
-              />
-            </div>
-          )}
-          {/* Shift cells to account for expand button */}
-          {!!this.props.getExpandComponent && <Separator orientation='horizontal' units={40} />}
+        <div className={classes(css.header, this.props.disableSelection && padding(20, 'l'))}>
+          <HeaderRowSelectionSection
+            useRadioButtons={this.props.useRadioButtons}
+            disableSelection={this.props.disableSelection}
+            numSelected={numSelected}
+            rowCount={this.props.rows.length}
+            onSelectAll={this.handleSelectAllClick.bind(this)}
+            showExpandButton={!!this.props.getExpandComponent}
+          />
           {this.props.columns.map((col, i) => {
             const isColumnSortable = !!this.props.columns[i].sortKey;
             const isCurrentSortColumn = sortBy === this.props.columns[i].sortKey;
@@ -402,39 +393,15 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   )}
                   onClick={e => this.handleClick(e, row.id)}
                 >
-                  {/* Expansion toggle button */}
-                  {(this.props.disableSelection !== true || !!this.props.getExpandComponent) &&
-                    row.expandState !== ExpandState.NONE && (
-                      <div className={classes(css.cell, css.selectionToggle)}>
-                        {/* If using checkboxes */}
-                        {this.props.disableSelection !== true &&
-                          this.props.useRadioButtons !== true && (
-                            <Checkbox color='primary' checked={this.isSelected(row.id)} />
-                          )}
-                        {/* If using radio buttons */}
-                        {this.props.disableSelection !== true && this.props.useRadioButtons && (
-                          <Radio color='primary' checked={this.isSelected(row.id)} />
-                        )}
-                        {!!this.props.getExpandComponent && (
-                          <IconButton
-                            className={classes(
-                              css.expandButton,
-                              row.expandState === ExpandState.EXPANDED && css.expandButtonExpanded,
-                            )}
-                            onClick={e => this._expandButtonToggled(e, i)}
-                          >
-                            <ArrowRight />
-                          </IconButton>
-                        )}
-                      </div>
-                    )}
-
-                  {/* Placeholder for non-expandable rows */}
-                  {row.expandState === ExpandState.NONE && (
-                    <div className={css.expandButtonPlaceholder} />
-                  )}
-
-                  {<CustomTableRow row={row} columns={this.props.columns} />}
+                  <BodyRowSelectionSection
+                    disableSelection={this.props.disableSelection}
+                    expandState={row.expandState}
+                    isSelected={this.isSelected(row.id)}
+                    onExpand={e => this._expandButtonToggled(e, i)}
+                    showExpandButton={!!this.props.getExpandComponent}
+                    useRadioButtons={this.props.useRadioButtons}
+                  />
+                  <CustomTableRow row={row} columns={this.props.columns} />
                 </div>
                 {row.expandState === ExpandState.EXPANDED && this.props.getExpandComponent && (
                   <div>{this.props.getExpandComponent(i)}</div>
@@ -616,3 +583,82 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     }
   }
 }
+
+interface HeaderRowSelectionSectionProps {
+  disableSelection?: boolean;
+  useRadioButtons?: boolean;
+  showExpandButton: boolean;
+  numSelected?: number;
+  rowCount: number;
+  onSelectAll: (event: React.ChangeEvent) => void;
+}
+const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
+  disableSelection,
+  useRadioButtons,
+  showExpandButton,
+  numSelected,
+  rowCount,
+  onSelectAll,
+}) => (
+  <>
+    {disableSelection !== true && useRadioButtons !== true && (
+      <div className={classes(css.columnName, css.cell, css.selectionToggle)}>
+        <Checkbox
+          indeterminate={!!numSelected && numSelected < rowCount}
+          color='primary'
+          checked={!!numSelected && numSelected === rowCount}
+          onChange={onSelectAll}
+        />
+      </div>
+    )}
+    {/* Shift cells to account for expand button */}
+    {showExpandButton && <Separator orientation='horizontal' units={40} />}
+  </>
+);
+
+interface BodyRowSelectionSectionProps {
+  disableSelection?: boolean;
+  useRadioButtons?: boolean;
+  showExpandButton: boolean;
+  expandState?: ExpandState;
+  isSelected: boolean;
+  onExpand: React.MouseEventHandler;
+}
+const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
+  disableSelection,
+  useRadioButtons,
+  showExpandButton,
+  expandState,
+  isSelected,
+  onExpand,
+}) => (
+  <>
+    {/* Expansion toggle button */}
+    {(disableSelection !== true || showExpandButton) && expandState !== ExpandState.NONE && (
+      <div className={classes(css.cell, css.selectionToggle)}>
+        {/* If using checkboxes */}
+        {disableSelection !== true && useRadioButtons !== true && (
+          <Checkbox color='primary' checked={isSelected} />
+        )}
+        {/* If using radio buttons */}
+        {disableSelection !== true && useRadioButtons && (
+          <Radio color='primary' checked={isSelected} />
+        )}
+        {showExpandButton && (
+          <IconButton
+            className={classes(
+              css.expandButton,
+              expandState === ExpandState.EXPANDED && css.expandButtonExpanded,
+            )}
+            onClick={onExpand}
+          >
+            <ArrowRight />
+          </IconButton>
+        )}
+      </div>
+    )}
+
+    {/* Placeholder for non-expandable rows */}
+    {expandState === ExpandState.NONE && <div className={css.expandButtonPlaceholder} />}
+  </>
+);
