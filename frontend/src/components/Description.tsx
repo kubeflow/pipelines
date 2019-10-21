@@ -16,20 +16,37 @@
 
 import React from 'react';
 import Markdown from 'markdown-to-jsx';
+import { stylesheet } from 'typestyle';
+import { color } from '../Css';
 
 function preventEventBubbling(e: React.MouseEvent): void {
   e.stopPropagation();
 }
 
-const renderExternalLink = (props: {}) => <a
-  {...props}
-  target='_blank'
-  rel='noreferrer noopener'
-  onClick={preventEventBubbling}
-/>;
+const css = stylesheet({
+  link: {
+    $nest: {
+      '&:hover': {
+        textDecoration: 'underline',
+      },
+    },
+    color: color.theme,
+    textDecoration: 'none',
+  },
+});
+
+const renderExternalLink = (props: {}) => (
+  <a
+    {...props}
+    className={css.link}
+    target='_blank'
+    rel='noreferrer noopener'
+    onClick={preventEventBubbling}
+  />
+);
 
 const options = {
-  overrides: { 'a': { component: renderExternalLink } },
+  overrides: { a: { component: renderExternalLink } },
 };
 
 const optionsForceInline = {
@@ -37,6 +54,9 @@ const optionsForceInline = {
   forceInline: true,
 };
 
-export const Descriptoin: React.FC<{ description: string, forceInline?: boolean }> = ({ description, forceInline }) => {
+export const Descriptoin: React.FC<{ description: string; forceInline?: boolean }> = ({
+  description,
+  forceInline,
+}) => {
   return <Markdown options={forceInline ? optionsForceInline : options}>{description}</Markdown>;
 };
