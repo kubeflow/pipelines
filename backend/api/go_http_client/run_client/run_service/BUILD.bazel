@@ -1,0 +1,38 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "archive_run_parameters.go",
+        "archive_run_responses.go",
+        "create_run_parameters.go",
+        "create_run_responses.go",
+        "delete_run_parameters.go",
+        "delete_run_responses.go",
+        "get_run_parameters.go",
+        "get_run_responses.go",
+        "list_runs_parameters.go",
+        "list_runs_responses.go",
+        "read_artifact_parameters.go",
+        "read_artifact_responses.go",
+        "report_run_metrics_parameters.go",
+        "report_run_metrics_responses.go",
+        "retry_run_parameters.go",
+        "retry_run_responses.go",
+        "run_service_client.go",
+        "terminate_run_parameters.go",
+        "terminate_run_responses.go",
+        "unarchive_run_parameters.go",
+        "unarchive_run_responses.go",
+    ],
+    importpath = "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//backend/api/go_http_client/run_model:go_default_library",
+        "@com_github_go_openapi_errors//:go_default_library",
+        "@com_github_go_openapi_runtime//:go_default_library",
+        "@com_github_go_openapi_runtime//client:go_default_library",
+        "@com_github_go_openapi_strfmt//:go_default_library",
+        "@com_github_go_openapi_swag//:go_default_library",
+    ],
+)
