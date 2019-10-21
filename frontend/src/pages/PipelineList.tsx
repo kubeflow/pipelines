@@ -27,12 +27,17 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { formatDateString, errorToMessage } from '../lib/Utils';
+import { Descriptoin } from '../components/Description';
 
 interface PipelineListState {
   pipelines: ApiPipeline[];
   selectedIds: string[];
   uploadDialogOpen: boolean;
 }
+
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props: CustomRendererProps<string>) => {
+  return <Descriptoin description={props.value || ''} forceInline={true} />;
+};
 
 class PipelineList extends Page<{}, PipelineListState> {
   private _tableRef = React.createRef<CustomTable>();
@@ -73,7 +78,7 @@ class PipelineList extends Page<{}, PipelineListState> {
         label: 'Pipeline name',
         sortKey: PipelineSortKeys.NAME,
       },
-      { label: 'Description', flex: 3 },
+      { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
       { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
     ];
 
