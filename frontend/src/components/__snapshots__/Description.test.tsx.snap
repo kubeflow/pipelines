@@ -1,0 +1,99 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Description When in inline mode renders markdown link 1`] = `
+<a
+  class="link"
+  href="https://www.google.com"
+  rel="noreferrer noopener"
+  target="_blank"
+>
+  google
+</a>
+`;
+
+exports[`Description When in inline mode renders markdown list as pure text 1`] = `
+<span>
+  
+* abc
+* def
+</span>
+`;
+
+exports[`Description When in inline mode renders paragraphs separated by space 1`] = `
+<span>
+  
+Paragraph 1
+
+Paragraph 2
+
+</span>
+`;
+
+exports[`Description When in inline mode renders pure text 1`] = `
+<span>
+  this is a line of pure text
+</span>
+`;
+
+exports[`Description When in inline mode renders raw link 1`] = `
+<a
+  class="link"
+  href="https://www.google.com"
+  rel="noreferrer noopener"
+  target="_blank"
+>
+  https://www.google.com
+</a>
+`;
+
+exports[`Description When in normal mode renders empty string 1`] = `<span />`;
+
+exports[`Description When in normal mode renders markdown link 1`] = `
+<a
+  class="link"
+  href="https://www.google.com"
+  rel="noreferrer noopener"
+  target="_blank"
+>
+  google
+</a>
+`;
+
+exports[`Description When in normal mode renders markdown list as list 1`] = `
+<ul>
+  <li>
+    abc
+  </li>
+  <li>
+    def
+  </li>
+</ul>
+`;
+
+exports[`Description When in normal mode renders paragraphs 1`] = `
+<div>
+  <p>
+    Paragraph 1
+  </p>
+  <p>
+    Paragraph 2
+  </p>
+</div>
+`;
+
+exports[`Description When in normal mode renders pure text 1`] = `
+<span>
+  this is a line of pure text
+</span>
+`;
+
+exports[`Description When in normal mode renders raw link 1`] = `
+<a
+  class="link"
+  href="https://www.google.com"
+  rel="noreferrer noopener"
+  target="_blank"
+>
+  https://www.google.com
+</a>
+`;
